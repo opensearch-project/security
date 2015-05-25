@@ -1,17 +1,14 @@
 {
    "acl":[
-      {
-         "__Comment__":"Default is the '_default_' token. This means all users which can authenticate can login and all filters are executed for them",
-         "filters_bypass": [],
-         "filters_execute": []
-      },
-      {
-         "__Comment__":"",
-         "hosts": ["192.168*", "10.*"],
-         "filters_bypass": [],
-         "filters_execute": ["*"]
-      }
-      
-      
+         {
+            "filters_bypass": [],
+            "filters_execute": []
+         },
+         {
+            "__Comment__": "For the unauthenticated user all filters will be executed.",
+            "users": ["searchguard_unauthenticated_user"],
+            "filters_bypass": [],
+            "filters_execute": ["*"]
+         }
       ]
 }
