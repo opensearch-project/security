@@ -1,0 +1,122 @@
+dn: ou=people,o=TEST
+objectclass: organizationalUnit
+objectclass: top
+ou: people
+
+dn: ou=groups,o=TEST
+objectclass: organizationalUnit
+objectclass: top
+ou: groups
+
+dn: cn=Michael Jackson,ou=people,o=TEST
+objectclass: inetOrgPerson
+cn: Michael Jackson
+sn: jackson
+uid: jacksonm
+userpassword: secret
+mail: jacksonm@example.com
+description: cn=dummyempty,ou=groups,o=TEST
+ou: Human Resources
+
+dn: cn=Captain Spock,ou=people,o=TEST
+objectclass: inetOrgPerson
+cn: Captain Spock
+sn: spock
+uid: spock
+userpassword: spocksecret
+mail: spock@example.com
+description: vulcan
+ou: Human Resources
+
+dn: cn=ceo,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: ceo
+uniqueMember: cn=Michael Jackson,ou=people,o=TEST
+uniqueMember: cn=Captain Spock,ou=people,o=TEST
+uniqueMember: cn=hnelson,ou=people,o=TEST
+
+dn: cn=role2,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: role2
+uniqueMember: cn=Michael Jackson,ou=people,o=TEST
+uniqueMember: cn=nested1,ou=groups,o=TEST
+
+dn: cn=nested1,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: nested1
+uniqueMember: cn=nested2,ou=groups,o=TEST
+
+dn: cn=nested2,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: nested2
+uniqueMember: cn=Captain Spock,ou=people,o=TEST
+
+dn: cn=dummyempty,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: dummyempty
+uniqueMember: cn=krbtgt,ou=people,o=TEST
+
+dn: cn=hnelson,ou=people,o=TEST
+objectclass: inetOrgPerson
+objectclass: krb5principal
+objectclass: krb5kdcentry
+cn: hnelson
+sn: hnelson
+uid: hnelson
+userPassword: secret
+mail: hnelson@example.com
+description: krb user
+krb5PrincipalName: hnelson@EXAMPLE.COM
+krb5KeyVersionNumber: 0
+
+dn: cn=krbtgt,ou=people,o=TEST
+objectclass: inetOrgPerson
+objectclass: krb5principal
+objectclass: krb5kdcentry
+cn: krbtgt
+sn: krbtgt
+uid: krbtgt
+userpassword: secret
+mail: krbtgt@example.com
+description: krb user
+krb5PrincipalName: krbtgt/EXAMPLE.COM@EXAMPLE.COM
+krb5KeyVersionNumber: 0
+
+dn: cn=ldap,ou=people,o=TEST
+objectclass: inetOrgPerson
+objectclass: krb5principal
+objectclass: krb5kdcentry
+cn: ldap
+sn: ldap
+uid: ldap
+userpassword: randall
+mail: ldap@example.com
+description: krb user
+krb5PrincipalName: ldap/localhost@EXAMPLE.COM
+krb5KeyVersionNumber: 0
+
+dn: cn=http,ou=people,o=TEST
+objectclass: inetOrgPerson
+objectclass: krb5principal
+objectclass: krb5kdcentry
+cn: http
+sn: http
+uid: http
+userpassword: httppwd
+mail: http@example.com
+description: krb user
+krb5PrincipalName: HTTP/${hostname}@EXAMPLE.COM
+krb5KeyVersionNumber: 0
+
+dn: cn=httploc,ou=people,o=TEST
+objectclass: inetOrgPerson
+objectclass: krb5principal
+objectclass: krb5kdcentry
+cn: httploc
+sn: httploc
+uid: httploc
+userpassword: httppwd
+mail: httploc@example.com
+description: krb user
+krb5PrincipalName: HTTP/localhost@EXAMPLE.COM
+krb5KeyVersionNumber: 0

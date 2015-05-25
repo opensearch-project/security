@@ -1,0 +1,50 @@
+{
+    "acl": [
+        {
+            "__Comment__": "Global filters, so when no rule below match the requestor will get no token",
+            "filters_bypass": ["*"],
+            "filters_execute": ["schnupl.1"]
+        },
+        {
+            "hosts": [
+                "*"
+            ],
+            "users": [
+                "*"
+            ],
+            "roles": [
+                "*"
+            ],
+            "aliases": [
+                "*"
+            ],
+            "indices": [
+                "public"
+            ],
+            "filters_bypass": [],
+            "filters_execute": []
+        },
+        {
+            "roles": [
+                "admin",
+                "root"
+            ],
+            "filters_bypass": [],
+            "filters_execute": []
+        },
+        {
+            "users": [
+                "hnelson",
+                "jacksonm"
+            ],
+            "roles": [
+                "ceo"
+            ],
+            "aliases": [
+                "internal"
+            ],
+            "filters_bypass": [],
+            "filters_execute": []
+        }
+    ]
+}

@@ -1,0 +1,8 @@
+{
+   "acl":[
+      {
+         "__Comment__":"Default is the '_default_' token. This means all users which can authenticate can login and all filters are executed for them",
+         "filters_bypass": [],
+         "filters_execute": ["*"]
+      }]
+}

@@ -1,0 +1,85 @@
+{
+     "acl": [
+     {    
+         "__Comment__": "By default no filters are executed and no filters a by-passed. In such a case a exception is throws an access will be denied.",
+         "filters_bypass": [],
+         "filters_execute": []
+      },
+        {
+            "__Comment__": "For admin role all filters are bypassed (so none will be executed) for all indices. This means unrestricted access at all for this role.",
+            "roles": [
+                "admin"
+            ],
+            "filters_bypass": ["*"],
+            "filters_execute": []
+        },
+        {
+            "__Comment__": "For every authenticated user who access the index 'public' for this access all non dls and all non fls filters are executed.",
+            "indices": [
+                "public"
+            ],
+            "filters_bypass": ["dls.*","fls.*"],
+            "filters_execute": ["*"]
+        },
+        {
+        "__Comment__": "For marketing role all filters are bypassed (so none will be executed) for index 'marketing'. This means unrestricted access to this index for this role.",
+         "roles": ["marketing"],
+         "indices": [
+                "marketing"
+            ],
+            "filters_bypass": ["*"],
+            "filters_execute": []
+        },
+        {
+         "__Comment__": "For finance role all filters are bypassed (so none will be executed) for index 'finance'. This means unrestricted access to this index for this role.",
+         "roles": ["finance"],
+         "indices": [
+                "financ*"
+            ],
+            "filters_bypass": ["*"],
+            "filters_execute": []
+        },
+        {
+        "__Comment__": "For marketing role the filters 'flsfilter.filter_sensitive_finance' and 'actionrequestfilter.readonly' are executed (but no other filters) for index 'finance'",
+         "roles": ["marketing"],
+         "indices": [
+                "financ*"
+            ],
+            "filters_bypass": [],
+            "filters_execute": ["flsfilter.filter_sensitive_fina*","actionrequestfilter.readonly"]
+        },
+        {
+            "__Comment__": "For roles 'ceo' 'marketing' 'finance' all filters are bypassed (so none will be executed) for alias 'planning'. This means unrestricted access to this alias for this roles.",
+            "roles": [
+                "ce*o","marke*ing","*nanc*"
+            ],
+            "aliases": [
+                "planning"
+            ],
+            "filters_bypass": ["*"],
+            "filters_execute": []
+        },
+        {
+            "__Comment__": "For finance role the filters 'dlsfilter.filter_sensite_from_ceodata' and 'actionrequestfilter.readonly' are executed (but no other filters) for index 'ceodata'",
+            "roles": [
+                "finance"
+            ],
+            "indices": [
+                "ceodat*"
+            ],
+            "filters_bypass": [],
+            "filters_execute": ["dlsfilter.filter_sensitive_from_ceodata", "actionrequestfilter.readonly"]
+        },
+        {
+            "__Comment__": "For role 'ceo' all filters are bypassed (so none will be executed) for index 'ceodata'. This means unrestricted access to this index for this role.",
+            "roles": [
+                "ce*o"
+            ],
+            "indices": [
+                "ceodata"
+            ],
+            "filters_bypass": ["*"],
+            "filters_execute": []
+        }
+    ]
+}

@@ -1,0 +1,83 @@
+### Example 1
+# No SSL/TLS at all
+# No XFF
+# SettingsBasedAuthenticationBackend with caching enabled
+# SettingsBasedAuthorizator with caching enabled
+# HTTPBasicAuthenticator with sessions turned off
+# three sample users: spock, admin, michaeljackson with simple plaintext passwords and some roles
+# one simple readonly actionrequestfilter
+
+#####################################################
+# Settings based authentication (define users and password directly here in the settings. Note: this is per node)
+searchguard.authentication.settingsdb.user.spock: vulcan
+searchguard.authentication.settingsdb.user.admin: secret
+searchguard.authentication.settingsdb.user.michaeljackson: neverland
+#####################################################
+
+#####################################################
+# Settings based authorization (define users and their roles directly here in the settings. Note: this is per node)
+searchguard.authentication.authorization.settingsdb.roles.spock: ["kolinahr","starfleet","command"]
+searchguard.authentication.authorization.settingsdb.roles.admin: ["root"]
+searchguard.authentication.authorization.settingsdb.roles.michaeljackson: ["kingofpop","superstar"]
+#####################################################
+
+#############################################################################################
+#Below here you configure what authenticated and authorized users are allowed to do (or not)#
+#This maps to the acl defined in the searchguard configuration index                           #
+#############################################################################################
+
+# Configure the actionrequestfilter to allow or forbid action 
+searchguard.actionrequestfilter.names: ["readonly"]
+searchguard.actionrequestfilter.readonly.allowed_actions: ["indices:data/read/*", "*monitor*"]
+searchguard.actionrequestfilter.readonly.forbidden_actions: ["cluster:*", "indices:admin*"]
+
+
+curl -XPUT 'http://localhost:9200/searchguard/ac/ac?pretty' -d '
+{"acl": [
+    {
+      "__Comment__": "Default is to execute all filters",
+      "filters_bypass": [],
+      "filters_execute": ["*"]
+    },
+    {
+      "__Comment__": "Any authenticated user do anything on the 'public' index - no filter will be executed",
+      "indices": ["public"],
+      "filters_bypass": ["*"],
+      "filters_execute": []
+    },
+    {
+      "__Comment__": "This means any user with the role starfleet or command can do anything with the starfleetinfos index",
+      "roles" : ["starfleet", "command"],
+      "indices": ["starfleetinfos"],
+      "filters_bypass": ["*"],
+      "filters_execute": []
+    },
+    {
+      "__Comment__": "This means that every requestor (regardless of the requestors hostname and username) which has the root role can do anything",
+      "roles": [
+        "root"
+      ],
+      "filters_bypass": ["*"],
+      "filters_execute": []
+    },
+    {
+      "__Comment__": "This means that the user michaeljackson can do anything on index popstuff.",
+      "users": ["michaeljackson"],
+      "indices": ["popstuff"],
+      "filters_bypass": ["*"],
+      "filters_execute": []
+    },
+    {
+      "__Comment__": "This means that for the user spock on index popstuff only the actionrequestfilter.readonly will be executed, no other",
+      "users": ["spock"],
+      "indices": ["popstuff"],
+      "filters_bypass": [],
+      "filters_execute": ["actionrequestfilter.readonly"]
+    }
+    
+  ]}'
+
+
+
+
+

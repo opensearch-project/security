@@ -1,0 +1,10 @@
+{
+    "query" : {
+        "match_all" : {}
+    },
+    "partial_fields" : {
+        "partial1" : {
+            "include" : ["user", "structure.thesubfield2"]
+        }
+    }
+}

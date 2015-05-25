@@ -1,0 +1,46 @@
+{
+   "acl":[
+      {
+         "__Comment__":"Default is no token at all, so when no rule below match the requestor will get no token",
+         "filters_bypass": [],
+         "filters_execute": []
+      },
+      {
+         "hosts":[
+            "*"
+         ],
+         "users":[
+            "*"
+         ],
+         "roles":[
+            "*"
+         ],
+         "indices":[
+            "public"
+         ],
+         "filters_bypass": ["*"],
+         "filters_execute": []
+      },
+      {
+         "roles":[
+            "admin",
+            "root"
+         ],
+         "filters_bypass": ["*"],
+         "filters_execute": []
+      },
+      {
+         "users":[
+            "hnelson","jacksonm", "localhost"
+         ],
+         "roles":[
+            "ceo"
+         ],
+         "aliases":[
+            "internal"
+         ],
+         "filters_bypass": [],
+         "filters_execute": ["*"]
+      }
+   ]
+}

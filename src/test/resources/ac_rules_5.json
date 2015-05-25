@@ -1,0 +1,43 @@
+{
+   "acl":[
+      {
+         "filters_bypass": [],
+         "filters_execute": ["*"]
+      },
+      {
+         "hosts":[
+            "8.8.8*"
+         ],
+         "indices":[
+            "eight"
+         ],
+         "filters_bypass": ["*"],
+         "filters_execute": []
+      },
+      {
+         "hosts":[
+            "8.8.8*"
+         ],
+         "filters_bypass": ["check.1"],
+         "filters_execute": []
+      },
+      {
+         "roles":[
+            "admin",
+            "root"
+         ],
+         "filters_bypass": ["*"],
+         "filters_execute": []
+      },
+      {
+         "roles":[
+            "ceo"
+         ],
+         "aliases":[
+            "internal"
+         ],
+         "filters_bypass": ["read.only"],
+         "filters_execute": []
+      }
+   ]
+}

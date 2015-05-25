@@ -1,0 +1,53 @@
+{
+    "user": "umberto",
+    "post_date": "2014-11-15T14:12:12",
+    "message": "playing with security",
+    "structure": {
+        "thearray": [
+            "1",
+            2,
+            true,
+            false,
+            null,
+            {},
+            [
+                "somestring",
+                9,
+                8,
+                {},
+                [],
+                [
+                    4,
+                    5
+                ]
+            ]
+        ],
+        "thesubobject": {
+            "sokey1": "sovalue1",
+            "sokey2": "sovalue2",
+            "sokey3": {
+                "sosubkey1": "sosubval1",
+                "sosubkey2": "sosubval2"
+            }
+        },
+        "thesubobject2": {
+            "so2key1": false,
+            "so2key2": 4,
+            "so2key3": {
+                "so2subkey1": null,
+                "so2subkey2": [],
+                "so2subkey3": {},
+                "so2subkey4": {
+                                "so2subkey44": "so2subval44",
+                                "so2subkey45": "so2subval45",
+                                "so2subkey46": "so2subval46",
+                                "so2subkey47": "so2subval47"
+                              }
+            }
+        },
+        "thesubfield": true,
+        "thesubfield2": "yepp",
+        "thesubfield3": null
+    }
+}
+
