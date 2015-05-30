@@ -41,6 +41,12 @@ Search Guard has the concept of routing a request through a chain of filters whi
 * **fls filter**: filter out fields from the documents of a search response
 
 ##Pre-Installation
+###Check Release Integrity
+
+You **must** verify the integrity of the downloaded files. We provide PGP signatures for every release file. This signature should be matched against the KEYS file. We also provide MD5 and SHA-1 checksums for every release file. After you download the file, you should calculate a checksum for your download, and make sure it is the same as ours. [Here](http://www.openoffice.org/download/checksums.html) and [here](https://www.apache.org/info/verification.html) are some tips how to verify the pgp signatures.
+
+###Setup ACL rules
+
 It's recommended to setup the access control rules (ACL rules) **before** installing the plugin to simplify the installation process.
 If you install the plugin first you have to do extra effort cause then your're firstly locked-out of elasticsearch.
 

@@ -53,3 +53,4 @@ Lists of 53 third-party dependencies.
      (BSD) ASM Commons (org.ow2.asm:asm-commons:4.1 - http://asm.objectweb.org/asm-commons/)
      (MIT License) SLF4J API Module (org.slf4j:slf4j-api:1.7.9 - http://www.slf4j.org)
      (MIT License) SLF4J LOG4J-12 Binding (org.slf4j:slf4j-log4j12:1.7.7 - http://www.slf4j.org)
+     (The Apache Software License, Version 2.0) Tomcat 8 - http://tomcat.apache.org
