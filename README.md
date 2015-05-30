@@ -75,7 +75,7 @@ curl -XPUT 'http://localhost:9200/searchguard/ac/ac' -d '{
 ##Installation
 Install it like any other Elasticsearch plugin
 
-``bin\plugin --install com.floragunn/search-guard/0.5`` **(release in progress, in the meantime build it yourself)**
+``bin/plugin -i com.floragunn/search-guard/0.5``
 
 Prerequisites:
 
