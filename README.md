@@ -56,7 +56,7 @@ Why not install a ACL rules file which grants _all access_ for a user with role 
 curl -XPUT 'http://localhost:9200/searchguard/ac/ac' -d '{
     "acl": [
     {    
-        "__Comment__": "By default no filters are executed and no filters a by-passed. In such a case a exception is throws an access will be denied.",
+        "__Comment__": "By default no filters are executed and no filters a by-passed. In such a case an exception is thrown and access will be denied.",
         "filters_bypass": [],
         "filters_execute": []
      },
