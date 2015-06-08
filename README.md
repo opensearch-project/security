@@ -61,7 +61,7 @@ curl -XPUT 'http://localhost:9200/searchguard/ac/ac' -d '{
         "filters_execute": []
      },
      {
-           "__Comment__": "For role 'admin' all filters are bypassed (so none will be executed). This means unrestricted access.",
+           "__Comment__": "For role *admin* all filters are bypassed (so none will be executed). This means unrestricted access.",
            "roles": [
                "admin"
            ],
