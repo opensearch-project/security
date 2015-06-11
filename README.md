@@ -3,6 +3,10 @@ Elasticsearch security for free.
 
 Search Guard is a free and open source plugin for Elasticsearch which provides security features.
 
+
+![Logo](https://raw.githubusercontent.com/floragunncom/sg-assets/master/logo/sg_logo_small.jpg) 
+
+
 [![Build Status](https://travis-ci.org/floragunncom/search-guard.svg?branch=master)](https://travis-ci.org/floragunncom/search-guard) [![Coverage Status](https://coveralls.io/repos/floragunncom/search-guard/badge.svg?branch=master)](https://coveralls.io/r/floragunncom/search-guard?branch=master)
 
 ##Support
