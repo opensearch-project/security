@@ -86,7 +86,7 @@ public class SearchGuardConfigService extends AbstractLifecycleComponent<SearchG
                 if (response.isExists() && !response.isSourceEmpty()) {
                     securityConfiguration = response.getSourceAsBytesRef();
                     latch.countDown();
-                    logger.info("Security configuration reloaded");
+                    logger.debug("Security configuration reloaded");
 
                 }
             }

@@ -152,7 +152,7 @@ If you use either transport layer SSL or DLS or FLS you have to install it on ev
 TBD
 
 ##Auditlog
-Auditlog is stored in Elasticsearch withing the _searchguard_ index (with type _audit_)<br>
+Auditlog is stored in Elasticsearch within the _searchguard_ index (with type _audit_)<br>
 ``curl -XGET 'http://localhost:9200/searchguard/audit/_search?pretty=true'``
 
 ##Rules evaluation 
@@ -323,7 +323,7 @@ If you access more than one index (e.g. search in multiple indices) only rules w
 {       
     "roles": [...],
     "indices": [
-         „finance","marketing"
+         "finance","marketing"
     ],
     "filters_bypass": [...],
     "filters_execute": [...]
