@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -93,7 +94,7 @@ public class SearchGuardConfigService extends AbstractLifecycleComponent<SearchG
 
             @Override
             public void onFailure(final Throwable e) {
-                if (e instanceof IndexMissingException) {
+                if (e instanceof IndexMissingException || e instanceof NoShardAvailableActionException) {
                     logger.debug(
                             "Try to refresh security configuration but it failed due to {} - This might be ok if security setup not complete yet.",
                             e.toString());
