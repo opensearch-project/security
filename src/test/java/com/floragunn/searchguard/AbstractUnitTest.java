@@ -201,7 +201,10 @@ public abstract class AbstractUnitTest {
                 .put("path.work", "data/work").put("path.logs", "data/logs").put("path.conf", "data/config")
                 .put("path.plugins", "data/plugins").put("index.number_of_shards", "3").put("index.number_of_replicas", "1")
                 .put("http.port", httpPort).put("http.enabled", !dataNode).put("network.tcp.connect_timeout", 60000)
-                .put("transport.tcp.port", nodePort).put("http.cors.enabled", true).put(ConfigConstants.SEARCHGUARD_CHECK_FOR_ROOT, false)
+                .put("transport.tcp.port", nodePort)
+                .put("cluster.routing.allocation.disk.watermark.high","1mb")
+                .put("cluster.routing.allocation.disk.watermark.low","1mb")
+                .put("http.cors.enabled", true).put(ConfigConstants.SEARCHGUARD_CHECK_FOR_ROOT, false)
                 .put(ConfigConstants.SEARCHGUARD_ALLOW_ALL_FROM_LOOPBACK, true).put("node.local", false);
     }
 

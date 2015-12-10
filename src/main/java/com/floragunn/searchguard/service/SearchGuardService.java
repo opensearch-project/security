@@ -169,7 +169,7 @@ public class SearchGuardService extends AbstractLifecycleComponent<SearchGuardSe
 
         }
 
-        final String scriptingStatus = settings.get(ScriptService.DISABLE_DYNAMIC_SCRIPTING_SETTING,
+        /*final String scriptingStatus = settings.get(ScriptService.DISABLE_DYNAMIC_SCRIPTING_SETTING,
                 ScriptService.DISABLE_DYNAMIC_SCRIPTING_DEFAULT);
 
         if (scriptingStatus.equalsIgnoreCase(ScriptService.DISABLE_DYNAMIC_SCRIPTING_DEFAULT)) {
@@ -180,7 +180,7 @@ public class SearchGuardService extends AbstractLifecycleComponent<SearchGuardSe
         if (scriptingStatus.equalsIgnoreCase("true")) {
             log.error("{} is configured insecure, consider setting it to false or " + ScriptService.DISABLE_DYNAMIC_SCRIPTING_DEFAULT,
                     ScriptService.DISABLE_DYNAMIC_SCRIPTING_SETTING);
-        }
+        }*/
 
         if (searchService == null) {
             throw new RuntimeException("ssnull");

@@ -98,7 +98,7 @@ public final class SearchGuardPlugin extends AbstractPlugin {
             cc.addMethod(m);
 
             final CtMethod me = cc.getDeclaredMethod("createContext");
-            me.insertAt(559, "if(callback != null) {callback.onCreateContext(context, request);}");
+            me.insertAt(574, "if(callback != null) {callback.onCreateContext(context, request);}");
 
             cc.toClass();
             log.info("Class enhancements for DLS/FLS successful");
