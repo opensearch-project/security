@@ -22,6 +22,7 @@ import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.floragunn.searchguard.authorization.ForbiddenException;
 import com.floragunn.searchguard.service.SearchGuardService;
 import com.floragunn.searchguard.util.ConfigConstants;
 import com.floragunn.searchguard.util.SecurityUtil;
@@ -195,8 +196,8 @@ public class TransportTest extends AbstractUnitTest {
                     (GetRequest) new GetRequest(indices[0], "test", "dummy").putHeader("searchguard_transport_creds",
                             "amFja3Nvbm06c2VjcmV0")).actionGet();
             Assert.fail();
-        } catch (final RuntimeException e) {
-            Assert.assertTrue(e.getCause().getMessage(), e.getCause().getMessage().contains("is forbidden"));
+        } catch (final ForbiddenException e) {
+        	//exp Forbidden exception
         }
 
         try {
@@ -204,8 +205,8 @@ public class TransportTest extends AbstractUnitTest {
                     (IndexRequest) new IndexRequest(indices[0], "test").source("{}").putHeader("searchguard_transport_creds",
                             "amFja3Nvbm06c2VjcmV0")).actionGet();
             Assert.fail();
-        } catch (final RuntimeException e) {
-            Assert.assertTrue(e.getCause().getMessage(), e.getCause().getMessage().contains("is forbidden"));
+        } catch (final ForbiddenException e) {
+        	//exp Forbidden exception
         }
 
         try {

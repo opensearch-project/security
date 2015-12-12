@@ -48,6 +48,7 @@ import com.floragunn.searchguard.authentication.AuthException;
 import com.floragunn.searchguard.authentication.User;
 import com.floragunn.searchguard.authentication.backend.AuthenticationBackend;
 import com.floragunn.searchguard.authorization.Authorizator;
+import com.floragunn.searchguard.authorization.ForbiddenException;
 import com.floragunn.searchguard.service.SearchGuardConfigService;
 import com.floragunn.searchguard.service.SearchGuardService;
 import com.floragunn.searchguard.tokeneval.TokenEvaluator;
@@ -87,6 +88,9 @@ public class SearchGuardActionFilter implements ActionFilter {
 
         try {
             apply0(action, request, listener, chain);
+        } catch (final ForbiddenException e){
+        	log.error("Forbidden while apply() due to {} for action {}", e, e.toString(), action);
+        	throw e;
         } catch (final Exception e) {
             log.error("Error while apply() due to {} for action {}", e, e.toString(), action);
             throw new RuntimeException(e);
@@ -192,8 +196,7 @@ public class SearchGuardActionFilter implements ActionFilter {
                 auditListener.onMissingPrivileges(user == null ? "unknown" : user.getName(), request);
                 //This blocks?
                 //listener.onFailure(new AuthException("Attempt from "+request.remoteAddress()+" to _all indices for " + action + "and "+user));
-                throw new RuntimeException("Attempt from " + request.remoteAddress() + " to _all indices for " + action + " and " + user);
-
+                throw new ForbiddenException("Attempt from {} to _all indices for {} and {}", request.remoteAddress(), action, user);
             }
 
         }
@@ -218,8 +221,7 @@ public class SearchGuardActionFilter implements ActionFilter {
                     //This blocks?
                     //listener.onFailure(new AuthException("Attempt from "+request.remoteAddress()+" to _all indices for " + action + "and "+user));
                     //break;
-                    throw new RuntimeException("Attempt from " + request.remoteAddress() + " to _all indices for " + action + " and "
-                            + user);
+                    throw new ForbiddenException("Attempt from {} to _all indices for {} and {}", request.remoteAddress(), action, user);
                 }
 
             }
@@ -227,7 +229,8 @@ public class SearchGuardActionFilter implements ActionFilter {
 
         if (ci.contains(settings.get(ConfigConstants.SEARCHGUARD_CONFIG_INDEX_NAME, ConfigConstants.DEFAULT_SECURITY_CONFIG_INDEX))) {
             auditListener.onMissingPrivileges(user.getName(), request);
-            throw new RuntimeException("Only allowed from localhost (loopback)");
+            throw new ForbiddenException("Only allowed from localhost (loopback)");
+
         }
 
         if (ci.contains("_all")) {
@@ -292,8 +295,7 @@ public class SearchGuardActionFilter implements ActionFilter {
                         //This blocks?
                         //listener.onFailure(new AuthException("Action '" + action + "' is forbidden due to " + forbiddenAction));
                         //break outer;
-                        throw new RuntimeException("Action '" + action + "' is forbidden due to " + forbiddenAction);
-
+                        throw new ForbiddenException("Action '{}' is forbidden due to {}", action, forbiddenAction);
                     }
                 }
 
@@ -312,7 +314,8 @@ public class SearchGuardActionFilter implements ActionFilter {
                 //This blocks?
                 //listener.onFailure(new AuthException("Action '" + action + "' is forbidden due to DEFAULT"));
                 //break outer;
-                throw new RuntimeException("Action '" + action + "' is forbidden due to DEFAULT");
+                throw new ForbiddenException("Action '{}' is forbidden due to DEFAULT", action);
+
             }
 
             if ("restactionfilter".equals(ft)) {
@@ -326,9 +329,7 @@ public class SearchGuardActionFilter implements ActionFilter {
                 for (final Iterator<String> iterator = forbiddenActions.iterator(); iterator.hasNext();) {
                     final String forbiddenAction = iterator.next();
                     if (SecurityUtil.isWildcardMatch(simpleClassName, forbiddenAction, false)) {
-                        throw new RuntimeException("[" + ft + "." + fn + "] Forbidden action " + simpleClassName + " . Allowed actions: "
-                                + allowedActions);
-
+                    	throw new ForbiddenException("[{}.{}] Forbidden action {} . Allowed actions: {}", simpleClassName, allowedActions);
                     }
                 }
 
