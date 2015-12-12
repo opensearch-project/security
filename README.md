@@ -15,12 +15,13 @@ If you need "only" SSL for Elasticsearch 2 have a look here: https://github.com/
 ##Other Versions
 * ES 1.5 https://github.com/floragunncom/search-guard/tree/es1.5
 * ES 1.6 https://github.com/floragunncom/search-guard/tree/es1.6
+* ES 1.7 https://github.com/floragunncom/search-guard/tree/es1.7
 * ES 1.x https://github.com/floragunncom/search-guard/tree/master
 * ES 2.0 https://github.com/floragunncom/search-guard/tree/master2.0
 
 ##Support
 * Community support available via [google groups](https://groups.google.com/forum/#!forum/search-guard)
-* Commercial support through [floragunn UG](http://floragunn.com) available soon
+* Commercial support through [floragunn UG](http://floragunn.com) available Februar 2016
 
 ##Features
 * Flexible REST layer access control (User/Role based; on aliases, indices and types)
