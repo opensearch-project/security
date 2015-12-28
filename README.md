@@ -18,7 +18,7 @@ If you need "only" SSL for Elasticsearch 2 have a look here: https://github.com/
 * ES 1.6 https://github.com/floragunncom/search-guard/tree/es1.6
 * ES 1.7 https://github.com/floragunncom/search-guard/tree/es1.7
 * ES 1.x https://github.com/floragunncom/search-guard/tree/master
-* ES 2.0 https://github.com/floragunncom/search-guard/tree/master2.0
+* ES 2.1 https://github.com/floragunncom/search-guard/tree/master2.1
 
 ##Support
 * Community support available via [google groups](https://groups.google.com/forum/#!forum/search-guard)
