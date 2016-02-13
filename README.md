@@ -4,7 +4,7 @@ Elasticsearch security for free.
 ##Search Guard for Elasticsearch 2 is coming in Feb. 2016
 
 Search Guard is a free and open source plugin for Elasticsearch which provides security features. Currently only Elasticsearch 1.5, 1.6 and 1.7 is supported, Search Guard for Elasticsearch 2 is coming in Feb. 2016.
-Second alpha version for [Search Guard 2 is available here](https://github.com/floragunncom/search-guard/tree2.2) 
+Second alpha version for [Search Guard 2 is available here](https://github.com/floragunncom/search-guard/tree/2.2) 
 
 If you need "only" SSL for Elasticsearch 2 have a look here: https://github.com/floragunncom/search-guard-ssl
 
