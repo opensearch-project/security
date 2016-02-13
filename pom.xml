@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?><!-- Copyright 2015 floragunn UG (haftungsbeschränkt) 
+  Licensed under the Apache License, Version 2.0 (the "License"); you may not 
+  use this file except in compliance with the License. You may obtain a copy 
+  of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required 
+  by applicable law or agreed to in writing, software distributed under the 
+  License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS 
+  OF ANY KIND, either express or implied. See the License for the specific 
+  language governing permissions and limitations under the License. -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.elasticsearch.plugin</groupId>
+    <artifactId>plugins</artifactId>
+    <version>2.2.0</version>
+  </parent>
+
+  <groupId>com.floragunn</groupId>
+  <artifactId>search-guard-2</artifactId>
+  <packaging>jar</packaging>
+  <version>2.2.0.0-alpha2-SNAPSHOT</version>
+  <name>Search Guard</name>
+  <description>Provide access control related features for Elasticsearch 2</description>
+  <url>https://github.com/floragunncom/search-guard</url>
+  <inceptionYear>2015</inceptionYear>
+
+  <licenses>
+    <license>
+      <name>The Apache Software License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <properties>
+    <elasticsearch.version>2.2.0</elasticsearch.version>
+    <elasticsearch.plugin.isolated>false</elasticsearch.plugin.isolated>
+    <dependency.locations.enabled>false</dependency.locations.enabled>
+    <elasticsearch.plugin.classname>com.floragunn.searchguard.SearchGuardPlugin</elasticsearch.plugin.classname>
+    <tests.ifNoTests>warn</tests.ifNoTests>
+    <elasticsearch.assembly.descriptor>${basedir}/src/main/assemblies/plugin.xml</elasticsearch.assembly.descriptor>
+    <skip.integ.tests>true</skip.integ.tests>
+    <skip.unit.tests>true</skip.unit.tests>
+    <elasticsearch.license.header>build/license-check/elasticsearch_license_header.txt</elasticsearch.license.header>
+    <elasticsearch.license.headerDefinition>build/license-check/license_header_definition.xml</elasticsearch.license.headerDefinition>
+   <tests.security.manager>false</tests.security.manager>
+  </properties>
+
+  <distributionManagement>
+    <snapshotRepository>
+      <id>ossrh-fg</id>
+      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+    </snapshotRepository>
+    <repository>
+      <id>ossrh-fg</id>
+      <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+    </repository>
+  </distributionManagement>
+
+  <scm>
+    <url>https://github.com/floragunncom/search-guard</url>
+    <connection>scm:git:git@github.com:floragunncom/search-guard.git</connection>
+    <developerConnection>scm:git:git@github.com:floragunncom/search-guard.git</developerConnection>
+    <tag>HEAD</tag>
+  </scm>
+
+  <issueManagement>
+    <system>GitHub</system>
+    <url>https://github.com/floragunncom/search-guard/issues</url>
+  </issueManagement>
+
+  <developers>
+    <developer>
+      <email>info (at) search-guard (dot) com</email>
+      <name>floragunn UG (haftungsbeschränkt)</name>
+      <url>http://www.floragunn.com</url>
+      <id>floragunncom</id>
+    </developer>
+  </developers>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.floragunn</groupId>
+      <artifactId>search-guard-ssl</artifactId>
+      <version>2.2.0.6</version>
+      <scope>provided</scope>
+    </dependency>
+    
+       <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.4</version>
+            <scope>test</scope>
+        </dependency>
+
+    <!-- Only test scoped dependencies hereafter -->
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>fluent-hc</artifactId>
+      <version>4.3.4</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-assembly-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-release-plugin</artifactId>
+        <configuration>
+          <tagNameFormat>v@{project.version}</tagNameFormat>
+          <pushChanges>false</pushChanges>
+          <localCheckout>true</localCheckout>
+          <useReleaseProfile>false</useReleaseProfile>
+          <arguments>-Pdev,prerelease</arguments>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <configuration>
+          <encoding>${project.build.sourceEncoding}</encoding>
+          <locale>en</locale>
+          <additionalparam>-Xdoclint:none</additionalparam>
+        </configuration>
+        <executions>
+          <execution>
+            <id>attach-javadocs</id>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- skip validation -->
+      <plugin>
+        <groupId>de.thetaphi</groupId>
+        <artifactId>forbiddenapis</artifactId>
+        <executions>
+          <execution>
+            <id>check-forbidden-apis</id>
+            <phase>none</phase>
+          </execution>
+          <execution>
+            <id>check-forbidden-test-apis</id>
+            <phase>none</phase>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>com.mycila</groupId>
+        <artifactId>license-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>check-license-headers</id>
+            <phase>none</phase>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>check-invalid-patterns</id>
+            <phase>none</phase>
+          </execution>
+        </executions>
+      </plugin>
+      <!-- skip validation end -->
+    </plugins>
+  </build>
+
+  <profiles>
+    <profile>
+      <id>prerelease</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <version>1.6</version>
+            <configuration>
+              <keyname>51EDB2FE</keyname>
+            </configuration>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+</project>

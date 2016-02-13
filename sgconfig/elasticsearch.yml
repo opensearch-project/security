@@ -1,0 +1,9 @@
+security.manager.enabled: false
+searchguard.authcz.admin_dn:
+  - "CN=kirk,OU=client,O=client,l=tEst, C=De"
+searchguard.authcz.impersonation_dn:
+  "CN=spock,OU=client,O=client,L=Test,C=DE":
+    - worf
+  "cn=webuser,ou=IT,ou=IT,dc=company,dc=com":
+    - user2
+    - user1
