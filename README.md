@@ -11,9 +11,14 @@ This is almost a complete rewrite of Search Guard 1 which comes with a lot of ne
  * Syntax is more easy
  * Admin CLI tool introduced (sgadmin)
  
-This the first alpha release which is not yet feature complete. Currently only password based authentication and authorization is support and only HTTP basic as the HTTP authentication method.
+This the second alpha release which is not yet feature complete. Currently only password based authentication and authorization is support and only HTTP basic as the HTTP authentication method.
 
-We expect to release one or two more alpha versions in January 2016 and two betas in February. By end of February the RC should be ready for release. Thats also the point in time we will start our commercial support.
+We expect to release a beta in February. By end of February the RC should be ready for release. Thats also the point in time we will start our commercial support.
+
+##Support
+* Community support available via [google groups](https://groups.google.com/forum/#!forum/search-guard)
+* Follow us and get community support on twitter [@searchguard](https://twitter.com/searchguard)
+* Commercial support through [floragunn UG](http://floragunn.com) available soon
 
 ##Installation
 
