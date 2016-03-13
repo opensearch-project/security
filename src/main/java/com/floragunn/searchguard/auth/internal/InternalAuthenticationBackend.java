@@ -44,12 +44,23 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Con
             throw new ElasticsearchSecurityException("Internal authentication backend not configured. May be Search Guard is not initialized.");
         }
 
-        final String hashed = br.get(credentials.getUsername() + ".hash");
+        String hashed = br.get(credentials.getUsername() + ".hash");
 
         if (hashed == null) {
-            throw new ElasticsearchSecurityException(credentials.getUsername() + "not found");
+            
+            for(String username:br.names()) {
+                String u = br.get(username + ".username");
+                if(credentials.getUsername().equals(u)) {
+                    hashed = br.get(username+ ".hash");
+                    break;
+                }
+            }
+            
+            if(hashed == null) {
+                throw new ElasticsearchSecurityException(credentials.getUsername() + " not found");
+            }
         }
-
+        
         if (BCrypt.checkpw(new String(credentials.getPassword()), hashed)) {
             final String[] roles = br.getAsArray(credentials.getUsername() + ".roles", new String[0]);
             return new User(credentials.getUsername(), Arrays.asList(roles));

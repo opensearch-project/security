@@ -34,14 +34,14 @@ import com.google.common.io.BaseEncoding;
 public class Base64Helper {
 
     public static String encodeBasicHeader(final String username, final String password) {
-        return new String(DatatypeConverter.printBase64Binary((username + ":" + password).getBytes(StandardCharsets.US_ASCII)));
+        return new String(DatatypeConverter.printBase64Binary((username + ":" + password).getBytes(StandardCharsets.UTF_8)));
     }
 
     public static AuthCredentials decodeBasicHeader(final String authorizationHeader) {
 
         String decodedBasicHeader = null;
         try {
-            decodedBasicHeader = new String(DatatypeConverter.parseBase64Binary(authorizationHeader), StandardCharsets.US_ASCII);
+            decodedBasicHeader = new String(DatatypeConverter.parseBase64Binary(authorizationHeader), StandardCharsets.UTF_8);
         } catch (final Exception e) {
             return null;
         }

@@ -57,21 +57,26 @@ public class HTTPBasicAuthenticator implements HTTPAuthenticator {
             } else {
 
                 final String decodedBasicHeader = new String(DatatypeConverter.parseBase64Binary(authorizationHeader.split(" ")[1]),
-                        StandardCharsets.US_ASCII);
+                        StandardCharsets.UTF_8);
 
-                final String[] decodedBasicHeaderParts = decodedBasicHeader.split(":");
+                final int index = decodedBasicHeader.lastIndexOf(':');
 
-                if (decodedBasicHeaderParts.length != 2 || decodedBasicHeaderParts[1] == null) {
+                String username = null;
+                String password = null;
+
+                if (index > 0 && decodedBasicHeader.length() - 1 != index) {
+                    username = decodedBasicHeader.substring(0, index);
+                    password = decodedBasicHeader.substring(index + 1);
+                }
+
+                if (username == null || password == null) {
                     log.warn("Invalid 'Authorization' header, send 401 and 'WWW-Authenticate Basic'");
                     requestAuthentication(channel);
                     return null;
                 } else {
-                    final String username = decodedBasicHeaderParts[0];
-                    final char[] password = decodedBasicHeaderParts[1].toCharArray();
-                    return new AuthCredentials(username, password);
+                    return new AuthCredentials(username, password.toCharArray());
                 }
             }
-
         } else {
             log.trace("No 'Authorization' header, send 401 and 'WWW-Authenticate Basic'");
             requestAuthentication(channel);
