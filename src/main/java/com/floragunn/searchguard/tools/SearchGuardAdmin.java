@@ -63,7 +63,9 @@ public class SearchGuardAdmin {
         options.addOption(Option.builder("cd").longOpt("configdir").hasArg().argName("directory").desc("Directory for config files").build());
         options.addOption(Option.builder("h").longOpt("hostname").hasArg().argName("host").desc("Elasticsearch host").build());
         options.addOption(Option.builder("p").longOpt("port").hasArg().argName("port").desc("Elasticsearch port").build());
-        
+        options.addOption(Option.builder("cn").longOpt("clustername").hasArg().argName("clustername").desc("Clustername").build());
+        options.addOption( "sniff", "enable-sniffing", false, "Enable client.transport.sniff" );
+        options.addOption( "icl", "ignore-clustername", false, "Ignore clustername" );
         
         String hostname = "localhost";
         int port = 9300;
@@ -74,6 +76,9 @@ public class SearchGuardAdmin {
         String ts;
         boolean nhnv = false;
         boolean nrhn = false;
+        boolean sniff = false;
+        boolean icl = false;
+        String clustername = "elasticsearch";
         
         CommandLineParser parser = new DefaultParser();
         try {
@@ -87,6 +92,9 @@ public class SearchGuardAdmin {
             ts = line.getOptionValue("ts");
             nhnv = line.hasOption("nhnv");
             nrhn = line.hasOption("nrhn");
+            clustername = line.getOptionValue("cn", clustername);
+            sniff = line.hasOption("sniff");
+            icl = line.hasOption("icl");
         }
         catch( ParseException exp ) {
             System.err.println("Parsing failed.  Reason: " + exp.getMessage());
@@ -134,7 +142,11 @@ public class SearchGuardAdmin {
                 .put("searchguard.ssl.transport.truststore_password", tspass)
                 .put("searchguard.ssl.transport.enforce_hostname_verification", !nhnv)
                 .put("searchguard.ssl.transport.resolve_hostname", !nrhn)
-                .put("searchguard.ssl.transport.enabled", true).build();
+                .put("searchguard.ssl.transport.enabled", true)
+                .put("cluster.name", clustername)
+                .put("client.transport.ignore_cluster_name", icl)
+                .put("client.transport.sniff", sniff)
+                .build();
 
         try (TransportClient tc = TransportClient.builder().settings(settings).addPlugin(SearchGuardSSLPlugin.class)
                 //.addPlugin(SearchGuardPlugin.class)
