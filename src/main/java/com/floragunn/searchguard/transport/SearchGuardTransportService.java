@@ -45,6 +45,7 @@ import com.floragunn.searchguard.ssl.transport.SearchGuardSSLTransportService;
 import com.floragunn.searchguard.support.Base64Helper;
 import com.floragunn.searchguard.support.LogHelper;
 import com.floragunn.searchguard.user.User;
+import com.google.common.base.Strings;
 
 public class SearchGuardTransportService extends SearchGuardSSLTransportService {
 
@@ -75,7 +76,7 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
     }
 
     private void copyUserHeader(final String action, final TransportRequest request) {
-
+        
         final User user = request.getFromContext("_sg_user");
 
         if (request.getFromContext("_sg_internal_request") == Boolean.TRUE) {
@@ -98,6 +99,10 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
              OBSOLETE request.putHeader("_sg_ssl_transport_principal_internode", Base64Helper.serializeObject(transportPrincipal));
         }*/
 
+        if(log.isTraceEnabled()) {
+            log.trace("sendRequest {}", LogHelper.toString(request));
+        }
+        
         if (user != null) {
             if (log.isTraceEnabled()) {
                 log.trace("Copy user header for user {}", user);
@@ -105,11 +110,20 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
 
             LogHelper.logUserTrace("<-- Put user {} in header (from _sg_user ctx)", user.getName());
             request.putHeader("_sg_user_header", Base64Helper.serializeObject(user));
-        } else {
+        } else if (Strings.isNullOrEmpty((String) request.getHeader("_sg_user_header"))) {
 
+            //https://github.com/floragunncom/search-guard/issues/103
             if (!action.startsWith("internal:") && request.remoteAddress() != null) {
-                throw new ElasticsearchSecurityException("user must not be null here for " + action + " " + request.getContext() + "/"
-                        + request.getHeaders());
+                throw new ElasticsearchSecurityException("user must not be null here for " + action + " "
+                        + LogHelper.toString(request));
+            }
+        } else if (!Strings.isNullOrEmpty((String) request.getHeader("_sg_user_header"))) {
+            if (log.isTraceEnabled()) {
+                try {
+                    log.trace("User {} is multihoped", Base64Helper.deserializeObject((String) request.getHeader("_sg_user_header")));
+                } catch (Exception e) {
+                    log.trace(e.toString(), e);
+                }
             }
         }
 
