@@ -18,13 +18,14 @@
 package com.floragunn.searchguard.rest;
 
 import static org.elasticsearch.rest.RestRequest.Method.GET;
-import io.netty.handler.ssl.OpenSsl;
 
 import java.security.cert.X509Certificate;
 
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.rest.BaseRestHandler;
 import org.elasticsearch.rest.BytesRestResponse;
@@ -33,13 +34,17 @@ import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.rest.RestStatus;
 
-import com.floragunn.searchguard.ssl.SearchGuardKeyStore;
+import com.floragunn.searchguard.configuration.PrivilegesEvaluator;
+import com.floragunn.searchguard.user.User;
 
 public class SearchGuardInfoAction extends BaseRestHandler {
 
+    private final Provider<PrivilegesEvaluator> evaluator;
+    
     @Inject
-    public SearchGuardInfoAction(final Settings settings, final RestController controller, final Client client) {
+    public SearchGuardInfoAction(final Settings settings, final RestController controller, final Client client, Provider<PrivilegesEvaluator> evaluator) {
         super(settings, controller, client);
+        this.evaluator = evaluator;
         controller.registerHandler(GET, "/_searchguard/authinfo", this);
     }
 
@@ -55,10 +60,11 @@ public class SearchGuardInfoAction extends BaseRestHandler {
             builder.startObject();
 
             builder.field("user", request.getFromContext("_sg_user"));
-            builder.field("sg_roles", request.getFromContext("_sg_sgroles"));
+            builder.field("remote_address", request.getFromContext("_sg_remote_address"));
+            builder.field("sg_roles", evaluator.get().mapSgRoles((User) request.getFromContext("_sg_user"), (TransportAddress) request.getFromContext("_sg_remote_address")));
             builder.field("principal", request.getFromContext("_sg_ssl_principal"));
             builder.field("peer_certificates", certs != null && certs.length > 0 ? certs.length + "" : "0");
-            
+            //builder.field("_debug_request", LogHelper.toString(request));
             builder.endObject();
 
             response = new BytesRestResponse(RestStatus.OK, builder);

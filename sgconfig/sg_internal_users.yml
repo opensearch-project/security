@@ -1,4 +1,7 @@
-nagilum:
+#keys cannot contain dots
+#if you have a username with dots then specify it with username: XXX
+mister_nagilum:
+  username: mister.nagilum
   hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
   #password is: nagilum
 spock:

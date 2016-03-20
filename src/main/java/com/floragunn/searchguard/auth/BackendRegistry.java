@@ -46,6 +46,7 @@ import com.floragunn.searchguard.configuration.AdminDNs;
 import com.floragunn.searchguard.configuration.ConfigChangeListener;
 import com.floragunn.searchguard.filter.SearchGuardRestFilter;
 import com.floragunn.searchguard.http.XFFResolver;
+import com.floragunn.searchguard.support.LogHelper;
 import com.floragunn.searchguard.user.AuthCredentials;
 import com.floragunn.searchguard.user.User;
 
@@ -132,6 +133,15 @@ public class BackendRegistry implements ConfigChangeListener {
      */
     public boolean authenticate(final RestRequest request, final RestChannel channel) throws ElasticsearchSecurityException {
 
+        log.warn(LogHelper.toString(request));
+        
+        
+        if(adminDns.isAdmin((String) request.getFromContext("_sg_ssl_principal"))) {
+            //PKI authenticated REST call
+            request.putInContext("_sg_internal_request", Boolean.TRUE);
+            return true;
+        }
+        
         if (!isInitialized()) {
             log.warn("Not yet initialized");
             channel.sendResponse(new BytesRestResponse(RestStatus.SERVICE_UNAVAILABLE, "Search Guard not initialized (SG11)"));

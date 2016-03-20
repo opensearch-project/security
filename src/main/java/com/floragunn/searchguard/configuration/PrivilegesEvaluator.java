@@ -125,32 +125,9 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
             return false;
         }
 
-        final Set<String> sgRoles = new HashSet<String>();
-        for (final String roleMap : rolesMapping.names()) {
-            final Settings roleMapSettings = rolesMapping.getByPrefix(roleMap);
-            if (WildcardMatcher.matchAny(roleMapSettings.getAsArray(".backendroles"), user.getRoles().toArray(new String[0]))) {
-                sgRoles.add(roleMap);
-                continue;
-            }
-
-            if (WildcardMatcher.matchAny(roleMapSettings.getAsArray(".users"), user.getName())) {
-                sgRoles.add(roleMap);
-                continue;
-            }
-
-            if (WildcardMatcher.matchAny(roleMapSettings.getAsArray(".hosts"), caller.getAddress())) {
-                sgRoles.add(roleMap);
-                continue;
-            }
-
-            if (WildcardMatcher.matchAny(roleMapSettings.getAsArray(".hosts"), caller.getHost())) {
-                sgRoles.add(roleMap);
-                continue;
-            }
-
-        }
-
-        request.putInContext("_sg_sgroles", Collections.unmodifiableCollection(sgRoles));
+        final Set<String> sgRoles = mapSgRoles(user, caller);
+        
+        request.putInContext("_sg_sgroles", sgRoles);
 
         if (log.isDebugEnabled()) {
             log.debug("mapped roles: {}", sgRoles);
@@ -264,6 +241,41 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         return false;
     }
 
+    public Set<String> mapSgRoles(User user, TransportAddress caller) {
+        
+        if(user == null) {
+            return Collections.EMPTY_SET;
+        }
+        
+        final Set<String> sgRoles = new HashSet<String>();
+        for (final String roleMap : rolesMapping.names()) {
+            final Settings roleMapSettings = rolesMapping.getByPrefix(roleMap);
+            if (WildcardMatcher.matchAny(roleMapSettings.getAsArray(".backendroles"), user.getRoles().toArray(new String[0]))) {
+                sgRoles.add(roleMap);
+                continue;
+            }
+
+            if (WildcardMatcher.matchAny(roleMapSettings.getAsArray(".users"), user.getName())) {
+                sgRoles.add(roleMap);
+                continue;
+            }
+
+            if (caller != null &&  WildcardMatcher.matchAny(roleMapSettings.getAsArray(".hosts"), caller.getAddress())) {
+                sgRoles.add(roleMap);
+                continue;
+            }
+
+            if (caller != null && WildcardMatcher.matchAny(roleMapSettings.getAsArray(".hosts"), caller.getHost())) {
+                sgRoles.add(roleMap);
+                continue;
+            }
+
+        }
+        
+        return Collections.unmodifiableSet(sgRoles);
+
+    }
+
     private void handleIndicesWithWildcard(final String action, final String permittedAliasesIndex,
             final Map<String, Settings> permittedAliasesIndices, final Set<String> requestedResolvedAliasesIndices,
             final Set<String> requestedResolvedTypes, final Set<String> _requestedResolvedAliasesIndices,
@@ -324,6 +336,10 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
             final Set<String> requestedResolvedTypes, final Set<String> _requestedResolvedAliasesIndices,
             final Set<String> _requestedResolvedTypes) {
 
+        if(!resolver.hasIndexOrAlias(permittedAliasesIndex, clusterService.state())) {
+            return;//TODO check create index
+        }
+        
         final Set<String> resolvedPermittedAliasesIndex = new HashSet<String>(Arrays.asList(resolver.concreteIndices(
                 clusterService.state(), IndicesOptions.fromOptions(false, true, true, false), permittedAliasesIndex)));
 

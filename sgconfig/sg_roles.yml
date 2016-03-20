@@ -1,3 +1,11 @@
+#<sg_role_name>:
+#  indices:
+#    <indexname or alias>:
+#      <type>:  
+#        - <permission>
+
+
+
 sg_role_klingons1:
   indices:
     klingonempire:

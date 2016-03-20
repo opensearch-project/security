@@ -13,13 +13,13 @@
   <parent>
     <groupId>org.elasticsearch.plugin</groupId>
     <artifactId>plugins</artifactId>
-    <version>2.2.0</version>
+    <version>2.2.1</version>
   </parent>
 
   <groupId>com.floragunn</groupId>
   <artifactId>search-guard-2</artifactId>
   <packaging>jar</packaging>
-  <version>2.2.0.0-alpha3-SNAPSHOT</version>
+  <version>2.2.1.0-alpha3-SNAPSHOT</version>
   <name>Search Guard</name>
   <description>Provide access control related features for Elasticsearch 2</description>
   <url>https://github.com/floragunncom/search-guard</url>
@@ -34,14 +34,14 @@
   </licenses>
 
   <properties>
-    <elasticsearch.version>2.2.0</elasticsearch.version>
+    <elasticsearch.version>2.2.1</elasticsearch.version>
     <elasticsearch.plugin.isolated>false</elasticsearch.plugin.isolated>
     <dependency.locations.enabled>false</dependency.locations.enabled>
     <elasticsearch.plugin.classname>com.floragunn.searchguard.SearchGuardPlugin</elasticsearch.plugin.classname>
     <tests.ifNoTests>warn</tests.ifNoTests>
     <elasticsearch.assembly.descriptor>${basedir}/src/main/assemblies/plugin.xml</elasticsearch.assembly.descriptor>
     <skip.integ.tests>true</skip.integ.tests>
-    <skip.unit.tests>true</skip.unit.tests>
+    <skip.unit.tests>false</skip.unit.tests>
     <elasticsearch.license.header>build/license-check/elasticsearch_license_header.txt</elasticsearch.license.header>
     <elasticsearch.license.headerDefinition>build/license-check/license_header_definition.xml</elasticsearch.license.headerDefinition>
    <tests.security.manager>false</tests.security.manager>
@@ -83,7 +83,7 @@
     <dependency>
       <groupId>com.floragunn</groupId>
       <artifactId>search-guard-ssl</artifactId>
-      <version>2.2.0.6</version>
+      <version>2.2.1.7</version>
       <scope>provided</scope>
     </dependency>
     
