@@ -4,6 +4,9 @@ export ES_CONF_DIR=/etc/elasticsearch
 export ES_BIN_DIR=/usr/share/elasticsearch/bin
 export ES_PLUGIN_DIR=/usr/share/elasticsearch/plugins
 
+SG_SSL_VERSION=2.2.1.7
+SG_VERSION=2.2.1.0-alpha3
+
 CONNECT_IP=10.0.3.111
 
 #kirk is admin
@@ -15,11 +18,11 @@ sudo /etc/init.d/elasticsearch stop
 echo "Install Search Guard SSL Plugin"
 sudo $ES_BIN_DIR/plugin remove search-guard-ssl > /dev/null
 sudo $ES_BIN_DIR/plugin remove search-guard-2 > /dev/null
-sudo $ES_BIN_DIR/plugin install file:///vagrant/search-guard-ssl-2.2.1.7.zip 2>&1
-#sudo $ES_BIN_DIR/plugin install com.floragunn/search-guard-ssl/$SG_SSL_VERSION 2>&1
+#sudo $ES_BIN_DIR/plugin install file:///vagrant/search-guard-ssl-2.2.1.7.zip 2>&1
+sudo $ES_BIN_DIR/plugin install com.floragunn/search-guard-ssl/$SG_SSL_VERSION 2>&1
 echo "Install Search Guard Plugin"
-#sudo $ES_BIN_DIR/plugin install com.floragunn/search-guard/$SG_VERSION 2>&1
-sudo $ES_BIN_DIR/plugin install file:///vagrant/target/releases/search-guard-2-2.2.1.0-alpha3-SNAPSHOT.zip 2>&1
+sudo $ES_BIN_DIR/plugin install com.floragunn/search-guard-2/$SG_VERSION 2>&1
+#sudo $ES_BIN_DIR/plugin install file:///vagrant/target/releases/search-guard-2-2.2.1.0-alpha3-SNAPSHOT.zip 2>&1
 
 cp -vv /vagrant/search-guard-ssl/example-pki-scripts/truststore.jks $ES_PLUGIN_DIR/search-guard-2/sgconfig/truststore.jks
 cp -vv /vagrant/search-guard-ssl/example-pki-scripts/kirk-keystore.jks $ES_PLUGIN_DIR/search-guard-2/sgconfig/kirk-keystore.jks

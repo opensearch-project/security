@@ -4,8 +4,8 @@ function insertAfter # file line newText
    sed -i -e "/^$line$/a"$'\\\n'"$newText"$'\n' "$file"
 }
 
-SG_SSL_VERSION=2.2.0.6
-SG_VERSION=2.2.0.6
+SG_SSL_VERSION=2.2.1.7
+SG_VERSION=2.2.1.0-alpha3
 
 export ES_CONF_DIR=/etc/elasticsearch
 export ES_BIN_DIR=/usr/share/elasticsearch/bin
@@ -31,11 +31,11 @@ wget -O netty-tcnative-$NETTY_NATIVE_VERSION-$NETTY_NATIVE_CLASSIFIER.jar https:
 echo "Install Search Guard SSL Plugin"
 sudo $ES_BIN_DIR/plugin remove search-guard-ssl > /dev/null
 sudo $ES_BIN_DIR/plugin remove search-guard-2 > /dev/null
-sudo $ES_BIN_DIR/plugin install file:///vagrant/search-guard-ssl-2.2.1.7.zip 2>&1
-#sudo $ES_BIN_DIR/plugin install com.floragunn/search-guard-ssl/$SG_SSL_VERSION 2>&1
+#sudo $ES_BIN_DIR/plugin install file:///vagrant/search-guard-ssl-2.2.1.7.zip 2>&1
+sudo $ES_BIN_DIR/plugin install com.floragunn/search-guard-ssl/$SG_SSL_VERSION 2>&1
 echo "Install Search Guard Plugin"
-#sudo $ES_BIN_DIR/plugin install com.floragunn/search-guard/$SG_VERSION 2>&1
-sudo $ES_BIN_DIR/plugin install file:///vagrant/target/releases/search-guard-2-2.2.1.0-alpha3-SNAPSHOT.zip 2>&1
+sudo $ES_BIN_DIR/plugin install com.floragunn/search-guard-2/$SG_VERSION 2>&1
+#sudo $ES_BIN_DIR/plugin install file:///vagrant/target/releases/search-guard-2-2.2.1.0-alpha3-SNAPSHOT.zip 2>&1
 sudo $ES_BIN_DIR/plugin install lmenezes/elasticsearch-kopf
 sudo $ES_BIN_DIR/plugin install mobz/elasticsearch-head
 
