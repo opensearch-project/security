@@ -1,6 +1,6 @@
-#Search Guard for Elasticsearch 2.2 **ALPHA 2**
+#Search Guard for Elasticsearch 2.2.1 **ALPHA 3**
 
-First alpha release for Search Guard 2 (compatible with Elasticsearch 2.2)
+3rd alpha release for Search Guard 2 (compatible with Elasticsearch 2.2.1)
 
 ## Request for comments
 We need your input to decide on the roadmap for SG2. If you have a minute, please help us by filling out this small survey: https://www.surveymonkey.com/r/QG23TGM
@@ -14,9 +14,7 @@ This is almost a complete rewrite of Search Guard 1 which comes with a lot of ne
  * Syntax is more easy
  * Admin CLI tool introduced (sgadmin)
  
-This the second alpha release which is not yet feature complete. Currently only password based authentication and authorization is support and only HTTP basic as the HTTP authentication method.
-
-We expect to release a beta in February. By end of February the RC should be ready for release. Thats also the point in time we will start our commercial support.
+This the 3rd alpha release which is almost feature complete. Advanced functionalities like LDAP and Kerberos authentication/authorization as well as DLS/FLS will be available soon as separate and commercial licensed add-ons (but still Open Source).
 
 ##Support
 * Community support available via [google groups](https://groups.google.com/forum/#!forum/search-guard)
@@ -26,10 +24,12 @@ We expect to release a beta in February. By end of February the RC should be rea
 ##Installation
 
 * Install latest version of [search-guard-ssl plugin](https://github.com/floragunncom/search-guard-ssl)
- * ``sudo bin/plugin install com.floragunn/search-guard-ssl/2.2.0.6``
+ * ``sudo bin/plugin install com.floragunn/search-guard-ssl/2.2.1.7``
 
 * Install search-guard-2 plugin
- * ``sudo bin/plugin install com.floragunn/search-guard-2/2.2.0.0-alpha2``
+ * ``sudo bin/plugin install com.floragunn/search-guard-2/2.2.1.0-alpha3``
+ 
+Pls also the Vagrant file we provide.
 
 Both plugins need to be installed on every node in the cluster. Tribe nodes are not yet supported.
 
