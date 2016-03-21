@@ -1,3 +1,9 @@
+function insertAfter # file line newText
+{
+   local file="$1" line="$2" newText="$3"
+   sed -i -e "/^$line$/a"$'\\\n'"$newText"$'\n' "$file"
+}
+
 SG_SSL_VERSION=2.2.0.6
 SG_VERSION=2.2.0.6
 
@@ -30,6 +36,9 @@ sudo $ES_BIN_DIR/plugin install file:///vagrant/search-guard-ssl-2.2.1.7.zip 2>&
 echo "Install Search Guard Plugin"
 #sudo $ES_BIN_DIR/plugin install com.floragunn/search-guard/$SG_VERSION 2>&1
 sudo $ES_BIN_DIR/plugin install file:///vagrant/target/releases/search-guard-2-2.2.1.0-alpha3-SNAPSHOT.zip 2>&1
+sudo $ES_BIN_DIR/plugin install lmenezes/elasticsearch-kopf
+sudo $ES_BIN_DIR/plugin install mobz/elasticsearch-head
+
 echo "Install netty-tcnative for native Openssl support"
 cp netty-tcnative-$NETTY_NATIVE_VERSION-$NETTY_NATIVE_CLASSIFIER.jar $ES_PLUGIN_DIR/search-guard-ssl/
 
@@ -51,9 +60,12 @@ echo '  - "CN=kirk, OU=client, O=client, L=Test, C=DE"' >> $ES_CONF_DIR/elastics
 
 
 #Misc setup
-echo "network.host: _eth1_" >> $ES_CONF_DIR/elasticsearch.yml
+echo "network.host: _eth1:ipv4_" >> $ES_CONF_DIR/elasticsearch.yml
 echo "discovery.zen.ping.unicast.hosts: 10.0.3.113,10.0.3.112,10.0.3.111" >> $ES_CONF_DIR/elasticsearch.yml
 echo "discovery.zen.ping.multicast.enabled: false" >> $ES_CONF_DIR/elasticsearch.yml
+
+#Logging
+insertAfter $ES_CONF_DIR/logging.yml 4 "  com.floragunn: DEBUG"
 
 cp -vv /vagrant/search-guard-ssl/example-pki-scripts/$SSLNAME $ES_CONF_DIR/
 cp -vv /vagrant/search-guard-ssl/example-pki-scripts/truststore.jks $ES_CONF_DIR/

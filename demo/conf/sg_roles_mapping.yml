@@ -36,7 +36,7 @@ sg_role_klingons2:
     - klingon
 
 
-sg_all_access:
+sg_admin:
   users:
     - nagilum
     

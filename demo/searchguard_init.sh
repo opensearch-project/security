@@ -46,14 +46,7 @@ curl -Ss  \
   --key  /vagrant/search-guard-ssl/example-pki-scripts/kirk.key.pem \
   https://$CONNECT_IP:9200/_cluster/health?pretty=true&wait_for_nodes=3
 
-curl -Ss  \
-  --insecure \
-  -E /vagrant/ch.pem \
-  --key  /vagrant/search-guard-ssl/example-pki-scripts/kirk.key.pem \
-  -XPOST https://$CONNECT_IP:9200/searchguard/blub -d '{}'
-
 echo "Cluster seems up and running, now call sgadmin.sh"
-export JAVA_OPTS='-Des.logger.level=DEBUG'
 
 #Admin
 chmod +x $ES_PLUGIN_DIR/search-guard-2/tools/sgadmin.sh
@@ -66,12 +59,30 @@ curl -Ss -XGET  \
   --insecure \
  -u spock:spock https://$CONNECT_IP:9200/_searchguard/authinfo?pretty
 
+curl -Ss -XGET  \
+  --insecure \
+ -u nagilum:nagilum https://$CONNECT_IP:9200/_searchguard/authinfo?pretty
+
 curl -Ss  \
   --insecure \
-  -XPOST -u spock:spock https://$CONNECT_IP:9200/searchguard/blub -d '{}'
+  -XPOST -u nagilum:nagilum https://$CONNECT_IP:9200/movies/cinema -d '{}'
+  
+curl -Ss  \
+  --insecure \
+  -XGET -u nagilum:nagilum https://$CONNECT_IP:9200/_cat/indices?v
 
 #curl -Ss -XPUT --insecure --cacert $ES_PLUGIN_DIR/search-guard-2/sgconfig/root-ca.pem -u spock:spock https://$CONNECT_IP:9200/vulcangov/kolinahr/1 -d '{"content":1}'
 #curl -Ss -XPUT --insecure -u picard:picard https://$CONNECT_IP:9200/starfleet/ships/1 -d '{"content":1}'
 
 #curl -Ss --insecure https://$CONNECT_IP:9200/_cluster/health?pretty
 #curl -Ss --insecure https://$CONNECT_IP:9200/_searchguard/sslinfo?pretty
+
+#http://local:9200/_cat/indices?v'
+
+#create index
+
+#cluster name different
+
+#head plugin
+
+#debug log
