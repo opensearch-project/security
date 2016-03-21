@@ -112,15 +112,26 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
             log.debug("requested resolved aliases and indices: {}", requestedResolvedAliasesIndices);
             log.debug("requested resolved types: {}", requestedResolvedTypes);
         }
+        
+        List<String> allowedAdminActions = new ArrayList<String>();
+        allowedAdminActions.add("indices:admin/aliases/exists");
+        allowedAdminActions.add("indices:admin/aliases/get");
+        allowedAdminActions.add("indices:admin/analyze");
+        allowedAdminActions.add("indices:admin/get");
+        allowedAdminActions.add("indices:admin/exists");
+        allowedAdminActions.add("indices:admin/mappings/fields/get");
+        allowedAdminActions.add("indices:admin/mappings/get");
+        allowedAdminActions.add("indices:admin/types/exists");
+        allowedAdminActions.add("indices:admin/validate/query");
 
         if (requestedResolvedAliasesIndices.contains("searchguard")
-                && (action.startsWith("indices:data/write") || action.startsWith("indices:admin"))) {
+                && (action.startsWith("indices:data/write") || (action.startsWith("indices:admin") && !allowedAdminActions.contains(action)))) {
             log.warn(action + " for searchguard index is not allowed for a regular user");
             return false;
         }
 
         if (requestedResolvedAliasesIndices.contains("_all")
-                && (action.startsWith("indices:data/write") || action.startsWith("indices:admin"))) {
+                && (action.startsWith("indices:data/write") || (action.startsWith("indices:admin") && !allowedAdminActions.contains(action)))) {
             log.warn(action + " for all indices is not allowed for a regular user");
             return false;
         }
@@ -337,6 +348,11 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
             final Set<String> _requestedResolvedTypes) {
 
         if(!resolver.hasIndexOrAlias(permittedAliasesIndex, clusterService.state())) {
+            
+            log.debug("permittedAliasesIndex {} {}", permittedAliasesIndex,  action);
+            log.debug("permittedAliasesIndices {}", permittedAliasesIndices);
+            log.debug("requestedResolvedAliasesIndices {}", requestedResolvedAliasesIndices);
+            log.debug("_requestedResolvedAliasesIndices {}", _requestedResolvedAliasesIndices);            
             return;//TODO check create index
         }
         
