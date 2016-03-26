@@ -26,6 +26,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.action.ActionRequest;
@@ -175,8 +176,11 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                     }
                     return true;
                 } else {
-                    log.warn("  {} have to be permitted on cluster level", action);
-                    return false;
+                    //check other roles #108
+                    if (log.isDebugEnabled()) {
+                        log.debug("  not match found a match for '{}' and {}, check next role", sgRole, action);
+                    }
+                    continue;
                 }
             }
 
@@ -258,7 +262,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
             return Collections.EMPTY_SET;
         }
         
-        final Set<String> sgRoles = new HashSet<String>();
+        final Set<String> sgRoles = new TreeSet<String>();
         for (final String roleMap : rolesMapping.names()) {
             final Settings roleMapSettings = rolesMapping.getByPrefix(roleMap);
             if (WildcardMatcher.matchAny(roleMapSettings.getAsArray(".backendroles"), user.getRoles().toArray(new String[0]))) {

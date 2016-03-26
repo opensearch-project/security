@@ -29,7 +29,7 @@ This the 3rd alpha release which is almost feature complete. Advanced functional
 * Install search-guard-2 plugin
  * ``sudo bin/plugin install com.floragunn/search-guard-2/2.2.1.0-alpha3``
  
-Pls also the Vagrant file we provide.
+(See also the [Vagrant file](https://github.com/floragunncom/search-guard/blob/2.2/Vagrantfile) we provide)
 
 Both plugins need to be installed on every node in the cluster. Tribe nodes are not yet supported.
 

@@ -44,6 +44,14 @@ sg_public:
   users:
     - '*'
 
+sg_kibana4:
+  users:
+    - bug108
+    
+sg_zdummy_all:
+  users:
+    - bug108
+
 sg_unittest_1:
   users:
     - 'CN=spock,OU=client,O=client,L=Test,C=DE'

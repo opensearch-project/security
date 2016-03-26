@@ -6,6 +6,14 @@ sg_all_access:
       '*':  
         - ALL
 
+sg_zdummy_all:
+  cluster:
+    - 'cluster:*'
+  indices:
+    '*':
+      '*':  
+        - ALL
+
 sg_role_klingons1:
   indices:
     klingonempire:
