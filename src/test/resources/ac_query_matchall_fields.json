@@ -1,7 +1,0 @@
-{
-    "fields": ["user"], 
-
-    "query" : {
-        "matchAll" : {}
-    }
-}

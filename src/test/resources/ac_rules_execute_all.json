@@ -1,8 +1,0 @@
-{
-   "acl":[
-      {
-         "filters_bypass": [],
-         "filters_execute": ["*"]
-      }
-   ]
-}

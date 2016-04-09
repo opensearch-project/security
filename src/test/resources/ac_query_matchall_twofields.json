@@ -1,7 +1,0 @@
-{
-    "fields": ["user","structure.thesubfield2"], 
-
-    "query" : {
-        "matchAll" : {}
-    }
-}
