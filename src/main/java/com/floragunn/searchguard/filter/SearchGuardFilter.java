@@ -34,6 +34,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.rest.RestStatus;
+import org.elasticsearch.tasks.Task;
 
 import com.floragunn.searchguard.auth.BackendRegistry;
 import com.floragunn.searchguard.configuration.AdminDNs;
@@ -70,13 +71,8 @@ public class SearchGuardFilter implements ActionFilter {
     }
 
     @Override
-    public void apply(final String action, final ActionRequest request, final ActionListener listener, final ActionFilterChain chain) {
+    public void apply(Task task, final String action, final ActionRequest request, final ActionListener listener, final ActionFilterChain chain) {
 
-        //System.out.println(":-- "+action);
-        
-       
-        
-        
         if (log.isTraceEnabled()) {
             log.trace("Action {} from {}/{}", action, request.remoteAddress(), listener.getClass().getSimpleName());
             log.trace("Context {}", request.getContext());
@@ -90,7 +86,7 @@ public class SearchGuardFilter implements ActionFilter {
                 log.trace("INTERNAL:");
             }
 
-            chain.proceed(action, request, listener);
+            chain.proceed(task, action, request, listener);
             return;
         }
 
@@ -121,7 +117,7 @@ public class SearchGuardFilter implements ActionFilter {
                 log.trace("INTRANODE_REQUEST");
             }
 
-            chain.proceed(action, request, listener);
+            chain.proceed(task, action, request, listener);
             return;
         }
 
@@ -131,7 +127,7 @@ public class SearchGuardFilter implements ActionFilter {
                 log.trace("CONFIG UPDATE");
             }
 
-            chain.proceed(action, request, listener);
+            chain.proceed(task, action, request, listener);
             return;
 
         }
@@ -140,7 +136,7 @@ public class SearchGuardFilter implements ActionFilter {
             if (log.isTraceEnabled()) {
                 log.trace("Admin user request, allow all");
             }
-            chain.proceed(action, request, listener);
+            chain.proceed(task, action, request, listener);
             return;
         }
 
@@ -169,38 +165,6 @@ public class SearchGuardFilter implements ActionFilter {
 
         if (user == null || isInterClusterRequest(request)) {
 
-            /* if (user == null && request.getFromContext("_sg_ssl_transport_intercluster_request") == Boolean.TRUE) {
-
-                 final String transportPrincipalAsBase64 =  OBSOLETE request.getHeader("_sg_ssl_transport_principal_internode");
-
-                 if (!Strings.isNullOrEmpty(transportPrincipalAsBase64)) {
-                     final String interNodeTransportPrincipal = (String) Base64Helper.deserializeObject(transportPrincipalAsBase64);
-
-
-                         if (interNodeTransportPrincipal != null && adminDns.isAdmin(interNodeTransportPrincipal)) {
-
-                             if (log.isTraceEnabled()) {
-                                 log.trace("Admin user request, allow all");
-                             }
-                             request.putInContext("_sg_ssl_transport_principal", interNodeTransportPrincipal);
-                             chain.proceed(action, request, listener);
-                             return;
-                         }
-                     
-                 }
-
-                 // get user from request header
-                 final String userObjectAsBase64 = request.getHeader("_sg_user_header");
-
-                 if (!Strings.isNullOrEmpty(userObjectAsBase64)) {
-                     user = (User) Base64Helper.deserializeObject(userObjectAsBase64);
-                     request.putInContext("_sg_user", user);
-                     if (log.isTraceEnabled()) {
-                         log.trace("Got user from intercluster request header: {}", user.getName());
-                     }
-                 }
-             }
-            */
             //@formatter:off
             if (action.startsWith("internal:gateway")
                     ||
@@ -213,7 +177,7 @@ public class SearchGuardFilter implements ActionFilter {
                     log.trace("No user, will allow only standard discovery and monitoring actions");
                 }
 
-                chain.proceed(action, request, listener);
+                chain.proceed(task, action, request, listener);
                 return;
             } else if(user == null){
                 listener.onFailure(new ElasticsearchException("unauthenticated request "+action +" for user "+user, RestStatus.FORBIDDEN));
@@ -222,6 +186,7 @@ public class SearchGuardFilter implements ActionFilter {
 
         }
 
+        //TODO obsolete??
         // PKI
         /*if (user == null && transportPrincipal != null) {
             user = new User(transportPrincipal);
@@ -231,8 +196,6 @@ public class SearchGuardFilter implements ActionFilter {
                 log.debug("PKI authenticated user {}", transportPrincipal);
             }
         }*/
-
-        //System.out.println("User:"+ user);
         
         final PrivilegesEvaluator eval = evalp.get();
 
@@ -246,7 +209,7 @@ public class SearchGuardFilter implements ActionFilter {
         }
 
         if (eval.evaluate(user, action, request)) {
-            chain.proceed(action, request, listener);
+            chain.proceed(task, action, request, listener);
             return;
         } else {
             listener.onFailure(new ElasticsearchSecurityException("no permissions for " + action, RestStatus.FORBIDDEN));

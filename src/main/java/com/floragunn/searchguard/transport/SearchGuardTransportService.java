@@ -30,6 +30,7 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportChannel;
@@ -89,15 +90,6 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
             request.putHeader("_sg_remote_address_header", Base64Helper.serializeObject(((InetSocketTransportAddress) remoteAdr).address()));
             LogHelper.logUserTrace("<-- Put remote address {} in header (from _sg_remote_address ctx)", remoteAdr);
         }
-
-        // really needed? no! OBSOLETE
-        /*if (transportPrincipal != null) {
-            if (log.isTraceEnabled()) {
-                log.trace("Copy transportPrincipal {}", transportPrincipal);
-
-            }
-             OBSOLETE request.putHeader("_sg_ssl_transport_principal_internode", Base64Helper.serializeObject(transportPrincipal));
-        }*/
 
         if(log.isTraceEnabled()) {
             log.trace("sendRequest {}", LogHelper.toString(request));
@@ -180,7 +172,7 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
 
     @Override
     protected void messageReceivedDecorate(final TransportRequest request, final TransportRequestHandler handler,
-            final TransportChannel transportChannel) throws Exception {
+            final TransportChannel transportChannel, Task task) throws Exception {
         try {
             final com.floragunn.searchguard.configuration.RequestHolder context = new com.floragunn.searchguard.configuration.RequestHolder(
                     request);
@@ -191,14 +183,14 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
             if (transportChannel.action().startsWith("internal:") || transportChannel.action().contains("[")) {
 
                 if (isInterClusterRequest(request)) {
-                    super.messageReceivedDecorate(request, handler, transportChannel);
+                    super.messageReceivedDecorate(request, handler, transportChannel, task);
                     return;
                 } else if (transportChannel instanceof NettyTransportChannel) {
                     transportChannel.sendResponse(new ElasticsearchSecurityException(
                             "Internal or shard requests not allowed from a client node"));
                     return;
                 } else {
-                    super.messageReceivedDecorate(request, handler, transportChannel);
+                    super.messageReceivedDecorate(request, handler, transportChannel, task);
                     return;
                 }
             }
@@ -209,12 +201,10 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
             LogHelper.logUserTrace("CTX/H {}/{}", request.getContext(), request.getHeaders());
 
             if ((principal = request.getFromContext("_sg_ssl_transport_principal")) == null) {
-
                 transportChannel.sendResponse(new ElasticsearchSecurityException(
                         "No SSL client certificates found. Search Guards needs the Search Guard SSL plugin to be installed"));
                 return;
             } else
-
             {
                 request.putInContext("_sg_user", new User(principal));
                 // impersonation of transport requests
@@ -233,7 +223,7 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
 
             LogHelper.logUserTrace(">>>> TransportService for {}", transportChannel.action());
 
-            super.messageReceivedDecorate(request, handler, transportChannel);
+            super.messageReceivedDecorate(request, handler, transportChannel, task);
         } finally {
             LogHelper.logUserTrace("<<<< TransportService {}", transportChannel.action());
             com.floragunn.searchguard.configuration.RequestHolder.removeCurrent();
