@@ -108,46 +108,6 @@ public class ConfigurationService extends AbstractLifecycleComponent<Configurati
             super();
             this.indexShard = indexShard;
         }
-//        private void checkAdmin() {
-//  
-//            
-//                final RequestHolder current = RequestHolder.current();
-//
-//                if (current != null) {
-//                    final TransportRequest request = current.getRequest();
-//
-//                    if (request != null) {
-//
-//                        final String transportPrincipal = (String) request.getFromContext("_sg_ssl_transport_principal");
-//
-//                        if (transportPrincipal != null && adminDns.isAdmin(transportPrincipal)) {
-//                            return;
-//                        }
-//
-//                        if (request.getFromContext("_sg_ssl_transport_intercluster_request") == Boolean.TRUE) {
-//
-//                               OBSOLETE
-//                            final String transportPrincipalAsBase64 = request.getHeader("_sg_ssl_transport_principal_internode");
-//
-//                            if (!Strings.isNullOrEmpty(transportPrincipalAsBase64)) {
-//                                final String interNodeTransportPrincipal = (String) Base64Helper.deserializeObject(transportPrincipalAsBase64);
-//
-//                                if (interNodeTransportPrincipal != null && adminDns.isAdmin(interNodeTransportPrincipal)) {
-//                                    return;
-//                                }
-//                            }
-//                        }
-//                    } else {
-//                        throw new ElasticsearchException("access to searchguard index denied, request null");
-//                    }
-//
-//                } else {
-//                    throw new ElasticsearchException("access to searchguard index denied, response holder null");
-//                }
-//                
-//                throw new ElasticsearchException("access to searchguard index denied, no admin user");
-//            
-//        }
 
         @Override
         public Index preIndex(final Index index) {
@@ -158,7 +118,6 @@ public class ConfigurationService extends AbstractLifecycleComponent<Configurati
                 throw new ElasticsearchException("empty source");
             }
             //TODO checkAdmin()??
-            //checkAdmin();
 
             // for (final ConfigChangeListener configChangeListener :
             // listeners.get(index.type())) {

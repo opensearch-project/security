@@ -7,18 +7,16 @@ searchguard:
         remoteIpHeader: "x-forwarded-for"
         proxiesHeader: "x-forwarded-by"
         trustedProxies: "proxy1|proxy2"
+      authenticator:  
+        type: com.floragunn.searchguard.http.HTTPProxyAuthenticator
+        config:
+          user_header: "x-proxy-user"
+          roles_header: "x-proxy-roles"
     authcz:
       authentication_domain_proxy:
         enabled: true
         order: 0
-        #roles_only: false
         authentication_backend:
           type: com.floragunn.searchguard.auth.internal.NoOpAuthenticationBackend
         authorization_backend:
-          type: com.floragunn.searchguard.auth.internal.NoOpAuthorizationBackend
-        http_authenticator:
-          type: com.floragunn.searchguard.http.HTTPProxyAuthenticator
-          config:
-            user_header: "x-proxy-user"
-            roles_header: "x-proxy-roles"
-    
+          type: noop

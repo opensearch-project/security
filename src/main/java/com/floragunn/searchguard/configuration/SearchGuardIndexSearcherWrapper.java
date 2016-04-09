@@ -28,6 +28,8 @@ import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.Fields;
+import org.apache.lucene.index.IndexCommit;
+import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
@@ -47,6 +49,7 @@ import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.TopFieldDocs;
 import org.apache.lucene.search.Weight;
+import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.Bits;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
@@ -74,6 +77,7 @@ public class SearchGuardIndexSearcherWrapper extends AbstractIndexShardComponent
         this.admindns = admindns;
     }
 
+    
     @Override
     public DirectoryReader wrap(final DirectoryReader reader) throws IOException {
         return reader;
@@ -83,7 +87,6 @@ public class SearchGuardIndexSearcherWrapper extends AbstractIndexShardComponent
     public IndexSearcher wrap(final EngineConfig engineConfig, final IndexSearcher searcher) throws EngineException {
 
         if (!isAdminOrNotRelevant()) {
-            //System.out.println("----- WRAP EMPTY READER -------");
            return new IndexSearcher(new EmptyReader());
         }
 
@@ -93,14 +96,9 @@ public class SearchGuardIndexSearcherWrapper extends AbstractIndexShardComponent
     private boolean isAdminOrNotRelevant() {
         if (shardId.index().getName().equals("searchguard")) {
             final RequestHolder current = RequestHolder.current();
-
-            //System.out.println("current request: "+current);
             
             if (current != null) {
                 final TransportRequest request = current.getRequest();
-
-                //System.out.println("current request ctx: "+request.getContext());
-                //System.out.println("current request hd: "+request.getHeaders());
                 
                 if (request != null) {
                     if (request.getFromContext("_sg_internal_request") == Boolean.TRUE) {
@@ -114,16 +112,6 @@ public class SearchGuardIndexSearcherWrapper extends AbstractIndexShardComponent
                     }
 
                     if (request.getFromContext("_sg_ssl_transport_intercluster_request") == Boolean.TRUE) {
-
-                        /*final String transportPrincipalAsBase64 =  OBSOLETE request.getHeader("_sg_ssl_transport_principal_internode");
-
-                        if (!Strings.isNullOrEmpty(transportPrincipalAsBase64)) {
-                            final String interNodeTransportPrincipal = (String) Base64Helper.deserializeObject(transportPrincipalAsBase64);
-
-                            if (interNodeTransportPrincipal != null && admindns.isAdmin(interNodeTransportPrincipal)) {
-                                return true;
-                            }
-                        }*/
 
                         if (request.hasHeader("_sg_internal_request")) {
                             return true;

@@ -32,7 +32,7 @@ import com.floragunn.searchguard.auth.HTTPAuthenticator;
 import com.floragunn.searchguard.configuration.ConfigChangeListener;
 import com.floragunn.searchguard.user.AuthCredentials;
 
-public class HTTPProxyAuthenticator implements HTTPAuthenticator, ConfigChangeListener {
+public class HTTPProxyAuthenticator implements HTTPAuthenticator {
 
     protected final ESLogger log = Loggers.getLogger(this.getClass());
     private volatile Settings settings;
@@ -40,7 +40,6 @@ public class HTTPProxyAuthenticator implements HTTPAuthenticator, ConfigChangeLi
     public HTTPProxyAuthenticator(Settings settings) {
         super();
         this.settings = settings;
-        //tcua.addConfigChangeListener("config", this);
     }
 
     @Override
@@ -50,13 +49,12 @@ public class HTTPProxyAuthenticator implements HTTPAuthenticator, ConfigChangeLi
             throw new ElasticsearchSecurityException("xff not done");
         }
         
-        final String userHeader = settings.get("http_authenticator.config.user_header");
-        final String rolesHeader = settings.get("http_authenticator.config.roles_header");
+        final String userHeader = settings.get("config.user_header");
+        final String rolesHeader = settings.get("config.roles_header");
 
         log.debug("headers {}", request.headers());
         log.debug("userHeader {}, value {}", userHeader, request.header(userHeader));
         log.debug("rolesHeader {}, value {}", rolesHeader, request.header(rolesHeader));
-
 
         if (!Strings.isNullOrEmpty(userHeader) && !Strings.isNullOrEmpty((String) request.header(userHeader))) {
 
@@ -82,22 +80,5 @@ public class HTTPProxyAuthenticator implements HTTPAuthenticator, ConfigChangeLi
     @Override
     public String getType() {
         return "proxy";
-    }
-
-    @Override
-    public void onChange(final String event, final Settings settings) {
-        this.settings = settings;
-
-    }
-
-    @Override
-    public void validate(final String event, final Settings settings) throws ElasticsearchSecurityException {
-        // TODO Auto-generated method stub
-
-    }
-
-    @Override
-    public boolean isInitialized() {
-        return settings != null;
     }
 }

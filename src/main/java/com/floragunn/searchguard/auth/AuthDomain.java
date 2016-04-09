@@ -19,24 +19,23 @@ package com.floragunn.searchguard.auth;
 
 import java.util.Objects;
 
-import org.elasticsearch.common.settings.Settings;
-
 public class AuthDomain implements Comparable<AuthDomain> {
 
     private final AuthenticationBackend backend;
     private final AuthorizationBackend abackend;
-    private final HTTPAuthenticator httpAuthenticator;
+    //private final HTTPAuthenticator httpAuthenticator;
     private final int order;
-    private final boolean rolesOnly;
+    //private final boolean rolesOnly;
 
-    public AuthDomain(final AuthenticationBackend backend, final AuthorizationBackend abackend, final HTTPAuthenticator httpAuthenticator,
-            final int order, final boolean rolesOnly) {
+    public AuthDomain(final AuthenticationBackend backend, final AuthorizationBackend abackend, 
+            /*final HTTPAuthenticator httpAuthenticator,*/
+            final int order/*, final boolean rolesOnly*/) {
         super();
-        this.backend = rolesOnly ? null : Objects.requireNonNull(backend);
+        this.backend = Objects.requireNonNull(backend);//rolesOnly ? null : Objects.requireNonNull(backend);
         this.abackend = Objects.requireNonNull(abackend);
-        this.httpAuthenticator = rolesOnly ? null : Objects.requireNonNull(httpAuthenticator);
+        //this.httpAuthenticator = rolesOnly ? null : Objects.requireNonNull(httpAuthenticator);
         this.order = order;
-        this.rolesOnly = rolesOnly;
+        //this.rolesOnly = rolesOnly;
     }
 
     public AuthenticationBackend getBackend() {
@@ -47,22 +46,21 @@ public class AuthDomain implements Comparable<AuthDomain> {
         return abackend;
     }
 
-    public HTTPAuthenticator getHttpAuthenticator() {
-        return httpAuthenticator;
-    }
+//    public HTTPAuthenticator getHttpAuthenticator() {
+//        return httpAuthenticator;
+//    }
 
     public int getOrder() {
         return order;
     }
 
-    public boolean isRolesOnly() {
-        return rolesOnly;
-    }
+//    public boolean isRolesOnly() {
+//        return rolesOnly;
+//    }
 
     @Override
     public String toString() {
-        return "AuthDomain [backend=" + backend + ", abackend=" + abackend + ", httpAuthenticator=" + httpAuthenticator + ", order="
-                + order + ", rolesOnly=" + rolesOnly + "]";
+        return "AuthDomain [backend=" + backend + ", abackend=" + abackend + ", order="+ order + "]";
     }
 
     @Override

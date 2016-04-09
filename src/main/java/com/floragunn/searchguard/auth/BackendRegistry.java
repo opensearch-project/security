@@ -19,6 +19,7 @@ package com.floragunn.searchguard.auth;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.SortedSet;
@@ -42,9 +43,14 @@ import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportRequest;
 
 import com.floragunn.searchguard.action.configupdate.TransportConfigUpdateAction;
+import com.floragunn.searchguard.auth.internal.InternalAuthenticationBackend;
+import com.floragunn.searchguard.auth.internal.NoOpAuthenticationBackend;
+import com.floragunn.searchguard.auth.internal.NoOpAuthorizationBackend;
 import com.floragunn.searchguard.configuration.AdminDNs;
 import com.floragunn.searchguard.configuration.ConfigChangeListener;
 import com.floragunn.searchguard.filter.SearchGuardRestFilter;
+import com.floragunn.searchguard.http.HTTPBasicAuthenticator;
+import com.floragunn.searchguard.http.HTTPProxyAuthenticator;
 import com.floragunn.searchguard.http.XFFResolver;
 import com.floragunn.searchguard.support.LogHelper;
 import com.floragunn.searchguard.user.AuthCredentials;
@@ -53,12 +59,14 @@ import com.floragunn.searchguard.user.User;
 public class BackendRegistry implements ConfigChangeListener {
 
     protected final ESLogger log = Loggers.getLogger(this.getClass());
+    private final Map<String, String> authImplMap = new HashMap<String, String>();
     private final SortedSet<AuthDomain> authDomains = new TreeSet<AuthDomain>();
     private volatile boolean initialized;
     private final ClusterService cse;
     private final TransportConfigUpdateAction tcua;
     private final AdminDNs adminDns;
     private final XFFResolver xffResolver;
+    private volatile HTTPAuthenticator httpAuthenticator = null;
 
     //TODO multiple auth domains
     
@@ -71,10 +79,31 @@ public class BackendRegistry implements ConfigChangeListener {
         this.tcua = tcua;
         this.adminDns = adminDns;
         this.xffResolver = xffResolver;
+        
+        authImplMap.put("intern_c", InternalAuthenticationBackend.class.getName());
+        authImplMap.put("intern_z", NoOpAuthorizationBackend.class.getName());
+        
+        authImplMap.put("noop_c", NoOpAuthenticationBackend.class.getName());
+        authImplMap.put("noop_z", NoOpAuthorizationBackend.class.getName());
+        
+        authImplMap.put("ldap_c", "com.floragunn.dlic.auth.ldap.backend.LDAPAuthenticationBackend");
+        authImplMap.put("ldap_z", "com.floragunn.dlic.auth.ldap.backend.LDAPAuthorizationBackend");
+        
+        
+        authImplMap.put("basic_h", HTTPBasicAuthenticator.class.getName());
+        authImplMap.put("proxy_h", HTTPProxyAuthenticator.class.getName());
+        
     }
 
-    private <T> T newInstance(final String clazz, final Settings settings) throws ClassNotFoundException, NoSuchMethodException,
+    private <T> T newInstance(final String clazzOrShortcut, String type, final Settings settings) throws ClassNotFoundException, NoSuchMethodException,
             SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+        
+        String clazz = clazzOrShortcut;
+        
+        if(authImplMap.containsKey(clazz+"_"+type)) {
+            clazz = authImplMap.get(clazz+"_"+type);
+        }
+        
         final Class<T> t = (Class<T>) Class.forName(clazz);
 
         try {
@@ -89,7 +118,19 @@ public class BackendRegistry implements ConfigChangeListener {
     @Override
     public void onChange(final String event, final Settings settings) {
         authDomains.clear();
+        httpAuthenticator = null;
+        
+        Settings httpAuthSettings = settings.getByPrefix("searchguard.dynamic.http.authenticator.");
 
+        try {
+            httpAuthenticator = newInstance(
+                    httpAuthSettings.get("type", HTTPBasicAuthenticator.class.getName()),"h",
+                    httpAuthSettings);
+        } catch (Exception e1) {
+            log.error("Unable to initialize http authenticator {} due to {}", httpAuthSettings, e1.toString());
+            httpAuthenticator = new HTTPBasicAuthenticator(httpAuthSettings);
+        }
+        
         final Map<String, Settings> dyn = settings.getGroups("searchguard.dynamic.authcz");
 
         for (final String ad : dyn.keySet()) {
@@ -97,30 +138,29 @@ public class BackendRegistry implements ConfigChangeListener {
             if (ads.getAsBoolean("enabled", true)) {
                 try {
                     final AuthenticationBackend authenticationBackend = newInstance(
-                            ads.get("authentication_backend.type", "com.floragunn.searchguard.auth.internal.InternalAuthenticationBackend"),
+                            ads.get("authentication_backend.type", InternalAuthenticationBackend.class.getName()),"c",
                             ads);
                     final AuthorizationBackend authorizationBackend = newInstance(
-                            ads.get("authorization_backend.type", "com.floragunn.searchguard.auth.internal.NoOpAuthorizationBackend"),
+                            ads.get("authorization_backend.type", "com.floragunn.searchguard.auth.internal.NoOpAuthorizationBackend"),"z",
                             ads);
-                    final HTTPAuthenticator httpAuthenticator = newInstance(
-                            ads.get("http_authenticator.type", "com.floragunn.searchguard.http.HTTPBasicAuthenticator"),
-                            ads);
-                    authDomains.add(new AuthDomain(authenticationBackend, authorizationBackend, httpAuthenticator,
-                            ads.getAsInt("order", 0), ads.getAsBoolean("roles_only", false)));
+                    authDomains.add(new AuthDomain(authenticationBackend, authorizationBackend,
+                            ads.getAsInt("order", 0)));
                 } catch (final Exception e) {
-                    log.error("Unable to initialize auth domain {} due to {}", ad, e.toString());
+                    log.error("Unable to initialize auth domain {} due to {}", e, ad, e.toString());
                 }
 
             }
-
+        }
+        
+        if(authDomains.isEmpty()) {
+            authDomains.add(new AuthDomain(new InternalAuthenticationBackend(Settings.EMPTY, tcua), new NoOpAuthorizationBackend(Settings.EMPTY), 0));
         }
 
-        initialized = true;
+        initialized = (httpAuthenticator != null && authDomains.size() > 0);
     }
 
     @Override
     public void validate(final String event, final Settings settings) throws ElasticsearchSecurityException {
-        // TODO Auto-generated method stub
 
     }
 
@@ -133,8 +173,9 @@ public class BackendRegistry implements ConfigChangeListener {
      */
     public boolean authenticate(final RestRequest request, final RestChannel channel) throws ElasticsearchSecurityException {
 
-        log.warn(LogHelper.toString(request));
-        
+        if(log.isTraceEnabled()) {
+            log.trace(LogHelper.toString(request));
+        }
         
         if(adminDns.isAdmin((String) request.getFromContext("_sg_ssl_principal"))) {
             //PKI authenticated REST call
@@ -150,45 +191,45 @@ public class BackendRegistry implements ConfigChangeListener {
 
         request.putInContext("_sg_remote_address", xffResolver.resolve(request));
 
-        User authenticatedUser = null;
-        while (authenticatedUser == null) {
-            final AuthDomain authDomain = new TreeSet<AuthDomain>(authDomains).first();// (AuthDomain)
-                                                                                       // iterator.next();
-            log.debug("Try to authenticate with authDomain {}, authenticatedUser so far is {}", authDomain.getOrder(), authenticatedUser);
+        
+        AuthCredentials ac = httpAuthenticator.authenticate(request, channel);
+        
+        if (ac == null) {
+            // roundtrip
+            // count?
+            return false;
+        }
+        
+        //TODO add caching
+        
+        boolean authenticated = false;
+        
+        for (final Iterator iterator = new TreeSet<AuthDomain>(authDomains).iterator(); iterator.hasNext();) {
 
-            AuthCredentials ac = null;
-            if (authenticatedUser == null) {
-
-                log.debug("Challenge client with {}", authDomain.getHttpAuthenticator().getClass());
-
-                ac = authDomain.getHttpAuthenticator().authenticate(request, channel);
-
-                log.debug("Authentication token is: {}", ac);
-
-                if (ac == null) {
-                    // roundtrip
-                    // count?
-                    return false;
-                }
-            }
-
+            final AuthDomain authDomain = (AuthDomain) iterator.next();
+            
             try {
-                log.debug("Try to authenticate token with {}", authDomain.getBackend().getClass());
-                authenticatedUser = authDomain.getBackend().authenticate(ac);
-                authenticatedUser.addRoles(ac.getBackendRoles());
+                User authenticatedUser = authDomain.getBackend().authenticate(ac);
+                authDomain.getAbackend().fillRoles(authenticatedUser, new AuthCredentials(authenticatedUser.getName(), (Object) null));
+                //authenticatedUser.addRoles(ac.getBackendRoles());
                 log.debug("User '{}' is authenticated", authenticatedUser);
                 request.putInContext("_sg_user", authenticatedUser);
-                authDomain.getAbackend().fillRoles(authenticatedUser, new AuthCredentials(authenticatedUser.getName(),(Object) null));
-                return true;
-
+                authenticated = true;
+                break;
             } catch (final ElasticsearchSecurityException e) {
-                log.info("Cannot authenticate user with ad {} due to {}, try next", authDomain.getOrder(), e.toString());
-                authDomain.getHttpAuthenticator().requestAuthentication(channel);
-                return false;
+                log.info("Cannot authenticate user (or add roles) with ad {} due to {}, try next", authDomain.getOrder(), e.toString());
+                continue;
             }
-            // TODO check if anonymous access is allowed
+            
+            //httpAuthenticator.requestAuthentication(channel);
         }
-        return true;
+        
+        if(!authenticated) {
+            httpAuthenticator.requestAuthentication(channel);
+        }
+        
+        // TODO check if anonymous access is allowed
+        return authenticated;
     }
 
     @Override
@@ -240,21 +281,18 @@ public class BackendRegistry implements ConfigChangeListener {
 
         tr.putInContext("_sg_user", aU);
 
-        for (final Iterator iterator = new TreeSet<AuthDomain>(authDomains).iterator(); iterator.hasNext();) {
+        //fill roles only
+        /*for (final Iterator iterator = new TreeSet<AuthDomain>(authDomains).iterator(); iterator.hasNext();) {
 
             final AuthDomain authDomain = (AuthDomain) iterator.next();
-            if (!authDomain.isRolesOnly()) {
-                // continue;
-            }
-
             try {
                 authDomain.getAbackend().fillRoles(aU, new AuthCredentials(aU.getName(), (Object) null));
             } catch (final ElasticsearchSecurityException e) {
-                log.info("Cannot add roles for user with ad {}, try next", authDomain.getOrder());
+                log.info("Cannot add roles for user {} with ad {}, try next", aU.getName(), authDomain.getOrder());
                 continue;
             }
-        }
-
+        }*/
+        
         return true;
     }
 

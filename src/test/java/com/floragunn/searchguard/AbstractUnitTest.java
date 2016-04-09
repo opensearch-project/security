@@ -30,6 +30,8 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
+import java.util.HashSet;
+import java.util.Set;
 
 import javax.net.ssl.SSLContext;
 
@@ -103,6 +105,7 @@ public abstract class AbstractUnitTest {
     private Node esNode3;
     private String httpHost = null;
     private int httpPort = -1;
+    protected Set<InetSocketTransportAddress> httpAdresses = new HashSet<InetSocketTransportAddress>();
     protected String nodeHost;
     protected int nodePort;
     protected boolean enableHTTPClientSSL = false;
@@ -154,7 +157,7 @@ public abstract class AbstractUnitTest {
                 .put("path.plugins", "data/plugins")
                 .put("index.number_of_shards", "1")
                 .put("index.number_of_replicas", "0")
-                .put("http.enabled", !dataNode)
+                .put("http.enabled", true)
                 .put("cluster.routing.allocation.disk.watermark.high","1mb")
                 .put("cluster.routing.allocation.disk.watermark.low","1mb")
                 .put("http.cors.enabled", true)
@@ -244,6 +247,7 @@ public abstract class AbstractUnitTest {
                     final InetSocketTransportAddress is = (InetSocketTransportAddress) nodeInfo.getHttp().address().publishAddress();
                     httpPort = is.getPort();
                     httpHost = is.getHost();
+                    httpAdresses.add(is);
                 }
 
                 final InetSocketTransportAddress is = (InetSocketTransportAddress) nodeInfo.getTransport().getAddress().publishAddress();

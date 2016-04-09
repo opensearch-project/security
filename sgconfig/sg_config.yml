@@ -7,28 +7,30 @@ searchguard:
         remoteIpHeader: "x-forwarded-for"
         proxiesHeader: "x-forwarded-by"
         trustedProxies: "proxy1|proxy2"
+      authenticator:  
+        type: com.floragunn.searchguard.http.HTTPBasicAuthenticator
     authcz:
       authentication_domain_basic_internal:
         enabled: true
         order: 0
-        #roles_only: false
         authentication_backend:
           type: com.floragunn.searchguard.auth.internal.InternalAuthenticationBackend
         authorization_backend:
           type: com.floragunn.searchguard.auth.internal.NoOpAuthorizationBackend
-        http_authenticator:
-          type: com.floragunn.searchguard.http.HTTPBasicAuthenticator
-      authentication_domain_proxy:
+      authentication_ldap:
         enabled: true
-        order: 0
-        #roles_only: false
+        order: 1
         authentication_backend:
-          type: com.floragunn.searchguard.auth.internal.NoOpAuthenticationBackend
-        authorization_backend:
-          type: com.floragunn.searchguard.auth.internal.NoOpAuthorizationBackend
-        http_authenticator:
-          type: com.floragunn.searchguard.http.HTTPProxyAuthenticator
+          type: com.floragunn.dlic.auth.ldap.backend.LDAPAuthenticationBackend
           config:
-            user_header: "x-proxy-user"
-            roles_header: "x-proxy-roles"
+            host: ["",""]
+        authorization_backend:
+          type: com.floragunn.dlic.auth.ldap.backend.LDAPAuthorizationBackend
+      #authentication_domain_proxy:
+        #enabled: true
+        #order: 0
+        #authentication_backend:
+          #type: com.floragunn.searchguard.auth.internal.NoOpAuthenticationBackend
+        #authorization_backend:
+          #type: com.floragunn.searchguard.auth.internal.NoOpAuthorizationBackend
     

@@ -87,8 +87,6 @@ public class WildcardMatcher {
 
     public static boolean match(final String pattern, final String candidate) {
 
-        // System.out.println("check "+candidate+" matches pattern "+pattern);
-
         if (pattern == null || candidate == null) {
             return false;
         }

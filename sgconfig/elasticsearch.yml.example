@@ -1,6 +1,11 @@
+#Add the following properties to your elasticsearch.yml
+
 security.manager.enabled: false
+
 searchguard.authcz.admin_dn:
   - "CN=kirk,OU=client,O=client,l=tEst, C=De"
+
+#This is optional, only needed when impersonation is used
 searchguard.authcz.impersonation_dn:
   "CN=spock,OU=client,O=client,L=Test,C=DE":
     - worf
