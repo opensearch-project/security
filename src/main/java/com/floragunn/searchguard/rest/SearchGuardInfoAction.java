@@ -19,12 +19,13 @@ package com.floragunn.searchguard.rest;
 
 import static org.elasticsearch.rest.RestRequest.Method.GET;
 
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
+import java.security.cert.X509Certificate;
 
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.rest.BaseRestHandler;
 import org.elasticsearch.rest.BytesRestResponse;
@@ -33,57 +34,37 @@ import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.rest.RestStatus;
 
-import com.floragunn.searchguard.SearchGuardPlugin;
-import com.floragunn.searchguard.authentication.User;
-import com.floragunn.searchguard.authentication.backend.AuthenticationBackend;
-import com.floragunn.searchguard.authentication.http.HTTPAuthenticator;
-import com.floragunn.searchguard.authorization.Authorizator;
-import com.floragunn.searchguard.service.SearchGuardService;
-import com.floragunn.searchguard.util.SecurityUtil;
+import com.floragunn.searchguard.configuration.PrivilegesEvaluator;
+import com.floragunn.searchguard.user.User;
 
 public class SearchGuardInfoAction extends BaseRestHandler {
 
-    private final SearchGuardService service;
-
+    private final Provider<PrivilegesEvaluator> evaluator;
+    
     @Inject
-    public SearchGuardInfoAction(final Settings settings, final RestController controller, final Client client,
-            final SearchGuardService service) {
+    public SearchGuardInfoAction(final Settings settings, final RestController controller, final Client client, Provider<PrivilegesEvaluator> evaluator) {
         super(settings, controller, client);
-        controller.registerHandler(GET, "/_searchguard", this);
-        this.service = service;
+        this.evaluator = evaluator;
+        controller.registerHandler(GET, "/_searchguard/authinfo", this);
     }
 
     @Override
     protected void handleRequest(final RestRequest request, final RestChannel channel, final Client client) throws Exception {
-        final boolean isLoopback = ((InetSocketAddress) request.getRemoteAddress()).getAddress().isLoopbackAddress();
-        final InetAddress resolvedAddress = SecurityUtil.getProxyResolvedHostAddressFromRequest(request, settings);
-
-        final Authorizator authorizator = service.getAuthorizator();
-        final AuthenticationBackend authenticationBackend = service.getAuthenticationBackend();
-        final HTTPAuthenticator httpAuthenticator = service.getHttpAuthenticator();
 
         BytesRestResponse response = null;
         final XContentBuilder builder = channel.newBuilder();
 
         try {
 
-            final User authenticatedUser = httpAuthenticator.authenticate(request, channel, authenticationBackend, authorizator);
-
-            if (authenticatedUser == null) {
-                return;
-            }
-
+            final X509Certificate[] certs = request.getFromContext("_sg_ssl_peer_certificates");
             builder.startObject();
 
-            builder.field("searchguard.status", "running");
-            builder.field("searchguard.dls.supported", SearchGuardPlugin.DLS_SUPPORTED);
-            builder.field("searchguard.fls.supported", SearchGuardPlugin.DLS_SUPPORTED);
-            builder.field("searchguard.isloopback", isLoopback);
-            builder.field("searchguard.resolvedaddress", resolvedAddress);
-            builder.field("searchguard.authenticated_user", authenticatedUser.getName());
-
-            builder.field("searchguard.roles", authenticatedUser, authenticatedUser.getRoles());
-
+            builder.field("user", request.getFromContext("_sg_user"));
+            builder.field("remote_address", request.getFromContext("_sg_remote_address"));
+            builder.field("sg_roles", evaluator.get().mapSgRoles((User) request.getFromContext("_sg_user"), (TransportAddress) request.getFromContext("_sg_remote_address")));
+            builder.field("principal", request.getFromContext("_sg_ssl_principal"));
+            builder.field("peer_certificates", certs != null && certs.length > 0 ? certs.length + "" : "0");
+            //builder.field("_debug_request", LogHelper.toString(request));
             builder.endObject();
 
             response = new BytesRestResponse(RestStatus.OK, builder);
@@ -95,7 +76,5 @@ public class SearchGuardInfoAction extends BaseRestHandler {
         }
 
         channel.sendResponse(response);
-
     }
-
 }

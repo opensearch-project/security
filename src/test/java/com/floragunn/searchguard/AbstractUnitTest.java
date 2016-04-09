@@ -17,86 +17,73 @@
 
 package com.floragunn.searchguard;
 
-import io.searchbox.client.JestResult;
-import io.searchbox.client.config.HttpClientConfig;
-import io.searchbox.core.Get;
-import io.searchbox.core.Index;
-import io.searchbox.core.Search;
+import io.netty.handler.ssl.OpenSsl;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.Reader;
+import java.io.StringReader;
 import java.io.StringWriter;
-import java.net.Inet6Address;
-import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.net.SocketException;
+import java.io.UnsupportedEncodingException;
+import java.net.URL;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
-import java.security.Principal;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.HashSet;
 import java.util.Set;
 
 import javax.net.ssl.SSLContext;
 
+import junit.framework.Assert;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.http.HttpResponse;
-import org.apache.http.auth.AuthSchemeProvider;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.Credentials;
-import org.apache.http.auth.NTCredentials;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.CredentialsProvider;
-import org.apache.http.client.config.AuthSchemes;
-import org.apache.http.config.Registry;
-import org.apache.http.config.RegistryBuilder;
+import org.apache.http.Header;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpDelete;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpPut;
+import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.config.SocketConfig;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.conn.ssl.SSLContextBuilder;
 import org.apache.http.conn.ssl.SSLContexts;
-import org.apache.http.impl.auth.NTLMSchemeFactory;
-import org.apache.http.impl.auth.SPNegoSchemeFactory;
-import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
-import org.apache.mina.util.AvailablePortFinder;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
+import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
+import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest;
+import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.common.collect.Tuple;
+import org.elasticsearch.cluster.health.ClusterHealthStatus;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.common.settings.ImmutableSettings.Builder;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.node.Node;
-import org.elasticsearch.node.NodeBuilder;
+import org.elasticsearch.node.PluginAwareNode;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.TestName;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 
-import com.floragunn.searchguard.tests.EmbeddedLDAPServer;
-import com.floragunn.searchguard.util.ConfigConstants;
-import com.floragunn.searchguard.util.SecurityUtil;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.floragunn.searchguard.ssl.SearchGuardSSLPlugin;
+import com.google.common.base.Strings;
 
 public abstract class AbstractUnitTest {
-
-    public static boolean debugAll = false;
-    private static final File keytab = new File("target/tmp/keytab.keytab");
-    protected static final Gson prettyGson = new GsonBuilder().setPrettyPrinting().create();
 
     static {
 
@@ -105,53 +92,26 @@ public abstract class AbstractUnitTest {
         System.out.println("Java Version: " + System.getProperty("java.version") + " " + System.getProperty("java.vendor"));
         System.out.println("JVM Impl.: " + System.getProperty("java.vm.version") + " " + System.getProperty("java.vm.vendor") + " "
                 + System.getProperty("java.vm.name"));
-
-        if (debugAll) {
-            System.setProperty("javax.net.debug", "all");
-            System.setProperty("sun.security.krb5.debug", "true");
-            System.setProperty("java.security.debug", "all");
-        }
-
-        try {
-
-            String loginconf = FileUtils.readFileToString(SecurityUtil.getAbsoluteFilePathFromClassPath("login.conf_template"));
-            loginconf = loginconf.replace("${debug}", String.valueOf(debugAll)).replace("${hostname}", getNonLocalhostAddress())
-                    .replace("${keytab}", keytab.toURI().toString());
-
-            final File loginconfFile = new File("target/tmp/login.conf");
-
-            FileUtils.write(new File("target/tmp/login.conf"), loginconf);
-
-            SecurityUtil.setSystemPropertyToAbsoluteFile("java.security.auth.login.config", loginconfFile.getAbsolutePath());
-            SecurityUtil.setSystemPropertyToAbsoluteFilePathFromClassPath("java.security.krb5.conf", "krb5.conf");
-        } catch (final Exception e) {
-            throw new RuntimeException(e);
-        }
+        System.out.println("Open SSL available: "+OpenSsl.isAvailable());
+        System.out.println("Open SSL version: "+OpenSsl.versionString());
     }
 
     @Rule
     public TestName name = new TestName();
-    private HeaderAwareJestHttpClient client;
-    protected final Map<String, Object> headers = new HashMap<String, Object>();
-    protected final String clustername = "searchguard_testcluster";
-    protected int elasticsearchHttpPort1;
-    private int elasticsearchHttpPort2;
-    private int elasticsearchHttpPort3;
-    public int elasticsearchNodePort1;
-    public int elasticsearchNodePort2;
-    public int elasticsearchNodePort3;
+    protected final String clustername = "searchguard_ssl_testcluster";
 
-    protected final int ldapServerPort = EmbeddedLDAPServer.ldapPort;
-    protected final int ldapsServerPort = EmbeddedLDAPServer.ldapsPort;
-    protected EmbeddedLDAPServer ldapServer;
     private Node esNode1;
     private Node esNode2;
     private Node esNode3;
-    protected boolean enableSSL = false;
-    protected boolean enableSSLv3Only = false;
-    protected String username;
-    protected String password;
-    protected boolean useSpnego = false;
+    private String httpHost = null;
+    private int httpPort = -1;
+    protected Set<InetSocketTransportAddress> httpAdresses = new HashSet<InetSocketTransportAddress>();
+    protected String nodeHost;
+    protected int nodePort;
+    protected boolean enableHTTPClientSSL = false;
+    protected boolean enableHTTPClientSSLv3Only = false;
+    protected boolean sendHTTPClientCertificate = false;
+    protected boolean trustHTTPServerCertificate = false;
 
     @Rule
     public final TestWatcher testWatcher = new TestWatcher() {
@@ -173,7 +133,7 @@ public abstract class AbstractUnitTest {
 
         @Override
         protected void finished(final Description description) {
-            //System.out.println("-----------------------------------------------------------------------------------------");
+            // System.out.println("-----------------------------------------------------------------------------------------");
         }
 
     };
@@ -182,379 +142,80 @@ public abstract class AbstractUnitTest {
         super();
     }
 
-    protected Settings getAuthSettings(final boolean wrongPassword, final String... roles) {
-        return cacheEnabled(false)
-                .putArray("searchguard.authentication.authorization.settingsdb.roles." + username, roles)
-                .put("searchguard.authentication.settingsdb.user." + username, password + (wrongPassword ? "-wrong" : ""))
-                .put("searchguard.authentication.authorizer.impl",
-                        "com.floragunn.searchguard.authorization.simple.SettingsBasedAuthorizator")
-                        .put("searchguard.authentication.authentication_backend.impl",
-                                "com.floragunn.searchguard.authentication.backend.simple.SettingsBasedAuthenticationBackend").build();
-    }
+    // @formatter:off
+    private Settings.Builder getDefaultSettingsBuilder(final int nodenum, final boolean dataNode, final boolean masterNode) {
 
-    private Builder getDefaultSettingsBuilder(final int nodenum, final int nodePort, final int httpPort, final boolean dataNode,
-            final boolean masterNode) {
-
-        return ImmutableSettings.settingsBuilder().put("node.name", "searchguard_testnode_" + nodenum).put("node.data", dataNode)
-                .put("node.master", masterNode).put("cluster.name", clustername).put("index.store.type", "memory")
-                .put("index.store.fs.memory.enabled", "true").put("gateway.type", "none").put("path.data", "data/data")
-                .put("path.work", "data/work").put("path.logs", "data/logs").put("path.conf", "data/config")
-                .put("path.plugins", "data/plugins").put("index.number_of_shards", "3").put("index.number_of_replicas", "1")
-                .put("http.port", httpPort).put("http.enabled", !dataNode).put("network.tcp.connect_timeout", 60000)
-                .put("transport.tcp.port", nodePort)
+        return Settings.settingsBuilder()
+                .put("node.name", "searchguard_testnode_" + nodenum)
+                .put("node.data", dataNode)
+                .put("node.master", masterNode)
+                .put("cluster.name", clustername)
+                .put("path.data", "data/data")
+                .put("path.work", "data/work")
+                .put("path.logs", "data/logs")
+                .put("path.conf", "data/config")
+                .put("path.plugins", "data/plugins")
+                .put("index.number_of_shards", "1")
+                .put("index.number_of_replicas", "0")
+                .put("http.enabled", true)
                 .put("cluster.routing.allocation.disk.watermark.high","1mb")
                 .put("cluster.routing.allocation.disk.watermark.low","1mb")
-                .put("http.cors.enabled", true).put(ConfigConstants.SEARCHGUARD_CHECK_FOR_ROOT, false)
-                .put(ConfigConstants.SEARCHGUARD_ALLOW_ALL_FROM_LOOPBACK, true).put("node.local", false);
+                .put("http.cors.enabled", true)
+                .put("node.local", false)
+                .put("path.home",".");
     }
+    // @formatter:on
 
     protected final ESLogger log = Loggers.getLogger(this.getClass());
 
-    protected final String getServerUri(final boolean connectFromLocalhost) {
-
-        if (connectFromLocalhost) {
-            return "http" + (enableSSL ? "s" : "") + "://localhost:" + elasticsearchHttpPort1;
-        }
-
-        final String nonLocalhostAdress = getNonLocalhostAddress();
-
-        final String address = "http" + (enableSSL ? "s" : "") + "://" + nonLocalhostAdress + ":" + elasticsearchHttpPort1;
+    protected final String getHttpServerUri() {
+        final String address = "http" + (enableHTTPClientSSL ? "s" : "") + "://" + httpHost + ":" + httpPort;
         log.debug("Connect to {}", address);
         return address;
-
-    }
-
-    public static String getNonLocalhostAddress() {
-
-        try {
-            for (final Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces(); en.hasMoreElements();) {
-                final NetworkInterface intf = en.nextElement();
-
-                if (intf.isLoopback() || !intf.isUp()) {
-                    continue;
-                }
-
-                for (final Enumeration<InetAddress> enumIpAddr = intf.getInetAddresses(); enumIpAddr.hasMoreElements();) {
-
-                    final InetAddress ia = enumIpAddr.nextElement();
-
-                    if (ia.isLoopbackAddress() || ia instanceof Inet6Address) {
-                        continue;
-                    }
-
-                    return ia.getHostAddress();
-                }
-            }
-        } catch (final SocketException e) {
-            throw new RuntimeException(e);
-
-        }
-
-        System.out.println("ERROR: No non-localhost address available, will use localhost");
-        return "localhost";
-    }
-
-    protected final String loadFile(final String file) throws IOException {
-
-        final StringWriter sw = new StringWriter();
-        IOUtils.copy(this.getClass().getResourceAsStream("/" + file), sw);
-        return sw.toString();
-
     }
 
     public final void startES(final Settings settings) throws Exception {
 
         FileUtils.deleteDirectory(new File("data"));
 
-        Set<Integer> ports = null;
-        int offset = 0;
-        final int windowsSize = 12;
-        do {
-            ports = AvailablePortFinder.getAvailablePorts(AvailablePortFinder.MAX_PORT_NUMBER - offset - windowsSize,
-                    AvailablePortFinder.MAX_PORT_NUMBER - offset);
-            offset += windowsSize;
-        } while (ports.size() < 7);
+        esNode1 = new PluginAwareNode(getDefaultSettingsBuilder(1, false, true).put(
+                settings == null ? Settings.Builder.EMPTY_SETTINGS : settings).build(), SearchGuardSSLPlugin.class, SearchGuardPlugin.class);
+        esNode2 = new PluginAwareNode(getDefaultSettingsBuilder(2, true, true).put(
+                settings == null ? Settings.Builder.EMPTY_SETTINGS : settings).build(), SearchGuardSSLPlugin.class, SearchGuardPlugin.class);
+        esNode3 = new PluginAwareNode(getDefaultSettingsBuilder(3, true, false).put(
+                settings == null ? Settings.Builder.EMPTY_SETTINGS : settings).build(), SearchGuardSSLPlugin.class, SearchGuardPlugin.class);
 
-        final Iterator<Integer> portIt = ports.iterator();
-
-        elasticsearchHttpPort1 = portIt.next();
-        elasticsearchHttpPort2 = portIt.next();
-        elasticsearchHttpPort3 = portIt.next();
-
-        elasticsearchNodePort1 = portIt.next();
-        elasticsearchNodePort2 = portIt.next();
-        elasticsearchNodePort3 = portIt.next();
-
-        esNode1 = new NodeBuilder().settings(
-                getDefaultSettingsBuilder(1, elasticsearchNodePort1, elasticsearchHttpPort1, false, true).put(
-                        settings == null ? ImmutableSettings.Builder.EMPTY_SETTINGS : settings).build()).node();
-        esNode2 = new NodeBuilder().settings(
-                getDefaultSettingsBuilder(2, elasticsearchNodePort2, elasticsearchHttpPort2, true, true).put(
-                        settings == null ? ImmutableSettings.Builder.EMPTY_SETTINGS : settings).build()).node();
-        esNode3 = new NodeBuilder().settings(
-                getDefaultSettingsBuilder(3, elasticsearchNodePort3, elasticsearchHttpPort3, true, false).put(
-                        settings == null ? ImmutableSettings.Builder.EMPTY_SETTINGS : settings).build()).node();
+        esNode1.start();
+        esNode2.start();
+        esNode3.start();
 
         waitForGreenClusterState(esNode1.client());
     }
-
-    public final void startLDAPServer() throws Exception {
-
-        log.debug("non localhost address: {}", getNonLocalhostAddress());
-
-        ldapServer = new EmbeddedLDAPServer();
-
-        keytab.delete();
-        ldapServer.createKeytab("krbtgt/EXAMPLE.COM@EXAMPLE.COM", "secret", keytab);
-        ldapServer.createKeytab("HTTP/" + getNonLocalhostAddress() + "@EXAMPLE.COM", "httppwd", keytab);
-        ldapServer.createKeytab("HTTP/localhost@EXAMPLE.COM", "httppwd", keytab);
-        ldapServer.createKeytab("ldap/localhost@EXAMPLE.COM", "randall", keytab);
-
-        ldapServer.start();
+    
+    protected Client client() {
+        return esNode1.client();
     }
 
     @Before
     public void setUp() throws Exception {
-
-        headers.clear();
-        username = password = null;
-        enableSSL = false;
-
+        enableHTTPClientSSL = false;
+        enableHTTPClientSSLv3Only = false;
     }
 
     @After
     public void tearDown() throws Exception {
 
-        // This will stop and clean the local node
-
-        if (esNode3 != null) {
-            esNode3.close();
-        }
-
-        if (esNode2 != null) {
-            esNode2.close();
-        }
-
-        if (esNode1 != null) {
-            esNode1.close();
-        }
-
-        if (client != null) {
-            client.shutdownClient();
-        }
-
-        if (ldapServer != null) {
-            ldapServer.stop();
-        }
-
-    }
-
-    protected final Tuple<JestResult, HttpResponse> executeIndex(final String file, final String index, final String type, final String id,
-            final boolean mustBeSuccesfull, final boolean connectFromLocalhost) throws Exception {
-
-        client = getJestClient(getServerUri(connectFromLocalhost), username, password);
-
-        final Tuple<JestResult, HttpResponse> restu = client.executeE(new Index.Builder(loadFile(file)).index(index).type(type).id(id)
-                .refresh(true).setHeader(headers).build());
-
-        final JestResult res = restu.v1();
-
-        if (mustBeSuccesfull) {
-            if (res.getErrorMessage() != null) {
-                log.error("Index operation result: " + res.getErrorMessage());
-            }
-            Assert.assertTrue("Error msg: " + res.getErrorMessage() + res.getJsonString(), res.isSucceeded());
-        } else {
-            log.debug("Index operation result fails as expected: " + res.getErrorMessage());
-            Assert.assertTrue(!res.isSucceeded());
-        }
-
-        return restu;
-    }
-
-    protected final Tuple<JestResult, HttpResponse> executeIndexAsString(final String string, final String index, final String type,
-            final String id, final boolean mustBeSuccesfull, final boolean connectFromLocalhost) throws Exception {
-
-        client = getJestClient(getServerUri(connectFromLocalhost), username, password);
-
-        Index.Builder builder = new Index.Builder(string).index(index).type(type).refresh(true).setHeader(headers);
-        if (id != null && id.length() > 0) {
-            builder = builder.id(id);
-        }
-
-        final Tuple<JestResult, HttpResponse> restu = client.executeE(builder.build());
-
-        final JestResult res = restu.v1();
-
-        if (mustBeSuccesfull) {
-            if (res.getErrorMessage() != null) {
-                log.error("Index operation result: " + res.getErrorMessage());
-            }
-            Assert.assertTrue("Error msg: " + res.getErrorMessage() + res.getJsonString(), res.isSucceeded());
-        } else {
-            log.debug("Index operation result fails as expected: " + res.getErrorMessage());
-            Assert.assertTrue(!res.isSucceeded());
-        }
-
-        return restu;
-    }
-
-    protected final Tuple<JestResult, HttpResponse> executeSearch(final String file, final String[] indices, final String[] types,
-            final boolean mustBeSuccesfull, final boolean connectFromLocalhost) throws Exception {
-
-        client = getJestClient(getServerUri(connectFromLocalhost), username, password);
-
-        final Tuple<JestResult, HttpResponse> restu = client.executeE(new Search.Builder(loadFile(file))
-        .addIndex(indices == null ? Collections.EMPTY_SET : Arrays.asList(indices))
-        .addType(types == null ? Collections.EMPTY_SET : Arrays.asList(types)).refresh(true).setHeader(headers)
-
-        .build());
-
-        final JestResult res = restu.v1();
-
-        if (mustBeSuccesfull) {
-            if (res.getErrorMessage() != null) {
-                log.error("Search operation result: {}", res.getErrorMessage());
-            }
-            Assert.assertTrue("Error msg: " + res.getErrorMessage() + res.getJsonString(), res.isSucceeded());
-        } else {
-            log.debug("Search operation fails as expected");
-            Assert.assertTrue(!res.isSucceeded());
-        }
-        return restu;
-    }
-
-    protected final Tuple<JestResult, HttpResponse> executeGet(final String index, final String type, final String id,
-            final boolean mustBeSuccesfull, final boolean connectFromLocalhost) throws Exception {
-
-        client = getJestClient(getServerUri(connectFromLocalhost), username, password);
-
-        final Tuple<JestResult, HttpResponse> restu = client.executeE(new Get.Builder(index, id).type(type).refresh(true)
-                .setHeader(headers).build());
-
-        final JestResult res = restu.v1();
-
-        if (mustBeSuccesfull) {
-            if (res.getErrorMessage() != null) {
-                log.error("Get operation result: {}", res.getErrorMessage());
-            }
-            Assert.assertTrue("Error msg: " + res.getErrorMessage() + res.getJsonString(), res.isSucceeded());
-        } else {
-            log.debug("Get operation result fails as expected");
-            Assert.assertTrue(!res.isSucceeded());
-        }
-        return restu;
-    }
-
-    protected final HeaderAwareJestHttpClient getJestClient(final String serverUri, final String username, final String password)
-            throws Exception {// http://hc.apache.org/httpcomponents-client-ga/tutorial/html/authentication.html
-
-        final CredentialsProvider credsProvider = new BasicCredentialsProvider();
-
-        final HttpClientConfig clientConfig1 = new HttpClientConfig.Builder(serverUri).multiThreaded(true).build();
-
-        // Construct a new Jest client according to configuration via factory
-        final HeaderAwareJestClientFactory factory1 = new HeaderAwareJestClientFactory();
-
-        factory1.setHttpClientConfig(clientConfig1);
-
-        final HeaderAwareJestHttpClient c = factory1.getObject();
-
-        final HttpClientBuilder hcb = HttpClients.custom();
-
-        if (username != null) {
-            credsProvider.setCredentials(new AuthScope(AuthScope.ANY), new UsernamePasswordCredentials(username, password));
-        }
-
-        if (useSpnego) {
-            //SPNEGO/Kerberos setup
-            log.debug("SPNEGO activated");
-            final AuthSchemeProvider nsf = new SPNegoSchemeFactory(true);//  new NegotiateSchemeProvider();
-            final Credentials jaasCreds = new JaasCredentials();
-            credsProvider.setCredentials(new AuthScope(null, -1, null, AuthSchemes.SPNEGO), jaasCreds);
-            credsProvider.setCredentials(new AuthScope(null, -1, null, AuthSchemes.NTLM), new NTCredentials("Guest", "Guest", "Guest",
-                    "Guest"));
-            final Registry<AuthSchemeProvider> authSchemeRegistry = RegistryBuilder.<AuthSchemeProvider> create()
-                    .register(AuthSchemes.SPNEGO, nsf).register(AuthSchemes.NTLM, new NTLMSchemeFactory()).build();
-
-            hcb.setDefaultAuthSchemeRegistry(authSchemeRegistry);
-        }
-
-        hcb.setDefaultCredentialsProvider(credsProvider);
-
-        if (serverUri.startsWith("https")) {
-
-            log.debug("Configure Jest with SSL");
-
-            final KeyStore myTrustStore = KeyStore.getInstance("JKS");
-            myTrustStore.load(new FileInputStream(SecurityUtil.getAbsoluteFilePathFromClassPath("SearchguardTS.jks")),
-                    "changeit".toCharArray());
-
-            final KeyStore keyStore = KeyStore.getInstance("JKS");
-            keyStore.load(new FileInputStream(SecurityUtil.getAbsoluteFilePathFromClassPath("SearchguardKS.jks")), "changeit".toCharArray());
-
-            final SSLContext sslContext = SSLContexts.custom().useTLS().loadKeyMaterial(keyStore, "changeit".toCharArray())
-                    .loadTrustMaterial(myTrustStore).build();
-
-            String[] protocols = null;
-
-            if (enableSSLv3Only) {
-                protocols = new String[] { "SSLv3" };
-            } else {
-                protocols = SecurityUtil.ENABLED_SSL_PROTOCOLS;
+            if (esNode3 != null) {
+                esNode3.close();
             }
 
-            final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext, protocols,
-                    SecurityUtil.ENABLED_SSL_CIPHERS, SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+            if (esNode2 != null) {
+                esNode2.close();
+            }
 
-            hcb.setSSLSocketFactory(sslsf);
-
-        }
-
-        hcb.setDefaultSocketConfig(SocketConfig.custom().setSoTimeout(60 * 1000).build());
-
-        final CloseableHttpClient httpClient = hcb.build();
-
-        c.setHttpClient(httpClient);
-        return c;
-
-    }
-
-    protected final void setupTestData(final String searchGuardConfig) throws Exception {
-
-        executeIndex("dummy_content.json", "ceo", "internal", "tp_1", true, true);
-        executeIndex("dummy_content.json", "marketing", "flyer", "tp_2", true, true);
-        executeIndex("dummy_content.json", "marketing", "customer", "tp_3", true, true);
-        executeIndex("dummy_content.json", "marketing", "customer", "tp_4", true, true);
-        executeIndex("dummy_content.json", "financial", "public", "t2p_5", true, true);
-        executeIndex("dummy_content.json", "financial", "sensitivestuff", "t2p_6", true, true);
-        executeIndex("dummy_content.json", "financial", "sensitivestuff", "t2p_7", true, true);
-
-        for (int i = 0; i < 30; i++) {
-            executeIndex("dummy_content.json", "public", "info", "t2pat_" + i, true, true);
-        }
-
-        executeIndex("dummy_content2.json", "future", "docs", "f_1", true, true);
-        executeIndex("dummy_content2.json", "future", "docs", "f_2", true, true);
-
-        esNode1.client().admin().indices().prepareAliases().addAlias(new String[] { "ceo", "financial" }, "crucial").execute().actionGet();
-        esNode1.client().admin().indices().prepareAliases().addAlias(new String[] { "crucial", "marketing" }, "internal").execute()
-        .actionGet();
-
-        executeIndex(searchGuardConfig, "searchguard", "ac", "ac", true, true);
-    }
-
-    private static class JaasCredentials implements Credentials {
-
-        @Override
-        public String getPassword() {
-            return null;
-        }
-
-        @Override
-        public Principal getUserPrincipal() {
-            return null;
-        }
+            if (esNode1 != null) {
+                esNode1.close();
+            }
     }
 
     protected void waitForGreenClusterState(final Client client) throws IOException {
@@ -565,46 +226,248 @@ public abstract class AbstractUnitTest {
         try {
             log.debug("waiting for cluster state {}", status.name());
             final ClusterHealthResponse healthResponse = client.admin().cluster().prepareHealth().setWaitForStatus(status)
-                    .setTimeout(timeout).execute().actionGet();
+                    .setTimeout(timeout).setWaitForNodes("3").execute().actionGet();
             if (healthResponse.isTimedOut()) {
-                throw new IOException("cluster state is " + healthResponse.getStatus().name() + " and not " + status.name()
-                        + ", cowardly refusing to continue with operations");
+                throw new IOException("cluster state is " + healthResponse.getStatus().name() + " with "
+                        + healthResponse.getNumberOfNodes() + " nodes");
             } else {
-                log.debug("... cluster state ok");
+                log.debug("... cluster state ok " + healthResponse.getStatus().name() + " with " + healthResponse.getNumberOfNodes()
+                        + " nodes");
+            }
+            
+            org.junit.Assert.assertEquals(3, healthResponse.getNumberOfNodes());
+
+            final NodesInfoResponse res = esNode1.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet();
+            
+            final NodeInfo[] nodes = res.getNodes();
+
+            for (int i = 0; i < nodes.length; i++) {
+                final NodeInfo nodeInfo = nodes[i];
+                if (nodeInfo.getHttp() != null && nodeInfo.getHttp().address() != null) {
+                    final InetSocketTransportAddress is = (InetSocketTransportAddress) nodeInfo.getHttp().address().publishAddress();
+                    httpPort = is.getPort();
+                    httpHost = is.getHost();
+                    httpAdresses.add(is);
+                }
+
+                final InetSocketTransportAddress is = (InetSocketTransportAddress) nodeInfo.getTransport().getAddress().publishAddress();
+                nodePort = is.getPort();
+                nodeHost = is.getHost();
             }
         } catch (final ElasticsearchTimeoutException e) {
             throw new IOException("timeout, cluster does not respond to health request, cowardly refusing to continue with operations");
         }
     }
 
-    protected void assertJestResultCount(final JestResult result, final int count) {
-        Assert.assertNotNull(result);
-        Assert.assertTrue(result.isSucceeded());
-        Assert.assertEquals(count, result.getJsonObject().getAsJsonObject("hits").getAsJsonPrimitive("total").getAsInt());
+    public File getAbsoluteFilePathFromClassPath(final String fileNameFromClasspath) {
+        File file = null;
+        final URL fileUrl = AbstractUnitTest.class.getClassLoader().getResource(fileNameFromClasspath);
+        if (fileUrl != null) {
+            try {
+                file = new File(URLDecoder.decode(fileUrl.getFile(), "UTF-8"));
+            } catch (final UnsupportedEncodingException e) {
+                return null;
+            }
+
+            if (file.exists() && file.canRead()) {
+                return file;
+            } else {
+                log.error("Cannot read from {}, maybe the file does not exists? ", file.getAbsolutePath());
+            }
+
+        } else {
+            log.error("Failed to load " + fileNameFromClasspath);
+        }
+        return null;
     }
 
-    protected void assertJestResultError(final JestResult result, final String... msgs) {
-        Assert.assertNotNull(result);
-        Assert.assertNotNull(result.getErrorMessage());
-        Assert.assertFalse(result.isSucceeded());
+    protected String executeSimpleRequest(final String request) throws Exception {
 
-        if (msgs != null && msgs.length > 0) {
-            boolean match = false;
-            for (final String msg : msgs) {
-                match = match || result.getErrorMessage().contains(msg);
+        CloseableHttpClient httpClient = null;
+        CloseableHttpResponse response = null;
+        try {
+            httpClient = getHTTPClient();
+            response = httpClient.execute(new HttpGet(getHttpServerUri() + "/" + request));
+
+            if (response.getStatusLine().getStatusCode() >= 300) {
+                throw new Exception("Statuscode " + response.getStatusLine().getStatusCode());
             }
-            Assert.assertTrue(result.getErrorMessage(), match);
+
+            return IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
+        } finally {
+
+            if (response != null) {
+                response.close();
+            }
+
+            if (httpClient != null) {
+                httpClient.close();
+            }
+        }
+    }
+    
+    protected class HttpResponse {
+        private final CloseableHttpResponse inner;
+        private final String body;
+        private final Header[] header;
+        private final int statusCode;
+        private final String statusReason;
+
+        public HttpResponse(CloseableHttpResponse inner) throws IllegalStateException, IOException {
+            super();
+            this.inner = inner;
+            this.body = IOUtils.toString(inner.getEntity().getContent(), StandardCharsets.UTF_8);
+            this.header = inner.getAllHeaders();
+            this.statusCode = inner.getStatusLine().getStatusCode();
+            this.statusReason = inner.getStatusLine().getReasonPhrase();
+            inner.close();
+        }
+
+        public CloseableHttpResponse getInner() {
+            return inner;
+        }
+
+        public String getBody() {
+            return body;
+        }
+
+        public Header[] getHeader() {
+            return header;
+        }
+
+        public int getStatusCode() {
+            return statusCode;
+        }
+
+        public String getStatusReason() {
+            return statusReason;
+        }
+        
+        
+        
+    }
+    
+    protected HttpResponse executeGetRequest(final String request, Header... header) throws Exception {
+        return executeRequest(new HttpGet(getHttpServerUri() + "/" + request), header);
+    }
+    
+    protected HttpResponse executePutRequest(final String request, String body, Header... header) throws Exception {
+        HttpPut uriRequest = new HttpPut(getHttpServerUri() + "/" + request);
+        if(!Strings.isNullOrEmpty(body)) {
+            uriRequest.setEntity(new StringEntity(body));
+        }
+        
+        return executeRequest(uriRequest, header);
+        
+    }
+    
+    protected HttpResponse executePostRequest(final String request, String body, Header... header) throws Exception {
+        HttpPost uriRequest = new HttpPost(getHttpServerUri() + "/" + request);
+        if(!Strings.isNullOrEmpty(body)) {
+            uriRequest.setEntity(new StringEntity(body));
+        }
+        
+        return executeRequest(uriRequest, header);
+    }
+    
+    protected HttpResponse executeDeleteRequest(final String request, Header... header) throws Exception {
+        return executeRequest(new HttpDelete(getHttpServerUri() + "/" + request), header);
+    }
+    
+    protected HttpResponse executeRequest(HttpUriRequest uriRequest, Header... header) throws Exception {
+
+        CloseableHttpClient httpClient = null;
+        try {
+            
+            httpClient = getHTTPClient();
+            
+            if(header != null && header.length > 0) {
+                for (int i = 0; i < header.length; i++) {
+                    Header h = header[i];
+                    uriRequest.addHeader(h);
+                }
+            }
+            
+            return new HttpResponse(httpClient.execute(uriRequest));
+        } finally {
+
+            if (httpClient != null) {
+                httpClient.close();
+            }
         }
     }
 
-    protected ImmutableSettings.Builder cacheEnabled(final boolean cache) {
-        return ImmutableSettings.settingsBuilder().put("searchguard.authentication.authorizer.cache.enable", cache)
-                .put("searchguard.authentication.authentication_backend.cache.enable", cache);
-    }
+    protected final CloseableHttpClient getHTTPClient() throws Exception {
 
-    protected String toPrettyJson(final String json) {
-        final Map jsonm = prettyGson.fromJson(json, Map.class);
-        return prettyGson.toJson(jsonm);
-    }
+        final HttpClientBuilder hcb = HttpClients.custom();
 
+        if (enableHTTPClientSSL) {
+
+            log.debug("Configure HTTP client with SSL");
+
+            final KeyStore myTrustStore = KeyStore.getInstance("JKS");
+            myTrustStore.load(new FileInputStream(getAbsoluteFilePathFromClassPath("truststore.jks")), "changeit".toCharArray());
+
+            final KeyStore keyStore = KeyStore.getInstance("JKS");
+            keyStore.load(new FileInputStream(getAbsoluteFilePathFromClassPath("node-0-keystore.jks")), "changeit".toCharArray());
+
+            final SSLContextBuilder sslContextbBuilder = SSLContexts.custom().useTLS();
+
+            if (trustHTTPServerCertificate) {
+                sslContextbBuilder.loadTrustMaterial(myTrustStore);
+            }
+
+            if (sendHTTPClientCertificate) {
+                sslContextbBuilder.loadKeyMaterial(keyStore, "changeit".toCharArray());
+            }
+
+            final SSLContext sslContext = sslContextbBuilder.build();
+
+            String[] protocols = null;
+
+            if (enableHTTPClientSSLv3Only) {
+                protocols = new String[] { "SSLv3" };
+            } else {
+                protocols = new String[] { "TLSv1", "TLSv1.1", "TLSv1.2" };
+            }
+
+            final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext, protocols, null,
+                    SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+
+            hcb.setSSLSocketFactory(sslsf);
+        }
+
+        hcb.setDefaultSocketConfig(SocketConfig.custom().setSoTimeout(60 * 1000).build());
+
+        return hcb.build();
+    }
+    
+    protected final String loadFile(final String file) throws IOException {
+        final StringWriter sw = new StringWriter();
+        IOUtils.copy(this.getClass().getResourceAsStream("/" + file), sw);
+        return sw.toString();
+    }
+    
+    protected BytesReference readYamlContent(final String file) {
+            try {
+                return readXContent(new StringReader(loadFile(file)), XContentType.YAML);
+            } catch (IOException e) {
+                return null;
+            }
+    }
+    
+    protected BytesReference readXContent(final Reader reader, final XContentType xContentType) throws IOException {
+        XContentParser parser = null;
+        try {
+            parser = XContentFactory.xContent(xContentType).createParser(reader);
+            parser.nextToken();
+            final XContentBuilder builder = XContentFactory.jsonBuilder();
+            builder.copyCurrentStructure(parser);
+            return builder.bytes();
+        } finally {
+            if (parser != null) {
+                parser.close();
+            }
+        }
+    }
 }

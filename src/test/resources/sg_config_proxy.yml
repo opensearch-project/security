@@ -1,0 +1,22 @@
+searchguard:
+  dynamic:
+    http:
+      xff:
+        enabled: true
+        internalProxies: 192\.168\.0\.10|192\.168\.0\.11
+        remoteIpHeader: "x-forwarded-for"
+        proxiesHeader: "x-forwarded-by"
+        trustedProxies: "proxy1|proxy2"
+      authenticator:  
+        type: com.floragunn.searchguard.http.HTTPProxyAuthenticator
+        config:
+          user_header: "x-proxy-user"
+          roles_header: "x-proxy-roles"
+    authcz:
+      authentication_domain_proxy:
+        enabled: true
+        order: 0
+        authentication_backend:
+          type: com.floragunn.searchguard.auth.internal.NoOpAuthenticationBackend
+        authorization_backend:
+          type: noop

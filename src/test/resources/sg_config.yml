@@ -1,0 +1,26 @@
+searchguard:
+  dynamic:
+    http:
+      xff:
+        enabled: false
+        internalProxies: 192\.168\.0\.10|192\.168\.0\.11
+        remoteIpHeader: "x-forwarded-for"
+        proxiesHeader: "x-forwarded-by"
+        trustedProxies: "proxy1|proxy2"
+      authenticator:
+        type: basic
+    authcz:
+      authentication_domain_basic_internal:
+        enabled: true
+        order: 2
+        authentication_backend:
+          type: com.floragunn.dlic.auth.ldap.backend.LDAPAuthenticationBackend
+        authorization_backend:
+          type: ldap
+      authentication_domain_proxy:
+        enabled: true
+        order: 1
+        authentication_backend:
+          type: com.floragunn.searchguard.auth.internal.InternalAuthenticationBackend
+        authorization_backend:
+          type: com.floragunn.searchguard.auth.internal.NoOpAuthorizationBackend

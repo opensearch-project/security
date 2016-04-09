@@ -1,0 +1,57 @@
+sg_role_starfleet:
+  backendroles:
+    - starfleet
+    - captains
+    - defectors
+  hosts:
+    - "*.starfleetintranet.com"
+  users:
+    - nagilum
+
+sg_role_starfleet_captains:
+  backendroles:
+    - captains
+
+sg_role_starfleet_library:
+  backendroles:
+    - 'starfleet*'
+    - ambassador
+
+sg_role_vulcans:
+  backendroles:
+    - vulcangov
+  users:
+    - kirk
+
+sg_role_vulcans_admin:
+  backendroles:
+    - vulcanadmin
+    
+sg_role_klingons1:
+  backendroles:
+    - klingon
+
+sg_role_klingons2:
+  backendroles:
+    - klingon
+
+
+sg_all_access:
+  users:
+    - nagilum
+    
+sg_public:
+  users:
+    - '*'
+
+sg_kibana4:
+  users:
+    - bug108
+    
+sg_zdummy_all:
+  users:
+    - bug108
+
+sg_unittest_1:
+  users:
+    - 'CN=spock,OU=client,O=client,L=Test,C=DE'

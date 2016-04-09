@@ -24,10 +24,9 @@ eclipse-build
 !/.settings/org.eclipse.jdt.ui.prefs
 !/.settings/org.eclipse.jdt.groovy.core.prefs
 bin
-tomcat.*
 elasticsearch-*/
-*node_key.key
-securekey.key
-/target/
 .DS_Store
 data/
+puppet/.vagrant
+test.sh
+.vagrant/

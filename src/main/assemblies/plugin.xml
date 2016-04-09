@@ -1,24 +1,35 @@
 <?xml version="1.0"?>
 <assembly>
-        <id>plugin</id>
-        <formats>
-                <format>zip</format>
-        </formats>
-        <includeBaseDirectory>false</includeBaseDirectory>
-        <dependencySets>
-                <dependencySet>
-                        <outputDirectory>/</outputDirectory>
-                        <useProjectArtifact>true</useProjectArtifact>
-                        <useTransitiveFiltering>true</useTransitiveFiltering>
-                        <excludes>
-                                <exclude>org.elasticsearch:elasticsearch</exclude>
-                        </excludes>
-                </dependencySet>
-                <dependencySet>
-                        <includes>
-                                <include>com.floragunn:search-guard</include>
-                        </includes>
-                </dependencySet>
-        </dependencySets>
+  <id>plugin</id>
+  <formats>
+    <format>zip</format>
+  </formats>
+  <includeBaseDirectory>false</includeBaseDirectory>
+  <files>
+    <file>
+      <source>${elasticsearch.tools.directory}/plugin-metadata/plugin-descriptor.properties
+      </source>
+      <outputDirectory />
+      <filtered>true</filtered>
+    </file>
+  </files>
+  <fileSets>
+    <fileSet>
+      <directory>${project.basedir}</directory>
+      <outputDirectory>/</outputDirectory>
+      <includes>
+        <include>tools/**</include>
+        <include>sgconfig/**</include>
+      </includes>
+      <fileMode>0755</fileMode>
+    </fileSet>
+  </fileSets>
+  <dependencySets>
+    <dependencySet>
+      <outputDirectory>/</outputDirectory>
+      <useProjectArtifact>true</useProjectArtifact>
+      <useTransitiveFiltering>true</useTransitiveFiltering>
+      <useTransitiveDependencies>true</useTransitiveDependencies>
+    </dependencySet>
+  </dependencySets>
 </assembly>
-

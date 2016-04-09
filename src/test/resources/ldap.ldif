@@ -1,0 +1,58 @@
+dn: ou=people,o=TEST
+objectclass: organizationalUnit
+objectclass: top
+ou: people
+
+dn: ou=groups,o=TEST
+objectclass: organizationalUnit
+objectclass: top
+ou: groups
+
+
+dn: cn=Michael Jackson,ou=people,o=TEST
+objectclass: inetOrgPerson
+cn: Michael Jackson
+sn: jackson
+uid: jacksonm
+userpassword: secret
+mail: jacksonm@example.com
+description: cn=dummyempty,ou=groups,o=TEST
+ou: Human Resources
+
+dn: cn=Captain Spock,ou=people,o=TEST
+objectclass: inetOrgPerson
+cn: Captain Spock
+sn: spock
+uid: spock
+userpassword: spocksecret
+mail: spock@example.com
+description: vulcan
+ou: Human Resources
+
+dn: cn=ceo,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: ceo
+uniqueMember: cn=Michael Jackson,ou=people,o=TEST
+uniqueMember: cn=Captain Spock,ou=people,o=TEST
+uniqueMember: cn=hnelson,ou=people,o=TEST
+
+dn: cn=role2,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: role2
+uniqueMember: cn=Michael Jackson,ou=people,o=TEST
+uniqueMember: cn=nested1,ou=groups,o=TEST
+
+dn: cn=nested1,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: nested1
+uniqueMember: cn=nested2,ou=groups,o=TEST
+
+dn: cn=nested2,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: nested2
+uniqueMember: cn=Captain Spock,ou=people,o=TEST
+
+dn: cn=dummyempty,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: dummyempty
+uniqueMember: cn=krbtgt,ou=people,o=TEST
