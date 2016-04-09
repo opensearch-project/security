@@ -17,15 +17,15 @@ searchguard:
           type: com.floragunn.searchguard.auth.internal.InternalAuthenticationBackend
         authorization_backend:
           type: com.floragunn.searchguard.auth.internal.NoOpAuthorizationBackend
-      authentication_ldap:
-        enabled: true
-        order: 1
-        authentication_backend:
-          type: com.floragunn.dlic.auth.ldap.backend.LDAPAuthenticationBackend
-          config:
-            host: ["",""]
-        authorization_backend:
-          type: com.floragunn.dlic.auth.ldap.backend.LDAPAuthorizationBackend
+      #authentication_ldap:
+        #enabled: true
+        #order: 1
+        #authentication_backend:
+          #type: com.floragunn.dlic.auth.ldap.backend.LDAPAuthenticationBackend
+          #config:
+            #host: ["",""]
+        #authorization_backend:
+          #type: com.floragunn.dlic.auth.ldap.backend.LDAPAuthorizationBackend
       #authentication_domain_proxy:
         #enabled: true
         #order: 0

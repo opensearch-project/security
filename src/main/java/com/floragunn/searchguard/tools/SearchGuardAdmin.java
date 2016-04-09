@@ -17,10 +17,12 @@
 
 package com.floragunn.searchguard.tools;
 
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.net.InetSocketAddress;
+import java.util.Arrays;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -36,6 +38,7 @@ import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.settings.Settings;
@@ -66,6 +69,8 @@ public class SearchGuardAdmin {
         options.addOption(Option.builder("cn").longOpt("clustername").hasArg().argName("clustername").desc("Clustername").build());
         options.addOption( "sniff", "enable-sniffing", false, "Enable client.transport.sniff" );
         options.addOption( "icl", "ignore-clustername", false, "Ignore clustername" );
+        options.addOption(Option.builder("f").longOpt("file").hasArg().argName("file").desc("file").build());
+        options.addOption(Option.builder("t").longOpt("type").hasArg().argName("file-type").desc("file-type").build());
         
         String hostname = "localhost";
         int port = 9300;
@@ -79,6 +84,8 @@ public class SearchGuardAdmin {
         boolean sniff = false;
         boolean icl = false;
         String clustername = "elasticsearch";
+        String file = null;
+        String type = null;
         
         CommandLineParser parser = new DefaultParser();
         try {
@@ -95,6 +102,8 @@ public class SearchGuardAdmin {
             clustername = line.getOptionValue("cn", clustername);
             sniff = line.hasOption("sniff");
             icl = line.hasOption("icl");
+            file = line.getOptionValue("f", file);
+            type = line.getOptionValue("t", type);
         }
         catch( ParseException exp ) {
             System.err.println("Parsing failed.  Reason: " + exp.getMessage());
@@ -105,36 +114,9 @@ public class SearchGuardAdmin {
         
         System.out.println("Connect to "+hostname+":"+port);
 
-        /*final Settings nsettings = Settings
-                .builder()
-                .put("path.home", ".")
-                // .putArray("plugin.types", SearchGuardPlugin.class.getName(),
-                // SearchGuardSSLPlugin.class.getName())
-                .put("index.number_of_shards", "1")
-                .put("index.number_of_replicas", "0")
-                .put("path.conf", "/Users/temp/search-guard2/src/test/resources")
-                .put("searchguard.ssl.transport.keystore_filepath", "node-0-keystore.jks")
-                .put("searchguard.ssl.transport.truststore_filepath", "truststore.jks")
-                .put("searchguard.ssl.transport.enforce_hostname_verification", false)
-                .put("searchguard.ssl.transport.resolve_hostname", false)
-                .put("searchguard.ssl.transport.enabled", true)
-
-                .putArray("searchguard.authcz.admin_dn", "cn=xxx,ou=ccc,ou=qqqr,dc=wwwe,dc=de",
-                        "CN=kirk,OU=client,   O=client,l=tEst, C=De")
-
-                .build();*/
-
-        //new PluginAwareNode(nsettings, SearchGuardSSLPlugin.class, SearchGuardPlugin.class).start();
-
-        //Thread.sleep(3000);
-
         final Settings settings = Settings
                 .builder()
                 .put("path.home", ".")
-                // .putArray("plugin.types", SearchGuardPlugin.class.getName(),
-                // SearchGuardSSLPlugin.class.getName())
-                //.put("path.conf", "/Users/temp/search-guard2/src/test/resources")
-                //.put("path.conf", "/Users/temp/search-guard2/elasticsearch-2.1.0/config")
                 .put("path.conf", ".")
                 .put("searchguard.ssl.transport.keystore_filepath", ks)
                 .put("searchguard.ssl.transport.truststore_filepath", ts)
@@ -149,7 +131,6 @@ public class SearchGuardAdmin {
                 .build();
 
         try (TransportClient tc = TransportClient.builder().settings(settings).addPlugin(SearchGuardSSLPlugin.class)
-                //.addPlugin(SearchGuardPlugin.class)
                 .build()
                 .addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(hostname, port)))) {
 
@@ -159,8 +140,8 @@ public class SearchGuardAdmin {
 
             
             if (timedOut) {
-                System.out.println("Cluster state is not yellow, timeout");
-                return;// System.exit(-1);
+                System.out.println("Cluster state timeout");
+                System.exit(-1);
             }
 
             /*System.out.println(chr.getStatus());
@@ -196,125 +177,55 @@ public class SearchGuardAdmin {
             }
             
             System.out.println("populate config ...");
-
-            try (Reader reader = new FileReader(cd+"/sg_config.yml")) {
-
-                final String id = tc
-                        .index(new IndexRequest("searchguard").type("config").id("0").refresh(true)
-                                .consistencyLevel(WriteConsistencyLevel.DEFAULT).source(readXContent(reader, XContentType.YAML)))
-                                .actionGet().getId();
-
-                if ("0".equals(id)) {
-                    System.out.println("Configuration created or updated");
-                } else {
-                    System.out.println("failed");
-                    return;// System.exit(-1);
+            
+            if(file != null) {
+                if(type == null) {
+                    System.out.println("type missing");
+                    System.exit(-1);
                 }
-            }
-            try (Reader reader = new FileReader(cd+"/sg_roles.yml")) {
-
-                final String id = tc
-                        .index(new IndexRequest("searchguard").type("roles").id("0").refresh(true)
-                                .consistencyLevel(WriteConsistencyLevel.DEFAULT).source(readXContent(reader, XContentType.YAML)))
-                                .actionGet().getId();
-
-                if ("0".equals(id)) {
-                    System.out.println("Roles created or updated");
-                } else {
-                    System.out.println("failed");
-                    return;// System.exit(-1);
+                
+                if(!Arrays.asList(new String[]{"config", "roles", "rolesmapping", "internalusers","actiongroups" }).contains(type)) {
+                    System.out.println("Invalid type '"+type+"'");
+                    System.exit(-1);
                 }
-
-            }
-            try (Reader reader = new FileReader(cd+"/sg_roles_mapping.yml")) {
-
-                final String id = tc
-                        .index(new IndexRequest("searchguard").type("rolesmapping").id("0").refresh(true)
-                                .consistencyLevel(WriteConsistencyLevel.DEFAULT).source(readXContent(reader, XContentType.YAML)))
-                                .actionGet().getId();
-
-                if ("0".equals(id)) {
-                    System.out.println("Role mappings created or updated");
-                } else {
-                    System.out.println("failed");
-                    return;// System.exit(-1);
-                }
-
+                
+                boolean success = uploadFile(tc, file, type);
+                System.exit(success?0:-1);
             }
 
-            try (Reader reader = new FileReader(cd+"/sg_internal_users.yml")) {
-
-                final String id = tc
-                        .index(new IndexRequest("searchguard").type("internalusers").id("0").refresh(true)
-                                .consistencyLevel(WriteConsistencyLevel.DEFAULT).source(readXContent(reader, XContentType.YAML)))
-                                .actionGet().getId();
-
-                if ("0".equals(id)) {
-                    System.out.println("Internal users created or updated");
-                } else {
-                    System.out.println("failed");
-                    return;// System.exit(-1);
-                }
-
-            }
-
-            try (Reader reader = new FileReader(cd+"/sg_action_groups.yml")) {
-
-                final String id = tc
-                        .index(new IndexRequest("searchguard").type("actiongroups").id("0").refresh(true)
-                                .consistencyLevel(WriteConsistencyLevel.DEFAULT).source(readXContent(reader, XContentType.YAML)))
-                                .actionGet().getId();
-
-                if ("0".equals(id)) {
-                    System.out.println("Actiongroups created or updated");
-                } else {
-                    System.out.println("failed");
-                    return;// System.exit(-1);
-                }
-
-            }
-
+            boolean success = uploadFile(tc, cd+"/sg_config.yml", "config");
+            success = success & uploadFile(tc, cd+"/sg_roles.yml", "roles");
+            success = success & uploadFile(tc, cd+"/sg_roles_mapping.yml", "rolesmapping");
+            success = success & uploadFile(tc, cd+"/sg_internal_users.yml", "internalusers");
+            success = success & uploadFile(tc, cd+"/sg_action_groups.yml", "actiongroups");
+            
+            Thread.sleep(3000);
+            System.out.println("Done with "+(success?"success":"failures"));
+            System.exit(success?0:-1);
         }
-        // audit changes to .searchguard index
+        // TODO audit changes to .searchguard index
+    }
+    
+    private static boolean uploadFile(Client tc, String filepath, String type) {
+        System.out.println("Will update '"+type+"' with "+filepath);
+        try (Reader reader = new FileReader(filepath)) {
 
-        
-        //Thread.sleep(5000);
-        System.out.println("Done");
+            final String id = tc
+                    .index(new IndexRequest("searchguard").type(type).id("0").refresh(true)
+                            .consistencyLevel(WriteConsistencyLevel.DEFAULT).source(readXContent(reader, XContentType.YAML)))
+                            .actionGet().getId();
 
-        /*final HttpURLConnection connection = (HttpURLConnection) new URL("http://localhost:9200/").openConnection();
-        final String encoded = Base64Helper.encodeBasicHeader("kirk", "testabc");
-        connection.setRequestProperty("Authorization", "Basic " + encoded);
-        connection.connect();
-        System.out.println(IOUtils.toString(connection.getInputStream()));
-        System.out.println(connection.getResponseCode());
-        */
-        
-        
-        
-        
-        
-        // Thread.sleep(1000*3600);
-
-        /*settings = Settings.builder()
-                .put("path.home", ".")
-                //.put("plugin.types", SearchGuardPlugin.class.getName())
-                .put("request.headers.Authenticate", Base64Helper.encodeBasicHeader("spock","testabc"))
-                .build();
-
-        try (TransportClient tc = TransportClient.builder().settings(settings).build()
-                .addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(hostname, port)))) {
-
-            tc.index(new IndexRequest("a").type("b").source("{}")).actionGet();
-
+            if ("0".equals(id)) {
+                System.out.println("   SUCC Configuration for '"+type+"' created or updated");
+                return true;
+            } else {
+                System.out.println("   FAIL Configuration for '"+type+"' failed for unknown reasons. Pls. consult logfile of elasticsearch");
+            }
+        } catch (IOException e) {
+            System.out.println("   FAIL Configuration for '"+type+"' failed because of "+e.toString());
         }
-
-
-
-        Thread.sleep(3000);*/
-
-        // sg_roles.yml
-        // sg_config.yml
-
+        
+        return false;
     }
 
     private static BytesReference readXContent(final Reader reader, final XContentType xContentType) throws IOException {

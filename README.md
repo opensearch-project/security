@@ -1,6 +1,6 @@
-#Search Guard for Elasticsearch 2.2.1 **BETA 1**
+#Search Guard for Elasticsearch 2.3.1 **BETA 1**
 
-1st beta release for Search Guard 2 (compatible with Elasticsearch 2.2.1)
+1st beta release for Search Guard 2 (compatible with Elasticsearch 2.3.1)
 
 ## Request for comments
 We need your input to decide on the roadmap for SG2. If you have a minute, please help us by filling out this small survey: https://www.surveymonkey.com/r/QG23TGM
@@ -24,10 +24,10 @@ This the 1st beta release which is almost feature complete. Advanced functionali
 ##Installation
 
 * Install latest version of [search-guard-ssl plugin](https://github.com/floragunncom/search-guard-ssl)
- * ``sudo bin/plugin install com.floragunn/search-guard-ssl/2.2.1.7``
+ * ``sudo bin/plugin install com.floragunn/search-guard-ssl/2.3.1.8.1``
 
 * Install search-guard-2 plugin
- * ``sudo bin/plugin install com.floragunn/search-guard-2/2.2.1.0-beta1``
+ * ``sudo bin/plugin install com.floragunn/search-guard-2/2.3.1.0-beta1``
  
 (See also the [Vagrant file](https://github.com/floragunncom/search-guard/blob/2.2/Vagrantfile) we provide)
 
