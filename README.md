@@ -5,6 +5,9 @@
 ## Request for comments
 We need your input to decide on the roadmap for SG2. If you have a minute, please help us by filling out this small survey: https://www.surveymonkey.com/r/QG23TGM
 
+## Wiki
+[Additional documentation is provided in the wiki.](https://github.com/floragunncom/search-guard/wiki)
+
 ##Roadmap
 This is almost a complete rewrite of Search Guard 1 which comes with a lot of new features:
 
