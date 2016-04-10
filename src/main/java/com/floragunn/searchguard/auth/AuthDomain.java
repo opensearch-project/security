@@ -23,19 +23,13 @@ public class AuthDomain implements Comparable<AuthDomain> {
 
     private final AuthenticationBackend backend;
     private final AuthorizationBackend abackend;
-    //private final HTTPAuthenticator httpAuthenticator;
     private final int order;
-    //private final boolean rolesOnly;
 
-    public AuthDomain(final AuthenticationBackend backend, final AuthorizationBackend abackend, 
-            /*final HTTPAuthenticator httpAuthenticator,*/
-            final int order/*, final boolean rolesOnly*/) {
+    public AuthDomain(final AuthenticationBackend backend, final AuthorizationBackend abackend, final int order) {
         super();
-        this.backend = Objects.requireNonNull(backend);//rolesOnly ? null : Objects.requireNonNull(backend);
+        this.backend = Objects.requireNonNull(backend);
         this.abackend = Objects.requireNonNull(abackend);
-        //this.httpAuthenticator = rolesOnly ? null : Objects.requireNonNull(httpAuthenticator);
         this.order = order;
-        //this.rolesOnly = rolesOnly;
     }
 
     public AuthenticationBackend getBackend() {
@@ -46,21 +40,13 @@ public class AuthDomain implements Comparable<AuthDomain> {
         return abackend;
     }
 
-//    public HTTPAuthenticator getHttpAuthenticator() {
-//        return httpAuthenticator;
-//    }
-
     public int getOrder() {
         return order;
     }
 
-//    public boolean isRolesOnly() {
-//        return rolesOnly;
-//    }
-
     @Override
     public String toString() {
-        return "AuthDomain [backend=" + backend + ", abackend=" + abackend + ", order="+ order + "]";
+        return "AuthDomain [backend=" + backend + ", abackend=" + abackend + ", order=" + order + "]";
     }
 
     @Override

@@ -32,6 +32,7 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.component.LifecycleListener;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
@@ -39,6 +40,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateResponse.Node;
+import com.floragunn.searchguard.auth.BackendRegistry;
 import com.floragunn.searchguard.configuration.ConfigChangeListener;
 import com.floragunn.searchguard.configuration.ConfigurationLoader;
 import com.google.common.collect.ArrayListMultimap;
@@ -52,18 +54,21 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
 
     private final ClusterService clusterService;
     private final ConfigurationLoader cl;
+    private final Provider<BackendRegistry> backendRegistry;
     private final ListMultimap<String, ConfigChangeListener> multimap = Multimaps.synchronizedListMultimap(ArrayListMultimap
             .<String, ConfigChangeListener> create());
 
     @Inject
     public TransportConfigUpdateAction(final Client client, final Settings settings, final ClusterName clusterName,
             final ThreadPool threadPool, final ClusterService clusterService, final TransportService transportService,
-            final ConfigurationLoader cl, final ActionFilters actionFilters, final IndexNameExpressionResolver indexNameExpressionResolver) {
+            final ConfigurationLoader cl, final ActionFilters actionFilters, final IndexNameExpressionResolver indexNameExpressionResolver,
+            Provider<BackendRegistry> backendRegistry) {
         super(settings, ConfigUpdateAction.NAME, clusterName, threadPool, clusterService, transportService, actionFilters,
                 indexNameExpressionResolver, ConfigUpdateRequest.class, TransportConfigUpdateAction.NodeConfigUpdateRequest.class,
                 ThreadPool.Names.MANAGEMENT);
         this.cl = cl;
         this.clusterService = clusterService;
+        this.backendRegistry = backendRegistry;
 
         clusterService.addLifecycleListener(new LifecycleListener() {
 
@@ -121,6 +126,7 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
 
     @Override
     protected ConfigUpdateResponse newResponse(final ConfigUpdateRequest request, final AtomicReferenceArray nodesResponses) {
+        
         final List<ConfigUpdateResponse> nodes = Lists.<ConfigUpdateResponse> newArrayList();
         for (int i = 0; i < nodesResponses.length(); i++) {
             final Object resp = nodesResponses.get(i);
@@ -144,6 +150,7 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
 
     @Override
     protected Node nodeOperation(final NodeConfigUpdateRequest request) {
+        backendRegistry.get().invalidateCache();
         final Map<String, Settings> setn = cl.load(request.request.getConfigTypes());
 
         for (final String evt : setn.keySet()) {

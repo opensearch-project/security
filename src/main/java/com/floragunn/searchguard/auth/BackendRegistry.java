@@ -24,6 +24,9 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
@@ -55,6 +58,12 @@ import com.floragunn.searchguard.http.XFFResolver;
 import com.floragunn.searchguard.support.LogHelper;
 import com.floragunn.searchguard.user.AuthCredentials;
 import com.floragunn.searchguard.user.User;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+import com.google.common.cache.RemovalListener;
+import com.google.common.cache.RemovalNotification;
 
 public class BackendRegistry implements ConfigChangeListener {
 
@@ -62,20 +71,27 @@ public class BackendRegistry implements ConfigChangeListener {
     private final Map<String, String> authImplMap = new HashMap<String, String>();
     private final SortedSet<AuthDomain> authDomains = new TreeSet<AuthDomain>();
     private volatile boolean initialized;
-    private final ClusterService cse;
+    //private final ClusterService cse;
     private final TransportConfigUpdateAction tcua;
     private final AdminDNs adminDns;
     private final XFFResolver xffResolver;
     private volatile HTTPAuthenticator httpAuthenticator = null;
 
-    //TODO multiple auth domains
-    
+    private Cache<AuthCredentials, User> userCache = CacheBuilder.newBuilder()
+            .expireAfterWrite(1, TimeUnit.HOURS)
+            .removalListener(new RemovalListener<AuthCredentials, User>() {
+                @Override
+                public void onRemoval(RemovalNotification<AuthCredentials, User> notification) {
+                    log.debug("Clear user cache for {} due to {}", notification.getKey().getUsername(), notification.getCause());
+                }
+            }).build();
+
     @Inject
     public BackendRegistry(final RestController controller, final TransportConfigUpdateAction tcua, final ClusterService cse,
             final AdminDNs adminDns, final XFFResolver xffResolver) {
         tcua.addConfigChangeListener("config", this);
         controller.registerFilter(new SearchGuardRestFilter(this));
-        this.cse = cse;
+        //this.cse = cse;
         this.tcua = tcua;
         this.adminDns = adminDns;
         this.xffResolver = xffResolver;
@@ -93,6 +109,10 @@ public class BackendRegistry implements ConfigChangeListener {
         authImplMap.put("basic_h", HTTPBasicAuthenticator.class.getName());
         authImplMap.put("proxy_h", HTTPProxyAuthenticator.class.getName());
         
+    }
+    
+    public void invalidateCache() {
+        userCache.invalidateAll();
     }
 
     private <T> T newInstance(final String clazzOrShortcut, String type, final Settings settings) throws ClassNotFoundException, NoSuchMethodException,
@@ -192,26 +212,38 @@ public class BackendRegistry implements ConfigChangeListener {
         request.putInContext("_sg_remote_address", xffResolver.resolve(request));
 
         
-        AuthCredentials ac = httpAuthenticator.authenticate(request, channel);
+        final AuthCredentials ac = httpAuthenticator.authenticate(request, channel);
         
         if (ac == null) {
             // roundtrip
-            // count?
             return false;
         }
-        
-        //TODO add caching
         
         boolean authenticated = false;
         
         for (final Iterator iterator = new TreeSet<AuthDomain>(authDomains).iterator(); iterator.hasNext();) {
 
             final AuthDomain authDomain = (AuthDomain) iterator.next();
+            User authenticatedUser = null;
+            
+            log.debug("User '{}' is in cache? {} (cache size: {})", ac.getUsername(), userCache.getIfPresent(ac)!=null, userCache.size());
             
             try {
-                User authenticatedUser = authDomain.getBackend().authenticate(ac);
-                authDomain.getAbackend().fillRoles(authenticatedUser, new AuthCredentials(authenticatedUser.getName(), (Object) null));
-                //authenticatedUser.addRoles(ac.getBackendRoles());
+                try {
+                    authenticatedUser = userCache.get(ac, new Callable<User>() {
+                        @Override
+                        public User call() throws Exception {
+                            log.debug(ac.getUsername()+" not cached, return from backend directly");
+                            User authenticatedUser = authDomain.getBackend().authenticate(ac);
+                            authDomain.getAbackend().fillRoles(authenticatedUser, new AuthCredentials(authenticatedUser.getName(), (Object) null));
+                            return authenticatedUser;
+                        }
+                    });
+                } catch (Exception e) {
+                    throw new ElasticsearchSecurityException("", e.getCause());
+                }
+                
+                 //authenticatedUser.addRoles(ac.getBackendRoles());
                 log.debug("User '{}' is authenticated", authenticatedUser);
                 request.putInContext("_sg_user", authenticatedUser);
                 authenticated = true;
@@ -221,7 +253,6 @@ public class BackendRegistry implements ConfigChangeListener {
                 continue;
             }
             
-            //httpAuthenticator.requestAuthentication(channel);
         }
         
         if(!authenticated) {

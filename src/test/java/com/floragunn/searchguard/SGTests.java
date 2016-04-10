@@ -401,6 +401,7 @@ public class SGTests extends AbstractUnitTest {
         
         for (Iterator iterator = httpAdresses.iterator(); iterator.hasNext();) {
             InetSocketTransportAddress inetSocketTransportAddress = (InetSocketTransportAddress) iterator.next();
+            log.debug("http://"+inetSocketTransportAddress.getHost()+":"+inetSocketTransportAddress.getPort());
             HttpResponse res = executeRequest(new HttpGet("http://"+inetSocketTransportAddress.getHost()+":"+inetSocketTransportAddress.getPort() + "/" + "_searchguard/authinfo?pretty=true"), spock);
             Assert.assertTrue(res.getBody().contains("spock"));
             Assert.assertTrue(res.getBody().contains("additionalrole1"));
