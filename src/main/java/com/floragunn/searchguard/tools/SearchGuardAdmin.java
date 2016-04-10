@@ -199,7 +199,8 @@ public class SearchGuardAdmin {
             success = success & uploadFile(tc, cd+"/sg_internal_users.yml", "internalusers");
             success = success & uploadFile(tc, cd+"/sg_action_groups.yml", "actiongroups");
             
-            Thread.sleep(3000);
+            System.out.println("Wait a short time ...");
+            Thread.sleep(5000);
             System.out.println("Done with "+(success?"success":"failures"));
             System.exit(success?0:-1);
         }
