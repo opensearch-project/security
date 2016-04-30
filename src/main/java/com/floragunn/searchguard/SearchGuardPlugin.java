@@ -51,7 +51,7 @@ public final class SearchGuardPlugin extends Plugin {
     public SearchGuardPlugin(final Settings settings) {
         super();
         System.out.println("************************************************");
-        System.out.println("This is alpha software, do not use in production");
+        System.out.println("This is beta software, do not use in production");
         System.out.println("************************************************");
         checkSSLPluginAvailable();
         if(!settings.getAsBoolean(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLED, true)) {

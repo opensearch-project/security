@@ -23,6 +23,7 @@ import org.elasticsearch.rest.RestFilterChain;
 import org.elasticsearch.rest.RestRequest;
 
 import com.floragunn.searchguard.auth.BackendRegistry;
+import com.floragunn.searchguard.support.HeaderHelper;
 
 public class SearchGuardRestFilter extends RestFilter {
 
@@ -35,6 +36,8 @@ public class SearchGuardRestFilter extends RestFilter {
 
     @Override
     public void process(final RestRequest request, final RestChannel channel, final RestFilterChain filterChain) throws Exception {
+        
+        HeaderHelper.checkSGHeader(request);
         
         if (!registry.authenticate(request, channel)) {
             // another roundtrip

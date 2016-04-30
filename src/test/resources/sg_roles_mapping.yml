@@ -43,6 +43,9 @@ sg_all_access:
 sg_public:
   users:
     - '*'
+sg_flsdls:
+  users:
+    - sarek
 
 sg_kibana4:
   users:

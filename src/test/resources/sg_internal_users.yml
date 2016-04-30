@@ -23,10 +23,6 @@ spock:
 sarek:
   hash: $2a$12$Ioo1uXmH.Nq/lS5dUVBEsePSmZ5pSIpVO/xKHaquU/Jvq97I7nAgG
   #password is: sarek
-  roles:
-    - vulcanadmin
-    - vulcan
-    - ambassador
 kirk:
   hash: $2a$12$xZOcnwYPYQ3zIadnlQIJ0eNhX1ngwMkTN.oMwkKxoGvDVPn4/6XtO
   #password is: kirk

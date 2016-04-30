@@ -158,6 +158,9 @@ public class SearchGuardFilter implements ActionFilter {
             if (log.isTraceEnabled()) {
                 log.trace("User {} already authenticated from another node", user.getName());
             }
+            
+            //TODO put into context as _sg_user?
+            
         } else {
 
             user = request.getFromContext("_sg_user");

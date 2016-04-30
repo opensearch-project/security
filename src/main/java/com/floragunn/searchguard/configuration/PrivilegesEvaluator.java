@@ -17,10 +17,12 @@
 
 package com.floragunn.searchguard.configuration;
 
+import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -46,6 +48,7 @@ import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.transport.TransportRequest;
 
 import com.floragunn.searchguard.action.configupdate.TransportConfigUpdateAction;
+import com.floragunn.searchguard.support.Base64Helper;
 import com.floragunn.searchguard.support.WildcardMatcher;
 import com.floragunn.searchguard.user.User;
 import com.google.common.collect.Sets;
@@ -144,6 +147,10 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         if (log.isDebugEnabled()) {
             log.debug("mapped roles: {}", sgRoles);
         }
+        
+        boolean allowAction = false;
+        final Set<String> dlsQueries = new HashSet<String>();
+        final Set<String> flsFields = new HashSet<String>();
 
         for (final Iterator iterator = sgRoles.iterator(); iterator.hasNext();) {
             final String sgRole = (String) iterator.next();
@@ -157,7 +164,6 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                 log.debug("---------- evaluate sg_role: {}", sgRole);
             }
 
-            // TODO expand permissions over roles
             final Set<String> _requestedResolvedAliasesIndices = new HashSet<String>(requestedResolvedAliasesIndices);
             final Set<String> _requestedResolvedTypes = new HashSet<String>(requestedResolvedTypes);
 
@@ -207,12 +213,10 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
             'pub*':
             '*':
             - READ
-
-
-
              */
+            
+            
 
-            // we need to look at all and merge result
             for (final String permittedAliasesIndex : permittedAliasesIndices.keySet()) {
 
                 if (WildcardMatcher.containsWildcard(permittedAliasesIndex)) {
@@ -241,19 +245,54 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
 
             if (_requestedResolvedAliasesIndices.isEmpty() && _requestedResolvedTypes.isEmpty()) {
                 if (log.isDebugEnabled()) {
-                    log.debug("found a match for '{}', skip other roles", sgRole);
+                    log.debug("found a match for '{}', evaluate other roles for fls/dls purposes", sgRole);
                 }
 
-                return true;
+                String dls = sgRoleSettings.get(".dls");
+                final String[] fls = sgRoleSettings.getAsArray(".fls");
+                
+                if(dls != null && dls.length() > 0) {
+                    
+                    //TODO use UserPropertyReplacer, make it registerable for ldap user
+                    dls = dls.replace("${user.name}", user.getName());
+                    
+                    dlsQueries.add(dls);
+                                        
+                    if (log.isDebugEnabled()) {
+                        log.debug("_sg_dls_query {}", dls);
+                    }
+                    
+                }
+                
+                if(fls != null && fls.length > 0) {
+                    
+                    flsFields.addAll(Sets.newHashSet(fls));
+                    
+                    if (log.isDebugEnabled()) {
+                        log.debug("_sg_fls_fields {}", Sets.newHashSet(fls));
+                    }
+                    
+                }
+                
+                allowAction = true;
             }
 
         } // end sg role loop
 
-        if (log.isDebugEnabled()) {
+        if (!allowAction && log.isDebugEnabled()) {
             log.debug("No perm match");
         }
-
-        return false;
+        
+        
+        if(!dlsQueries.isEmpty()) {
+            request.putHeader("_sg_dls_query", Base64Helper.serializeObject((Serializable)dlsQueries));
+        }
+        
+        if(!flsFields.isEmpty()) {
+            request.putHeader("_sg_fls_fields", Base64Helper.serializeObject((Serializable)flsFields));
+        }
+        
+        return allowAction;
     }
 
     public Set<String> mapSgRoles(User user, TransportAddress caller) {

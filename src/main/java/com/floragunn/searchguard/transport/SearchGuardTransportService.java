@@ -112,7 +112,7 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
         } else if (!Strings.isNullOrEmpty((String) request.getHeader("_sg_user_header"))) {
             if (log.isTraceEnabled()) {
                 try {
-                    log.trace("User {} is multihoped", Base64Helper.deserializeObject((String) request.getHeader("_sg_user_header")));
+                    log.trace("User {} is multihopped", Base64Helper.deserializeObject((String) request.getHeader("_sg_user_header")));
                 } catch (Exception e) {
                     log.trace(e.toString(), e);
                 }
@@ -210,7 +210,7 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
                 // impersonation of transport requests
                 try {
                     if (!backendRegistry.get().authenticate(request, transportChannel)) {
-                        return;
+                        return; //TODO what does that mean? currently this gets not executed because auth() always true
                     }
                 } catch (final Exception e) {
                     transportChannel.sendResponse(e);

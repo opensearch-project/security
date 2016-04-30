@@ -56,6 +56,20 @@ sg_role_starfleet_captains:
   cluster:
     - 'cluster:monitor*'
 
+sg_flsdls:
+  cluster:
+    - '*'
+  indices:
+    '*':
+       '*':  
+         - '*'
+  #dls: '{"term" : {"${user.name}" : "12"}}'
+  dls: '{"term" : {"_type" : "legends"}}'
+  fls:
+    - fieldx
+    - field2.b
+    - field3.m.*
+
 sg_unittest_1:
   cluster:
     - '*'
@@ -63,16 +77,7 @@ sg_unittest_1:
     '*':
        '*':  
          - '*'
-# not yet implemented  
-  dls:
-    query: '{"term" : {"$user.username" : "12"}}'
-  fls:
-    - field1.a
-    - field2.b
-    - field3.m.*
-    
-    
-    
+        
 sg_admin:
   cluster:
     - CLUSTER_ALL

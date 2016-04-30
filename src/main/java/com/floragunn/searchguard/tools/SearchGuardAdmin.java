@@ -92,8 +92,8 @@ public class SearchGuardAdmin {
             CommandLine line = parser.parse( options, args );
             hostname = line.getOptionValue("h", hostname);
             port = Integer.parseInt(line.getOptionValue("p", String.valueOf(port)));
-            kspass = line.getOptionValue("kspass", kspass);
-            tspass = line.getOptionValue("tspass", tspass);
+            kspass = line.getOptionValue("kspass", kspass); //TODO null? //when no passwd is set
+            tspass = line.getOptionValue("tspass", tspass); //TODO null? //when no passwd is set
             cd = line.getOptionValue("cd", cd);
             ks = line.getOptionValue("ks");
             ts = line.getOptionValue("ts");
