@@ -61,7 +61,13 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Con
             }
         }
         
-        if (BCrypt.checkpw(new String(credentials.getPassword()), hashed)) {
+        char[] password = credentials.getPassword();
+        
+        if(password == null || password.length == 0) {
+            throw new ElasticsearchSecurityException("empty passwords not supported");
+        }
+        
+        if (BCrypt.checkpw(new String(password), hashed)) {
             final String[] roles = br.getAsArray(credentials.getUsername() + ".roles", new String[0]);
             return new User(credentials.getUsername(), Arrays.asList(roles));
         } else {

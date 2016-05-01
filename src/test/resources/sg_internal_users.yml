@@ -1,4 +1,4 @@
-"\"'+-,;:_?*@<>!$%&/()=#":
+"\"'+-,;_?*@<>!$%&/()=#":
   hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
   #password is: nagilum
 "§ÄÖÜäöüß":
@@ -46,3 +46,19 @@ crusherw:
   #password is: crusherw
   roles:
     - starfleet_academy
+abc:
+  hash: $2a$12$bP0CO5d5nhmaTOj7mGteHugXQQ8jlSV0dxcl5//moZ1xnI.pVPXfe
+  #password is: abc:abc
+  roles:
+    - klingon
+    - starfleet
+userwithnopasswd:
+  hash: null
+  roles:
+    - klingon
+    - starfleet
+userwithblankpasswd:
+  hash: ""
+  roles:
+    - klingon
+    - starfleet

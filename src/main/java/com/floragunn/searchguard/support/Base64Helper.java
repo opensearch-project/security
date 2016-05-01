@@ -23,6 +23,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 
 import javax.xml.bind.DatatypeConverter;
 
@@ -34,28 +35,7 @@ import com.google.common.io.BaseEncoding;
 public class Base64Helper {
 
     public static String encodeBasicHeader(final String username, final String password) {
-        return new String(DatatypeConverter.printBase64Binary((username + ":" + password).getBytes(StandardCharsets.UTF_8)));
-    }
-
-    public static AuthCredentials decodeBasicHeader(final String authorizationHeader) {
-
-        String decodedBasicHeader = null;
-        try {
-            decodedBasicHeader = new String(DatatypeConverter.parseBase64Binary(authorizationHeader), StandardCharsets.UTF_8);
-        } catch (final Exception e) {
-            return null;
-        }
-
-        final String[] decodedBasicHeaderParts = decodedBasicHeader.split(":");
-
-        if (decodedBasicHeaderParts.length != 2 || decodedBasicHeaderParts[1] == null) {
-            return null;
-        } else {
-
-            final String username = decodedBasicHeaderParts[0];
-            final char[] password = decodedBasicHeaderParts[1].toCharArray();
-            return new AuthCredentials(username, password);
-        }
+        return new String(DatatypeConverter.printBase64Binary((username + ":" + Objects.requireNonNull(password)).getBytes(StandardCharsets.UTF_8)));
     }
 
     public static String serializeObject(final Serializable object) {

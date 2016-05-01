@@ -258,6 +258,9 @@ public class SGTests extends AbstractUnitTest {
         Thread.sleep(2000);        
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, executeGetRequest("").getStatusCode());
         Assert.assertEquals(HttpStatus.SC_OK, executeGetRequest("", new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("worf", "worf"))).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, executeGetRequest("", new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("abc", "abc:abc"))).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, executeGetRequest("", new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("userwithnopassword", ""))).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, executeGetRequest("", new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("userwithblankpassword", ""))).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, executeGetRequest("", new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("worf", "wrongpasswd"))).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, executeGetRequest("", new BasicHeader("Authorization", "Basic "+"wrongheader")).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, executeGetRequest("", new BasicHeader("Authorization", "Basic ")).getStatusCode());
@@ -913,7 +916,7 @@ public class SGTests extends AbstractUnitTest {
         Thread.sleep(2000);        
         Assert.assertEquals(HttpStatus.SC_OK, executeGetRequest("", new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("bug.99", "nagilum"))).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, executeGetRequest("", new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("a", "b"))).getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_OK, executeGetRequest("", new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("\"'+-,;:_?*@<>!$%&/()=#", "nagilum"))).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, executeGetRequest("", new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("\"'+-,;_?*@<>!$%&/()=#", "nagilum"))).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_OK, executeGetRequest("", new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("§ÄÖÜäöüß", "nagilum"))).getStatusCode());
 
     }

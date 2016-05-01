@@ -59,14 +59,28 @@ public class HTTPBasicAuthenticator implements HTTPAuthenticator {
                 final String decodedBasicHeader = new String(DatatypeConverter.parseBase64Binary(authorizationHeader.split(" ")[1]),
                         StandardCharsets.UTF_8);
 
-                final int index = decodedBasicHeader.lastIndexOf(':');
+                //username:password
+                //special case
+                //username must not contain a :, but password is allowed to do so
+                //   username:pass:word
+                //blank password
+                //   username:
+                
+                final int firstColonIndex = decodedBasicHeader.indexOf(':');
 
                 String username = null;
                 String password = null;
 
-                if (index > 0 && decodedBasicHeader.length() - 1 != index) {
-                    username = decodedBasicHeader.substring(0, index);
-                    password = decodedBasicHeader.substring(index + 1);
+                if (firstColonIndex > 0) {
+                    username = decodedBasicHeader.substring(0, firstColonIndex);
+                    
+                    if(decodedBasicHeader.length() - 1 != firstColonIndex)
+                    {
+                        password = decodedBasicHeader.substring(firstColonIndex + 1);
+                    } else {
+                        //blank password
+                        password="";
+                    }
                 }
 
                 if (username == null || password == null) {
