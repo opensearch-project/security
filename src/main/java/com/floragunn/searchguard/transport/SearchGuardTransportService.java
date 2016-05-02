@@ -18,6 +18,7 @@
 package com.floragunn.searchguard.transport;
 
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -139,15 +140,27 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
 
                 for (final Iterator iterator = ian.iterator(); iterator.hasNext();) {
                     final int id = (int) iterator.next();
-                    if (id == 0 || id == 8) {
-                        sb.append(id + "::" + (String) iterator.next());
+                    if (id == 8) { //id 8 = OID, id 1 = name (as string or ASN.1 encoded byte[])
+                        Object value = iterator.next();
+                        
+                        if(value == null) {
+                           continue;
+                        }
+                        
+                        if(value instanceof String) {
+                            sb.append(id + "::" + value);
+                        } else if(value instanceof byte[]) {
+                            log.error("Unable to handle OID san {} with value {} of type byte[] (ASN.1 DER not supported here)", id, Arrays.toString((byte[]) value));
+                        } else {
+                            log.error("Unable to handle OID san {} with value {} of type {}", id, value, value.getClass());
+                        }
                     } else {
                         iterator.next();
                     }
                 }
             }
 
-            if (sb.indexOf("0::sg_is_server_node") >= 0 || sb.indexOf("8::1.2.3.4.5.5") >= 0) {
+            if (/*sb.indexOf("0::_sg_is_server_node") >= 0 || */sb.indexOf("8::1.2.3.4.5.5") >= 0) {
                 isInterClusterRequest = true;
             }
 
