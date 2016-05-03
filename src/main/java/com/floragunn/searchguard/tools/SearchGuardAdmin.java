@@ -162,7 +162,7 @@ public class SearchGuardAdmin {
                 final boolean indexCreated = tc.admin().indices().create(new CreateIndexRequest("searchguard")
                 // .mapping("config", source)
                 // .settings(settings)
-                .settings("index.number_of_shards", 1, "index.number_of_replicas", chr.getNumberOfDataNodes())
+                .settings("index.number_of_shards", 1, "index.number_of_replicas", chr.getNumberOfDataNodes()-1)
                         ).actionGet().isAcknowledged();
 
                 if (indexCreated) {
