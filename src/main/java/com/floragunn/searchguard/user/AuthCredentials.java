@@ -29,6 +29,7 @@ public final class AuthCredentials {
     private char[] password;
     private Object nativeCredentials;
     private Set<String> backendRoles = new HashSet<String>();
+    private boolean complete;
 
     public AuthCredentials(final String username, final Object nativeCredentials) {
         this(username, null, nativeCredentials);
@@ -140,5 +141,12 @@ public final class AuthCredentials {
         return new HashSet<String>(backendRoles);
     }
 
-    
+    public boolean isComplete() {
+        return complete;
+    }
+
+    public AuthCredentials markComplete() {
+        this.complete = true;
+        return this;
+    }
 }

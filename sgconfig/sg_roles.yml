@@ -4,7 +4,13 @@
 #      <type>:  
 #        - <permission>
 
-
+sg_all_access:
+  cluster:
+    - '*'
+  indices:
+    '*':
+      '*':
+        - '*'  
 
 sg_role_klingons1:
   indices:
@@ -55,15 +61,18 @@ sg_unittest_1:
     '*':
        '*':  
          - '*'
-# not yet implemented  
-  dls:
-    query: '{"term" : {"$user.username" : "12"}}'
+    
+sg_flsdls:
+  cluster:
+    - '*'
+  indices:
+    '*':
+       '*':  
+         - '*'
+  dls: '{"term" : {"user" : "sarek"}}'
   fls:
-    - field1.a
-    - field2.b
-    - field3.m.*
-    
-    
+    - user
+    - message
     
 sg_admin:
   cluster:
@@ -113,7 +122,7 @@ sg_kibana4:
         - indices:admin/refresh
         - indices:admin/validate/query
         - indices:data/read/get
-        - indices:data/read/mget
+        - indices:data/read/mget*
         - indices:data/read/search
         - indices:data/write/delete
         - indices:data/write/index
@@ -146,11 +155,12 @@ sg_logstash:
   indices:
     'logstash-*':
       '*':
-        - indices:data/write/bulk
+        - indices:data/write/bulk*
         - indices:data/write/delete
         - indices:data/write/update
         - indices:data/read/search
         - indices:data/read/scroll
+        - indices:admin/template/put
         - CREATE_INDEX
 
 sg_marvel_user:

@@ -22,6 +22,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.Callable;
@@ -53,11 +54,14 @@ import com.floragunn.searchguard.configuration.AdminDNs;
 import com.floragunn.searchguard.configuration.ConfigChangeListener;
 import com.floragunn.searchguard.filter.SearchGuardRestFilter;
 import com.floragunn.searchguard.http.HTTPBasicAuthenticator;
+import com.floragunn.searchguard.http.HTTPClientCertAuthenticator;
 import com.floragunn.searchguard.http.HTTPProxyAuthenticator;
 import com.floragunn.searchguard.http.XFFResolver;
+import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.LogHelper;
 import com.floragunn.searchguard.user.AuthCredentials;
 import com.floragunn.searchguard.user.User;
+import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -71,11 +75,12 @@ public class BackendRegistry implements ConfigChangeListener {
     private final Map<String, String> authImplMap = new HashMap<String, String>();
     private final SortedSet<AuthDomain> authDomains = new TreeSet<AuthDomain>();
     private volatile boolean initialized;
-    //private final ClusterService cse;
     private final TransportConfigUpdateAction tcua;
     private final AdminDNs adminDns;
     private final XFFResolver xffResolver;
     private volatile HTTPAuthenticator httpAuthenticator = null;
+    private volatile boolean anonymousAuthEnabled = false;
+    private final Settings esSettings;
 
     private Cache<AuthCredentials, User> userCache = CacheBuilder.newBuilder()
             .expireAfterWrite(1, TimeUnit.HOURS)
@@ -87,13 +92,13 @@ public class BackendRegistry implements ConfigChangeListener {
             }).build();
 
     @Inject
-    public BackendRegistry(final RestController controller, final TransportConfigUpdateAction tcua, final ClusterService cse,
+    public BackendRegistry(final Settings settings, final RestController controller, final TransportConfigUpdateAction tcua, final ClusterService cse,
             final AdminDNs adminDns, final XFFResolver xffResolver) {
         tcua.addConfigChangeListener("config", this);
         controller.registerFilter(new SearchGuardRestFilter(this));
-        //this.cse = cse;
         this.tcua = tcua;
         this.adminDns = adminDns;
+        this.esSettings = settings;
         this.xffResolver = xffResolver;
         
         authImplMap.put("intern_c", InternalAuthenticationBackend.class.getName());
@@ -105,10 +110,10 @@ public class BackendRegistry implements ConfigChangeListener {
         authImplMap.put("ldap_c", "com.floragunn.dlic.auth.ldap.backend.LDAPAuthenticationBackend");
         authImplMap.put("ldap_z", "com.floragunn.dlic.auth.ldap.backend.LDAPAuthorizationBackend");
         
-        
         authImplMap.put("basic_h", HTTPBasicAuthenticator.class.getName());
         authImplMap.put("proxy_h", HTTPProxyAuthenticator.class.getName());
-        
+        authImplMap.put("clientcert_h", HTTPClientCertAuthenticator.class.getName());
+        authImplMap.put("kerberos_h", "com.floragunn.dlic.auth.http.kerberos.HTTPSpnegoAuthenticator");
     }
     
     public void invalidateCache() {
@@ -140,12 +145,14 @@ public class BackendRegistry implements ConfigChangeListener {
         authDomains.clear();
         httpAuthenticator = null;
         
+        anonymousAuthEnabled = settings.getAsBoolean("searchguard.dynamic.http.anonymous_auth_enabled", false);
+        
         Settings httpAuthSettings = settings.getByPrefix("searchguard.dynamic.http.authenticator.");
 
         try {
             httpAuthenticator = newInstance(
                     httpAuthSettings.get("type", HTTPBasicAuthenticator.class.getName()),"h",
-                    httpAuthSettings);
+                    Settings.builder().put(esSettings).put(httpAuthSettings).build());
         } catch (Exception e1) {
             log.error("Unable to initialize http authenticator {} due to {}", httpAuthSettings, e1.toString());
             httpAuthenticator = new HTTPBasicAuthenticator(httpAuthSettings);
@@ -159,10 +166,10 @@ public class BackendRegistry implements ConfigChangeListener {
                 try {
                     final AuthenticationBackend authenticationBackend = newInstance(
                             ads.get("authentication_backend.type", InternalAuthenticationBackend.class.getName()),"c",
-                            ads);
+                            Settings.builder().put(esSettings).put(ads).build());
                     final AuthorizationBackend authorizationBackend = newInstance(
                             ads.get("authorization_backend.type", "com.floragunn.searchguard.auth.internal.NoOpAuthorizationBackend"),"z",
-                            ads);
+                            Settings.builder().put(esSettings).put(ads).build());
                     authDomains.add(new AuthDomain(authenticationBackend, authorizationBackend,
                             ads.getAsInt("order", 0)));
                 } catch (final Exception e) {
@@ -197,27 +204,55 @@ public class BackendRegistry implements ConfigChangeListener {
             log.trace(LogHelper.toString(request));
         }
         
-        if(adminDns.isAdmin((String) request.getFromContext("_sg_ssl_principal"))) {
-            //PKI authenticated REST call
-            request.putInContext("_sg_internal_request", Boolean.TRUE);
-            return true;
-        }
+        
+        //if(adminDns.isAdmin((String) request.getFromContext(ConfigConstants.SG_SSL_PRINCIPAL))) {
+        //    //PKI authenticated REST call
+        //    request.putInContext(ConfigConstants.SG_INTERNAL_REQUEST, Boolean.TRUE);
+        //    return true;
+        //}
         
         if (!isInitialized()) {
-            log.warn("Not yet initialized");
+            log.error("Not yet initialized");
             channel.sendResponse(new BytesRestResponse(RestStatus.SERVICE_UNAVAILABLE, "Search Guard not initialized (SG11)"));
             return false;
         }
-
-        request.putInContext("_sg_remote_address", xffResolver.resolve(request));
-
         
-        final AuthCredentials ac = httpAuthenticator.authenticate(request, channel);
+        request.putInContext(ConfigConstants.SG_REMOTE_ADDRESS, xffResolver.resolve(request));
+        
+
+        final AuthCredentials ac = httpAuthenticator.extractCredentials(request);
         
         if (ac == null) {
-            // roundtrip
-            return false;
-        }
+            //no credentials found in request
+            if(anonymousAuthEnabled) {
+                request.putInContext(ConfigConstants.SG_USER, User.ANONYMOUS);
+                log.debug("Anonymous User is authenticated");
+                return true;
+            } else {
+                if(httpAuthenticator.reRequestAuthentication(channel, null)) {
+                    return false;
+                } else {
+                    //no reRequest possible
+                    log.debug("extraction authentication credentials from http request finally failed");
+                    channel.sendResponse(new BytesRestResponse(RestStatus.UNAUTHORIZED));
+                    return false;
+                }
+              
+            }
+        } else if (!ac.isComplete()) {
+            //credentials found in request but we need another client challenge
+            if(httpAuthenticator.reRequestAuthentication(channel, ac)) {
+                return false;
+            } else {
+                //no reRequest possible
+                log.error(httpAuthenticator.getClass()+" does not support reRequestAuthentication but return incomplete authentication credentials");
+                channel.sendResponse(new BytesRestResponse(RestStatus.UNAUTHORIZED));
+                return false;
+            }
+          
+        } 
+
+        ////credentials found in request and they are complete
         
         boolean authenticated = false;
         
@@ -243,9 +278,20 @@ public class BackendRegistry implements ConfigChangeListener {
                     throw new ElasticsearchSecurityException("", e.getCause());
                 }
                 
+                if(authenticatedUser == null) {
+                    log.info("Cannot authenticate user (or add roles) with ad {} due to user is null, try next", authDomain.getOrder());
+                    continue;
+                }
+                
+                if(adminDns.isAdmin(authenticatedUser.getName())) {
+                    log.error("Cannot authenticate user because admin user is not permitted to login via HTTP");
+                    channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN));
+                    return false;
+                }
+                
                  //authenticatedUser.addRoles(ac.getBackendRoles());
                 log.debug("User '{}' is authenticated", authenticatedUser);
-                request.putInContext("_sg_user", authenticatedUser);
+                request.putInContext(ConfigConstants.SG_USER, authenticatedUser);
                 authenticated = true;
                 break;
             } catch (final ElasticsearchSecurityException e) {
@@ -253,13 +299,17 @@ public class BackendRegistry implements ConfigChangeListener {
                 continue;
             }
             
-        }
+        }//end for
         
         if(!authenticated) {
-            httpAuthenticator.requestAuthentication(channel);
+            if(httpAuthenticator.reRequestAuthentication(channel, null)) {
+              return false;
+            }
+            //no reRequest possible
+            log.debug("Authentication finally failed");
+            channel.sendResponse(new BytesRestResponse(RestStatus.UNAUTHORIZED));
         }
-        
-        // TODO check if anonymous access is allowed
+
         return authenticated;
     }
 
@@ -268,63 +318,42 @@ public class BackendRegistry implements ConfigChangeListener {
         return initialized;
     }
 
-    public boolean authenticate(final TransportRequest tr, final TransportChannel channel) throws ElasticsearchSecurityException {
+    public void impersonate(final TransportRequest tr, final TransportChannel channel) throws ElasticsearchSecurityException {
 
-        final User origPKIuser = tr.getFromContext("_sg_user");
-
+        final String impersonatedUser = tr.getHeader("sg.impersonate.as");
+        
+        if(Strings.isNullOrEmpty(impersonatedUser)) {
+            return; //nothing to do
+        }
+        
         if (!isInitialized()) {
-            return true;
+            throw new ElasticsearchSecurityException("Could not check for impersonation because Search Guard is not yet initialized");
         }
-        /*
-        if(!isInitialized() && adminDns.isAdmin(origPKIuser.getName())) {
 
-        } else if (!isInitialized()) {
-            log.warn("Not yet initialized");
-            try {
-                channel.sendResponse(new ElasticsearchSecurityException("Not initialized "+origPKIuser));
-            } catch (IOException e) {
-                throw new ElasticsearchSecurityException("Unexpected IO exception", e);
-            }
-            return false;
-        }
-         */
-
+        final User origPKIuser = tr.getFromContext(ConfigConstants.SG_USER);
         if (origPKIuser == null) {
-            throw new ElasticsearchSecurityException("no PKI user found");
+            throw new ElasticsearchSecurityException("no original PKI user found");
         }
 
         User aU = origPKIuser;
-        final String impersonatedUser = tr.getHeader("sg.impersonate.as");
 
+        if (adminDns.isAdmin(impersonatedUser)) {
+            throw new ElasticsearchSecurityException(origPKIuser.getName() + " is not allowed to impersonate as adminuser  " + impersonatedUser);
+        }
+        
         try {
             if (impersonatedUser != null && !adminDns.isImpersonationAllowed(new LdapName(origPKIuser.getName()), impersonatedUser)) {
                 throw new ElasticsearchSecurityException(origPKIuser.getName() + " is not allowed to impersonate as " + impersonatedUser);
-
             } else if (impersonatedUser != null) {
                 aU = new User(impersonatedUser);
                 log.debug("Impersonate as '{}'", impersonatedUser);
-
             }
         } catch (final InvalidNameException e1) {
             throw new ElasticsearchSecurityException("PKI does not have a valid name (" + origPKIuser.getName() + "), should never happen",
                     e1);
         }
 
-        tr.putInContext("_sg_user", aU);
-
-        //fill roles only
-        /*for (final Iterator iterator = new TreeSet<AuthDomain>(authDomains).iterator(); iterator.hasNext();) {
-
-            final AuthDomain authDomain = (AuthDomain) iterator.next();
-            try {
-                authDomain.getAbackend().fillRoles(aU, new AuthCredentials(aU.getName(), (Object) null));
-            } catch (final ElasticsearchSecurityException e) {
-                log.info("Cannot add roles for user {} with ad {}, try next", aU.getName(), authDomain.getOrder());
-                continue;
-            }
-        }*/
-        
-        return true;
+        tr.putInContext(ConfigConstants.SG_USER, Objects.requireNonNull((User) aU));
     }
 
 }

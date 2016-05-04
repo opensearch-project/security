@@ -9,19 +9,12 @@ searchguard:
         proxiesHeader: "x-forwarded-by"
         trustedProxies: "proxy1|proxy2"
       authenticator:
-        type: basic
+        type: clientcert
     authcz:
-      authentication_domain_basic_internal:
-        enabled: true
-        order: 2
-        authentication_backend:
-          type: com.floragunn.dlic.auth.ldap.backend.LDAPAuthenticationBackend
-        authorization_backend:
-          type: ldap
       authentication_domain_proxy:
         enabled: true
         order: 1
         authentication_backend:
-          type: com.floragunn.searchguard.auth.internal.InternalAuthenticationBackend
+          type: noop
         authorization_backend:
-          type: com.floragunn.searchguard.auth.internal.NoOpAuthorizationBackend
+          type: noop

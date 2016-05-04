@@ -155,8 +155,11 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
 
         for (final String evt : setn.keySet()) {
             for (final ConfigChangeListener cl : multimap.get(evt)) {
-                cl.onChange(evt, setn.get(evt));
-                logger.debug("Updated {} for {}", evt, cl.getClass().getSimpleName());
+                Settings settings = setn.get(evt);
+                if(settings != null) {
+                   cl.onChange(evt, settings);
+                   logger.debug("Updated {} for {}", evt, cl.getClass().getSimpleName());
+                }
             }
         }
         return new ConfigUpdateResponse.Node(clusterService.localNode());

@@ -35,14 +35,29 @@ sg_role_klingons2:
   backendroles:
     - klingon
 
+sg_flsdls:
+  users:
+    - sarek
+    
+sg_logstash:
+  users:
+    - logstash
+    
+sg_kibana4_server:
+  users:
+    - kibanaserver
 
 sg_all_access:
   users:
     - nagilum
+    - admin
     
 sg_public:
   users:
     - '*'
+sg_kibana4:
+  users:
+    - kibana
 
 sg_unittest_1:
   users:

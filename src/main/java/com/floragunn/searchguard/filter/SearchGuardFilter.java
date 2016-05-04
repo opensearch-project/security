@@ -17,32 +17,35 @@
 
 package com.floragunn.searchguard.filter;
 
-import java.net.InetSocketAddress;
+import java.util.Set;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionResponse;
+import org.elasticsearch.action.RealtimeRequest;
+import org.elasticsearch.action.bulk.BulkRequest;
+import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.support.ActionFilter;
 import org.elasticsearch.action.support.ActionFilterChain;
+import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
-import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.tasks.Task;
 
 import com.floragunn.searchguard.auth.BackendRegistry;
 import com.floragunn.searchguard.configuration.AdminDNs;
+import com.floragunn.searchguard.configuration.DlsFlsRequestValve;
 import com.floragunn.searchguard.configuration.PrivilegesEvaluator;
-import com.floragunn.searchguard.support.Base64Helper;
+import com.floragunn.searchguard.support.ConfigConstants;
+import com.floragunn.searchguard.support.HeaderHelper;
 import com.floragunn.searchguard.support.LogHelper;
 import com.floragunn.searchguard.user.User;
-import com.google.common.base.Strings;
 
 public class SearchGuardFilter implements ActionFilter {
 
@@ -56,13 +59,15 @@ public class SearchGuardFilter implements ActionFilter {
     private final Provider<PrivilegesEvaluator> evalp;
     private final Settings settings;
     private final AdminDNs adminDns;
+    private Provider<DlsFlsRequestValve> dlsFlsValve;
 
     @Inject
     public SearchGuardFilter(final Settings settings, final Provider<PrivilegesEvaluator> evalp, final AdminDNs adminDns,
-            final Provider<BackendRegistry> backendRegistry) {
+            final Provider<BackendRegistry> backendRegistry, Provider<DlsFlsRequestValve> dlsFlsValve) {
         this.settings = settings;
         this.evalp = evalp;
         this.adminDns = adminDns;
+        this.dlsFlsValve = dlsFlsValve;
     }
 
     @Override
@@ -73,6 +78,9 @@ public class SearchGuardFilter implements ActionFilter {
     @Override
     public void apply(Task task, final String action, final ActionRequest request, final ActionListener listener, final ActionFilterChain chain) {
 
+        // - types testen
+        // - remote address testn
+        
         if (log.isTraceEnabled()) {
             log.trace("Action {} from {}/{}", action, request.remoteAddress(), listener.getClass().getSimpleName());
             log.trace("Context {}", request.getContext());
@@ -80,101 +88,43 @@ public class SearchGuardFilter implements ActionFilter {
 
         }
         
+        User user = request.getFromContext(ConfigConstants.SG_USER);
         
-        if (action.startsWith("internal:")) {
-            if (log.isTraceEnabled()) {
-                log.trace("INTERNAL:");
-            }
-
-            chain.proceed(task, action, request, listener);
-            return;
+        if(user == null && request.remoteAddress() == null) {
+            user = User.SG_INTERNAL;
         }
 
         LogHelper.logUserTrace("--> Action {} from {}/{}", action, request.remoteAddress(), listener.getClass().getSimpleName());
         LogHelper.logUserTrace("--> Context {}", request.getContext());
         LogHelper.logUserTrace("--> Header {}", request.getHeaders());
 
-        // user fortführen ..... in context etc
-
-        final TransportAddress transportAddressFromHeader = getRemoteAddressFromHeader(request);
-
-        if (transportAddressFromHeader != null) {
-            LogHelper.logUserTrace("--> Put address {} in context (from header)", transportAddressFromHeader);
-            request.putInContext("_sg_remote_address", transportAddressFromHeader);
-        } else {
-            if (request.getFromContext("_sg_remote_address") == null) {
-                LogHelper.logUserTrace("--> Put address {} in context (initial)", request.remoteAddress());
-                request.putInContext("_sg_remote_address", request.remoteAddress());
-            }
-        }
-
         if (log.isTraceEnabled()) {
-            log.trace("remote address: {}", request.getFromContext("_sg_remote_address"));
+            log.trace("remote address: {}", request.getFromContext(ConfigConstants.SG_REMOTE_ADDRESS));
         }
 
-        if (isIntraNodeRequest(request)) {
-            if (log.isTraceEnabled()) {
-                log.trace("INTRANODE_REQUEST");
-            }
-
-            chain.proceed(task, action, request, listener);
-            return;
-        }
-
-        if (action.equalsIgnoreCase("cluster:admin/searchguard/config/update")) {
-
-            if (log.isTraceEnabled()) {
-                log.trace("CONFIG UPDATE");
-            }
-
-            chain.proceed(task, action, request, listener);
-            return;
-
-        }
-
-        if (isUserFromHeaderOrContextAdmin(adminDns, request)) {
-            if (log.isTraceEnabled()) {
-                log.trace("Admin user request, allow all");
-            }
-            chain.proceed(task, action, request, listener);
-            return;
-        }
-
-        /*final String transportPrincipal = (String) request.getFromContext("_sg_ssl_transport_principal");
-
-            if (transportPrincipal != null && adminDns.isAdmin(transportPrincipal)) {
-
-                if (log.isTraceEnabled()) {
-                    log.trace("Admin user request, allow all");
-                }
-                chain.proceed(action, request, listener);
+        
+        
+        if(isUserAdmin(user, adminDns) 
+                || isInterClusterRequest(request) 
+                || "true".equals(HeaderHelper.getSafeFromHeader(request, ConfigConstants.SG_CONF_REQUEST_HEADER))){
+            
+            if(!dlsFlsValve.get().invoke(request, listener)) {
                 return;
             }
-         */
-
-        User user = getUserFromHeader(request);
-
-        if (user != null) {
-            if (log.isTraceEnabled()) {
-                log.trace("User {} already authenticated from another node", user.getName());
-            }
             
-            //TODO put into context as _sg_user?
-            
-        } else {
-
-            user = request.getFromContext("_sg_user");
+            chain.proceed(task, action, request, listener);
+            return;
         }
 
-        if (user == null || isInterClusterRequest(request)) {
-
+        if(User.SG_INTERNAL.equals(user)) {
+        
             //@formatter:off
-            if (action.startsWith("internal:gateway")
-                    ||
-                    action.startsWith("cluster:monitor/")
+            if (       action.startsWith("internal:gateway")
+                    || action.startsWith("cluster:monitor/")
                     || action.startsWith("indices:monitor/")
                     || action.startsWith("cluster:admin/reroute")
-                    || action.startsWith("indices:admin/mapping/put")) {
+                    || action.startsWith("indices:admin/mapping/put")
+               ) {
 
                 if (log.isTraceEnabled()) {
                     log.trace("No user, will allow only standard discovery and monitoring actions");
@@ -182,27 +132,18 @@ public class SearchGuardFilter implements ActionFilter {
 
                 chain.proceed(task, action, request, listener);
                 return;
-            } else if(user == null){
+            } else {
+                log.debug("unauthenticated request {} for user {}", action, user);
                 listener.onFailure(new ElasticsearchException("unauthenticated request "+action +" for user "+user, RestStatus.FORBIDDEN));
+                return;
             }
             //@formatter:on
-
         }
-
-        //TODO obsolete??
-        // PKI
-        /*if (user == null && transportPrincipal != null) {
-            user = new User(transportPrincipal);
-            request.putInContext("_sg_user", user);
-
-            if (log.isDebugEnabled()) {
-                log.debug("PKI authenticated user {}", transportPrincipal);
-            }
-        }*/
         
         final PrivilegesEvaluator eval = evalp.get();
 
         if (!eval.isInitialized()) {
+            log.debug("Search Guard not initialized (SG11) for {}", action);
             listener.onFailure(new ElasticsearchException("Search Guard not initialized (SG11) for " + action, RestStatus.SERVICE_UNAVAILABLE));
             return;
         }
@@ -212,19 +153,17 @@ public class SearchGuardFilter implements ActionFilter {
         }
 
         if (eval.evaluate(user, action, request)) {
+            if(!dlsFlsValve.get().invoke(request, listener)) {
+                return;
+            }
             chain.proceed(task, action, request, listener);
             return;
         } else {
+            log.debug("no permissions for {}", action);
             listener.onFailure(new ElasticsearchSecurityException("no permissions for " + action, RestStatus.FORBIDDEN));
             return;
         }
-
-        // log.error("unauthenticated request {} from {}", action,
-        // request.getFromContext("_sg_remote_address"));
-        // listener.onFailure(new
-        // ElasticsearchException("unauthenticated request"));
-        // return;
-
+        
     }
 
     @Override
@@ -238,7 +177,7 @@ public class SearchGuardFilter implements ActionFilter {
      * @return true if request comes from a node with a server certificate
      */
     private static boolean isInterClusterRequest(final ActionRequest request) {
-        return request.getFromContext("_sg_ssl_transport_intercluster_request") == Boolean.TRUE;
+        return request.getFromContext(ConfigConstants.SG_SSL_TRANSPORT_INTERCLUSTER_REQUEST) == Boolean.TRUE;
     }
 
     /**
@@ -247,75 +186,12 @@ public class SearchGuardFilter implements ActionFilter {
      * @return the User from header if request is InterClusterRequest and
      *         contains a user header, otherwise null
      */
-    private static User getUserFromHeader(final ActionRequest request) {
-        if (isInterClusterRequest(request)) {
-            final String userObjectAsBase64 = request.getHeader("_sg_user_header");
-
-            if (!Strings.isNullOrEmpty(userObjectAsBase64)) {
-                return (User) Base64Helper.deserializeObject(userObjectAsBase64);
-                /*request.putInContext("_sg_user", user);
-                if (log.isTraceEnabled()) {
-                    log.trace("Got user from intercluster request header: {}", user.getName());
-                }*/
+    
+    private static boolean isUserAdmin(User user,final AdminDNs adminDns) {
+        if (user != null && adminDns.isAdmin(user.getName())) {
+                    return true;
             }
-        }
-
-        return null;
-    }
-
-    /**
-     * 
-     * @param request
-     * @return the User from header if request is InterClusterRequest and
-     *         contains a user header, otherwise null
-     */
-    private static boolean isUserFromHeaderOrContextAdmin(final AdminDNs adminDns, final ActionRequest request) {
-
-        final String transportPrincipal = (String) request.getFromContext("_sg_ssl_transport_principal");
-
-        if (transportPrincipal != null && adminDns.isAdmin(transportPrincipal)) {
-            return true;
-        }
-
-        final User user = getUserFromHeader(request);
-
-        if (user == null) {
-            return false;
-        }
-
-        return adminDns.isAdmin(user.getName());
-    }
-
-    /**
-     * @param request
-     * @return the TransportAddress from header if request is
-     *         InterClusterRequest and contains a user header, otherwise null
-     */
-    private static TransportAddress getRemoteAddressFromHeader(final ActionRequest request) {
-        if (isInterClusterRequest(request)) {
-            final String addressObjectAsBase64 = request.getHeader("_sg_remote_address_header");
-
-            if (!Strings.isNullOrEmpty(addressObjectAsBase64)) {
-                return new InetSocketTransportAddress((InetSocketAddress) Base64Helper.deserializeObject(addressObjectAsBase64));
-                /*request.putInContext("_sg_user", user);
-                if (log.isTraceEnabled()) {
-                    log.trace("Got user from intercluster request header: {}", user.getName());
-                }*/
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * @param request
-     * @return true if the sender is our own node
-     */
-    private static boolean isIntraNodeRequest(final ActionRequest request) {
-        if (request.getFromContext("_sg_internal_request") == Boolean.TRUE) {
-            return true;
-        }
-
+        
         return false;
     }
 

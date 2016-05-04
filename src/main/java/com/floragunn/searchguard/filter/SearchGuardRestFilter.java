@@ -44,8 +44,6 @@ public class SearchGuardRestFilter extends RestFilter {
             return;
         }
         
-        // TODO session handling
-
         filterChain.continueProcessing(request, channel);
     }
 

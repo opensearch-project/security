@@ -18,6 +18,7 @@
 package com.floragunn.searchguard.configuration;
 
 import java.io.Serializable;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -27,13 +28,17 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.CompositeIndicesRequest;
 import org.elasticsearch.action.IndicesRequest;
+import org.elasticsearch.action.RealtimeRequest;
+import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
@@ -49,6 +54,7 @@ import org.elasticsearch.transport.TransportRequest;
 
 import com.floragunn.searchguard.action.configupdate.TransportConfigUpdateAction;
 import com.floragunn.searchguard.support.Base64Helper;
+import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.WildcardMatcher;
 import com.floragunn.searchguard.user.User;
 import com.google.common.collect.Sets;
@@ -62,6 +68,8 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
     private volatile Settings roles;
     private final ActionGroupHolder ah;
     private final IndexNameExpressionResolver resolver;
+    private final Map<Class, Method> typeCache = Collections.synchronizedMap(new HashMap(100));
+    private final Map<Class, Method> typesCache = Collections.synchronizedMap(new HashMap(100));
 
     @Inject
     public PrivilegesEvaluator(final ClusterService clusterService, final TransportConfigUpdateAction tcua, final ActionGroupHolder ah,
@@ -98,7 +106,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
     }
 
     public boolean evaluate(final User user, final String action, final ActionRequest request) {
-        final TransportAddress caller = request.getFromContext("_sg_remote_address");
+        final TransportAddress caller = Objects.requireNonNull((TransportAddress) request.getFromContext(ConfigConstants.SG_REMOTE_ADDRESS));
 
         if (log.isDebugEnabled()) {
             log.debug("evaluate permissions for {}", user);
@@ -127,23 +135,40 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         allowedAdminActions.add("indices:admin/mappings/get");
         allowedAdminActions.add("indices:admin/types/exists");
         allowedAdminActions.add("indices:admin/validate/query");
-
+        //allowedAdminActions.add("indices:admin/template/put");
+        //allowedAdminActions.add("indices:admin/template/get");
+        
         if (requestedResolvedAliasesIndices.contains("searchguard")
                 && (action.startsWith("indices:data/write") || (action.startsWith("indices:admin") && !allowedAdminActions.contains(action)))) {
-            log.warn(action + " for searchguard index is not allowed for a regular user");
+            log.warn(action + " for 'searchguard' index is not allowed for a regular user");
             return false;
         }
 
         if (requestedResolvedAliasesIndices.contains("_all")
                 && (action.startsWith("indices:data/write") || (action.startsWith("indices:admin") && !allowedAdminActions.contains(action)))) {
-            log.warn(action + " for all indices is not allowed for a regular user");
+            log.warn(action + " for '_all' indices is not allowed for a regular user");
             return false;
+        }
+        
+        if(requestedResolvedAliasesIndices.contains("searchguard") || requestedResolvedAliasesIndices.contains("_all")) {
+            
+            if(request instanceof SearchRequest) {
+                ((SearchRequest)request).requestCache(Boolean.FALSE);
+                if(log.isDebugEnabled()) {
+                    log.debug("Disable search request cache for this request");
+                }
+            }
+            
+            if(request instanceof RealtimeRequest) {
+                ((RealtimeRequest) request).realtime(Boolean.FALSE);
+                if(log.isDebugEnabled()) {
+                    log.debug("Disable realtime for this request");
+                }
+            }
         }
 
         final Set<String> sgRoles = mapSgRoles(user, caller);
-        
-        request.putInContext("_sg_sgroles", sgRoles);
-
+       
         if (log.isDebugEnabled()) {
             log.debug("mapped roles: {}", sgRoles);
         }
@@ -259,7 +284,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                     dlsQueries.add(dls);
                                         
                     if (log.isDebugEnabled()) {
-                        log.debug("_sg_dls_query {}", dls);
+                        log.debug("dls query {}", dls);
                     }
                     
                 }
@@ -269,7 +294,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                     flsFields.addAll(Sets.newHashSet(fls));
                     
                     if (log.isDebugEnabled()) {
-                        log.debug("_sg_fls_fields {}", Sets.newHashSet(fls));
+                        log.debug("fls fields {}", Sets.newHashSet(fls));
                     }
                     
                 }
@@ -285,11 +310,11 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         
         
         if(!dlsQueries.isEmpty()) {
-            request.putHeader("_sg_dls_query", Base64Helper.serializeObject((Serializable)dlsQueries));
+            request.putHeader(ConfigConstants.SG_DLS_QUERY, Base64Helper.serializeObject((Serializable)dlsQueries));
         }
         
         if(!flsFields.isEmpty()) {
-            request.putHeader("_sg_fls_fields", Base64Helper.serializeObject((Serializable)flsFields));
+            request.putHeader(ConfigConstants.SG_FLS_FIELDS, Base64Helper.serializeObject((Serializable)flsFields));
         }
         
         return allowAction;
@@ -484,23 +509,59 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
             log.debug("Resolve {} from {}", request.indices(), request.getClass());
         }
 
+        final Class<? extends IndicesRequest> requestClass = request.getClass();
         final Set<String> requestTypes = new HashSet<String>();
-        try {
-            final Method typeMethod = request.getClass().getMethod("type");
-            final String type = (String) typeMethod.invoke(request);
-            requestTypes.add(type);
-        } catch (final SecurityException e) {
-            log.error("Cannot evaluate types for {} due to {}", request.getClass(), e);
-        } catch (final Exception e) {
-
-            log.debug("No type() method for {} due to {}", request.getClass(), e);
-
+        
+        Method typeMethod = null;
+        if(typeCache.containsKey(requestClass)) {
+            typeMethod = typeCache.get(requestClass);
+        } else {
             try {
-                final Method typesMethod = request.getClass().getMethod("types");
+                typeMethod = requestClass.getMethod("type");
+                typeCache.put(requestClass, typeMethod);
+            } catch (NoSuchMethodException e) {
+                typeCache.put(requestClass, null);
+            } catch (SecurityException e) {
+                log.error("Cannot evaluate type() for {} due to {}", requestClass, e);
+            }
+            
+        }
+        
+        Method typesMethod = null;
+        if(typesCache.containsKey(requestClass)) {
+            typesMethod = typesCache.get(requestClass);
+        } else {
+            try {
+                typesMethod = requestClass.getMethod("types");
+                typesCache.put(requestClass, typesMethod);
+            } catch (NoSuchMethodException e) {
+                typesCache.put(requestClass, null);
+            } catch (SecurityException e) {
+                log.error("Cannot evaluate types() for {} due to {}", requestClass, e);
+            }
+            
+        }
+        
+        if(typeMethod != null) {
+            try {
+                String type = (String) typeMethod.invoke(request);
+                if(type != null) {
+                    requestTypes.add(type);
+                }
+            } catch (Exception e) {
+                log.error("Unable to invoke type() for {} due to {}", e, requestClass, e);
+            }
+        }
+        
+        if(typesMethod != null) {
+            try {
                 final String[] types = (String[]) typesMethod.invoke(request);
-                requestTypes.addAll(Arrays.asList(types));
-            } catch (final Exception e1) {
-                log.debug("No types() method for {} due to {}", request.getClass(), e1);
+                
+                if(types != null) {
+                    requestTypes.addAll(Arrays.asList(types));
+                }
+            } catch (Exception e) {
+                log.error("Unable to invoke types() for {} due to {}", e, requestClass, e);
             }
         }
 

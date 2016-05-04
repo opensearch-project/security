@@ -35,6 +35,7 @@ import org.elasticsearch.rest.RestRequest;
 
 import com.floragunn.searchguard.action.configupdate.TransportConfigUpdateAction;
 import com.floragunn.searchguard.configuration.ConfigChangeListener;
+import com.floragunn.searchguard.support.ConfigConstants;
 
 public class XFFResolver implements ConfigChangeListener{
 
@@ -58,7 +59,7 @@ public class XFFResolver implements ConfigChangeListener{
         if(isInitialized() && enabled && request.getRemoteAddress() instanceof InetSocketAddress && request instanceof NettyHttpRequest) {
             InetSocketAddress isa =new InetSocketAddress(detector.detect((NettyHttpRequest) request), ((InetSocketAddress)request.getRemoteAddress()).getPort());
             TransportAddress retVal = new InetSocketTransportAddress(isa);
-            request.putInContext("_sg_xff_done", Boolean.TRUE);
+            request.putInContext(ConfigConstants.SG_XFF_DONE, Boolean.TRUE);
             log.debug("xff resolved {} to {}", request.getRemoteAddress(), isa);
             return retVal;
         } else if(request.getRemoteAddress() instanceof InetSocketAddress){

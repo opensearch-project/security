@@ -41,6 +41,8 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.loader.JsonSettingsLoader;
 import org.elasticsearch.common.xcontent.XContentHelper;
 
+import com.floragunn.searchguard.support.ConfigConstants;
+
 public class ConfigurationLoader {
 
     protected final ESLogger log = Loggers.getLogger(this.getClass());
@@ -63,7 +65,7 @@ public class ConfigurationLoader {
             mget.add("searchguard", event, "0");
         }
 
-        mget.putInContext("_sg_internal_request", Boolean.TRUE);
+        mget.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true"); //header needed here
         mget.refresh(true);
         mget.realtime(true);
 
@@ -79,7 +81,6 @@ public class ConfigurationLoader {
                     if (response == null) {
                         try {
                             queue.put("failure " + mres[i].getType() + " " + mres[i].getFailure().getMessage());
-                            mres[i].getFailure().getFailure().printStackTrace();
                         } catch (final InterruptedException e) {
                             Thread.currentThread().interrupt();
                         }
@@ -111,9 +112,6 @@ public class ConfigurationLoader {
             }
         });
 
-        // final Map<String, Settings> rs = new HashMap<String,
-        // Settings>(events.length);
-
         Object response = null;
         try {
             response = queue.poll(10, TimeUnit.SECONDS);
@@ -130,7 +128,11 @@ public class ConfigurationLoader {
                 }
 
             } else {
-                log.debug("Cannot retrieve {}", response);
+                if(response != null && response.toString().contains("fail")) {
+                    log.debug("Cannot retrieve {}", response);
+                } else {
+                    log.error("Cannot retrieve {}", response);
+                }
             }
 
             for (int i = 0; i < events.length - 1; i++) {
@@ -143,7 +145,11 @@ public class ConfigurationLoader {
                     }
 
                 } else {
-                    log.debug("Cannot retrieve {}", response);
+                    if(response != null && response.toString().contains("fail")) {
+                        log.debug("Cannot retrieve {}", response);
+                    } else {
+                        log.error("Cannot retrieve {}", response);
+                    }
                 }
             }
 

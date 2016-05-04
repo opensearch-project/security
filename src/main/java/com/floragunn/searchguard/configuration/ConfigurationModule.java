@@ -19,10 +19,16 @@ package com.floragunn.searchguard.configuration;
 
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.Multibinder;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.engine.IndexSearcherWrapper;
+
+import com.floragunn.searchguard.configuration.DlsFlsRequestValve.NoopDlsFlsRequestValve;
 
 public class ConfigurationModule extends AbstractModule {
 
+    protected final ESLogger log = Loggers.getLogger(this.getClass());
+    
     @Override
     protected void configure() {
         bind(AdminDNs.class);
@@ -30,5 +36,21 @@ public class ConfigurationModule extends AbstractModule {
         bind(ConfigurationService.class).asEagerSingleton();
         bind(ActionGroupHolder.class).asEagerSingleton();
         bind(PrivilegesEvaluator.class).asEagerSingleton();
+        
+        try {
+            Class dlsFlsRequestValve;
+            if ((dlsFlsRequestValve = Class
+                    .forName("com.floragunn.searchguard.configuration.DlsFlsValveImpl")) != null) {
+                bind(DlsFlsRequestValve.class).to(dlsFlsRequestValve).asEagerSingleton();
+                log.info("FLS/DLS valve bound");
+            } else {
+                throw new ClassNotFoundException();
+            }
+        } catch (ClassNotFoundException e) {
+            bind(DlsFlsRequestValve.class).to(NoopDlsFlsRequestValve.class).asEagerSingleton();
+            log.info("FLS/DLS valve not bound (noop)");
+        }
+        
+       
     }
 }

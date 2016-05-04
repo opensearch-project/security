@@ -23,26 +23,29 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.engine.IndexSearcherWrapper;
 
-public class SearchGuardIndexSearcherWrapperModule extends AbstractModule{
+public class SearchGuardIndexSearcherWrapperModule extends AbstractModule {
 
     protected final ESLogger log = Loggers.getLogger(this.getClass());
-    
+
     @Override
     protected void configure() {
-        Multibinder multibinder = Multibinder.newSetBinder(binder(), IndexSearcherWrapper.class);
-        
+        final Multibinder wrapperMultibinder = Multibinder.newSetBinder(binder(), IndexSearcherWrapper.class);
+
         try {
             Class searchGuardFlsDlsIndexSearcherWrapper;
-            if((searchGuardFlsDlsIndexSearcherWrapper = Class.forName("com.floragunn.searchguard.configuration.SearchGuardFlsDlsIndexSearcherWrapper")) != null)
-            {
-                multibinder.addBinding().to(searchGuardFlsDlsIndexSearcherWrapper);
+            if ((searchGuardFlsDlsIndexSearcherWrapper = Class
+                    .forName("com.floragunn.searchguard.configuration.SearchGuardFlsDlsIndexSearcherWrapper")) != null) {
+                wrapperMultibinder.addBinding().to(searchGuardFlsDlsIndexSearcherWrapper);
                 log.info("FLS/DLS enabled");
+            } else {
+                throw new ClassNotFoundException();
             }
-        } catch (ClassNotFoundException e) {
+
+        } catch (final ClassNotFoundException e) {
             log.debug("FLS/DLS not enabled");
-            multibinder.addBinding().to(SearchGuardIndexSearcherWrapper.class);
+            wrapperMultibinder.addBinding().to(SearchGuardIndexSearcherWrapper.class);
         }
-        
+
     }
 
 }

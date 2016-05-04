@@ -13,10 +13,6 @@ spock:
 sarek:
   hash: $2a$12$Ioo1uXmH.Nq/lS5dUVBEsePSmZ5pSIpVO/xKHaquU/Jvq97I7nAgG
   #password is: sarek
-  roles:
-    - vulcanadmin
-    - vulcan
-    - ambassador
 kirk:
   hash: $2a$12$xZOcnwYPYQ3zIadnlQIJ0eNhX1ngwMkTN.oMwkKxoGvDVPn4/6XtO
   #password is: kirk
@@ -40,3 +36,12 @@ crusherw:
   #password is: crusherw
   roles:
     - starfleet_academy
+logstash:
+  hash: $2a$12$61vXe3cXy32p0cjsW0Y/SeZa7kEVSWuQK0jg98D9d5zOGXfo5NgyC
+kibanaserver:
+  hash: $2a$12$61vXe3cXy32p0cjsW0Y/SeZa7kEVSWuQK0jg98D9d5zOGXfo5NgyC
+kibana:
+  hash: $2a$12$61vXe3cXy32p0cjsW0Y/SeZa7kEVSWuQK0jg98D9d5zOGXfo5NgyC
+admin:
+  hash: $2a$12$61vXe3cXy32p0cjsW0Y/SeZa7kEVSWuQK0jg98D9d5zOGXfo5NgyC
+ 

@@ -35,16 +35,15 @@ import org.elasticsearch.indices.IndicesLifecycle;
 import org.elasticsearch.transport.TransportRequest;
 
 import com.floragunn.searchguard.action.configupdate.TransportConfigUpdateAction;
+import com.floragunn.searchguard.support.ConfigConstants;
+import com.floragunn.searchguard.support.HeaderHelper;
+import com.floragunn.searchguard.user.User;
 
 public class SearchGuardIndexSearcherWrapper extends AbstractIndexShardComponent implements IndexSearcherWrapper, ConfigChangeListener {
 
     private final AdminDNs admindns;
     protected final ESLogger log = Loggers.getLogger(this.getClass());
     private volatile Settings settings;
-
-    // {
-    // System.out.println("CREATE INSTANCE SearchGuardIndexSearcherWrapper--//"+Thread.currentThread().getName()+"#"+this.hashCode());
-    // }
 
     @Inject
     public SearchGuardIndexSearcherWrapper(final ShardId shardId, final IndicesLifecycle indicesLifecycle, final Settings indexSettings,
@@ -61,7 +60,7 @@ public class SearchGuardIndexSearcherWrapper extends AbstractIndexShardComponent
             log.trace("DirectoryReader {} should be wrapped", reader.getClass());
         }
 
-        if (!isAdminAuhtenticatedOrInternalReqest()) {
+        if (!isAdminAuhtenticatedOrInternalRequest()) {
 
             if (settings == null || settings.getAsBoolean("searchguard.dynamic.dlsfls_enabled", true)) {
                 return dlsFlsWrap(reader);
@@ -79,11 +78,11 @@ public class SearchGuardIndexSearcherWrapper extends AbstractIndexShardComponent
             log.trace("IndexSearcher {} should be wrapped (reader is {})", searcher.getClass(), searcher.getIndexReader().getClass());
         }
 
-        if (isSearchGuardIndexRequest() && !isAdminAuhtenticatedOrInternalReqest()) {
+        if (isSearchGuardIndexRequest() && !isAdminAuhtenticatedOrInternalRequest()) {
             return new IndexSearcher(new EmptyReader());
         }
 
-        if (!isAdminAuhtenticatedOrInternalReqest()) {
+        if (!isAdminAuhtenticatedOrInternalRequest()) {
 
             if (settings == null || settings.getAsBoolean("searchguard.dynamic.dlsfls_enabled", true)) {
                 return dlsFlsWrap(engineConfig, searcher);
@@ -101,29 +100,22 @@ public class SearchGuardIndexSearcherWrapper extends AbstractIndexShardComponent
         return reader;
     }
 
-    protected final boolean isAdminAuhtenticatedOrInternalReqest() {
+    protected final boolean isAdminAuhtenticatedOrInternalRequest() {
         final RequestHolder current = RequestHolder.current();
 
         if (current != null) {
             final TransportRequest request = current.getRequest();
 
             if (request != null) {
-                if (request.getFromContext("_sg_internal_request") == Boolean.TRUE) {
+
+                final User user = (User) request.getFromContext(ConfigConstants.SG_USER);
+
+                if (user != null && admindns.isAdmin(user.getName())) {
                     return true;
                 }
 
-                final String transportPrincipal = (String) request.getFromContext("_sg_ssl_transport_principal");
-
-                if (transportPrincipal != null && admindns.isAdmin(transportPrincipal)) {
+                if ("true".equals(HeaderHelper.getSafeFromHeader(request, ConfigConstants.SG_CONF_REQUEST_HEADER))) {
                     return true;
-                }
-
-                if (request.getFromContext("_sg_ssl_transport_intercluster_request") == Boolean.TRUE) {
-
-                    if (request.hasHeader("_sg_internal_request")) {
-                        return true;
-                    }
-
                 }
             }
         }
@@ -137,13 +129,11 @@ public class SearchGuardIndexSearcherWrapper extends AbstractIndexShardComponent
 
     @Override
     public void onChange(final String event, final Settings settings) {
-        // System.out.println("UPDATE SETT SearchGuardIndexSearcherWrapper--//"+Thread.currentThread().getName()+"#"+this.hashCode());
         this.settings = settings;
     }
 
     @Override
     public void validate(final String event, final Settings settings) throws ElasticsearchSecurityException {
-        // TODO Auto-generated method stub
 
     }
 
@@ -151,44 +141,4 @@ public class SearchGuardIndexSearcherWrapper extends AbstractIndexShardComponent
     public boolean isInitialized() {
         return this.settings != null;
     }
-
-    /*protected boolean isAdminOrNotRelevant() {
-        if (shardId.index().getName().equals("searchguard")) {
-            final RequestHolder current = RequestHolder.current();
-
-            if (current != null) {
-                final TransportRequest request = current.getRequest();
-
-                if (request != null) {
-                    if (request.getFromContext("_sg_internal_request") == Boolean.TRUE) {
-                        return true;
-                    }
-
-                    final String transportPrincipal = (String) request.getFromContext("_sg_ssl_transport_principal");
-
-                    if (transportPrincipal != null && admindns.isAdmin(transportPrincipal)) {
-                        return true;
-                    }
-
-                    if (request.getFromContext("_sg_ssl_transport_intercluster_request") == Boolean.TRUE) {
-
-                        if (request.hasHeader("_sg_internal_request")) {
-                            return true;
-                        }
-
-                    }
-                } else {
-                    return false;
-                }
-
-            } else {
-                return false;
-            }
-
-            return false;
-        }
-
-        return true;
-    }*/
-
 }

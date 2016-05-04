@@ -44,7 +44,7 @@ public class HTTPBasicAuthenticator implements HTTPAuthenticator {
     }
 
     @Override
-    public AuthCredentials authenticate(final RestRequest request, final RestChannel channel) {
+    public AuthCredentials extractCredentials(final RestRequest request) {
 
         final String authorizationHeader = request.header("Authorization");
         final boolean forceLogin = request.paramAsBoolean("force_login", false);
@@ -52,7 +52,6 @@ public class HTTPBasicAuthenticator implements HTTPAuthenticator {
         if (authorizationHeader != null && !forceLogin) {
             if (!authorizationHeader.trim().toLowerCase().startsWith("basic ")) {
                 log.warn("No 'Basic Authorization' header, send 401 and 'WWW-Authenticate Basic'");
-                requestAuthentication(channel);
                 return null;
             } else {
 
@@ -85,24 +84,23 @@ public class HTTPBasicAuthenticator implements HTTPAuthenticator {
 
                 if (username == null || password == null) {
                     log.warn("Invalid 'Authorization' header, send 401 and 'WWW-Authenticate Basic'");
-                    requestAuthentication(channel);
                     return null;
                 } else {
-                    return new AuthCredentials(username, password.toCharArray());
+                    return new AuthCredentials(username, password.toCharArray()).markComplete();
                 }
             }
         } else {
             log.trace("No 'Authorization' header, send 401 and 'WWW-Authenticate Basic'");
-            requestAuthentication(channel);
             return null;
         }
     }
 
     @Override
-    public void requestAuthentication(final RestChannel channel) {
+    public boolean reRequestAuthentication(final RestChannel channel, AuthCredentials creds) {
         final BytesRestResponse wwwAuthenticateResponse = new BytesRestResponse(RestStatus.UNAUTHORIZED);
         wwwAuthenticateResponse.addHeader("WWW-Authenticate", "Basic realm=\"Search Guard\"");
         channel.sendResponse(wwwAuthenticateResponse);
+        return true;
     }
 
     @Override

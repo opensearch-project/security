@@ -17,7 +17,6 @@
 
 package com.floragunn.searchguard.http;
 
-import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -29,12 +28,13 @@ import com.floragunn.searchguard.auth.HTTPAuthenticator;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.user.AuthCredentials;
 
-public class HTTPProxyAuthenticator implements HTTPAuthenticator {
+public class HTTPClientCertAuthenticator implements HTTPAuthenticator {
 
+    
     protected final ESLogger log = Loggers.getLogger(this.getClass());
     private volatile Settings settings;
 
-    public HTTPProxyAuthenticator(Settings settings) {
+    public HTTPClientCertAuthenticator(final Settings settings) {
         super();
         this.settings = settings;
     }
@@ -42,27 +42,12 @@ public class HTTPProxyAuthenticator implements HTTPAuthenticator {
     @Override
     public AuthCredentials extractCredentials(final RestRequest request) {
 
-        if(request.getFromContext(ConfigConstants.SG_XFF_DONE) !=  Boolean.TRUE) {
-            throw new ElasticsearchSecurityException("xff not done");
-        }
-        
-        final String userHeader = settings.get("config.user_header");
-        final String rolesHeader = settings.get("config.roles_header");
+        final String principal = request.getFromContext(ConfigConstants.SG_SSL_PRINCIPAL);
 
-        log.debug("headers {}", request.headers());
-        log.debug("userHeader {}, value {}", userHeader, request.header(userHeader));
-        log.debug("rolesHeader {}, value {}", rolesHeader, request.header(rolesHeader));
-
-        if (!Strings.isNullOrEmpty(userHeader) && !Strings.isNullOrEmpty((String) request.header(userHeader))) {
-
-            String[] backendRoles = null;
-
-            if (!Strings.isNullOrEmpty(rolesHeader) && !Strings.isNullOrEmpty((String) request.header(rolesHeader))) {
-                backendRoles = ((String) request.header(rolesHeader)).split(",");
-            }
-            return new AuthCredentials((String) request.header(userHeader), backendRoles).markComplete();
+        if (!Strings.isNullOrEmpty(principal)) {
+            return new AuthCredentials(principal).markComplete();
         } else {
-            log.trace("No '{}' header, send 401", userHeader);
+            log.trace("No CLIENT CERT, send 401");
             return null;
         }
     }
@@ -74,6 +59,6 @@ public class HTTPProxyAuthenticator implements HTTPAuthenticator {
 
     @Override
     public String getType() {
-        return "proxy";
+        return "clientcert";
     }
 }

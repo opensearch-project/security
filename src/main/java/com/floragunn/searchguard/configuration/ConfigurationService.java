@@ -42,6 +42,7 @@ import com.floragunn.searchguard.action.configupdate.ConfigUpdateAction;
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateRequest;
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateResponse;
 import com.floragunn.searchguard.support.Base64Helper;
+import com.floragunn.searchguard.support.ConfigConstants;
 import com.google.common.base.Strings;
 
 public class ConfigurationService extends AbstractLifecycleComponent<ConfigurationService> implements Closeable {
@@ -168,8 +169,10 @@ public class ConfigurationService extends AbstractLifecycleComponent<Configurati
                     }
 
                     logger.debug("Send a {} to all nodes", ConfigUpdateAction.NAME);
-                    
-                    client.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[] { index.type() }),
+                    ConfigUpdateRequest cur = new ConfigUpdateRequest(new String[] { index.type() });
+                    //cur.putInContext(ConfigConstants.SG_INTERNAL_REQUEST, Boolean.TRUE);
+                    cur.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true");
+                    client.execute(ConfigUpdateAction.INSTANCE, cur,
                             new ActionListener<ConfigUpdateResponse>() {
 
                                 @Override

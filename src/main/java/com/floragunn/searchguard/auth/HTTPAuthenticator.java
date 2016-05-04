@@ -36,7 +36,7 @@ public interface HTTPAuthenticator {
      * @return The authenticated user, null means another roundtrip
      * @throws ElasticsearchSecurityException
      */
-    AuthCredentials authenticate(RestRequest request, RestChannel channel) throws ElasticsearchSecurityException;
+    AuthCredentials extractCredentials(RestRequest request) throws ElasticsearchSecurityException;
     
-    void requestAuthentication(final RestChannel channel);
+    boolean reRequestAuthentication(final RestChannel channel, AuthCredentials credentials);
 }

@@ -35,6 +35,7 @@ import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.rest.RestStatus;
 
 import com.floragunn.searchguard.configuration.PrivilegesEvaluator;
+import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.user.User;
 
 public class SearchGuardInfoAction extends BaseRestHandler {
@@ -56,13 +57,13 @@ public class SearchGuardInfoAction extends BaseRestHandler {
 
         try {
 
-            final X509Certificate[] certs = request.getFromContext("_sg_ssl_peer_certificates");
+            final X509Certificate[] certs = request.getFromContext(ConfigConstants.SG_SSL_PEER_CERTIFICATES);
             builder.startObject();
 
-            builder.field("user", request.getFromContext("_sg_user"));
-            builder.field("remote_address", request.getFromContext("_sg_remote_address"));
-            builder.field("sg_roles", evaluator.get().mapSgRoles((User) request.getFromContext("_sg_user"), (TransportAddress) request.getFromContext("_sg_remote_address")));
-            builder.field("principal", request.getFromContext("_sg_ssl_principal"));
+            builder.field("user", request.getFromContext(ConfigConstants.SG_USER));
+            builder.field("remote_address", request.getFromContext(ConfigConstants.SG_REMOTE_ADDRESS));
+            builder.field("sg_roles", evaluator.get().mapSgRoles((User) request.getFromContext(ConfigConstants.SG_USER), (TransportAddress) request.getFromContext(ConfigConstants.SG_REMOTE_ADDRESS)));
+            builder.field("principal", request.getFromContext(ConfigConstants.SG_SSL_PRINCIPAL));
             builder.field("peer_certificates", certs != null && certs.length > 0 ? certs.length + "" : "0");
             //builder.field("_debug_request", LogHelper.toString(request));
             builder.endObject();

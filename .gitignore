@@ -1,6 +1,7 @@
 target/
 test-output/
-
+kibana*/
+logstash*/
 /build.gradle
 *.log
 .externalToolBuilders

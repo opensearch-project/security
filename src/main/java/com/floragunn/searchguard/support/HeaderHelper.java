@@ -33,54 +33,65 @@ public class HeaderHelper {
         if (request != null) {
 
             for (final String header : request.getHeaders()) {
-                if (header != null && header.trim().toLowerCase().startsWith("_sg_")) {
+                if (header != null && header.trim().toLowerCase().startsWith(ConfigConstants.SG_CONFIG_PREFIX.toLowerCase())) {
                     throw new ElasticsearchSecurityException("invalid header found");
                 }
             }
 
             for (final Entry<String, String> header : request.headers()) {
-                if (header != null && header.getKey() != null && header.getKey().trim().toLowerCase().startsWith("_sg_")) {
+                if (header != null && header.getKey() != null
+                        && header.getKey().trim().toLowerCase().startsWith(ConfigConstants.SG_CONFIG_PREFIX.toLowerCase())) {
                     throw new ElasticsearchSecurityException("invalid header found");
                 }
             }
         }
     }
-    
+
     public static void checkSGHeader(final TransportMessage<?> request) {
         if (request != null) {
-
             for (final String header : request.getHeaders()) {
-                if (header != null && header.trim().toLowerCase().startsWith("_sg_")) {
+                if (header != null && header.trim().toLowerCase().startsWith(ConfigConstants.SG_CONFIG_PREFIX.toLowerCase())) {
                     throw new ElasticsearchSecurityException("invalid header found");
                 }
             }
         }
     }
-    
+
     public static boolean isInterClusterRequest(final TransportRequest request) {
-        return request.getFromContext("_sg_ssl_transport_intercluster_request") == Boolean.TRUE;
+        return request.getFromContext(ConfigConstants.SG_SSL_TRANSPORT_INTERCLUSTER_REQUEST) == Boolean.TRUE;
     }
-    
-    public static boolean isAuthenticatedLocalRequest(final TransportRequest request) {
-        return request.getFromContext("_sg_user") != null && request.remoteAddress() == null;
+
+    public static boolean isDirectRequest(final TransportRequest request) {
+        return "direct".equals(request.getFromContext(ConfigConstants.SG_CHANNEL_TYPE)) || request.remoteAddress() == null;
     }
-    
-    public static Serializable getSafeFromHeader(final TransportRequest request, String headerName) {
-        
-        if(request == null || headerName == null) {
+
+    public static String getSafeFromHeader(final TransportRequest request, final String headerName) {
+
+        if (request == null || headerName == null || headerName.isEmpty()) {
             return null;
         }
-        
-        if (isInterClusterRequest(request) || isAuthenticatedLocalRequest(request)) {
 
-            final String objectAsBase64 = request.getHeader(headerName);
+        String headerValue = null;
 
-            if (!Strings.isNullOrEmpty(objectAsBase64)) {
-                return Base64Helper.deserializeObject(objectAsBase64);
-            }
-            
+        if (!request.hasHeader(headerName) || (headerValue = request.getHeader(headerName)) == null) {
+            return null;
         }
-        
+
+        if (isInterClusterRequest(request) || isDirectRequest(request)) {
+            return headerValue;
+        }
+
+        return null;
+    }
+
+    public static Serializable deserializeSafeFromHeader(final TransportRequest request, final String headerName) {
+
+        final String objectAsBase64 = getSafeFromHeader(request, headerName);
+
+        if (!Strings.isNullOrEmpty(objectAsBase64)) {
+            return Base64Helper.deserializeObject(objectAsBase64);
+        }
+
         return null;
     }
 
