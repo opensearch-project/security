@@ -17,6 +17,8 @@
 
 package com.floragunn.searchguard;
 
+import io.netty.handler.ssl.OpenSsl;
+
 import java.net.InetSocketAddress;
 import java.util.Iterator;
 
@@ -58,10 +60,14 @@ public class SGTests extends AbstractUnitTest {
     @Rule
     public final ExpectedException thrown = ExpectedException.none();
 
-    protected boolean allowOpenSSL = false;
+    protected boolean allowOpenSSL = Boolean.parseBoolean(System.getenv("SG_ALLOW_OPENSSL"));
 
     @Test
     public void testDiscoveryWithoutInitialization() throws Exception {
+        
+        if(allowOpenSSL) {
+            Assert.assertTrue(OpenSsl.isAvailable());
+        }
 
         final Settings settings = Settings.settingsBuilder().put("searchguard.ssl.transport.enabled", true)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)

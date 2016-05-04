@@ -12,7 +12,7 @@ searchguard:
         type: basic
     authcz:
       authentication_domain_basic_internal:
-        enabled: true
+        enabled: false
         order: 2
         authentication_backend:
           type: com.floragunn.dlic.auth.ldap.backend.LDAPAuthenticationBackend
