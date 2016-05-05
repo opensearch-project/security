@@ -63,12 +63,16 @@ public class SGTests extends AbstractUnitTest {
     protected boolean allowOpenSSL = Boolean.parseBoolean(System.getenv("SG_ALLOW_OPENSSL"));
 
     @Test
-    public void testDiscoveryWithoutInitialization() throws Exception {
+    public void testEnsureOpenSSLAvailability() {
         
         if(allowOpenSSL) {
-            Assert.assertTrue(OpenSsl.isAvailable());
+            Assert.assertTrue(String.valueOf(OpenSsl.unavailabilityCause()), OpenSsl.isAvailable());
         }
-
+    }
+    
+    @Test
+    public void testDiscoveryWithoutInitialization() throws Exception {
+        
         final Settings settings = Settings.settingsBuilder().put("searchguard.ssl.transport.enabled", true)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)

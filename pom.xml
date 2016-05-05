@@ -124,6 +124,15 @@
       <version>4.3.4</version>
       <scope>test</scope>
     </dependency>
+    
+    <dependency>
+      <groupId>io.netty</groupId>
+      <artifactId>netty-tcnative</artifactId>
+      <version>1.1.33.Fork15</version> <!-- 1.1.33.Fork14 and newer need netty >= 4.1.x -->
+      <classifier>${os.detected.classifier}</classifier>
+      <scope>test</scope>
+    </dependency>
+    
   </dependencies>
 
   <build>
@@ -211,6 +220,13 @@
       </plugin>
       <!-- skip validation end -->
     </plugins>
+    <extensions>
+        <extension>
+          <groupId>kr.motd.maven</groupId>
+          <artifactId>os-maven-plugin</artifactId>
+          <version>1.4.0.Final</version>
+        </extension>
+    </extensions>
   </build>
 
   <profiles>
