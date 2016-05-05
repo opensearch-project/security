@@ -41,6 +41,11 @@ import org.apache.lucene.util.BytesRef;
 import com.google.common.collect.Iterators;
 
 class EmptyReader extends LeafReader {
+    
+    public EmptyReader() {
+        super();
+        tryIncRef();
+    }
 
     @Override
     public void addCoreClosedListener(final CoreClosedListener listener) {

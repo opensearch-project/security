@@ -475,10 +475,16 @@ public class SGTests extends AbstractUnitTest {
         
         Assert.assertEquals(HttpStatus.SC_OK, executeGetRequest("starfleet/ships/_search?pretty", new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("worf", "worf"))).getStatusCode());
         HttpResponse res = executeGetRequest("_search?pretty", new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("nagilum", "nagilum")));
-
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         Assert.assertTrue(res.getBody().contains("\"total\" : 15"));
         Assert.assertTrue(!res.getBody().contains("searchguard"));
         
+        res = executeGetRequest("_nodes/stats?pretty", new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("nagilum", "nagilum")));
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        Assert.assertTrue(res.getBody().contains("total_in_bytes"));
+        Assert.assertTrue(res.getBody().contains("max_file_descriptors"));
+        Assert.assertTrue(res.getBody().contains("buffer_pools"));
+        Assert.assertFalse(res.getBody().contains("\"nodes\" : { }"));
     }
     
     
