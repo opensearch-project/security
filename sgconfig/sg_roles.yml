@@ -105,28 +105,28 @@ sg_transport_client:
 sg_kibana4:
   cluster: 
       - cluster:monitor/nodes/info
-      - cluster:monitor/health 
+      - cluster:monitor/health
   indices:
     '*':
       '*':
-        - indices:admin/mappings/fields/get
+        - READ
+        - indices:admin/mappings/fields/get*
         - indices:admin/validate/query
-        - indices:data/read/search-
-        - indices:data/read/msearch
         - indices:admin/get
     '?kibana':
       '*':
-        - indices:admin/exists
-        - indices:admin/mapping/put
-        - indices:admin/mappings/fields/get
-        - indices:admin/refresh
-        - indices:admin/validate/query
-        - indices:data/read/get
+        - indices:admin/exists*
+        - indices:admin/mapping/put*
+        - indices:admin/mappings/fields/get*
+        - indices:admin/refresh*
+        - indices:admin/validate/query*
+        - indices:data/read/get*
         - indices:data/read/mget*
-        - indices:data/read/search
-        - indices:data/write/delete
-        - indices:data/write/index
-        - indices:data/write/update
+        - indices:data/read/search*
+        - indices:data/write/delete*
+        - indices:data/write/index*
+        - indices:data/write/update*
+
 
 sg_kibana4_server:
   cluster:
@@ -135,18 +135,7 @@ sg_kibana4_server:
   indices:
     '?kibana':
       '*':
-        - indices:admin/create
-        - indices:admin/exists
-        - indices:admin/mapping/put
-        - indices:admin/mappings/fields/get
-        - indices:admin/refresh
-        - indices:admin/validate/query
-        - indices:data/read/get
-        - indices:data/read/mget
-        - indices:data/read/search
-        - indices:data/write/delete
-        - indices:data/write/index
-        - indices:data/write/update
+        - ALL
 
 sg_logstash:
   cluster:
@@ -155,12 +144,7 @@ sg_logstash:
   indices:
     'logstash-*':
       '*':
-        - indices:data/write/bulk*
-        - indices:data/write/delete
-        - indices:data/write/update
-        - indices:data/read/search
-        - indices:data/read/scroll
-        - indices:admin/template/put
+        - CRUD
         - CREATE_INDEX
 
 sg_marvel_user:

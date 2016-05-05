@@ -135,8 +135,8 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         allowedAdminActions.add("indices:admin/mappings/get");
         allowedAdminActions.add("indices:admin/types/exists");
         allowedAdminActions.add("indices:admin/validate/query");
-        //allowedAdminActions.add("indices:admin/template/put");
-        //allowedAdminActions.add("indices:admin/template/get");
+        allowedAdminActions.add("indices:admin/template/put");
+        allowedAdminActions.add("indices:admin/template/get");
         
         if (requestedResolvedAliasesIndices.contains("searchguard")
                 && (action.startsWith("indices:data/write") || (action.startsWith("indices:admin") && !allowedAdminActions.contains(action)))) {
@@ -304,8 +304,8 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
 
         } // end sg role loop
 
-        if (!allowAction && log.isDebugEnabled()) {
-            log.debug("No perm match");
+        if (!allowAction && log.isInfoEnabled()) {
+            log.info("No perm match for {} and {}", action, sgRoles);
         }
         
         
@@ -489,8 +489,10 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
             indices.addAll(t.v1());
             types.addAll(t.v2());
         }
-
+        
+        //for PutIndexTemplateRequest the index does not exists yet typically
         if (IndexNameExpressionResolver.isAllIndices(new ArrayList<String>(indices))) {
+            log.debug("The following list are '_all' indices: {}", indices);
             indices.clear();
             indices.add("_all");
         }
@@ -574,6 +576,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
 
         try {
             indices.addAll(Arrays.asList(resolver.concreteIndices(clusterService.state(), request)));
+            log.debug("Resolved {} to {}", indices);
         } catch (final Exception e) {
             log.warn("Cannot resolve {} so we use the raw values", Arrays.toString(request.indices()));
             indices.addAll(Arrays.asList(request.indices()));

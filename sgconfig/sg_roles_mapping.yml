@@ -39,6 +39,8 @@ sg_flsdls:
   users:
     - sarek
     
+    
+    
 sg_logstash:
   users:
     - logstash
@@ -55,10 +57,7 @@ sg_all_access:
 sg_public:
   users:
     - '*'
+
 sg_kibana4:
   users:
-    - kibana
-
-sg_unittest_1:
-  users:
-    - 'CN=spock,OU=client,O=client,L=Test,C=DE'
+    - kibanaro
