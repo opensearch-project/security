@@ -56,6 +56,7 @@ import com.floragunn.searchguard.configuration.SearchGuardIndexSearcherWrapper;
 import com.floragunn.searchguard.ssl.SearchGuardSSLPlugin;
 import com.floragunn.searchguard.ssl.util.SSLConfigConstants;
 import com.floragunn.searchguard.support.Base64Helper;
+import com.floragunn.searchguard.support.ReflectionHelper;
 
 public class SGTests extends AbstractUnitTest {
 
@@ -724,9 +725,11 @@ public class SGTests extends AbstractUnitTest {
         
     }
     
-    /*@Test
+    @Test
     public void testHTTPLdap() throws Exception {
 
+        Assume.assumeTrue(ReflectionHelper.canLoad("com.floragunn.dlic.auth.ldap.srv.EmbeddedLDAPServer"));
+        
         final Settings settings = Settings.settingsBuilder().put("searchguard.ssl.transport.enabled", true)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
@@ -810,7 +813,7 @@ public class SGTests extends AbstractUnitTest {
         } finally {
             ldapServer.stop();
         }
-    }*/
+    }
     
     @Test
     public void testTransportClient() throws Exception {
@@ -1110,16 +1113,8 @@ public class SGTests extends AbstractUnitTest {
 
        @Test
         public void testDlsFls() throws Exception {
-    
-        boolean dlsflsFound = false;
-        
-        try {
-            dlsflsFound = Class.forName("com.floragunn.searchguard.configuration.SearchGuardFlsDlsIndexSearcherWrapper") != null;
-        } catch (ClassNotFoundException e) {
-            log.debug("FLS/DLS not found");
-        }
-        
-            Assume.assumeTrue(dlsflsFound);
+
+            Assume.assumeTrue(ReflectionHelper.canLoad("com.floragunn.searchguard.configuration.SearchGuardFlsDlsIndexSearcherWrapper"));
         
             final Settings settings = Settings.settingsBuilder().put("searchguard.ssl.transport.enabled", true)
                     .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
