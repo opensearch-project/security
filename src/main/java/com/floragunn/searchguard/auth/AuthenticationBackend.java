@@ -34,5 +34,7 @@ public interface AuthenticationBackend {
      * @throws ElasticsearchSecurityException
      */
     User authenticate(AuthCredentials credentials) throws ElasticsearchSecurityException;
+    
+    boolean exists(User user);
 
 }

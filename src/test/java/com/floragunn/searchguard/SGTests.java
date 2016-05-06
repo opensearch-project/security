@@ -37,10 +37,12 @@ import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.node.PluginAwareNode;
 import org.junit.Assert;
@@ -866,6 +868,8 @@ public class SGTests extends AbstractUnitTest {
             tc.index(new IndexRequest("searchguard").type("rolesmapping").refresh(true).id("0").source(readYamlContent("sg_roles_mapping.yml"))).actionGet();
             tc.index(new IndexRequest("searchguard").type("actiongroups").refresh(true).id("0").source(readYamlContent("sg_action_groups.yml"))).actionGet();
             
+            tc.index(new IndexRequest("starfleet").type("ships").refresh(true).source("{\"content\":1}")).actionGet();
+            
             //init is somewhat async
             Thread.sleep(2000);
         
@@ -971,6 +975,12 @@ public class SGTests extends AbstractUnitTest {
             gr = tc.prepareGet("searchguard", "config", "0").putHeader("sg.impersonate.as", "nagilum").setRealtime(Boolean.FALSE).get();
             Assert.assertFalse(gr.isExists());
             Assert.assertTrue(gr.isSourceEmpty());
+            
+            
+            SearchResponse searchRes = tc.prepareSearch("starfleet").setTypes("ships").setScroll(TimeValue.timeValueMinutes(5)).putHeader("sg.impersonate.as", "nagilum").get();
+            SearchResponse scrollRes = tc.prepareSearchScroll(searchRes.getScrollId()).putHeader("sg.impersonate.as", "worf").get();
+            
+            
             
             System.out.println("------- TRC end ---------");
         }

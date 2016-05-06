@@ -44,6 +44,7 @@ sg_role_starfleet:
          - READ  
   cluster:
     - 'cluster:monitor*'
+    - indices:data/read/scroll
 
 sg_role_starfleet_captains:
   indices:

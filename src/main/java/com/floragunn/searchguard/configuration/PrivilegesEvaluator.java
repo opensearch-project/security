@@ -39,6 +39,7 @@ import org.elasticsearch.action.CompositeIndicesRequest;
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.RealtimeRequest;
 import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchScrollRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
@@ -182,6 +183,11 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
             final Settings sgRoleSettings = roles.getByPrefix(sgRole);
 
             if (sgRoleSettings.names().isEmpty()) {
+                
+                if (log.isDebugEnabled()) {
+                    log.debug("sg_role {} is empty", sgRole);
+                }
+                
                 continue;
             }
 
@@ -193,8 +199,9 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
             final Set<String> _requestedResolvedTypes = new HashSet<String>(requestedResolvedTypes);
 
             if (action.startsWith("cluster:") || action.startsWith("indices:admin/template/delete")
-                    || action.startsWith("indices:admin/template/get") || action.startsWith("indices:admin/template/put")) {
-
+                    || action.startsWith("indices:admin/template/get") || action.startsWith("indices:admin/template/put") 
+                || action.startsWith("indices:data/read/scroll")) {
+                
                 final Set<String> resolvedActions = resolveActions(sgRoleSettings.getAsArray(".cluster", new String[0]));
 
                 if (log.isDebugEnabled()) {
@@ -307,7 +314,6 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         if (!allowAction && log.isInfoEnabled()) {
             log.info("No perm match for {} and {}", action, sgRoles);
         }
-        
         
         if(!dlsQueries.isEmpty()) {
             request.putHeader(ConfigConstants.SG_DLS_QUERY, Base64Helper.serializeObject((Serializable)dlsQueries));
@@ -472,7 +478,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                 log.debug("{} is not an IndicesRequest", request.getClass());
             }
 
-            return new Tuple<Set<String>, Set<String>>(Collections.EMPTY_SET, Collections.EMPTY_SET);
+            return new Tuple<Set<String>, Set<String>>(Sets.newHashSet("_all"), Sets.newHashSet("_all"));
         }
 
         final Set<String> indices = new HashSet<String>();

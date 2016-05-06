@@ -14,6 +14,14 @@ bug108:
 nagilum:
   hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
   #password is: nagilum
+  
+'CN=spock,OU=client,O=client,L=Test,C=DE':
+  #transport login only
+  hash: '_impersonation_only_'
+  roles:
+    - vulcan
+    - starfleet
+  
 spock:
   hash: $2a$12$GI9JXffO3WUjTsU7Yy3E4.LBxC2ILo66Zg/rr79BpikSL2IIRezQa
   #password is: spock

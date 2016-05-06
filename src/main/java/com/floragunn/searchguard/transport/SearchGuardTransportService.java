@@ -299,6 +299,13 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
                         return;
                     }
                     
+                    if(!backendRegistry.get().authenticate(request)) {
+                        log.error("Cannot authenticate {}", request.getFromContext(ConfigConstants.SG_USER));
+                        transportChannel.sendResponse(new ElasticsearchSecurityException("Cannot authenticate "+request.getFromContext(ConfigConstants.SG_USER)));
+                        return;
+                    }
+                    
+                    
                     TransportAddress originalRemoteAddress = request.remoteAddress();
                     
                     if(originalRemoteAddress != null && (originalRemoteAddress instanceof InetSocketTransportAddress)) {

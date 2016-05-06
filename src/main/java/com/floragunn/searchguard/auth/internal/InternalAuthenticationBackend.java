@@ -39,6 +39,38 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Con
     }
 
     @Override
+    public boolean exists(User user) {
+        if (!isInitialized()) {
+            return false;
+        }
+        
+        String hashed = br.get(user.getName() + ".hash");
+
+        if (hashed == null) {
+            
+            for(String username:br.names()) {
+                String u = br.get(username + ".username");
+                if(user.getName().equals(u)) {
+                    hashed = br.get(username+ ".hash");
+                    break;
+                }
+            }
+            
+            if(hashed == null) {
+                return false;
+            }
+        }
+        
+        final String[] roles = br.getAsArray(user.getName() + ".roles", new String[0]);
+        
+        if(roles != null) {
+            user.addRoles(Arrays.asList(roles));
+        }
+        
+        return true;
+    }
+    
+    @Override
     public User authenticate(final AuthCredentials credentials) {
         if (!isInitialized()) {
             throw new ElasticsearchSecurityException("Internal authentication backend not configured. May be Search Guard is not initialized.");

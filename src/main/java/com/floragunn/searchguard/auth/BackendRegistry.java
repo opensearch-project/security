@@ -90,6 +90,15 @@ public class BackendRegistry implements ConfigChangeListener {
                     log.debug("Clear user cache for {} due to {}", notification.getKey().getUsername(), notification.getCause());
                 }
             }).build();
+    
+    private Cache<String, User> userCacheTransport = CacheBuilder.newBuilder()
+            .expireAfterWrite(1, TimeUnit.HOURS)
+            .removalListener(new RemovalListener<String, User>() {
+                @Override
+                public void onRemoval(RemovalNotification<String, User> notification) {
+                    log.debug("Clear user cache for {} due to {}", notification.getKey(), notification.getCause());
+                }
+            }).build();
 
     @Inject
     public BackendRegistry(final Settings settings, final RestController controller, final TransportConfigUpdateAction tcua, final ClusterService cse,
@@ -118,6 +127,7 @@ public class BackendRegistry implements ConfigChangeListener {
     
     public void invalidateCache() {
         userCache.invalidateAll();
+        userCacheTransport.invalidateAll();
     }
 
     private <T> T newInstance(final String clazzOrShortcut, String type, final Settings settings) throws ClassNotFoundException, NoSuchMethodException,
@@ -191,6 +201,66 @@ public class BackendRegistry implements ConfigChangeListener {
 
     }
 
+    public boolean authenticate(final TransportRequest request) throws ElasticsearchSecurityException {
+        
+        final User user = request.getFromContext(ConfigConstants.SG_USER);
+        
+        if(user == null) {
+            return false;
+        }
+        
+        if(adminDns.isAdmin(user.getName())) {
+            return true;
+        }
+        
+        for (final Iterator iterator = new TreeSet<AuthDomain>(authDomains).iterator(); iterator.hasNext();) {
+
+            final AuthDomain authDomain = (AuthDomain) iterator.next();
+            User authenticatedUser = null;
+            
+            log.debug("Transport User '{}' is in cache? {} (cache size: {})", user.getName(), userCache.getIfPresent(user.getName())!=null, userCache.size());
+            
+            try {
+                try {
+                    authenticatedUser = userCacheTransport.get(user.getName(), new Callable<User>() {
+                        @Override
+                        public User call() throws Exception {
+                            log.debug(user.getName()+" not cached, return from backend directly");
+                            if(authDomain.getBackend().exists(user)) {
+                                authDomain.getAbackend().fillRoles(user, new AuthCredentials(user.getName(), (Object) null));
+                                return user;
+                            }
+                            throw new Exception("no such user "+user.getName());
+                        }
+                    });
+                } catch (Exception e) {
+                    throw new ElasticsearchSecurityException("", e.getCause());
+                }
+                
+                if(authenticatedUser == null) {
+                    log.info("Cannot authenticate user (or add roles) with ad {} due to user is null, try next", authDomain.getOrder());
+                    continue;
+                }
+                
+                if(adminDns.isAdmin(authenticatedUser.getName())) {
+                    log.error("Cannot authenticate user because admin user is not permitted to login via HTTP");
+                    return false;
+                }
+                
+                 //authenticatedUser.addRoles(ac.getBackendRoles());
+                log.debug("User '{}' is authenticated", authenticatedUser);
+                request.putInContext(ConfigConstants.SG_USER, authenticatedUser);
+                return true;
+            } catch (final ElasticsearchSecurityException e) {
+                log.info("Cannot authenticate user (or add roles) with ad {} due to {}, try next", authDomain.getOrder(), e.toString());
+                continue;
+            }
+            
+        }//end for
+        
+        return false;
+    }
+    
     /**
      * 
      * @param request
@@ -346,7 +416,7 @@ public class BackendRegistry implements ConfigChangeListener {
                 throw new ElasticsearchSecurityException(origPKIuser.getName() + " is not allowed to impersonate as " + impersonatedUser);
             } else if (impersonatedUser != null) {
                 aU = new User(impersonatedUser);
-                log.debug("Impersonate as '{}'", impersonatedUser);
+                log.debug("Impersonate from '{}' to '{}'",origPKIuser.getName(), impersonatedUser);
             }
         } catch (final InvalidNameException e1) {
             throw new ElasticsearchSecurityException("PKI does not have a valid name (" + origPKIuser.getName() + "), should never happen",

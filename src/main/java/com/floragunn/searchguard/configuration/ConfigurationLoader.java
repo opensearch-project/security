@@ -131,7 +131,8 @@ public class ConfigurationLoader {
                 if(response != null && response.toString().contains("fail")) {
                     log.debug("Cannot retrieve {}", response);
                 } else {
-                    log.error("Cannot retrieve {}", response);
+                    log.debug("Cannot retrieve {}", response);
+                    //log.error("Cannot retrieve {}", response);
                 }
             }
 
@@ -148,7 +149,8 @@ public class ConfigurationLoader {
                     if(response != null && response.toString().contains("fail")) {
                         log.debug("Cannot retrieve {}", response);
                     } else {
-                        log.error("Cannot retrieve {}", response);
+                        log.debug("Cannot retrieve {}", response);
+                        //log.error("Cannot retrieve {}", response);
                     }
                 }
             }

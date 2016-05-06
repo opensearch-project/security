@@ -42,4 +42,9 @@ public class NoOpAuthenticationBackend implements AuthenticationBackend {
         return new User(credentials.getUsername());
     }
 
+    @Override
+    public boolean exists(User user) {
+        return true;
+    }
+
 }
