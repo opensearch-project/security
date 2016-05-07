@@ -23,6 +23,7 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.engine.IndexSearcherWrapper;
 
+import com.floragunn.searchguard.auth.internal.InternalAuthenticationBackend;
 import com.floragunn.searchguard.configuration.DlsFlsRequestValve.NoopDlsFlsRequestValve;
 
 public class ConfigurationModule extends AbstractModule {
@@ -36,6 +37,7 @@ public class ConfigurationModule extends AbstractModule {
         bind(ConfigurationService.class).asEagerSingleton();
         bind(ActionGroupHolder.class).asEagerSingleton();
         bind(PrivilegesEvaluator.class).asEagerSingleton();
+        bind(InternalAuthenticationBackend.class).asEagerSingleton();
         
         try {
             Class dlsFlsRequestValve;

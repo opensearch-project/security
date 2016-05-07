@@ -18,6 +18,7 @@
 package com.floragunn.searchguard.action.configupdate;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReferenceArray;
@@ -86,9 +87,12 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
                         final Map<String, Settings> setn = cl.load(new String[] { "config", "roles", "rolesmapping", "internalusers",
                                 "actiongroups" });
                         for (final String evt : setn.keySet()) {
-                            for (final ConfigChangeListener cl : multimap.get(evt)) {
-                                cl.onChange(evt, setn.get(evt));
-                                logger.debug("Updated {} for {}", evt, cl.getClass().getSimpleName());
+                            for (final ConfigChangeListener cl : new ArrayList<ConfigChangeListener>(multimap.get(evt))) {
+                                Settings settings = setn.get(evt);
+                                if(settings != null) {
+                                    cl.onChange(evt, settings);
+                                    logger.debug("Updated {} for {}", evt, cl.getClass().getSimpleName());
+                                }
                             }
                         }
                     }
@@ -154,7 +158,7 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
         final Map<String, Settings> setn = cl.load(request.request.getConfigTypes());
 
         for (final String evt : setn.keySet()) {
-            for (final ConfigChangeListener cl : multimap.get(evt)) {
+            for (final ConfigChangeListener cl : new ArrayList<ConfigChangeListener>(multimap.get(evt))) {
                 Settings settings = setn.get(evt);
                 if(settings != null) {
                    cl.onChange(evt, settings);
@@ -166,6 +170,7 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
     }
 
     public void addConfigChangeListener(final String event, final ConfigChangeListener listener) {
+        logger.debug("Add config listener {}",listener.getClass());
         multimap.put(event, listener);
     }
 

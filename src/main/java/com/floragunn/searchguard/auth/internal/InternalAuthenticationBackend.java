@@ -20,6 +20,7 @@ package com.floragunn.searchguard.auth.internal;
 import java.util.Arrays;
 
 import org.elasticsearch.ElasticsearchSecurityException;
+import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 
 import com.floragunn.searchguard.action.configupdate.TransportConfigUpdateAction;
@@ -33,6 +34,7 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Con
 
     private volatile Settings br;
 
+    @Inject
     public InternalAuthenticationBackend(final Settings unused, final TransportConfigUpdateAction tcua) {
         super();
         tcua.addConfigChangeListener("internalusers", this);

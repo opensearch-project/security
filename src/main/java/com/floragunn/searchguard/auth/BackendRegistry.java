@@ -81,6 +81,7 @@ public class BackendRegistry implements ConfigChangeListener {
     private volatile HTTPAuthenticator httpAuthenticator = null;
     private volatile boolean anonymousAuthEnabled = false;
     private final Settings esSettings;
+    private final InternalAuthenticationBackend iab;
 
     private Cache<AuthCredentials, User> userCache = CacheBuilder.newBuilder()
             .expireAfterWrite(1, TimeUnit.HOURS)
@@ -102,13 +103,14 @@ public class BackendRegistry implements ConfigChangeListener {
 
     @Inject
     public BackendRegistry(final Settings settings, final RestController controller, final TransportConfigUpdateAction tcua, final ClusterService cse,
-            final AdminDNs adminDns, final XFFResolver xffResolver) {
+            final AdminDNs adminDns, final XFFResolver xffResolver, InternalAuthenticationBackend iab) {
         tcua.addConfigChangeListener("config", this);
         controller.registerFilter(new SearchGuardRestFilter(this));
         this.tcua = tcua;
         this.adminDns = adminDns;
         this.esSettings = settings;
         this.xffResolver = xffResolver;
+        this.iab = iab;
         
         authImplMap.put("intern_c", InternalAuthenticationBackend.class.getName());
         authImplMap.put("intern_z", NoOpAuthorizationBackend.class.getName());
@@ -174,12 +176,20 @@ public class BackendRegistry implements ConfigChangeListener {
             final Settings ads = dyn.get(ad);
             if (ads.getAsBoolean("enabled", true)) {
                 try {
-                    final AuthenticationBackend authenticationBackend = newInstance(
-                            ads.get("authentication_backend.type", InternalAuthenticationBackend.class.getName()),"c",
-                            Settings.builder().put(esSettings).put(ads).build());
+                    AuthenticationBackend authenticationBackend;
+                    String authBackendClazz = ads.get("authentication_backend.type", InternalAuthenticationBackend.class.getName());
+                    if(authBackendClazz.equals(InternalAuthenticationBackend.class.getName())) {
+                        authenticationBackend = iab;
+                    } else {
+                        authenticationBackend = newInstance(
+                                authBackendClazz,"c",
+                                Settings.builder().put(esSettings).put(ads).build());
+                    }
+                    
                     final AuthorizationBackend authorizationBackend = newInstance(
                             ads.get("authorization_backend.type", "com.floragunn.searchguard.auth.internal.NoOpAuthorizationBackend"),"z",
                             Settings.builder().put(esSettings).put(ads).build());
+                    
                     authDomains.add(new AuthDomain(authenticationBackend, authorizationBackend,
                             ads.getAsInt("order", 0)));
                 } catch (final Exception e) {
@@ -190,7 +200,7 @@ public class BackendRegistry implements ConfigChangeListener {
         }
         
         if(authDomains.isEmpty()) {
-            authDomains.add(new AuthDomain(new InternalAuthenticationBackend(Settings.EMPTY, tcua), new NoOpAuthorizationBackend(Settings.EMPTY), 0));
+            authDomains.add(new AuthDomain(iab, new NoOpAuthorizationBackend(Settings.EMPTY), 0));
         }
 
         initialized = (httpAuthenticator != null && authDomains.size() > 0);

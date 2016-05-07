@@ -30,8 +30,10 @@ import org.elasticsearch.index.engine.EngineConfig;
 import org.elasticsearch.index.engine.EngineException;
 import org.elasticsearch.index.engine.IndexSearcherWrapper;
 import org.elasticsearch.index.shard.AbstractIndexShardComponent;
+import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesLifecycle;
+import org.elasticsearch.indices.IndicesLifecycle.Listener;
 import org.elasticsearch.transport.TransportRequest;
 
 import com.floragunn.searchguard.action.configupdate.TransportConfigUpdateAction;
@@ -39,18 +41,32 @@ import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.HeaderHelper;
 import com.floragunn.searchguard.user.User;
 
-public class SearchGuardIndexSearcherWrapper extends AbstractIndexShardComponent implements IndexSearcherWrapper, ConfigChangeListener {
+public class SearchGuardIndexSearcherWrapper extends AbstractIndexShardComponent implements IndexSearcherWrapper {
 
     private final AdminDNs admindns;
     protected final ESLogger log = Loggers.getLogger(this.getClass());
-    private volatile Settings settings;
+    private volatile boolean shardReady;
 
     @Inject
     public SearchGuardIndexSearcherWrapper(final ShardId shardId, final IndicesLifecycle indicesLifecycle, final Settings indexSettings,
-            final AdminDNs admindns, final TransportConfigUpdateAction tcua) {
+            final AdminDNs admindns) {
         super(shardId, indexSettings);
         this.admindns = admindns;
-        tcua.addConfigChangeListener("config", this);
+        
+        if(!isSearchGuardIndexRequest()) {
+            indicesLifecycle.addListener(new Listener() {
+
+                @Override
+                public void afterIndexShardPostRecovery(IndexShard indexShard) {
+                    if(shardId.equals(indexShard.shardId())) {
+                        shardReady = true;
+                    }
+                }
+                
+            });
+        } else {
+            shardReady = true;
+        }
     }
 
     @Override
@@ -59,12 +75,16 @@ public class SearchGuardIndexSearcherWrapper extends AbstractIndexShardComponent
         if (log.isTraceEnabled()) {
             log.trace("DirectoryReader {} should be wrapped", reader.getClass());
         }
+        
+        if(!shardReady) {
+            return reader;
+        }
 
         if (!isAdminAuhtenticatedOrInternalRequest()) {
 
-            if (settings == null || settings.getAsBoolean("searchguard.dynamic.dlsfls_enabled", true)) {
+            //if (settings == null || settings.getAsBoolean("searchguard.dynamic.dlsfls_enabled", true)) {
                 return dlsFlsWrap(reader);
-            }
+            //}
         }
 
         return reader;
@@ -78,15 +98,19 @@ public class SearchGuardIndexSearcherWrapper extends AbstractIndexShardComponent
             log.trace("IndexSearcher {} should be wrapped (reader is {})", searcher.getClass(), searcher.getIndexReader().getClass());
         }
 
+        if(!shardReady) {
+            return searcher;
+        }
+        
         if (isSearchGuardIndexRequest() && !isAdminAuhtenticatedOrInternalRequest()) {
             return new IndexSearcher(new EmptyReader());
         }
 
         if (!isAdminAuhtenticatedOrInternalRequest()) {
 
-            if (settings == null || settings.getAsBoolean("searchguard.dynamic.dlsfls_enabled", true)) {
+            //if (settings == null || settings.getAsBoolean("searchguard.dynamic.dlsfls_enabled", true)) {
                 return dlsFlsWrap(engineConfig, searcher);
-            }
+            //}
         }
 
         return searcher;
@@ -125,20 +149,5 @@ public class SearchGuardIndexSearcherWrapper extends AbstractIndexShardComponent
 
     protected final boolean isSearchGuardIndexRequest() {
         return shardId.index().getName().equals("searchguard");
-    }
-
-    @Override
-    public void onChange(final String event, final Settings settings) {
-        this.settings = settings;
-    }
-
-    @Override
-    public void validate(final String event, final Settings settings) throws ElasticsearchSecurityException {
-
-    }
-
-    @Override
-    public boolean isInitialized() {
-        return this.settings != null;
     }
 }
