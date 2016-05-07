@@ -27,4 +27,13 @@ public class ReflectionHelper {
         }
     }
     
+    
+    public static Class load(String clazz) {
+        try {
+            return Class.forName(clazz);
+        } catch (ClassNotFoundException e) {
+            return null;
+        }
+    }
+    
 }
