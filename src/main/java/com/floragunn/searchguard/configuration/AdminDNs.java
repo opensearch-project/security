@@ -91,6 +91,10 @@ public class AdminDNs {
     public boolean isImpersonationAllowed(LdapName dn, String impersonated) {
         if(dn == null) return false;
         
+        if(isAdmin(dn)) {
+            return true;
+        }
+        
         return this.allowedImpersonations.containsEntry(dn, impersonated);
     }
 }
