@@ -1,12 +1,5 @@
 #!/bin/sh
-
-export ES_CONF_DIR=/etc/elasticsearch
-export ES_BIN_DIR=/usr/share/elasticsearch/bin
-export ES_PLUGIN_DIR=/usr/share/elasticsearch/plugins
-
-SG_SSL_VERSION=2.2.1.7
-SG_VERSION=2.2.1.0-alpha3
-
+. /vagrant/demo/env.sh
 CONNECT_IP=10.0.3.111
 
 #kirk is admin
@@ -31,23 +24,23 @@ cp -vv /vagrant/search-guard-ssl/example-pki-scripts/kirk*.p12 $ES_PLUGIN_DIR/se
 cp -vv /vagrant/search-guard-ssl/example-pki-scripts/ca/root-ca.pem $ES_PLUGIN_DIR/search-guard-2/sgconfig/
 cat /vagrant/search-guard-ssl/example-pki-scripts/kirk.crt.pem /vagrant/search-guard-ssl/example-pki-scripts/ca/chain-ca.pem > /vagrant/ch.pem
 
-curl -Ss  \
-  --insecure \
-  -E /vagrant/ch.pem \
-  --key  /vagrant/search-guard-ssl/example-pki-scripts/kirk.key.pem \
-  https://$CONNECT_IP:9200/_searchguard/sslinfo?pretty
+#curl -Ss  \
+#  --insecure \
+#  -E /vagrant/ch.pem \
+#  --key  /vagrant/search-guard-ssl/example-pki-scripts/kirk.key.pem \
+#  https://$CONNECT_IP:9200/_searchguard/sslinfo?pretty
 
-curl -Ss  \
-  --insecure \
-  -E /vagrant/ch.pem \
-  --key  /vagrant/search-guard-ssl/example-pki-scripts/kirk.key.pem \
-  https://$CONNECT_IP:9200/_searchguard/authinfo?pretty
+#curl -Ss  \
+#  --insecure \
+#  -E /vagrant/ch.pem \
+#  --key  /vagrant/search-guard-ssl/example-pki-scripts/kirk.key.pem \
+#  https://$CONNECT_IP:9200/_searchguard/authinfo?pretty
 
-curl -Ss  \
-  --insecure \
-  -E /vagrant/ch.pem \
-  --key  /vagrant/search-guard-ssl/example-pki-scripts/kirk.key.pem \
-  https://$CONNECT_IP:9200/_cluster/health?pretty=true&wait_for_nodes=3
+#curl -Ss  \
+#  --insecure \
+#  -E /vagrant/ch.pem \
+#  --key  /vagrant/search-guard-ssl/example-pki-scripts/kirk.key.pem \
+#  https://$CONNECT_IP:9200/_cluster/health?pretty=true&wait_for_nodes=3
 
 echo "Cluster seems up and running, now call sgadmin.sh"
 
@@ -57,6 +50,10 @@ $ES_PLUGIN_DIR/search-guard-2/tools/sgadmin.sh -h $CONNECT_IP -cd /vagrant/demo/
 echo "sgadmin.sh done, test it"
 
 sleep 3
+
+curl -Ss -XGET  \
+  --insecure \
+ -u nagilum:nagilum https://$CONNECT_IP:9200/_cluster/health?pretty
 
 curl -Ss -XGET  \
   --insecure \

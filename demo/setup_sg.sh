@@ -4,12 +4,8 @@ function insertAfter # file line newText
    sed -i -e "/^$line$/a"$'\\\n'"$newText"$'\n' "$file"
 }
 
-SG_SSL_VERSION=2.2.1.7
-SG_VERSION=2.2.1.0-alpha3
+. /vagrant/demo/env.sh
 
-export ES_CONF_DIR=/etc/elasticsearch
-export ES_BIN_DIR=/usr/share/elasticsearch/bin
-export ES_PLUGIN_DIR=/usr/share/elasticsearch/plugins
 export SSLNAME=node-0-keystore.jks
 export OPENSSL=false
 
@@ -24,8 +20,6 @@ fi
 
 cd /tmp
 
-NETTY_NATIVE_VERSION=1.1.33.Fork12
-NETTY_NATIVE_CLASSIFIER=linux-x86_64
 wget -O netty-tcnative-$NETTY_NATIVE_VERSION-$NETTY_NATIVE_CLASSIFIER.jar https://search.maven.org/remotecontent?filepath=io/netty/netty-tcnative/$NETTY_NATIVE_VERSION/netty-tcnative-$NETTY_NATIVE_VERSION-$NETTY_NATIVE_CLASSIFIER.jar > /dev/null 2>&1
 
 echo "Install Search Guard SSL Plugin"
@@ -54,7 +48,7 @@ echo "searchguard.ssl.http.enable_openssl_if_available: $OPENSSL" >> $ES_CONF_DI
 echo "searchguard.ssl.transport.enable_openssl_if_available: $OPENSSL" >> $ES_CONF_DIR/elasticsearch.yml
 
 #SG Setup
-echo "security.manager.enabled: false" >> $ES_CONF_DIR/elasticsearch.yml
+#echo "security.manager.enabled: false" >> $ES_CONF_DIR/elasticsearch.yml
 echo "searchguard.authcz.admin_dn:" >> $ES_CONF_DIR/elasticsearch.yml
 echo '  - "CN=kirk, OU=client, O=client, L=Test, C=DE"' >> $ES_CONF_DIR/elasticsearch.yml
 

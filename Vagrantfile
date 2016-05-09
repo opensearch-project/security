@@ -7,6 +7,7 @@ $script = <<SCRIPT
 # Setup search Guard
 #########
 echo "Setup search Guard"
+. /vagrant/demo/env.sh
 /vagrant/demo/setup_sg.sh
 
 IP=$(hostname -I | cut -f2 -d' ')
