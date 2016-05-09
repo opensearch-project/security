@@ -107,6 +107,12 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
     }
 
     public boolean evaluate(final User user, final String action, final ActionRequest request) {
+        
+        if(action.startsWith("cluster:admin/snapshot/restore")) {
+            log.warn(action + " is not allowed for a regular user");
+            return false;
+        }
+        
         final TransportAddress caller = Objects.requireNonNull((TransportAddress) request.getFromContext(ConfigConstants.SG_REMOTE_ADDRESS));
 
         if (log.isDebugEnabled()) {
