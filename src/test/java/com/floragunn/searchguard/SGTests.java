@@ -725,7 +725,7 @@ public class SGTests extends AbstractUnitTest {
         
     }
     
-    @Test
+    /*@Test
     public void testHTTPLdap() throws Exception {
 
         Assume.assumeTrue(ReflectionHelper.canLoad("com.floragunn.dlic.auth.ldap.srv.EmbeddedLDAPServer"));
@@ -813,7 +813,7 @@ public class SGTests extends AbstractUnitTest {
         } finally {
             ldapServer.stop();
         }
-    }
+    }*/
     
     @Test
     public void testTransportClient() throws Exception {
