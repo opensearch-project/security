@@ -50,8 +50,8 @@ public class HTTPProxyAuthenticator implements HTTPAuthenticator {
         final String rolesHeader = settings.get("config.roles_header");
 
         log.debug("headers {}", request.headers());
-        log.debug("userHeader {}, value {}", userHeader, request.header(userHeader));
-        log.debug("rolesHeader {}, value {}", rolesHeader, request.header(rolesHeader));
+        log.debug("userHeader {}, value {}", userHeader, userHeader == null?null:request.header(userHeader));
+        log.debug("rolesHeader {}, value {}", rolesHeader, rolesHeader == null?null:request.header(rolesHeader));
 
         if (!Strings.isNullOrEmpty(userHeader) && !Strings.isNullOrEmpty((String) request.header(userHeader))) {
 

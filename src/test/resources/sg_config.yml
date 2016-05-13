@@ -1,3 +1,21 @@
+#
+# HTTP
+#   basic (challenging) PREAUTH?
+#   proxy (not challenging, needs xff)
+#   kerberos (challenging) NOT FREE FOR COMMERCIAL USE PREAUTH?
+#   clientcert (not challenging, needs https)
+
+# Authc
+#   internal
+#   noop
+#   ldap  NOT FREE FOR COMMERCIAL USE
+
+# Authz
+#   ldap  NOT FREE FOR COMMERCIAL USE
+#   noop
+
+
+
 searchguard:
   dynamic:
     http:
@@ -8,20 +26,49 @@ searchguard:
         remoteIpHeader: "x-forwarded-for"
         proxiesHeader: "x-forwarded-by"
         trustedProxies: "proxy1|proxy2"
-      authenticator:
-        type: basic
-    authcz:
+    authc:
       authentication_domain_basic_internal:
+        enabled: true
+        order: 0
+        http_authenticator:
+          type: basic
+        authentication_backend:
+          type: internal
+      authentication_domain_clientcert:
+        enabled: false
+        order: 1
+        http_authenticator:
+          type: clientcert
+        authentication_backend:
+          type: noop
+      authentication_domain_proxy:
         enabled: false
         order: 2
+        http_authenticator:
+          type: proxy
+          config:
+          user_header: "x-proxy-user"
+          roles_header: "x-proxy-roles"
         authentication_backend:
-          type: com.floragunn.dlic.auth.ldap.backend.LDAPAuthenticationBackend
+          type: noop
+      authentication_domain_kerb:
+        enabled: false
+        order: 3
+        http_authenticator:
+          type: kerberos
+        authentication_backend:
+          type: noop
+    authz:    
+      roles_from_myldap:
+        enabled: false
         authorization_backend:
           type: ldap
-      authentication_domain_proxy:
-        enabled: true
-        order: 1
-        authentication_backend:
-          type: com.floragunn.searchguard.auth.internal.InternalAuthenticationBackend
+          config:
+            rolesearch: "(uniqueMember={0})"
+            resolve_nested_roles: true
+            rolebase: "ou=groups,o=TEST"
+            rolename: cn
+      roles_from_xxx:
+        enabled: false
         authorization_backend:
-          type: com.floragunn.searchguard.auth.internal.NoOpAuthorizationBackend
+          type: xxx
