@@ -22,6 +22,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.util.Arrays;
 
 import org.apache.commons.cli.CommandLine;
@@ -113,6 +114,22 @@ public class SearchGuardAdmin {
         
         
         System.out.println("Connect to "+hostname+":"+port);
+        Socket socket = new Socket();
+        
+        try {
+            
+            socket.connect(new InetSocketAddress(hostname, port));
+            
+          } catch (java.net.ConnectException ex) {
+            System.out.println("Seems there is no elasticsearch running on "+hostname+":"+port+" - Will exit");
+            System.exit(-1);
+          } finally {
+              try {
+                socket.close();
+            } catch (Exception e) {
+                //ignore
+            }
+          }
 
         final Settings settings = Settings
                 .builder()
