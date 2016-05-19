@@ -400,7 +400,7 @@ public class BackendRegistry implements ConfigChangeListener {
 
     public void impersonate(final TransportRequest tr, final TransportChannel channel) throws ElasticsearchSecurityException {
 
-        final String impersonatedUser = tr.getHeader("sg.impersonate.as");
+        final String impersonatedUser = tr.getHeader("sg_impersonate_as");
         
         if(Strings.isNullOrEmpty(impersonatedUser)) {
             return; //nothing to do
