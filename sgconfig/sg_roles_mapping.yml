@@ -6,41 +6,20 @@ sg_role_starfleet:
   hosts:
     - "*.starfleetintranet.com"
   users:
-    - nagilum
+    - worf
 
 sg_role_starfleet_captains:
   backendroles:
     - captains
 
-sg_role_starfleet_library:
-  backendroles:
-    - 'starfleet*'
-    - ambassador
-
-sg_role_vulcans:
-  backendroles:
-    - vulcangov
-  users:
-    - kirk
-
-sg_role_vulcans_admin:
-  backendroles:
-    - vulcanadmin
-    
 sg_role_klingons1:
   backendroles:
     - klingon
-
-sg_role_klingons2:
-  backendroles:
-    - klingon
-
-sg_flsdls:
+  hosts:
+    - "*.klingongov.kli"
   users:
-    - sarek
-    
-    
-    
+    - worf
+
 sg_logstash:
   users:
     - logstash
@@ -48,16 +27,19 @@ sg_logstash:
 sg_kibana4_server:
   users:
     - kibanaserver
+    
+sg_kibana4:
+  users:
+    - kibanaro
 
 sg_all_access:
   users:
-    - nagilum
     - admin
     
 sg_public:
   users:
     - '*'
-
-sg_kibana4:
+    
+sg_readall:
   users:
-    - kibanaro
+    - readall

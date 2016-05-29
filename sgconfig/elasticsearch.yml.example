@@ -1,14 +1,18 @@
-#Add the following properties to your elasticsearch.yml
+# Add the following properties to your standard elasticsearch.yml 
+# (alongside with the SG SSL settings)
+# This settings must always be the same on all nodes in the cluster
 
-security.manager.enabled: false
-
+# This defines the DNs (distinguished names) of certificates
+# to which admin privileges should be assigned
 searchguard.authcz.admin_dn:
   - "CN=kirk,OU=client,O=client,l=tEst, C=De"
 
-#This is optional, only needed when impersonation is used
-searchguard.authcz.impersonation_dn:
-  "CN=spock,OU=client,O=client,L=Test,C=DE":
-    - worf
-  "cn=webuser,ou=IT,ou=IT,dc=company,dc=com":
-    - user2
-    - user1
+# This is optional
+# Only needed when impersonation is used
+# Allow DNs (distinguished names) to impersonate as other users
+#searchguard.authcz.impersonation_dn:
+#  "CN=spock,OU=client,O=client,L=Test,C=DE":
+#    - worf
+#  "cn=webuser,ou=IT,ou=IT,dc=company,dc=com":
+#    - user2
+#    - user1

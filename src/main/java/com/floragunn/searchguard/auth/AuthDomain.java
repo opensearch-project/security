@@ -22,22 +22,28 @@ import java.util.Objects;
 public class AuthDomain implements Comparable<AuthDomain> {
 
     private final AuthenticationBackend backend;
-    private final AuthorizationBackend abackend;
+    private final HTTPAuthenticator httpAuthenticator;
     private final int order;
+    private final boolean requirePreFlight;
 
-    public AuthDomain(final AuthenticationBackend backend, final AuthorizationBackend abackend, final int order) {
+    public AuthDomain(final AuthenticationBackend backend, final HTTPAuthenticator httpAuthenticator, boolean requirePreFlight, final int order) {
         super();
         this.backend = Objects.requireNonNull(backend);
-        this.abackend = Objects.requireNonNull(abackend);
+        this.httpAuthenticator = Objects.requireNonNull(httpAuthenticator);
         this.order = order;
+        this.requirePreFlight = requirePreFlight;
+    }
+
+    public boolean isRequirePreFlight() {
+        return requirePreFlight;
     }
 
     public AuthenticationBackend getBackend() {
         return backend;
     }
 
-    public AuthorizationBackend getAbackend() {
-        return abackend;
+    public HTTPAuthenticator getHttpAuthenticator() {
+        return httpAuthenticator;
     }
 
     public int getOrder() {
@@ -46,7 +52,8 @@ public class AuthDomain implements Comparable<AuthDomain> {
 
     @Override
     public String toString() {
-        return "AuthDomain [backend=" + backend + ", abackend=" + abackend + ", order=" + order + "]";
+        return "AuthDomain [backend=" + backend + ", httpAuthenticator=" + httpAuthenticator + ", order=" + order + ", requirePreFlight="
+                + requirePreFlight + "]";
     }
 
     @Override

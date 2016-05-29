@@ -8,13 +8,3 @@ searchguard:
         remoteIpHeader: "x-forwarded-for"
         proxiesHeader: "x-forwarded-by"
         trustedProxies: "proxy1|proxy2"
-      authenticator:
-        type: basic
-    authcz:
-      authentication_domain_proxy:
-        enabled: true
-        order: 1
-        authentication_backend:
-          type: com.floragunn.searchguard.auth.internal.InternalAuthenticationBackend
-        authorization_backend:
-          type: com.floragunn.searchguard.auth.internal.NoOpAuthorizationBackend

@@ -1,36 +1,73 @@
+#
+# HTTP
+#   basic (challenging) PREAUTH?
+#   proxy (not challenging, needs xff)
+#   kerberos (challenging) NOT FREE FOR COMMERCIAL USE PREAUTH?
+#   clientcert (not challenging, needs https)
+
+# Authc
+#   internal
+#   noop
+#   ldap  NOT FREE FOR COMMERCIAL USE
+
+# Authz
+#   ldap  NOT FREE FOR COMMERCIAL USE
+#   noop
+
 searchguard:
   dynamic:
     http:
+      anonymous_auth_enabled: false
       xff:
         enabled: false
         internalProxies: 192\.168\.0\.10|192\.168\.0\.11
         remoteIpHeader: "x-forwarded-for"
         proxiesHeader: "x-forwarded-by"
         trustedProxies: "proxy1|proxy2"
-      authenticator:  
-        type: com.floragunn.searchguard.http.HTTPBasicAuthenticator
-    authcz:
-      authentication_domain_basic_internal:
+    authc:
+      kerberos:
         enabled: true
         order: 0
+        http_authenticator:
+          type: kerberos
+          config:
+            krb_debug: true
+            krb5_file_path: /abcdef/n.conf
+            acceptor_principal: ubunul
+            acceptor_keytab_path: keytab1.tab
+            strip_realm_from_principal: true
         authentication_backend:
-          type: com.floragunn.searchguard.auth.internal.InternalAuthenticationBackend
+          type: noop
+      basic_internal:
+        enabled: true
+        order: 1
+        http_authenticator:
+          type: basic
+        authentication_backend:
+          type: intern
+      ldap:
+        enabled: true
+        order: 2
+        http_authenticator:
+          type: basic
+        authentication_backend:
+          type: ldap
+          config:
+            ldaps:
+              ssl:
+                enabled: true
+            hosts:
+              - localhost:10636
+    authz:    
+      roles_from_myldap:
+        enabled: true
         authorization_backend:
-          type: com.floragunn.searchguard.auth.internal.NoOpAuthorizationBackend
-      #authentication_ldap:
-        #enabled: true
-        #order: 1
-        #authentication_backend:
-          #type: com.floragunn.dlic.auth.ldap.backend.LDAPAuthenticationBackend
-          #config:
-            #host: ["",""]
-        #authorization_backend:
-          #type: com.floragunn.dlic.auth.ldap.backend.LDAPAuthorizationBackend
-      #authentication_domain_proxy:
-        #enabled: true
-        #order: 0
-        #authentication_backend:
-          #type: com.floragunn.searchguard.auth.internal.NoOpAuthenticationBackend
-        #authorization_backend:
-          #type: com.floragunn.searchguard.auth.internal.NoOpAuthorizationBackend
-    
+          type: ldap
+          config:
+            hosts:
+              - localhost:389
+              - localhost:10389
+            rolesearch: "(uniqueMember={0})"
+            resolve_nested_roles: true
+            rolebase: "ou=groups,o=TEST"
+            rolename: cn

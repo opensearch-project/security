@@ -46,12 +46,12 @@ public class HTTPProxyAuthenticator implements HTTPAuthenticator {
             throw new ElasticsearchSecurityException("xff not done");
         }
         
-        final String userHeader = settings.get("config.user_header");
-        final String rolesHeader = settings.get("config.roles_header");
+        final String userHeader = settings.get("user_header");
+        final String rolesHeader = settings.get("roles_header");
 
         log.debug("headers {}", request.headers());
-        log.debug("userHeader {}, value {}", userHeader, request.header(userHeader));
-        log.debug("rolesHeader {}, value {}", rolesHeader, request.header(rolesHeader));
+        log.debug("userHeader {}, value {}", userHeader, userHeader == null?null:request.header(userHeader));
+        log.debug("rolesHeader {}, value {}", rolesHeader, rolesHeader == null?null:request.header(rolesHeader));
 
         if (!Strings.isNullOrEmpty(userHeader) && !Strings.isNullOrEmpty((String) request.header(userHeader))) {
 

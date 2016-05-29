@@ -1,9 +1,15 @@
 #<sg_role_name>:
 #  indices:
-#    <indexname or alias>:
-#      <type>:  
-#        - <permission>
+#    '<indexname or alias>':
+#      '<type>':  
+#        - '<permission>'
+#  dls: '<querydsl query>'
+#  fls:
+#    - '<field>'
+#    - '<field>'
 
+# Allows everything
+# but not changes to searchguard config/index
 sg_all_access:
   cluster:
     - '*'
@@ -11,18 +17,6 @@ sg_all_access:
     '*':
       '*':
         - '*'  
-
-sg_role_klingons1:
-  indices:
-    klingonempire:
-      ships:  
-        - READ
-
-sg_role_klingons2:
-  indices:
-    klingonempire:
-      praxis:  
-        - READ
 
 sg_role_starfleet:
   indices:
@@ -35,54 +29,23 @@ sg_role_starfleet:
          - READ
        alumni:  
          - READ
-       'admin*':  
-         - READ
     'pub*':
        '*':  
-         - READ  
-  cluster:
-    - 'cluster:monitor*'
+         - READ
 
 sg_role_starfleet_captains:
   indices:
     sf:
        '*':  
          - CRUD
-    public:
+    pub*:
        '*':  
          - CRUD 
   cluster:
     - 'cluster:monitor*'
+  
 
-sg_unittest_1:
-  cluster:
-    - '*'
-  indices:
-    '*':
-       '*':  
-         - '*'
-    
-sg_flsdls:
-  cluster:
-    - '*'
-  indices:
-    '*':
-       '*':  
-         - '*'
-  dls: '{"term" : {"user" : "sarek"}}'
-  fls:
-    - user
-    - message
-    
-sg_admin:
-  cluster:
-    - CLUSTER_ALL
-  indices:
-    '*':
-      '*':
-        - ALL 
-
-sg_power_user:
+sg_readonly_and_monitor:
   cluster:
     - CLUSTER_MONITOR
   indices:
@@ -90,7 +53,7 @@ sg_power_user:
       '*':
         - ALL
 
-sg_user:
+sg_readonly:
   indices:
     '*':
       '*':
@@ -99,8 +62,7 @@ sg_user:
 sg_transport_client:
   cluster:
       - cluster:monitor/nodes/liveness
-      #uncomment the following for sniffing
-      #- cluster:monitor/state
+      - cluster:monitor/state
 
 sg_kibana4:
   cluster: 
@@ -111,8 +73,8 @@ sg_kibana4:
       '*':
         - READ
         - indices:admin/mappings/fields/get*
-        - indices:admin/validate/query
-        - indices:admin/get
+        - indices:admin/validate/query*
+        - indices:admin/get*
     '?kibana':
       '*':
         - indices:admin/exists*
@@ -126,7 +88,6 @@ sg_kibana4:
         - indices:data/write/delete*
         - indices:data/write/index*
         - indices:data/write/update*
-
 
 sg_kibana4_server:
   cluster:
@@ -146,26 +107,7 @@ sg_logstash:
       '*':
         - CRUD
         - CREATE_INDEX
-
-sg_marvel_user:
-  indices:
-    '?marvel-es-*':
+    '*beat*':
       '*':
-        - READ
-    '?kibana':
-      '*':
-        - indices:admin/exists
-        - indices:admin/mappings/fields/get
-        - indices:admin/validate/query
-        - indices:data/read/get
-        - indices:data/read/mget
-        - indices:data/read/search
-
-sg_remote_marvel_agent:
-  cluster: 
-    - indices:admin/template/put
-    - indices:admin/template/get
-  indices:
-    '?marvel-es-*':
-      '*':
-        - ALL
+        - CRUD
+        - CREATE_INDEX

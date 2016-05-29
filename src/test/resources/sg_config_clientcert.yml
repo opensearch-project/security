@@ -8,13 +8,11 @@ searchguard:
         remoteIpHeader: "x-forwarded-for"
         proxiesHeader: "x-forwarded-by"
         trustedProxies: "proxy1|proxy2"
-      authenticator:
-        type: clientcert
-    authcz:
-      authentication_domain_proxy:
+    authc:
+      authentication_domain_clientcert:
         enabled: true
-        order: 1
+        order: 0
+        http_authenticator:
+          type: clientcert
         authentication_backend:
-          type: noop
-        authorization_backend:
           type: noop
