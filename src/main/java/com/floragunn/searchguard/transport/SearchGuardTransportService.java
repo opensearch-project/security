@@ -44,8 +44,8 @@ import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportRequestOptions;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportResponseHandler;
-import org.elasticsearch.transport.netty.NettyTransportChannel;
 
+import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.auth.BackendRegistry;
 import com.floragunn.searchguard.ssl.transport.SearchGuardSSLTransportService;
 import com.floragunn.searchguard.support.Base64Helper;
@@ -59,12 +59,14 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
     
     protected final ESLogger log = Loggers.getLogger(this.getClass());
     private final Provider<BackendRegistry> backendRegistry;
+    private final AuditLog auditLog;
 
     @Inject
     public SearchGuardTransportService(final Settings settings, final Transport transport, final ThreadPool threadPool,
-            final Provider<BackendRegistry> backendRegistry) {
+            final Provider<BackendRegistry> backendRegistry, AuditLog auditLog) {
         super(settings, transport, threadPool);
         this.backendRegistry = backendRegistry;
+        this.auditLog = auditLog;
     }
 
     @Override
@@ -235,7 +237,7 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
             //if transport channel is not a netty channel but a direct or local channel (e.g. send via network) then allow it (regardless of beeing a internal: or shard request)
             if (!isInterClusterRequest(request) 
                     && (transportChannel.action().startsWith("internal:") || transportChannel.action().contains("["))) {
-
+                auditLog.logMissingPrivileges(transportChannel.action(), request);
                 log.error("Internal or shard requests not allowed from a non-server node for transport type "+transportChannel.getChannelType());
                 transportChannel.sendResponse(new ElasticsearchSecurityException(
                         "Internal or shard requests not allowed from a non-server node for transport type "+transportChannel.getChannelType()));
@@ -249,9 +251,11 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
             //LogHelper.logUserTrace("CTX/H {}/{}", request.getContext(), request.getHeaders());
 
             if ((principal = request.getFromContext(ConfigConstants.SG_SSL_TRANSPORT_PRINCIPAL)) == null) {
+                Exception ex = new ElasticsearchSecurityException(
+                        "No SSL client certificates found for transport type "+transportChannel.getChannelType()+". Search Guards needs the Search Guard SSL plugin to be installed");
+                auditLog.logSSLException(request, ex, transportChannel.action());
                 log.error("No SSL client certificates found for transport type "+transportChannel.getChannelType()+". Search Guards needs the Search Guard SSL plugin to be installed");
-                transportChannel.sendResponse(new ElasticsearchSecurityException(
-                        "No SSL client certificates found for transport type "+transportChannel.getChannelType()+". Search Guards needs the Search Guard SSL plugin to be installed"));
+                transportChannel.sendResponse(ex);
                 return;
             } else {
                 
@@ -284,6 +288,7 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
                     try {
                         HeaderHelper.checkSGHeader(request);
                     } catch (Exception e) {
+                        auditLog.logBadHeaders(request);
                         log.error("Error validating headers "+e, e);
                         transportChannel.sendResponse(ExceptionsHelper.convertToElastic(e));
                         return;
@@ -295,11 +300,13 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
                         backendRegistry.get().impersonate(request, transportChannel);
                     } catch (final Exception e) {
                         log.error("Error doing impersonation "+e, e);
+                        auditLog.logFailedLogin(principal, request);
                         transportChannel.sendResponse(ExceptionsHelper.convertToElastic(e));
                         return;
                     }
                     
                     if(!backendRegistry.get().authenticate(request)) {
+                        auditLog.logFailedLogin(principal, request);
                         log.error("Cannot authenticate {}", request.getFromContext(ConfigConstants.SG_USER));
                         transportChannel.sendResponse(new ElasticsearchSecurityException("Cannot authenticate "+request.getFromContext(ConfigConstants.SG_USER)));
                         return;
@@ -329,6 +336,11 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
             //LogHelper.logUserTrace("<<<< TransportService {}", transportChannel.action());
             com.floragunn.searchguard.configuration.RequestHolder.removeCurrent();
         }
+    }
+    
+    @Override
+    protected void errorThrown(Throwable t, final TransportRequest request, String action) {
+        auditLog.logSSLException(request, t, action);
     }
 
     /**

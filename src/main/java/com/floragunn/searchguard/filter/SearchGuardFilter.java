@@ -38,6 +38,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.tasks.Task;
 
+import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.auth.BackendRegistry;
 import com.floragunn.searchguard.configuration.AdminDNs;
 import com.floragunn.searchguard.configuration.DlsFlsRequestValve;
@@ -60,14 +61,16 @@ public class SearchGuardFilter implements ActionFilter {
     private final Settings settings;
     private final AdminDNs adminDns;
     private Provider<DlsFlsRequestValve> dlsFlsValve;
+    private final AuditLog auditLog;
 
     @Inject
     public SearchGuardFilter(final Settings settings, final Provider<PrivilegesEvaluator> evalp, final AdminDNs adminDns,
-            final Provider<BackendRegistry> backendRegistry, Provider<DlsFlsRequestValve> dlsFlsValve) {
+            final Provider<BackendRegistry> backendRegistry, Provider<DlsFlsRequestValve> dlsFlsValve, AuditLog auditLog) {
         this.settings = settings;
         this.evalp = evalp;
         this.adminDns = adminDns;
         this.dlsFlsValve = dlsFlsValve;
+        this.auditLog = auditLog;
     }
 
     @Override
@@ -134,6 +137,7 @@ public class SearchGuardFilter implements ActionFilter {
                 return;
             } else {
                 log.debug("unauthenticated request {} for user {}", action, user);
+                auditLog.logFailedLogin(user.getName(), request);
                 listener.onFailure(new ElasticsearchException("unauthenticated request "+action +" for user "+user, RestStatus.FORBIDDEN));
                 return;
             }
@@ -159,6 +163,7 @@ public class SearchGuardFilter implements ActionFilter {
             chain.proceed(task, action, request, listener);
             return;
         } else {
+            auditLog.logMissingPrivileges(action, request);
             log.debug("no permissions for {}", action);
             listener.onFailure(new ElasticsearchSecurityException("no permissions for " + action, RestStatus.FORBIDDEN));
             return;

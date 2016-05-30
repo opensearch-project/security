@@ -156,6 +156,10 @@ public class ConfigurationService extends AbstractLifecycleComponent<Configurati
             if (source == null || source.length() == 0) {
                 throw new ElasticsearchException("empty source");
             }
+            
+            if("auditlog".equals(index.type())) {
+                return;
+            }
 
             new Thread(new Runnable() {
 

@@ -24,19 +24,21 @@ import org.elasticsearch.action.ActionModule;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.http.HttpServerModule;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.rest.RestModule;
 import org.elasticsearch.transport.TransportModule;
 
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateAction;
 import com.floragunn.searchguard.action.configupdate.TransportConfigUpdateAction;
+import com.floragunn.searchguard.auditlog.AuditLogModule;
 import com.floragunn.searchguard.configuration.BackendModule;
 import com.floragunn.searchguard.configuration.ConfigurationModule;
 import com.floragunn.searchguard.configuration.ConfigurationService;
 import com.floragunn.searchguard.configuration.SearchGuardIndexSearcherWrapperModule;
 import com.floragunn.searchguard.filter.SearchGuardFilter;
+import com.floragunn.searchguard.http.SearchGuardHttpServerTransport;
 import com.floragunn.searchguard.rest.SearchGuardInfoAction;
-import com.floragunn.searchguard.ssl.rest.SearchGuardSSLInfoAction;
 import com.floragunn.searchguard.ssl.util.SSLConfigConstants;
 import com.floragunn.searchguard.transport.SearchGuardTransportService;
 import com.google.common.collect.ImmutableList;
@@ -46,6 +48,7 @@ public final class SearchGuardPlugin extends Plugin {
     private static final String CLIENT_TYPE = "client.type";
     private final Settings settings;
     private final boolean client;
+    private final boolean httpSSLEnabled;
     //private boolean tribe; // TODO check tribe node
 
     public SearchGuardPlugin(final Settings settings) {
@@ -59,6 +62,8 @@ public final class SearchGuardPlugin extends Plugin {
         }
         this.settings = settings;
         client = !"node".equals(this.settings.get(CLIENT_TYPE, "node"));
+        httpSSLEnabled = settings.getAsBoolean(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLED,
+                SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLED_DEFAULT);
         
         if(client) {
             System.out.println("*************************************************************");
@@ -91,6 +96,7 @@ public final class SearchGuardPlugin extends Plugin {
     public Collection<Module> nodeModules() {
         final Collection<Module> modules = new ArrayList<>();
         if (!client) {
+            modules.add(new AuditLogModule());
             modules.add(new ConfigurationModule());
             modules.add(new BackendModule());
         }
@@ -122,6 +128,12 @@ public final class SearchGuardPlugin extends Plugin {
     public void onModule(final TransportModule module) {
         if (!client) {
             module.setTransportService(SearchGuardTransportService.class, name());
+        }
+    }
+    
+    public void onModule(final HttpServerModule module) {
+        if (!client && httpSSLEnabled) {
+            module.setHttpServerTransport(SearchGuardHttpServerTransport.class, name());
         }
     }
 

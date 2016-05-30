@@ -48,6 +48,7 @@ import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportRequest;
 
 import com.floragunn.searchguard.action.configupdate.TransportConfigUpdateAction;
+import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.auth.internal.InternalAuthenticationBackend;
 import com.floragunn.searchguard.auth.internal.NoOpAuthenticationBackend;
 import com.floragunn.searchguard.auth.internal.NoOpAuthorizationBackend;
@@ -81,6 +82,7 @@ public class BackendRegistry implements ConfigChangeListener {
     private volatile boolean anonymousAuthEnabled = false;
     private final Settings esSettings;
     private final InternalAuthenticationBackend iab;
+    private final AuditLog auditLog;
 
     private Cache<AuthCredentials, User> userCache = CacheBuilder.newBuilder()
             .expireAfterWrite(1, TimeUnit.HOURS)
@@ -102,14 +104,15 @@ public class BackendRegistry implements ConfigChangeListener {
 
     @Inject
     public BackendRegistry(final Settings settings, final RestController controller, final TransportConfigUpdateAction tcua, final ClusterService cse,
-            final AdminDNs adminDns, final XFFResolver xffResolver, InternalAuthenticationBackend iab) {
+            final AdminDNs adminDns, final XFFResolver xffResolver, InternalAuthenticationBackend iab, AuditLog auditLog) {
         tcua.addConfigChangeListener("config", this);
-        controller.registerFilter(new SearchGuardRestFilter(this));
+        controller.registerFilter(new SearchGuardRestFilter(this, auditLog));
         this.tcua = tcua;
         this.adminDns = adminDns;
         this.esSettings = settings;
         this.xffResolver = xffResolver;
         this.iab = iab;
+        this.auditLog = auditLog;
         
         authImplMap.put("intern_c", InternalAuthenticationBackend.class.getName());
         authImplMap.put("intern_z", NoOpAuthorizationBackend.class.getName());
@@ -220,7 +223,7 @@ public class BackendRegistry implements ConfigChangeListener {
     }
 
     public boolean authenticate(final TransportRequest request) throws ElasticsearchSecurityException {
-        
+
         final User user = request.getFromContext(ConfigConstants.SG_USER);
         
         if(user == null) {
@@ -230,13 +233,13 @@ public class BackendRegistry implements ConfigChangeListener {
         if(adminDns.isAdmin(user.getName())) {
             return true;
         }
-        
+          
         for (final Iterator iterator = new TreeSet<AuthDomain>(authDomains).iterator(); iterator.hasNext();) {
 
             final AuthDomain authDomain = (AuthDomain) iterator.next();
             User authenticatedUser = null;
             
-            log.debug("Transport User '{}' is in cache? {} (cache size: {})", user.getName(), userCache.getIfPresent(user.getName())!=null, userCache.size());
+            log.debug("Transport User '{}' is in cache? {} (cache size: {})", user.getName(), userCacheTransport.getIfPresent(user.getName())!=null, userCacheTransport.size());
             
             try {
                 try {
@@ -301,7 +304,6 @@ public class BackendRegistry implements ConfigChangeListener {
             log.trace(LogHelper.toString(request));
         }
         
-        
         //if(adminDns.isAdmin((String) request.getFromContext(ConfigConstants.SG_SSL_PRINCIPAL))) {
         //    //PKI authenticated REST call
         //    request.putInContext(ConfigConstants.SG_INTERNAL_REQUEST, Boolean.TRUE);
@@ -320,6 +322,8 @@ public class BackendRegistry implements ConfigChangeListener {
         
         User authenticatedUser = null;
         
+        AuthCredentials authCredenetials = null;
+        
         for (final Iterator<AuthDomain> iterator = new TreeSet<AuthDomain>(authDomains).iterator(); iterator.hasNext();) {
 
             final AuthDomain authDomain = iterator.next();
@@ -328,6 +332,7 @@ public class BackendRegistry implements ConfigChangeListener {
 
             log.debug("Try to extract auth creds from http {} "+httpAuthenticator.getClass());
             final AuthCredentials ac = httpAuthenticator.extractCredentials(request);
+            authCredenetials = ac;
             
             if (ac == null) {
                 //no credentials found in request
@@ -336,7 +341,7 @@ public class BackendRegistry implements ConfigChangeListener {
                     log.debug("Anonymous User is authenticated");
                     return true;
                 } else {
-                    if(authDomain.isRequirePreFlight() && httpAuthenticator.reRequestAuthentication(channel, null)) {
+                    if(!authDomain.isRequirePreFlight() && httpAuthenticator.reRequestAuthentication(channel, null)) {
                         return false;
                     } else {
                         //no reRequest possible
@@ -362,6 +367,7 @@ public class BackendRegistry implements ConfigChangeListener {
             } 
             ////credentials found in request and they are complete
 
+            log.debug("ac hash", ac.hashCode());
             log.debug("User '{}' is in cache? {} (cache size: {})", ac.getUsername(), userCache.getIfPresent(ac)!=null, userCache.size());
             
             try {
@@ -369,7 +375,7 @@ public class BackendRegistry implements ConfigChangeListener {
                     authenticatedUser = userCache.get(ac, new Callable<User>() {
                         @Override
                         public User call() throws Exception {
-                            log.debug(ac.getUsername()+" not cached, return from backend directly");
+                            log.debug(ac.getUsername()+" ("+ac.hashCode()+") not cached, return from backend directly");
                             User authenticatedUser = authDomain.getBackend().authenticate(ac);
                             for (final AuthorizationBackend ab : authorizers) {
                                 
@@ -418,6 +424,7 @@ public class BackendRegistry implements ConfigChangeListener {
             //}
             //no reRequest possible
             log.debug("Authentication finally failed");
+            auditLog.logFailedLogin(authCredenetials == null ? null:authCredenetials.getUsername(), request);
             channel.sendResponse(new BytesRestResponse(RestStatus.UNAUTHORIZED));
             return false;
         }

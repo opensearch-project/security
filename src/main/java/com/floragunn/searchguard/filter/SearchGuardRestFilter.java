@@ -17,27 +17,39 @@
 
 package com.floragunn.searchguard.filter;
 
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.rest.BytesRestResponse;
 import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestFilter;
 import org.elasticsearch.rest.RestFilterChain;
 import org.elasticsearch.rest.RestRequest;
+import org.elasticsearch.rest.RestStatus;
 
+import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.auth.BackendRegistry;
 import com.floragunn.searchguard.support.HeaderHelper;
 
 public class SearchGuardRestFilter extends RestFilter {
 
     private final BackendRegistry registry;
+    private final AuditLog auditLog;
 
-    public SearchGuardRestFilter(final BackendRegistry registry) {
+    public SearchGuardRestFilter(final BackendRegistry registry, AuditLog auditLog) {
         super();
         this.registry = registry;
+        this.auditLog = auditLog;
     }
 
     @Override
     public void process(final RestRequest request, final RestChannel channel, final RestFilterChain filterChain) throws Exception {
         
-        HeaderHelper.checkSGHeader(request);
+        try {
+            HeaderHelper.checkSGHeader(request);
+        } catch (Exception e) {
+            auditLog.logBadHeaders(request);
+            channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, e));
+            return;
+        }
         
         if (!registry.authenticate(request, channel)) {
             // another roundtrip

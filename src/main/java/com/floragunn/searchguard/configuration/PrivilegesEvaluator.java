@@ -54,6 +54,7 @@ import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.transport.TransportRequest;
 
 import com.floragunn.searchguard.action.configupdate.TransportConfigUpdateAction;
+import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.support.Base64Helper;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.WildcardMatcher;
@@ -71,16 +72,18 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
     private final IndexNameExpressionResolver resolver;
     private final Map<Class, Method> typeCache = Collections.synchronizedMap(new HashMap(100));
     private final Map<Class, Method> typesCache = Collections.synchronizedMap(new HashMap(100));
+    private final AuditLog auditLog;
 
     @Inject
     public PrivilegesEvaluator(final ClusterService clusterService, final TransportConfigUpdateAction tcua, final ActionGroupHolder ah,
-            final IndexNameExpressionResolver resolver) {
+            final IndexNameExpressionResolver resolver, AuditLog auditLog) {
         super();
         tcua.addConfigChangeListener("rolesmapping", this);
         tcua.addConfigChangeListener("roles", this);
         this.clusterService = clusterService;
         this.ah = ah;
         this.resolver = resolver;
+        this.auditLog = auditLog;
     }
 
     @Override
@@ -109,6 +112,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
     public boolean evaluate(final User user, final String action, final ActionRequest request) {
         
         if(action.startsWith("cluster:admin/snapshot/restore")) {
+            auditLog.logMissingPrivileges(action, request);
             log.warn(action + " is not allowed for a regular user");
             return false;
         }
@@ -147,12 +151,14 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         
         if (requestedResolvedAliasesIndices.contains("searchguard")
                 && (action.startsWith("indices:data/write") || (action.startsWith("indices:admin") && !allowedAdminActions.contains(action)))) {
+            auditLog.logSgIndexAttempt(request, action);
             log.warn(action + " for 'searchguard' index is not allowed for a regular user");
             return false;
         }
 
         if (requestedResolvedAliasesIndices.contains("_all")
                 && (action.startsWith("indices:data/write") || (action.startsWith("indices:admin") && !allowedAdminActions.contains(action)))) {
+            auditLog.logSgIndexAttempt(request, action);
             log.warn(action + " for '_all' indices is not allowed for a regular user");
             return false;
         }
