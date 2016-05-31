@@ -26,15 +26,15 @@ searchguard:
         trustedProxies: "proxy1|proxy2"
     authc:
       kerberos:
-        enabled: true
+        enabled: false
         order: 0
         http_authenticator:
           type: kerberos
           config:
             krb_debug: true
-            krb5_file_path: /abcdef/n.conf
-            acceptor_principal: ubunul
-            acceptor_keytab_path: keytab1.tab
+            krb5_file_path: /etc/krb5.conf
+            acceptor_principal: 'HTTP/localhost'
+            acceptor_keytab_path: eskeytab.tab
             strip_realm_from_principal: true
         authentication_backend:
           type: noop
@@ -46,7 +46,7 @@ searchguard:
         authentication_backend:
           type: intern
       ldap:
-        enabled: true
+        enabled: false
         order: 2
         http_authenticator:
           type: basic
@@ -55,19 +55,20 @@ searchguard:
           config:
             ldaps:
               ssl:
-                enabled: true
+                enabled: false
             hosts:
-              - localhost:10636
+              - localhost:8389
+            usersearch: '(uid={0})'
+            userbase: 'ou=people,dc=example,dc=com'
     authz:    
       roles_from_myldap:
-        enabled: true
+        enabled: false
         authorization_backend:
           type: ldap
           config:
             hosts:
-              - localhost:389
-              - localhost:10389
-            rolesearch: "(uniqueMember={0})"
+              - localhost:8389
+            rolesearch: '(uniqueMember={0})'
             resolve_nested_roles: true
-            rolebase: "ou=groups,o=TEST"
+            rolebase: 'ou=groups,dc=example,dc=com'
             rolename: cn
