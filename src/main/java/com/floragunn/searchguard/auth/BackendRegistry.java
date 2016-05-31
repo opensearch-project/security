@@ -253,7 +253,7 @@ public class BackendRegistry implements ConfigChangeListener {
                                     //TODO transform username
                                     
                                     try {
-                                        ab.fillRoles(user, new AuthCredentials(user.getName(), (Object) null));
+                                        ab.fillRoles(user, new AuthCredentials(user.getName()));
                                     } catch (Exception e) {
                                         log.debug("Problems retrieving roles for {} from {}", user, ab.getClass());
                                     }
@@ -330,8 +330,14 @@ public class BackendRegistry implements ConfigChangeListener {
             
             final HTTPAuthenticator httpAuthenticator = authDomain.getHttpAuthenticator();
 
-            log.debug("Try to extract auth creds from http {} "+httpAuthenticator.getClass());
-            final AuthCredentials ac = httpAuthenticator.extractCredentials(request);
+            log.debug("Try to extract auth creds from http {} "+httpAuthenticator.getType());
+            final AuthCredentials ac;
+            try {
+                ac = httpAuthenticator.extractCredentials(request);
+            } catch (Exception e1) {
+                log.info("{} extracting credentials from {}", e1.toString(), httpAuthenticator.getType());
+                continue;
+            }
             authCredenetials = ac;
             
             if (ac == null) {
@@ -367,7 +373,6 @@ public class BackendRegistry implements ConfigChangeListener {
             } 
             ////credentials found in request and they are complete
 
-            log.debug("ac hash", ac.hashCode());
             log.debug("User '{}' is in cache? {} (cache size: {})", ac.getUsername(), userCache.getIfPresent(ac)!=null, userCache.size());
             
             try {
@@ -382,7 +387,7 @@ public class BackendRegistry implements ConfigChangeListener {
                                 //TODO transform username
                                 
                                 try {
-                                    ab.fillRoles(authenticatedUser, new AuthCredentials(authenticatedUser.getName(), (Object) null));
+                                    ab.fillRoles(authenticatedUser, new AuthCredentials(authenticatedUser.getName()));
                                 } catch (Exception e) {
                                     log.debug("Problems retrieving roles for {} from {}", authenticatedUser, ab.getClass());
                                 }
@@ -393,6 +398,8 @@ public class BackendRegistry implements ConfigChangeListener {
                     });
                 } catch (Exception e) {
                     throw new ElasticsearchSecurityException("", e.getCause());
+                } finally {
+                    ac.clearSecrets();
                 }
                 
                 if(authenticatedUser == null) {

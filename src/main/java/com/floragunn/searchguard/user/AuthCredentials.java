@@ -21,22 +21,29 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.elasticsearch.common.Strings;
-
 public final class AuthCredentials {
 
     private final String username;
-    private char[] password;
+    private byte[] password;
     private Object nativeCredentials;
-    private Set<String> backendRoles = new HashSet<String>();
+    private final Set<String> backendRoles = new HashSet<String>();
     private boolean complete;
+    private final int internalPasswordHash;
 
     public AuthCredentials(final String username, final Object nativeCredentials) {
         this(username, null, nativeCredentials);
+        
+        if (nativeCredentials == null) {
+            throw new IllegalArgumentException("nativeCredentials must not be null or empty");
+        }
     }
 
-    public AuthCredentials(final String username, final char[] password) {
+    public AuthCredentials(final String username, final byte[] password) {
         this(username, password, null);
+        
+        if (password == null || password.length == 0) {
+            throw new IllegalArgumentException("password must not be null or empty");
+        }
     }
 
     public AuthCredentials(final String username, String... backendRoles) {
@@ -47,7 +54,7 @@ public final class AuthCredentials {
         this(creds.username, creds.password, creds.nativeCredentials);
     }
 
-    private AuthCredentials(final String username, char[] password, Object nativeCredentials, String... backendRoles) {
+    private AuthCredentials(final String username, byte[] password, Object nativeCredentials, String... backendRoles) {
         super();
 
         if (username == null || username.isEmpty()) {
@@ -57,6 +64,7 @@ public final class AuthCredentials {
         this.username = username;
         // make defensive copy
         this.password = password == null ? null : Arrays.copyOf(password, password.length);
+        internalPasswordHash = Arrays.hashCode(this.password);
         password = null;
         this.nativeCredentials = nativeCredentials;
         nativeCredentials = null;
@@ -66,21 +74,20 @@ public final class AuthCredentials {
         }
     }
 
-    public void clear() {
+    public void clearSecrets() {
         if (password != null) {
-            Arrays.fill(password, '\0');
+            Arrays.fill(password, (byte) '\0');
             password = null;
         }
 
         nativeCredentials = null;
-        backendRoles.clear();
     }
 
     public String getUsername() {
         return username;
     }
 
-    public char[] getPassword() {
+    public byte[] getPassword() {
         // make defensive copy
         return password == null ? null : Arrays.copyOf(password, password.length);
     }
@@ -93,41 +100,27 @@ public final class AuthCredentials {
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + (nativeCredentials == null ? 0 : nativeCredentials.hashCode());
-        result = prime * result + Arrays.hashCode(password);
-        result = prime * result + (username == null ? 0 : username.hashCode());
+        result = prime * result + internalPasswordHash;
+        result = prime * result + ((username == null) ? 0 : username.hashCode());
         return result;
     }
 
     @Override
-    public boolean equals(final Object obj) {
-        if (this == obj) {
+    public boolean equals(Object obj) {
+        if (this == obj)
             return true;
-        }
-        if (obj == null) {
+        if (obj == null)
             return false;
-        }
-        if (getClass() != obj.getClass()) {
+        if (getClass() != obj.getClass())
             return false;
-        }
-        final AuthCredentials other = (AuthCredentials) obj;
-        if (nativeCredentials == null) {
-            if (other.nativeCredentials != null) {
-                return false;
-            }
-        } else if (!nativeCredentials.equals(other.nativeCredentials)) {
+        AuthCredentials other = (AuthCredentials) obj;
+        if (internalPasswordHash != other.internalPasswordHash)
             return false;
-        }
-        if (!Arrays.equals(password, other.password)) {
-            return false;
-        }
         if (username == null) {
-            if (other.username != null) {
+            if (other.username != null)
                 return false;
-            }
-        } else if (!username.equals(other.username)) {
+        } else if (!username.equals(other.username))
             return false;
-        }
         return true;
     }
 

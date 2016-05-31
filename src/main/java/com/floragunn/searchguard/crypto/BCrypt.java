@@ -15,7 +15,9 @@
 package com.floragunn.searchguard.crypto;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
+import java.util.Arrays;
 
 /**
  * BCrypt implements OpenBSD-style Blowfish password hashing using
@@ -508,10 +510,10 @@ public class BCrypt {
      *            using BCrypt.gensalt)
      * @return the hashed password
      */
-    public static String hashpw(final String password, final String salt) {
+    public static String hashpw(byte[] password0, final String salt) {
         BCrypt B;
         String real_salt;
-        byte passwordb[], saltb[], hashed[];
+        byte passwordb[] = null, saltb[], hashed[];
         char minor = (char) 0;
         int rounds, off = 0;
         final StringBuffer rs = new StringBuffer();
@@ -537,15 +539,30 @@ public class BCrypt {
 
         real_salt = salt.substring(off + 3, off + 25);
         try {
-            passwordb = (password + (minor >= 'a' ? "\000" : "")).getBytes("UTF-8");
-        } catch (final UnsupportedEncodingException uee) {
-            throw new AssertionError("UTF-8 is not supported");
-        }
+            if(minor >= (byte) 'a') {
+                passwordb = Arrays.copyOf(password0, password0.length+1);
+                passwordb[passwordb.length-1] = (byte) 0 ;
+            } else {
+                passwordb = Arrays.copyOf(password0, password0.length);
+            }
 
         saltb = decode_base64(real_salt, BCRYPT_SALT_LEN);
 
         B = new BCrypt();
         hashed = B.crypt_raw(passwordb, saltb, rounds, bf_crypt_ciphertext.clone());
+        
+        } finally {
+            
+            if(password0 != null) {
+                Arrays.fill(password0, (byte) '\0');
+                password0 = null;
+            }
+            
+            if(passwordb != null) {
+                Arrays.fill(passwordb, (byte) '\0');
+                passwordb = null;
+            }
+        }
 
         rs.append("$2");
         if (minor >= 'a') {
@@ -629,22 +646,43 @@ public class BCrypt {
      *            the previously-hashed password
      * @return true if the passwords match, false otherwise
      */
-    public static boolean checkpw(final String plaintext, final String hashed) {
+    public static boolean checkpw(byte[] plaintext0, final String hashed) {
         byte hashed_bytes[];
         byte try_bytes[];
         try {
-            final String try_pw = hashpw(plaintext, hashed);
+            final String try_pw = hashpw(plaintext0, hashed);
             hashed_bytes = hashed.getBytes("UTF-8");
             try_bytes = try_pw.getBytes("UTF-8");
         } catch (final UnsupportedEncodingException uee) {
             return false;
+        } finally {
+            if(plaintext0 != null) {
+                Arrays.fill(plaintext0, (byte) '\0');
+                plaintext0 = null;
+            }
         }
+        
+        
         if (hashed_bytes.length != try_bytes.length) {
             return false;
         }
         byte ret = 0;
         for (int i = 0; i < try_bytes.length; i++) {
             ret |= hashed_bytes[i] ^ try_bytes[i];
+        }
+        return ret == 0;
+    }
+    
+    public static boolean checkHash(final String hash1, final String hash2) {
+        byte hashed1_bytes[] = hash1.getBytes(StandardCharsets.UTF_8);
+        byte hashed2_bytes[] = hash2.getBytes(StandardCharsets.UTF_8);
+        
+        if (hashed1_bytes.length != hashed2_bytes.length) {
+            return false;
+        }
+        byte ret = 0;
+        for (int i = 0; i < hashed1_bytes.length; i++) {
+            ret |= hashed1_bytes[i] ^ hashed2_bytes[i];
         }
         return ret == 0;
     }

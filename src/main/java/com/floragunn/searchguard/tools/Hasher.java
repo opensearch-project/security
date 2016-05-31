@@ -25,7 +25,6 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
 
 import com.floragunn.searchguard.crypto.BCrypt;
 
@@ -40,14 +39,14 @@ public class Hasher {
         final CommandLineParser parser = new DefaultParser();
         try {
             final CommandLine line = parser.parse(options, args);
-            System.out.println(hash(line.getOptionValue("p")));
-        } catch (final ParseException exp) {
+            System.out.println(hash(line.getOptionValue("p").getBytes("UTF-8")));
+        } catch (final Exception exp) {
             System.err.println("Parsing failed.  Reason: " + exp.getMessage());
             formatter.printHelp("hasher.sh", options, true);
         }
     }
 
-    public static String hash(final String clearTextPassword) {
+    public static String hash(final byte[] clearTextPassword) {
         return BCrypt.hashpw(Objects.requireNonNull(clearTextPassword), BCrypt.gensalt(12));
     }
 }

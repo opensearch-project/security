@@ -73,8 +73,7 @@ public class HTTPBasicAuthenticator implements HTTPAuthenticator {
                 if (firstColonIndex > 0) {
                     username = decodedBasicHeader.substring(0, firstColonIndex);
                     
-                    if(decodedBasicHeader.length() - 1 != firstColonIndex)
-                    {
+                    if(decodedBasicHeader.length() - 1 != firstColonIndex) {
                         password = decodedBasicHeader.substring(firstColonIndex + 1);
                     } else {
                         //blank password
@@ -86,7 +85,7 @@ public class HTTPBasicAuthenticator implements HTTPAuthenticator {
                     log.warn("Invalid 'Authorization' header, send 401 and 'WWW-Authenticate Basic'");
                     return null;
                 } else {
-                    return new AuthCredentials(username, password.toCharArray()).markComplete();
+                    return new AuthCredentials(username, password.getBytes(StandardCharsets.UTF_8)).markComplete();
                 }
             }
         } else {
