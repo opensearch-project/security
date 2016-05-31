@@ -1,6 +1,6 @@
-#Search Guard for Elasticsearch 2.3.2 **BETA 2**
+#Search Guard for Elasticsearch 2.3.3 **BETA 3**
 
-2nd beta release for Search Guard 2 (compatible with Elasticsearch 2.3.2)
+3rd beta release for Search Guard 2 (compatible with Elasticsearch 2.3.3)
 
 ## Request for comments
 We need your input to decide on the roadmap for SG2. If you have a minute, please help us by filling out this small survey: https://www.surveymonkey.com/r/QG23TGM
@@ -17,7 +17,7 @@ This is almost a complete rewrite of Search Guard 1 which comes with a lot of ne
  * Syntax is more easy
  * Admin CLI tool introduced (sgadmin)
  
-This the 2nd beta release which is feature complete. Advanced functionalities like LDAP and Kerberos authentication/authorization as well as DLS/FLS will be available soon as separate and commercial licensed add-ons (but still Open Source). See https://github.com/floragunncom/search-guard/wiki
+This the 3rd beta release which is feature complete. Advanced functionalities like LDAP and Kerberos authentication/authorization as well as DLS/FLS will be available soon as separate and commercial licensed add-ons (but still Open Source). See https://github.com/floragunncom/search-guard/wiki
 
 ##Support
 * Community support available via [google groups](https://groups.google.com/forum/#!forum/search-guard)
@@ -27,12 +27,12 @@ This the 2nd beta release which is feature complete. Advanced functionalities li
 ##Installation
 
 * Install latest version of [search-guard-ssl plugin](https://github.com/floragunncom/search-guard-ssl)
- * ``sudo bin/plugin install com.floragunn/search-guard-ssl/2.3.2.9``
+ * ``sudo bin/plugin install com.floragunn/search-guard-ssl/2.3.3.10``
 
 * Install search-guard-2 plugin
- * ``sudo bin/plugin install com.floragunn/search-guard-2/2.3.2.0-beta2``
+ * ``sudo bin/plugin install com.floragunn/search-guard-2/2.3.3.0-beta3``
  
-(See also the [Vagrant file](https://github.com/floragunncom/search-guard/blob/2.2/Vagrantfile) we provide)
+(See also the [Vagrant file](https://github.com/floragunncom/search-guard/blob/master/Vagrantfile) we provide)
 
 Both plugins need to be installed on every node in the cluster. Tribe nodes are not yet supported.
 
