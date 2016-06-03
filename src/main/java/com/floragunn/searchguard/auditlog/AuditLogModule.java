@@ -35,7 +35,7 @@ public class AuditLogModule extends AbstractModule {
         try {
             Class auditLogImpl;
             if ((auditLogImpl = Class
-                    .forName("com.floragunn.searchguard.auditlog.impl.ESAuditLog")) != null) {
+                    .forName("com.floragunn.searchguard.auditlog.impl.AuditLogImpl")) != null) {
                 bind(AuditLog.class).to(auditLogImpl).asEagerSingleton();
                 log.info("Auditlog available ({})", auditLogImpl.getSimpleName());
             } else {
