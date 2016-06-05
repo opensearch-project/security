@@ -69,4 +69,11 @@ public class NullAuditLog implements AuditLog {
 
     }
 
+    @Override
+    public void logAuthenticatedRequest(TransportRequest request, final String action) {
+        
+    }
+    
+    
+
 }

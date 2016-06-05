@@ -28,7 +28,7 @@ import org.elasticsearch.transport.TransportRequest;
 public interface AuditLog extends Closeable {
 
     // TODO store action in request
-
+    
     void logFailedLogin(String username, TransportRequest request);
     
     void logFailedLogin(String username, RestRequest request);
@@ -47,5 +47,5 @@ public interface AuditLog extends Closeable {
 
     //void logBadCertificate(X509Certificate[] x509Certs, ContextAndHeaderHolder request);
     
-    //void logRegularRequest(TransportRequest request);
+    void logAuthenticatedRequest(TransportRequest request, final String action);
 }

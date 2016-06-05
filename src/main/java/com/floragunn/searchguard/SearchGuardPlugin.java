@@ -96,9 +96,9 @@ public final class SearchGuardPlugin extends Plugin {
     public Collection<Module> nodeModules() {
         final Collection<Module> modules = new ArrayList<>();
         if (!client) {
-            modules.add(new AuditLogModule());
             modules.add(new ConfigurationModule());
             modules.add(new BackendModule());
+            modules.add(new AuditLogModule());
         }
         return modules;
     }
