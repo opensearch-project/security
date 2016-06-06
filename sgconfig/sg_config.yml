@@ -1,8 +1,36 @@
+# This is the main configuration file where the authentication and authorization
+# backends as well as the http authenticators and other settings will be defined.
+#
+# The authentication works like that:
+# 
+# If there are no authenticators (authc) defined a implicit one will be created.
+# This will authenticate against the internal user database and use HTTP Basic.
+#
+# If more than one is configured the first one which succeeds wins. If all fail then the request will be unauthenticated
+# and a respective exception is thrown and/or the HTTP status is set to 401.
+# 
+# After authentication authorization (authz) will be applied. There can be zero or more authorizers which collect
+# the roles from a given backend for the authenticated user.
+#
+# For HTTP is possible to allow anonymous authentication. If that is allowed then the http authenticators try to
+# find user credentials in the HTTP request and if such where found then the user gets regularly authenticated.
+# If none can be found the user will be authenticated as an "anonymous" user. This user has always the username "sg_anonymous"
+# and one role named "sg_anonymous_backendrole". If you enable anonymous authentication for all http authenticators will not challenge.
+# 
+#
+# Notice: If you define more than one authenticator make sure to put non-challenging authenticators like "proxy" or "clientcert"
+# at the beginning and the challenging one at the end. If you configure more than one challenging authenticator you have to deal with
+# the "challenge" flag. Because its not possible to challenge a client with two different authentication methods (for example
+# Kerberos and Basic) only one can have challenge: true. All others need to have challenge: false and that means
+# they look into the request and if they found no credentials they will not challenge. Default is true.
+#
+# 
+#
 #
 # HTTP
-#   basic (challenging) PREAUTH?
+#   basic (challenging)
 #   proxy (not challenging, needs xff)
-#   kerberos (challenging) NOT FREE FOR COMMERCIAL USE PREAUTH?
+#   kerberos (challenging) NOT FREE FOR COMMERCIAL
 #   clientcert (not challenging, needs https)
 
 # Authc
@@ -16,6 +44,23 @@
 
 searchguard:
   dynamic:
+    audit: # NOT FREE FOR COMMERCIAL USE
+      type: external_elasticsearch #stores auditlog in another elasticsearch cluster
+      config:
+        http_endpoints:
+          - audit1.example.com
+          - audit1.example.com
+          - 192.168.2.3
+        index: audit
+        type: audit
+        # use https
+        enable_ssl: true
+        # send client certificate
+        enable_ssl_client_auth
+        # verify server name
+        verify_hostnames: true
+    #audit: # NOT FREE FOR COMMERCIAL USE
+    #  type: internal_elasticsearch #stores auditlog in the same cluster
     http:
       anonymous_auth_enabled: false
       xff:
@@ -25,50 +70,117 @@ searchguard:
         proxiesHeader: "x-forwarded-by"
         trustedProxies: "proxy1|proxy2"
     authc:
-      kerberos:
+      kerberos_auth_domain: 
         enabled: false
         order: 0
         http_authenticator:
-          type: kerberos
+          type: kerberos # NOT FREE FOR COMMERCIAL USE
+          challenge: false
           config:
+            # If true a lot of kerberos/security related debugging output will be logged to standard out
             krb_debug: true
+            # The absolute path or relative path to config/ directory
+            # to krb5.conf file
             krb5_file_path: /etc/krb5.conf
+            # Acceptor (Server) Principal name, must be present in acceptor_keytab_path file
             acceptor_principal: 'HTTP/localhost'
+            # The absolute path or relative path to config/ directory
+            # to the keytab where the acceptor_principal credentials are stored.
             acceptor_keytab_path: eskeytab.tab
+            # If true then the realm will be stripped from the user name
             strip_realm_from_principal: true
         authentication_backend:
           type: noop
-      basic_internal:
+      basic_internal_auth_domain: 
         enabled: true
         order: 1
         http_authenticator:
           type: basic
+          challenge: false
         authentication_backend:
           type: intern
-      ldap:
+      proxy_auth_domain:
         enabled: false
         order: 2
         http_authenticator:
-          type: basic
-        authentication_backend:
-          type: ldap
+          type: proxy
+          challenge: false
           config:
-            ldaps:
-              ssl:
-                enabled: false
+            user_header: "x-proxy-user"
+            roles_header: "x-proxy-roles"
+        authentication_backend:
+          type: noop
+      clientcert_auth_domain:
+        enabled: false
+        order: 4
+        http_authenticator:
+          type: clientcert
+          challenge: false
+        authentication_backend:
+          type: noop
+      ldap:
+        enabled: false
+        order: 3
+        http_authenticator:
+          type: basic
+          challenge: false
+        authentication_backend:
+          # LDAP authentication backend (authenticate users against a LDAP or Active Directory)
+          type: ldap # NOT FREE FOR COMMERCIAL USE
+          config:
+            # enable ldaps
+            enable_ssl: false
+            # enable start tls, enable_ssl should be false
+            enable_start_tls: false
+            # send client certificate
+            enable_ssl_client_auth: false
+            # verify ldap hostname
+            verify_hostnames: true
             hosts:
               - localhost:8389
-            usersearch: '(uid={0})'
+            bind_dn: null
+            password: null
             userbase: 'ou=people,dc=example,dc=com'
+            # Filter to search for users (currently in the whole subtree beneath userbase)
+            # {0} is substituted with the username 
+            usersearch: '(uid={0})'
+            # Use this attribute from the user as username (if not set then DN is used)
+            username_attribute: null
     authz:    
       roles_from_myldap:
         enabled: false
         authorization_backend:
-          type: ldap
+          # LDAP authorization backend (gather roles from a LDAP or Active Directory, you have to configure the above LDAP authentication backend settings too)
+          type: ldap # NOT FREE FOR COMMERCIAL USE
           config:
+            # enable ldaps
+            enable_ssl: false
+            # enable start tls, enable_ssl should be false
+            enable_start_tls: false
+            # send client certificate
+            enable_ssl_client_auth: false
+            # verify ldap hostname
+            verify_hostnames: true
             hosts:
               - localhost:8389
-            rolesearch: '(uniqueMember={0})'
-            resolve_nested_roles: true
+            bind_dn: null
+            password: null
             rolebase: 'ou=groups,dc=example,dc=com'
+            # Filter to search for roles (currently in the whole subtree beneath rolebase)
+            # {0} is substituted with the DN of the user
+            # {1} is substituted with the username 
+            # {2} is substituted with an attribute value from user's directory entry, of the authenticated user. Use userroleattribute to specify the name of the attribute            
+            rolesearch: '(uniqueMember={0})'
+            # Specify the name of the attribute which value should be substituted with {2} above
+            userroleattribute: null
+            # Roles as an attribute of the user entry
+            userrolename: memberOf
+            # The attribute in a role entry containing the name of that role
             rolename: cn
+            # Resolve nested roles transitive (roles which are members of other roles and so on ...)
+            resolve_nested_roles: true
+      roles_from_another_ldap:
+        enabled: false
+        authorization_backend:
+          type: ldap # NOT FREE FOR COMMERCIAL USE
+          #config goes here ...
