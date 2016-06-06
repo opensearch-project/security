@@ -136,13 +136,20 @@ class RemoteIpDetector {
         return trustedProxies.toString();
     }
 
-    public String detect(NettyHttpRequest request){
+    public String detect(final NettyHttpRequest request){
         final String originalRemoteAddr = ((InetSocketAddress)request.getRemoteAddress()).getAddress().getHostAddress();
-        final String originalRemoteHost = ((InetSocketAddress)request.getRemoteAddress()).getAddress().getHostName();
+        @SuppressWarnings("unused")
         final String originalProxiesHeader = request.getHeader(proxiesHeader);
-        final String originalRemoteIpHeader = request.getHeader(remoteIpHeader);
+        //final String originalRemoteIpHeader = request.getHeader(remoteIpHeader);
         
-
+        if(log.isTraceEnabled()) {
+            log.trace("originalRemoteAddr {}", originalRemoteAddr);
+        }
+        
+        //X-Forwarded-For: client1, proxy1, proxy2
+        //                                   ^^^^^^ originalRemoteAddr
+        
+        //originalRemoteAddr need to be in the list of internalProxies
         if (internalProxies !=null &&
                 internalProxies.matcher(originalRemoteAddr).matches()) {
             String remoteIp = null;
@@ -150,10 +157,14 @@ class RemoteIpDetector {
             LinkedList<String> proxiesHeaderValue = new LinkedList<>();
             StringBuilder concatRemoteIpHeaderValue = new StringBuilder();
             
-            List<String> remoteIpHeaders = request.request().headers().getAll(remoteIpHeader);
+            //client1, proxy1, proxy2
+            List<String> remoteIpHeaders = request.request().headers().getAll(remoteIpHeader); //X-Forwarded-For
 
             if(remoteIpHeaders == null) {
-                
+                //log.warn("no remote "+remoteIpHeader+" header found albeit it should be there");
+                //return originalRemoteAddr;
+                log.error("no remote "+remoteIpHeader+" header albeit needed");
+                throw new ElasticsearchSecurityException("no remote "+remoteIpHeader+" header albeit needed", RestStatus.BAD_REQUEST);
             }
             
             for (String rh:remoteIpHeaders) {
@@ -180,18 +191,15 @@ class RemoteIpDetector {
                     break;
                 }
             }
+            
             // continue to loop on remoteIpHeaderValue to build the new value of the remoteIpHeader
             LinkedList<String> newRemoteIpHeaderValue = new LinkedList<>();
             for (; idx >= 0; idx--) {
                 String currentRemoteIp = remoteIpHeaderValue[idx];
                 newRemoteIpHeaderValue.addFirst(currentRemoteIp);
             }
+            
             if (remoteIp != null) {
-                
-                
-
-                //request.setRemoteAddr(remoteIp);
-                //request.setRemoteHost(remoteIp);
 
                 if (proxiesHeaderValue.size() == 0) {
                     request.request().headers().remove(proxiesHeader);
@@ -206,23 +214,26 @@ class RemoteIpDetector {
                     request.request().headers().set(remoteIpHeader,commaDelimitedRemoteIpHeaderValue);
                 }
                 
-                if (log.isDebugEnabled()) {
-                    log.debug("Incoming request " + request.request().getUri() + " with originalRemoteAddr '" + originalRemoteAddr
+                if (log.isTraceEnabled()) {
+                    final String originalRemoteHost = ((InetSocketAddress)request.getRemoteAddress()).getAddress().getHostName();
+                    log.trace("Incoming request " + request.request().getUri() + " with originalRemoteAddr '" + originalRemoteAddr
                               + "', originalRemoteHost='" + originalRemoteHost + "', will be seen as newRemoteAddr='" + remoteIp);
                 }
                 
                 return remoteIp;
                 
             } else {
+                //log.warn("could not resolve remote ip for "+originalRemoteAddr);
+                //return originalRemoteAddr;
+                
+                log.error("no remote ip");
                 throw new ElasticsearchSecurityException("no remote ip", RestStatus.BAD_REQUEST);
             }
-
-            
             
         } else {
-            if (log.isDebugEnabled()) {
-                log.debug("Skip RemoteIpValve for request " + request.request().getUri() + " with originalRemoteAddr '"
-                        + request.getRemoteAddress() + "'");
+            if (log.isTraceEnabled()) {
+                log.trace("Skip RemoteIpDetector for request " + request.request().getUri() + " with originalRemoteAddr '"
+                        + request.getRemoteAddress() + "' cause no internal proxy matches");
             }
         }
         

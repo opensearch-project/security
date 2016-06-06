@@ -65,10 +65,15 @@ searchguard:
       anonymous_auth_enabled: false
       xff:
         enabled: false
-        internalProxies: 192\.168\.0\.10|192\.168\.0\.11
-        remoteIpHeader: "x-forwarded-for"
-        proxiesHeader: "x-forwarded-by"
-        trustedProxies: "proxy1|proxy2"
+        internalProxies: '192\.168\.0\.10|192\.168\.0\.11' # regex pattern
+        #internalProxies: '.*' # trust all internal proxies, regex pattern
+        remoteIpHeader:  'x-forwarded-for'
+        proxiesHeader:   'x-forwarded-by'
+        #trustedProxies: '.*' # trust all external proxies, regex pattern
+        ###### see https://docs.oracle.com/javase/7/docs/api/java/util/regex/Pattern.html for regex help
+        ###### more information about XFF https://en.wikipedia.org/wiki/X-Forwarded-For
+        ###### and here https://tools.ietf.org/html/rfc7239
+        ###### and https://tomcat.apache.org/tomcat-8.0-doc/config/valve.html#Remote_IP_Valve
     authc:
       kerberos_auth_domain: 
         enabled: false
