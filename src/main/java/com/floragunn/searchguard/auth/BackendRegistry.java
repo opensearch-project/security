@@ -202,7 +202,7 @@ public class BackendRegistry implements ConfigChangeListener {
                             Settings.builder().put(esSettings).put(ads.getAsSettings("http_authenticator.config")).build());
                                         
                     authDomains.add(new AuthDomain(authenticationBackend, httpAuthenticator,
-                            ads.getAsBoolean("require_preflight", false), ads.getAsInt("order", 0)));
+                            ads.getAsBoolean("http_authenticator.challenge", true), ads.getAsInt("order", 0)));
                 } catch (final Exception e) {
                     log.error("Unable to initialize auth domain {} due to {}", e, ad, e.toString());
                 }
@@ -211,7 +211,7 @@ public class BackendRegistry implements ConfigChangeListener {
         }
         
         if(authDomains.isEmpty()) {
-            authDomains.add(new AuthDomain(iab, new HTTPBasicAuthenticator(Settings.EMPTY), false, 0));
+            authDomains.add(new AuthDomain(iab, new HTTPBasicAuthenticator(Settings.EMPTY), true, 0));
         }
 
         initialized = true;
@@ -343,21 +343,18 @@ public class BackendRegistry implements ConfigChangeListener {
             if (ac == null) {
                 //no credentials found in request
                 if(anonymousAuthEnabled) {
-                    request.putInContext(ConfigConstants.SG_USER, User.ANONYMOUS);
-                    log.debug("Anonymous User is authenticated");
-                    return true;
-                } else {
-                    if(!authDomain.isRequirePreFlight() && httpAuthenticator.reRequestAuthentication(channel, null)) {
-                        return false;
-                    } else {
-                        //no reRequest possible
-                        continue;
-                        //log.debug("extraction authentication credentials from http request finally failed");
-                        //channel.sendResponse(new BytesRestResponse(RestStatus.UNAUTHORIZED));
-                        //return false;
-                    }
-                  
+                    continue;
                 }
+                        
+                if(authDomain.isChallenge() && httpAuthenticator.reRequestAuthentication(channel, null)) {
+                    return false;
+                } else {
+                    //no reRequest possible
+                    continue;
+                    //log.debug("extraction authentication credentials from http request finally failed");
+                    //channel.sendResponse(new BytesRestResponse(RestStatus.UNAUTHORIZED));
+                    //return false;
+                }      
             } else if (!ac.isComplete()) {
                 //credentials found in request but we need another client challenge
                 if(httpAuthenticator.reRequestAuthentication(channel, ac)) {
@@ -430,6 +427,14 @@ public class BackendRegistry implements ConfigChangeListener {
             //  return false;
             //}
             //no reRequest possible
+            
+            if(authCredenetials == null && anonymousAuthEnabled) {
+                request.putInContext(ConfigConstants.SG_USER, User.ANONYMOUS);
+                log.debug("Anonymous User is authenticated");
+                return true;
+            }
+            
+            
             log.debug("Authentication finally failed");
             auditLog.logFailedLogin(authCredenetials == null ? null:authCredenetials.getUsername(), request);
             channel.sendResponse(new BytesRestResponse(RestStatus.UNAUTHORIZED));

@@ -24,18 +24,18 @@ public class AuthDomain implements Comparable<AuthDomain> {
     private final AuthenticationBackend backend;
     private final HTTPAuthenticator httpAuthenticator;
     private final int order;
-    private final boolean requirePreFlight;
+    private final boolean challenge;
 
-    public AuthDomain(final AuthenticationBackend backend, final HTTPAuthenticator httpAuthenticator, boolean requirePreFlight, final int order) {
+    public AuthDomain(final AuthenticationBackend backend, final HTTPAuthenticator httpAuthenticator, boolean challenge, final int order) {
         super();
         this.backend = Objects.requireNonNull(backend);
         this.httpAuthenticator = Objects.requireNonNull(httpAuthenticator);
         this.order = order;
-        this.requirePreFlight = requirePreFlight;
+        this.challenge = challenge;
     }
 
-    public boolean isRequirePreFlight() {
-        return requirePreFlight;
+    public boolean isChallenge() {
+        return challenge;
     }
 
     public AuthenticationBackend getBackend() {
@@ -52,8 +52,8 @@ public class AuthDomain implements Comparable<AuthDomain> {
 
     @Override
     public String toString() {
-        return "AuthDomain [backend=" + backend + ", httpAuthenticator=" + httpAuthenticator + ", order=" + order + ", requirePreFlight="
-                + requirePreFlight + "]";
+        return "AuthDomain [backend=" + backend + ", httpAuthenticator=" + httpAuthenticator + ", order=" + order + ", challenge="
+                + challenge + "]";
     }
 
     @Override
