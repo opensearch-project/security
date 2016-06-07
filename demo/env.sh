@@ -1,7 +1,7 @@
 export DEBIAN_FRONTEND=noninteractive
-export ES_VERSION=2.3.2
-export SG_VERSION=2.3.2.0-beta2
-export SG_SSL_VERSION=2.3.2.9
+export ES_VERSION=2.3.3
+export SG_VERSION=2.3.3.0-beta3
+export SG_SSL_VERSION=2.3.3.10
 export NETTY_NATIVE_VERSION=1.1.33.Fork15
 export NETTY_NATIVE_CLASSIFIER=linux-x86_64
 
