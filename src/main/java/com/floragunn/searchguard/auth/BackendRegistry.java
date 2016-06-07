@@ -469,18 +469,18 @@ public class BackendRegistry implements ConfigChangeListener {
         User aU = origPKIuser;
 
         if (adminDns.isAdmin(impersonatedUser)) {
-            throw new ElasticsearchSecurityException(origPKIuser.getName() + " is not allowed to impersonate as adminuser  " + impersonatedUser);
+            throw new ElasticsearchSecurityException("'"+origPKIuser.getName() + "' is not allowed to impersonate as an adminuser  '" + impersonatedUser+"'");
         }
         
         try {
             if (impersonatedUser != null && !adminDns.isImpersonationAllowed(new LdapName(origPKIuser.getName()), impersonatedUser)) {
-                throw new ElasticsearchSecurityException(origPKIuser.getName() + " is not allowed to impersonate as " + impersonatedUser);
+                throw new ElasticsearchSecurityException("'"+origPKIuser.getName() + "' is not allowed to impersonate as '" + impersonatedUser+"'");
             } else if (impersonatedUser != null) {
                 aU = new User(impersonatedUser);
                 log.debug("Impersonate from '{}' to '{}'",origPKIuser.getName(), impersonatedUser);
             }
         } catch (final InvalidNameException e1) {
-            throw new ElasticsearchSecurityException("PKI does not have a valid name (" + origPKIuser.getName() + "), should never happen",
+            throw new ElasticsearchSecurityException("PKI does not have a valid name ('" + origPKIuser.getName() + "'), should never happen",
                     e1);
         }
 

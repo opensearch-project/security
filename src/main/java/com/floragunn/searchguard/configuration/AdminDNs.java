@@ -95,6 +95,6 @@ public class AdminDNs {
             return true;
         }
         
-        return this.allowedImpersonations.containsEntry(dn, impersonated);
+        return this.allowedImpersonations.containsEntry(dn, "*") || this.allowedImpersonations.containsEntry(dn, impersonated);
     }
 }
