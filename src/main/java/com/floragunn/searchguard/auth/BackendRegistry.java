@@ -152,6 +152,7 @@ public class BackendRegistry implements ConfigChangeListener {
             final Constructor<T> tctor = t.getConstructor(Settings.class);
             return tctor.newInstance(settings);
         } catch (final Exception e) {
+            log.warn("Unable to create instance of class {} with (Settings.class) constructor due to {}", e, t, e.toString());
             final Constructor<T> tctor = t.getConstructor(Settings.class, TransportConfigUpdateAction.class);
             return tctor.newInstance(settings, tcua);
         }
@@ -255,7 +256,7 @@ public class BackendRegistry implements ConfigChangeListener {
                                     try {
                                         ab.fillRoles(user, new AuthCredentials(user.getName()));
                                     } catch (Exception e) {
-                                        log.debug("Problems retrieving roles for {} from {}", user, ab.getClass());
+                                        log.error("Problems retrieving roles for {} from {}", user, ab.getClass());
                                     }
                                 }
                                 return user;
@@ -264,7 +265,8 @@ public class BackendRegistry implements ConfigChangeListener {
                         }
                     });
                 } catch (Exception e) {
-                    throw new ElasticsearchSecurityException("", e.getCause());
+                    log.error("Unexpected exception {} ", e, e.toString());
+                    throw new ElasticsearchSecurityException(e.toString(), e);
                 }
                 
                 if(authenticatedUser == null) {
@@ -377,7 +379,7 @@ public class BackendRegistry implements ConfigChangeListener {
                     authenticatedUser = userCache.get(ac, new Callable<User>() {
                         @Override
                         public User call() throws Exception {
-                            log.debug(ac.getUsername()+" ("+ac.hashCode()+") not cached, return from backend directly");
+                            log.debug(ac.getUsername()+" ("+ac.hashCode()+") not cached, return from "+authDomain.getBackend().getType()+" backend directly");
                             User authenticatedUser = authDomain.getBackend().authenticate(ac);
                             for (final AuthorizationBackend ab : authorizers) {
                                 
@@ -386,7 +388,7 @@ public class BackendRegistry implements ConfigChangeListener {
                                 try {
                                     ab.fillRoles(authenticatedUser, new AuthCredentials(authenticatedUser.getName()));
                                 } catch (Exception e) {
-                                    log.debug("Problems retrieving roles for {} from {}", authenticatedUser, ab.getClass());
+                                    log.error("Problems retrieving roles for {} from {}", authenticatedUser, ab.getClass());
                                 }
                             }
                             //authDomain.getAbackend().fillRoles(authenticatedUser, new AuthCredentials(authenticatedUser.getName(), (Object) null));
@@ -394,7 +396,8 @@ public class BackendRegistry implements ConfigChangeListener {
                         }
                     });
                 } catch (Exception e) {
-                    throw new ElasticsearchSecurityException("", e.getCause());
+                    log.error("Unexpected exception {} ", e, e.toString());
+                    throw new ElasticsearchSecurityException(e.toString(), e);
                 } finally {
                     ac.clearSecrets();
                 }

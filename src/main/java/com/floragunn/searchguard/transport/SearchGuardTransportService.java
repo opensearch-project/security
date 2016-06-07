@@ -266,9 +266,10 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
                     if(Strings.isNullOrEmpty(userHeader)) {
                         //user can be null when a node client wants connect
                         //we deny this currently because node client is not supported
-                        log.error("No user found in this "+request.getClass()+" for action "+transportChannel.action()+" and transport type "+transportChannel.getChannelType()+".");
+                        log.error("No user found in this "+request.getClass().getSimpleName()+" for action "+transportChannel.action()+" and transport type "+transportChannel.getChannelType()+"."+
+                        " If you see this error related when you use sgadmin make sure you connect with a client (and not with a node) certificate.");
                         transportChannel.sendResponse(new ElasticsearchSecurityException(
-                                "No user found in this "+request.getClass()+" for action "+transportChannel.action()+" and transport type "+transportChannel.getChannelType()+"."));
+                                "No user found in this "+request.getClass().getSimpleName()+" for action "+transportChannel.action()+" and transport type "+transportChannel.getChannelType()+"."));
                         return;
                     } else {
                         request.putInContext(ConfigConstants.SG_USER, Objects.requireNonNull((User) Base64Helper.deserializeObject(userHeader)));
