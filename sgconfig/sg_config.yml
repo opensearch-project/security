@@ -44,23 +44,6 @@
 
 searchguard:
   dynamic:
-    audit: # NOT FREE FOR COMMERCIAL USE
-      type: external_elasticsearch #stores auditlog in another elasticsearch cluster
-      config:
-        http_endpoints:
-          - audit1.example.com
-          - audit1.example.com
-          - 192.168.2.3
-        index: audit
-        type: audit
-        # use https
-        enable_ssl: true
-        # send client certificate
-        enable_ssl_client_auth
-        # verify server name
-        verify_hostnames: true
-    #audit: # NOT FREE FOR COMMERCIAL USE
-    #  type: internal_elasticsearch #stores auditlog in the same cluster
     http:
       anonymous_auth_enabled: false
       xff:
@@ -80,18 +63,12 @@ searchguard:
         order: 0
         http_authenticator:
           type: kerberos # NOT FREE FOR COMMERCIAL USE
-          challenge: false
+          challenge: true
           config:
             # If true a lot of kerberos/security related debugging output will be logged to standard out
-            krb_debug: true
-            # The absolute path or relative path to config/ directory
-            # to krb5.conf file
-            krb5_file_path: /etc/krb5.conf
+            krb_debug: false
             # Acceptor (Server) Principal name, must be present in acceptor_keytab_path file
             acceptor_principal: 'HTTP/localhost'
-            # The absolute path or relative path to config/ directory
-            # to the keytab where the acceptor_principal credentials are stored.
-            acceptor_keytab_path: eskeytab.tab
             # If true then the realm will be stripped from the user name
             strip_realm_from_principal: true
         authentication_backend:

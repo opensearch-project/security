@@ -16,3 +16,26 @@ searchguard.authcz.admin_dn:
 #  "cn=webuser,ou=IT,ou=IT,dc=company,dc=com":
 #    - user2
 #    - user1
+
+# Auditlog configuration:
+
+searchguard.audit.type: internal_elasticsearch
+#searchguard.audit.type: external_elasticsearch
+#searchguard.audit.config.http_endpoints: ['localhost:9200','localhost:9201','localhost:9202']"
+#searchguard.audit.config.index: auditlog # make sure you secure this index properly
+#searchguard.audit.config.type: auditlog
+#searchguard.audit.config.username: auditloguser
+#searchguard.audit.config.password: auditlogpassword
+#searchguard.audit.config.enable_ssl: false
+#searchguard.audit.config.verify_hostnames: false
+#searchguard.audit.config.enable_ssl_client_auth: false
+
+# If Kerberos authentication should be used you have to configure this:
+
+# The absolute path or relative path to config/ directory
+# to krb5.conf file
+#searchguard.kerberos.krb5_filepath: '/etc/krb5.conf'
+            
+# The absolute path or relative path to config/ directory
+# to the keytab where the acceptor_principal credentials are stored.
+#searchguard.kerberos.acceptor_keytab_filepath: 'eskeytab.tab'

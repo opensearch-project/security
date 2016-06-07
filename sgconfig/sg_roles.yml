@@ -16,8 +16,8 @@ sg_all_access:
   indices:
     '*':
       '*':
-        - '*'  
-
+        - '*'
+        
 sg_role_starfleet:
   indices:
     sf:
@@ -58,6 +58,16 @@ sg_readonly:
     '*':
       '*':
         - READ
+
+sg_readonly_dlsfls:
+  indices:
+    '*':
+      '*':
+        - READ    
+  dls: '{"term" : {"_type" : "legends"}}'
+  fls:
+    - 'aaa'
+    - 'bbb'
 
 sg_transport_client:
   cluster:

@@ -43,3 +43,7 @@ sg_public:
 sg_readall:
   users:
     - readall
+    
+sg_readonly_dlsfls:
+  users:
+    - dlsflsuser

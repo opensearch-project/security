@@ -34,4 +34,8 @@ kibanaro:
 readall:
   hash: $2a$12$ae4ycwzwvLtZxwZ82RmiEunBbIPiAmGZduBAjKN0TXdwQFtCwARz2
   #password is: readall
+dlsflsuser:
+  hash: $2a$12$30rb6oabnodiSdysdWJnhO.4sVRkyNudPC1woYCJFhXja3rkyXbam
+  #password is: dlsflsuser
+  
  
