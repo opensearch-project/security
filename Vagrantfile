@@ -93,5 +93,14 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
                      v.cpus = 2
              end
    end
+   
+   unless ENV['DISABLE_VAGRANT_CACHE']
+    if Vagrant.has_plugin?("vagrant-cachier")
+    # Configure cached packages to be shared between instances of the same base box.
+    # More info on http://fgrehm.viewdocs.io/vagrant-cachier/usage
+      config.cache.scope       = :machine # or :box
+        config.cache.auto_detect = false
+      end
+    end
 
 end
