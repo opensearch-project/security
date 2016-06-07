@@ -968,7 +968,7 @@ public class SGTests extends AbstractUnitTest {
                 gr = tc.prepareGet("vulcan", "secrets", "s1").putHeader("sg_impersonate_as", "gkar").get();
                 Assert.fail();
             } catch (ElasticsearchSecurityException e) {
-               Assert.assertEquals("CN=spock,OU=client,O=client,L=Test,C=DE is not allowed to impersonate as gkar", e.getMessage());
+               Assert.assertEquals("'CN=spock,OU=client,O=client,L=Test,C=DE' is not allowed to impersonate as 'gkar'", e.getMessage());
             }
             
             System.out.println("------- 12 ---------");
