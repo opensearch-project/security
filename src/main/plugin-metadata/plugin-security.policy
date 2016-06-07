@@ -19,4 +19,7 @@ grant {
   permission java.lang.RuntimePermission "shutdownHooks";
   permission java.lang.RuntimePermission "getClassLoader";
   permission java.lang.RuntimePermission "setContextClassLoader";
+  permission javax.security.auth.AuthPermission "modifyPrivateCredentials";
+  permission javax.security.auth.AuthPermission "doAs";
+  permission javax.security.auth.kerberos.ServicePermission "*","accept";
 };
