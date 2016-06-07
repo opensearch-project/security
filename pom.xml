@@ -137,7 +137,7 @@
     <dependency>
       <groupId>io.netty</groupId>
       <artifactId>netty-tcnative</artifactId>
-      <version>1.1.33.Fork15</version> <!-- 1.1.33.Fork14 and newer need netty >= 4.1.x -->
+      <version>1.1.33.Fork17</version>
       <classifier>${os.detected.classifier}</classifier>
       <scope>test</scope>
     </dependency>
