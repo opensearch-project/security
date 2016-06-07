@@ -332,12 +332,12 @@ public class BackendRegistry implements ConfigChangeListener {
             
             final HTTPAuthenticator httpAuthenticator = authDomain.getHttpAuthenticator();
 
-            log.debug("Try to extract auth creds from http {} "+httpAuthenticator.getType());
+            log.debug("Try to extract auth creds from http {} ",httpAuthenticator.getType());
             final AuthCredentials ac;
             try {
                 ac = httpAuthenticator.extractCredentials(request);
             } catch (Exception e1) {
-                log.info("{} extracting credentials from {}", e1.toString(), httpAuthenticator.getType());
+                log.info("{} extracting credentials from {}", e1, e1.toString(), httpAuthenticator.getType());
                 continue;
             }
             authCredenetials = ac;
