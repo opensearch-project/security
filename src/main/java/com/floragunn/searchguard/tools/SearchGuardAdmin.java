@@ -19,12 +19,19 @@ package com.floragunn.searchguard.tools;
 
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Reader;
+import java.io.Writer;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Date;
+import java.util.Locale;
 
+import org.HdrHistogram.WriterReaderPhaser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -38,6 +45,8 @@ import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.elasticsearch.action.get.GetRequest;
+import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
@@ -46,6 +55,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 
@@ -70,6 +80,7 @@ public class SearchGuardAdmin {
         options.addOption(Option.builder("cn").longOpt("clustername").hasArg().argName("clustername").desc("Clustername").build());
         options.addOption( "sniff", "enable-sniffing", false, "Enable client.transport.sniff" );
         options.addOption( "icl", "ignore-clustername", false, "Ignore clustername" );
+        options.addOption(Option.builder("r").longOpt("retrieve").desc("retrieve current config").build());
         options.addOption(Option.builder("f").longOpt("file").hasArg().argName("file").desc("file").build());
         options.addOption(Option.builder("t").longOpt("type").hasArg().argName("file-type").desc("file-type").build());
         
@@ -87,6 +98,7 @@ public class SearchGuardAdmin {
         String clustername = "elasticsearch";
         String file = null;
         String type = null;
+        boolean retrieve = false;
         
         CommandLineParser parser = new DefaultParser();
         try {
@@ -105,6 +117,7 @@ public class SearchGuardAdmin {
             icl = line.hasOption("icl");
             file = line.getOptionValue("f", file);
             type = line.getOptionValue("t", type);
+            retrieve = line.hasOption("r");
         }
         catch( ParseException exp ) {
             System.err.println("Parsing failed.  Reason: " + exp.getMessage());
@@ -193,6 +206,19 @@ public class SearchGuardAdmin {
                 System.out.println("Index does already exists");
             }
             
+            if(retrieve) {
+                String date = new SimpleDateFormat("yyyy-MMM-dd_HH-mm-ss", Locale.ENGLISH).format(new Date());
+                
+                boolean success = retrieveFile(tc, cd+"/sg_config_"+date+".yml", "config");
+                success = success & retrieveFile(tc, cd+"/sg_roles_"+date+".yml", "roles");
+                success = success & retrieveFile(tc, cd+"/sg_roles_mapping_"+date+".yml", "rolesmapping");
+                success = success & retrieveFile(tc, cd+"/sg_internal_users_"+date+".yml", "internalusers");
+                success = success & retrieveFile(tc, cd+"/sg_action_groups_"+date+".yml", "actiongroups");
+                System.exit(success?0:-1);
+            }
+            
+            
+            
             System.out.println("populate config ...");
             
             if(file != null) {
@@ -241,6 +267,32 @@ public class SearchGuardAdmin {
             }
         } catch (IOException e) {
             System.out.println("   FAIL Configuration for '"+type+"' failed because of "+e.toString());
+        }
+        
+        return false;
+    }
+    
+    private static boolean retrieveFile(Client tc, String filepath, String type) {
+        System.out.println("Will retrieve '"+type+"' into "+filepath);
+        try (Writer writer = new FileWriter(filepath)) {
+
+            final GetResponse response = tc.get(new GetRequest("searchguard").type(type).id("0").refresh(true).realtime(false)).actionGet();
+
+            if (response.isExists()) {
+                if(response.isSourceEmpty()) {
+                    System.out.println("   FAIL Configuration for '"+type+"' failed because of empty source");
+                    return false;
+                }
+                
+                String json = XContentHelper.convertToJson(response.getSourceAsBytesRef(), true, true);
+                writer.write(json);
+                System.out.println("   SUCC Configuration for '"+type+"' stored in "+filepath);
+                return true;
+            } else {
+                System.out.println("   FAIL Get configuration for '"+type+"' because it does not exist");
+            }
+        } catch (IOException e) {
+            System.out.println("   FAIL Get configuration for '"+type+"' failed because of "+e.toString());
         }
         
         return false;
