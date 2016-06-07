@@ -7,8 +7,12 @@
   <includeBaseDirectory>false</includeBaseDirectory>
   <files>
     <file>
-      <source>${elasticsearch.tools.directory}/plugin-metadata/plugin-descriptor.properties
-      </source>
+      <source>${elasticsearch.tools.directory}/plugin-metadata/plugin-descriptor.properties</source>
+      <outputDirectory />
+      <filtered>true</filtered>
+    </file>
+    <file>
+      <source>${project.basedir}/src/main/plugin-metadata/plugin-security.policy</source>
       <outputDirectory />
       <filtered>true</filtered>
     </file>
