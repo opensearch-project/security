@@ -19,7 +19,7 @@
   <groupId>com.floragunn</groupId>
   <artifactId>search-guard-2</artifactId>
   <packaging>jar</packaging>
-  <version>2.3.3.0-beta4-SNAPSHOT</version>
+  <version>2.3.3.0-rc1-SNAPSHOT</version>
   <name>Search Guard</name>
   <description>Provide access control related features for Elasticsearch 2</description>
   <url>https://github.com/floragunncom/search-guard</url>
@@ -34,6 +34,7 @@
   </licenses>
 
   <properties>
+    <sgssl.version>2.3.3.11</sgssl.version>
     <elasticsearch.version>2.3.3</elasticsearch.version>
     <elasticsearch.plugin.isolated>false</elasticsearch.plugin.isolated>
     <dependency.locations.enabled>false</dependency.locations.enabled>
@@ -84,7 +85,7 @@
     <dependency>
       <groupId>com.floragunn</groupId>
       <artifactId>search-guard-ssl</artifactId>
-      <version>2.3.3.11-SNAPSHOT</version>
+      <version>${sgssl.version}</version>
       <scope>provided</scope>
     </dependency>
 

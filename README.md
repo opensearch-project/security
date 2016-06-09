@@ -1,6 +1,6 @@
-#Search Guard for Elasticsearch 2.3.3 **BETA 3**
+#Search Guard for Elasticsearch 2.3.3 **RC1**
 
-3rd beta release for Search Guard 2 (compatible with Elasticsearch 2.3.3)
+RC1 for Search Guard 2 (compatible with Elasticsearch 2.3.3)
 
 ## Request for comments
 We need your input to decide on the roadmap for SG2. If you have a minute, please help us by filling out this small survey: https://www.surveymonkey.com/r/QG23TGM
@@ -17,20 +17,20 @@ This is almost a complete rewrite of Search Guard 1 which comes with a lot of ne
  * Syntax is more easy
  * Admin CLI tool introduced (sgadmin)
  
-This the 3rd beta release which is feature complete. Advanced functionalities like LDAP and Kerberos authentication/authorization as well as DLS/FLS will be available soon as separate and commercial licensed add-ons (but still Open Source). See https://github.com/floragunncom/search-guard/wiki
+This the 3first release candidate. Advanced functionalities like LDAP and Kerberos authentication/authorization as well as DLS/FLS are also available as separate and commercial licensed add-ons (but still Open Source). See https://github.com/floragunncom/search-guard/wiki
 
 ##Support
 * Community support available via [google groups](https://groups.google.com/forum/#!forum/search-guard)
 * Follow us and get community support on twitter [@searchguard](https://twitter.com/searchguard)
-* Commercial support through [floragunn UG](http://floragunn.com) available soon
+* Commercial support through [floragunn UG](http://floragunn.com) available from 17.June 2016
 
 ##Installation
 
 * Install latest version of [search-guard-ssl plugin](https://github.com/floragunncom/search-guard-ssl)
- * ``sudo bin/plugin install com.floragunn/search-guard-ssl/2.3.3.10``
+ * ``sudo bin/plugin install -b com.floragunn/search-guard-ssl/2.3.3.11``
 
 * Install search-guard-2 plugin
- * ``sudo bin/plugin install com.floragunn/search-guard-2/2.3.3.0-beta3``
+ * ``sudo bin/plugin install -b com.floragunn/search-guard-2/2.3.3.0-rc1``
  
 (See also the [Vagrant file](https://github.com/floragunncom/search-guard/blob/master/Vagrantfile) we provide)
 
@@ -52,7 +52,6 @@ There are generally two types of certificates you need to generate:
 
 ###elasticsearch.yml
 
-    security.manager.enabled: false
     searchguard.authcz.admin_dn:
       - cn=admin,ou=Test,ou=ou,dc=company,dc=com
       - cn=smith,ou=IT,ou=IT,dc=company,dc=com
