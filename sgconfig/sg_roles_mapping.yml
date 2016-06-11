@@ -3,6 +3,7 @@ sg_role_starfleet:
     - starfleet
     - captains
     - defectors
+    - 'cn=ldaprole,ou=groups,dc=example,dc=com'
   hosts:
     - "*.starfleetintranet.com"
   users:
@@ -35,6 +36,7 @@ sg_kibana4:
 sg_all_access:
   users:
     - admin
+    - adm
     
 sg_public:
   users:
@@ -43,6 +45,8 @@ sg_public:
 sg_readall:
   users:
     - readall
+    - riker
+    - troid
     
 sg_readonly_dlsfls:
   users:

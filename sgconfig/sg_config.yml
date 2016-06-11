@@ -22,10 +22,12 @@
 # at the beginning and the challenging one at the end. If you configure more than one challenging authenticator you have to deal with
 # the "challenge" flag. Because its not possible to challenge a client with two different authentication methods (for example
 # Kerberos and Basic) only one can have challenge: true. All others need to have challenge: false and that means
-# they look into the request and if they found no credentials they will not challenge. Default is true.
+# they look into the request and if they found no credentials they will not challenge. You can cope with this situation
+# with pre-authentication. That is submitting credentials for non-challenging authenticators within the first request
+# (Thats especially easy for Basic authentication). 
+# Default value of the challenge flag is true.
 #
 # 
-#
 #
 # HTTP
 #   basic (challenging)
@@ -59,8 +61,8 @@ searchguard:
         ###### and https://tomcat.apache.org/tomcat-8.0-doc/config/valve.html#Remote_IP_Valve
     authc:
       kerberos_auth_domain: 
-        enabled: false
-        order: 0
+        enabled: true
+        order: 4
         http_authenticator:
           type: kerberos # NOT FREE FOR COMMERCIAL USE
           challenge: true
@@ -75,7 +77,7 @@ searchguard:
           type: noop
       basic_internal_auth_domain: 
         enabled: true
-        order: 1
+        order: 2
         http_authenticator:
           type: basic
           challenge: false
@@ -83,7 +85,7 @@ searchguard:
           type: intern
       proxy_auth_domain:
         enabled: false
-        order: 2
+        order: 1
         http_authenticator:
           type: proxy
           challenge: false
@@ -94,14 +96,14 @@ searchguard:
           type: noop
       clientcert_auth_domain:
         enabled: false
-        order: 4
+        order: 0
         http_authenticator:
           type: clientcert
           challenge: false
         authentication_backend:
           type: noop
       ldap:
-        enabled: false
+        enabled: true
         order: 3
         http_authenticator:
           type: basic
@@ -130,7 +132,7 @@ searchguard:
             username_attribute: null
     authz:    
       roles_from_myldap:
-        enabled: false
+        enabled: true
         authorization_backend:
           # LDAP authorization backend (gather roles from a LDAP or Active Directory, you have to configure the above LDAP authentication backend settings too)
           type: ldap # NOT FREE FOR COMMERCIAL USE
@@ -161,6 +163,12 @@ searchguard:
             rolename: cn
             # Resolve nested roles transitive (roles which are members of other roles and so on ...)
             resolve_nested_roles: true
+            
+            userbase: 'ou=people,dc=example,dc=com'
+            # Filter to search for users (currently in the whole subtree beneath userbase)
+            # {0} is substituted with the username 
+            usersearch: '(uid={0})'
+            
       roles_from_another_ldap:
         enabled: false
         authorization_backend:

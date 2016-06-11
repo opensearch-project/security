@@ -36,6 +36,6 @@ searchguard.audit.type: internal_elasticsearch
 # to krb5.conf file
 #searchguard.kerberos.krb5_filepath: '/etc/krb5.conf'
             
-# The absolute path or relative path to config/ directory
+# The relative path to config/ directory
 # to the keytab where the acceptor_principal credentials are stored.
 #searchguard.kerberos.acceptor_keytab_filepath: 'eskeytab.tab'
