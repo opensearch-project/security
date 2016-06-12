@@ -1,8 +1,14 @@
+general:
+  branches:
+    only:
+      - master
+      
 machine:
   java:
     version: oraclejdk8
 
-general:
-  branches:
-    ignore:
-      - gh-pages
+deployment:
+  deploysnap:
+    branch: master
+    commands:
+      - mvn deploy -Pdev -Dskip.unit.tests -s settings.xml
