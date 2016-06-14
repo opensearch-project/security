@@ -233,7 +233,7 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
                 return;
             }
             
-            //if the incoming request is an internal:* or a shard request allow only if request was send by a server node
+            //if the incoming request is an internal:* or a shard request allow only if request was sent by a server node
             //if transport channel is not a netty channel but a direct or local channel (e.g. send via network) then allow it (regardless of beeing a internal: or shard request)
             if (!isInterClusterRequest(request) 
                     && (transportChannel.action().startsWith("internal:") || transportChannel.action().contains("["))) {
@@ -252,9 +252,9 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
 
             if ((principal = request.getFromContext(ConfigConstants.SG_SSL_TRANSPORT_PRINCIPAL)) == null) {
                 Exception ex = new ElasticsearchSecurityException(
-                        "No SSL client certificates found for transport type "+transportChannel.getChannelType()+". Search Guards needs the Search Guard SSL plugin to be installed");
+                        "No SSL client certificates found for transport type "+transportChannel.getChannelType()+". Search Guard needs the Search Guard SSL plugin to be installed");
                 auditLog.logSSLException(request, ex, transportChannel.action());
-                log.error("No SSL client certificates found for transport type "+transportChannel.getChannelType()+". Search Guards needs the Search Guard SSL plugin to be installed");
+                log.error("No SSL client certificates found for transport type "+transportChannel.getChannelType()+". Search Guard needs the Search Guard SSL plugin to be installed");
                 transportChannel.sendResponse(ex);
                 return;
             } else {
