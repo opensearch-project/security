@@ -17,7 +17,6 @@
 
 package com.floragunn.searchguard.tools;
 
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -25,19 +24,16 @@ import java.io.Reader;
 import java.io.Writer;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Locale;
 
-import org.HdrHistogram.WriterReaderPhaser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.elasticsearch.action.WriteConsistencyLevel;
@@ -59,8 +55,8 @@ import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 
-import com.floragunn.searchguard.SearchGuardPlugin;
 import com.floragunn.searchguard.ssl.SearchGuardSSLPlugin;
+import com.floragunn.searchguard.ssl.util.SSLConfigConstants;
 
 public class SearchGuardAdmin {
 
@@ -83,6 +79,10 @@ public class SearchGuardAdmin {
         options.addOption(Option.builder("r").longOpt("retrieve").desc("retrieve current config").build());
         options.addOption(Option.builder("f").longOpt("file").hasArg().argName("file").desc("file").build());
         options.addOption(Option.builder("t").longOpt("type").hasArg().argName("file-type").desc("file-type").build());
+        options.addOption(Option.builder("tsalias").longOpt("truststore-alias").hasArg().argName("alias").desc("Truststore alias").build());
+        options.addOption(Option.builder("ksalias").longOpt("keystore-alias").hasArg().argName("alias").desc("Keystore alias").build());
+        options.addOption(Option.builder("ec").longOpt("enabled-ciphers").hasArg().argName("cipers").desc("Comma separated list of TLS ciphers").build());
+        options.addOption(Option.builder("ep").longOpt("enabled-protocols").hasArg().argName("protocols").desc("Comma separated list of TLS protocols").build());
         
         String hostname = "localhost";
         int port = 9300;
@@ -99,6 +99,10 @@ public class SearchGuardAdmin {
         String file = null;
         String type = null;
         boolean retrieve = false;
+        String ksAlias = null;
+        String tsAlias = null;
+        String[] enabledProtocols = new String[0];
+        String[] enabledCiphers = new String[0];
         
         CommandLineParser parser = new DefaultParser();
         try {
@@ -118,6 +122,20 @@ public class SearchGuardAdmin {
             file = line.getOptionValue("f", file);
             type = line.getOptionValue("t", type);
             retrieve = line.hasOption("r");
+            ksAlias = line.getOptionValue("ksalias", ksAlias);
+            tsAlias = line.getOptionValue("tsalias", tsAlias);
+            
+            String enabledCiphersString = line.getOptionValue("ec", null);
+            String enabledProtocolsString = line.getOptionValue("ep", null);
+            
+            if(enabledCiphersString != null) {
+                enabledCiphers = enabledCiphersString.split(",");
+            }
+            
+            if(enabledProtocolsString != null) {
+                enabledProtocols = enabledProtocolsString.split(",");
+            }
+            
         }
         catch( ParseException exp ) {
             System.err.println("Parsing failed.  Reason: " + exp.getMessage());
@@ -144,21 +162,37 @@ public class SearchGuardAdmin {
             }
           }
 
-        final Settings settings = Settings
+        final Settings.Builder settingsBuilder = Settings
                 .builder()
                 .put("path.home", ".")
                 .put("path.conf", ".")
-                .put("searchguard.ssl.transport.keystore_filepath", ks)
-                .put("searchguard.ssl.transport.truststore_filepath", ts)
-                .put("searchguard.ssl.transport.keystore_password", kspass)
-                .put("searchguard.ssl.transport.truststore_password", tspass)
-                .put("searchguard.ssl.transport.enforce_hostname_verification", !nhnv)
-                .put("searchguard.ssl.transport.resolve_hostname", !nrhn)
-                .put("searchguard.ssl.transport.enabled", true)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_FILEPATH, ks)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, ts)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_PASSWORD, kspass)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_TRUSTSTORE_PASSWORD, tspass)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, !nhnv)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, !nrhn)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLED, true)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_TYPE, ks.endsWith(".jks")?"JKS":"PKCS12")
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_TRUSTSTORE_TYPE, ts.endsWith(".jks")?"JKS":"PKCS12")
+                
+                .putArray(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLED_CIPHERS, enabledCiphers)
+                .putArray(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLED_PROTOCOLS, enabledProtocols)
+                
                 .put("cluster.name", clustername)
                 .put("client.transport.ignore_cluster_name", icl)
-                .put("client.transport.sniff", sniff)
-                .build();
+                .put("client.transport.sniff", sniff);
+                
+                if(ksAlias != null) {
+                    settingsBuilder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, ksAlias);
+                }
+                
+                if(tsAlias != null) {
+                    settingsBuilder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_TRUSTSTORE_ALIAS, tsAlias);
+                }
+        
+                Settings settings = settingsBuilder.build();  
+              
 
         try (TransportClient tc = TransportClient.builder().settings(settings).addPlugin(SearchGuardSSLPlugin.class)
                 .build()
@@ -247,7 +281,7 @@ public class SearchGuardAdmin {
             System.out.println("Done with "+(success?"success":"failures"));
             System.exit(success?0:-1);
         }
-        // TODO audit changes to .searchguard index
+        // TODO audit changes to searchguard index
     }
     
     private static boolean uploadFile(Client tc, String filepath, String type) {
