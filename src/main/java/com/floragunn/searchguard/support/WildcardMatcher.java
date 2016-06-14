@@ -93,7 +93,7 @@ public class WildcardMatcher {
 
         if (pattern.startsWith("/") && pattern.endsWith("/")) {
             // regex
-            return Pattern.matches(pattern.substring(1, pattern.length() - 2), candidate);
+            return Pattern.matches("^"+pattern.substring(1, pattern.length() - 1)+"$", candidate);
         }
 
         if (!pattern.startsWith("/") && !pattern.endsWith("/")) {
