@@ -18,7 +18,6 @@
 package com.floragunn.searchguard.configuration;
 
 import java.io.Serializable;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,7 +30,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.action.ActionRequest;
@@ -39,7 +37,6 @@ import org.elasticsearch.action.CompositeIndicesRequest;
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.RealtimeRequest;
 import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchScrollRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
@@ -59,11 +56,16 @@ import com.floragunn.searchguard.support.Base64Helper;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.WildcardMatcher;
 import com.floragunn.searchguard.user.User;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 
 public class PrivilegesEvaluator implements ConfigChangeListener {
 
+    private final Set<String> DLSFLS = ImmutableSet.of("_dls_", "_fls_");
     protected final ESLogger log = Loggers.getLogger(this.getClass());
     private final ClusterService clusterService;
     private volatile Settings rolesMapping;
@@ -72,6 +74,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
     private final IndexNameExpressionResolver resolver;
     private final Map<Class, Method> typeCache = Collections.synchronizedMap(new HashMap(100));
     private final Map<Class, Method> typesCache = Collections.synchronizedMap(new HashMap(100));
+    private final List<String> allowedAdminActions = new ArrayList<String>();
     private final AuditLog auditLog;
 
     @Inject
@@ -84,6 +87,21 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         this.ah = ah;
         this.resolver = resolver;
         this.auditLog = auditLog;
+        
+        
+        allowedAdminActions.add("indices:admin/aliases/exists");
+        allowedAdminActions.add("indices:admin/aliases/get");
+        allowedAdminActions.add("indices:admin/analyze");
+        allowedAdminActions.add("indices:admin/get");
+        allowedAdminActions.add("indices:admin/exists");
+        allowedAdminActions.add("indices:admin/mappings/fields/get");
+        allowedAdminActions.add("indices:admin/mappings/get");
+        allowedAdminActions.add("indices:admin/types/exists");
+        allowedAdminActions.add("indices:admin/validate/query");
+        allowedAdminActions.add("indices:admin/template/put");
+        allowedAdminActions.add("indices:admin/template/get");
+        
+        
     }
 
     @Override
@@ -135,19 +153,6 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
             log.debug("requested resolved aliases and indices: {}", requestedResolvedAliasesIndices);
             log.debug("requested resolved types: {}", requestedResolvedTypes);
         }
-        
-        List<String> allowedAdminActions = new ArrayList<String>();
-        allowedAdminActions.add("indices:admin/aliases/exists");
-        allowedAdminActions.add("indices:admin/aliases/get");
-        allowedAdminActions.add("indices:admin/analyze");
-        allowedAdminActions.add("indices:admin/get");
-        allowedAdminActions.add("indices:admin/exists");
-        allowedAdminActions.add("indices:admin/mappings/fields/get");
-        allowedAdminActions.add("indices:admin/mappings/get");
-        allowedAdminActions.add("indices:admin/types/exists");
-        allowedAdminActions.add("indices:admin/validate/query");
-        allowedAdminActions.add("indices:admin/template/put");
-        allowedAdminActions.add("indices:admin/template/get");
         
         if (requestedResolvedAliasesIndices.contains("searchguard")
                 && (action.startsWith("indices:data/write") || (action.startsWith("indices:admin") && !allowedAdminActions.contains(action)))) {
@@ -207,9 +212,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                 log.debug("---------- evaluate sg_role: {}", sgRole);
             }
 
-            final Set<String> _requestedResolvedAliasesIndices = new HashSet<String>(requestedResolvedAliasesIndices);
-            final Set<String> _requestedResolvedTypes = new HashSet<String>(requestedResolvedTypes);
-
+           
             if (action.startsWith("cluster:") || action.startsWith("indices:admin/template/delete")
                     || action.startsWith("indices:admin/template/get") || action.startsWith("indices:admin/template/put") 
                 || action.startsWith("indices:data/read/scroll")) {
@@ -259,9 +262,15 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
             - READ
              */
             
+            final ListMultimap<String, String> resolvedRoleIndices = Multimaps.synchronizedListMultimap(ArrayListMultimap
+                    .<String, String> create());
             
-
+            //iterate over all beneath indices:
             for (final String permittedAliasesIndex : permittedAliasesIndices.keySet()) {
+                
+                final Set<String> _requestedResolvedAliasesIndices = new HashSet<String>(requestedResolvedAliasesIndices);
+                final Set<String> _requestedResolvedTypes = new HashSet<String>(requestedResolvedTypes);
+
 
                 if (WildcardMatcher.containsWildcard(permittedAliasesIndex)) {
                     if (log.isDebugEnabled()) {
@@ -280,42 +289,53 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                             requestedResolvedTypes, _requestedResolvedAliasesIndices, _requestedResolvedTypes);
                 }
 
+                if (log.isDebugEnabled()) {
+                    log.debug("For index {} remaining requested aliases and indices: {}", permittedAliasesIndex, _requestedResolvedAliasesIndices);
+                    log.debug("For index {} remaining requested resolved types: {}", permittedAliasesIndex, _requestedResolvedTypes);
+                }
+                
+                if (_requestedResolvedAliasesIndices.isEmpty() && _requestedResolvedTypes.isEmpty()) {
+                    if (log.isDebugEnabled()) {
+                        log.debug("found a match for '{}.{}', evaluate other roles", sgRole, permittedAliasesIndex);
+                    }
+                
+                    resolvedRoleIndices.put(sgRole, permittedAliasesIndex);
+                
+                }
+                
             }// end loop permittedAliasesIndices
 
-            if (log.isDebugEnabled()) {
-                log.debug("remaining requested aliases and indices: {}", _requestedResolvedAliasesIndices);
-                log.debug("remaining requested resolved types: {}", _requestedResolvedTypes);
-            }
-
-            if (_requestedResolvedAliasesIndices.isEmpty() && _requestedResolvedTypes.isEmpty()) {
-                if (log.isDebugEnabled()) {
-                    log.debug("found a match for '{}', evaluate other roles for fls/dls purposes", sgRole);
-                }
-
-                String dls = sgRoleSettings.get(".dls");
-                final String[] fls = sgRoleSettings.getAsArray(".fls");
-                
-                if(dls != null && dls.length() > 0) {
-                    
-                    //TODO use UserPropertyReplacer, make it registerable for ldap user
-                    dls = dls.replace("${user.name}", user.getName());
-                    
-                    dlsQueries.add(dls);
-                                        
-                    if (log.isDebugEnabled()) {
-                        log.debug("dls query {}", dls);
+            if (!resolvedRoleIndices.isEmpty()) {                
+                for(String resolvedRole: resolvedRoleIndices.keySet()) {
+                    for(String resolvedIndex: resolvedRoleIndices.get(resolvedRole)) {                        
+                        
+                        String dls = roles.get(resolvedRole+".indices."+resolvedIndex+"._dls_");
+                        final String[] fls = roles.getAsArray(resolvedRole+".indices."+resolvedIndex+"._fls_");
+                        
+                        if(dls != null && dls.length() > 0) {
+                            
+                            //TODO use UserPropertyReplacer, make it registerable for ldap user
+                            dls = dls.replace("${user.name}", user.getName());
+                            
+                            dlsQueries.add(dls);
+                                                
+                            if (log.isDebugEnabled()) {
+                                log.debug("dls query {}", dls);
+                            }
+                            
+                        }
+                        
+                        if(fls != null && fls.length > 0) {
+                            
+                            flsFields.addAll(Sets.newHashSet(fls));
+                            
+                            if (log.isDebugEnabled()) {
+                                log.debug("fls fields {}", Sets.newHashSet(fls));
+                            }
+                            
+                        }
+                        
                     }
-                    
-                }
-                
-                if(fls != null && fls.length > 0) {
-                    
-                    flsFields.addAll(Sets.newHashSet(fls));
-                    
-                    if (log.isDebugEnabled()) {
-                        log.debug("fls fields {}", Sets.newHashSet(fls));
-                    }
-                    
                 }
                 
                 allowAction = true;
@@ -338,6 +358,9 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         return allowAction;
     }
 
+    
+    //---- end evaluate()
+    
     public Set<String> mapSgRoles(User user, TransportAddress caller) {
         
         if(user == null) {
@@ -387,13 +410,15 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                 log.debug("  Wildcard match for {}: {}", permittedAliasesIndex, wi);
             }
 
-            final Set<String> permittedTypes = permittedAliasesIndices.get(permittedAliasesIndex).names();
-
+            final Set<String> permittedTypes = new HashSet(permittedAliasesIndices.get(permittedAliasesIndex).names());
+            permittedTypes.removeAll(DLSFLS);
+            
             if (log.isDebugEnabled()) {
                 log.debug("  matches for {}, will check now types {}", permittedAliasesIndex, permittedTypes);
             }
 
             for (final String type : permittedTypes) {
+                
                 List<String> typeMatches = null;
                 if (!(typeMatches = WildcardMatcher.getMatchAny(type, requestedResolvedTypes.toArray(new String[0]))).isEmpty()) {
                     final Set<String> resolvedActions = resolveActions(permittedAliasesIndices.get(permittedAliasesIndex).getAsArray(type));
@@ -450,13 +475,15 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         }
 
         final SetView<String> inters = Sets.intersection(requestedResolvedAliasesIndices, resolvedPermittedAliasesIndex);
-        final Set<String> permittedTypes = permittedAliasesIndices.get(permittedAliasesIndex).names();
-
+        final Set<String> permittedTypes = new HashSet(permittedAliasesIndices.get(permittedAliasesIndex).names());
+        permittedTypes.removeAll(DLSFLS);
+        
         if (log.isDebugEnabled()) {
             log.debug("  matches for {}, will check now types {}", permittedAliasesIndex, permittedTypes);
         }
 
         for (final String type : permittedTypes) {
+            
             List<String> typeMatches = null;
             if (!(typeMatches = WildcardMatcher.getMatchAny(type, requestedResolvedTypes.toArray(new String[0]))).isEmpty()) {
                 final Set<String> resolvedActions = resolveActions(permittedAliasesIndices.get(permittedAliasesIndex).getAsArray(type));

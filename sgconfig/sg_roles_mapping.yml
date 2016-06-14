@@ -1,3 +1,6 @@
+# In this file users, backendroles and hosts can be mapped to search guard roles.
+# What a role is allowed to do you specify in sg_roles.yml
+
 sg_role_starfleet:
   backendroles:
     - starfleet

@@ -64,12 +64,12 @@ sg_flsdls:
     '*':
        '*':  
          - '*'
-  #dls: '{"term" : {"${user.name}" : "12"}}'
-  dls: '{"term" : {"_type" : "legends"}}'
-  fls:
-    - fieldx
-    - field2.b
-    - field3.m.*
+       #_dls_: '{"term" : {"${user.name}" : "12"}}'
+       _dls_: '{"term" : {"_type" : "legends"}}'
+       _fls_:
+         - fieldx
+         - field2.b
+         - field3.m.*
 
 sg_unittest_1:
   cluster:

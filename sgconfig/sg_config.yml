@@ -61,7 +61,7 @@ searchguard:
         ###### and https://tomcat.apache.org/tomcat-8.0-doc/config/valve.html#Remote_IP_Valve
     authc:
       kerberos_auth_domain: 
-        enabled: true
+        enabled: false
         order: 4
         http_authenticator:
           type: kerberos # NOT FREE FOR COMMERCIAL USE
@@ -80,7 +80,7 @@ searchguard:
         order: 2
         http_authenticator:
           type: basic
-          challenge: false
+          challenge: true
         authentication_backend:
           type: intern
       proxy_auth_domain:
@@ -103,7 +103,7 @@ searchguard:
         authentication_backend:
           type: noop
       ldap:
-        enabled: true
+        enabled: false
         order: 3
         http_authenticator:
           type: basic
@@ -132,7 +132,7 @@ searchguard:
             username_attribute: null
     authz:    
       roles_from_myldap:
-        enabled: true
+        enabled: false
         authorization_backend:
           # LDAP authorization backend (gather roles from a LDAP or Active Directory, you have to configure the above LDAP authentication backend settings too)
           type: ldap # NOT FREE FOR COMMERCIAL USE

@@ -1,12 +1,48 @@
 #<sg_role_name>:
+#  cluster:
+#    - '<permission>'
 #  indices:
 #    '<indexname or alias>':
 #      '<type>':  
 #        - '<permission>'
-#  dls: '<querydsl query>'
-#  fls:
-#    - '<field>'
-#    - '<field>'
+#      _dls_: '<querydsl query>'
+#      _fls_:
+#        - '<field>'
+#        - '<field>'
+
+# When a user make a request to elasticsearch then the following roles will be evaluated to see if the user has
+# permissions for the request. A request is always associated with an action and is executed against and index (or alias)
+# and a type. If a request is executed against all indices (or all types) then the asterix ('*') is needed.
+# Every role a user has will be examined if it allows the action against an index (or type). At least one role must match
+# for the request to be successful. If no role match then the request will be denied. Currently a match must happen within
+# one single role - that means that permissions can not span multiple roles. 
+
+# For <permission>, <indexname or alias> and <type> simple wildcards are possible. 
+# A asterix (*) will match any character sequence (or an empty sequence)
+# A question mark (?) will match any single character (but NOT empty character)
+# Example: '*my*index' will match 'my_first_index' as well as 'myindex' but not 'myindex1'
+# Example: '?kibana' will match '.kibana' but not 'kibana'
+# Note: You cannot have a dot (.) in the <permission>, <indexname or alias> or <type> name/wildcard
+
+# For <permission>, <indexname or alias> and <type> are also regular expressions possible. 
+# You have to pre- and apend a '/' to use regex instead of simple wildcards
+# '/<java regex>/'
+# Example: '/\S*/' will match any non whitespace characters
+# Note: You cannot have a dot (.) in the <permission>, <indexname or alias> or <type> regex
+# Use \S instead
+# See https://docs.oracle.com/javase/7/docs/api/java/util/regex/Pattern.html
+
+
+# DLS (Document level security) NOT FREE FOR COMMERCIAL
+# Install https://github.com/floragunncom/search-guard-module-dlsfls
+# Per Index you can define a DLS query
+# If more than one DLS query match they will be OR'ed
+
+# FLS (Field level security) NOT FREE FOR COMMERCIAL
+# Per Index you can define a FLS fields
+# If more than one FLS config match the field will be appended
+# Install https://github.com/floragunncom/search-guard-module-dlsfls
+
 
 # Allows everything
 # but not changes to searchguard config/index
@@ -61,13 +97,13 @@ sg_readonly:
 
 sg_readonly_dlsfls:
   indices:
-    '*':
+    '/\S*/':
       '*':
         - READ    
-  dls: '{"term" : {"_type" : "legends"}}'
-  fls:
-    - 'aaa'
-    - 'bbb'
+      _dls_: '{"term" : {"_type" : "legends"}}'
+      _fls_:
+        - 'aaa'
+        - 'bbb'
 
 sg_transport_client:
   cluster:
