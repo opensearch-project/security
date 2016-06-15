@@ -89,7 +89,7 @@ sg_readonly_and_monitor:
       '*':
         - ALL
 
-sg_readonly:
+sg_readall:
   indices:
     '*':
       '*':
