@@ -327,11 +327,17 @@ public class BackendRegistry implements ConfigChangeListener {
         
         AuthCredentials authCredenetials = null;
         
+        HTTPAuthenticator firstChallengingHttpAuthenticator = null;
+        
         for (final Iterator<AuthDomain> iterator = new TreeSet<AuthDomain>(authDomains).iterator(); iterator.hasNext();) {
 
             final AuthDomain authDomain = iterator.next();
             
             final HTTPAuthenticator httpAuthenticator = authDomain.getHttpAuthenticator();
+            
+            if(authDomain.isChallenge() && firstChallengingHttpAuthenticator == null) {
+                firstChallengingHttpAuthenticator = httpAuthenticator;
+            }
 
             log.debug("Try to extract auth creds from http {} ",httpAuthenticator.getType());
             final AuthCredentials ac;
@@ -438,6 +444,11 @@ public class BackendRegistry implements ConfigChangeListener {
                 return true;
             }
             
+            if(firstChallengingHttpAuthenticator != null) {
+                if(firstChallengingHttpAuthenticator.reRequestAuthentication(channel, null)) {
+                    return false;
+                }
+            }
             
             log.debug("Authentication finally failed");
             auditLog.logFailedLogin(authCredenetials == null ? null:authCredenetials.getUsername(), request);
