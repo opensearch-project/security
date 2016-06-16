@@ -34,7 +34,7 @@
   </licenses>
 
   <properties>
-    <sgssl.version>2.3.3.12</sgssl.version>
+    <sgssl.version>2.3.3.13</sgssl.version>
     <elasticsearch.version>2.3.3</elasticsearch.version>
     <elasticsearch.plugin.isolated>false</elasticsearch.plugin.isolated>
     <dependency.locations.enabled>false</dependency.locations.enabled>
