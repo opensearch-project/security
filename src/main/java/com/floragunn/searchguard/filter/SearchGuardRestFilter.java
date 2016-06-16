@@ -17,7 +17,6 @@
 
 package com.floragunn.searchguard.filter;
 
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.rest.BytesRestResponse;
 import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestFilter;

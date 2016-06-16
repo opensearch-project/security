@@ -73,7 +73,7 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
     public <T extends TransportResponse> void sendRequest(final DiscoveryNode node, final String action, final TransportRequest request,
             final TransportResponseHandler<T> handler) {
         attachHeaders(action, request);
-        LogHelper.logUserTrace("<-- Send {} to {} with {}/{}", action, node.getName(), request.getContext(), request.getHeaders());
+        //LogHelper.logUserTrace("<-- Send {} to {} with {}/{}", action, node.getName(), request.getContext(), request.getHeaders());
         super.sendRequest(node, action, request, handler);
     }
 
@@ -81,32 +81,18 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
     public <T extends TransportResponse> void sendRequest(final DiscoveryNode node, final String action, final TransportRequest request,
             final TransportRequestOptions options, final TransportResponseHandler<T> handler) {
         attachHeaders(action, request);
-        LogHelper.logUserTrace("<-- Send {} to {} with {}/{}", action, node.getName(), request.getContext(), request.getHeaders());
+        //LogHelper.logUserTrace("<-- Send {} to {} with {}/{}", action, node.getName(), request.getContext(), request.getHeaders());
         super.sendRequest(node, action, request, options, handler);
     }
 
     private void attachHeaders(final String action, final TransportRequest request) {
-        
-        //System.out.println("SEND "+action);
-        
-        //if (request.getFromContext(ConfigConstants.SG_INTERNAL_REQUEST) == Boolean.TRUE) {
-        //        request.putHeader(ConfigConstants.SG_INTERNAL_REQUEST, "true");
-        //}
 
         // keep original address
         final Object remoteAdr = request.getFromContext(ConfigConstants.SG_REMOTE_ADDRESS);
         if (remoteAdr != null && remoteAdr instanceof InetSocketTransportAddress) {
             request.putHeader(ConfigConstants.SG_REMOTE_ADDRESS_HEADER, Base64Helper.serializeObject(((InetSocketTransportAddress) remoteAdr).address()));
-            LogHelper.logUserTrace("<-- Put remote address {} in header (from sg_remote_address ctx)", remoteAdr);
-        } 
-        
-        /*else {
-            if(request.remoteAddress() != null && request.remoteAddress() instanceof InetSocketTransportAddress) {
-                request.putHeader(ConfigConstants.SG_REMOTE_ADDRESS_HEADER, Base64Helper.serializeObject(((InetSocketTransportAddress) request.remoteAddress()).address()));
-            } else {
-                throw new RuntimeException("!! "+request.remoteAddress());
-            }
-        }*/
+            //LogHelper.logUserTrace("<-- Put remote address {} in header (from sg_remote_address ctx)", remoteAdr);
+        }
 
         if(log.isTraceEnabled()) {
             log.trace("sendRequest {}", LogHelper.toString(request));
@@ -124,34 +110,6 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
             throw new ElasticsearchSecurityException("user must not be null here for " + action + " "
                     + LogHelper.toString(request));
         }
-        
-       // System.out.println("SEND "+action+" as "+user.getName());
-        
-        /*
-        if (user != null) {
-            if (log.isTraceEnabled()) {
-                log.trace("Copy user header for user {}", user);
-            }
-
-            LogHelper.logUserTrace("<-- Put user {} in header (from sg_user ctx)", user.getName());
-            request.putHeader(ConfigConstants.SG_USER_HEADER, Base64Helper.serializeObject(user));
-        } else if (Strings.isNullOrEmpty((String) request.getHeader(ConfigConstants.SG_USER_HEADER))) {
-
-            //https://github.com/floragunncom/search-guard/issues/103
-            if (!action.startsWith("internal:") && request.remoteAddress() != null) {
-                throw new ElasticsearchSecurityException("user must not be null here for " + action + " "
-                        + LogHelper.toString(request));
-            }
-        } else if (!Strings.isNullOrEmpty((String) request.getHeader(ConfigConstants.SG_USER_HEADER))) {
-            if (log.isTraceEnabled()) {
-                try {
-                    log.trace("User {} is multihopped", Base64Helper.deserializeObject((String) request.getHeader(ConfigConstants.SG_USER_HEADER)));
-                } catch (Exception e) {
-                    log.trace(e.toString(), e);
-                }
-            }
-        }*/
-
     }
 
     @Override
@@ -192,7 +150,7 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
                 }
             }
 
-            if (/*sb.indexOf("0::_sg_is_server_node") >= 0 || */sb.indexOf("8::1.2.3.4.5.5") >= 0) {
+            if (sb.indexOf("8::1.2.3.4.5.5") >= 0) {
                 isInterClusterRequest = true;
             }
 
@@ -222,8 +180,6 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
             final com.floragunn.searchguard.configuration.RequestHolder context = new com.floragunn.searchguard.configuration.RequestHolder(
                     request);
             com.floragunn.searchguard.configuration.RequestHolder.setCurrent(context);
-
-            //System.out.println("RECEIVE "+transportChannel.action() + " on "+transportChannel.getChannelType());
             
             request.putInContext(ConfigConstants.SG_CHANNEL_TYPE, transportChannel.getChannelType());
             

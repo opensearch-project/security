@@ -17,19 +17,13 @@
 
 package com.floragunn.searchguard.filter;
 
-import java.util.Set;
-
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionResponse;
-import org.elasticsearch.action.RealtimeRequest;
-import org.elasticsearch.action.bulk.BulkRequest;
-import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.support.ActionFilter;
 import org.elasticsearch.action.support.ActionFilterChain;
-import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.logging.ESLogger;
@@ -45,7 +39,6 @@ import com.floragunn.searchguard.configuration.DlsFlsRequestValve;
 import com.floragunn.searchguard.configuration.PrivilegesEvaluator;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.HeaderHelper;
-import com.floragunn.searchguard.support.LogHelper;
 import com.floragunn.searchguard.user.User;
 
 public class SearchGuardFilter implements ActionFilter {
@@ -97,9 +90,9 @@ public class SearchGuardFilter implements ActionFilter {
             user = User.SG_INTERNAL;
         }
 
-        LogHelper.logUserTrace("--> Action {} from {}/{}", action, request.remoteAddress(), listener.getClass().getSimpleName());
-        LogHelper.logUserTrace("--> Context {}", request.getContext());
-        LogHelper.logUserTrace("--> Header {}", request.getHeaders());
+        //LogHelper.logUserTrace("--> Action {} from {}/{}", action, request.remoteAddress(), listener.getClass().getSimpleName());
+        //LogHelper.logUserTrace("--> Context {}", request.getContext());
+        //LogHelper.logUserTrace("--> Header {}", request.getHeaders());
 
         if (log.isTraceEnabled()) {
             log.trace("remote address: {}", request.getFromContext(ConfigConstants.SG_REMOTE_ADDRESS));
@@ -148,7 +141,7 @@ public class SearchGuardFilter implements ActionFilter {
         final PrivilegesEvaluator eval = evalp.get();
 
         if (!eval.isInitialized()) {
-            log.debug("Search Guard not initialized (SG11) for {}", action);
+            log.error("Search Guard not initialized (SG11) for {}", action);
             listener.onFailure(new ElasticsearchException("Search Guard not initialized (SG11) for " + action, RestStatus.SERVICE_UNAVAILABLE));
             return;
         }
@@ -194,11 +187,11 @@ public class SearchGuardFilter implements ActionFilter {
      *         contains a user header, otherwise null
      */
     
-    private static boolean isUserAdmin(User user,final AdminDNs adminDns) {
+    private static boolean isUserAdmin(User user, final AdminDNs adminDns) {
         if (user != null && adminDns.isAdmin(user.getName())) {
-                    return true;
-            }
-        
+            return true;
+        }
+
         return false;
     }
 

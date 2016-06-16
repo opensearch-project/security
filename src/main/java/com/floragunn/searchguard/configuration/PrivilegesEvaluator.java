@@ -460,10 +460,13 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
 
         if(!resolver.hasIndexOrAlias(permittedAliasesIndex, clusterService.state())) {
             
-            log.debug("permittedAliasesIndex {} {}", permittedAliasesIndex,  action);
-            log.debug("permittedAliasesIndices {}", permittedAliasesIndices);
-            log.debug("requestedResolvedAliasesIndices {}", requestedResolvedAliasesIndices);
-            log.debug("_requestedResolvedAliasesIndices {}", _requestedResolvedAliasesIndices);            
+            if(log.isDebugEnabled()) {
+                log.debug("permittedAliasesIndex {} {}", permittedAliasesIndex,  action);
+                log.debug("permittedAliasesIndices {}", permittedAliasesIndices);
+                log.debug("requestedResolvedAliasesIndices {}", requestedResolvedAliasesIndices);
+                log.debug("_requestedResolvedAliasesIndices {}", _requestedResolvedAliasesIndices);   
+            }
+            
             return;//TODO check create index
         }
         
@@ -537,7 +540,9 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         
         //for PutIndexTemplateRequest the index does not exists yet typically
         if (IndexNameExpressionResolver.isAllIndices(new ArrayList<String>(indices))) {
-            log.debug("The following list are '_all' indices: {}", indices);
+            if(log.isDebugEnabled()) {
+                log.debug("The following list are '_all' indices: {}", indices);
+            }
             indices.clear();
             indices.add("_all");
         }
@@ -621,7 +626,9 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
 
         try {
             indices.addAll(Arrays.asList(resolver.concreteIndices(clusterService.state(), request)));
-            log.debug("Resolved {} to {}", indices);
+            if(log.isDebugEnabled()) {
+                log.debug("Resolved {} to {}", indices);
+            }
         } catch (final Exception e) {
             log.warn("Cannot resolve {} so we use the raw values", Arrays.toString(request.indices()));
             indices.addAll(Arrays.asList(request.indices()));
