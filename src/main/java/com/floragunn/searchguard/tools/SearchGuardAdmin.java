@@ -41,6 +41,8 @@ import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
+import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsResponse;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
@@ -55,12 +57,17 @@ import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 
+import com.floragunn.searchguard.SearchGuardPlugin;
+import com.floragunn.searchguard.action.configupdate.ConfigUpdateAction;
+import com.floragunn.searchguard.action.configupdate.ConfigUpdateRequest;
 import com.floragunn.searchguard.ssl.SearchGuardSSLPlugin;
 import com.floragunn.searchguard.ssl.util.SSLConfigConstants;
 
 public class SearchGuardAdmin {
 
     public static void main(final String[] args) throws Exception {
+        
+        System.setProperty("sg.nowarn.client","true");
 
         final HelpFormatter formatter = new HelpFormatter();
         Options options = new Options();
@@ -83,6 +90,8 @@ public class SearchGuardAdmin {
         options.addOption(Option.builder("ksalias").longOpt("keystore-alias").hasArg().argName("alias").desc("Keystore alias").build());
         options.addOption(Option.builder("ec").longOpt("enabled-ciphers").hasArg().argName("cipers").desc("Comma separated list of TLS ciphers").build());
         options.addOption(Option.builder("ep").longOpt("enabled-protocols").hasArg().argName("protocols").desc("Comma separated list of TLS protocols").build());
+        options.addOption(Option.builder("us").longOpt("update_settings").hasArg().argName("number of replicas").desc("update settings").build());
+
         
         String hostname = "localhost";
         int port = 9300;
@@ -103,6 +112,7 @@ public class SearchGuardAdmin {
         String tsAlias = null;
         String[] enabledProtocols = new String[0];
         String[] enabledCiphers = new String[0];
+        Integer updateSettings = null;
         
         CommandLineParser parser = new DefaultParser();
         try {
@@ -135,6 +145,8 @@ public class SearchGuardAdmin {
             if(enabledProtocolsString != null) {
                 enabledProtocols = enabledProtocolsString.split(",");
             }
+            
+            updateSettings = line.hasOption("us")?Integer.parseInt(line.getOptionValue("us")):null;
             
         }
         catch( ParseException exp ) {
@@ -195,9 +207,21 @@ public class SearchGuardAdmin {
               
 
         try (TransportClient tc = TransportClient.builder().settings(settings).addPlugin(SearchGuardSSLPlugin.class)
+                .addPlugin(SearchGuardPlugin.class) //needed for config update action only
                 .build()
                 .addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(hostname, port)))) {
 
+            if(updateSettings != null) { 
+                Settings indexSettings = Settings.builder().put("index.number_of_replicas", updateSettings).build();                
+                tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
+                final UpdateSettingsResponse response = tc.admin().indices().updateSettings((new UpdateSettingsRequest("searchguard").settings(indexSettings))).actionGet();
+                System.out.println("Reload config on all nodes");
+                System.out.println("Update number of replicas to "+(updateSettings) +" with result: "+response.isAcknowledged());
+                System.exit(response.isAcknowledged()?0:-1);
+            }
+            
+            
+            
             final ClusterHealthResponse chr = tc.admin().cluster().health(new ClusterHealthRequest().waitForYellowStatus()).actionGet();
 
             final boolean timedOut = chr.isTimedOut();
@@ -250,9 +274,7 @@ public class SearchGuardAdmin {
                 success = success & retrieveFile(tc, cd+"/sg_action_groups_"+date+".yml", "actiongroups");
                 System.exit(success?0:-1);
             }
-            
-            
-            
+             
             System.out.println("populate config ...");
             
             if(file != null) {

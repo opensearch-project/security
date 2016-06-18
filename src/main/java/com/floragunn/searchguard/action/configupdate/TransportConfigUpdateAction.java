@@ -24,12 +24,15 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.nodes.BaseNodeRequest;
 import org.elasticsearch.action.support.nodes.TransportNodesAction;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.component.LifecycleListener;
 import org.elasticsearch.common.inject.Inject;
@@ -82,19 +85,45 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
 
                     @Override
                     public void run() {
-                        logger.trace("Wait for yellow cluster status to set searchguard config initially");
-                        client.admin().cluster().health(new ClusterHealthRequest("searchguard").waitForYellowStatus()).actionGet();
-                        final Map<String, Settings> setn = cl.load(new String[] { "config", "roles", "rolesmapping", "internalusers",
+                        logger.debug("Node started, try to initialize it. Wait for yellow cluster state....");
+                        ClusterHealthResponse response = client.admin().cluster().health(new ClusterHealthRequest("searchguard").waitForYellowStatus()).actionGet();
+                        
+                        while(response.isTimedOut() || response.getStatus() == ClusterHealthStatus.RED) {
+                            logger.warn("searchguard index not healthy (timeout: {})", response.isTimedOut());
+                            try {
+                                Thread.sleep(3000);
+                            } catch (InterruptedException e) {
+                                //ignore
+                            }
+                            response = client.admin().cluster().health(new ClusterHealthRequest("searchguard").waitForYellowStatus()).actionGet();
+                            continue;
+                        }
+                        
+                        Map<String, Settings> setn = cl.load(new String[] { "config", "roles", "rolesmapping", "internalusers",
                                 "actiongroups" });
+                        
+                        while(!setn.keySet().containsAll(Lists.newArrayList("config", "roles", "rolesmapping"))) {
+                            try {
+                                Thread.sleep(1000);
+                            } catch (InterruptedException e) {
+                                //ignore
+                            }
+                            setn = cl.load(new String[] { "config", "roles", "rolesmapping", "internalusers",
+                            "actiongroups" });
+                        }
+                        
                         for (final String evt : setn.keySet()) {
                             for (final ConfigChangeListener cl : new ArrayList<ConfigChangeListener>(multimap.get(evt))) {
                                 Settings settings = setn.get(evt);
                                 if(settings != null) {
                                     cl.onChange(evt, settings);
-                                    logger.debug("Updated {} for {}", evt, cl.getClass().getSimpleName());
+                                    logger.debug("Updated {} for {} due to initial configuration on node '{}'", evt, cl.getClass().getSimpleName(), clusterService.localNode().getName());
                                 }
                             }
                         }
+                        
+                        logger.debug("Node '{}' initialized", clusterService.localNode().getName());
+                       
                     }
                 }).start();
             }
@@ -162,7 +191,7 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
                 Settings settings = setn.get(evt);
                 if(settings != null) {
                    cl.onChange(evt, settings);
-                   logger.debug("Updated {} for {}", evt, cl.getClass().getSimpleName());
+                   logger.debug("Updated {} for {} due to node operation on node {}", evt, cl.getClass().getSimpleName(), clusterService.localNode().getName());
                 }
             }
         }

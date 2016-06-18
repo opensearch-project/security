@@ -62,7 +62,7 @@ public final class SearchGuardPlugin extends Plugin {
         httpSSLEnabled = settings.getAsBoolean(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLED,
                 SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLED_DEFAULT);
         
-        if(client) {
+        if(client && System.getProperty("sg.nowarn.client") ==  null) {
             System.out.println("*************************************************************");
             System.out.println("'Search Guard 2' plugin must not be installed on client nodes.");
             System.out.println("'Search Guard SSL' plugin is enough");
@@ -110,8 +110,8 @@ public final class SearchGuardPlugin extends Plugin {
     }
 
     public void onModule(final ActionModule module) {
-        if (!client) {
-            module.registerAction(ConfigUpdateAction.INSTANCE, TransportConfigUpdateAction.class);
+        module.registerAction(ConfigUpdateAction.INSTANCE, TransportConfigUpdateAction.class);
+        if (!client) {            
             module.registerFilter(SearchGuardFilter.class);
         }
     }
