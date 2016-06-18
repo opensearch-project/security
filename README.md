@@ -2,11 +2,9 @@
 
 Search Guard 2 (compatible with Elasticsearch 2.3.3)
 
-## Request for comments
-We need your input to decide on the roadmap for SG2. If you have a minute, please help us by filling out this small survey: https://www.surveymonkey.com/r/QG23TGM
+## Documentation
 
-## Wiki
-[Additional documentation is provided in the wiki.](https://github.com/floragunncom/search-guard/wiki)
+[Additional documentation is provided here](https://github.com/floragunncom/search-guard-docs)
 
 ##Roadmap
 This is almost a complete rewrite of Search Guard 1 which comes with a lot of new features:
