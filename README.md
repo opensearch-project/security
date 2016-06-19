@@ -6,6 +6,9 @@ Search Guard 2 (compatible with Elasticsearch 2.3.3)
 
 [Additional documentation is provided here](https://github.com/floragunncom/search-guard-docs)
 
+## Quick Start
+
+If you want to try out Search Guard, we recommend to download the [Search Guard Bundle](https://github.com/floragunncom/search-guard/wiki/Search-Guard-Bundle). This is an Elasticsearch installation, preconfigured with Search Guard. It contains all enterprise features and templates for all configuration files. Just download, unzip and you're ready to go! 
 ##Roadmap
 This is almost a complete rewrite of Search Guard 1 which comes with a lot of new features:
 
