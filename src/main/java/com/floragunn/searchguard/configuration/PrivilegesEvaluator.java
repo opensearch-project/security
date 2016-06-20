@@ -630,7 +630,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                 log.debug("Resolved {} to {}", indices);
             }
         } catch (final Exception e) {
-            log.warn("Cannot resolve {} so we use the raw values", Arrays.toString(request.indices()));
+            log.debug("Cannot resolve {} so we use the raw values", Arrays.toString(request.indices()));
             indices.addAll(Arrays.asList(request.indices()));
         }
 
