@@ -54,3 +54,7 @@ sg_readall:
 sg_readonly_dlsfls:
   users:
     - dlsflsuser
+    
+sg_kibana4_testindex:
+  users:
+    - test    

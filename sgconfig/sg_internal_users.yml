@@ -39,5 +39,7 @@ readall:
 dlsflsuser:
   hash: $2a$12$30rb6oabnodiSdysdWJnhO.4sVRkyNudPC1woYCJFhXja3rkyXbam
   #password is: dlsflsuser
-  
+test:
+  hash: $2a$12$1HqHxm3QTfzwkse7vwzhFOV4gDv787cZ8BwmCwNEyJhn0CZoo8VVu
+  #password is: test
  

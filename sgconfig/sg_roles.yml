@@ -111,11 +111,30 @@ sg_transport_client:
       - cluster:monitor/state
 
 sg_kibana4:
-  cluster: 
-      - cluster:monitor/nodes/info
-      - cluster:monitor/health
   indices:
     '*':
+      '*':
+        - READ
+        - indices:admin/mappings/fields/get*
+        - indices:admin/validate/query*
+        - indices:admin/get*
+    '?kibana':
+      '*':
+        - indices:admin/exists*
+        - indices:admin/mapping/put*
+        - indices:admin/mappings/fields/get*
+        - indices:admin/refresh*
+        - indices:admin/validate/query*
+        - indices:data/read/get*
+        - indices:data/read/mget*
+        - indices:data/read/search*
+        - indices:data/write/delete*
+        - indices:data/write/index*
+        - indices:data/write/update*
+
+sg_kibana4_testindex:
+  indices:
+    'test*':
       '*':
         - READ
         - indices:admin/mappings/fields/get*

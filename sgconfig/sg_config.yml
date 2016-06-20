@@ -34,6 +34,8 @@
 #   proxy (not challenging, needs xff)
 #   kerberos (challenging) NOT FREE FOR COMMERCIAL
 #   clientcert (not challenging, needs https)
+#   jwt (not challenging) NOT FREE FOR COMMERCIAL
+#   host (not challenging)
 
 # Authc
 #   internal
@@ -62,7 +64,7 @@ searchguard:
     authc:
       kerberos_auth_domain: 
         enabled: false
-        order: 4
+        order: 6
         http_authenticator:
           type: kerberos # NOT FREE FOR COMMERCIAL USE
           challenge: true
@@ -77,7 +79,7 @@ searchguard:
           type: noop
       basic_internal_auth_domain: 
         enabled: true
-        order: 2
+        order: 4
         http_authenticator:
           type: basic
           challenge: true
@@ -85,7 +87,7 @@ searchguard:
           type: intern
       proxy_auth_domain:
         enabled: false
-        order: 1
+        order: 3
         http_authenticator:
           type: proxy
           challenge: false
@@ -94,9 +96,31 @@ searchguard:
             roles_header: "x-proxy-roles"
         authentication_backend:
           type: noop
-      clientcert_auth_domain:
+      host_auth_domain:
+        enabled: false
+        order: 1
+        http_authenticator:
+          type: host
+          challenge: false
+        authentication_backend:
+          type: noop
+      jwt_auth_domain:
         enabled: false
         order: 0
+        http_authenticator:
+          type: jwt
+          challenge: false
+          config:
+            signing_key: "base64 encoded key"
+            jwt_header: "Authorization"
+            jwt_url_parameter: null
+            roles_key: null
+            subject_key: null
+        authentication_backend:
+          type: noop
+      clientcert_auth_domain:
+        enabled: false
+        order: 2
         http_authenticator:
           type: clientcert
           challenge: false
@@ -104,7 +128,7 @@ searchguard:
           type: noop
       ldap:
         enabled: false
-        order: 3
+        order: 5
         http_authenticator:
           type: basic
           challenge: false
