@@ -1,0 +1,13 @@
+searchguard:
+  dynamic:
+    http:
+      xff:
+        enabled: false
+    authc:
+      authentication_domain_host:
+        enabled: true
+        order: 0
+        http_authenticator:
+          type: host
+        authentication_backend:
+          type: noop

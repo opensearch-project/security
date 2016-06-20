@@ -58,3 +58,13 @@ sg_zdummy_all:
 sg_unittest_1:
   users:
     - 'CN=spock,OU=client,O=client,L=Test,C=DE'
+    
+sg_role_host1:
+  hosts:
+    - 127.0.0.1
+    - localhost
+    
+sg_role_host2:
+  users:
+    - sg_host_127.0.0.1
+    - sg_host_localhost

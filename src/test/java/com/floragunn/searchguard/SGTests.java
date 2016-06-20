@@ -580,6 +580,27 @@ public class SGTests extends AbstractUnitTest {
             Assert.assertTrue(res.getBody().contains("additionalrole2"));
             Assert.assertFalse(res.getBody().contains("starfleet"));
         }
+        
+        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardSSLPlugin.class).build()) {
+            
+            log.debug("Start transport client to init");
+            
+            tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
+            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().length);
+            tc.index(new IndexRequest("searchguard").type("config").refresh(true).id("0").source(readYamlContent("sg_config_host.yml"))).actionGet();
+           }
+        Thread.sleep(2000);  
+        
+        for (Iterator iterator = httpAdresses.iterator(); iterator.hasNext();) {
+            InetSocketTransportAddress inetSocketTransportAddress = (InetSocketTransportAddress) iterator.next();
+            HttpResponse res = executeRequest(new HttpGet("http://"+inetSocketTransportAddress.getHost()+":"+inetSocketTransportAddress.getPort() + "/" + "_searchguard/authinfo?pretty=true"));
+            log.debug(res.getBody());
+            Assert.assertTrue(res.getBody().contains("sg_role_host1"));
+            Assert.assertTrue(res.getBody().contains("sg_role_host2"));
+            Assert.assertTrue(res.getBody().contains("sg_host_127.0.0.1"));
+            Assert.assertTrue(res.getBody().contains("roles=[]"));
+            Assert.assertEquals(200, res.getStatusCode());
+        }
     }
     
     @Test
