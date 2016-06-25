@@ -234,6 +234,11 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+          <groupId>org.eluder.coveralls</groupId>
+          <artifactId>coveralls-maven-plugin</artifactId>
+          <version>3.1.0</version>
+      </plugin>
       <!-- skip validation end -->
     </plugins>
     <extensions>
