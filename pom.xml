@@ -235,6 +235,18 @@
         </executions>
       </plugin>
       <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>cobertura-maven-plugin</artifactId>
+          <version>2.7</version>
+          <configuration>
+              <formats>
+                  <format>xml</format>
+              </formats>
+              <aggregate>true</aggregate>
+              <maxmem>256m</maxmem>
+          </configuration>
+      </plugin>
+      <plugin>
           <groupId>org.eluder.coveralls</groupId>
           <artifactId>coveralls-maven-plugin</artifactId>
           <version>3.1.0</version>
