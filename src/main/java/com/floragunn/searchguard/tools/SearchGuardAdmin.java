@@ -17,6 +17,7 @@
 
 package com.floragunn.searchguard.tools;
 
+import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -47,13 +48,13 @@ import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.client.transport.NoNodeAvailableException;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 
@@ -64,8 +65,25 @@ import com.floragunn.searchguard.ssl.SearchGuardSSLPlugin;
 import com.floragunn.searchguard.ssl.util.SSLConfigConstants;
 
 public class SearchGuardAdmin {
+    
+    public static void main(final String[] args) {
+        try {
+            main0(args);
+        } catch (NoNodeAvailableException e) {
+            System.out.println("ERR: Cannot connect to elasticsearch. Please refer to elasticsearch logfile for more information");
+            System.out.println("Trace:");
+            e.printStackTrace();
+            System.exit(-1);
+        } 
+        catch (Exception e) {
+            System.out.println("ERR: An unexpected "+e.getClass().getSimpleName()+" occured: "+e.getMessage());
+            System.out.println("Trace:");
+            e.printStackTrace();
+            System.exit(-1);
+        }
+    }
 
-    public static void main(final String[] args) throws Exception {
+    private static void main0(final String[] args) throws Exception {
         
         System.setProperty("sg.nowarn.client","true");
 
@@ -79,7 +97,7 @@ public class SearchGuardAdmin {
         options.addOption(Option.builder("kspass").longOpt("keystore-password").hasArg().argName("password").desc("Keystore password").build());
         options.addOption(Option.builder("cd").longOpt("configdir").hasArg().argName("directory").desc("Directory for config files").build());
         options.addOption(Option.builder("h").longOpt("hostname").hasArg().argName("host").desc("Elasticsearch host").build());
-        options.addOption(Option.builder("p").longOpt("port").hasArg().argName("port").desc("Elasticsearch port").build());
+        options.addOption(Option.builder("p").longOpt("port").hasArg().argName("port").desc("Elasticsearch transport port (normally 9300)").build());
         options.addOption(Option.builder("cn").longOpt("clustername").hasArg().argName("clustername").desc("Clustername").build());
         options.addOption( "sniff", "enable-sniffing", false, "Enable client.transport.sniff" );
         options.addOption( "icl", "ignore-clustername", false, "Ignore clustername" );
@@ -122,6 +140,11 @@ public class SearchGuardAdmin {
             kspass = line.getOptionValue("kspass", kspass); //TODO null? //when no passwd is set
             tspass = line.getOptionValue("tspass", tspass); //TODO null? //when no passwd is set
             cd = line.getOptionValue("cd", cd);
+            
+            if(!cd.endsWith(File.separator)) {
+                cd += File.separator;
+            }
+            
             ks = line.getOptionValue("ks");
             ts = line.getOptionValue("ts");
             nhnv = line.hasOption("nhnv");
@@ -155,6 +178,10 @@ public class SearchGuardAdmin {
             return;
         }
         
+        if(port == 9200) {
+            System.out.println("WARNING: Seems you want connect to the default HTTP port 9200."+System.lineSeparator()
+                             + "         sgadmin connect through the transport port which is normally 9300.");
+        }
         
         System.out.println("Connect to "+hostname+":"+port);
         Socket socket = new Socket();
@@ -267,15 +294,17 @@ public class SearchGuardAdmin {
             if(retrieve) {
                 String date = new SimpleDateFormat("yyyy-MMM-dd_HH-mm-ss", Locale.ENGLISH).format(new Date());
                 
-                boolean success = retrieveFile(tc, cd+"/sg_config_"+date+".yml", "config");
-                success = success & retrieveFile(tc, cd+"/sg_roles_"+date+".yml", "roles");
-                success = success & retrieveFile(tc, cd+"/sg_roles_mapping_"+date+".yml", "rolesmapping");
-                success = success & retrieveFile(tc, cd+"/sg_internal_users_"+date+".yml", "internalusers");
-                success = success & retrieveFile(tc, cd+"/sg_action_groups_"+date+".yml", "actiongroups");
+                boolean success = retrieveFile(tc, cd+"sg_config_"+date+".yml", "config");
+                success = success & retrieveFile(tc, cd+"sg_roles_"+date+".yml", "roles");
+                success = success & retrieveFile(tc, cd+"sg_roles_mapping_"+date+".yml", "rolesmapping");
+                success = success & retrieveFile(tc, cd+"sg_internal_users_"+date+".yml", "internalusers");
+                success = success & retrieveFile(tc, cd+"sg_action_groups_"+date+".yml", "actiongroups");
                 System.exit(success?0:-1);
             }
+            
+            boolean isCdAbs = new File(cd).isAbsolute();
              
-            System.out.println("populate config ...");
+            System.out.println("Populate config from "+(isCdAbs?cd:new File(".", cd).getCanonicalPath()));
             
             if(file != null) {
                 if(type == null) {
@@ -292,11 +321,11 @@ public class SearchGuardAdmin {
                 System.exit(success?0:-1);
             }
 
-            boolean success = uploadFile(tc, cd+"/sg_config.yml", "config");
-            success = success & uploadFile(tc, cd+"/sg_roles.yml", "roles");
-            success = success & uploadFile(tc, cd+"/sg_roles_mapping.yml", "rolesmapping");
-            success = success & uploadFile(tc, cd+"/sg_internal_users.yml", "internalusers");
-            success = success & uploadFile(tc, cd+"/sg_action_groups.yml", "actiongroups");
+            boolean success = uploadFile(tc, cd+"sg_config.yml", "config");
+            success = success & uploadFile(tc, cd+"sg_roles.yml", "roles");
+            success = success & uploadFile(tc, cd+"sg_roles_mapping.yml", "rolesmapping");
+            success = success & uploadFile(tc, cd+"sg_internal_users.yml", "internalusers");
+            success = success & uploadFile(tc, cd+"sg_action_groups.yml", "actiongroups");
             
             System.out.println("Wait a short time ...");
             Thread.sleep(5000);
@@ -340,8 +369,8 @@ public class SearchGuardAdmin {
                     return false;
                 }
                 
-                String json = XContentHelper.convertToJson(response.getSourceAsBytesRef(), true, true);
-                writer.write(json);
+                String yaml = convertToYaml(response.getSourceAsBytesRef(), true);
+                writer.write(yaml);
                 System.out.println("   SUCC Configuration for '"+type+"' stored in "+filepath);
                 return true;
             } else {
@@ -366,6 +395,18 @@ public class SearchGuardAdmin {
             if (parser != null) {
                 parser.close();
             }
+        }
+    }
+    
+    private static String convertToYaml(BytesReference bytes, boolean prettyPrint) throws IOException {
+        try (XContentParser parser = XContentFactory.xContent(XContentFactory.xContentType(bytes)).createParser(bytes.streamInput())) {
+            parser.nextToken();
+            XContentBuilder builder = XContentFactory.yamlBuilder();
+            if (prettyPrint) {
+                builder.prettyPrint();
+            }
+            builder.copyCurrentStructure(parser);
+            return builder.string();
         }
     }
 }
