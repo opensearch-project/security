@@ -19,7 +19,7 @@
   <groupId>com.floragunn</groupId>
   <artifactId>search-guard-2</artifactId>
   <packaging>jar</packaging>
-  <version>2.3.3.2-SNAPSHOT</version>
+  <version>2.3.3.2</version>
   <name>Search Guard</name>
   <description>Provide access control related features for Elasticsearch 2</description>
   <url>https://github.com/floragunncom/search-guard</url>
