@@ -429,7 +429,8 @@ public class SGTests extends AbstractUnitTest {
         for(int i=0; i< 10; i++) {
             Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, executeGetRequest("", new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("worf", "wrongpasswd"))).getStatusCode());
         }
-        
+
+        Assert.assertEquals(HttpStatus.SC_OK, executePutRequest("/theindex","{}",new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("theindexadmin", "theindexadmin"))).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, executeGetRequest("starfleet/_search", new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("worf", "worf"))).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, executeGetRequest("_search", new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("worf", "worf"))).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_OK, executeGetRequest("starfleet/ships/_search?pretty", new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("worf", "worf"))).getStatusCode());

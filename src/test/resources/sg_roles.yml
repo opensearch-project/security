@@ -189,3 +189,9 @@ sg_remote_marvel_agent:
     '?marvel-es-*':
       '*':
         - ALL
+        
+sg_theindex_admin:
+  indices:
+    theindex:
+      '*':
+        - ALL

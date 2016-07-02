@@ -70,3 +70,5 @@ userwithblankpasswd:
   roles:
     - klingon
     - starfleet
+theindexadmin:
+  hash: "$2a$12$P.QbiwOsnxgz7kLBT10F7u6GhY7//Keyz7Xwf7lNzskRxpo9.zxFS"
