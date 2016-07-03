@@ -1,14 +1,8 @@
 general:
   branches:
     only:
-      - master
+      - 5.0.0
       
 machine:
   java:
     version: oraclejdk8
-
-deployment:
-  deploysnap:
-    branch: master
-    commands:
-      - mvn deploy -Pdev -Dskip.unit.tests -s settings.xml
