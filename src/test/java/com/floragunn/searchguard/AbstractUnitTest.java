@@ -445,7 +445,7 @@ public abstract class AbstractUnitTest {
     
     protected final String loadFile(final String file) throws IOException {
         final StringWriter sw = new StringWriter();
-        IOUtils.copy(this.getClass().getResourceAsStream("/" + file), sw);
+        IOUtils.copy(this.getClass().getResourceAsStream("/" + file), sw, StandardCharsets.UTF_8);
         return sw.toString();
     }
     
