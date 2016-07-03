@@ -37,7 +37,6 @@ import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.common.settings.Settings;
@@ -52,7 +51,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import com.floragunn.searchguard.configuration.SearchGuardIndexSearcherWrapper;
 import com.floragunn.searchguard.ssl.SearchGuardSSLPlugin;
 import com.floragunn.searchguard.ssl.util.SSLConfigConstants;
 import com.floragunn.searchguard.support.Base64Helper;
@@ -630,7 +628,7 @@ public class SGTests extends AbstractUnitTest {
             log.debug("Start transport client to init");
             
             tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
-            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().length);
+            Assert.assertEquals("Expected 3 nodes", 3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().length);
 
             tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
             tc.index(new IndexRequest("searchguard").type("dummy").id("0").refresh(true).source(readYamlContent("sg_config.yml"))).actionGet();
@@ -652,7 +650,7 @@ public class SGTests extends AbstractUnitTest {
             tc.index(new IndexRequest("starfleet_academy").type("students").refresh(true).source("{\"content\":1}")).actionGet();
             tc.index(new IndexRequest("starfleet_academy").type("alumni").refresh(true).source("{\"content\":1}")).actionGet();           
             IndicesAliasesResponse r = tc.admin().indices().aliases(new IndicesAliasesRequest().addAlias("sf", "starfleet","starfleet_academy")).actionGet();
-            Assert.assertTrue(r.isAcknowledged());
+            Assert.assertTrue("Alias creation not acknowledged", r.isAcknowledged());
         }
         
         
@@ -660,11 +658,11 @@ public class SGTests extends AbstractUnitTest {
         
         Thread.sleep(2000);        
         HttpResponse res;
-        Assert.assertEquals(HttpStatus.SC_OK, executePutRequest("nag1", null, new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_OK, executePutRequest("starfleet_library", null, new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_OK, executePostRequest("starfleet_library/_close", null, new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_OK, (res = executePostRequest("starfleet_library/_open", null, new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("nagilum", "nagilum")))).getStatusCode());
-        Assert.assertEquals("{\"acknowledged\":true}", res.getBody());
+        Assert.assertEquals("Unable to create index 'nag'", HttpStatus.SC_OK, executePutRequest("nag1", null, new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
+        Assert.assertEquals("Unable to create index 'starfleet_library'", HttpStatus.SC_OK, executePutRequest("starfleet_library", null, new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
+        Assert.assertEquals("Unable to close index 'starfleet_library'", HttpStatus.SC_OK, executePostRequest("starfleet_library/_close", null, new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
+        Assert.assertEquals("Unable to open index 'starfleet_library'", HttpStatus.SC_OK, (res = executePostRequest("starfleet_library/_open", null, new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("nagilum", "nagilum")))).getStatusCode());
+        Assert.assertEquals("open index 'starfleet_library' not acknowledged", "{\"acknowledged\":true}", res.getBody());
         
         //Assert.assertEquals(HttpStatus.SC_OK, executePutRequest("public", null, new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("spock", "spock"))).getStatusCode());
         
