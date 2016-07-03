@@ -3,6 +3,14 @@ general:
     only:
       - 5.0.0
       
+dependencies:    
+  override:
+    - mvn -U dependency:go-offline  
+     
+test:
+  override: 
+    - mvn -U integration-test
+      
 machine:
   java:
     version: oraclejdk8
