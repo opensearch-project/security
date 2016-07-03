@@ -613,6 +613,8 @@ public class SGTests extends AbstractUnitTest {
                 .put("searchguard.ssl.transport.enforce_hostname_verification", false)
                 .put("searchguard.ssl.transport.resolve_hostname", false)
                 .putArray("searchguard.authcz.admin_dn", "CN=kirk,OU=client,O=client,l=tEst, C=De")
+                .put("index.number_of_shards", 3)
+                .put("index.number_of_replicas", 0)
                 .build();
         
         startES(settings);
@@ -660,9 +662,15 @@ public class SGTests extends AbstractUnitTest {
         HttpResponse res;
         Assert.assertEquals("Unable to create index 'nag'", HttpStatus.SC_OK, executePutRequest("nag1", null, new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
         Assert.assertEquals("Unable to create index 'starfleet_library'", HttpStatus.SC_OK, executePutRequest("starfleet_library", null, new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
+        
+        Thread.sleep(2000);
+        waitForGreenClusterState(esNode1.client());
+        
         Assert.assertEquals("Unable to close index 'starfleet_library'", HttpStatus.SC_OK, executePostRequest("starfleet_library/_close", null, new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
         Assert.assertEquals("Unable to open index 'starfleet_library'", HttpStatus.SC_OK, (res = executePostRequest("starfleet_library/_open", null, new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("nagilum", "nagilum")))).getStatusCode());
         Assert.assertEquals("open index 'starfleet_library' not acknowledged", "{\"acknowledged\":true}", res.getBody());
+        
+        waitForGreenClusterState(esNode1.client());
         
         //Assert.assertEquals(HttpStatus.SC_OK, executePutRequest("public", null, new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("spock", "spock"))).getStatusCode());
         

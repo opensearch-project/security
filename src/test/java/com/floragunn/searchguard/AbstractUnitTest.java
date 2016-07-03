@@ -100,7 +100,7 @@ public abstract class AbstractUnitTest {
     public TestName name = new TestName();
     protected final String clustername = "searchguard_ssl_testcluster";
 
-    private Node esNode1;
+    protected Node esNode1;
     private Node esNode2;
     private Node esNode3;
     private String httpHost = null;
