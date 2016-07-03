@@ -22,6 +22,7 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestRequest;
 
@@ -40,9 +41,9 @@ public class HTTPProxyAuthenticator implements HTTPAuthenticator {
     }
 
     @Override
-    public AuthCredentials extractCredentials(final RestRequest request) {
-
-        if(request.getFromContext(ConfigConstants.SG_XFF_DONE) !=  Boolean.TRUE) {
+    public AuthCredentials extractCredentials(final RestRequest request, ThreadContext context) {
+    	
+        if(context.getTransient(ConfigConstants.SG_XFF_DONE) !=  Boolean.TRUE) {
             throw new ElasticsearchSecurityException("xff not done");
         }
         

@@ -23,11 +23,9 @@ import java.util.Collection;
 import org.elasticsearch.action.ActionModule;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
+import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.http.HttpServerModule;
 import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.rest.RestModule;
-import org.elasticsearch.transport.TransportModule;
 
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateAction;
 import com.floragunn.searchguard.action.configupdate.TransportConfigUpdateAction;
@@ -39,6 +37,7 @@ import com.floragunn.searchguard.configuration.SearchGuardIndexSearcherWrapperMo
 import com.floragunn.searchguard.filter.SearchGuardFilter;
 import com.floragunn.searchguard.http.SearchGuardHttpServerTransport;
 import com.floragunn.searchguard.rest.SearchGuardInfoAction;
+import com.floragunn.searchguard.ssl.transport.SearchGuardSSLTransportService;
 import com.floragunn.searchguard.ssl.util.SSLConfigConstants;
 import com.floragunn.searchguard.transport.SearchGuardTransportService;
 import com.google.common.collect.ImmutableList;
@@ -69,7 +68,8 @@ public final class SearchGuardPlugin extends Plugin {
             System.out.println("*************************************************************");
         }
     }
-
+    
+    /**
     @Override
     public String name() {
         return "search-guard2";
@@ -79,6 +79,7 @@ public final class SearchGuardPlugin extends Plugin {
     public String description() {
         return "Search Guard 2";
     }
+    **/
     
     public Collection<Module> shardModules(Settings settings)
     {
@@ -116,27 +117,23 @@ public final class SearchGuardPlugin extends Plugin {
         }
     }
 
-    public void onModule(final RestModule module) {
+    public void onModule(final NetworkModule module) {
+    	
         if (!client) {
-            module.addRestAction(SearchGuardInfoAction.class);
+            module.registerRestHandler(SearchGuardInfoAction.class);
+            // TODO 5.0: Was: module.registerTransport(name(), SearchGuardTransportService.class); Transport vs. TransportService?
+            module.registerTransportService(SearchGuardTransportService.class.toString(), SearchGuardTransportService.class);
         }
-    }
-
-    public void onModule(final TransportModule module) {
-        if (!client) {
-            module.setTransportService(SearchGuardTransportService.class, name());
-        }
-    }
-    
-    public void onModule(final HttpServerModule module) {
+    	
         if (!client && httpSSLEnabled) {
-            module.setHttpServerTransport(SearchGuardHttpServerTransport.class, name());
+            module.registerHttpTransport(SearchGuardHttpServerTransport.class.toString(), SearchGuardHttpServerTransport.class);
         }
-    }
-
+    	
+    }    
+        
     @Override
     public Settings additionalSettings() {
-        final Settings.Builder builder = Settings.settingsBuilder();
+        final Settings.Builder builder = Settings.builder();
         return builder.build();
     }
 

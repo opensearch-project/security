@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 floragunn UG (haftungsbeschränkt)
+SettingsFilter * Copyright 2015 floragunn UG (haftungsbeschränkt)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,8 +24,8 @@ public class SearchGuardSettingsFilter {
 
     @Inject
     public SearchGuardSettingsFilter(final SettingsFilter settingsFilter) {
-        super();
-        settingsFilter.addFilter("searchguard.*");
+    	// TODO 5.0: Reactivate
+    	//settingsFilter.addFilter("searchguard.*");
     }
     
 }

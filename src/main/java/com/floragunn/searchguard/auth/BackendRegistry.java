@@ -34,16 +34,18 @@ import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 
 import org.elasticsearch.ElasticsearchSecurityException;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.rest.BytesRestResponse;
 import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.rest.RestStatus;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportRequest;
 
@@ -105,9 +107,9 @@ public class BackendRegistry implements ConfigChangeListener {
 
     @Inject
     public BackendRegistry(final Settings settings, final RestController controller, final TransportConfigUpdateAction tcua, final ClusterService cse,
-            final AdminDNs adminDns, final XFFResolver xffResolver, InternalAuthenticationBackend iab, AuditLog auditLog) {
+            final AdminDNs adminDns, final XFFResolver xffResolver, InternalAuthenticationBackend iab, AuditLog auditLog, ThreadPool threadPool) {
         tcua.addConfigChangeListener("config", this);
-        controller.registerFilter(new SearchGuardRestFilter(this, auditLog));
+        controller.registerFilter(new SearchGuardRestFilter(this, auditLog, threadPool));
         this.tcua = tcua;
         this.adminDns = adminDns;
         this.esSettings = settings;
@@ -226,9 +228,9 @@ public class BackendRegistry implements ConfigChangeListener {
 
     }
 
-    public boolean authenticate(final TransportRequest request) throws ElasticsearchSecurityException {
+    public boolean authenticate(final TransportRequest request, final ThreadContext threadContext) throws ElasticsearchSecurityException {
 
-        final User user = request.getFromContext(ConfigConstants.SG_USER);
+        final User user = threadContext.getTransient(ConfigConstants.SG_USER);
         
         if(user == null) {
             return false;
@@ -290,7 +292,7 @@ public class BackendRegistry implements ConfigChangeListener {
                 if(log.isDebugEnabled()) {
                     log.debug("User '{}' is authenticated", authenticatedUser);
                 }
-                request.putInContext(ConfigConstants.SG_USER, authenticatedUser);
+                threadContext.putTransient(ConfigConstants.SG_USER, authenticatedUser);
                 return true;
             } catch (final ElasticsearchSecurityException e) {
                 log.info("Cannot authenticate user (or add roles) with ad {} due to {}, try next", authDomain.getOrder(), e.toString());
@@ -309,10 +311,10 @@ public class BackendRegistry implements ConfigChangeListener {
      * @return The authenticated user, null means another roundtrip
      * @throws ElasticsearchSecurityException
      */
-    public boolean authenticate(final RestRequest request, final RestChannel channel) throws ElasticsearchSecurityException {
+    public boolean authenticate(final RestRequest request, final RestChannel channel, ThreadContext threadContext) throws ElasticsearchSecurityException {
 
         if(log.isTraceEnabled()) {
-            log.trace(LogHelper.toString(request));
+            log.trace(LogHelper.toString(threadContext));
         }
         
         //if(adminDns.isAdmin((String) request.getFromContext(ConfigConstants.SG_SSL_PRINCIPAL))) {
@@ -327,7 +329,7 @@ public class BackendRegistry implements ConfigChangeListener {
             return false;
         }
         
-        request.putInContext(ConfigConstants.SG_REMOTE_ADDRESS, xffResolver.resolve(request));
+        threadContext.putTransient(ConfigConstants.SG_REMOTE_ADDRESS, xffResolver.resolve(request));
         
         boolean authenticated = false;
         
@@ -352,7 +354,7 @@ public class BackendRegistry implements ConfigChangeListener {
             }
             final AuthCredentials ac;
             try {
-                ac = httpAuthenticator.extractCredentials(request);
+                ac = httpAuthenticator.extractCredentials(request, threadContext);
             } catch (Exception e1) {
                 log.info("{} extracting credentials from {}", e1, e1.toString(), httpAuthenticator.getType());
                 continue;
@@ -429,8 +431,8 @@ public class BackendRegistry implements ConfigChangeListener {
                 }
                 
                 if(adminDns.isAdmin(authenticatedUser.getName())) {
-                    log.error("Cannot authenticate user because admin user is not permitted to login via HTTP");
-                    channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN));
+                    log.error("Cannot authenticate user because admin user is not permitted to login via HTTP");                    
+                    channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, "Cannot authenticate user because admin user is not permitted to login via HTTP"));
                     return false;
                 }
                 
@@ -438,7 +440,7 @@ public class BackendRegistry implements ConfigChangeListener {
                 if(log.isDebugEnabled()) {
                     log.debug("User '{}' is authenticated", authenticatedUser);
                 }
-                request.putInContext(ConfigConstants.SG_USER, authenticatedUser);
+                threadContext.putTransient(ConfigConstants.SG_USER, authenticatedUser);
                 authenticated = true;
                 break;
             } catch (final ElasticsearchSecurityException e) {
@@ -455,7 +457,7 @@ public class BackendRegistry implements ConfigChangeListener {
             //no reRequest possible
             
             if(authCredenetials == null && anonymousAuthEnabled) {
-                request.putInContext(ConfigConstants.SG_USER, User.ANONYMOUS);
+            	threadContext.putTransient(ConfigConstants.SG_USER, User.ANONYMOUS);
                 if(log.isDebugEnabled()) {
                     log.debug("Anonymous User is authenticated");
                 }
@@ -472,7 +474,7 @@ public class BackendRegistry implements ConfigChangeListener {
                 log.debug("Authentication finally failed");
             }
             auditLog.logFailedLogin(authCredenetials == null ? null:authCredenetials.getUsername(), request);
-            channel.sendResponse(new BytesRestResponse(RestStatus.UNAUTHORIZED));
+            channel.sendResponse(new BytesRestResponse(RestStatus.UNAUTHORIZED, "Authentication finally failed"));
             return false;
         }
         
@@ -484,9 +486,9 @@ public class BackendRegistry implements ConfigChangeListener {
         return initialized;
     }
 
-    public void impersonate(final TransportRequest tr, final TransportChannel channel) throws ElasticsearchSecurityException {
+    public void impersonate(final TransportRequest tr, final TransportChannel channel, ThreadContext threadContext) throws ElasticsearchSecurityException {
 
-        final String impersonatedUser = tr.getHeader("sg_impersonate_as");
+        final String impersonatedUser = threadContext.getHeader("sg_impersonate_as");
         
         if(Strings.isNullOrEmpty(impersonatedUser)) {
             return; //nothing to do
@@ -496,7 +498,7 @@ public class BackendRegistry implements ConfigChangeListener {
             throw new ElasticsearchSecurityException("Could not check for impersonation because Search Guard is not yet initialized");
         }
 
-        final User origPKIuser = tr.getFromContext(ConfigConstants.SG_USER);
+        final User origPKIuser = threadContext.getTransient(ConfigConstants.SG_USER);
         if (origPKIuser == null) {
             throw new ElasticsearchSecurityException("no original PKI user found");
         }
@@ -521,7 +523,7 @@ public class BackendRegistry implements ConfigChangeListener {
                     e1);
         }
 
-        tr.putInContext(ConfigConstants.SG_USER, Objects.requireNonNull((User) aU));
+        threadContext.putTransient(ConfigConstants.SG_USER, Objects.requireNonNull((User) aU));
     }
 
 }

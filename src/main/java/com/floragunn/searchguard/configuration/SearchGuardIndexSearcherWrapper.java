@@ -21,49 +21,50 @@ import java.io.IOException;
 
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.search.IndexSearcher;
-import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.index.engine.EngineConfig;
 import org.elasticsearch.index.engine.EngineException;
-import org.elasticsearch.index.engine.IndexSearcherWrapper;
-import org.elasticsearch.index.shard.AbstractIndexShardComponent;
+import org.elasticsearch.index.shard.IndexEventListener;
+import org.elasticsearch.index.shard.IndexSearcherWrapper;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.indices.IndicesLifecycle;
-import org.elasticsearch.indices.IndicesLifecycle.Listener;
+import org.elasticsearch.index.IndexModule;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportRequest;
 
-import com.floragunn.searchguard.action.configupdate.TransportConfigUpdateAction;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.HeaderHelper;
 import com.floragunn.searchguard.user.User;
 
-public class SearchGuardIndexSearcherWrapper extends AbstractIndexShardComponent implements IndexSearcherWrapper {
+public class SearchGuardIndexSearcherWrapper extends IndexSearcherWrapper {
 
     private final AdminDNs admindns;
     protected final ESLogger log = Loggers.getLogger(this.getClass());
     private volatile boolean shardReady;
-
+	private final ThreadContext threadContext;
+	private final ShardId shardId;
+	
     @Inject
-    public SearchGuardIndexSearcherWrapper(final ShardId shardId, final IndicesLifecycle indicesLifecycle, final Settings indexSettings,
-            final AdminDNs admindns) {
-        super(shardId, indexSettings);
+    public SearchGuardIndexSearcherWrapper(final ShardId shardId, final IndexModule indexModule, final Settings indexSettings,
+            final AdminDNs admindns, final ThreadPool threadPool) {
+        super();
         this.admindns = admindns;
-        
+        this.shardId = shardId;
+        this.threadContext = threadPool.getThreadContext();
         if(!isSearchGuardIndexRequest()) {
-            indicesLifecycle.addListener(new Listener() {
-
-                @Override
-                public void afterIndexShardPostRecovery(IndexShard indexShard) {
-                    if(shardId.equals(indexShard.shardId())) {
-                        shardReady = true;
-                    }
-                }
-                
-            });
+        	indexModule.addIndexEventListener(new IndexEventListener() {
+        		// TODO 5.0: The following callback does not exist anymore
+//                @Override
+//                public void afterIndexShardPostRecovery(IndexShard indexShard) {
+//                    if(shardId.equals(indexShard.shardId())) {
+//                        shardReady = true;
+//                    }
+//                }
+			});
         } else {
             shardReady = true;
         }
@@ -92,9 +93,9 @@ public class SearchGuardIndexSearcherWrapper extends AbstractIndexShardComponent
     }
 
     @Override
-    public final IndexSearcher wrap(final EngineConfig engineConfig, final IndexSearcher searcher) throws EngineException {
+    public final IndexSearcher wrap(final IndexSearcher searcher) throws EngineException {
 
-        if (log.isTraceEnabled()) {
+    	if (log.isTraceEnabled()) {
             log.trace("IndexSearcher {} should be wrapped (reader is {})", searcher.getClass(), searcher.getIndexReader().getClass());
         }
 
@@ -109,14 +110,14 @@ public class SearchGuardIndexSearcherWrapper extends AbstractIndexShardComponent
         if (!isAdminAuhtenticatedOrInternalRequest()) {
 
             //if (settings == null || settings.getAsBoolean("searchguard.dynamic.dlsfls_enabled", true)) {
-                return dlsFlsWrap(engineConfig, searcher);
+                return dlsFlsWrap(searcher);
             //}
         }
 
         return searcher;
     }
 
-    protected IndexSearcher dlsFlsWrap(final EngineConfig engineConfig, final IndexSearcher searcher) throws EngineException {
+    protected IndexSearcher dlsFlsWrap(final IndexSearcher searcher) throws EngineException {
         return searcher;
     }
 
@@ -125,20 +126,21 @@ public class SearchGuardIndexSearcherWrapper extends AbstractIndexShardComponent
     }
 
     protected final boolean isAdminAuhtenticatedOrInternalRequest() {
-        final RequestHolder current = RequestHolder.current();
+    	// TODO 5.0: Is class RequestHolder still needed? Means, is it mandatory to skip this check if we do not have a current request?
+    	final RequestHolder current = RequestHolder.current();
 
         if (current != null) {
             final TransportRequest request = current.getRequest();
 
             if (request != null) {
 
-                final User user = (User) request.getFromContext(ConfigConstants.SG_USER);
+                final User user = (User) threadContext.getTransient(ConfigConstants.SG_USER);
 
                 if (user != null && admindns.isAdmin(user.getName())) {
                     return true;
                 }
 
-                if ("true".equals(HeaderHelper.getSafeFromHeader(request, ConfigConstants.SG_CONF_REQUEST_HEADER))) {
+                if ("true".equals(HeaderHelper.getSafeFromHeader(threadContext, request, ConfigConstants.SG_CONF_REQUEST_HEADER))) {
                     return true;
                 }
             }
@@ -148,6 +150,6 @@ public class SearchGuardIndexSearcherWrapper extends AbstractIndexShardComponent
     }
 
     protected final boolean isSearchGuardIndexRequest() {
-        return shardId.index().getName().equals("searchguard");
+        return shardId.getIndexName().equals("searchguard");
     }
 }

@@ -21,7 +21,7 @@ import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.Multibinder;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.index.engine.IndexSearcherWrapper;
+import org.elasticsearch.index.shard.IndexSearcherWrapper;
 
 public class SearchGuardIndexSearcherWrapperModule extends AbstractModule {
 

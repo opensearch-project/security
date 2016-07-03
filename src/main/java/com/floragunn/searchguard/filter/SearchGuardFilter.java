@@ -29,8 +29,10 @@ import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.tasks.Task;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.auth.BackendRegistry;
@@ -55,15 +57,17 @@ public class SearchGuardFilter implements ActionFilter {
     private final AdminDNs adminDns;
     private Provider<DlsFlsRequestValve> dlsFlsValve;
     private final AuditLog auditLog;
-
+    private final ThreadContext threadContext;
+    
     @Inject
     public SearchGuardFilter(final Settings settings, final Provider<PrivilegesEvaluator> evalp, final AdminDNs adminDns,
-            final Provider<BackendRegistry> backendRegistry, Provider<DlsFlsRequestValve> dlsFlsValve, AuditLog auditLog) {
+            final Provider<BackendRegistry> backendRegistry, Provider<DlsFlsRequestValve> dlsFlsValve, AuditLog auditLog, ThreadPool threadPool) {
         this.settings = settings;
         this.evalp = evalp;
         this.adminDns = adminDns;
         this.dlsFlsValve = dlsFlsValve;
         this.auditLog = auditLog;
+        this.threadContext = threadPool.getThreadContext();
     }
 
     @Override
@@ -79,12 +83,13 @@ public class SearchGuardFilter implements ActionFilter {
         
         if (log.isTraceEnabled()) {
             log.trace("Action {} from {}/{}", action, request.remoteAddress(), listener.getClass().getSimpleName());
-            log.trace("Context {}", request.getContext());
-            log.trace("Header {}", request.getHeaders());
+            // TODO 5.0: Cannot access transient map directly in threadContext
+            // log.trace("Context {}", request.getContext());
+            log.trace("Header {}", threadContext.getHeaders());
 
         }
         
-        User user = request.getFromContext(ConfigConstants.SG_USER);
+        User user = threadContext.getTransient(ConfigConstants.SG_USER);
         
         if(user == null && request.remoteAddress() == null) {
             user = User.SG_INTERNAL;
@@ -95,14 +100,14 @@ public class SearchGuardFilter implements ActionFilter {
         //LogHelper.logUserTrace("--> Header {}", request.getHeaders());
 
         if (log.isTraceEnabled()) {
-            log.trace("remote address: {}", request.getFromContext(ConfigConstants.SG_REMOTE_ADDRESS));
+            log.trace("remote address: {}", threadContext.getTransient(ConfigConstants.SG_REMOTE_ADDRESS));
         }
 
         
         
         if(isUserAdmin(user, adminDns) 
                 || isInterClusterRequest(request) 
-                || "true".equals(HeaderHelper.getSafeFromHeader(request, ConfigConstants.SG_CONF_REQUEST_HEADER))){
+                || "true".equals(HeaderHelper.getSafeFromHeader(threadContext, request, ConfigConstants.SG_CONF_REQUEST_HEADER))){
             
             if(!dlsFlsValve.get().invoke(request, listener)) {
                 return;
@@ -176,8 +181,9 @@ public class SearchGuardFilter implements ActionFilter {
      * @param request
      * @return true if request comes from a node with a server certificate
      */
-    private static boolean isInterClusterRequest(final ActionRequest request) {
-        return request.getFromContext(ConfigConstants.SG_SSL_TRANSPORT_INTERCLUSTER_REQUEST) == Boolean.TRUE;
+    private  boolean isInterClusterRequest(final ActionRequest request) {
+    	// TODO 5.0: Duplicate method, see 	HeaderHelper#isInterClusterRequest
+        return threadContext.getTransient(ConfigConstants.SG_SSL_TRANSPORT_INTERCLUSTER_REQUEST) == Boolean.TRUE;
     }
 
     /**

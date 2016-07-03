@@ -18,10 +18,7 @@
 package com.floragunn.searchguard.auditlog;
 
 import java.io.Closeable;
-import java.io.IOException;
-import java.security.cert.X509Certificate;
 
-import org.elasticsearch.common.ContextAndHeaderHolder;
 import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.transport.TransportRequest;
 

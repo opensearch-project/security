@@ -24,6 +24,7 @@ import javax.xml.bind.DatatypeConverter;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.rest.BytesRestResponse;
 import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestRequest;
@@ -44,7 +45,7 @@ public class HTTPBasicAuthenticator implements HTTPAuthenticator {
     }
 
     @Override
-    public AuthCredentials extractCredentials(final RestRequest request) {
+    public AuthCredentials extractCredentials(final RestRequest request, ThreadContext threadContext) {
 
         final String authorizationHeader = request.header("Authorization");
         final boolean forceLogin = request.paramAsBoolean("force_login", false);
@@ -96,7 +97,7 @@ public class HTTPBasicAuthenticator implements HTTPAuthenticator {
 
     @Override
     public boolean reRequestAuthentication(final RestChannel channel, AuthCredentials creds) {
-        final BytesRestResponse wwwAuthenticateResponse = new BytesRestResponse(RestStatus.UNAUTHORIZED);
+        final BytesRestResponse wwwAuthenticateResponse = new BytesRestResponse(RestStatus.UNAUTHORIZED, "Unauthorized");
         wwwAuthenticateResponse.addHeader("WWW-Authenticate", "Basic realm=\"Search Guard\"");
         channel.sendResponse(wwwAuthenticateResponse);
         return true;

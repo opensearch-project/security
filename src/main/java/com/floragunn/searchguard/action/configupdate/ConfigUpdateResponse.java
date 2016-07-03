@@ -18,6 +18,9 @@
 package com.floragunn.searchguard.action.configupdate;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 
 import org.elasticsearch.action.support.nodes.BaseNodeResponse;
 import org.elasticsearch.action.support.nodes.BaseNodesResponse;
@@ -30,24 +33,28 @@ public class ConfigUpdateResponse extends BaseNodesResponse<ConfigUpdateResponse
 
     public ConfigUpdateResponse() {
     }
-
+    
+    // TODO 5.0: Check usage of empty list for FailedNodeException
     public ConfigUpdateResponse(final ClusterName clusterName, final ConfigUpdateResponse.Node[] nodes) {
-        super(clusterName, nodes);
+        super(clusterName, Arrays.asList(nodes), new LinkedList<>());
     }
 
     @Override
-    public void readFrom(final StreamInput in) throws IOException {
+    public List<ConfigUpdateResponse.Node> readNodesFrom(final StreamInput in) throws IOException {
         super.readFrom(in);
-        nodes = new ConfigUpdateResponse.Node[in.readVInt()];
-        for (int i = 0; i < nodes.length; i++) {
-            nodes[i] = ConfigUpdateResponse.Node.readNodeResponse(in);
+        List<ConfigUpdateResponse.Node> nodes = new LinkedList<ConfigUpdateResponse.Node>();
+        // TODO 5.0: Don't understand previous implementation - should we read until null is returned?
+        ConfigUpdateResponse.Node node = null;
+        while( (node = ConfigUpdateResponse.Node.readNodeResponse(in)) != null) {
+        	nodes.add(node);
         }
+        return nodes;
     }
 
     @Override
-    public void writeTo(final StreamOutput out) throws IOException {
+    public void writeNodesTo(final StreamOutput out, List<ConfigUpdateResponse.Node> nodes) throws IOException {
         super.writeTo(out);
-        out.writeVInt(nodes.length);
+        out.writeVInt(nodes.size());
         for (final ConfigUpdateResponse.Node node : nodes) {
             node.writeTo(out);
         }

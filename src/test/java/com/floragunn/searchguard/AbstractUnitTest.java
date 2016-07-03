@@ -31,6 +31,7 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import javax.net.ssl.SSLContext;
@@ -146,7 +147,7 @@ public abstract class AbstractUnitTest {
     // @formatter:off
     private Settings.Builder getDefaultSettingsBuilder(final int nodenum, final boolean dataNode, final boolean masterNode) {
 
-        return Settings.settingsBuilder()
+        return Settings.builder()
                 .put("node.name", "searchguard_testnode_" + nodenum)
                 .put("node.data", dataNode)
                 .put("node.master", masterNode)
@@ -240,10 +241,8 @@ public abstract class AbstractUnitTest {
 
             final NodesInfoResponse res = esNode1.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet();
             
-            final NodeInfo[] nodes = res.getNodes();
-
-            for (int i = 0; i < nodes.length; i++) {
-                final NodeInfo nodeInfo = nodes[i];
+            final List<NodeInfo> nodes = res.getNodes();
+            for (NodeInfo nodeInfo : nodes) {
                 if (nodeInfo.getHttp() != null && nodeInfo.getHttp().address() != null) {
                     final InetSocketTransportAddress is = (InetSocketTransportAddress) nodeInfo.getHttp().address().publishAddress();
                     httpPort = is.getPort();
@@ -253,8 +252,8 @@ public abstract class AbstractUnitTest {
 
                 final InetSocketTransportAddress is = (InetSocketTransportAddress) nodeInfo.getTransport().getAddress().publishAddress();
                 nodePort = is.getPort();
-                nodeHost = is.getHost();
-            }
+                nodeHost = is.getHost();				
+			}
         } catch (final ElasticsearchTimeoutException e) {
             throw new IOException("timeout, cluster does not respond to health request, cowardly refusing to continue with operations");
         }

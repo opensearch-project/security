@@ -30,8 +30,10 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.http.netty.NettyHttpRequest;
 import org.elasticsearch.rest.RestRequest;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import com.floragunn.searchguard.action.configupdate.TransportConfigUpdateAction;
 import com.floragunn.searchguard.configuration.ConfigChangeListener;
@@ -43,10 +45,12 @@ public class XFFResolver implements ConfigChangeListener{
     private volatile Settings settings;
     private volatile boolean enabled;
     private volatile RemoteIpDetector detector;
-    
+    private final ThreadContext threadContext;
+        
     @Inject
-    public XFFResolver(final TransportConfigUpdateAction tcua) {
+    public XFFResolver(final TransportConfigUpdateAction tcua, ThreadPool threadPool) {
         super();
+        this.threadContext = threadPool.getThreadContext();
         tcua.addConfigChangeListener("config", this);
     }
 
@@ -59,7 +63,7 @@ public class XFFResolver implements ConfigChangeListener{
         if(isInitialized() && enabled && request.getRemoteAddress() instanceof InetSocketAddress && request instanceof NettyHttpRequest) {
             InetSocketAddress isa =new InetSocketAddress(detector.detect((NettyHttpRequest) request), ((InetSocketAddress)request.getRemoteAddress()).getPort());
             TransportAddress retVal = new InetSocketTransportAddress(isa);
-            request.putInContext(ConfigConstants.SG_XFF_DONE, Boolean.TRUE);
+            threadContext.putTransient(ConfigConstants.SG_XFF_DONE, Boolean.TRUE);
             log.debug("xff resolved {} to {}", request.getRemoteAddress(), isa);
             return retVal;
         } else if(request.getRemoteAddress() instanceof InetSocketAddress){

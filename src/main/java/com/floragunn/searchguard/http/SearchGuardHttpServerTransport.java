@@ -22,6 +22,7 @@ import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.http.netty.NettyHttpRequest;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.ssl.SearchGuardKeyStore;
@@ -33,8 +34,8 @@ public class SearchGuardHttpServerTransport extends SearchGuardSSLNettyHttpServe
     
     @Inject
     public SearchGuardHttpServerTransport(Settings settings, NetworkService networkService, 
-            BigArrays bigArrays, SearchGuardKeyStore sgks, AuditLog auditLog) {
-        super(settings, networkService, bigArrays, sgks);
+            BigArrays bigArrays, ThreadPool threadPool, SearchGuardKeyStore sgks, AuditLog auditLog) {
+        super(settings, networkService, bigArrays, threadPool, sgks);
         this.auditLog = auditLog;
     }
 

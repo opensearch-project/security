@@ -21,6 +21,7 @@ import java.util.Objects;
 
 import org.elasticsearch.transport.TransportRequest;
 
+// TODO 5.0: Is this class still needed?
 public class RequestHolder {
     private static final ThreadLocal<RequestHolder> current = new ThreadLocal<RequestHolder>();
     private final TransportRequest request;
@@ -47,6 +48,6 @@ public class RequestHolder {
 
     @Override
     public String toString() {
-        return "RequestHolder [request=" + request==null?null:request.getContext() + "]";
+        return "RequestHolder [request=" + request==null?null:request + "]";
     }
 }

@@ -18,6 +18,7 @@
 package com.floragunn.searchguard.auth;
 
 import org.elasticsearch.ElasticsearchSecurityException;
+import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestRequest;
 
@@ -36,7 +37,7 @@ public interface HTTPAuthenticator {
      * @return The authenticated user, null means another roundtrip
      * @throws ElasticsearchSecurityException
      */
-    AuthCredentials extractCredentials(RestRequest request) throws ElasticsearchSecurityException;
+    AuthCredentials extractCredentials(RestRequest request, ThreadContext context) throws ElasticsearchSecurityException;
     
     boolean reRequestAuthentication(final RestChannel channel, AuthCredentials credentials);
 }

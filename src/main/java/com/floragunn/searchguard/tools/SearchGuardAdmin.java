@@ -46,6 +46,7 @@ import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRespons
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -311,7 +312,7 @@ public class SearchGuardAdmin {
         try (Reader reader = new FileReader(filepath)) {
 
             final String id = tc
-                    .index(new IndexRequest("searchguard").type(type).id("0").refresh(true)
+                    .index(new IndexRequest("searchguard").type(type).id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                             .consistencyLevel(WriteConsistencyLevel.DEFAULT).source(readXContent(reader, XContentType.YAML)))
                             .actionGet().getId();
 

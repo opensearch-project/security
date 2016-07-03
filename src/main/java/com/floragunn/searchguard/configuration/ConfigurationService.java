@@ -23,48 +23,48 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.engine.Engine.Create;
+import org.elasticsearch.common.util.concurrent.ThreadContext;
+import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.index.engine.Engine.Delete;
 import org.elasticsearch.index.engine.Engine.Index;
-import org.elasticsearch.index.indexing.IndexingOperationListener;
+import org.elasticsearch.index.shard.IndexEventListener;
 import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.index.shard.IndexingOperationListener;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.indices.IndicesLifecycle;
-import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.transport.TransportRequest;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateAction;
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateRequest;
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateResponse;
-import com.floragunn.searchguard.support.Base64Helper;
 import com.floragunn.searchguard.support.ConfigConstants;
-import com.google.common.base.Strings;
 
 public class ConfigurationService extends AbstractLifecycleComponent<ConfigurationService> implements Closeable {
 
-    private final IndicesService is;
+    private final IndexModule indexModule;
     private final Client client;
     private final ClusterService cs;
     private final AdminDNs adminDns ;
+	private ThreadContext threadContext;
 
     @Inject
-    public ConfigurationService(final ConfigurationLoader cl, final Settings settings, final IndicesService is, final Client client,
-            final ClusterService cs, AdminDNs adminDns) {
+    public ConfigurationService(final ConfigurationLoader cl, final Settings settings, final IndexModule indexModule, final Client client,
+            final ClusterService cs, AdminDNs adminDns, ThreadPool threadPool) {
         super(settings);
-        this.is = is;
+        this.indexModule = indexModule;
         this.client = client;
         this.cs = cs;
         this.adminDns = adminDns;
+        this.threadContext = threadPool.getThreadContext();
     }
 
     @Override
     protected void doStart() {
-        this.is.indicesLifecycle().addListener(sgIndicesLsListener);
+        this.indexModule.addIndexEventListener(new SearchGuardIndexEventListener());
     }
 
     @Override
@@ -75,16 +75,16 @@ public class ConfigurationService extends AbstractLifecycleComponent<Configurati
     protected void doClose() {
     }
 
-    private final IndicesLifecycle.Listener sgIndicesLsListener = new IndicesLifecycle.Listener() {
-
+    
+    private class SearchGuardIndexEventListener implements IndexEventListener {
         private final ConcurrentHashMap<ShardId, ConfigurationUpdateListener> listeners = new ConcurrentHashMap<ShardId, ConfigurationUpdateListener>();
 
         @Override
         public void afterIndexShardStarted(final IndexShard indexShard) {
 
-            if (indexShard.routingEntry().primary() && indexShard.indexService().index().name().equals("searchguard")) {
-                final ConfigurationUpdateListener auditListener = new ConfigurationUpdateListener(indexShard);
-                indexShard.indexingService().addListener(auditListener);
+            if (indexShard.routingEntry().primary() && indexShard.indexSettings().matchesIndexName("searchguard")) {
+                final ConfigurationUpdateListener auditListener = new ConfigurationUpdateListener(indexShard);                
+                ConfigurationService.this.indexModule.addIndexOperationListener(auditListener);
                 listeners.put(indexShard.shardId(), auditListener);
                 logger.debug("Listener for primary shard {} added", indexShard.shardId());
             }
@@ -95,14 +95,17 @@ public class ConfigurationService extends AbstractLifecycleComponent<Configurati
             final ConfigurationUpdateListener listener = listeners.remove(shardId);
 
             if (listener != null) {
-                indexShard.indexingService().removeListener(listener);
+            	// TODO 5.0: Cannot remove listener from IndexModule
+                //indexShard.indexingService().removeListener(listener);
                 logger.debug("Listener for shard {} removed", shardId);
             }
-        };
-    };
+        };    	
+    }
+    
+    // TODO 5.0: check usage
+    private class ConfigurationUpdateListener implements IndexingOperationListener {
 
-    private class ConfigurationUpdateListener extends IndexingOperationListener {
-
+        // TODO 5.0: Unused?
         private final IndexShard indexShard;
 
         public ConfigurationUpdateListener(final IndexShard indexShard) {
@@ -125,31 +128,22 @@ public class ConfigurationService extends AbstractLifecycleComponent<Configurati
             // configChangeListener.validate(index.type(), toSettings(source));
             // }
 
-            return super.preIndex(index);
+            return index;
         }
 
+        
         @Override
-        public void postIndex(final Index index) {
+        public void postIndex(final Index index, boolean created) {
             callback(index);
-            super.postIndex(index);
         }
 
-        @Override
-        public void postIndexUnderLock(final Index index) {
-            // callback(index);
-            super.postIndexUnderLock(index);
-        }
 
-        @Override
-        public Create preCreate(Create create) {
-            //checkAdmin();//TODO checkAdmin()??
-            return super.preCreate(create);
-        }
         @Override
         public Delete preDelete(Delete delete) {
             //checkAdmin();//TODO checkAdmin()??
-            return super.preDelete(delete);
+        	return delete;
         }
+        
         private void callback(final Index index) {
             final BytesReference source = index.source();
 
@@ -175,7 +169,8 @@ public class ConfigurationService extends AbstractLifecycleComponent<Configurati
                     logger.debug("Send a {} to all nodes", ConfigUpdateAction.NAME);
                     ConfigUpdateRequest cur = new ConfigUpdateRequest(new String[] { index.type() });
                     //cur.putInContext(ConfigConstants.SG_INTERNAL_REQUEST, Boolean.TRUE);
-                    cur.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true");
+                    // TODO 5.0: Correct to put header on thread context here?
+                    threadContext.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true");
                     client.execute(ConfigUpdateAction.INSTANCE, cur,
                             new ActionListener<ConfigUpdateResponse>() {
 

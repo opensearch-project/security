@@ -39,7 +39,9 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.loader.JsonSettingsLoader;
+import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import com.floragunn.searchguard.support.ConfigConstants;
 
@@ -47,11 +49,13 @@ public class ConfigurationLoader {
 
     protected final ESLogger log = Loggers.getLogger(this.getClass());
     private final Provider<Client> client;
+	private final ThreadContext threadContext;
 
     @Inject
-    public ConfigurationLoader(final Provider<Client> client) {
+    public ConfigurationLoader(final Provider<Client> client, ThreadPool threadPool) {
         super();
         this.client = client;
+        this.threadContext = threadPool.getThreadContext();
     }
 
     public Map<String, Settings> load(final String[] events) {
@@ -65,7 +69,7 @@ public class ConfigurationLoader {
             mget.add("searchguard", event, "0");
         }
 
-        mget.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true"); //header needed here
+        threadContext.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true"); //header needed here
         mget.refresh(true);
         mget.realtime(true);
 
@@ -169,7 +173,8 @@ public class ConfigurationLoader {
         }
 
         try {
-            return Settings.builder().put(new JsonSettingsLoader().load(XContentHelper.createParser(ref))).build();
+        	// TODO 5.0: Allow null values in JsonSettingsLoader?
+            return Settings.builder().put(new JsonSettingsLoader(true).load(XContentHelper.createParser(ref))).build();
         } catch (final IOException e) {
             throw ExceptionsHelper.convertToElastic(e);
         }

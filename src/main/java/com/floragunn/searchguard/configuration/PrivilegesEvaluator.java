@@ -38,7 +38,7 @@ import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.RealtimeRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -48,6 +48,8 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.common.util.concurrent.ThreadContext;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportRequest;
 
 import com.floragunn.searchguard.action.configupdate.TransportConfigUpdateAction;
@@ -72,13 +74,14 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
     private volatile Settings roles;
     private final ActionGroupHolder ah;
     private final IndexNameExpressionResolver resolver;
-    private final Map<Class, Method> typeCache = Collections.synchronizedMap(new HashMap(100));
-    private final Map<Class, Method> typesCache = Collections.synchronizedMap(new HashMap(100));
+    private final Map<Class<?>, Method> typeCache = Collections.synchronizedMap(new HashMap<>(100));
+    private final Map<Class<?>, Method> typesCache = Collections.synchronizedMap(new HashMap<>(100));
     private final List<String> allowedAdminActions = new ArrayList<String>();
     private final AuditLog auditLog;
-
+    private ThreadContext threadContext;
+    
     @Inject
-    public PrivilegesEvaluator(final ClusterService clusterService, final TransportConfigUpdateAction tcua, final ActionGroupHolder ah,
+    public PrivilegesEvaluator(final ClusterService clusterService, final ThreadPool threadPool, final TransportConfigUpdateAction tcua, final ActionGroupHolder ah,
             final IndexNameExpressionResolver resolver, AuditLog auditLog) {
         super();
         tcua.addConfigChangeListener("rolesmapping", this);
@@ -87,6 +90,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         this.ah = ah;
         this.resolver = resolver;
         this.auditLog = auditLog;
+        this.threadContext = threadPool.getThreadContext();
         
         
         allowedAdminActions.add("indices:admin/aliases/exists");
@@ -135,7 +139,8 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
             return false;
         }
         
-        final TransportAddress caller = Objects.requireNonNull((TransportAddress) request.getFromContext(ConfigConstants.SG_REMOTE_ADDRESS));
+        
+        final TransportAddress caller = Objects.requireNonNull((TransportAddress) this.threadContext.getTransient(ConfigConstants.SG_REMOTE_ADDRESS));
 
         if (log.isDebugEnabled()) {
             log.debug("evaluate permissions for {}", user);
@@ -348,11 +353,11 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         }
         
         if(!dlsQueries.isEmpty()) {
-            request.putHeader(ConfigConstants.SG_DLS_QUERY, Base64Helper.serializeObject((Serializable)dlsQueries));
+            this.threadContext.putHeader(ConfigConstants.SG_DLS_QUERY, Base64Helper.serializeObject((Serializable)dlsQueries));
         }
         
         if(!flsFields.isEmpty()) {
-            request.putHeader(ConfigConstants.SG_FLS_FIELDS, Base64Helper.serializeObject((Serializable)flsFields));
+        	this.threadContext.putHeader(ConfigConstants.SG_FLS_FIELDS, Base64Helper.serializeObject((Serializable)flsFields));
         }
         
         return allowAction;
@@ -470,7 +475,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
             return;//TODO check create index
         }
         
-        final Set<String> resolvedPermittedAliasesIndex = new HashSet<String>(Arrays.asList(resolver.concreteIndices(
+        final Set<String> resolvedPermittedAliasesIndex = new HashSet<String>(Arrays.asList(resolver.concreteIndexNames(
                 clusterService.state(), IndicesOptions.fromOptions(false, true, true, false), permittedAliasesIndex)));
 
         if (log.isDebugEnabled()) {
@@ -625,7 +630,8 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         final Set<String> indices = new HashSet<String>();
 
         try {
-            indices.addAll(Arrays.asList(resolver.concreteIndices(clusterService.state(), request)));
+        	
+            indices.addAll(Arrays.asList(resolver.concreteIndexNames(clusterService.state(), request)));
             if(log.isDebugEnabled()) {
                 log.debug("Resolved {} to {}", indices);
             }

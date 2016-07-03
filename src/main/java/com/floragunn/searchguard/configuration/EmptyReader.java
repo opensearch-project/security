@@ -27,6 +27,7 @@ import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.Fields;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.PointValues;
 import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedNumericDocValues;
@@ -214,6 +215,11 @@ class EmptyReader extends LeafReader {
         return null;
     }
 
+    @Override
+    public PointValues getPointValues() {
+    	return null;
+    }
+    
     @Override
     public FieldInfos getFieldInfos() {
         return new FieldInfos(new FieldInfo[0]);

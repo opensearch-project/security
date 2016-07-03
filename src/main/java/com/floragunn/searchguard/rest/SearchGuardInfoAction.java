@@ -26,6 +26,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.rest.BaseRestHandler;
 import org.elasticsearch.rest.BytesRestResponse;
@@ -33,6 +34,7 @@ import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.rest.RestStatus;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import com.floragunn.searchguard.configuration.PrivilegesEvaluator;
 import com.floragunn.searchguard.support.ConfigConstants;
@@ -41,10 +43,12 @@ import com.floragunn.searchguard.user.User;
 public class SearchGuardInfoAction extends BaseRestHandler {
 
     private final Provider<PrivilegesEvaluator> evaluator;
+    private final ThreadContext threadContext;
     
     @Inject
-    public SearchGuardInfoAction(final Settings settings, final RestController controller, final Client client, Provider<PrivilegesEvaluator> evaluator) {
-        super(settings, controller, client);
+    public SearchGuardInfoAction(final Settings settings, final RestController controller, final Client client, Provider<PrivilegesEvaluator> evaluator, ThreadPool threadPool) {
+        super(settings, client);
+        this.threadContext = threadPool.getThreadContext();
         this.evaluator = evaluator;
         controller.registerHandler(GET, "/_searchguard/authinfo", this);
     }
@@ -57,13 +61,12 @@ public class SearchGuardInfoAction extends BaseRestHandler {
 
         try {
 
-            final X509Certificate[] certs = request.getFromContext(ConfigConstants.SG_SSL_PEER_CERTIFICATES);
+            final X509Certificate[] certs = threadContext.getTransient(ConfigConstants.SG_SSL_PEER_CERTIFICATES);
             builder.startObject();
-
-            builder.field("user", request.getFromContext(ConfigConstants.SG_USER));
-            builder.field("remote_address", request.getFromContext(ConfigConstants.SG_REMOTE_ADDRESS));
-            builder.field("sg_roles", evaluator.get().mapSgRoles((User) request.getFromContext(ConfigConstants.SG_USER), (TransportAddress) request.getFromContext(ConfigConstants.SG_REMOTE_ADDRESS)));
-            builder.field("principal", request.getFromContext(ConfigConstants.SG_SSL_PRINCIPAL));
+            builder.field("user", (User)threadContext.getTransient(ConfigConstants.SG_USER));
+            builder.field("remote_address", (TransportAddress)threadContext.getTransient(ConfigConstants.SG_REMOTE_ADDRESS));
+            builder.field("sg_roles", evaluator.get().mapSgRoles((User) threadContext.getTransient(ConfigConstants.SG_USER), (TransportAddress) threadContext.getTransient(ConfigConstants.SG_REMOTE_ADDRESS)));
+            builder.field("principal", (String)threadContext.getTransient(ConfigConstants.SG_SSL_PRINCIPAL));
             builder.field("peer_certificates", certs != null && certs.length > 0 ? certs.length + "" : "0");
             //builder.field("_debug_request", LogHelper.toString(request));
             builder.endObject();

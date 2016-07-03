@@ -17,9 +17,9 @@
 
 package com.floragunn.searchguard.support;
 
-import org.elasticsearch.common.ContextAndHeaderHolder;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.util.concurrent.ThreadContext;
 
 public class LogHelper {
 
@@ -38,16 +38,18 @@ public class LogHelper {
         }
     }
     
-    public static String toString(final ContextAndHeaderHolder holder) {
-        final StringBuilder sb = new StringBuilder();
+    public static String toString(final ThreadContext context) {
+        
+    	final StringBuilder sb = new StringBuilder();
         sb.append("Headers:" + System.lineSeparator());
-        for (final String key : holder.getHeaders()) {
-            sb.append(key + "=" + holder.getHeader(key) + System.lineSeparator());
+        for (final String key : context.getHeaders().keySet()) {
+            sb.append(key + "=" + context.getHeaders().get(key) + System.lineSeparator());
         }
-        sb.append("Context:" + System.lineSeparator());
-        for (final Object key : holder.getContext()) {
-            sb.append(key + "=" + holder.getFromContext(key) + System.lineSeparator());
-        }
+        // TODO 5.0: can't access transient headers directly
+//        sb.append("Context:" + System.lineSeparator());
+//        for (final Object key : context.getTransientHeaders().keySet()) {
+//            sb.append(key + "=" + holder.getFromContext(key) + System.lineSeparator());
+//        }
         return sb.toString();
     }
 

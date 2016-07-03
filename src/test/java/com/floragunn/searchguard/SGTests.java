@@ -38,6 +38,7 @@ import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
+import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.common.settings.Settings;
@@ -76,7 +77,7 @@ public class SGTests extends AbstractUnitTest {
     @Test
     public void testDiscoveryWithoutInitialization() throws Exception {
         
-        final Settings settings = Settings.settingsBuilder().put("searchguard.ssl.transport.enabled", true)
+        final Settings settings = Settings.builder().put("searchguard.ssl.transport.enabled", true)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
@@ -88,12 +89,12 @@ public class SGTests extends AbstractUnitTest {
         startES(settings);
         Assert.assertEquals(3, client().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getNumberOfNodes());
         Assert.assertEquals(ClusterHealthStatus.GREEN, client().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus());
-        //Assert.assertEquals(3, client().admin().cluster().nodesInfo(new NodesInfoRequest().all()).actionGet().getNodes().length);
+        //Assert.assertEquals(3, client().admin().cluster().nodesInfo(new NodesInfoRequest().all()).actionGet().getNodes().size());
     }
 
     @Test
     public void testNodeClientDisallowedWithNonServerCertificate() throws Exception {
-        final Settings settings = Settings.settingsBuilder().put("searchguard.ssl.transport.enabled", true)
+        final Settings settings = Settings.builder().put("searchguard.ssl.transport.enabled", true)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
@@ -116,7 +117,7 @@ public class SGTests extends AbstractUnitTest {
         log.debug("Start node client");
         
         try (Node node = new PluginAwareNode(tcSettings, SearchGuardSSLPlugin.class).start()) {
-            Assert.assertEquals(1, node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().length);
+            Assert.assertEquals(1, node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
             Assert.assertEquals(3, client().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getNumberOfNodes());
             
         }
@@ -124,7 +125,7 @@ public class SGTests extends AbstractUnitTest {
     
     @Test
     public void testNodeClientDisallowedWithNonServerCertificateFull() throws Exception {
-        final Settings settings = Settings.settingsBuilder().put("searchguard.ssl.transport.enabled", true)
+        final Settings settings = Settings.builder().put("searchguard.ssl.transport.enabled", true)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
@@ -150,7 +151,7 @@ public class SGTests extends AbstractUnitTest {
         //Node und Transportclient: SG Plugin required? or SSL only ok?
         
         try (Node node = new PluginAwareNode(tcSettings, SearchGuardSSLPlugin.class, SearchGuardPlugin.class).start()) {
-            Assert.assertEquals(1, node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().length);
+            Assert.assertEquals(1, node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
             Assert.assertEquals(3, client().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getNumberOfNodes());
             
         }
@@ -159,7 +160,7 @@ public class SGTests extends AbstractUnitTest {
     @Test
     @Ignore
     public void testNodeClientAllowedWithServerCertificate() throws Exception {
-        final Settings settings = Settings.settingsBuilder().put("searchguard.ssl.transport.enabled", true)
+        final Settings settings = Settings.builder().put("searchguard.ssl.transport.enabled", true)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
@@ -180,7 +181,7 @@ public class SGTests extends AbstractUnitTest {
         log.debug("Start node client");
         
         try (Node node = new PluginAwareNode(tcSettings, SearchGuardSSLPlugin.class).start()) {
-            Assert.assertEquals(4, node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().length);
+            Assert.assertEquals(4, node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
             Assert.assertEquals(4, client().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getNumberOfNodes());
             
         }
@@ -188,7 +189,7 @@ public class SGTests extends AbstractUnitTest {
     
     @Test
     public void ensureInitViaRestWontWork() throws Exception {
-        final Settings settings = Settings.settingsBuilder().put("searchguard.ssl.transport.enabled", true)
+        final Settings settings = Settings.builder().put("searchguard.ssl.transport.enabled", true)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
@@ -229,7 +230,7 @@ public class SGTests extends AbstractUnitTest {
     
     @Test
     public void testHTTPClientCert() throws Exception {
-        final Settings settings = Settings.settingsBuilder().put("searchguard.ssl.transport.enabled", true)
+        final Settings settings = Settings.builder().put("searchguard.ssl.transport.enabled", true)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
@@ -262,48 +263,50 @@ public class SGTests extends AbstractUnitTest {
                 .put(settings)
                 .put("searchguard.ssl.transport.keystore_filepath", getAbsoluteFilePathFromClassPath("kirk-keystore.jks"))
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS,"kirk")
-                .put("path.home", ".").build();
+                .put("path.home", ".")
+                .build();
 
         try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardSSLPlugin.class).build()) {
             
             log.debug("Start transport client to init");
             
             tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
-            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().length);
+            
+            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
 
             tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
-            tc.index(new IndexRequest("searchguard").type("dummy").id("0").refresh(true).source(readYamlContent("sg_config.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("dummy").id("0").source(readYamlContent("sg_config.yml"))).actionGet();
             
             //Thread.sleep(5000);
             
-            tc.index(new IndexRequest("searchguard").type("config").id("0").refresh(true).source(readYamlContent("sg_config_clientcert.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("internalusers").refresh(true).id("0").source(readYamlContent("sg_internal_users.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("roles").id("0").refresh(true).source(readYamlContent("sg_roles.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("rolesmapping").refresh(true).id("0").source(readYamlContent("sg_roles_mapping.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("actiongroups").refresh(true).id("0").source(readYamlContent("sg_action_groups.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("config").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_config_clientcert.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("internalusers").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_internal_users.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("roles").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_roles.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("rolesmapping").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_roles_mapping.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("actiongroups").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_action_groups.yml"))).actionGet();
             
             System.out.println("------- End INIT ---------");
             
-            tc.index(new IndexRequest("vulcangov").type("kolinahr").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("vulcangov").type("secrets").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("vulcangov").type("planet").refresh(true).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("vulcangov").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("vulcangov").type("secrets").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("vulcangov").type("planet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
             
-            tc.index(new IndexRequest("starfleet").type("ships").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("starfleet").type("captains").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("starfleet").type("public").refresh(true).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet").type("captains").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet").type("public").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
             
-            tc.index(new IndexRequest("starfleet_academy").type("students").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("starfleet_academy").type("alumni").refresh(true).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet_academy").type("students").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet_academy").type("alumni").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
             
-            tc.index(new IndexRequest("starfleet_library").type("public").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("starfleet_library").type("administration").refresh(true).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet_library").type("public").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet_library").type("administration").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
             
-            tc.index(new IndexRequest("klingonempire").type("ships").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("klingonempire").type("praxis").refresh(true).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("klingonempire").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("klingonempire").type("praxis").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
             
-            tc.index(new IndexRequest("public").type("legends").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("public").type("hall_of_fame").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("public").type("hall_of_fame").refresh(true).source("{\"content\":2}")).actionGet();
+            tc.index(new IndexRequest("public").type("legends").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("public").type("hall_of_fame").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("public").type("hall_of_fame").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":2}")).actionGet();
             
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAlias("sf", "starfleet","starfleet_academy","starfleet_library")).actionGet();
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAlias("nonsf", "klingonempire","vulcangov")).actionGet();
@@ -330,7 +333,7 @@ public class SGTests extends AbstractUnitTest {
     @Test
     public void testHTTPBasic() throws Exception {
 
-        final Settings settings = Settings.settingsBuilder().put("searchguard.ssl.transport.enabled", true)
+        final Settings settings = Settings.builder().put("searchguard.ssl.transport.enabled", true)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
@@ -366,41 +369,41 @@ public class SGTests extends AbstractUnitTest {
             log.debug("Start transport client to init");
             
             tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
-            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().length);
+            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
 
             tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
-            tc.index(new IndexRequest("searchguard").type("dummy").id("0").refresh(true).source(readYamlContent("sg_config.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("dummy").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_config.yml"))).actionGet();
             
             //Thread.sleep(5000);
             
-            tc.index(new IndexRequest("searchguard").type("config").id("0").refresh(true).source(readYamlContent("sg_config.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("internalusers").refresh(true).id("0").source(readYamlContent("sg_internal_users.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("roles").id("0").refresh(true).source(readYamlContent("sg_roles.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("rolesmapping").refresh(true).id("0").source(readYamlContent("sg_roles_mapping.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("actiongroups").refresh(true).id("0").source(readYamlContent("sg_action_groups.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("config").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_config.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("internalusers").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_internal_users.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("roles").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_roles.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("rolesmapping").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_roles_mapping.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("actiongroups").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_action_groups.yml"))).actionGet();
             
             System.out.println("------- End INIT ---------");
             
-            tc.index(new IndexRequest("vulcangov").type("kolinahr").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("vulcangov").type("secrets").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("vulcangov").type("planet").refresh(true).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("vulcangov").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("vulcangov").type("secrets").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("vulcangov").type("planet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
             
-            tc.index(new IndexRequest("starfleet").type("ships").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("starfleet").type("captains").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("starfleet").type("public").refresh(true).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet").type("captains").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet").type("public").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
             
-            tc.index(new IndexRequest("starfleet_academy").type("students").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("starfleet_academy").type("alumni").refresh(true).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet_academy").type("students").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet_academy").type("alumni").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
             
-            tc.index(new IndexRequest("starfleet_library").type("public").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("starfleet_library").type("administration").refresh(true).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet_library").type("public").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet_library").type("administration").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
             
-            tc.index(new IndexRequest("klingonempire").type("ships").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("klingonempire").type("praxis").refresh(true).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("klingonempire").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("klingonempire").type("praxis").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
             
-            tc.index(new IndexRequest("public").type("legends").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("public").type("hall_of_fame").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("public").type("hall_of_fame").refresh(true).source("{\"content\":2}")).actionGet();
+            tc.index(new IndexRequest("public").type("legends").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("public").type("hall_of_fame").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("public").type("hall_of_fame").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":2}")).actionGet();
             
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAlias("sf", "starfleet","starfleet_academy","starfleet_library")).actionGet();
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAlias("nonsf", "klingonempire","vulcangov")).actionGet();
@@ -461,7 +464,7 @@ public class SGTests extends AbstractUnitTest {
             log.debug("Start transport client to init 2");
             
             tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));            
-            tc.index(new IndexRequest("searchguard").type("roles").id("0").refresh(true).source(readYamlContent("sg_roles_deny.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("roles").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_roles_deny.yml"))).actionGet();
             Thread.sleep(3000);
         }
         
@@ -472,7 +475,7 @@ public class SGTests extends AbstractUnitTest {
             log.debug("Start transport client to init 3");
             
             tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));            
-            tc.index(new IndexRequest("searchguard").type("roles").id("0").refresh(true).source(readYamlContent("sg_roles.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("roles").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_roles.yml"))).actionGet();
             Thread.sleep(5000);
         }
         
@@ -494,7 +497,7 @@ public class SGTests extends AbstractUnitTest {
     @Test
     public void testConfigHotReload() throws Exception {
 
-        final Settings settings = Settings.settingsBuilder().put("searchguard.ssl.transport.enabled", true)
+        final Settings settings = Settings.builder().put("searchguard.ssl.transport.enabled", true)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
@@ -530,21 +533,21 @@ public class SGTests extends AbstractUnitTest {
             log.debug("Start transport client to init");
             
             tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
-            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().length);
+            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
 
             tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
-            tc.index(new IndexRequest("searchguard").type("dummy").id("0").refresh(true).source(readYamlContent("sg_config.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("dummy").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_config.yml"))).actionGet();
             
             //Thread.sleep(5000);
             
-            tc.index(new IndexRequest("searchguard").type("config").id("0").refresh(true).source(readYamlContent("sg_config.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("config").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_config.yml"))).actionGet();
             
             //Thread.sleep(500000);
             
-            tc.index(new IndexRequest("searchguard").type("internalusers").refresh(true).id("0").source(readYamlContent("sg_internal_users.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("roles").id("0").refresh(true).source(readYamlContent("sg_roles.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("rolesmapping").refresh(true).id("0").source(readYamlContent("sg_roles_mapping.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("actiongroups").refresh(true).id("0").source(readYamlContent("sg_action_groups.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("internalusers").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_internal_users.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("roles").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_roles.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("rolesmapping").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_roles_mapping.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("actiongroups").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_action_groups.yml"))).actionGet();
         }
         
         
@@ -566,8 +569,8 @@ public class SGTests extends AbstractUnitTest {
             log.debug("Start transport client to init");
             
             tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
-            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().length);
-            tc.index(new IndexRequest("searchguard").type("internalusers").refresh(true).id("0").source(readYamlContent("sg_internal_users_spock_add_roles.yml"))).actionGet();
+            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
+            tc.index(new IndexRequest("searchguard").type("internalusers").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_internal_users_spock_add_roles.yml"))).actionGet();
            }
         Thread.sleep(2000);  
         
@@ -586,8 +589,8 @@ public class SGTests extends AbstractUnitTest {
             log.debug("Start transport client to init");
             
             tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
-            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().length);
-            tc.index(new IndexRequest("searchguard").type("config").refresh(true).id("0").source(readYamlContent("sg_config_host.yml"))).actionGet();
+            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
+            tc.index(new IndexRequest("searchguard").type("config").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_config_host.yml"))).actionGet();
            }
         Thread.sleep(2000);  
         
@@ -606,7 +609,7 @@ public class SGTests extends AbstractUnitTest {
     @Test
     public void testCreateIndex() throws Exception {
 
-        final Settings settings = Settings.settingsBuilder().put("searchguard.ssl.transport.enabled", true)
+        final Settings settings = Settings.builder().put("searchguard.ssl.transport.enabled", true)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
@@ -630,27 +633,27 @@ public class SGTests extends AbstractUnitTest {
             log.debug("Start transport client to init");
             
             tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
-            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().length);
+            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
 
             tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
-            tc.index(new IndexRequest("searchguard").type("dummy").id("0").refresh(true).source(readYamlContent("sg_config.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("dummy").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_config.yml"))).actionGet();
             
             //Thread.sleep(5000);
             
-            tc.index(new IndexRequest("searchguard").type("config").id("0").refresh(true).source(readYamlContent("sg_config.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("internalusers").refresh(true).id("0").source(readYamlContent("sg_internal_users.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("roles").id("0").refresh(true).source(readYamlContent("sg_roles.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("rolesmapping").refresh(true).id("0").source(readYamlContent("sg_roles_mapping.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("actiongroups").refresh(true).id("0").source(readYamlContent("sg_action_groups.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("config").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_config.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("internalusers").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_internal_users.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("roles").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_roles.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("rolesmapping").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_roles_mapping.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("actiongroups").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_action_groups.yml"))).actionGet();
             
             System.out.println("------- End INIT ---------");
                      
-            tc.index(new IndexRequest("starfleet").type("ships").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("starfleet").type("captains").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("starfleet").type("public").refresh(true).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet").type("captains").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet").type("public").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
             
-            tc.index(new IndexRequest("starfleet_academy").type("students").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("starfleet_academy").type("alumni").refresh(true).source("{\"content\":1}")).actionGet();           
+            tc.index(new IndexRequest("starfleet_academy").type("students").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet_academy").type("alumni").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();           
             IndicesAliasesResponse r = tc.admin().indices().aliases(new IndicesAliasesRequest().addAlias("sf", "starfleet","starfleet_academy")).actionGet();
             Assert.assertTrue(r.isAcknowledged());
         }
@@ -674,7 +677,7 @@ public class SGTests extends AbstractUnitTest {
     @Test
     public void testHTTPProxy() throws Exception {
 
-        final Settings settings = Settings.settingsBuilder().put("searchguard.ssl.transport.enabled", true)
+        final Settings settings = Settings.builder().put("searchguard.ssl.transport.enabled", true)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
@@ -699,41 +702,41 @@ public class SGTests extends AbstractUnitTest {
             log.debug("Start transport client to init");
             
             tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
-            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().length);
+            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
 
             tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
-            tc.index(new IndexRequest("searchguard").type("dummy").id("0").refresh(true).source(readYamlContent("sg_config_proxy.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("dummy").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_config_proxy.yml"))).actionGet();
             
             //Thread.sleep(5000);
             
-            tc.index(new IndexRequest("searchguard").type("config").id("0").refresh(true).source(readYamlContent("sg_config_proxy.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("internalusers").refresh(true).id("0").source(readYamlContent("sg_internal_users.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("roles").id("0").refresh(true).source(readYamlContent("sg_roles.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("rolesmapping").refresh(true).id("0").source(readYamlContent("sg_roles_mapping.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("actiongroups").refresh(true).id("0").source(readYamlContent("sg_action_groups.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("config").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_config_proxy.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("internalusers").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_internal_users.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("roles").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_roles.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("rolesmapping").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_roles_mapping.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("actiongroups").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_action_groups.yml"))).actionGet();
             
             System.out.println("------- End INIT ---------");
             
-            tc.index(new IndexRequest("vulcangov").type("kolinahr").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("vulcangov").type("secrets").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("vulcangov").type("planet").refresh(true).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("vulcangov").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("vulcangov").type("secrets").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("vulcangov").type("planet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
             
-            tc.index(new IndexRequest("starfleet").type("ships").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("starfleet").type("captains").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("starfleet").type("public").refresh(true).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet").type("captains").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet").type("public").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
             
-            tc.index(new IndexRequest("starfleet_academy").type("students").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("starfleet_academy").type("alumni").refresh(true).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet_academy").type("students").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet_academy").type("alumni").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
             
-            tc.index(new IndexRequest("starfleet_library").type("public").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("starfleet_library").type("administration").refresh(true).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet_library").type("public").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet_library").type("administration").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
             
-            tc.index(new IndexRequest("klingonempire").type("ships").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("klingonempire").type("praxis").refresh(true).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("klingonempire").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("klingonempire").type("praxis").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
             
-            tc.index(new IndexRequest("public").type("legends").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("public").type("hall_of_fame").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("public").type("hall_of_fame").refresh(true).source("{\"content\":2}")).actionGet();
+            tc.index(new IndexRequest("public").type("legends").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("public").type("hall_of_fame").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("public").type("hall_of_fame").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":2}")).actionGet();
             
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAlias("sf", "starfleet","starfleet_academy","starfleet_library")).actionGet();
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAlias("nonsf", "klingonempire","vulcangov")).actionGet();
@@ -756,7 +759,7 @@ public class SGTests extends AbstractUnitTest {
 
         Assume.assumeTrue(ReflectionHelper.canLoad("com.floragunn.dlic.auth.ldap.srv.EmbeddedLDAPServer"));
         
-        final Settings settings = Settings.settingsBuilder().put("searchguard.ssl.transport.enabled", true)
+        final Settings settings = Settings.builder().put("searchguard.ssl.transport.enabled", true)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
@@ -785,41 +788,41 @@ public class SGTests extends AbstractUnitTest {
             log.debug("Start transport client to init");
             
             tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
-            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().length);
+            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
 
             tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
-            tc.index(new IndexRequest("searchguard").type("dummy").id("0").refresh(true).source(readYamlContent("sg_config_ldap.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("dummy").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_config_ldap.yml"))).actionGet();
             
             //Thread.sleep(5000);
             
-            tc.index(new IndexRequest("searchguard").type("config").id("0").refresh(true).source(readYamlContent("sg_config_ldap.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("internalusers").refresh(true).id("0").source(readYamlContent("sg_internal_users.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("roles").id("0").refresh(true).source(readYamlContent("sg_roles.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("rolesmapping").refresh(true).id("0").source(readYamlContent("sg_roles_mapping.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("actiongroups").refresh(true).id("0").source(readYamlContent("sg_action_groups.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("config").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_config_ldap.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("internalusers").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_internal_users.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("roles").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_roles.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("rolesmapping").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_roles_mapping.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("actiongroups").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_action_groups.yml"))).actionGet();
             
             System.out.println("------- End INIT ---------");
             
-            tc.index(new IndexRequest("vulcangov").type("kolinahr").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("vulcangov").type("secrets").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("vulcangov").type("planet").refresh(true).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("vulcangov").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("vulcangov").type("secrets").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("vulcangov").type("planet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
             
-            tc.index(new IndexRequest("starfleet").type("ships").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("starfleet").type("captains").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("starfleet").type("public").refresh(true).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet").type("captains").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet").type("public").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
             
-            tc.index(new IndexRequest("starfleet_academy").type("students").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("starfleet_academy").type("alumni").refresh(true).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet_academy").type("students").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet_academy").type("alumni").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
             
-            tc.index(new IndexRequest("starfleet_library").type("public").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("starfleet_library").type("administration").refresh(true).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet_library").type("public").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet_library").type("administration").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
             
-            tc.index(new IndexRequest("klingonempire").type("ships").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("klingonempire").type("praxis").refresh(true).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("klingonempire").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("klingonempire").type("praxis").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
             
-            tc.index(new IndexRequest("public").type("legends").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("public").type("hall_of_fame").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("public").type("hall_of_fame").refresh(true).source("{\"content\":2}")).actionGet();
+            tc.index(new IndexRequest("public").type("legends").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("public").type("hall_of_fame").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("public").type("hall_of_fame").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":2}")).actionGet();
             
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAlias("sf", "starfleet","starfleet_academy","starfleet_library")).actionGet();
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAlias("nonsf", "klingonempire","vulcangov")).actionGet();
@@ -844,7 +847,7 @@ public class SGTests extends AbstractUnitTest {
     @Test
     public void testTransportClient() throws Exception {
 
-        final Settings settings = Settings.settingsBuilder().put("searchguard.ssl.transport.enabled", true)
+        final Settings settings = Settings.builder().put("searchguard.ssl.transport.enabled", true)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
@@ -882,22 +885,22 @@ public class SGTests extends AbstractUnitTest {
             log.debug("Start transport client to init");
             
             tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
-            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().length);
+            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
 
             tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
-            tc.index(new IndexRequest("searchguard").type("dummy").id("0").refresh(true).source(readYamlContent("sg_config.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("dummy").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_config.yml"))).actionGet();
             
             System.out.println("------- Begin INIT ---------");
             
             //Thread.sleep(5000);
             
-            tc.index(new IndexRequest("searchguard").type("config").id("0").refresh(true).source(readYamlContent("sg_config.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("internalusers").refresh(true).id("0").source(readYamlContent("sg_internal_users.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("roles").id("0").refresh(true).source(readYamlContent("sg_roles.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("rolesmapping").refresh(true).id("0").source(readYamlContent("sg_roles_mapping.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("actiongroups").refresh(true).id("0").source(readYamlContent("sg_action_groups.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("config").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_config.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("internalusers").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_internal_users.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("roles").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_roles.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("rolesmapping").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_roles_mapping.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("actiongroups").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_action_groups.yml"))).actionGet();
             
-            tc.index(new IndexRequest("starfleet").type("ships").refresh(true).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
             
             //init is somewhat async
             Thread.sleep(2000);
@@ -919,7 +922,7 @@ public class SGTests extends AbstractUnitTest {
             log.debug("Start transport client to use");
             
             tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
-            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().length);
+            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
             
             System.out.println("------- 1 ---------");
             
@@ -928,7 +931,7 @@ public class SGTests extends AbstractUnitTest {
             
             System.out.println("------- 2 ---------");
             
-            IndexResponse ir = tc.index(new IndexRequest("vulcan").type("secrets").id("s1").refresh(true).source("{\"secret\":true}")).actionGet();
+            IndexResponse ir = tc.index(new IndexRequest("vulcan").type("secrets").id("s1").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"secret\":true}")).actionGet();
             Assert.assertTrue(ir.isCreated());
             
             System.out.println("------- 3 ---------");
@@ -972,43 +975,43 @@ public class SGTests extends AbstractUnitTest {
             
             System.out.println("------- 10 ---------");
             
-            
-            //impersonation
-            try {
-                gr = tc.prepareGet("vulcan", "secrets", "s1").putHeader("sg_impersonate_as", "worf").get();
-                Assert.fail();
-            } catch (ElasticsearchSecurityException e) {
-               Assert.assertEquals("no permissions for indices:data/read/get", e.getMessage());
-            }
-            
-            System.out.println("------- 11 ---------");
-            
-            
-            //impersonation
-            try {
-                gr = tc.prepareGet("vulcan", "secrets", "s1").putHeader("sg_impersonate_as", "gkar").get();
-                Assert.fail();
-            } catch (ElasticsearchSecurityException e) {
-               Assert.assertEquals("'CN=spock,OU=client,O=client,L=Test,C=DE' is not allowed to impersonate as 'gkar'", e.getMessage());
-            }
-            
-            System.out.println("------- 12 ---------");
-            
-            gr = tc.prepareGet("searchguard", "config", "0").putHeader("sg_impersonate_as", "nagilum").setRealtime(Boolean.TRUE).get();
-            Assert.assertFalse(gr.isExists());
-            Assert.assertTrue(gr.isSourceEmpty());
-            
-            
-            System.out.println("------- 13 ---------");
-          
-            gr = tc.prepareGet("searchguard", "config", "0").putHeader("sg_impersonate_as", "nagilum").setRealtime(Boolean.FALSE).get();
-            Assert.assertFalse(gr.isExists());
-            Assert.assertTrue(gr.isSourceEmpty());
-            
-            
-            SearchResponse searchRes = tc.prepareSearch("starfleet").setTypes("ships").setScroll(TimeValue.timeValueMinutes(5)).putHeader("sg_impersonate_as", "nagilum").get();
-            SearchResponse scrollRes = tc.prepareSearchScroll(searchRes.getScrollId()).putHeader("sg_impersonate_as", "worf").get();
-            
+            // TODO 5.0: How to deal with header values here?
+//            //impersonation
+//            try {
+//                gr = tc.prepareGet("vulcan", "secrets", "s1"). putHeader("sg_impersonate_as", "worf").get();
+//                Assert.fail();
+//            } catch (ElasticsearchSecurityException e) {
+//               Assert.assertEquals("no permissions for indices:data/read/get", e.getMessage());
+//            }
+//            
+//            System.out.println("------- 11 ---------");
+//            
+//            
+//            //impersonation
+//            try {
+//                gr = tc.prepareGet("vulcan", "secrets", "s1").putHeader("sg_impersonate_as", "gkar").get();
+//                Assert.fail();
+//            } catch (ElasticsearchSecurityException e) {
+//               Assert.assertEquals("'CN=spock,OU=client,O=client,L=Test,C=DE' is not allowed to impersonate as 'gkar'", e.getMessage());
+//            }
+//            
+//            System.out.println("------- 12 ---------");
+//            
+//            gr = tc.prepareGet("searchguard", "config", "0").putHeader("sg_impersonate_as", "nagilum").setRealtime(Boolean.TRUE).get();
+//            Assert.assertFalse(gr.isExists());
+//            Assert.assertTrue(gr.isSourceEmpty());
+//            
+//            
+//            System.out.println("------- 13 ---------");
+//            tc.
+//            gr = tc.prepareGet("searchguard", "config", "0").putHeader("sg_impersonate_as", "nagilum").setRealtime(Boolean.FALSE).get();
+//            Assert.assertFalse(gr.isExists());
+//            Assert.assertTrue(gr.isSourceEmpty());
+//            
+//            
+//            SearchResponse searchRes = tc.prepareSearch("starfleet").setTypes("ships").setScroll(TimeValue.timeValueMinutes(5)).putHeader("sg_impersonate_as", "nagilum").get();
+//            SearchResponse scrollRes = tc.prepareSearchScroll(searchRes.getScrollId()).putHeader("sg_impersonate_as", "worf").get();
+//            
             
             
             System.out.println("------- TRC end ---------");
@@ -1030,7 +1033,7 @@ public class SGTests extends AbstractUnitTest {
         trustHTTPServerCertificate = true;
         sendHTTPClientCertificate = true;
 
-        final Settings settings = Settings.settingsBuilder().put("searchguard.ssl.transport.enabled", false)
+        final Settings settings = Settings.builder().put("searchguard.ssl.transport.enabled", false)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_KEYSTORE_ALIAS, "node-0").put("searchguard.ssl.http.enabled", true)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
@@ -1049,7 +1052,7 @@ public class SGTests extends AbstractUnitTest {
     @Test
     public void testSpecialUsernames() throws Exception {
 
-        final Settings settings = Settings.settingsBuilder().put("searchguard.ssl.transport.enabled", true)
+        final Settings settings = Settings.builder().put("searchguard.ssl.transport.enabled", true)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
@@ -1085,41 +1088,41 @@ public class SGTests extends AbstractUnitTest {
             log.debug("Start transport client to init");
             
             tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
-            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().length);
+            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
 
             tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
-            tc.index(new IndexRequest("searchguard").type("dummy").id("0").refresh(true).source(readYamlContent("sg_config.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("dummy").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_config.yml"))).actionGet();
             
             //Thread.sleep(5000);
             
-            tc.index(new IndexRequest("searchguard").type("config").id("0").refresh(true).source(readYamlContent("sg_config.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("internalusers").refresh(true).id("0").source(readYamlContent("sg_internal_users.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("roles").id("0").refresh(true).source(readYamlContent("sg_roles.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("rolesmapping").refresh(true).id("0").source(readYamlContent("sg_roles_mapping.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("actiongroups").refresh(true).id("0").source(readYamlContent("sg_action_groups.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("config").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_config.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("internalusers").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_internal_users.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("roles").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_roles.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("rolesmapping").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_roles_mapping.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("actiongroups").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_action_groups.yml"))).actionGet();
             
             System.out.println("------- End INIT ---------");
             
-            tc.index(new IndexRequest("vulcangov").type("kolinahr").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("vulcangov").type("secrets").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("vulcangov").type("planet").refresh(true).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("vulcangov").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("vulcangov").type("secrets").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("vulcangov").type("planet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
             
-            tc.index(new IndexRequest("starfleet").type("ships").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("starfleet").type("captains").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("starfleet").type("public").refresh(true).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet").type("captains").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet").type("public").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
             
-            tc.index(new IndexRequest("starfleet_academy").type("students").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("starfleet_academy").type("alumni").refresh(true).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet_academy").type("students").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet_academy").type("alumni").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
             
-            tc.index(new IndexRequest("starfleet_library").type("public").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("starfleet_library").type("administration").refresh(true).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet_library").type("public").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet_library").type("administration").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
             
-            tc.index(new IndexRequest("klingonempire").type("ships").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("klingonempire").type("praxis").refresh(true).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("klingonempire").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("klingonempire").type("praxis").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
             
-            tc.index(new IndexRequest("public").type("legends").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("public").type("hall_of_fame").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("public").type("hall_of_fame").refresh(true).source("{\"content\":2}")).actionGet();
+            tc.index(new IndexRequest("public").type("legends").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("public").type("hall_of_fame").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("public").type("hall_of_fame").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":2}")).actionGet();
             
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAlias("sf", "starfleet","starfleet_academy","starfleet_library")).actionGet();
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAlias("nonsf", "klingonempire","vulcangov")).actionGet();
@@ -1142,7 +1145,7 @@ public class SGTests extends AbstractUnitTest {
 
             Assume.assumeTrue(ReflectionHelper.canLoad("com.floragunn.searchguard.configuration.SearchGuardFlsDlsIndexSearcherWrapper"));
         
-            final Settings settings = Settings.settingsBuilder().put("searchguard.ssl.transport.enabled", true)
+            final Settings settings = Settings.builder().put("searchguard.ssl.transport.enabled", true)
                     .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                     .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                     .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
@@ -1178,41 +1181,41 @@ public class SGTests extends AbstractUnitTest {
                 log.debug("Start transport client to init");
                 
                 tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
-                Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().length);
+                Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
     
                 tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
-                tc.index(new IndexRequest("searchguard").type("dummy").id("0").refresh(true).source(readYamlContent("sg_config.yml"))).actionGet();
+                tc.index(new IndexRequest("searchguard").type("dummy").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_config.yml"))).actionGet();
                 
                 //Thread.sleep(5000);
                 
-                tc.index(new IndexRequest("searchguard").type("config").id("0").refresh(true).source(readYamlContent("sg_config.yml"))).actionGet();
-                tc.index(new IndexRequest("searchguard").type("internalusers").refresh(true).id("0").source(readYamlContent("sg_internal_users.yml"))).actionGet();
-                tc.index(new IndexRequest("searchguard").type("roles").id("0").refresh(true).source(readYamlContent("sg_roles.yml"))).actionGet();
-                tc.index(new IndexRequest("searchguard").type("rolesmapping").refresh(true).id("0").source(readYamlContent("sg_roles_mapping.yml"))).actionGet();
-                tc.index(new IndexRequest("searchguard").type("actiongroups").refresh(true).id("0").source(readYamlContent("sg_action_groups.yml"))).actionGet();
+                tc.index(new IndexRequest("searchguard").type("config").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_config.yml"))).actionGet();
+                tc.index(new IndexRequest("searchguard").type("internalusers").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_internal_users.yml"))).actionGet();
+                tc.index(new IndexRequest("searchguard").type("roles").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_roles.yml"))).actionGet();
+                tc.index(new IndexRequest("searchguard").type("rolesmapping").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_roles_mapping.yml"))).actionGet();
+                tc.index(new IndexRequest("searchguard").type("actiongroups").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_action_groups.yml"))).actionGet();
                 
                 System.out.println("------- End INIT ---------");
                 
-                tc.index(new IndexRequest("vulcangov").type("kolinahr").refresh(true).source("{\"content\":1}")).actionGet();
-                tc.index(new IndexRequest("vulcangov").type("secrets").refresh(true).source("{\"content\":1}")).actionGet();
-                tc.index(new IndexRequest("vulcangov").type("planet").refresh(true).source("{\"content\":1}")).actionGet();
+                tc.index(new IndexRequest("vulcangov").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+                tc.index(new IndexRequest("vulcangov").type("secrets").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+                tc.index(new IndexRequest("vulcangov").type("planet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
                 
-                tc.index(new IndexRequest("starfleet").type("ships").refresh(true).source("{\"content\":1}")).actionGet();
-                tc.index(new IndexRequest("starfleet").type("captains").refresh(true).source("{\"content\":1}")).actionGet();
-                tc.index(new IndexRequest("starfleet").type("public").refresh(true).source("{\"content\":1}")).actionGet();
+                tc.index(new IndexRequest("starfleet").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+                tc.index(new IndexRequest("starfleet").type("captains").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+                tc.index(new IndexRequest("starfleet").type("public").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
                 
-                tc.index(new IndexRequest("starfleet_academy").type("students").refresh(true).source("{\"content\":1}")).actionGet();
-                tc.index(new IndexRequest("starfleet_academy").type("alumni").refresh(true).source("{\"content\":1}")).actionGet();
+                tc.index(new IndexRequest("starfleet_academy").type("students").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+                tc.index(new IndexRequest("starfleet_academy").type("alumni").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
                 
-                tc.index(new IndexRequest("starfleet_library").type("public").refresh(true).source("{\"content\":1}")).actionGet();
-                tc.index(new IndexRequest("starfleet_library").type("administration").refresh(true).source("{\"content\":1}")).actionGet();
+                tc.index(new IndexRequest("starfleet_library").type("public").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+                tc.index(new IndexRequest("starfleet_library").type("administration").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
                 
-                tc.index(new IndexRequest("klingonempire").type("ships").refresh(true).source("{\"content\":1}")).actionGet();
-                tc.index(new IndexRequest("klingonempire").type("praxis").refresh(true).source("{\"content\":1}")).actionGet();
+                tc.index(new IndexRequest("klingonempire").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+                tc.index(new IndexRequest("klingonempire").type("praxis").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
                 
-                tc.index(new IndexRequest("public").type("legends").refresh(true).source("{\"content\":1}")).actionGet();
-                tc.index(new IndexRequest("public").type("hall_of_fame").refresh(true).source("{\"content\":1}")).actionGet();
-                tc.index(new IndexRequest("public").type("hall_of_fame").refresh(true).source("{\"content\":2}")).actionGet();
+                tc.index(new IndexRequest("public").type("legends").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+                tc.index(new IndexRequest("public").type("hall_of_fame").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+                tc.index(new IndexRequest("public").type("hall_of_fame").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":2}")).actionGet();
                 
                 tc.admin().indices().aliases(new IndicesAliasesRequest().addAlias("sf", "starfleet","starfleet_academy","starfleet_library")).actionGet();
                 tc.admin().indices().aliases(new IndicesAliasesRequest().addAlias("nonsf", "klingonempire","vulcangov")).actionGet();
@@ -1234,7 +1237,7 @@ public class SGTests extends AbstractUnitTest {
     @Test
         public void testHTTPAnon() throws Exception {
     
-            final Settings settings = Settings.settingsBuilder().put("searchguard.ssl.transport.enabled", true)
+            final Settings settings = Settings.builder().put("searchguard.ssl.transport.enabled", true)
                     .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                     .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                     .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
@@ -1270,41 +1273,41 @@ public class SGTests extends AbstractUnitTest {
                 log.debug("Start transport client to init");
                 
                 tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
-                Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().length);
+                Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
     
                 tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
-                tc.index(new IndexRequest("searchguard").type("dummy").id("0").refresh(true).source(readYamlContent("sg_config.yml"))).actionGet();
+                tc.index(new IndexRequest("searchguard").type("dummy").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_config.yml"))).actionGet();
                 
                 //Thread.sleep(5000);
                 
-                tc.index(new IndexRequest("searchguard").type("config").id("0").refresh(true).source(readYamlContent("sg_config_anon.yml"))).actionGet();
-                tc.index(new IndexRequest("searchguard").type("internalusers").refresh(true).id("0").source(readYamlContent("sg_internal_users.yml"))).actionGet();
-                tc.index(new IndexRequest("searchguard").type("roles").id("0").refresh(true).source(readYamlContent("sg_roles.yml"))).actionGet();
-                tc.index(new IndexRequest("searchguard").type("rolesmapping").refresh(true).id("0").source(readYamlContent("sg_roles_mapping.yml"))).actionGet();
-                tc.index(new IndexRequest("searchguard").type("actiongroups").refresh(true).id("0").source(readYamlContent("sg_action_groups.yml"))).actionGet();
+                tc.index(new IndexRequest("searchguard").type("config").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_config_anon.yml"))).actionGet();
+                tc.index(new IndexRequest("searchguard").type("internalusers").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_internal_users.yml"))).actionGet();
+                tc.index(new IndexRequest("searchguard").type("roles").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_roles.yml"))).actionGet();
+                tc.index(new IndexRequest("searchguard").type("rolesmapping").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_roles_mapping.yml"))).actionGet();
+                tc.index(new IndexRequest("searchguard").type("actiongroups").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_action_groups.yml"))).actionGet();
                 
                 System.out.println("------- End INIT ---------");
                 
-                tc.index(new IndexRequest("vulcangov").type("kolinahr").refresh(true).source("{\"content\":1}")).actionGet();
-                tc.index(new IndexRequest("vulcangov").type("secrets").refresh(true).source("{\"content\":1}")).actionGet();
-                tc.index(new IndexRequest("vulcangov").type("planet").refresh(true).source("{\"content\":1}")).actionGet();
+                tc.index(new IndexRequest("vulcangov").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+                tc.index(new IndexRequest("vulcangov").type("secrets").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+                tc.index(new IndexRequest("vulcangov").type("planet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
                 
-                tc.index(new IndexRequest("starfleet").type("ships").refresh(true).source("{\"content\":1}")).actionGet();
-                tc.index(new IndexRequest("starfleet").type("captains").refresh(true).source("{\"content\":1}")).actionGet();
-                tc.index(new IndexRequest("starfleet").type("public").refresh(true).source("{\"content\":1}")).actionGet();
+                tc.index(new IndexRequest("starfleet").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+                tc.index(new IndexRequest("starfleet").type("captains").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+                tc.index(new IndexRequest("starfleet").type("public").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
                 
-                tc.index(new IndexRequest("starfleet_academy").type("students").refresh(true).source("{\"content\":1}")).actionGet();
-                tc.index(new IndexRequest("starfleet_academy").type("alumni").refresh(true).source("{\"content\":1}")).actionGet();
+                tc.index(new IndexRequest("starfleet_academy").type("students").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+                tc.index(new IndexRequest("starfleet_academy").type("alumni").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
                 
-                tc.index(new IndexRequest("starfleet_library").type("public").refresh(true).source("{\"content\":1}")).actionGet();
-                tc.index(new IndexRequest("starfleet_library").type("administration").refresh(true).source("{\"content\":1}")).actionGet();
+                tc.index(new IndexRequest("starfleet_library").type("public").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+                tc.index(new IndexRequest("starfleet_library").type("administration").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
                 
-                tc.index(new IndexRequest("klingonempire").type("ships").refresh(true).source("{\"content\":1}")).actionGet();
-                tc.index(new IndexRequest("klingonempire").type("praxis").refresh(true).source("{\"content\":1}")).actionGet();
+                tc.index(new IndexRequest("klingonempire").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+                tc.index(new IndexRequest("klingonempire").type("praxis").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
                 
-                tc.index(new IndexRequest("public").type("legends").refresh(true).source("{\"content\":1}")).actionGet();
-                tc.index(new IndexRequest("public").type("hall_of_fame").refresh(true).source("{\"content\":1}")).actionGet();
-                tc.index(new IndexRequest("public").type("hall_of_fame").refresh(true).source("{\"content\":2}")).actionGet();
+                tc.index(new IndexRequest("public").type("legends").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+                tc.index(new IndexRequest("public").type("hall_of_fame").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+                tc.index(new IndexRequest("public").type("hall_of_fame").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":2}")).actionGet();
                 
                 tc.admin().indices().aliases(new IndicesAliasesRequest().addAlias("sf", "starfleet","starfleet_academy","starfleet_library")).actionGet();
                 tc.admin().indices().aliases(new IndicesAliasesRequest().addAlias("nonsf", "klingonempire","vulcangov")).actionGet();
@@ -1335,10 +1338,10 @@ public class SGTests extends AbstractUnitTest {
                 log.debug("Start transport client to init");
                 
                 tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
-                Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().length);
+                Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
     
-                tc.index(new IndexRequest("searchguard").type("config").id("0").refresh(true).source(readYamlContent("sg_config.yml"))).actionGet();
-                tc.index(new IndexRequest("searchguard").type("internalusers").refresh(true).id("0").source(readYamlContent("sg_internal_users.yml"))).actionGet();
+                tc.index(new IndexRequest("searchguard").type("config").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_config.yml"))).actionGet();
+                tc.index(new IndexRequest("searchguard").type("internalusers").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_internal_users.yml"))).actionGet();
                
              }
             
@@ -1355,7 +1358,7 @@ public class SGTests extends AbstractUnitTest {
     
         Assume.assumeTrue(ReflectionHelper.canLoad("com.floragunn.dlic.auth.ldap.srv.EmbeddedLDAPServer"));
         
-        final Settings settings = Settings.settingsBuilder().put("searchguard.ssl.transport.enabled", true)
+        final Settings settings = Settings.builder().put("searchguard.ssl.transport.enabled", true)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
@@ -1384,41 +1387,41 @@ public class SGTests extends AbstractUnitTest {
             log.debug("Start transport client to init");
             
             tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
-            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().length);
+            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
     
             tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
-            tc.index(new IndexRequest("searchguard").type("dummy").id("0").refresh(true).source(readYamlContent("sg_config_ldap.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("dummy").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_config_ldap.yml"))).actionGet();
             
             //Thread.sleep(5000);
             
-            tc.index(new IndexRequest("searchguard").type("config").id("0").refresh(true).source(readYamlContent("sg_config_ldap.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("internalusers").refresh(true).id("0").source(readYamlContent("sg_internal_users.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("roles").id("0").refresh(true).source(readYamlContent("sg_roles.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("rolesmapping").refresh(true).id("0").source(readYamlContent("sg_roles_mapping.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("actiongroups").refresh(true).id("0").source(readYamlContent("sg_action_groups.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("config").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_config_ldap.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("internalusers").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_internal_users.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("roles").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_roles.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("rolesmapping").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_roles_mapping.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("actiongroups").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_action_groups.yml"))).actionGet();
             
             System.out.println("------- End INIT ---------");
             
-            tc.index(new IndexRequest("vulcangov").type("kolinahr").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("vulcangov").type("secrets").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("vulcangov").type("planet").refresh(true).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("vulcangov").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("vulcangov").type("secrets").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("vulcangov").type("planet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
             
-            tc.index(new IndexRequest("starfleet").type("ships").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("starfleet").type("captains").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("starfleet").type("public").refresh(true).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet").type("captains").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet").type("public").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
             
-            tc.index(new IndexRequest("starfleet_academy").type("students").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("starfleet_academy").type("alumni").refresh(true).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet_academy").type("students").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet_academy").type("alumni").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
             
-            tc.index(new IndexRequest("starfleet_library").type("public").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("starfleet_library").type("administration").refresh(true).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet_library").type("public").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet_library").type("administration").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
             
-            tc.index(new IndexRequest("klingonempire").type("ships").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("klingonempire").type("praxis").refresh(true).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("klingonempire").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("klingonempire").type("praxis").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
             
-            tc.index(new IndexRequest("public").type("legends").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("public").type("hall_of_fame").refresh(true).source("{\"content\":1}")).actionGet();
-            tc.index(new IndexRequest("public").type("hall_of_fame").refresh(true).source("{\"content\":2}")).actionGet();
+            tc.index(new IndexRequest("public").type("legends").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("public").type("hall_of_fame").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("public").type("hall_of_fame").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":2}")).actionGet();
             
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAlias("sf", "starfleet","starfleet_academy","starfleet_library")).actionGet();
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAlias("nonsf", "klingonempire","vulcangov")).actionGet();
@@ -1443,7 +1446,7 @@ public class SGTests extends AbstractUnitTest {
     @Test
     public void testTransportClientImpersonation() throws Exception {
     
-        final Settings settings = Settings.settingsBuilder().put("searchguard.ssl.transport.enabled", true)
+        final Settings settings = Settings.builder().put("searchguard.ssl.transport.enabled", true)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
@@ -1481,22 +1484,22 @@ public class SGTests extends AbstractUnitTest {
             log.debug("Start transport client to init");
             
             tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
-            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().length);
+            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
     
             tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
-            tc.index(new IndexRequest("searchguard").type("dummy").id("0").refresh(true).source(readYamlContent("sg_config.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("dummy").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_config.yml"))).actionGet();
             
             System.out.println("------- Begin INIT ---------");
             
             //Thread.sleep(5000);
             
-            tc.index(new IndexRequest("searchguard").type("config").id("0").refresh(true).source(readYamlContent("sg_config.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("internalusers").refresh(true).id("0").source(readYamlContent("sg_internal_users.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("roles").id("0").refresh(true).source(readYamlContent("sg_roles.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("rolesmapping").refresh(true).id("0").source(readYamlContent("sg_roles_mapping.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("actiongroups").refresh(true).id("0").source(readYamlContent("sg_action_groups.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("config").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_config.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("internalusers").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_internal_users.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("roles").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_roles.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("rolesmapping").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_roles_mapping.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("actiongroups").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_action_groups.yml"))).actionGet();
             
-            tc.index(new IndexRequest("starfleet").type("ships").refresh(true).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
             
             //init is somewhat async
             Thread.sleep(2000);
@@ -1523,7 +1526,7 @@ public class SGTests extends AbstractUnitTest {
             NodesInfoRequest nir = new NodesInfoRequest();
             //nir.putHeader("_sg_request.headers.sg_impersonate_as", "worf1111");
             
-            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(nir).actionGet().getNodes().length);
+            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(nir).actionGet().getNodes().size());
             
             
             System.out.println("------- TRC end ---------");
@@ -1535,7 +1538,7 @@ public class SGTests extends AbstractUnitTest {
     @Test
     public void testTransportClientImpersonationWildcard() throws Exception {
     
-        final Settings settings = Settings.settingsBuilder().put("searchguard.ssl.transport.enabled", true)
+        final Settings settings = Settings.builder().put("searchguard.ssl.transport.enabled", true)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
@@ -1573,22 +1576,22 @@ public class SGTests extends AbstractUnitTest {
             log.debug("Start transport client to init");
             
             tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
-            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().length);
+            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
     
             tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
-            tc.index(new IndexRequest("searchguard").type("dummy").id("0").refresh(true).source(readYamlContent("sg_config.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("dummy").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_config.yml"))).actionGet();
             
             System.out.println("------- Begin INIT ---------");
             
             //Thread.sleep(5000);
             
-            tc.index(new IndexRequest("searchguard").type("config").id("0").refresh(true).source(readYamlContent("sg_config.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("internalusers").refresh(true).id("0").source(readYamlContent("sg_internal_users.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("roles").id("0").refresh(true).source(readYamlContent("sg_roles.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("rolesmapping").refresh(true).id("0").source(readYamlContent("sg_roles_mapping.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("actiongroups").refresh(true).id("0").source(readYamlContent("sg_action_groups.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("config").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_config.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("internalusers").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_internal_users.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("roles").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_roles.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("rolesmapping").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_roles_mapping.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("actiongroups").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_action_groups.yml"))).actionGet();
             
-            tc.index(new IndexRequest("starfleet").type("ships").refresh(true).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("starfleet").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
             
             //init is somewhat async
             Thread.sleep(2000);
@@ -1615,7 +1618,7 @@ public class SGTests extends AbstractUnitTest {
             NodesInfoRequest nir = new NodesInfoRequest();
             //nir.putHeader("_sg_request.headers.sg_impersonate_as", "worf1111");
             
-            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(nir).actionGet().getNodes().length);
+            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(nir).actionGet().getNodes().size());
             
             System.out.println("------- TRC end ---------");
         }

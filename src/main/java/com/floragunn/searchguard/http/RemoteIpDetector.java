@@ -137,9 +137,10 @@ class RemoteIpDetector {
     }
 
     public String detect(final NettyHttpRequest request){
-        final String originalRemoteAddr = ((InetSocketAddress)request.getRemoteAddress()).getAddress().getHostAddress();
+        final String originalRemoteAddr = ((InetSocketAddress)request.getRemoteAddress()).getAddress().getHostAddress();        
+        // TODO 5.0: Is this the correct header? I guess so ...
         @SuppressWarnings("unused")
-        final String originalProxiesHeader = request.getHeader(proxiesHeader);
+        final String originalProxiesHeader = request.header(proxiesHeader);
         //final String originalRemoteIpHeader = request.getHeader(remoteIpHeader);
         
         if(log.isTraceEnabled()) {

@@ -21,13 +21,13 @@ import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestRequest;
 
 import com.floragunn.searchguard.auth.HTTPAuthenticator;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.user.AuthCredentials;
-import com.floragunn.searchguard.user.User;
 
 public class HTTPHostAuthenticator implements HTTPAuthenticator {
 
@@ -36,9 +36,9 @@ public class HTTPHostAuthenticator implements HTTPAuthenticator {
     }
 
     @Override
-    public AuthCredentials extractCredentials(final RestRequest request) {
+    public AuthCredentials extractCredentials(final RestRequest request, ThreadContext threadContext) {
         
-        TransportAddress hostAddress = request.getFromContext(ConfigConstants.SG_REMOTE_ADDRESS);
+        TransportAddress hostAddress = threadContext.getTransient(ConfigConstants.SG_REMOTE_ADDRESS);
         
         if(hostAddress == null || !(hostAddress instanceof InetSocketTransportAddress)) {
             throw new ElasticsearchSecurityException("No valid host address found");

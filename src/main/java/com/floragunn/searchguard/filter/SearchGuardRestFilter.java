@@ -17,12 +17,15 @@
 
 package com.floragunn.searchguard.filter;
 
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.rest.BytesRestResponse;
 import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestFilter;
 import org.elasticsearch.rest.RestFilterChain;
 import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.rest.RestStatus;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.auth.BackendRegistry;
@@ -32,25 +35,28 @@ public class SearchGuardRestFilter extends RestFilter {
 
     private final BackendRegistry registry;
     private final AuditLog auditLog;
-
-    public SearchGuardRestFilter(final BackendRegistry registry, AuditLog auditLog) {
+    private final ThreadContext threadContext;
+    
+    @Inject
+    public SearchGuardRestFilter(final BackendRegistry registry, AuditLog auditLog, ThreadPool threadPool) {
         super();
         this.registry = registry;
         this.auditLog = auditLog;
+        this.threadContext = threadPool.getThreadContext();
     }
 
     @Override
     public void process(final RestRequest request, final RestChannel channel, final RestFilterChain filterChain) throws Exception {
         
         try {
-            HeaderHelper.checkSGHeader(request);
+            HeaderHelper.checkSGHeader(this.threadContext);
         } catch (Exception e) {
             auditLog.logBadHeaders(request);
             channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, e));
             return;
         }
         
-        if (!registry.authenticate(request, channel)) {
+        if (!registry.authenticate(request, channel, threadContext)) {
             // another roundtrip
             return;
         }

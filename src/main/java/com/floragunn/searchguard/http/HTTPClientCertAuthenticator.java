@@ -21,6 +21,7 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestRequest;
 
@@ -40,9 +41,9 @@ public class HTTPClientCertAuthenticator implements HTTPAuthenticator {
     }
 
     @Override
-    public AuthCredentials extractCredentials(final RestRequest request) {
+    public AuthCredentials extractCredentials(final RestRequest request, ThreadContext threadContext) {
 
-        final String principal = request.getFromContext(ConfigConstants.SG_SSL_PRINCIPAL);
+        final String principal = threadContext.getTransient(ConfigConstants.SG_SSL_PRINCIPAL);
 
         if (!Strings.isNullOrEmpty(principal)) {
             return new AuthCredentials(principal).markComplete();
