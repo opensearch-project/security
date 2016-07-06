@@ -18,10 +18,8 @@
 package com.floragunn.searchguard.configuration;
 
 import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.multibindings.Multibinder;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.index.engine.IndexSearcherWrapper;
 
 import com.floragunn.searchguard.auth.internal.InternalAuthenticationBackend;
 import com.floragunn.searchguard.configuration.DlsFlsRequestValve.NoopDlsFlsRequestValve;
@@ -52,7 +50,6 @@ public class ConfigurationModule extends AbstractModule {
             bind(DlsFlsRequestValve.class).to(NoopDlsFlsRequestValve.class).asEagerSingleton();
             log.info("FLS/DLS valve not bound (noop)");
         }
-        
-       
+               
     }
 }

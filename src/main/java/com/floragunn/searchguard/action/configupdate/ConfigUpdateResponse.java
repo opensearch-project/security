@@ -18,6 +18,7 @@
 package com.floragunn.searchguard.action.configupdate;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 import org.elasticsearch.action.support.nodes.BaseNodeResponse;
 import org.elasticsearch.action.support.nodes.BaseNodesResponse;
@@ -54,11 +55,27 @@ public class ConfigUpdateResponse extends BaseNodesResponse<ConfigUpdateResponse
     }
 
     public static class Node extends BaseNodeResponse {
+        
+        private String[] updatedConfigTypes;
+        
         Node() {
         }
 
-        Node(final DiscoveryNode node) {
+        Node(final DiscoveryNode node, String[] updatedConfigTypes) {
             super(node);
+            this.updatedConfigTypes = updatedConfigTypes == null?null:Arrays.copyOf(updatedConfigTypes, updatedConfigTypes.length);
+        }
+        
+        @Override
+        public void readFrom(StreamInput in) throws IOException {
+            super.readFrom(in);
+            updatedConfigTypes = in.readStringArray();
+        }
+
+        @Override
+        public void writeTo(StreamOutput out) throws IOException {
+            super.writeTo(out);
+            out.writeStringArray(updatedConfigTypes);
         }
 
         public static Node readNodeResponse(final StreamInput in) throws IOException {
@@ -66,5 +83,12 @@ public class ConfigUpdateResponse extends BaseNodesResponse<ConfigUpdateResponse
             node.readFrom(in);
             return node;
         }
+
+        @Override
+        public String toString() {
+            return "Node [updatedConfigTypes=" + Arrays.toString(updatedConfigTypes) + ", remoteAddress()=" + remoteAddress() + "]";
+        }
+        
+        
     }
 }
