@@ -22,6 +22,7 @@ import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestFilter;
 import org.elasticsearch.rest.RestFilterChain;
 import org.elasticsearch.rest.RestRequest;
+import org.elasticsearch.rest.RestRequest.Method;
 import org.elasticsearch.rest.RestStatus;
 
 import com.floragunn.searchguard.auditlog.AuditLog;
@@ -50,10 +51,16 @@ public class SearchGuardRestFilter extends RestFilter {
             return;
         }
         
-        if (!registry.authenticate(request, channel)) {
-            // another roundtrip
-            return;
+        if(request.method() != Method.OPTIONS) {
+            
+            if (!registry.authenticate(request, channel)) {
+                // another roundtrip
+                return;
+            }
+            
         }
+        
+        
         
         filterChain.continueProcessing(request, channel);
     }
