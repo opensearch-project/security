@@ -100,6 +100,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         allowedAdminActions.add("indices:admin/validate/query");
         allowedAdminActions.add("indices:admin/template/put");
         allowedAdminActions.add("indices:admin/template/get");
+        allowedAdminActions.add("indices:admin/template/delete");
         
         
     }
