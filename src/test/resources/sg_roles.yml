@@ -5,7 +5,15 @@ sg_all_access:
     '*':
       '*':  
         - ALL
-
+        
+role.with.dot:
+  cluster:
+    - '*'
+  indices:
+    'index.with.dot':
+      'type.with.dot':  
+        - ALL
+        
 sg_zdummy_all:
   cluster:
     - 'cluster:*'

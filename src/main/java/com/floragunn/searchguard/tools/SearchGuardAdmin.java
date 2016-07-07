@@ -50,6 +50,7 @@ import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.NoNodeAvailableException;
 import org.elasticsearch.client.transport.TransportClient;
+import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
@@ -344,7 +345,8 @@ public class SearchGuardAdmin {
 
             final String id = tc
                     .index(new IndexRequest("searchguard").type(type).id("0").refresh(true)
-                            .consistencyLevel(WriteConsistencyLevel.DEFAULT).source(readXContent(reader, XContentType.YAML)))
+                            .consistencyLevel(WriteConsistencyLevel.DEFAULT)
+                            .source(type, readXContent(reader, XContentType.YAML)))
                             .actionGet().getId();
 
             if ("0".equals(id)) {
@@ -372,7 +374,7 @@ public class SearchGuardAdmin {
                     return false;
                 }
                 
-                String yaml = convertToYaml(response.getSourceAsBytesRef(), true);
+                String yaml = convertToYaml(type, response.getSourceAsBytesRef(), true);
                 writer.write(yaml);
                 System.out.println("   SUCC Configuration for '"+type+"' stored in "+filepath);
                 return true;
@@ -401,14 +403,26 @@ public class SearchGuardAdmin {
         }
     }
     
-    private static String convertToYaml(BytesReference bytes, boolean prettyPrint) throws IOException {
+    private static String convertToYaml(String type, BytesReference bytes, boolean prettyPrint) throws IOException {
+        
         try (XContentParser parser = XContentFactory.xContent(XContentFactory.xContentType(bytes)).createParser(bytes.streamInput())) {
+            
             parser.nextToken();
+            parser.nextToken();
+            
+            if(!type.equals((parser.currentName()))) {
+                return null;
+            }
+            
+            parser.nextToken();
+            
+            //Settings.builder().put(new JsonSettingsLoader().load(parser.binaryValue())).build();
+            
             XContentBuilder builder = XContentFactory.yamlBuilder();
             if (prettyPrint) {
                 builder.prettyPrint();
             }
-            builder.copyCurrentStructure(parser);
+            builder.rawValue(new BytesArray(parser.binaryValue()));
             return builder.string();
         }
     }

@@ -40,6 +40,7 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.loader.JsonSettingsLoader;
 import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.common.xcontent.XContentParser;
 
 import com.floragunn.searchguard.support.ConfigConstants;
 
@@ -124,7 +125,7 @@ public class ConfigurationLoader {
                 final GetResponse gs = (GetResponse) response;
 
                 if (gs.isExists() && !gs.isSourceEmpty()) {
-                    rs.put(gs.getType(), toSettings(gs.getSourceAsBytesRef()));
+                    rs.put(gs.getType(), toSettings(gs.getType(), gs.getSourceAsBytesRef()));
                 }
 
             } else {
@@ -142,7 +143,7 @@ public class ConfigurationLoader {
                     final GetResponse gs = (GetResponse) response;
 
                     if (gs.isExists() && !gs.isSourceEmpty()) {
-                        rs.put(gs.getType(), toSettings(gs.getSourceAsBytesRef()));
+                        rs.put(gs.getType(), toSettings(gs.getType(), gs.getSourceAsBytesRef()));
                     }
 
                 } else {
@@ -163,15 +164,31 @@ public class ConfigurationLoader {
         return rs;
     }
 
-    private static Settings toSettings(final BytesReference ref) {
+    private static Settings toSettings(final String type, final BytesReference ref) {
         if (ref == null || ref.length() == 0) {
             throw new ElasticsearchException("ref invalid");
         }
+        
+        XContentParser parser = null;
 
         try {
-            return Settings.builder().put(new JsonSettingsLoader().load(XContentHelper.createParser(ref))).build();
+            parser = XContentHelper.createParser(ref);
+            parser.nextToken();
+            parser.nextToken();
+         
+            if(!type.equals((parser.currentName()))) {
+                return null;
+            }
+            
+            parser.nextToken();
+            
+            return Settings.builder().put(new JsonSettingsLoader().load(parser.binaryValue())).build();
         } catch (final IOException e) {
             throw ExceptionsHelper.convertToElastic(e);
+        } finally {
+            if(parser != null) {
+                parser.close();
+            }
         }
     }
 

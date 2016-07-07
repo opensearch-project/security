@@ -21,7 +21,6 @@ import java.io.IOException;
 
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.search.IndexSearcher;
-import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -36,7 +35,6 @@ import org.elasticsearch.indices.IndicesLifecycle;
 import org.elasticsearch.indices.IndicesLifecycle.Listener;
 import org.elasticsearch.transport.TransportRequest;
 
-import com.floragunn.searchguard.action.configupdate.TransportConfigUpdateAction;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.HeaderHelper;
 import com.floragunn.searchguard.user.User;
@@ -80,7 +78,7 @@ public class SearchGuardIndexSearcherWrapper extends AbstractIndexShardComponent
             return reader;
         }
 
-        if (!isAdminAuhtenticatedOrInternalRequest()) {
+        if (!isAdminAuthenticatedOrInternalRequest()) {
 
             //if (settings == null || settings.getAsBoolean("searchguard.dynamic.dlsfls_enabled", true)) {
                 return dlsFlsWrap(reader);
@@ -102,11 +100,11 @@ public class SearchGuardIndexSearcherWrapper extends AbstractIndexShardComponent
             return searcher;
         }
         
-        if (isSearchGuardIndexRequest() && !isAdminAuhtenticatedOrInternalRequest()) {
+        if (isSearchGuardIndexRequest() && !isAdminAuthenticatedOrInternalRequest()) {
             return new IndexSearcher(new EmptyReader());
         }
 
-        if (!isAdminAuhtenticatedOrInternalRequest()) {
+        if (!isAdminAuthenticatedOrInternalRequest()) {
 
             //if (settings == null || settings.getAsBoolean("searchguard.dynamic.dlsfls_enabled", true)) {
                 return dlsFlsWrap(engineConfig, searcher);
@@ -124,7 +122,8 @@ public class SearchGuardIndexSearcherWrapper extends AbstractIndexShardComponent
         return reader;
     }
 
-    protected final boolean isAdminAuhtenticatedOrInternalRequest() {
+    protected final boolean isAdminAuthenticatedOrInternalRequest() {
+
         final RequestHolder current = RequestHolder.current();
 
         if (current != null) {
