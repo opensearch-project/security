@@ -19,11 +19,16 @@ package com.floragunn.searchguard;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.function.Function;
 
 import org.elasticsearch.action.ActionModule;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.network.NetworkModule;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
 
@@ -37,10 +42,10 @@ import com.floragunn.searchguard.configuration.SearchGuardIndexSearcherWrapperMo
 import com.floragunn.searchguard.filter.SearchGuardFilter;
 import com.floragunn.searchguard.http.SearchGuardHttpServerTransport;
 import com.floragunn.searchguard.rest.SearchGuardInfoAction;
-import com.floragunn.searchguard.ssl.transport.SearchGuardSSLTransportService;
 import com.floragunn.searchguard.ssl.util.SSLConfigConstants;
 import com.floragunn.searchguard.transport.SearchGuardTransportService;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 public final class SearchGuardPlugin extends Plugin {
 
@@ -69,18 +74,6 @@ public final class SearchGuardPlugin extends Plugin {
         }
     }
     
-    /**
-    @Override
-    public String name() {
-        return "search-guard2";
-    }
-
-    @Override
-    public String description() {
-        return "Search Guard 2";
-    }
-    **/
-    
     public Collection<Module> shardModules(Settings settings)
     {
       if (!client) {
@@ -101,6 +94,7 @@ public final class SearchGuardPlugin extends Plugin {
         return modules;
     }
 
+    @SuppressWarnings("rawtypes")
     @Override
     public Collection<Class<? extends LifecycleComponent>> nodeServices() {
         final Collection<Class<? extends LifecycleComponent>> services = new ArrayList<>();
@@ -116,12 +110,37 @@ public final class SearchGuardPlugin extends Plugin {
             module.registerFilter(SearchGuardFilter.class);
         }
     }
+    
+    @Override
+    public List<Setting<?>> getSettings() {
+        List<Setting<?>> settings = new ArrayList<Setting<?>>();
+        settings.add(Setting.listSetting("searchguard.authcz.admin_dn", Collections.emptyList(), Function.identity(), Property.NodeScope));
+        settings.add(Setting.listSetting("searchguard.authcz.impersonation_dn", Collections.emptyList(), Function.identity(), Property.NodeScope));
+
+        settings.add(Setting.simpleString("searchguard.audit.type", Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString("searchguard.audit.config.index", Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString("searchguard.audit.config.type", Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString("searchguard.audit.config.username", Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString("searchguard.audit.config.password", Property.NodeScope, Property.Filtered));
+        
+        settings.add(Setting.simpleString("searchguard.kerberos.krb5_filepath", Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString("searchguard.kerberos.acceptor_keytab_filepath", Property.NodeScope, Property.Filtered));
+        
+        settings.add(Setting.listSetting("searchguard.audit.config.http_endpoints", Lists.newArrayList("localhost:9200"), Function.identity(), Property.NodeScope));
+ 
+        settings.add(Setting.boolSetting("searchguard.audit.config.enable_ssl", false, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting("searchguard.audit.config.verify_hostnames", true, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting("searchguard.audit.config.enable_ssl_client_auth", false, Property.NodeScope, Property.Filtered));
+        
+        
+                
+        return settings;
+    }
 
     public void onModule(final NetworkModule module) {
     	
         if (!client) {
             module.registerRestHandler(SearchGuardInfoAction.class);
-            // TODO 5.0: Was: module.registerTransport(name(), SearchGuardTransportService.class); Transport vs. TransportService?
             module.registerTransportService(SearchGuardTransportService.class.toString(), SearchGuardTransportService.class);
         }
     	
@@ -134,6 +153,15 @@ public final class SearchGuardPlugin extends Plugin {
     @Override
     public Settings additionalSettings() {
         final Settings.Builder builder = Settings.builder();
+
+        if (!client && httpSSLEnabled) {
+            builder.put(NetworkModule.HTTP_TYPE_KEY, SearchGuardHttpServerTransport.class.toString());
+        }
+
+        if (!client) {
+            builder.put(NetworkModule.TRANSPORT_SERVICE_TYPE_KEY, SearchGuardTransportService.class.toString());
+        }
+
         return builder.build();
     }
 
