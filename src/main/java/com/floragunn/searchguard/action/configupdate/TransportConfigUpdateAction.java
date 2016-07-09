@@ -21,36 +21,26 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicReferenceArray;
-import java.util.function.Supplier;
 
 import org.elasticsearch.action.FailedNodeException;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
-import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
-import org.elasticsearch.action.admin.cluster.node.info.NodesInfoAction;
-import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest;
-import org.elasticsearch.action.admin.cluster.node.info.TransportNodesInfoAction.NodeInfoRequest;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.nodes.BaseNodeRequest;
 import org.elasticsearch.action.support.nodes.TransportNodesAction;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.LifecycleListener;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.node.service.NodeService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import com.floragunn.searchguard.action.configupdate.ConfigUpdateResponse.Node;
 import com.floragunn.searchguard.auth.BackendRegistry;
 import com.floragunn.searchguard.configuration.ConfigChangeListener;
 import com.floragunn.searchguard.configuration.ConfigurationLoader;
@@ -61,17 +51,16 @@ import com.google.common.collect.Multimaps;
 
 public class TransportConfigUpdateAction
 extends
-TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigUpdateAction.NodeConfigUpdateRequest, ConfigUpdateResponse.Node> {
+TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigUpdateAction.NodeConfigUpdateRequest, ConfigUpdateNodeResponse> {
 
     private final ClusterService clusterService;
-    private final ClusterName clusterName;
     private final ConfigurationLoader cl;
     private final Provider<BackendRegistry> backendRegistry;
     private final ListMultimap<String, ConfigChangeListener> multimap = Multimaps.synchronizedListMultimap(ArrayListMultimap
             .<String, ConfigChangeListener> create());
 
     @Inject
-    public TransportConfigUpdateAction(final Client client, final Settings settings, final ClusterName clusterName,
+    public TransportConfigUpdateAction(final Client client, final Settings settings,
             final ThreadPool threadPool, final ClusterService clusterService, final TransportService transportService,
             final ConfigurationLoader cl, final ActionFilters actionFilters, final IndexNameExpressionResolver indexNameExpressionResolver,
             Provider<BackendRegistry> backendRegistry) {
@@ -80,12 +69,11 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
     	
     	super(settings, ConfigUpdateAction.NAME, threadPool, clusterService, transportService, actionFilters,
                 indexNameExpressionResolver, ConfigUpdateRequest::new, TransportConfigUpdateAction.NodeConfigUpdateRequest::new,
-                ThreadPool.Names.MANAGEMENT, ConfigUpdateResponse.Node.class);
+                ThreadPool.Names.MANAGEMENT, ConfigUpdateNodeResponse.class);
     	
         this.cl = cl;
         this.clusterService = clusterService;
         this.backendRegistry = backendRegistry;
-        this.clusterName = clusterName;
         
         clusterService.addLifecycleListener(new LifecycleListener() {
 
@@ -171,39 +159,25 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
     }
 
     @Override
-    protected ConfigUpdateResponse newResponse(final ConfigUpdateRequest request, final AtomicReferenceArray nodesResponses) {
-        
-        final List<ConfigUpdateResponse> nodes = Lists.<ConfigUpdateResponse> newArrayList();
-        for (int i = 0; i < nodesResponses.length(); i++) {
-            final Object resp = nodesResponses.get(i);
-            if (resp instanceof ConfigUpdateResponse) {
-                nodes.add((ConfigUpdateResponse) resp);
-            }
-        }
-        return new ConfigUpdateResponse(this.clusterName, nodes.toArray(new ConfigUpdateResponse.Node[nodes.size()]));
-
-    }
-
-    @Override
     protected NodeConfigUpdateRequest newNodeRequest(final String nodeId, final ConfigUpdateRequest request) {
         return new NodeConfigUpdateRequest(nodeId, request);
     }
 
     @Override
-    protected Node newNodeResponse() {
-        return new ConfigUpdateResponse.Node(clusterService.localNode());
+    protected ConfigUpdateNodeResponse newNodeResponse() {
+        return new ConfigUpdateNodeResponse(clusterService.localNode());
     }
     
-    // TODO 5.0: 
-	@Override
-	protected ConfigUpdateResponse newResponse(ConfigUpdateRequest request, List<Node> responses,
-			List<FailedNodeException> failures) {
-		// TODO 5.0: What do we do with failures? Not used in ConfigUpdateResponse!
-		 return new ConfigUpdateResponse(this.clusterName, responses.toArray(new ConfigUpdateResponse.Node[responses.size()]));
-	}
+    
+    @Override
+    protected ConfigUpdateResponse newResponse(ConfigUpdateRequest request, List<ConfigUpdateNodeResponse> responses,
+            List<FailedNodeException> failures) {
+        return new ConfigUpdateResponse(this.clusterService.getClusterName(), responses, failures);
+
+    }
 	
     @Override
-    protected Node nodeOperation(final NodeConfigUpdateRequest request) {
+    protected ConfigUpdateNodeResponse nodeOperation(final NodeConfigUpdateRequest request) {
         backendRegistry.get().invalidateCache();
         final Map<String, Settings> setn = cl.load(request.request.getConfigTypes());
 
@@ -216,7 +190,7 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
                 }
             }
         }
-        return new ConfigUpdateResponse.Node(clusterService.localNode());
+        return new ConfigUpdateNodeResponse(clusterService.localNode());
     }
 
     public void addConfigChangeListener(final String event, final ConfigChangeListener listener) {

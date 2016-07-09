@@ -18,60 +18,30 @@
 package com.floragunn.searchguard.action.configupdate;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
 
-import org.elasticsearch.action.support.nodes.BaseNodeResponse;
+import org.elasticsearch.action.FailedNodeException;
 import org.elasticsearch.action.support.nodes.BaseNodesResponse;
 import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-public class ConfigUpdateResponse extends BaseNodesResponse<ConfigUpdateResponse.Node> {
+public class ConfigUpdateResponse extends BaseNodesResponse<ConfigUpdateNodeResponse> {
 
     public ConfigUpdateResponse() {
     }
     
-    // TODO 5.0: Check usage of empty list for FailedNodeException
-    public ConfigUpdateResponse(final ClusterName clusterName, final ConfigUpdateResponse.Node[] nodes) {
-        super(clusterName, Arrays.asList(nodes), new LinkedList<>());
+    public ConfigUpdateResponse(final ClusterName clusterName, List<ConfigUpdateNodeResponse> nodes, List<FailedNodeException> failures) {
+        super(clusterName, nodes, failures);
     }
 
     @Override
-    public List<ConfigUpdateResponse.Node> readNodesFrom(final StreamInput in) throws IOException {
-        super.readFrom(in);
-        List<ConfigUpdateResponse.Node> nodes = new LinkedList<ConfigUpdateResponse.Node>();
-        // TODO 5.0: Don't understand previous implementation - should we read until null is returned?
-        ConfigUpdateResponse.Node node = null;
-        while( (node = ConfigUpdateResponse.Node.readNodeResponse(in)) != null) {
-        	nodes.add(node);
-        }
-        return nodes;
+    public List<ConfigUpdateNodeResponse> readNodesFrom(final StreamInput in) throws IOException {
+        return in.readList(ConfigUpdateNodeResponse::readNodeResponse);
     }
 
     @Override
-    public void writeNodesTo(final StreamOutput out, List<ConfigUpdateResponse.Node> nodes) throws IOException {
-        super.writeTo(out);
-        out.writeVInt(nodes.size());
-        for (final ConfigUpdateResponse.Node node : nodes) {
-            node.writeTo(out);
-        }
-    }
-
-    public static class Node extends BaseNodeResponse {
-        Node() {
-        }
-
-        Node(final DiscoveryNode node) {
-            super(node);
-        }
-
-        public static Node readNodeResponse(final StreamInput in) throws IOException {
-            final Node node = new Node();
-            node.readFrom(in);
-            return node;
-        }
+    public void writeNodesTo(final StreamOutput out, List<ConfigUpdateNodeResponse> nodes) throws IOException {
+        out.writeStreamableList(nodes);
     }
 }
