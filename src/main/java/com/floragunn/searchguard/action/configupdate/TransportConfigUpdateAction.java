@@ -19,6 +19,7 @@ package com.floragunn.searchguard.action.configupdate;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -29,6 +30,7 @@ import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.nodes.BaseNodeRequest;
 import org.elasticsearch.action.support.nodes.TransportNodesAction;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -60,7 +62,7 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
             .<String, ConfigChangeListener> create());
 
     @Inject
-    public TransportConfigUpdateAction(final Client client, final Settings settings,
+    public TransportConfigUpdateAction(final Provider<Client> clientProvider, final Settings settings, final ClusterName clusterName,
             final ThreadPool threadPool, final ClusterService clusterService, final TransportService transportService,
             final ConfigurationLoader cl, final ActionFilters actionFilters, final IndexNameExpressionResolver indexNameExpressionResolver,
             Provider<BackendRegistry> backendRegistry) {
@@ -80,12 +82,11 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
             @Override
             public void afterStart() {
 
-                super.afterStart();
-
-                new Thread(new Runnable() {
+                threadPool.executor(ThreadPool.Names.GET).execute(new Runnable() {
 
                     @Override
                     public void run() {
+                        Client client = clientProvider.get();
                         logger.debug("Node started, try to initialize it. Wait for yellow cluster state....");
                         ClusterHealthResponse response = client.admin().cluster().health(new ClusterHealthRequest("searchguard").waitForYellowStatus()).actionGet();
                         
@@ -113,20 +114,22 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
                             "actiongroups" });
                         }
                         
-                        for (final String evt : setn.keySet()) {
-                            for (final ConfigChangeListener cl : new ArrayList<ConfigChangeListener>(multimap.get(evt))) {
-                                Settings settings = setn.get(evt);
-                                if(settings != null) {
-                                    cl.onChange(evt, settings);
-                                    logger.debug("Updated {} for {} due to initial configuration on node '{}'", evt, cl.getClass().getSimpleName(), clusterService.localNode().getName());
+                        synchronized (TransportConfigUpdateAction.this) {
+                            logger.debug("Retrieved config on node startup and will now update config change listeners");
+                            for (final String evt : setn.keySet()) {
+                                for (final ConfigChangeListener cl : new ArrayList<ConfigChangeListener>(multimap.get(evt))) {
+                                    Settings settings = setn.get(evt);
+                                    if(settings != null) {
+                                        cl.onChange(evt, settings);
+                                        logger.debug("Updated {} for {} due to initial configuration on node '{}'", evt, cl.getClass().getSimpleName(), clusterService.localNode().getName());
+                                    }
                                 }
                             }
-                        }
-                        
-                        logger.debug("Node '{}' initialized", clusterService.localNode().getName());
-                       
+                            
+                            logger.debug("Node '{}' initialized", clusterService.localNode().getName());                            
+                        }                       
                     }
-                }).start();
+                });
             }
         });
 
@@ -158,7 +161,6 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
         }
     }
 
-    @Override
     protected NodeConfigUpdateRequest newNodeRequest(final String nodeId, final ConfigUpdateRequest request) {
         return new NodeConfigUpdateRequest(nodeId, request);
     }
@@ -180,17 +182,24 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
     protected ConfigUpdateNodeResponse nodeOperation(final NodeConfigUpdateRequest request) {
         backendRegistry.get().invalidateCache();
         final Map<String, Settings> setn = cl.load(request.request.getConfigTypes());
+        
+        if(setn.size() != request.request.getConfigTypes().length) {
+            logger.error("Unable to load all configurations types. Loaded '{}' but should '{}' ", setn.keySet(), Arrays.toString(request.request.getConfigTypes()));
+        }
 
-        for (final String evt : setn.keySet()) {
-            for (final ConfigChangeListener cl : new ArrayList<ConfigChangeListener>(multimap.get(evt))) {
-                Settings settings = setn.get(evt);
-                if(settings != null) {
-                   cl.onChange(evt, settings);
-                   logger.debug("Updated {} for {} due to node operation on node {}", evt, cl.getClass().getSimpleName(), clusterService.localNode().getName());
+        synchronized (TransportConfigUpdateAction.this) {
+            logger.debug("Retrieved config due to config update request and will now update config change listeners");
+            for (final String evt : setn.keySet()) {
+                for (final ConfigChangeListener cl : new ArrayList<ConfigChangeListener>(multimap.get(evt))) {
+                    Settings settings = setn.get(evt);
+                    if(settings != null) {
+                       cl.onChange(evt, settings);
+                       logger.debug("Updated {} for {} due to node operation on node {}", evt, cl.getClass().getSimpleName(), clusterService.localNode().getName());
+                    }
                 }
             }
+            return new ConfigUpdateNodeResponse(clusterService.localNode());
         }
-        return new ConfigUpdateNodeResponse(clusterService.localNode());
     }
 
     public void addConfigChangeListener(final String event, final ConfigChangeListener listener) {

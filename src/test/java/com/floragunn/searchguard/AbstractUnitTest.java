@@ -101,7 +101,7 @@ public abstract class AbstractUnitTest {
     public TestName name = new TestName();
     protected final String clustername = "searchguard_ssl_testcluster";
 
-    private Node esNode1;
+    protected Node esNode1;
     private Node esNode2;
     private Node esNode3;
     private String httpHost = null;
@@ -444,7 +444,7 @@ public abstract class AbstractUnitTest {
     
     protected final String loadFile(final String file) throws IOException {
         final StringWriter sw = new StringWriter();
-        IOUtils.copy(this.getClass().getResourceAsStream("/" + file), sw);
+        IOUtils.copy(this.getClass().getResourceAsStream("/" + file), sw, StandardCharsets.UTF_8);
         return sw.toString();
     }
     

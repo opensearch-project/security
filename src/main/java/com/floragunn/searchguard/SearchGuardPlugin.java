@@ -37,7 +37,6 @@ import com.floragunn.searchguard.action.configupdate.TransportConfigUpdateAction
 import com.floragunn.searchguard.auditlog.AuditLogModule;
 import com.floragunn.searchguard.configuration.BackendModule;
 import com.floragunn.searchguard.configuration.ConfigurationModule;
-import com.floragunn.searchguard.configuration.ConfigurationService;
 import com.floragunn.searchguard.configuration.SearchGuardIndexSearcherWrapperModule;
 import com.floragunn.searchguard.filter.SearchGuardFilter;
 import com.floragunn.searchguard.http.SearchGuardHttpServerTransport;
@@ -99,17 +98,17 @@ public final class SearchGuardPlugin extends Plugin {
     public Collection<Class<? extends LifecycleComponent>> nodeServices() {
         final Collection<Class<? extends LifecycleComponent>> services = new ArrayList<>();
         if (!client) {
-            services.add(ConfigurationService.class);
+            //services.add(ConfigurationService.class);
         }
         return services;
     }
 
-    public void onModule(final ActionModule module) {
+    /*public void onModule(final ActionModule module) {
         module.registerAction(ConfigUpdateAction.INSTANCE, TransportConfigUpdateAction.class);
         if (!client) {            
             module.registerFilter(SearchGuardFilter.class);
         }
-    }
+    }*/
     
     @Override
     public List<Setting<?>> getSettings() {

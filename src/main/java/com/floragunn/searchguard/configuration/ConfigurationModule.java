@@ -50,7 +50,6 @@ public class ConfigurationModule extends AbstractModule {
             bind(DlsFlsRequestValve.class).to(NoopDlsFlsRequestValve.class).asEagerSingleton();
             log.info("FLS/DLS valve not bound (noop)");
         }
-        
-       
+               
     }
 }

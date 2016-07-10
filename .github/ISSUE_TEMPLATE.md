@@ -11,7 +11,7 @@ If you report a bug please include always the following informations:
 * Description of the bug
 
 These informations are optional but are very valueable and
-typically would lead to get bufs fixed faster:
+typically would lead to get bugs fixed faster:
 
 * Steps to reproduce
 * Logfiles on DEBUG level
