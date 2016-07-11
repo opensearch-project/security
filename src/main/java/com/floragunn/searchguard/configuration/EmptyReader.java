@@ -182,7 +182,14 @@ class EmptyReader extends LeafReader {
 
     @Override
     public NumericDocValues getNumericDocValues(final String field) throws IOException {
-        return null;
+        return new NumericDocValues() {
+            
+            @Override
+            public long get(int docID) {
+                // TODO Auto-generated method stub
+                return 0;
+            }
+        };
     }
 
     @Override

@@ -1,3 +1,7 @@
+sg_public:
+  cluster:
+    - 'cluster:monitor/main'
+
 sg_all_access:
   cluster:
     - 'cluster:*'

@@ -38,7 +38,7 @@ import com.google.common.collect.Multimaps;
 public class AdminDNs {
 
     protected final ESLogger log = Loggers.getLogger(this.getClass());
-    private final Set<LdapName> adminDn = new HashSet<LdapName>();
+    private static final Set<LdapName> adminDn = new HashSet<LdapName>(); //TODO static hack
     private final ListMultimap<LdapName, String> allowedImpersonations = ArrayListMultimap.<LdapName, String> create();
     
     @Inject
@@ -71,7 +71,8 @@ public class AdminDNs {
         log.debug("Loaded {} impersonation DN's {}",allowedImpersonations.size(), allowedImpersonations);
     }
     
-    public boolean isAdmin(String dn) {
+    //TODO static hack
+    public static boolean isAdmin(String dn) {
         
         if(dn == null) return false;
         
@@ -82,7 +83,8 @@ public class AdminDNs {
         }
     }
     
-    public boolean isAdmin(LdapName dn) {
+    //TODO static hack
+    public static boolean isAdmin(LdapName dn) {
         if(dn == null) return false;
         
         return adminDn.contains(dn);

@@ -153,12 +153,12 @@ public abstract class AbstractUnitTest {
                 .put("node.master", masterNode)
                 .put("cluster.name", clustername)
                 .put("path.data", "data/data")
-                .put("path.work", "data/work")
+                //.put("path.work", "data/work")
                 .put("path.logs", "data/logs")
                 .put("path.conf", "data/config")
-                .put("path.plugins", "data/plugins")
-                .put("index.number_of_shards", "1")
-                .put("index.number_of_replicas", "0")
+                //.put("path.plugins", "data/plugins")
+                //.put("index.number_of_shards", "1")
+                //.put("index.number_of_replicas", "0")
                 .put("http.enabled", true)
                 .put("cluster.routing.allocation.disk.watermark.high","1mb")
                 .put("cluster.routing.allocation.disk.watermark.low","1mb")
@@ -207,6 +207,8 @@ public abstract class AbstractUnitTest {
     @After
     public void tearDown() throws Exception {
 
+        Thread.sleep(300);
+        
             if (esNode3 != null) {
                 esNode3.close();
             }

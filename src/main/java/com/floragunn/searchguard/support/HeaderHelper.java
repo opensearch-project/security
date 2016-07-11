@@ -65,14 +65,20 @@ public class HeaderHelper {
         return context.getTransient(ConfigConstants.SG_SSL_TRANSPORT_INTERCLUSTER_REQUEST) == Boolean.TRUE;
     }
 
-    public static boolean isDirectRequest(final ThreadContext context, final TransportRequest request) {
-        return "direct".equals(context.getTransient(ConfigConstants.SG_CHANNEL_TYPE)) || request.remoteAddress() == null;
+    //TODO is remote address null enough for detecting a direct request?
+    public static boolean isDirectRequest(final ThreadContext context) {
+        return (
+                "direct".equals(context.getTransient(ConfigConstants.SG_CHANNEL_TYPE))
+                || context.getTransient(ConfigConstants.SG_CHANNEL_TYPE) == null
+                
+                );
+        //|| request.remoteAddress() == null
     }
     
     
-    public static String getSafeFromHeader(final ThreadContext context, final TransportRequest request, final String headerName) {
+    public static String getSafeFromHeader(final ThreadContext context, final String headerName) {
 
-        if (request == null || headerName == null || headerName.isEmpty()) {
+        if (context == null || headerName == null || headerName.isEmpty()) {
             return null;
         }
 
@@ -83,16 +89,16 @@ public class HeaderHelper {
             return null;
         }
 
-        if (isInterClusterRequest(context) || isDirectRequest(context, request)) {
+        if (isInterClusterRequest(context) || isDirectRequest(context)) {
             return headerValue;
         }
 
         return null;
     }
 
-    public static Serializable deserializeSafeFromHeader(final ThreadContext context, final TransportRequest request, final String headerName) {
+    public static Serializable deserializeSafeFromHeader(final ThreadContext context, final String headerName) {
 
-        final String objectAsBase64 = getSafeFromHeader(context, request, headerName);
+        final String objectAsBase64 = getSafeFromHeader(context, headerName);
 
         if (!Strings.isNullOrEmpty(objectAsBase64)) {
             return Base64Helper.deserializeObject(objectAsBase64);

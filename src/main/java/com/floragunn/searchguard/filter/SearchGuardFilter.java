@@ -99,15 +99,14 @@ public class SearchGuardFilter implements ActionFilter {
         //LogHelper.logUserTrace("--> Context {}", request.getContext());
         //LogHelper.logUserTrace("--> Header {}", request.getHeaders());
 
-        if (log.isTraceEnabled()) {
-            log.trace("remote address: {}", threadContext.getTransient(ConfigConstants.SG_REMOTE_ADDRESS));
+        if (log.isTraceEnabled()) {            
+            //TODO this throws an exception?
+            //log.trace("remote address: {}", threadContext.getTransient(ConfigConstants.SG_REMOTE_ADDRESS));
         }
-
-        
         
         if(isUserAdmin(user, adminDns) 
                 || isInterClusterRequest(request) 
-                || "true".equals(HeaderHelper.getSafeFromHeader(threadContext, request, ConfigConstants.SG_CONF_REQUEST_HEADER))){
+                || "true".equals(HeaderHelper.getSafeFromHeader(threadContext, ConfigConstants.SG_CONF_REQUEST_HEADER))){
             
             if(!dlsFlsValve.get().invoke(request, listener)) {
                 return;

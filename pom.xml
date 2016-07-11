@@ -146,6 +146,12 @@
 	    <artifactId>framework</artifactId>
 	    <version>${elasticsearch.version}</version>
 	    <scope>test</scope>
+	    <exclusions>
+	      <exclusion>
+	        <artifactId>randomizedtesting-runner</artifactId>
+	        <groupId>com.carrotsearch.randomizedtesting</groupId>
+	      </exclusion>
+	    </exclusions>
 	</dependency>
         
     <dependency>

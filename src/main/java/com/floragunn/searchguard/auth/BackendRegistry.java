@@ -292,7 +292,7 @@ public class BackendRegistry implements ConfigChangeListener {
                 if(log.isDebugEnabled()) {
                     log.debug("User '{}' is authenticated", authenticatedUser);
                 }
-                threadContext.putTransient(ConfigConstants.SG_USER, authenticatedUser);
+                ((User) threadContext.getTransient(ConfigConstants.SG_USER)).addRoles(authenticatedUser.getRoles());;
                 return true;
             } catch (final ElasticsearchSecurityException e) {
                 log.info("Cannot authenticate user (or add roles) with ad {} due to {}, try next", authDomain.getOrder(), e.toString());
@@ -486,11 +486,12 @@ public class BackendRegistry implements ConfigChangeListener {
         return initialized;
     }
 
-    public void impersonate(final TransportRequest tr, final TransportChannel channel, ThreadContext threadContext) throws ElasticsearchSecurityException {
+    public void impersonate(final User origPKIuser, final TransportChannel channel, ThreadContext threadContext) throws ElasticsearchSecurityException {
 
         final String impersonatedUser = threadContext.getHeader("sg_impersonate_as");
         
         if(Strings.isNullOrEmpty(impersonatedUser)) {
+            threadContext.putTransient(ConfigConstants.SG_USER, Objects.requireNonNull(origPKIuser));
             return; //nothing to do
         }
         
@@ -498,7 +499,7 @@ public class BackendRegistry implements ConfigChangeListener {
             throw new ElasticsearchSecurityException("Could not check for impersonation because Search Guard is not yet initialized");
         }
 
-        final User origPKIuser = threadContext.getTransient(ConfigConstants.SG_USER);
+        //final User origPKIuser = threadContext.getTransient(ConfigConstants.SG_USER);
         if (origPKIuser == null) {
             throw new ElasticsearchSecurityException("no original PKI user found");
         }

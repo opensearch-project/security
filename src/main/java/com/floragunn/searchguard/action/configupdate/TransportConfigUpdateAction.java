@@ -62,7 +62,7 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
             .<String, ConfigChangeListener> create());
 
     @Inject
-    public TransportConfigUpdateAction(final Provider<Client> clientProvider, final Settings settings, final ClusterName clusterName,
+    public TransportConfigUpdateAction(final Provider<Client> clientProvider, final Settings settings,
             final ThreadPool threadPool, final ClusterService clusterService, final TransportService transportService,
             final ConfigurationLoader cl, final ActionFilters actionFilters, final IndexNameExpressionResolver indexNameExpressionResolver,
             Provider<BackendRegistry> backendRegistry) {

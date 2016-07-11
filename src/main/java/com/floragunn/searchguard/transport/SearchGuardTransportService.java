@@ -17,17 +17,18 @@
 
 package com.floragunn.searchguard.transport;
 
+import java.net.InetSocketAddress;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
@@ -41,12 +42,12 @@ import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportChannel;
+import org.elasticsearch.transport.TransportException;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportRequestOptions;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportResponseHandler;
-import org.elasticsearch.transport.TransportService;
 
 import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.auth.BackendRegistry;
@@ -57,9 +58,9 @@ import com.floragunn.searchguard.support.HeaderHelper;
 import com.floragunn.searchguard.support.LogHelper;
 import com.floragunn.searchguard.user.User;
 import com.google.common.base.Strings;
+import com.google.common.collect.Maps;
 
-// TODO 5.0: Commented Transport interface
-public class SearchGuardTransportService extends SearchGuardSSLTransportService /*implements Transport*/ {
+public class SearchGuardTransportService extends SearchGuardSSLTransportService {
     
     protected final ESLogger log = Loggers.getLogger(this.getClass());
     private final Provider<BackendRegistry> backendRegistry;
@@ -68,27 +69,51 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
 
     @Inject
     public SearchGuardTransportService(final Settings settings, final Transport transport, final ThreadPool threadPool,
-            final Provider<BackendRegistry> backendRegistry, AuditLog auditLog, ClusterName name) {
+            final Provider<BackendRegistry> backendRegistry, AuditLog auditLog) {
         super(settings, transport, threadPool);        
         this.threadContext = threadPool.getThreadContext();
         this.backendRegistry = backendRegistry;
         this.auditLog = auditLog;
     }
+    
+    
 
     @Override
     public <T extends TransportResponse> void sendRequest(final DiscoveryNode node, final String action, final TransportRequest request,
-            final TransportResponseHandler<T> handler) {
-        attachHeaders(action, request);
-        //LogHelper.logUserTrace("<-- Send {} to {} with {}/{}", action, node.getName(), request.getContext(), request.getHeaders());
-        super.sendRequest(node, action, request, handler);
+            final TransportResponseHandler<T> handler) {  
+        
+        final Map<String, String> origHeaders = this.threadPool.getThreadContext().getHeaders();        
+        ThreadContext.StoredContext storedContext = this.threadPool.getThreadContext().newStoredContext();
+        //this.threadContext.putHeader(Maps.filterKeys(origHeaders, k->k.equals(ConfigConstants.SG_CONF_REQUEST_HEADER)));
+               
+        try (ThreadContext.StoredContext newCtx = this.threadPool.getThreadContext().stashAndMergeHeaders(Maps.filterKeys(origHeaders, k->k.equals(ConfigConstants.SG_CONF_REQUEST_HEADER)))) {
+            RestoringTransportResponseHandler restoringHandler = new RestoringTransportResponseHandler(handler, storedContext);
+
+            attachHeaders(action, request);
+            // LogHelper.logUserTrace("<-- Send {} to {} with {}/{}", action,
+            // node.getName(), request.getContext(), request.getHeaders());
+            super.sendRequest(node, action, request, restoringHandler);
+        }
     }
 
     @Override
     public <T extends TransportResponse> void sendRequest(final DiscoveryNode node, final String action, final TransportRequest request,
             final TransportRequestOptions options, final TransportResponseHandler<T> handler) {
-        attachHeaders(action, request);
-        //LogHelper.logUserTrace("<-- Send {} to {} with {}/{}", action, node.getName(), request.getContext(), request.getHeaders());
-        super.sendRequest(node, action, request, options, handler);
+        
+        //transient -> header
+ 
+        final Map<String, String> origHeaders = this.threadPool.getThreadContext().getHeaders();        
+        ThreadContext.StoredContext storedContext = this.threadPool.getThreadContext().newStoredContext();
+        //this.threadContext.putHeader(Maps.filterKeys(origHeaders, k->k.equals(ConfigConstants.SG_CONF_REQUEST_HEADER)));
+        
+        try (ThreadContext.StoredContext newCtx = this.threadPool.getThreadContext().stashAndMergeHeaders(Maps.filterKeys(origHeaders, k->k.equals(ConfigConstants.SG_CONF_REQUEST_HEADER)))) {
+            RestoringTransportResponseHandler restoringHandler = new RestoringTransportResponseHandler(handler, storedContext);
+
+            attachHeaders(action, request);
+            // LogHelper.logUserTrace("<-- Send {} to {} with {}/{}", action,
+            // node.getName(), request.getContext(), request.getHeaders());
+            super.sendRequest(node, action, request, options, restoringHandler);
+        }
     }
 
     private void attachHeaders(final String action, final TransportRequest request) {	
@@ -96,25 +121,42 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
     	
         final Object remoteAdr = this.threadContext.getTransient(ConfigConstants.SG_REMOTE_ADDRESS);
         if (remoteAdr != null && remoteAdr instanceof InetSocketTransportAddress) {
-        	this.threadContext.putHeader(ConfigConstants.SG_REMOTE_ADDRESS_HEADER, Base64Helper.serializeObject(((InetSocketTransportAddress) remoteAdr).address()));
+        	
+            String rHeader = this.threadContext.getHeader(ConfigConstants.SG_REMOTE_ADDRESS_HEADER);
+           
+            if(rHeader == null)
+                this.threadContext.putHeader(ConfigConstants.SG_REMOTE_ADDRESS_HEADER, Base64Helper.serializeObject(((InetSocketTransportAddress) remoteAdr).address()));
+            else
+                if(!((InetSocketAddress)Base64Helper.deserializeObject(rHeader)).equals(((InetSocketTransportAddress) remoteAdr).address())) {
+                    throw new RuntimeException("remote address mismatch "+Base64Helper.deserializeObject(rHeader)+"!="+((InetSocketTransportAddress) remoteAdr).address());
+                }
+            
             //LogHelper.logUserTrace("<-- Put remote address {} in header (from sg_remote_address ctx)", remoteAdr);
         }
 
         if(log.isTraceEnabled()) {
-            log.trace("sendRequest {}", LogHelper.toString(threadContext));
+            //log.trace("sendRequest {}", LogHelper.toString(threadContext));
         }
         
-        
-        
-        
         User user = this.threadContext.getTransient(ConfigConstants.SG_USER);
-                
-        if(user == null /* && action.startsWith("internal:")*/ && request.remoteAddress() == null) {
+        
+        //TODO check remoteAddress
+        //if(user == null /* && action.startsWith("internal:")  && request.remoteAddress() == null */) {
+        if(user == null /* && action.startsWith("internal:") */ && threadContext.getTransient(ConfigConstants.SG_CHANNEL_TYPE) == null) {
             user = User.SG_INTERNAL;
         }
         
         if(user != null) {
-        	this.threadContext.putHeader(ConfigConstants.SG_USER_HEADER, Base64Helper.serializeObject(user));
+            //log.error(Thread.currentThread().getName()+" put h: "+ConfigConstants.SG_USER_HEADER+" "+action+"/"+request.remoteAddress());
+        	
+            String userHeader = this.threadContext.getHeader(ConfigConstants.SG_USER_HEADER);
+            
+            if(userHeader == null)
+                this.threadContext.putHeader(ConfigConstants.SG_USER_HEADER, Base64Helper.serializeObject(user));
+            else
+                if(!((User)Base64Helper.deserializeObject(userHeader)).getName().equals(user.getName())) {
+                    throw new RuntimeException("user mismatch "+Base64Helper.deserializeObject(userHeader)+"!="+user);
+                }
         } else {
             throw new ElasticsearchSecurityException("user must not be null here for " + action + " "
                     + LogHelper.toString(threadContext));
@@ -185,16 +227,31 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
     @Override
     protected void messageReceivedDecorate(final TransportRequest request, final TransportRequestHandler handler,
             final TransportChannel transportChannel, Task task) throws Exception {
+        
+        final ThreadContext.StoredContext sgContext = this.threadContext.newStoredContext();
         try {
-            final com.floragunn.searchguard.configuration.RequestHolder context = new com.floragunn.searchguard.configuration.RequestHolder(
-                    request);
-            com.floragunn.searchguard.configuration.RequestHolder.setCurrent(context);
             
-            this.threadContext.putTransient(ConfigConstants.SG_CHANNEL_TYPE, transportChannel.getChannelType());
+            //TODO RequestHolder not longer needed?
+           // final com.floragunn.searchguard.configuration.RequestHolder context = new com.floragunn.searchguard.configuration.RequestHolder(
+            //         request);
+            // com.floragunn.searchguard.configuration.RequestHolder.setCurrent(context);
+
+           String ct = (String) this.threadContext.getTransient(ConfigConstants.SG_CHANNEL_TYPE);
+           
+           if(transportChannel.getChannelType()==null) {
+               throw new RuntimeException("ct null");
+           }
+                       
+            if(ct == null)
+                 this.threadContext.putTransient(ConfigConstants.SG_CHANNEL_TYPE, transportChannel.getChannelType());
+            else
+                if(!ct.equals(transportChannel.getChannelType())) 
+                    throw new RuntimeException("channel type mismtach "+ct+"!="+transportChannel.getChannelType());
             
             //bypass non-netty requests
             if(transportChannel.getChannelType().equals("local") || transportChannel.getChannelType().equals("direct")) {
                 super.messageReceivedDecorate(request, handler, transportChannel, task);
+                
                 return;
             }
             
@@ -226,7 +283,7 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
                 
                 if(isInterClusterRequest(request)) {
                     
-                    String userHeader = this.threadContext.getTransient(ConfigConstants.SG_USER_HEADER);
+                    String userHeader = this.threadContext.getHeader(ConfigConstants.SG_USER_HEADER);
                     
                     if(Strings.isNullOrEmpty(userHeader)) {
                         //user can be null when a node client wants connect
@@ -260,10 +317,10 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
                         return;
                     }
                     
-                    this.threadContext.putTransient(ConfigConstants.SG_USER, new User(principal));
+                    //this.threadContext.putTransient(ConfigConstants.SG_USER, new User(principal));
                     // impersonation of transport requests
                     try {
-                        backendRegistry.get().impersonate(request, transportChannel, threadContext );
+                        backendRegistry.get().impersonate(new User(principal), transportChannel, threadContext );
                     } catch (final Exception e) {
                         log.error("Error doing impersonation "+e, e);
                         auditLog.logFailedLogin(principal, request);
@@ -300,7 +357,13 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
             
         } finally {
             //LogHelper.logUserTrace("<<<< TransportService {}", transportChannel.action());
-            com.floragunn.searchguard.configuration.RequestHolder.removeCurrent();
+            
+            if(sgContext != null) {
+                sgContext.close();
+            } 
+            
+            //TODO RequestHolder no longer needed
+            //com.floragunn.searchguard.configuration.RequestHolder.removeCurrent();
         }
     }
     
@@ -317,17 +380,37 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
     private boolean isInterClusterRequest(final TransportRequest request) {
         return this.threadContext.getTransient(ConfigConstants.SG_SSL_TRANSPORT_INTERCLUSTER_REQUEST) == Boolean.TRUE;
     }
+    
+    //based on
+    //org.elasticsearch.transport.TransportService.ContextRestoreResponseHandler<T>
+    //which is private scoped
+    private static class RestoringTransportResponseHandler<T extends TransportResponse> implements TransportResponseHandler<T> {
 
-	@Override
-	public TransportService start() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+        private final ThreadContext.StoredContext contextToRestore;
+        private final TransportResponseHandler<T> innerHandler;
 
-	@Override
-	public TransportService stop() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+        private RestoringTransportResponseHandler(TransportResponseHandler<T> innerHandler, ThreadContext.StoredContext contextToRestore) {
+            this.contextToRestore = contextToRestore;
+            this.innerHandler = innerHandler;
+        }
+
+        public T newInstance() {
+            return innerHandler.newInstance();
+        }
+
+        public void handleResponse(T response) {
+            contextToRestore.restore();
+            innerHandler.handleResponse(response);
+        }
+
+        public void handleException(TransportException e) {
+            contextToRestore.restore();
+            innerHandler.handleException(e);
+        }
+
+        public String executor() {
+            return innerHandler.executor();
+        }
+    }
 
 }

@@ -44,6 +44,7 @@ import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.util.concurrent.ThreadContext.StoredContext;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.node.PluginAwareNode;
 import org.junit.Assert;
@@ -90,7 +91,9 @@ public class SGTests extends AbstractUnitTest {
                 .put("searchguard.ssl.transport.keystore_filepath", getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
                 .put("searchguard.ssl.transport.truststore_filepath", getAbsoluteFilePathFromClassPath("truststore.jks"))
                 .put("searchguard.ssl.transport.enforce_hostname_verification", false)
-                .put("searchguard.ssl.transport.resolve_hostname", false).build();
+                .put("searchguard.ssl.transport.resolve_hostname", false)
+                .putArray("searchguard.authcz.admin_dn", "cn=dummy_to_activate_search_guard_plugin")
+                .build();
 
         startES(settings);
         Assert.assertEquals(3, client().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getNumberOfNodes());
@@ -107,9 +110,13 @@ public class SGTests extends AbstractUnitTest {
                 .put("searchguard.ssl.transport.keystore_filepath", getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
                 .put("searchguard.ssl.transport.truststore_filepath", getAbsoluteFilePathFromClassPath("truststore.jks"))
                 .put("searchguard.ssl.transport.enforce_hostname_verification", false)
-                .put("searchguard.ssl.transport.resolve_hostname", false).build();
+                .put("searchguard.ssl.transport.resolve_hostname", false)
+                .build();
+        
+        final Settings esSettings = Settings.builder().put(settings)
+                .putArray("searchguard.authcz.admin_dn", "cn=dummy_to_activate_search_guard_plugin").build();
 
-        startES(settings);
+        startES(esSettings);
         Assert.assertEquals(3, client().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getNumberOfNodes());
         Assert.assertEquals(ClusterHealthStatus.GREEN, client().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus());
   
@@ -138,7 +145,9 @@ public class SGTests extends AbstractUnitTest {
                 .put("searchguard.ssl.transport.keystore_filepath", getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
                 .put("searchguard.ssl.transport.truststore_filepath", getAbsoluteFilePathFromClassPath("truststore.jks"))
                 .put("searchguard.ssl.transport.enforce_hostname_verification", false)
-                .put("searchguard.ssl.transport.resolve_hostname", false).build();
+                .put("searchguard.ssl.transport.resolve_hostname", false)
+                .putArray("searchguard.authcz.admin_dn", "cn=dummy_to_activate_search_guard_plugin")
+                .build();
 
         startES(settings);
         Assert.assertEquals(3, client().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getNumberOfNodes());
@@ -388,8 +397,6 @@ public class SGTests extends AbstractUnitTest {
             tc.index(new IndexRequest("searchguard").type("rolesmapping").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_roles_mapping.yml"))).actionGet();
             tc.index(new IndexRequest("searchguard").type("actiongroups").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source(readYamlContent("sg_action_groups.yml"))).actionGet();
             
-            System.out.println("------- End INIT ---------");
-            
             tc.index(new IndexRequest("vulcangov").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
             tc.index(new IndexRequest("vulcangov").type("secrets").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
             tc.index(new IndexRequest("vulcangov").type("planet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
@@ -417,7 +424,10 @@ public class SGTests extends AbstractUnitTest {
             
             ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
             Assert.assertEquals(3, cur.getNodes().size());
+            System.out.println(cur.getNodesMap());
         }
+        
+        System.out.println("------- End INIT ---------");
         
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, executeGetRequest("").getStatusCode());
         Assert.assertEquals(HttpStatus.SC_OK, executeGetRequest("", new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("worf", "worf"))).getStatusCode());
@@ -471,7 +481,7 @@ public class SGTests extends AbstractUnitTest {
             tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));            
 
             tc.index(new IndexRequest("searchguard").type("roles").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_roles_deny.yml"))).actionGet();
-            ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
+            ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"roles"})).actionGet();
             Assert.assertEquals(3, cur.getNodes().size());
         }
         
@@ -483,8 +493,8 @@ public class SGTests extends AbstractUnitTest {
             
             tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));            
             
-            tc.index(new IndexRequest("searchguard").type("roles").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_roles_deny.yml"))).actionGet();
-            ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
+            tc.index(new IndexRequest("searchguard").type("roles").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(readYamlContent("sg_roles.yml"))).actionGet();
+            ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"roles"})).actionGet();
             Assert.assertEquals(3, cur.getNodes().size());
         }
         
@@ -633,8 +643,8 @@ public class SGTests extends AbstractUnitTest {
                 .put("searchguard.ssl.transport.enforce_hostname_verification", false)
                 .put("searchguard.ssl.transport.resolve_hostname", false)
                 .putArray("searchguard.authcz.admin_dn", "CN=kirk,OU=client,O=client,l=tEst, C=De")
-                .put("index.number_of_shards", 3)
-                .put("index.number_of_replicas", 0)
+                //.put("index.number_of_shards", 3)
+                //.put("index.number_of_replicas", 0)
                 .build();
         
         startES(settings);
@@ -877,6 +887,9 @@ public class SGTests extends AbstractUnitTest {
                 .put("searchguard.ssl.transport.truststore_filepath", getAbsoluteFilePathFromClassPath("truststore.jks"))
                 .put("searchguard.ssl.transport.enforce_hostname_verification", false)
                 .put("searchguard.ssl.transport.resolve_hostname", false)
+                .build();
+        
+        final Settings esSettings = Settings.builder().put(settings)
                 .putArray("searchguard.authcz.admin_dn", "CN=kirk,OU=client,O=client,l=tEst, C=De")
                 
                 /*
@@ -894,7 +907,7 @@ public class SGTests extends AbstractUnitTest {
         
         System.out.println(settings.getAsMap());
 
-        startES(settings);
+        startES(esSettings);
 
         Settings tcSettings = Settings.builder().put("cluster.name", clustername)
                 .put(settings)
@@ -944,6 +957,9 @@ public class SGTests extends AbstractUnitTest {
             log.debug("Start transport client to use");
             
             tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
+            
+            Thread.sleep(10000);
+            
             Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
             
             System.out.println("------- 1 ---------");
@@ -997,43 +1013,80 @@ public class SGTests extends AbstractUnitTest {
             
             System.out.println("------- 10 ---------");
             
-            // TODO 5.0: How to deal with header values here?
-//            //impersonation
-//            try {
-//                gr = tc.prepareGet("vulcan", "secrets", "s1"). putHeader("sg_impersonate_as", "worf").get();
-//                Assert.fail();
-//            } catch (ElasticsearchSecurityException e) {
-//               Assert.assertEquals("no permissions for indices:data/read/get", e.getMessage());
-//            }
-//            
-//            System.out.println("------- 11 ---------");
-//            
-//            
-//            //impersonation
-//            try {
-//                gr = tc.prepareGet("vulcan", "secrets", "s1").putHeader("sg_impersonate_as", "gkar").get();
-//                Assert.fail();
-//            } catch (ElasticsearchSecurityException e) {
-//               Assert.assertEquals("'CN=spock,OU=client,O=client,L=Test,C=DE' is not allowed to impersonate as 'gkar'", e.getMessage());
-//            }
-//            
-//            System.out.println("------- 12 ---------");
-//            
-//            gr = tc.prepareGet("searchguard", "config", "0").putHeader("sg_impersonate_as", "nagilum").setRealtime(Boolean.TRUE).get();
-//            Assert.assertFalse(gr.isExists());
-//            Assert.assertTrue(gr.isSourceEmpty());
-//            
-//            
-//            System.out.println("------- 13 ---------");
-//            tc.
-//            gr = tc.prepareGet("searchguard", "config", "0").putHeader("sg_impersonate_as", "nagilum").setRealtime(Boolean.FALSE).get();
-//            Assert.assertFalse(gr.isExists());
-//            Assert.assertTrue(gr.isSourceEmpty());
-//            
-//            
-//            SearchResponse searchRes = tc.prepareSearch("starfleet").setTypes("ships").setScroll(TimeValue.timeValueMinutes(5)).putHeader("sg_impersonate_as", "nagilum").get();
-//            SearchResponse scrollRes = tc.prepareSearchScroll(searchRes.getScrollId()).putHeader("sg_impersonate_as", "worf").get();
-//            
+            //impersonation
+            try {
+                
+                StoredContext ctx = tc.threadPool().getThreadContext().newStoredContext();
+                try {
+                    tc.threadPool().getThreadContext().putHeader("sg_impersonate_as", "worf");
+                    gr = tc.prepareGet("vulcan", "secrets", "s1").get();
+                } finally {
+                    ctx.close();
+                }
+                Assert.fail();
+            } catch (ElasticsearchSecurityException e) {
+               Assert.assertEquals("no permissions for indices:data/read/get", e.getMessage());
+            }
+            
+            System.out.println("------- 11 ---------");
+
+            // impersonation
+            try {
+                StoredContext ctx = tc.threadPool().getThreadContext().newStoredContext();
+                try {
+                    tc.threadPool().getThreadContext().putHeader("sg_impersonate_as", "gkar");
+                    gr = tc.prepareGet("vulcan", "secrets", "s1").get();
+                    Assert.fail();
+                } finally {
+                    ctx.close();
+                }
+
+            } catch (ElasticsearchSecurityException e) {
+                Assert.assertEquals("'CN=spock,OU=client,O=client,L=Test,C=DE' is not allowed to impersonate as 'gkar'", e.getMessage());
+            }
+
+            System.out.println("------- 12 ---------");
+
+            StoredContext ctx = tc.threadPool().getThreadContext().newStoredContext();
+            try {
+                tc.threadPool().getThreadContext().putHeader("sg_impersonate_as", "nagilum");
+                gr = tc.prepareGet("searchguard", "config", "0").setRealtime(Boolean.TRUE).get();
+                Assert.assertFalse(gr.isExists());
+                Assert.assertTrue(gr.isSourceEmpty());
+            } finally {
+                ctx.close();
+            }
+
+            System.out.println("------- 13 ---------");
+            ctx = tc.threadPool().getThreadContext().newStoredContext();
+            try {
+                tc.threadPool().getThreadContext().putHeader("sg_impersonate_as", "nagilum");
+                gr = tc.prepareGet("searchguard", "config", "0").setRealtime(Boolean.FALSE).get();
+                Assert.assertFalse(gr.isExists());
+                Assert.assertTrue(gr.isSourceEmpty());
+            } finally {
+                ctx.close();
+            }
+            
+            
+            String scrollId = null;
+            ctx = tc.threadPool().getThreadContext().newStoredContext();
+            try {
+                tc.threadPool().getThreadContext().putHeader("sg_impersonate_as", "nagilum");
+                SearchResponse searchRes = tc.prepareSearch("starfleet").setTypes("ships").setScroll(TimeValue.timeValueMinutes(5)).get();
+                scrollId = searchRes.getScrollId();
+            } finally {
+                ctx.close();
+            }
+
+            //TODO fails (but this could be ok?)
+            ctx = tc.threadPool().getThreadContext().newStoredContext();
+            try {
+                tc.threadPool().getThreadContext().putHeader("sg_impersonate_as", "worf");
+                SearchResponse scrollRes = tc.prepareSearchScroll(scrollId).get();
+            } finally {
+                ctx.close();
+            }
             
             
             System.out.println("------- TRC end ---------");
@@ -1470,7 +1523,9 @@ public class SGTests extends AbstractUnitTest {
                 .put("searchguard.ssl.transport.keystore_filepath", getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
                 .put("searchguard.ssl.transport.truststore_filepath", getAbsoluteFilePathFromClassPath("truststore.jks"))
                 .put("searchguard.ssl.transport.enforce_hostname_verification", false)
-                .put("searchguard.ssl.transport.resolve_hostname", false)
+                .put("searchguard.ssl.transport.resolve_hostname", false).build();
+        
+        final Settings esSettings = Settings.builder().put(settings)
                 .putArray("searchguard.authcz.admin_dn", "CN=kirk,OU=client,O=client,l=tEst, C=De")
                 
                 /*
@@ -1488,7 +1543,7 @@ public class SGTests extends AbstractUnitTest {
         
         System.out.println(settings.getAsMap());
     
-        startES(settings);
+        startES(esSettings);
     
         Settings tcSettings = Settings.builder().put("cluster.name", clustername)
                 .put(settings)
@@ -1541,7 +1596,6 @@ public class SGTests extends AbstractUnitTest {
             
             tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
             NodesInfoRequest nir = new NodesInfoRequest();
-            //nir.putHeader("_sg_request.headers.sg_impersonate_as", "worf1111");
             
             Assert.assertEquals(3, tc.admin().cluster().nodesInfo(nir).actionGet().getNodes().size());
             
@@ -1562,7 +1616,9 @@ public class SGTests extends AbstractUnitTest {
                 .put("searchguard.ssl.transport.keystore_filepath", getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
                 .put("searchguard.ssl.transport.truststore_filepath", getAbsoluteFilePathFromClassPath("truststore.jks"))
                 .put("searchguard.ssl.transport.enforce_hostname_verification", false)
-                .put("searchguard.ssl.transport.resolve_hostname", false)
+                .put("searchguard.ssl.transport.resolve_hostname", false).build();
+        
+        final Settings esSettings = Settings.builder().put(settings)
                 .putArray("searchguard.authcz.admin_dn", "CN=kirk,OU=client,O=client,l=tEst, C=De")
                 
                 /*
@@ -1580,7 +1636,7 @@ public class SGTests extends AbstractUnitTest {
         
         System.out.println(settings.getAsMap());
     
-        startES(settings);
+        startES(esSettings);
     
         Settings tcSettings = Settings.builder().put("cluster.name", clustername)
                 .put(settings)

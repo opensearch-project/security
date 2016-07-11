@@ -20,4 +20,6 @@ public class ConfigUpdateNodeResponse extends BaseNodeResponse {
         nodeResponse.readFrom(in);
         return nodeResponse;
     }
+    
+    //TODO toString() with types of updated configs
 }

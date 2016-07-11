@@ -21,13 +21,17 @@ import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.Multibinder;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.index.IndexModule.IndexSearcherWrapperFactory;
+import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IndexSearcherWrapper;
 
-public class SearchGuardIndexSearcherWrapperModule extends AbstractModule {
+public class SearchGuardIndexSearcherWrapperFactory implements IndexSearcherWrapperFactory {
 
     protected final ESLogger log = Loggers.getLogger(this.getClass());
-    private static volatile Class searchGuardFlsDlsIndexSearcherWrapper = null;
+    private static volatile IndexSearcherWrapper searchGuardFlsDlsIndexSearcherWrapper = null;
 
+    
+    /*
     @Override
     protected void configure() {
         //TODO how often called?
@@ -54,6 +58,35 @@ public class SearchGuardIndexSearcherWrapperModule extends AbstractModule {
             wrapperMultibinder.addBinding().to(SearchGuardIndexSearcherWrapper.class);
         }
 
+    }
+*/
+
+
+    @Override
+    public IndexSearcherWrapper newWrapper(IndexService indexService) {
+        /*if(searchGuardFlsDlsIndexSearcherWrapper != null) {
+            return searchGuardFlsDlsIndexSearcherWrapper;
+        }
+        
+        try {
+            Class _searchGuardFlsDlsIndexSearcherWrapper;
+            if ((_searchGuardFlsDlsIndexSearcherWrapper = Class
+                    .forName("com.floragunn.searchguard.configuration.SearchGuardFlsDlsIndexSearcherWrapper")) != null) {
+                
+                wrapperMultibinder.addBinding().to(_searchGuardFlsDlsIndexSearcherWrapper);
+                searchGuardFlsDlsIndexSearcherWrapper = _searchGuardFlsDlsIndexSearcherWrapper;
+                log.info("FLS/DLS enabled");
+            } else {
+                throw new ClassNotFoundException();
+            }
+
+        } catch (final ClassNotFoundException e) {
+            log.debug("FLS/DLS not enabled");
+            wrapperMultibinder.addBinding().to(SearchGuardIndexSearcherWrapper.class);
+        }*/
+        
+        return null;
+        
     }
 
 }

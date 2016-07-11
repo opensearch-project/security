@@ -30,6 +30,7 @@ import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.plugins.Plugin;
 
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateAction;
@@ -37,13 +38,13 @@ import com.floragunn.searchguard.action.configupdate.TransportConfigUpdateAction
 import com.floragunn.searchguard.auditlog.AuditLogModule;
 import com.floragunn.searchguard.configuration.BackendModule;
 import com.floragunn.searchguard.configuration.ConfigurationModule;
-import com.floragunn.searchguard.configuration.SearchGuardIndexSearcherWrapperModule;
+import com.floragunn.searchguard.configuration.SearchGuardIndexSearcherWrapper;
+import com.floragunn.searchguard.configuration.SearchGuardIndexSearcherWrapperFactory;
 import com.floragunn.searchguard.filter.SearchGuardFilter;
 import com.floragunn.searchguard.http.SearchGuardHttpServerTransport;
 import com.floragunn.searchguard.rest.SearchGuardInfoAction;
 import com.floragunn.searchguard.ssl.util.SSLConfigConstants;
 import com.floragunn.searchguard.transport.SearchGuardTransportService;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 public final class SearchGuardPlugin extends Plugin {
@@ -72,15 +73,6 @@ public final class SearchGuardPlugin extends Plugin {
             System.out.println("*************************************************************");
         }
     }
-    
-    public Collection<Module> shardModules(Settings settings)
-    {
-      if (!client) {
-        //TODO query caching 
-        return ImmutableList.<Module>of(new SearchGuardIndexSearcherWrapperModule());
-      }
-      return ImmutableList.of();
-    }
 
     @Override
     public Collection<Module> nodeModules() {
@@ -93,6 +85,13 @@ public final class SearchGuardPlugin extends Plugin {
         return modules;
     }
 
+    @Override
+    public void onIndexModule(IndexModule indexModule) {
+        //TODO include
+        //com.floragunn.searchguard.configuration.SearchGuardFlsDlsIndexSearcherWrapper
+        indexModule.setSearcherWrapper(indexService -> new SearchGuardIndexSearcherWrapper(indexService));
+    }
+
     @SuppressWarnings("rawtypes")
     @Override
     public Collection<Class<? extends LifecycleComponent>> nodeServices() {
@@ -103,19 +102,20 @@ public final class SearchGuardPlugin extends Plugin {
         return services;
     }
 
-    /*public void onModule(final ActionModule module) {
+    public void onModule(final ActionModule module) {
         module.registerAction(ConfigUpdateAction.INSTANCE, TransportConfigUpdateAction.class);
         if (!client) {            
             module.registerFilter(SearchGuardFilter.class);
         }
-    }*/
+    }
     
     @Override
     public List<Setting<?>> getSettings() {
         List<Setting<?>> settings = new ArrayList<Setting<?>>();
         settings.add(Setting.listSetting("searchguard.authcz.admin_dn", Collections.emptyList(), Function.identity(), Property.NodeScope));
-        settings.add(Setting.listSetting("searchguard.authcz.impersonation_dn", Collections.emptyList(), Function.identity(), Property.NodeScope));
-
+        
+        settings.add(Setting.groupSetting("searchguard.authcz.impersonation_dn.", Property.NodeScope));
+        
         settings.add(Setting.simpleString("searchguard.audit.type", Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString("searchguard.audit.config.index", Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString("searchguard.audit.config.type", Property.NodeScope, Property.Filtered));

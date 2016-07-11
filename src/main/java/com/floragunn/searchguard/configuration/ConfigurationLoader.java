@@ -40,7 +40,9 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.loader.JsonSettingsLoader;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
+import org.elasticsearch.common.util.concurrent.ThreadContext.StoredContext;
 import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.index.IndexService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import com.floragunn.searchguard.support.ConfigConstants;
@@ -48,13 +50,13 @@ import com.floragunn.searchguard.support.ConfigConstants;
 public class ConfigurationLoader {
 
     protected final ESLogger log = Loggers.getLogger(this.getClass());
-    private final Provider<Client> client;
+    private final Provider<Client> clientProvider;
 	private final ThreadContext threadContext;
 
     @Inject
-    public ConfigurationLoader(final Provider<Client> client, ThreadPool threadPool) {
+    public ConfigurationLoader(final Provider<Client> clientProvider, ThreadPool threadPool) {
         super();
-        this.client = client;
+        this.clientProvider = clientProvider;
         this.threadContext = threadPool.getThreadContext();
     }
 
@@ -68,12 +70,23 @@ public class ConfigurationLoader {
             final String event = events[i];
             mget.add("searchguard", event, "0");
         }
-
-        threadContext.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true"); //header needed here
+      
+        //TODO ctx check
+        if(threadContext.getHeader(ConfigConstants.SG_CONF_REQUEST_HEADER) == null) {
+            threadContext.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true"); //header needed here
+        } 
+        
         mget.refresh(true);
         mget.realtime(true);
-
-        client.get().multiGet(mget, new ActionListener<MultiGetResponse>() {
+        
+        Client client = clientProvider.get();
+        
+        //if(client.threadPool().getThreadContext().getHeader(ConfigConstants.SG_CONF_REQUEST_HEADER) == null) {
+        //    client.threadPool().getThreadContext().putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true");
+        //} 
+        
+        
+        client.multiGet(mget, new ActionListener<MultiGetResponse>() {
 
             @Override
             public void onResponse(final MultiGetResponse mresponse) {
@@ -116,6 +129,7 @@ public class ConfigurationLoader {
             }
         });
 
+        
         Object response = null;
         try {
             response = queue.poll(10, TimeUnit.SECONDS);
