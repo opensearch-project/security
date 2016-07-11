@@ -40,9 +40,8 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.loader.JsonSettingsLoader;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
-import org.elasticsearch.common.util.concurrent.ThreadContext.StoredContext;
 import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.index.IndexService;
+import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import com.floragunn.searchguard.support.ConfigConstants;
@@ -142,7 +141,7 @@ public class ConfigurationLoader {
                 final GetResponse gs = (GetResponse) response;
 
                 if (gs.isExists() && !gs.isSourceEmpty()) {
-                    rs.put(gs.getType(), toSettings(gs.getSourceAsBytesRef()));
+                    rs.put(gs.getType(), toSettings(gs.getType(), gs.getSourceAsBytesRef()));
                 }
 
             } else {
@@ -160,7 +159,7 @@ public class ConfigurationLoader {
                     final GetResponse gs = (GetResponse) response;
 
                     if (gs.isExists() && !gs.isSourceEmpty()) {
-                        rs.put(gs.getType(), toSettings(gs.getSourceAsBytesRef()));
+                        rs.put(gs.getType(), toSettings(gs.getType(), gs.getSourceAsBytesRef()));
                     }
 
                 } else {
@@ -181,16 +180,31 @@ public class ConfigurationLoader {
         return rs;
     }
 
-    private static Settings toSettings(final BytesReference ref) {
+    private static Settings toSettings(final String type, final BytesReference ref) {
         if (ref == null || ref.length() == 0) {
             throw new ElasticsearchException("ref invalid");
         }
+        
+        XContentParser parser = null;
 
         try {
-        	// TODO 5.0: Allow null values in JsonSettingsLoader?
-            return Settings.builder().put(new JsonSettingsLoader(true).load(XContentHelper.createParser(ref))).build();
+            parser = XContentHelper.createParser(ref);
+            parser.nextToken();
+            parser.nextToken();
+         
+            if(!type.equals((parser.currentName()))) {
+                return null;
+            }
+            
+            parser.nextToken();
+            
+            return Settings.builder().put(new JsonSettingsLoader(true).load(parser.binaryValue())).build();
         } catch (final IOException e) {
             throw ExceptionsHelper.convertToElastic(e);
+        } finally {
+            if(parser != null) {
+                parser.close();
+            }
         }
     }
 
