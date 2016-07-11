@@ -633,7 +633,6 @@ public class SGTests extends AbstractUnitTest {
     }
     
     @Test
-    @Ignore
     public void testCreateIndex() throws Exception {
 
         final Settings settings = Settings.builder().put("searchguard.ssl.transport.enabled", true)
