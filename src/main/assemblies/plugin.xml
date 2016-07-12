@@ -5,35 +5,37 @@
     <format>zip</format>
   </formats>
   <includeBaseDirectory>false</includeBaseDirectory>
-  <files>
-    <file>
-      <source>${elasticsearch.tools.directory}/plugin-metadata/plugin-descriptor.properties</source>
-      <outputDirectory />
-      <filtered>true</filtered>
-    </file>
-    <file>
-      <source>${project.basedir}/src/main/plugin-metadata/plugin-security.policy</source>
-      <outputDirectory />
-      <filtered>true</filtered>
-    </file>
-  </files>
+  <dependencySets>
+    <dependencySet>
+      <outputDirectory>/elasticsearch/</outputDirectory>
+      <useProjectArtifact>true</useProjectArtifact>
+      <useTransitiveFiltering>true</useTransitiveFiltering>
+    </dependencySet>
+    <dependencySet>
+      <outputDirectory>/elasticsearch/</outputDirectory>
+      <includes>
+        <include>com.floragunn:search-guard-2</include>
+        <include>com.floragunn:search-guard-ssl</include>
+      </includes>
+    </dependencySet>
+  </dependencySets>
   <fileSets>
-    <fileSet>
+     <fileSet>
       <directory>${project.basedir}</directory>
-      <outputDirectory>/</outputDirectory>
+      <outputDirectory>/elasticsearch/</outputDirectory>
       <includes>
         <include>tools/**</include>
         <include>sgconfig/**</include>
       </includes>
       <fileMode>0755</fileMode>
     </fileSet>
+    <fileSet>
+      <outputDirectory>/elasticsearch/</outputDirectory>
+      <includes>
+        <include>plugin-descriptor.properties</include>
+        <include>plugin-security.policy</include>
+      </includes>
+    </fileSet>
   </fileSets>
-  <dependencySets>
-    <dependencySet>
-      <outputDirectory>/</outputDirectory>
-      <useProjectArtifact>true</useProjectArtifact>
-      <useTransitiveFiltering>true</useTransitiveFiltering>
-      <useTransitiveDependencies>true</useTransitiveDependencies>
-    </dependencySet>
-  </dependencySets>
 </assembly>
+

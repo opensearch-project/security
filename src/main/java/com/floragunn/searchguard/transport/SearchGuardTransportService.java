@@ -82,14 +82,20 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
     public <T extends TransportResponse> void sendRequest(final DiscoveryNode node, final String action, final TransportRequest request,
             final TransportResponseHandler<T> handler) {  
         
-        final Map<String, String> origHeaders = this.threadPool.getThreadContext().getHeaders();        
+        //System.out.println("<<< send "+action+" from "+this.nodeName()+"->"+node.getName());
+        
+        final Map<String, String> origHeaders = this.threadPool.getThreadContext().getHeaders();  
+        User user = this.threadPool.getThreadContext().getTransient(ConfigConstants.SG_USER);
+        Object remoteAdress = this.threadPool.getThreadContext().getTransient(ConfigConstants.SG_REMOTE_ADDRESS);
         ThreadContext.StoredContext storedContext = this.threadPool.getThreadContext().newStoredContext();
         //this.threadContext.putHeader(Maps.filterKeys(origHeaders, k->k.equals(ConfigConstants.SG_CONF_REQUEST_HEADER)));
                
         try (ThreadContext.StoredContext newCtx = this.threadPool.getThreadContext().stashAndMergeHeaders(Maps.filterKeys(origHeaders, k->k.equals(ConfigConstants.SG_CONF_REQUEST_HEADER)))) {
             RestoringTransportResponseHandler restoringHandler = new RestoringTransportResponseHandler(handler, storedContext);
 
-            attachHeaders(action, request);
+            this.threadPool.getThreadContext().putTransient(ConfigConstants.SG_USER, user);
+            this.threadPool.getThreadContext().putTransient(ConfigConstants.SG_REMOTE_ADDRESS, remoteAdress);
+            attachHeaders(action);
             // LogHelper.logUserTrace("<-- Send {} to {} with {}/{}", action,
             // node.getName(), request.getContext(), request.getHeaders());
             super.sendRequest(node, action, request, restoringHandler);
@@ -101,22 +107,29 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
             final TransportRequestOptions options, final TransportResponseHandler<T> handler) {
         
         //transient -> header
+        //System.out.println("<<< send "+action+" from "+this.nodeName()+"->"+node.getName());
  
-        final Map<String, String> origHeaders = this.threadPool.getThreadContext().getHeaders();        
+        final Map<String, String> origHeaders = this.threadPool.getThreadContext().getHeaders();  
+        User user = this.threadPool.getThreadContext().getTransient(ConfigConstants.SG_USER);
+        Object remoteAdress = this.threadPool.getThreadContext().getTransient(ConfigConstants.SG_REMOTE_ADDRESS);
+
         ThreadContext.StoredContext storedContext = this.threadPool.getThreadContext().newStoredContext();
         //this.threadContext.putHeader(Maps.filterKeys(origHeaders, k->k.equals(ConfigConstants.SG_CONF_REQUEST_HEADER)));
         
         try (ThreadContext.StoredContext newCtx = this.threadPool.getThreadContext().stashAndMergeHeaders(Maps.filterKeys(origHeaders, k->k.equals(ConfigConstants.SG_CONF_REQUEST_HEADER)))) {
             RestoringTransportResponseHandler restoringHandler = new RestoringTransportResponseHandler(handler, storedContext);
 
-            attachHeaders(action, request);
+            this.threadPool.getThreadContext().putTransient(ConfigConstants.SG_USER, user);
+            this.threadPool.getThreadContext().putTransient(ConfigConstants.SG_REMOTE_ADDRESS, remoteAdress);
+
+            attachHeaders(action);
             // LogHelper.logUserTrace("<-- Send {} to {} with {}/{}", action,
             // node.getName(), request.getContext(), request.getHeaders());
             super.sendRequest(node, action, request, options, restoringHandler);
         }
     }
 
-    private void attachHeaders(final String action, final TransportRequest request) {	
+    private void attachHeaders(String action) {	
         // keep original address
     	
         final Object remoteAdr = this.threadContext.getTransient(ConfigConstants.SG_REMOTE_ADDRESS);
@@ -140,6 +153,8 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
         
         User user = this.threadContext.getTransient(ConfigConstants.SG_USER);
         
+        //System.out.println("<<< send user: "+user);
+        
         //TODO check remoteAddress
         //if(user == null /* && action.startsWith("internal:")  && request.remoteAddress() == null */) {
         if(user == null /* && action.startsWith("internal:") */ && threadContext.getTransient(ConfigConstants.SG_CHANNEL_TYPE) == null) {
@@ -151,12 +166,15 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
         	
             String userHeader = this.threadContext.getHeader(ConfigConstants.SG_USER_HEADER);
             
-            if(userHeader == null)
+            if(userHeader == null) {
                 this.threadContext.putHeader(ConfigConstants.SG_USER_HEADER, Base64Helper.serializeObject(user));
-            else
+                //System.out.println("<<< send put: "+user);
+            }
+            else {
                 if(!((User)Base64Helper.deserializeObject(userHeader)).getName().equals(user.getName())) {
                     throw new RuntimeException("user mismatch "+Base64Helper.deserializeObject(userHeader)+"!="+user);
                 }
+            }
         } else {
             throw new ElasticsearchSecurityException("user must not be null here for " + action + " "
                     + LogHelper.toString(threadContext));
@@ -228,6 +246,8 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
     protected void messageReceivedDecorate(final TransportRequest request, final TransportRequestHandler handler,
             final TransportChannel transportChannel, Task task) throws Exception {
         
+        //System.out.println("-I- "+transportChannel.action()+" on "+this.nodeName()+" via "+transportChannel.getChannelType());
+        
         final ThreadContext.StoredContext sgContext = this.threadContext.newStoredContext();
         try {
             
@@ -297,10 +317,10 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
                         this.threadContext.putTransient(ConfigConstants.SG_USER, Objects.requireNonNull((User) Base64Helper.deserializeObject(userHeader)));
                     }
                     
-                    String originalRemoteAddress = this.threadContext.getTransient(ConfigConstants.SG_REMOTE_ADDRESS_HEADER);
+                    String originalRemoteAddress = this.threadContext.getHeader(ConfigConstants.SG_REMOTE_ADDRESS_HEADER);
                     
                     if(!Strings.isNullOrEmpty(originalRemoteAddress)) {
-                        this.threadContext.putTransient(ConfigConstants.SG_REMOTE_ADDRESS, Base64Helper.deserializeObject(originalRemoteAddress));
+                        this.threadContext.putTransient(ConfigConstants.SG_REMOTE_ADDRESS, new InetSocketTransportAddress((InetSocketAddress) Base64Helper.deserializeObject(originalRemoteAddress)));
                     }
                     
                 } else {
@@ -317,6 +337,8 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
                         return;
                     }
                     
+                    //System.out.println("1> "+principal);
+                    
                     //this.threadContext.putTransient(ConfigConstants.SG_USER, new User(principal));
                     // impersonation of transport requests
                     try {
@@ -328,12 +350,16 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
                         return;
                     }
                     
+                    //System.out.println("2>> "+threadContext.getTransient(ConfigConstants.SG_USER));
+                    
                     if(!backendRegistry.get().authenticate(request, threadContext)) {
                         auditLog.logFailedLogin(principal, request);
                         log.error("Cannot authenticate {}", this.threadContext.getTransient(ConfigConstants.SG_USER));
                         transportChannel.sendResponse(new ElasticsearchSecurityException("Cannot authenticate "+this.threadContext.getTransient(ConfigConstants.SG_USER)));
                         return;
                     }
+                    
+                    //System.out.println("3>>> "+threadContext.getTransient(ConfigConstants.SG_USER));
                     
                     
                     TransportAddress originalRemoteAddress = request.remoteAddress();

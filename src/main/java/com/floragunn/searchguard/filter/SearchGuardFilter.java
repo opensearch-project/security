@@ -91,6 +91,8 @@ public class SearchGuardFilter implements ActionFilter {
         
         User user = threadContext.getTransient(ConfigConstants.SG_USER);
         
+        //System.out.println("4>>>> "+user);
+        
         if(user == null && request.remoteAddress() == null) {
             user = User.SG_INTERNAL;
         }

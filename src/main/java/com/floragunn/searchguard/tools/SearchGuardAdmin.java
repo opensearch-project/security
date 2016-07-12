@@ -236,8 +236,8 @@ public class SearchGuardAdmin {
                 Settings settings = settingsBuilder.build();  
               
 
-        try (TransportClient tc = TransportClient.builder().settings(settings).addPlugin(SearchGuardSSLPlugin.class)
-                .addPlugin(SearchGuardPlugin.class) //needed for config update action only
+        try (TransportClient tc = TransportClient.builder().settings(settings)
+                .addPlugin(SearchGuardPlugin.class)
                 .build()
                 .addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(hostname, port)))) {
 

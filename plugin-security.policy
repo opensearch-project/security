@@ -22,4 +22,10 @@ grant {
   permission javax.security.auth.AuthPermission "modifyPrivateCredentials";
   permission javax.security.auth.AuthPermission "doAs";
   permission javax.security.auth.kerberos.ServicePermission "*","accept";
+  
+   //below permissions are needed for netty native open ssl support
+  permission java.lang.RuntimePermission "loadLibrary.*";
+  permission java.lang.RuntimePermission "accessClassInPackage.sun.misc";
+  permission java.lang.reflect.ReflectPermission "suppressAccessChecks";
+  
 };

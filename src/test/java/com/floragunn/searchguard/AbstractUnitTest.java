@@ -181,11 +181,11 @@ public abstract class AbstractUnitTest {
         FileUtils.deleteDirectory(new File("data"));
 
         esNode1 = new PluginAwareNode(getDefaultSettingsBuilder(1, false, true).put(
-                settings == null ? Settings.Builder.EMPTY_SETTINGS : settings).build(), SearchGuardSSLPlugin.class, SearchGuardPlugin.class);
+                settings == null ? Settings.Builder.EMPTY_SETTINGS : settings).build(), SearchGuardPlugin.class);
         esNode2 = new PluginAwareNode(getDefaultSettingsBuilder(2, true, true).put(
-                settings == null ? Settings.Builder.EMPTY_SETTINGS : settings).build(), SearchGuardSSLPlugin.class, SearchGuardPlugin.class);
+                settings == null ? Settings.Builder.EMPTY_SETTINGS : settings).build(), SearchGuardPlugin.class);
         esNode3 = new PluginAwareNode(getDefaultSettingsBuilder(3, true, false).put(
-                settings == null ? Settings.Builder.EMPTY_SETTINGS : settings).build(), SearchGuardSSLPlugin.class, SearchGuardPlugin.class);
+                settings == null ? Settings.Builder.EMPTY_SETTINGS : settings).build(), SearchGuardPlugin.class);
 
         esNode1.start();
         esNode2.start();

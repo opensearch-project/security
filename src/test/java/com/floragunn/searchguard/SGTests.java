@@ -37,7 +37,6 @@ import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
@@ -57,7 +56,6 @@ import org.junit.rules.ExpectedException;
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateAction;
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateRequest;
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateResponse;
-import com.floragunn.searchguard.ssl.SearchGuardSSLPlugin;
 import com.floragunn.searchguard.ssl.util.SSLConfigConstants;
 import com.floragunn.searchguard.support.Base64Helper;
 import com.floragunn.searchguard.support.ReflectionHelper;
@@ -129,10 +127,10 @@ public class SGTests extends AbstractUnitTest {
 
         log.debug("Start node client");
         
-        try (Node node = new PluginAwareNode(tcSettings, SearchGuardSSLPlugin.class).start()) {
+        try (Node node = new PluginAwareNode(tcSettings, SearchGuardPlugin.class).start()) {
             Assert.assertEquals(1, node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
             Assert.assertEquals(3, client().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getNumberOfNodes());
-            
+           
         }
     }
     
@@ -165,7 +163,7 @@ public class SGTests extends AbstractUnitTest {
         
         //Node und Transportclient: SG Plugin required? or SSL only ok?
         
-        try (Node node = new PluginAwareNode(tcSettings, SearchGuardSSLPlugin.class, SearchGuardPlugin.class).start()) {
+        try (Node node = new PluginAwareNode(tcSettings, SearchGuardPlugin.class).start()) {
             Assert.assertEquals(1, node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
             Assert.assertEquals(3, client().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getNumberOfNodes());
             
@@ -195,7 +193,7 @@ public class SGTests extends AbstractUnitTest {
 
         log.debug("Start node client");
         
-        try (Node node = new PluginAwareNode(tcSettings, SearchGuardSSLPlugin.class).start()) {
+        try (Node node = new PluginAwareNode(tcSettings, SearchGuardPlugin.class).start()) {
             Assert.assertEquals(4, node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
             Assert.assertEquals(4, client().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getNumberOfNodes());
             
@@ -281,7 +279,7 @@ public class SGTests extends AbstractUnitTest {
                 .put("path.home", ".")
                 .build();
 
-        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardSSLPlugin.class).addPlugin(SearchGuardPlugin.class).build()) {
+        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardPlugin.class).build()) {
             
             log.debug("Start transport client to init");
             
@@ -379,7 +377,7 @@ public class SGTests extends AbstractUnitTest {
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS,"kirk")
                 .put("path.home", ".").build();
 
-        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardSSLPlugin.class).addPlugin(SearchGuardPlugin.class).build()) {
+        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardPlugin.class).build()) {
             
             log.debug("Start transport client to init");
             
@@ -475,7 +473,7 @@ public class SGTests extends AbstractUnitTest {
         
         Assert.assertEquals(HttpStatus.SC_OK, executeGetRequest("starfleet/ships/_search?pretty", new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("worf", "worf"))).getStatusCode());
 
-        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardSSLPlugin.class).addPlugin(SearchGuardPlugin.class).build()) {
+        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardPlugin.class).build()) {
             
             log.debug("Start transport client to init 2");
             
@@ -488,7 +486,7 @@ public class SGTests extends AbstractUnitTest {
         
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, executeGetRequest("starfleet/ships/_search?pretty", new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("worf", "worf"))).getStatusCode());
 
-        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardSSLPlugin.class).addPlugin(SearchGuardPlugin.class).build()) {
+        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardPlugin.class).build()) {
             
             log.debug("Start transport client to init 3");
             
@@ -548,7 +546,7 @@ public class SGTests extends AbstractUnitTest {
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS,"kirk")
                 .put("path.home", ".").build();
 
-        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardSSLPlugin.class).addPlugin(SearchGuardPlugin.class).build()) {
+        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardPlugin.class).build()) {
             
             log.debug("Start transport client to init");
             
@@ -586,7 +584,7 @@ public class SGTests extends AbstractUnitTest {
             Assert.assertTrue(res.getBody().contains("vulcan"));
         }
         
-        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardSSLPlugin.class).addPlugin(SearchGuardPlugin.class).build()) {
+        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardPlugin.class).build()) {
             
             log.debug("Start transport client to init");
             
@@ -608,7 +606,7 @@ public class SGTests extends AbstractUnitTest {
             Assert.assertFalse(res.getBody().contains("starfleet"));
         }
         
-        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardSSLPlugin.class).addPlugin(SearchGuardPlugin.class).build()) {
+        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardPlugin.class).build()) {
             
             log.debug("Start transport client to init");
             
@@ -656,7 +654,7 @@ public class SGTests extends AbstractUnitTest {
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS,"kirk")
                 .put("path.home", ".").build();
 
-        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardSSLPlugin.class).addPlugin(SearchGuardPlugin.class).build()) {
+        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardPlugin.class).build()) {
             
             log.debug("Start transport client to init");
             
@@ -694,7 +692,7 @@ public class SGTests extends AbstractUnitTest {
         Assert.assertEquals("Unable to create index 'nag'", HttpStatus.SC_OK, executePutRequest("nag1", null, new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
         Assert.assertEquals("Unable to create index 'starfleet_library'", HttpStatus.SC_OK, executePutRequest("starfleet_library", null, new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
         
-        Thread.sleep(2000);
+        //Thread.sleep(2000);
         waitForGreenClusterState(esNode1.client());
         
         Assert.assertEquals("Unable to close index 'starfleet_library'", HttpStatus.SC_OK, executePostRequest("starfleet_library/_close", null, new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
@@ -733,7 +731,7 @@ public class SGTests extends AbstractUnitTest {
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS,"kirk")
                 .put("path.home", ".").build();
 
-        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardSSLPlugin.class).addPlugin(SearchGuardPlugin.class).build()) {
+        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardPlugin.class).build()) {
             
             log.debug("Start transport client to init");
             
@@ -818,7 +816,7 @@ public class SGTests extends AbstractUnitTest {
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS,"kirk")
                 .put("path.home", ".").build();
 
-        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardSSLPlugin.class).build()) {
+        try (TransportClient tc = TransportClient.builder().settings(tcSettings).build()) {
             
             log.debug("Start transport client to init");
             
@@ -918,7 +916,7 @@ public class SGTests extends AbstractUnitTest {
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS,"kirk")
                 .put("path.home", ".").build();
 
-        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardSSLPlugin.class).addPlugin(SearchGuardPlugin.class).build()) {
+        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardPlugin.class).build()) {
             
             log.debug("Start transport client to init");
             
@@ -955,13 +953,13 @@ public class SGTests extends AbstractUnitTest {
 
         System.out.println("------- 0 ---------");
         
-        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardSSLPlugin.class).build()) {
+        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardPlugin.class).build()) {
             
             log.debug("Start transport client to use");
             
             tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
             
-            Thread.sleep(10000);
+            //Thread.sleep(10000);
             
             Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
             
@@ -1161,7 +1159,7 @@ public class SGTests extends AbstractUnitTest {
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS,"kirk")
                 .put("path.home", ".").build();
 
-        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardSSLPlugin.class).addPlugin(SearchGuardPlugin.class).build()) {
+        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardPlugin.class).build()) {
             
             log.debug("Start transport client to init");
             
@@ -1252,7 +1250,7 @@ public class SGTests extends AbstractUnitTest {
                     .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS,"kirk")
                     .put("path.home", ".").build();
     
-            try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardSSLPlugin.class).addPlugin(SearchGuardPlugin.class).build()) {
+            try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardPlugin.class).build()) {
                 
                 log.debug("Start transport client to init");
                 
@@ -1342,7 +1340,7 @@ public class SGTests extends AbstractUnitTest {
                     .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS,"kirk")
                     .put("path.home", ".").build();
     
-            try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardSSLPlugin.class).addPlugin(SearchGuardPlugin.class).build()) {
+            try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardPlugin.class).build()) {
                 
                 log.debug("Start transport client to init");
                 
@@ -1406,7 +1404,7 @@ public class SGTests extends AbstractUnitTest {
             Assert.assertFalse(resc.getBody().contains("sg_anonymous"));
             Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
             
-            try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardSSLPlugin.class).addPlugin(SearchGuardPlugin.class).build()) {
+            try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardPlugin.class).build()) {
                 
                 log.debug("Start transport client to init");
                 
@@ -1455,7 +1453,7 @@ public class SGTests extends AbstractUnitTest {
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS,"kirk")
                 .put("path.home", ".").build();
     
-        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardSSLPlugin.class).build()) {
+        try (TransportClient tc = TransportClient.builder().settings(tcSettings).build()) {
             
             log.debug("Start transport client to init");
             
@@ -1554,7 +1552,7 @@ public class SGTests extends AbstractUnitTest {
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS,"kirk")
                 .put("path.home", ".").build();
     
-        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardSSLPlugin.class).addPlugin(SearchGuardPlugin.class).build()) {
+        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardPlugin.class).build()) {
             
             log.debug("Start transport client to init");
             
@@ -1593,7 +1591,7 @@ public class SGTests extends AbstractUnitTest {
     
         System.out.println("------- 0 ---------");
         
-        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardSSLPlugin.class).build()) {
+        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardPlugin.class).build()) {
             
             log.debug("Start transport client to use");
             
@@ -1647,7 +1645,7 @@ public class SGTests extends AbstractUnitTest {
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS,"kirk")
                 .put("path.home", ".").build();
     
-        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardSSLPlugin.class).addPlugin(SearchGuardPlugin.class).build()) {
+        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardPlugin.class).build()) {
             
             log.debug("Start transport client to init");
             
@@ -1686,7 +1684,7 @@ public class SGTests extends AbstractUnitTest {
     
         System.out.println("------- 0 ---------");
         
-        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardSSLPlugin.class).build()) {
+        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardPlugin.class).build()) {
             
             log.debug("Start transport client to use");
             

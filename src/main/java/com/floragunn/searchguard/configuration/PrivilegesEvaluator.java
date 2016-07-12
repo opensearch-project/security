@@ -104,8 +104,8 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         allowedAdminActions.add("indices:admin/validate/query");
         allowedAdminActions.add("indices:admin/template/put");
         allowedAdminActions.add("indices:admin/template/get");
-        
-        
+        //TODO check with ES5 final version, seems to be a bug in alpha4
+        allowedAdminActions.add("indices:admin/mapping/put"); 
     }
 
     @Override

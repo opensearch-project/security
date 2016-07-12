@@ -53,7 +53,7 @@ public class SearchGuardIndexSearcherWrapper extends IndexSearcherWrapper {
         //    log.trace("DirectoryReader {} should be wrapped", reader.getClass());
         //}
         
-        if (!isAdminAuhtenticatedOrInternalRequest()) {
+        if (!isAdminAuthenticatedOrInternalRequest()) {
 
             //if (settings == null || settings.getAsBoolean("searchguard.dynamic.dlsfls_enabled", true)) {
                 return dlsFlsWrap(reader);
@@ -71,11 +71,11 @@ public class SearchGuardIndexSearcherWrapper extends IndexSearcherWrapper {
         //    log.trace("IndexSearcher {} should be wrapped (reader is {})", searcher.getClass(), searcher.getIndexReader().getClass());
         //}
         
-        if (isSearchGuardIndexRequest() && !isAdminAuhtenticatedOrInternalRequest()) {
+        if (isSearchGuardIndexRequest() && !isAdminAuthenticatedOrInternalRequest()) {
             return new IndexSearcher(new EmptyReader());
         }
 
-        if (!isAdminAuhtenticatedOrInternalRequest()) {
+        if (!isAdminAuthenticatedOrInternalRequest()) {
 
             //if (settings == null || settings.getAsBoolean("searchguard.dynamic.dlsfls_enabled", true)) {
                 return dlsFlsWrap(searcher);
@@ -93,9 +93,11 @@ public class SearchGuardIndexSearcherWrapper extends IndexSearcherWrapper {
         return reader;
     }
 
-    protected final boolean isAdminAuhtenticatedOrInternalRequest() {
+    protected final boolean isAdminAuthenticatedOrInternalRequest() {
     	 
         final User user = (User) threadContext.getTransient(ConfigConstants.SG_USER);
+        
+        //System.out.println("5>>>>> user: "+user+" is admin "+(user==null?false:AdminDNs.isAdmin(user.getName())));
                
         if (user != null && AdminDNs.isAdmin(user.getName())) { //TODO static hack
             return true;
