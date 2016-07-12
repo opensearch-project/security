@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 import org.elasticsearch.action.ActionModule;
-import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.HttpServerModule;
@@ -34,7 +33,6 @@ import com.floragunn.searchguard.action.configupdate.TransportConfigUpdateAction
 import com.floragunn.searchguard.auditlog.AuditLogModule;
 import com.floragunn.searchguard.configuration.BackendModule;
 import com.floragunn.searchguard.configuration.ConfigurationModule;
-import com.floragunn.searchguard.configuration.ConfigurationService;
 import com.floragunn.searchguard.configuration.SearchGuardIndexSearcherWrapperModule;
 import com.floragunn.searchguard.filter.SearchGuardFilter;
 import com.floragunn.searchguard.http.SearchGuardHttpServerTransport;
@@ -98,15 +96,6 @@ public final class SearchGuardPlugin extends Plugin {
             modules.add(new AuditLogModule());
         }
         return modules;
-    }
-
-    @Override
-    public Collection<Class<? extends LifecycleComponent>> nodeServices() {
-        final Collection<Class<? extends LifecycleComponent>> services = new ArrayList<>();
-        if (!client) {
-            services.add(ConfigurationService.class);
-        }
-        return services;
     }
 
     public void onModule(final ActionModule module) {

@@ -61,6 +61,7 @@ import org.elasticsearch.common.xcontent.XContentType;
 import com.floragunn.searchguard.SearchGuardPlugin;
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateAction;
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateRequest;
+import com.floragunn.searchguard.action.configupdate.ConfigUpdateResponse;
 import com.floragunn.searchguard.ssl.SearchGuardSSLPlugin;
 import com.floragunn.searchguard.ssl.util.SSLConfigConstants;
 
@@ -327,8 +328,10 @@ public class SearchGuardAdmin {
             success = success & uploadFile(tc, cd+"sg_internal_users.yml", "internalusers");
             success = success & uploadFile(tc, cd+"sg_action_groups.yml", "actiongroups");
             
-            System.out.println("Wait a short time ...");
-            Thread.sleep(5000);
+            ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
+            
+            success = success & cur.getNodes().length == chr.getNumberOfNodes();
+            
             System.out.println("Done with "+(success?"success":"failures"));
             System.exit(success?0:-1);
         }
