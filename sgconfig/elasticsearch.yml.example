@@ -39,3 +39,6 @@ searchguard.audit.type: internal_elasticsearch
 # The relative path to config/ directory
 # to the keytab where the acceptor_principal credentials are stored.
 #searchguard.kerberos.acceptor_keytab_filepath: 'eskeytab.tab'
+
+# This defines the OID of node certificates
+#searchguard.cert.oid: '1.2.3.4.5.5'
