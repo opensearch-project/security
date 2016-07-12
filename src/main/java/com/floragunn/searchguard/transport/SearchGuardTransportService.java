@@ -60,6 +60,7 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
     protected final ESLogger log = Loggers.getLogger(this.getClass());
     private final Provider<BackendRegistry> backendRegistry;
     private final AuditLog auditLog;
+    private final String certOid;
 
     @Inject
     public SearchGuardTransportService(final Settings settings, final Transport transport, final ThreadPool threadPool,
@@ -67,6 +68,7 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
         super(settings, transport, threadPool);
         this.backendRegistry = backendRegistry;
         this.auditLog = auditLog;
+        this.certOid = settings.get("searchguard.cert.oid", "1.2.3.4.5.5");
     }
 
     @Override
@@ -150,7 +152,7 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
                 }
             }
 
-            if (sb.indexOf("8::1.2.3.4.5.5") >= 0) {
+            if (sb.indexOf("8::" + this.certOid) >= 0) {
                 isInterClusterRequest = true;
             }
 
