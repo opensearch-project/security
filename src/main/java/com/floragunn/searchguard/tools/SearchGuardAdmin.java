@@ -92,8 +92,10 @@ public class SearchGuardAdmin {
         Options options = new Options();
         options.addOption( "nhnv", "disable-host-name-verification", false, "Disable hostname verification" );
         options.addOption( "nrhn", "disable-resolve-hostname", false, "Disable hostname beeing resolved" );
-        options.addOption(Option.builder("ts").longOpt("truststore").hasArg().argName("file").required().desc("Path to truststore (in JKS format").build());
-        options.addOption(Option.builder("ks").longOpt("keystore").hasArg().argName("file").required().desc("Path to keystore (in JKS format").build());
+        options.addOption(Option.builder("ts").longOpt("truststore").hasArg().argName("file").required().desc("Path to truststore (JKS/PKCS12 format)").build());
+        options.addOption(Option.builder("ks").longOpt("keystore").hasArg().argName("file").required().desc("Path to keystore (JKS/PKCS12 format").build());
+        options.addOption(Option.builder("tst").longOpt("truststore-type").hasArg().argName("type").desc("JKS or PKCS12, if not given use file ext. to dectect type").build());
+        options.addOption(Option.builder("kst").longOpt("keystore-type").hasArg().argName("type").desc("JKS or PKCS12, if not given use file ext. to dectect type").build());
         options.addOption(Option.builder("tspass").longOpt("truststore-password").hasArg().argName("password").desc("Truststore password").build());
         options.addOption(Option.builder("kspass").longOpt("keystore-password").hasArg().argName("password").desc("Keystore password").build());
         options.addOption(Option.builder("cd").longOpt("configdir").hasArg().argName("directory").desc("Directory for config files").build());
@@ -119,6 +121,8 @@ public class SearchGuardAdmin {
         String cd = ".";
         String ks;
         String ts;
+        String kst = null;
+        String tst = null;
         boolean nhnv = false;
         boolean nrhn = false;
         boolean sniff = false;
@@ -148,6 +152,8 @@ public class SearchGuardAdmin {
             
             ks = line.getOptionValue("ks");
             ts = line.getOptionValue("ts");
+            kst = line.getOptionValue("kst", kst);
+            tst = line.getOptionValue("tst", tst);
             nhnv = line.hasOption("nhnv");
             nrhn = line.hasOption("nrhn");
             clustername = line.getOptionValue("cn", clustername);
@@ -213,8 +219,8 @@ public class SearchGuardAdmin {
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, !nhnv)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, !nrhn)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLED, true)
-                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_TYPE, ks.endsWith(".jks")?"JKS":"PKCS12")
-                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_TRUSTSTORE_TYPE, ts.endsWith(".jks")?"JKS":"PKCS12")
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_TYPE, kst==null?(ks.endsWith(".jks")?"JKS":"PKCS12"):kst)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_TRUSTSTORE_TYPE, tst==null?(ts.endsWith(".jks")?"JKS":"PKCS12"):tst)
                 
                 .putArray(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLED_CIPHERS, enabledCiphers)
                 .putArray(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLED_PROTOCOLS, enabledProtocols)
