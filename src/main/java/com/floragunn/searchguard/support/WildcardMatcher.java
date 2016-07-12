@@ -105,7 +105,8 @@ public class WildcardMatcher {
     }
 
     public static boolean containsWildcard(final String pattern) {
-        if (pattern != null && (pattern.contains("*") || pattern.contains("?"))) {
+        if (pattern != null && (pattern.contains("*") || pattern.contains("?") 
+                || (pattern.startsWith("/") && pattern.endsWith("/")))) {
             return true;
         }
 

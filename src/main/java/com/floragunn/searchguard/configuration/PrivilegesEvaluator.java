@@ -459,21 +459,31 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
             final Set<String> requestedResolvedTypes, final Set<String> _requestedResolvedAliasesIndices,
             final Set<String> _requestedResolvedTypes) {
 
+        final Set<String> resolvedPermittedAliasesIndex = new HashSet<String>();
+        
         if(!resolver.hasIndexOrAlias(permittedAliasesIndex, clusterService.state())) {
             
             if(log.isDebugEnabled()) {
-                log.debug("permittedAliasesIndex {} {}", permittedAliasesIndex,  action);
-                log.debug("permittedAliasesIndices {}", permittedAliasesIndices);
-                log.debug("requestedResolvedAliasesIndices {}", requestedResolvedAliasesIndices);
-                log.debug("_requestedResolvedAliasesIndices {}", _requestedResolvedAliasesIndices);   
+                log.debug("no permittedAliasesIndex '{}' found for  '{}'", permittedAliasesIndex,  action);
+                
+                
+                for(String pai: permittedAliasesIndices.keySet()) {
+                    Settings paiSettings = permittedAliasesIndices.get(pai);
+                    log.debug("permittedAliasesIndices '{}' -> '{}'", permittedAliasesIndices, paiSettings==null?"null":String.valueOf(paiSettings.getAsMap()));
+                }
+                
+                log.debug("requestedResolvedAliasesIndices '{}'", requestedResolvedAliasesIndices);
+                log.debug("_requestedResolvedAliasesIndices '{}'", _requestedResolvedAliasesIndices);   
             }
             
-            return;//TODO check create index
+            resolvedPermittedAliasesIndex.add(permittedAliasesIndex);
+
+        } else {
+            resolvedPermittedAliasesIndex.addAll(Arrays.asList(resolver.concreteIndices(
+                    clusterService.state(), IndicesOptions.fromOptions(false, true, true, false), permittedAliasesIndex)));
         }
         
-        final Set<String> resolvedPermittedAliasesIndex = new HashSet<String>(Arrays.asList(resolver.concreteIndices(
-                clusterService.state(), IndicesOptions.fromOptions(false, true, true, false), permittedAliasesIndex)));
-
+        
         if (log.isDebugEnabled()) {
             log.debug("  resolved permitted aliases indices for {}: {}", permittedAliasesIndex, resolvedPermittedAliasesIndex);
         }

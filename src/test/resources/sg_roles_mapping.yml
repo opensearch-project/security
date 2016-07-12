@@ -68,3 +68,7 @@ sg_role_host2:
   users:
     - sg_host_127.0.0.1
     - sg_host_localhost
+
+sg_theindex_admin:
+  users:
+    - theindexadmin
