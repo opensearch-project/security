@@ -13,7 +13,7 @@
   <groupId>com.floragunn</groupId>
   <artifactId>search-guard-2</artifactId>
   <packaging>jar</packaging>
-  <version>5.0.0-alpha4-13-SNAPSHOT</version>
+  <version>5.0.0-alpha5-13a-2a-SNAPSHOT</version>
   <name>Search Guard</name>
   <description>Provide access control related features for Elasticsearch 5</description>
   <url>https://github.com/floragunncom/search-guard</url>
@@ -28,10 +28,9 @@
   </licenses>
 
   <properties>
-    <sgssl.version>5.0.0-alpha4-13-SNAPSHOT</sgssl.version>
+    <sgssl.version>5.0.0-alpha4-13a</sgssl.version>
     <elasticsearch.version>5.0.0-alpha4</elasticsearch.version>
     <dependency.locations.enabled>false</dependency.locations.enabled>
-    <elasticsearch.plugin.classname>com.floragunn.searchguard.SearchGuardPlugin</elasticsearch.plugin.classname>
   </properties>
 
   <distributionManagement>
