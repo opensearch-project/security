@@ -706,10 +706,8 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         for (String index : indices.keySet()) {
             String replacedIndex = index.replace(variableName, value);
             replacedIndices.put(replacedIndex, indices.get(index));
-            if (log.isDebugEnabled()) {
-                if (!replacedIndex.equals(index)) {
-                    log.debug("Index '{}' was replaced with '{}'", index, replacedIndex);
-                }
+            if (log.isDebugEnabled() && !replacedIndex.equals(index)) {
+                log.debug("Index '{}' was replaced with '{}'", index, replacedIndex);
             }
         }
         return replacedIndices;
