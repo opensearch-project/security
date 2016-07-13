@@ -265,7 +265,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                 }
             }
 
-            final Map<String, Settings> permittedAliasesIndices = sgRoleSettings.getGroups(".indices");
+            final Map<String, Settings> permittedAliasesIndices = replaceIndicesVariable(sgRoleSettings.getGroups(".indices"), "%{user_name}", user.getName());
 
             /*
             sg_role_starfleet:
@@ -699,5 +699,19 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         }
 
         return resolvedActions;
+    }
+
+    private Map<String, Settings> replaceIndicesVariable(Map<String, Settings> indices, String variableName, String value) {
+        Map<String, Settings> replacedIndices = new HashMap<String, Settings>();
+        for (String index : indices.keySet()) {
+            String replacedIndex = index.replace(variableName, value);
+            replacedIndices.put(replacedIndex, indices.get(index));
+            if (log.isDebugEnabled()) {
+                if (!replacedIndex.equals(index)) {
+                    log.debug("Index '{}' was replaced with '{}'", index, replacedIndex);
+                }
+            }
+        }
+        return replacedIndices;
     }
 }
