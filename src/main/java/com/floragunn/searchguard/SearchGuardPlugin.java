@@ -47,7 +47,6 @@ public final class SearchGuardPlugin extends Plugin {
     private final Settings settings;
     private final boolean client;
     private final boolean httpSSLEnabled;
-    //private boolean tribe; // TODO check tribe node
 
     public SearchGuardPlugin(final Settings settings) {
         super();

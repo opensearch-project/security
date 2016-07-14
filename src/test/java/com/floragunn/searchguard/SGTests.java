@@ -162,7 +162,6 @@ public class SGTests extends AbstractUnitTest {
     }
     
     @Test
-    @Ignore
     public void testNodeClientAllowedWithServerCertificate() throws Exception {
         final Settings settings = Settings.settingsBuilder().put("searchguard.ssl.transport.enabled", true)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
