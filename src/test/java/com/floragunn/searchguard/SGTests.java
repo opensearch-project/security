@@ -434,6 +434,10 @@ public class SGTests extends AbstractUnitTest {
         }
 
         Assert.assertEquals(HttpStatus.SC_OK, executePutRequest("/theindex","{}",new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("theindexadmin", "theindexadmin"))).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, executeGetRequest("/theindex/_analyze?text=this+is+a+test",new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("theindexadmin", "theindexadmin"))).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, executeGetRequest("_analyze?text=this+is+a+test",new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("theindexadmin", "theindexadmin"))).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, executeDeleteRequest("/theindex",new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("theindexadmin", "theindexadmin"))).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, executeDeleteRequest("/klingonempire",new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("theindexadmin", "theindexadmin"))).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, executeGetRequest("starfleet/_search", new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("worf", "worf"))).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, executeGetRequest("_search", new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("worf", "worf"))).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_OK, executeGetRequest("starfleet/ships/_search?pretty", new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("worf", "worf"))).getStatusCode());

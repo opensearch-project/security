@@ -65,6 +65,7 @@ import com.google.common.collect.Sets.SetView;
 
 public class PrivilegesEvaluator implements ConfigChangeListener {
 
+    private static final Set<String> NULL_SET = Sets.newHashSet((String)null);
     private final Set<String> DLSFLS = ImmutableSet.of("_dls_", "_fls_");
     protected final ESLogger log = Loggers.getLogger(this.getClass());
     private final ClusterService clusterService;
@@ -74,7 +75,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
     private final IndexNameExpressionResolver resolver;
     private final Map<Class, Method> typeCache = Collections.synchronizedMap(new HashMap(100));
     private final Map<Class, Method> typesCache = Collections.synchronizedMap(new HashMap(100));
-    private final List<String> allowedAdminActions = new ArrayList<String>();
+    private final String[] deniedActionPatterns;
     private final AuditLog auditLog;
 
     @Inject
@@ -88,20 +89,46 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         this.resolver = resolver;
         this.auditLog = auditLog;
         
+        /*
+        indices:admin/template/delete
+        indices:admin/template/get
+        indices:admin/template/put
         
-        allowedAdminActions.add("indices:admin/aliases/exists");
-        allowedAdminActions.add("indices:admin/aliases/get");
-        allowedAdminActions.add("indices:admin/analyze");
-        allowedAdminActions.add("indices:admin/get");
-        allowedAdminActions.add("indices:admin/exists");
-        allowedAdminActions.add("indices:admin/mappings/fields/get");
-        allowedAdminActions.add("indices:admin/mappings/get");
-        allowedAdminActions.add("indices:admin/types/exists");
-        allowedAdminActions.add("indices:admin/validate/query");
-        allowedAdminActions.add("indices:admin/template/put");
-        allowedAdminActions.add("indices:admin/template/get");
-        allowedAdminActions.add("indices:admin/template/delete");
+        indices:admin/aliases
+        indices:admin/aliases/exists
+        indices:admin/aliases/get
+        indices:admin/analyze
+        indices:admin/cache/clear
+        -> indices:admin/close
+        indices:admin/create
+        -> indices:admin/delete
+        indices:admin/get
+        indices:admin/exists
+        indices:admin/flush
+        indices:admin/mapping/put
+        indices:admin/mappings/fields/get
+        indices:admin/mappings/get
+        indices:admin/open
+        indices:admin/optimize
+        indices:admin/refresh
+        indices:admin/settings/update
+        indices:admin/shards/search_shards
+        indices:admin/types/exists
+        indices:admin/upgrade
+        indices:admin/validate/query
+        indices:admin/warmers/delete
+        indices:admin/warmers/get
+        indices:admin/warmers/put
+        */
         
+        final List<String> deniedActionPatternsList = new ArrayList<String>();
+        deniedActionPatternsList.add("indices:data/write*");
+        deniedActionPatternsList.add("indices:admin/close");
+        deniedActionPatternsList.add("indices:admin/delete");
+        //deniedActionPatternsList.add("indices:admin/settings/update");
+        //deniedActionPatternsList.add("indices:admin/upgrade");
+        
+        deniedActionPatterns = deniedActionPatternsList.toArray(new String[0]);
         
     }
 
@@ -156,14 +183,14 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         }
         
         if (requestedResolvedAliasesIndices.contains("searchguard")
-                && (action.startsWith("indices:data/write") || (action.startsWith("indices:admin") && !allowedAdminActions.contains(action)))) {
+                && WildcardMatcher.matchAny(deniedActionPatterns, action)) {
             auditLog.logSgIndexAttempt(request, action);
             log.warn(action + " for 'searchguard' index is not allowed for a regular user");
             return false;
         }
 
         if (requestedResolvedAliasesIndices.contains("_all")
-                && (action.startsWith("indices:data/write") || (action.startsWith("indices:admin") && !allowedAdminActions.contains(action)))) {
+                && WildcardMatcher.matchAny(deniedActionPatterns, action)) {
             auditLog.logSgIndexAttempt(request, action);
             log.warn(action + " for '_all' indices is not allowed for a regular user");
             return false;
@@ -635,16 +662,27 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
 
         final Set<String> indices = new HashSet<String>();
 
-        try {
-            indices.addAll(Arrays.asList(resolver.concreteIndices(clusterService.state(), request)));
+        if(request.indices() == null || request.indices().length == 0 || new HashSet<String>(Arrays.asList(request.indices())).equals(NULL_SET)) {
+            
             if(log.isDebugEnabled()) {
-                log.debug("Resolved {} to {}", indices);
+                log.debug("No indices found in request, assume _all");
             }
-        } catch (final Exception e) {
-            log.debug("Cannot resolve {} so we use the raw values", Arrays.toString(request.indices()));
-            indices.addAll(Arrays.asList(request.indices()));
+            
+            indices.addAll(Arrays.asList(resolver.concreteIndices(clusterService.state(), IndicesOptions.strictExpand(), "*")));
+            
+        } else {
+            
+            try {
+                indices.addAll(Arrays.asList(resolver.concreteIndices(clusterService.state(), request)));
+                if(log.isDebugEnabled()) {
+                    log.debug("Resolved {} to {}", indices);
+                }
+            } catch (final Exception e) {
+                log.debug("Cannot resolve {} (due to {}) so we use the raw values", Arrays.toString(request.indices()), e);
+                indices.addAll(Arrays.asList(request.indices()));
+            }
         }
-
+        
         return new Tuple<Set<String>, Set<String>>(indices, requestTypes);
     }
 
