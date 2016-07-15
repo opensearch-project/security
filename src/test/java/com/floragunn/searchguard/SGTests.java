@@ -762,9 +762,14 @@ public class SGTests extends AbstractUnitTest {
         
        
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, executeGetRequest("").getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_OK, executeGetRequest("", new BasicHeader("x-proxy-user", "scotty")).getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_OK, executeGetRequest("", new BasicHeader("X-Proxy-User", "scotty")).getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_OK, executeGetRequest("", new BasicHeader("x-proxy-user", "scotty"),new BasicHeader("x-proxy-roles", "starfleet,engineer")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, executeGetRequest("", new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, executeGetRequest("", new BasicHeader("x-forwarded-for", "localhost,192.168.0.1,10.0.0.2"),new BasicHeader("x-proxy-user", "scotty"), new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("nagilum-wrong", "nagilum-wrong"))).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, executeGetRequest("", new BasicHeader("x-forwarded-for", "localhost,192.168.0.1,10.0.0.2"),new BasicHeader("x-proxy-user-wrong", "scotty"), new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, executeGetRequest("", new BasicHeader("x-forwarded-for", "a"),new BasicHeader("x-proxy-user", "scotty"), new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("nagilum-wrong", "nagilum-wrong"))).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, executeGetRequest("", new BasicHeader("x-forwarded-for", "a,b,c"),new BasicHeader("x-proxy-user", "scotty")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, executeGetRequest("", new BasicHeader("x-forwarded-for", "localhost,192.168.0.1,10.0.0.2"),new BasicHeader("x-proxy-user", "scotty")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, executeGetRequest("", new BasicHeader("x-forwarded-for", "localhost,192.168.0.1,10.0.0.2"),new BasicHeader("X-Proxy-User", "scotty")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, executeGetRequest("", new BasicHeader("x-forwarded-for", "localhost,192.168.0.1,10.0.0.2"),new BasicHeader("x-proxy-user", "scotty"),new BasicHeader("x-proxy-roles", "starfleet,engineer")).getStatusCode());
         
     }
     

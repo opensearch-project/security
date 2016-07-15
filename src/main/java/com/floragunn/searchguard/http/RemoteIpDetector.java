@@ -23,11 +23,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.http.netty.NettyHttpRequest;
-import org.elasticsearch.rest.RestStatus;
+
+import com.floragunn.searchguard.support.ConfigConstants;
 
 class RemoteIpDetector {
 
@@ -136,7 +136,7 @@ class RemoteIpDetector {
         return trustedProxies.toString();
     }
 
-    public String detect(final NettyHttpRequest request){
+    String detect(final NettyHttpRequest request){
         final String originalRemoteAddr = ((InetSocketAddress)request.getRemoteAddress()).getAddress().getHostAddress();
         @SuppressWarnings("unused")
         final String originalProxiesHeader = request.getHeader(proxiesHeader);
@@ -154,17 +154,14 @@ class RemoteIpDetector {
                 internalProxies.matcher(originalRemoteAddr).matches()) {
             String remoteIp = null;
             // In java 6, proxiesHeaderValue should be declared as a java.util.Deque
-            LinkedList<String> proxiesHeaderValue = new LinkedList<>();
-            StringBuilder concatRemoteIpHeaderValue = new StringBuilder();
+            final LinkedList<String> proxiesHeaderValue = new LinkedList<>();
+            final StringBuilder concatRemoteIpHeaderValue = new StringBuilder();
             
             //client1, proxy1, proxy2
-            List<String> remoteIpHeaders = request.request().headers().getAll(remoteIpHeader); //X-Forwarded-For
+            final List<String> remoteIpHeaders = request.request().headers().getAll(remoteIpHeader); //X-Forwarded-For
 
-            if(remoteIpHeaders == null) {
-                //log.warn("no remote "+remoteIpHeader+" header found albeit it should be there");
-                //return originalRemoteAddr;
-                log.error("no remote "+remoteIpHeader+" header albeit needed");
-                throw new ElasticsearchSecurityException("no remote "+remoteIpHeader+" header albeit needed", RestStatus.BAD_REQUEST);
+            if(remoteIpHeaders == null || remoteIpHeaders.isEmpty()) {
+                return originalRemoteAddr;
             }
             
             for (String rh:remoteIpHeaders) {
@@ -174,8 +171,12 @@ class RemoteIpDetector {
 
                 concatRemoteIpHeaderValue.append(rh);
             }
+            
+            if(log.isTraceEnabled()) {
+                log.trace("concatRemoteIpHeaderValue {}", concatRemoteIpHeaderValue.toString());
+            }
 
-            String[] remoteIpHeaderValue = commaDelimitedListToStringArray(concatRemoteIpHeaderValue.toString());
+            final String[] remoteIpHeaderValue = commaDelimitedListToStringArray(concatRemoteIpHeaderValue.toString());
             int idx;
             // loop on remoteIpHeaderValue to find the first trusted remote ip and to build the proxies chain
             for (idx = remoteIpHeaderValue.length - 1; idx >= 0; idx--) {
@@ -193,7 +194,7 @@ class RemoteIpDetector {
             }
             
             // continue to loop on remoteIpHeaderValue to build the new value of the remoteIpHeader
-            LinkedList<String> newRemoteIpHeaderValue = new LinkedList<>();
+            final LinkedList<String> newRemoteIpHeaderValue = new LinkedList<>();
             for (; idx >= 0; idx--) {
                 String currentRemoteIp = remoteIpHeaderValue[idx];
                 newRemoteIpHeaderValue.addFirst(currentRemoteIp);
@@ -220,14 +221,11 @@ class RemoteIpDetector {
                               + "', originalRemoteHost='" + originalRemoteHost + "', will be seen as newRemoteAddr='" + remoteIp);
                 }
                 
+                request.putInContext(ConfigConstants.SG_XFF_DONE, Boolean.TRUE);
                 return remoteIp;
                 
             } else {
-                //log.warn("could not resolve remote ip for "+originalRemoteAddr);
-                //return originalRemoteAddr;
-                
-                log.error("no remote ip");
-                throw new ElasticsearchSecurityException("no remote ip", RestStatus.BAD_REQUEST);
+                log.warn("Remote ip could not be detected, this should normally not happen");
             }
             
         } else {
