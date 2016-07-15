@@ -206,17 +206,18 @@ public abstract class AbstractUnitTest {
     @After
     public void tearDown() throws Exception {
 
-            if (esNode3 != null) {
-                esNode3.close();
-            }
+        Thread.sleep(500);
+        if (esNode3 != null) {
+            esNode3.close();
+        }
 
-            if (esNode2 != null) {
-                esNode2.close();
-            }
+        if (esNode2 != null) {
+            esNode2.close();
+        }
 
-            if (esNode1 != null) {
-                esNode1.close();
-            }
+        if (esNode1 != null) {
+            esNode1.close();
+        }
     }
 
     protected void waitForGreenClusterState(final Client client) throws IOException {
