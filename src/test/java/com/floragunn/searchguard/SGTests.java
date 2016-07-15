@@ -434,6 +434,7 @@ public class SGTests extends AbstractUnitTest {
         }
 
         Assert.assertEquals(HttpStatus.SC_OK, executePutRequest("/theindex","{}",new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("theindexadmin", "theindexadmin"))).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_CREATED, executePutRequest("/theindex/type/1?refresh=true","{\"a\":0}",new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("theindexadmin", "theindexadmin"))).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_OK, executeGetRequest("/theindex/_analyze?text=this+is+a+test",new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("theindexadmin", "theindexadmin"))).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, executeGetRequest("_analyze?text=this+is+a+test",new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("theindexadmin", "theindexadmin"))).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_OK, executeDeleteRequest("/theindex",new BasicHeader("Authorization", "Basic "+Base64Helper.encodeBasicHeader("theindexadmin", "theindexadmin"))).getStatusCode());
