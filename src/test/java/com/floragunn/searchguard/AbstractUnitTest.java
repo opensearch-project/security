@@ -389,7 +389,9 @@ public abstract class AbstractUnitTest {
                 }
             }
             
-            return new HttpResponse(httpClient.execute(uriRequest));
+            HttpResponse res = new HttpResponse(httpClient.execute(uriRequest));
+            log.trace(res.getBody());
+            return res;
         } finally {
 
             if (httpClient != null) {

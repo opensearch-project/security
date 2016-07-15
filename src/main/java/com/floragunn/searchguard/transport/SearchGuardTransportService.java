@@ -96,9 +96,9 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
             //LogHelper.logUserTrace("<-- Put remote address {} in header (from sg_remote_address ctx)", remoteAdr);
         }
 
-        if(log.isTraceEnabled()) {
+        /*if(log.isTraceEnabled()) {
             log.trace("sendRequest {}", LogHelper.toString(request));
-        }
+        }*/
         
         User user = request.getFromContext(ConfigConstants.SG_USER);
                 
