@@ -40,5 +40,9 @@ searchguard.audit.type: internal_elasticsearch
 # to the keytab where the acceptor_principal credentials are stored.
 #searchguard.kerberos.acceptor_keytab_filepath: 'eskeytab.tab'
 
-# This defines the OID of node certificates
+# This defines the OID of server node certificates
+# See https://github.com/floragunncom/search-guard-docs/blob/master/architecture.md
+# WARNING: Expert setting, do only use if you know what you are doing
+# If you set wrong values here this this could be a security risk
+# or make Search Guard stop working
 #searchguard.cert.oid: '1.2.3.4.5.5'
