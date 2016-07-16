@@ -28,10 +28,10 @@ Advanced functionalities like LDAP and Kerberos authentication/authorization as 
 ##Installation
 
 * Install latest version of [search-guard-ssl plugin](https://github.com/floragunncom/search-guard-ssl)
- * ``sudo bin/plugin install -b com.floragunn/search-guard-ssl/2.3.3.13``
+ * ``sudo bin/plugin install -b com.floragunn/search-guard-ssl/2.3.4.14``
 
 * Install search-guard-2 plugin
- * ``sudo bin/plugin install -b com.floragunn/search-guard-2/2.3.3.2``
+ * ``sudo bin/plugin install -b com.floragunn/search-guard-2/2.3.4.3``
  
 (See also the [Vagrant file](https://github.com/floragunncom/search-guard/blob/master/Vagrantfile) we provide)
 
