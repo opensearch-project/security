@@ -1,6 +1,6 @@
-#Search Guard 2 for Elasticsearch 2.3.3
+#Search Guard 2 for Elasticsearch 2.3.4
 
-Search Guard 2 (compatible with Elasticsearch 2.3.3)
+Search Guard 2 (compatible with Elasticsearch 2.3.4)
 
 ## Documentation
 
