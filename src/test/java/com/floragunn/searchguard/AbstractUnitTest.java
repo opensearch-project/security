@@ -31,9 +31,11 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 import javax.net.ssl.SSLContext;
+import javax.xml.bind.DatatypeConverter;
 
 import junit.framework.Assert;
 
@@ -473,5 +475,9 @@ public abstract class AbstractUnitTest {
                 parser.close();
             }
         }
+    }
+    
+    public static String encodeBasicHeader(final String username, final String password) {
+        return new String(DatatypeConverter.printBase64Binary((username + ":" + Objects.requireNonNull(password)).getBytes(StandardCharsets.UTF_8)));
     }
 }

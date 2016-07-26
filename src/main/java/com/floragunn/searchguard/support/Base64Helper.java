@@ -29,13 +29,9 @@ import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
-
-import javax.xml.bind.DatatypeConverter;
 
 import org.elasticsearch.ElasticsearchException;
 
@@ -43,10 +39,6 @@ import com.floragunn.searchguard.user.User;
 import com.google.common.io.BaseEncoding;
 
 public class Base64Helper {
-
-    public static String encodeBasicHeader(final String username, final String password) {
-        return new String(DatatypeConverter.printBase64Binary((username + ":" + Objects.requireNonNull(password)).getBytes(StandardCharsets.UTF_8)));
-    }
 
     public static String serializeObject(final Serializable object) {
 
