@@ -19,17 +19,27 @@ package com.floragunn.searchguard.support;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InvalidClassException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.ObjectStreamClass;
 import java.io.Serializable;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 
 import javax.xml.bind.DatatypeConverter;
 
 import org.elasticsearch.ElasticsearchException;
 
-import com.floragunn.searchguard.user.AuthCredentials;
+import com.floragunn.searchguard.user.User;
 import com.google.common.io.BaseEncoding;
 
 public class Base64Helper {
@@ -45,10 +55,6 @@ public class Base64Helper {
         }
 
         try {
-            // final Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-            // cipher.init(Cipher.ENCRYPT_MODE, key);
-            // final SealedObject sealedobject = new SealedObject(object,
-            // cipher);
             final ByteArrayOutputStream bos = new ByteArrayOutputStream();
             final ObjectOutputStream out = new ObjectOutputStream(bos);
             out.writeObject(object);
@@ -65,14 +71,59 @@ public class Base64Helper {
             throw new IllegalArgumentException("string must not be null");
         }
 
+        SafeObjectInputStream in = null;
+
         try {
             final byte[] userr = BaseEncoding.base64().decode(string);
             final ByteArrayInputStream bis = new ByteArrayInputStream(userr);
-            final ObjectInputStream in = new ObjectInputStream(bis);
-            // final SealedObject ud = (SealedObject) in.readObject();
+            in = new SafeObjectInputStream(bis);
             return (Serializable) in.readObject();
         } catch (final Exception e) {
-            throw new ElasticsearchException(e.toString());
+            throw new ElasticsearchException(e);
+        } finally {
+            if (in != null) {
+                try {
+                    in.close();
+                } catch (IOException e) {
+                    // ignore
+                }
+            }
+        }
+    }
+    
+    private final static class SafeObjectInputStream extends ObjectInputStream {
+
+        private static final List<String> SAFE_CLASSES = new ArrayList<>();
+
+        static {
+            SAFE_CLASSES.add("com.floragunn.dlic.auth.ldap.LdapUser");
+        }
+
+        public SafeObjectInputStream(InputStream in) throws IOException {
+            super(in);
+        }
+
+        @Override
+        protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
+
+            Class<?> clazz = super.resolveClass(desc);
+
+            if (
+                    clazz.isArray() ||
+                    clazz.equals(String.class) ||
+                    clazz.equals(SocketAddress.class) ||
+                    clazz.equals(InetSocketAddress.class) ||
+                    clazz.equals(InetAddress.class) ||
+                    Number.class.isAssignableFrom(clazz) ||
+                    Collection.class.isAssignableFrom(clazz) ||
+                    clazz.equals(User.class) ||
+                    SAFE_CLASSES.contains(clazz.getName())
+               ) {
+
+                return clazz;
+            }
+
+            throw new InvalidClassException("Unauthorized deserialization attempt", clazz.getName());
         }
     }
 }
