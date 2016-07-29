@@ -180,6 +180,6 @@ sg_logstash:
 # Allows each user to access own named index
 sg_ownindex:
   indices:
-    '%{user_name}':
+    '${user_name}':
       '*':
         - ALL

@@ -265,7 +265,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                 }
             }
 
-            final Map<String, Settings> permittedAliasesIndices = replaceIndicesVariable(sgRoleSettings.getGroups(".indices"), "%{user_name}", user.getName());
+            final Map<String, Settings> permittedAliasesIndices = sgRoleSettings.getGroups(".indices");
 
             /*
             sg_role_starfleet:
@@ -294,7 +294,8 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                     .<String, String> create());
             
             //iterate over all beneath indices:
-            for (final String permittedAliasesIndex : permittedAliasesIndices.keySet()) {
+            for (final String rawPermittedAliasesIndex : permittedAliasesIndices.keySet()) {
+                final String permittedAliasesIndex = rawPermittedAliasesIndex.replace("${user_name}", user.getName());
                 
                 final Set<String> _requestedResolvedAliasesIndices = new HashSet<String>(requestedResolvedAliasesIndices);
                 final Set<String> _requestedResolvedTypes = new HashSet<String>(requestedResolvedTypes);
@@ -305,7 +306,8 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                         log.debug("  Try wildcard match for {}", permittedAliasesIndex);
                     }
 
-                    handleIndicesWithWildcard(action, permittedAliasesIndex, permittedAliasesIndices, requestedResolvedAliasesIndices,
+                    handleIndicesWithWildcard(action, rawPermittedAliasesIndex, permittedAliasesIndex,
+                            permittedAliasesIndices, requestedResolvedAliasesIndices,
                             requestedResolvedTypes, _requestedResolvedAliasesIndices, _requestedResolvedTypes);
 
                 } else {
@@ -313,7 +315,8 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                         log.debug("  Resolve and match {}", permittedAliasesIndex);
                     }
 
-                    handleIndicesWithoutWildcard(action, permittedAliasesIndex, permittedAliasesIndices, requestedResolvedAliasesIndices,
+                    handleIndicesWithoutWildcard(action, rawPermittedAliasesIndex, permittedAliasesIndex,
+                            permittedAliasesIndices, requestedResolvedAliasesIndices,
                             requestedResolvedTypes, _requestedResolvedAliasesIndices, _requestedResolvedTypes);
                 }
 
@@ -327,7 +330,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                         log.debug("found a match for '{}.{}', evaluate other roles", sgRole, permittedAliasesIndex);
                     }
                 
-                    resolvedRoleIndices.put(sgRole, permittedAliasesIndex);
+                    resolvedRoleIndices.put(sgRole, rawPermittedAliasesIndex);
                 
                 }
                 
@@ -424,7 +427,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
 
     }
 
-    private void handleIndicesWithWildcard(final String action, final String permittedAliasesIndex,
+    private void handleIndicesWithWildcard(final String action, final String rawPermittedAliasesIndex, final String permittedAliasesIndex,
             final Map<String, Settings> permittedAliasesIndices, final Set<String> requestedResolvedAliasesIndices,
             final Set<String> requestedResolvedTypes, final Set<String> _requestedResolvedAliasesIndices,
             final Set<String> _requestedResolvedTypes) {
@@ -438,7 +441,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                 log.debug("  Wildcard match for {}: {}", permittedAliasesIndex, wi);
             }
 
-            final Set<String> permittedTypes = new HashSet(permittedAliasesIndices.get(permittedAliasesIndex).names());
+            final Set<String> permittedTypes = new HashSet(permittedAliasesIndices.get(rawPermittedAliasesIndex).names());
             permittedTypes.removeAll(DLSFLS);
             
             if (log.isDebugEnabled()) {
@@ -449,7 +452,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                 
                 List<String> typeMatches = null;
                 if (!(typeMatches = WildcardMatcher.getMatchAny(type, requestedResolvedTypes.toArray(new String[0]))).isEmpty()) {
-                    final Set<String> resolvedActions = resolveActions(permittedAliasesIndices.get(permittedAliasesIndex).getAsArray(type));
+                    final Set<String> resolvedActions = resolveActions(permittedAliasesIndices.get(rawPermittedAliasesIndex).getAsArray(type));
 
                     if (log.isDebugEnabled()) {
                         log.debug("    resolvedActions for {}/{}: {}", permittedAliasesIndex, type, resolvedActions);
@@ -481,7 +484,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         }
     }
 
-    private void handleIndicesWithoutWildcard(final String action, final String permittedAliasesIndex,
+    private void handleIndicesWithoutWildcard(final String action, final String rawPermittedAliasesIndex, final String permittedAliasesIndex,
             final Map<String, Settings> permittedAliasesIndices, final Set<String> requestedResolvedAliasesIndices,
             final Set<String> requestedResolvedTypes, final Set<String> _requestedResolvedAliasesIndices,
             final Set<String> _requestedResolvedTypes) {
@@ -516,7 +519,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         }
 
         final SetView<String> inters = Sets.intersection(requestedResolvedAliasesIndices, resolvedPermittedAliasesIndex);
-        final Set<String> permittedTypes = new HashSet(permittedAliasesIndices.get(permittedAliasesIndex).names());
+        final Set<String> permittedTypes = new HashSet(permittedAliasesIndices.get(rawPermittedAliasesIndex).names());
         permittedTypes.removeAll(DLSFLS);
         
         if (log.isDebugEnabled()) {
@@ -527,7 +530,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
             
             List<String> typeMatches = null;
             if (!(typeMatches = WildcardMatcher.getMatchAny(type, requestedResolvedTypes.toArray(new String[0]))).isEmpty()) {
-                final Set<String> resolvedActions = resolveActions(permittedAliasesIndices.get(permittedAliasesIndex).getAsArray(type));
+                final Set<String> resolvedActions = resolveActions(permittedAliasesIndices.get(rawPermittedAliasesIndex).getAsArray(type));
 
                 if (log.isDebugEnabled()) {
                     log.debug("    resolvedActions for {}/{}: {}", permittedAliasesIndex, type, resolvedActions);
@@ -699,17 +702,5 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         }
 
         return resolvedActions;
-    }
-
-    private Map<String, Settings> replaceIndicesVariable(Map<String, Settings> indices, String variableName, String value) {
-        Map<String, Settings> replacedIndices = new HashMap<String, Settings>();
-        for (String index : indices.keySet()) {
-            String replacedIndex = index.replace(variableName, value);
-            replacedIndices.put(replacedIndex, indices.get(index));
-            if (log.isDebugEnabled() && !replacedIndex.equals(index)) {
-                log.debug("Index '{}' was replaced with '{}'", index, replacedIndex);
-            }
-        }
-        return replacedIndices;
     }
 }
