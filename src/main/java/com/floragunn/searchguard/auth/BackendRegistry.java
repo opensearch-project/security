@@ -200,9 +200,8 @@ public class BackendRegistry implements ConfigChangeListener {
                                 Settings.builder().put(esSettings).put(ads.getAsSettings("authentication_backend.config")).build());
                     }
                     
-                    
-                    HTTPAuthenticator httpAuthenticator = newInstance(
-                            ads.get("http_authenticator.type", "basic"),"h",
+                    String httpAuthenticatorType = ads.get("http_authenticator.type"); //no default
+                    HTTPAuthenticator httpAuthenticator = httpAuthenticatorType==null?null:  (HTTPAuthenticator) newInstance(httpAuthenticatorType,"h",
                             Settings.builder().put(esSettings).put(ads.getAsSettings("http_authenticator.config")).build());
                                         
                     authDomains.add(new AuthDomain(authenticationBackend, httpAuthenticator,
@@ -343,6 +342,10 @@ public class BackendRegistry implements ConfigChangeListener {
             
             final HTTPAuthenticator httpAuthenticator = authDomain.getHttpAuthenticator();
             
+            if(httpAuthenticator == null) {
+                continue; //this domain is for transport protocol only
+            }
+            
             if(authDomain.isChallenge() && firstChallengingHttpAuthenticator == null) {
                 firstChallengingHttpAuthenticator = httpAuthenticator;
             }
@@ -399,7 +402,7 @@ public class BackendRegistry implements ConfigChangeListener {
                         @Override
                         public User call() throws Exception {
                             if(log.isDebugEnabled()) {
-                                log.debug(ac.getUsername()+" ("+ac.hashCode()+") not cached, return from "+authDomain.getBackend().getType()+" backend directly");
+                                log.debug(ac.getUsername()+" not cached, return from "+authDomain.getBackend().getType()+" backend directly");
                             }
                             User authenticatedUser = authDomain.getBackend().authenticate(ac);
                             for (final AuthorizationBackend ab : authorizers) {
