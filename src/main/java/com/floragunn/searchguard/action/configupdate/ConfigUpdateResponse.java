@@ -89,6 +89,9 @@ public class ConfigUpdateResponse extends BaseNodesResponse<ConfigUpdateResponse
             return "Node [updatedConfigTypes=" + Arrays.toString(updatedConfigTypes) + ", remoteAddress()=" + remoteAddress() + "]";
         }
         
+        public String[] getUpdatedConfigTypes() {
+            return updatedConfigTypes==null?null:Arrays.copyOf(updatedConfigTypes, updatedConfigTypes.length);
+        }
         
     }
 }

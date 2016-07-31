@@ -247,34 +247,26 @@ public class SearchGuardAdmin {
 
             if(updateSettings != null) { 
                 Settings indexSettings = Settings.builder().put("index.number_of_replicas", updateSettings).build();                
-                tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
+                tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();                
                 final UpdateSettingsResponse response = tc.admin().indices().updateSettings((new UpdateSettingsRequest("searchguard").settings(indexSettings))).actionGet();
                 System.out.println("Reload config on all nodes");
                 System.out.println("Update number of replicas to "+(updateSettings) +" with result: "+response.isAcknowledged());
                 System.exit(response.isAcknowledged()?0:-1);
-            }
-            
-            
+            }      
             
             final ClusterHealthResponse chr = tc.admin().cluster().health(new ClusterHealthRequest().waitForYellowStatus()).actionGet();
 
             final boolean timedOut = chr.isTimedOut();
-
             
             if (timedOut) {
                 System.out.println("Cluster state timeout");
                 System.exit(-1);
             }
-
-            /*System.out.println(chr.getStatus());
-            System.out.println(chr.getActivePrimaryShards());
-            System.out.println(chr.getActiveShards());
-            System.out.println(chr.getInitializingShards());
-            System.out.println(chr.getNumberOfDataNodes());
-            System.out.println(chr.getNumberOfPendingTasks());
-            System.out.println(chr.getRelocatingShards());
-            System.out.println(chr.getUnassignedShards());
-            System.out.println(chr.getIndices());*/
+            
+            System.out.println("Clustername: "+chr.getClusterName());
+            System.out.println("Clusterstate: "+chr.getStatus());
+            System.out.println("Number of nodes: "+chr.getNumberOfNodes());
+            System.out.println("Number of data nodes: "+chr.getNumberOfDataNodes());
             
             final boolean indexExists = tc.admin().indices().exists(new IndicesExistsRequest("searchguard")).actionGet().isExists();
 
@@ -336,12 +328,34 @@ public class SearchGuardAdmin {
             
             ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
             
-            success = success & cur.getNodes().length == chr.getNumberOfNodes();
+            success = success & checkConfigUpdateResponse(cur, chr.getNumberOfNodes(), 5);
             
             System.out.println("Done with "+(success?"success":"failures"));
             System.exit(success?0:-1);
         }
         // TODO audit changes to searchguard index
+    }
+    
+    
+    private static boolean checkConfigUpdateResponse(ConfigUpdateResponse response, int expectedNodeCount, int expectedConfigCount) {
+        
+        boolean success = response.getNodes().length == expectedNodeCount;
+        if(!success) {
+            System.out.println("FAIL: Expected "+expectedNodeCount+" nodes to return response, but got only "+response.getNodes().length);
+        }
+        
+        for(String nodeId: response.getNodesMap().keySet()) {
+            ConfigUpdateResponse.Node node = (ConfigUpdateResponse.Node) response.getNodesMap().get(nodeId);
+            boolean successNode = (node.getUpdatedConfigTypes() != null && node.getUpdatedConfigTypes().length == expectedConfigCount);
+            
+            if(!successNode) {
+                System.out.println("FAIL: Expected "+expectedConfigCount+" config types for node "+nodeId+" but got only "+Arrays.toString(node.getUpdatedConfigTypes()));
+            }
+            
+            success = success & successNode;
+        }
+        
+        return success;
     }
     
     private static boolean uploadFile(Client tc, String filepath, String type) {

@@ -121,6 +121,7 @@ public class SearchGuardFilter implements ActionFilter {
                     || action.startsWith("cluster:admin/reroute")
                     || action.startsWith("indices:admin/mapping/put")
                     || action.startsWith("internal:cluster/nodes/indices/shard/store")
+                    || action.startsWith("indices:admin/exists")
                ) {
 
                 if (log.isTraceEnabled()) {
