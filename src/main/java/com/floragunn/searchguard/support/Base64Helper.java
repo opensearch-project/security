@@ -105,7 +105,7 @@ public class Base64Helper {
                     clazz.equals(String.class) ||
                     clazz.equals(SocketAddress.class) ||
                     clazz.equals(InetSocketAddress.class) ||
-                    clazz.equals(InetAddress.class) ||
+                    InetAddress.class.isAssignableFrom(clazz) ||
                     Number.class.isAssignableFrom(clazz) ||
                     Collection.class.isAssignableFrom(clazz) ||
                     clazz.equals(User.class) ||
