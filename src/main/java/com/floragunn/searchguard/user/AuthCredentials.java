@@ -17,18 +17,23 @@
 
 package com.floragunn.searchguard.user;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.elasticsearch.ElasticsearchSecurityException;
+
 public final class AuthCredentials {
 
+    private static final String DIGEST_ALGORITHM = "SHA-256";
     private final String username;
     private byte[] password;
     private Object nativeCredentials;
     private final Set<String> backendRoles = new HashSet<String>();
     private boolean complete;
-    private final int internalPasswordHash;
+    private final byte[] internalPasswordHash;
 
     public AuthCredentials(final String username, final Object nativeCredentials) {
         this(username, null, nativeCredentials);
@@ -64,8 +69,23 @@ public final class AuthCredentials {
         this.username = username;
         // make defensive copy
         this.password = password == null ? null : Arrays.copyOf(password, password.length);
-        internalPasswordHash = Arrays.hashCode(this.password);
-        password = null;
+        
+        if(this.password != null) {
+            try {
+                MessageDigest digester = MessageDigest.getInstance(DIGEST_ALGORITHM);
+                internalPasswordHash = digester.digest(this.password);
+            } catch (NoSuchAlgorithmException e) {
+                throw new ElasticsearchSecurityException("Unable to digest password", e);
+            }
+        } else {
+            internalPasswordHash = null;
+        }
+        
+        if(password != null) {
+            Arrays.fill(password, (byte) '\0');
+            password = null;
+        }
+        
         this.nativeCredentials = nativeCredentials;
         nativeCredentials = null;
         
@@ -97,10 +117,10 @@ public final class AuthCredentials {
     }
 
     @Override
-    public int hashCode() {
+    public int hashCode() {        
         final int prime = 31;
         int result = 1;
-        result = prime * result + internalPasswordHash;
+        result = prime * result + Arrays.hashCode(internalPasswordHash);
         result = prime * result + ((username == null) ? 0 : username.hashCode());
         return result;
     }
@@ -114,7 +134,7 @@ public final class AuthCredentials {
         if (getClass() != obj.getClass())
             return false;
         AuthCredentials other = (AuthCredentials) obj;
-        if (internalPasswordHash != other.internalPasswordHash)
+        if (!Arrays.equals(internalPasswordHash, other.internalPasswordHash))
             return false;
         if (username == null) {
             if (other.username != null)
