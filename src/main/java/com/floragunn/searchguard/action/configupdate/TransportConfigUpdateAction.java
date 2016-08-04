@@ -83,47 +83,60 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
 
                     @Override
                     public void run() {
-                        Client client = clientProvider.get();
-                        logger.debug("Node started, try to initialize it. Wait for yellow cluster state....");
-                        ClusterHealthResponse response = client.admin().cluster().health(new ClusterHealthRequest("searchguard").waitForYellowStatus()).actionGet();
-                        
-                        while(response.isTimedOut() || response.getStatus() == ClusterHealthStatus.RED) {
-                            logger.warn("searchguard index not healthy (timeout: {})", response.isTimedOut());
+                        try {
+                            Client client = clientProvider.get();
+                            logger.debug("Node started, try to initialize it. Wait for at least yellow cluster state....");
+                            ClusterHealthResponse response = null;
                             try {
-                                Thread.sleep(3000);
-                            } catch (InterruptedException e) {
-                                //ignore
-                            }
-                            response = client.admin().cluster().health(new ClusterHealthRequest("searchguard").waitForYellowStatus()).actionGet();
-                            continue;
-                        }
-                        
-                        Map<String, Settings> setn = cl.load(new String[] { "config", "roles", "rolesmapping", "internalusers",
-                                "actiongroups" });
-                        
-                        while(!setn.keySet().containsAll(Lists.newArrayList("config", "roles", "rolesmapping"))) {
-                            try {
-                                Thread.sleep(1000);
-                            } catch (InterruptedException e) {
-                                //ignore
-                            }
-                            setn = cl.load(new String[] { "config", "roles", "rolesmapping", "internalusers",
-                            "actiongroups" });
-                        }
-                        
-                        synchronized (TransportConfigUpdateAction.this) {
-                            logger.debug("Retrieved config on node startup and will now update config change listeners");
-                            for (final String evt : setn.keySet()) {
-                                for (final ConfigChangeListener cl : new ArrayList<ConfigChangeListener>(multimap.get(evt))) {
-                                    Settings settings = setn.get(evt);
-                                    if(settings != null) {
-                                        cl.onChange(evt, settings);
-                                        logger.debug("Updated {} for {} due to initial configuration on node '{}'", evt, cl.getClass().getSimpleName(), clusterService.localNode().getName());
-                                    }
-                                }
+                                response = client.admin().cluster().health(new ClusterHealthRequest("searchguard").waitForYellowStatus()).actionGet();
+                            } catch (Exception e1) {
+                                logger.debug("Catched a {} but we just try again ...", e1.toString());
                             }
                             
-                            logger.debug("Node '{}' initialized", clusterService.localNode().getName());                            
+                            while(response == null || response.isTimedOut() || response.getStatus() == ClusterHealthStatus.RED) {
+                                logger.warn("searchguard index not healthy yet, we try again ... (Reason: {})", response==null?"no response":(response.isTimedOut()?"timeout":"other, maybe red cluster"));
+                                try {
+                                    Thread.sleep(3000);
+                                } catch (InterruptedException e1) {
+                                    //ignore
+                                }
+                                try {
+                                    response = client.admin().cluster().health(new ClusterHealthRequest("searchguard").waitForYellowStatus()).actionGet();
+                                } catch (Exception e1) {
+                                    logger.debug("Catched again a {} but we just try again ...", e1.toString());
+                                }
+                                continue;
+                            }
+                            
+                            Map<String, Settings> setn = cl.load(new String[] { "config", "roles", "rolesmapping", "internalusers",
+                                    "actiongroups" });
+                            
+                            while(!setn.keySet().containsAll(Lists.newArrayList("config", "roles", "rolesmapping"))) {
+                                try {
+                                    Thread.sleep(1000);
+                                } catch (InterruptedException e) {
+                                    //ignore
+                                }
+                                setn = cl.load(new String[] { "config", "roles", "rolesmapping", "internalusers",
+                                "actiongroups" });
+                            }
+                            
+                            synchronized (TransportConfigUpdateAction.this) {
+                                logger.debug("Retrieved config on node startup and will now update config change listeners");
+                                for (final String evt : setn.keySet()) {
+                                    for (final ConfigChangeListener cl : new ArrayList<ConfigChangeListener>(multimap.get(evt))) {
+                                        Settings settings = setn.get(evt);
+                                        if(settings != null) {
+                                            cl.onChange(evt, settings);
+                                            logger.debug("Updated {} for {} due to initial configuration on node '{}'", evt, cl.getClass().getSimpleName(), clusterService.localNode().getName());
+                                        }
+                                    }
+                                }
+                                
+                                logger.info("Node '{}' initialized", clusterService.localNode().getName());                            
+                            }
+                        } catch (Exception e) {
+                            logger.error("Unexpected exception while initializing node "+e, e);
                         }                       
                     }
                 });
