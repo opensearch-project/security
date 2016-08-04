@@ -53,6 +53,7 @@ import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
@@ -180,7 +181,7 @@ public class SearchGuardAdmin {
             
         }
         catch( ParseException exp ) {
-            System.err.println("Parsing failed.  Reason: " + exp.getMessage());
+            System.err.println("ERR: Parsing failed.  Reason: " + exp.getMessage());
             formatter.printHelp("sgadmin.sh", options, true);
             return;
         }
@@ -190,7 +191,7 @@ public class SearchGuardAdmin {
                              + "         sgadmin connect through the transport port which is normally 9300.");
         }
         
-        System.out.println("Connect to "+hostname+":"+port);
+        System.out.print("Will connect to "+hostname+":"+port);
         Socket socket = new Socket();
         
         try {
@@ -198,7 +199,8 @@ public class SearchGuardAdmin {
             socket.connect(new InetSocketAddress(hostname, port));
             
           } catch (java.net.ConnectException ex) {
-            System.out.println("Seems there is no elasticsearch running on "+hostname+":"+port+" - Will exit");
+            System.out.println();
+            System.out.println("ERR: Seems there is no elasticsearch running on "+hostname+":"+port+" - Will exit");
             System.exit(-1);
           } finally {
               try {
@@ -208,6 +210,8 @@ public class SearchGuardAdmin {
             }
           }
 
+        System.out.println(" ... done");
+        
         final Settings.Builder settingsBuilder = Settings
                 .builder()
                 .put("path.home", ".")
@@ -254,12 +258,24 @@ public class SearchGuardAdmin {
                 System.exit(response.isAcknowledged()?0:-1);
             }      
             
-            final ClusterHealthResponse chr = tc.admin().cluster().health(new ClusterHealthRequest().waitForYellowStatus()).actionGet();
+            System.out.println("Contacting elasticsearch cluster '"+clustername+"' ...");
+            
+            ClusterHealthResponse chr = null;
+            
+            while(chr == null) {
+                try {
+                    chr = tc.admin().cluster().health(new ClusterHealthRequest().timeout(TimeValue.timeValueMinutes(5)).waitForYellowStatus()).actionGet();
+                } catch (Exception e) {
+                    System.out.println("Cannot retrieve cluster state due to "+e.getMessage()+". This is not an error, will keep on trying ...");
+                    Thread.sleep(3000);
+                    continue;
+                }
+            }
 
             final boolean timedOut = chr.isTimedOut();
             
             if (timedOut) {
-                System.out.println("Cluster state timeout");
+                System.out.println("ERR: Timed out while waiting for a green or yellow cluster state.");
                 System.exit(-1);
             }
             
@@ -287,7 +303,7 @@ public class SearchGuardAdmin {
                 }
 
             } else {
-                System.out.println("Index does already exists");
+                System.out.println("Search Guard index already exists, so we do not need to create one.");
             }
             
             if(retrieve) {
@@ -307,12 +323,12 @@ public class SearchGuardAdmin {
             
             if(file != null) {
                 if(type == null) {
-                    System.out.println("type missing");
+                    System.out.println("ERR: type missing");
                     System.exit(-1);
                 }
                 
                 if(!Arrays.asList(new String[]{"config", "roles", "rolesmapping", "internalusers","actiongroups" }).contains(type)) {
-                    System.out.println("Invalid type '"+type+"'");
+                    System.out.println("ERR: Invalid type '"+type+"'");
                     System.exit(-1);
                 }
                 
@@ -368,13 +384,13 @@ public class SearchGuardAdmin {
                             .actionGet().getId();
 
             if ("0".equals(id)) {
-                System.out.println("   SUCC Configuration for '"+type+"' created or updated");
+                System.out.println("   SUCC: Configuration for '"+type+"' created or updated");
                 return true;
             } else {
-                System.out.println("   FAIL Configuration for '"+type+"' failed for unknown reasons. Pls. consult logfile of elasticsearch");
+                System.out.println("   FAIL: Configuration for '"+type+"' failed for unknown reasons. Pls. consult logfile of elasticsearch");
             }
         } catch (IOException e) {
-            System.out.println("   FAIL Configuration for '"+type+"' failed because of "+e.toString());
+            System.out.println("   FAIL: Configuration for '"+type+"' failed because of "+e.toString());
         }
         
         return false;
@@ -388,19 +404,19 @@ public class SearchGuardAdmin {
 
             if (response.isExists()) {
                 if(response.isSourceEmpty()) {
-                    System.out.println("   FAIL Configuration for '"+type+"' failed because of empty source");
+                    System.out.println("   FAIL: Configuration for '"+type+"' failed because of empty source");
                     return false;
                 }
                 
                 String yaml = convertToYaml(response.getSourceAsBytesRef(), true);
                 writer.write(yaml);
-                System.out.println("   SUCC Configuration for '"+type+"' stored in "+filepath);
+                System.out.println("   SUCC: Configuration for '"+type+"' stored in "+filepath);
                 return true;
             } else {
-                System.out.println("   FAIL Get configuration for '"+type+"' because it does not exist");
+                System.out.println("   FAIL: Get configuration for '"+type+"' because it does not exist");
             }
         } catch (IOException e) {
-            System.out.println("   FAIL Get configuration for '"+type+"' failed because of "+e.toString());
+            System.out.println("   FAIL: Get configuration for '"+type+"' failed because of "+e.toString());
         }
         
         return false;
