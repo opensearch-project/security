@@ -59,6 +59,6 @@ sg_kibana4_testindex:
   users:
     - test
 
-sg_ownindex:
+sg_own_index:
   users:
     - '*'

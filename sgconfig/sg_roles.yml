@@ -178,7 +178,7 @@ sg_logstash:
         - CREATE_INDEX
 
 # Allows each user to access own named index
-sg_ownindex:
+sg_own_index:
   indices:
     '${user_name}':
       '*':

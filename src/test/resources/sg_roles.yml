@@ -195,3 +195,9 @@ sg_theindex_admin:
     theindex:
       '*':
         - ALL
+
+sg_own_index:
+  indices:
+    '${user_name}':
+      '*':
+        - ALL
