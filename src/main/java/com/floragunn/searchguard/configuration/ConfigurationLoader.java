@@ -27,6 +27,8 @@ import java.util.concurrent.TimeUnit;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.get.MultiGetItemResponse;
 import org.elasticsearch.action.get.MultiGetRequest;
@@ -56,7 +58,26 @@ public class ConfigurationLoader {
 
     public Map<String, Settings> load(final String[] events) {
 
+        try {
+            IndicesExistsRequest ier = new IndicesExistsRequest("searchguard");
+            ier.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true");
+            IndicesExistsResponse ieres = client.get().admin().indices().exists(ier).actionGet(10000);
+            if(ieres.isExists()) {
+                log.debug("searchguard index exists");
+            } else {
+                log.debug("searchguard index does not exist");
+            }
+        } catch (Exception e2) {
+            log.warn("Unexpected exception while checking if searchguard index exists: {}", e2.toString());
+        }
+        
         final Map<String, Settings> rs = new HashMap<String, Settings>(events.length);
+        
+        if(events == null || events.length == 0) {
+            log.warn("No config events requested to load");
+            return rs;
+        }
+        
         final BlockingQueue<Object> queue = new ArrayBlockingQueue<Object>(events.length);
         final MultiGetRequest mget = new MultiGetRequest();
 
@@ -87,18 +108,18 @@ public class ConfigurationLoader {
                     } else
 
                     if (response.isExists() && !response.isSourceEmpty()) {
-                            try {
-                                queue.put(response);
-                            } catch (final InterruptedException e) {
-                                Thread.currentThread().interrupt();
-                            }
-                        } else {
-                            try {
-                                queue.put(response.getType());
-                            } catch (final InterruptedException e) {
-                                Thread.currentThread().interrupt();
-                            }
+                        try {
+                            queue.put(response);
+                        } catch (final InterruptedException e) {
+                            Thread.currentThread().interrupt();
                         }
+                    } else {
+                        try {
+                            queue.put(response.getType()+" does not exist or is empty");
+                        } catch (final InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
+                    }
                 }
             }
 
@@ -114,7 +135,7 @@ public class ConfigurationLoader {
 
         Object response = null;
         try {
-            response = queue.poll(10, TimeUnit.SECONDS);
+            response = queue.poll(2, TimeUnit.MINUTES);
 
             if (queue.size() == 0 && response != null && response instanceof Throwable) {
                 throw ExceptionsHelper.convertToElastic((Throwable) response);
@@ -128,16 +149,15 @@ public class ConfigurationLoader {
                 }
 
             } else {
-                if(response != null && response.toString().contains("fail")) {
-                    log.debug("Cannot retrieve {}", response);
-                } else {
-                    log.debug("Cannot retrieve {}", response);
-                    //log.error("Cannot retrieve {}", response);
+                log.debug("Cannot retrieve configuration (first object) due to {} (null means timeout)", response);
+                
+                if(response == null) {
+                    log.warn("Cannot retrieve configuration (first object) due to timeout");
                 }
             }
 
             for (int i = 0; i < events.length - 1; i++) {
-                response = queue.poll(10, TimeUnit.SECONDS);
+                response = queue.poll(2, TimeUnit.MINUTES);
                 if (response instanceof GetResponse && response != null) {
                     final GetResponse gs = (GetResponse) response;
 
@@ -146,11 +166,10 @@ public class ConfigurationLoader {
                     }
 
                 } else {
-                    if(response != null && response.toString().contains("fail")) {
-                        log.debug("Cannot retrieve {}", response);
-                    } else {
-                        log.debug("Cannot retrieve {}", response);
-                        //log.error("Cannot retrieve {}", response);
+                    log.debug("Cannot retrieve configuration ("+(i+2)+" object) due to {} (null means timeout)", response);
+                    
+                    if(response == null) {
+                        log.warn("Cannot retrieve configuration ("+(i+2)+" object) due to timeout");
                     }
                 }
             }

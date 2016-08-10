@@ -50,6 +50,7 @@ import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.NoNodeAvailableException;
 import org.elasticsearch.client.transport.TransportClient;
+import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
@@ -258,7 +259,7 @@ public class SearchGuardAdmin {
                 System.exit(response.isAcknowledged()?0:-1);
             }      
             
-            System.out.println("Contacting elasticsearch cluster '"+clustername+"' ...");
+            System.out.println("Contacting elasticsearch cluster '"+clustername+"' and wait for YELLOW clusterstate ...");
             
             ClusterHealthResponse chr = null;
             
@@ -304,6 +305,25 @@ public class SearchGuardAdmin {
 
             } else {
                 System.out.println("Search Guard index already exists, so we do not need to create one.");
+                
+                try {
+                    ClusterHealthResponse chrsg = tc.admin().cluster().health(new ClusterHealthRequest("searchguard")).actionGet();
+                             
+                    if (chrsg.isTimedOut()) {
+                        System.out.println("ERR: Timed out while waiting for searchguard index state.");
+                    }
+                    
+                    if (chrsg.getStatus() == ClusterHealthStatus.RED) {
+                        System.out.println("ERR: searchguard index state is RED.");
+                    }
+                    
+                    if (chrsg.getStatus() == ClusterHealthStatus.YELLOW) {
+                        System.out.println("INFO: searchguard index state is YELLOW, it seems you miss some replicas");
+                    }
+                    
+                } catch (Exception e) {
+                    System.out.println("Cannot retrieve searchguard index state state due to "+e.getMessage()+". This is not an error, will keep on trying ...");
+                }
             }
             
             if(retrieve) {
