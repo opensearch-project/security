@@ -158,7 +158,7 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
 
         } else {
             if (log.isTraceEnabled()) {
-                log.trace("No issuer alternative names (san) found");
+                log.trace("No subject alternative names (san) found");
             }
         }
 
