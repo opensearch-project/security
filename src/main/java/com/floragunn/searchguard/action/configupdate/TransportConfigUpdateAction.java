@@ -197,12 +197,13 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
 
     @Override
     protected Node nodeOperation(final NodeConfigUpdateRequest request) {
-        backendRegistry.get().invalidateCache();
         final Map<String, Settings> setn = cl.load(request.request.getConfigTypes());
         
         if(setn.size() != request.request.getConfigTypes().length) {
             logger.error("Unable to load all configurations types. Loaded '{}' but should '{}' ", setn.keySet(), Arrays.toString(request.request.getConfigTypes()));
         }
+        
+        backendRegistry.get().invalidateCache();
 
         synchronized (TransportConfigUpdateAction.this) {
             logger.debug("Retrieved config due to config update request and will now update config change listeners");
