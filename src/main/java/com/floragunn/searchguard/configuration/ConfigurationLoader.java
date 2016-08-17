@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.ElasticsearchException;
@@ -61,13 +62,28 @@ public class ConfigurationLoader {
         try {
             IndicesExistsRequest ier = new IndicesExistsRequest("searchguard");
             ier.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true");
-            IndicesExistsResponse ieres = client.get().admin().indices().exists(ier).actionGet(10000);
-            if(ieres.isExists()) {
-                log.debug("searchguard index exists");
-            } else {
-                log.debug("searchguard index does not exist");
-            }
-        } catch (Exception e2) {
+            client.get().admin().indices().exists(ier, new ActionListener<IndicesExistsResponse>() {
+
+                @Override
+                public void onResponse(IndicesExistsResponse response) {
+                    if(response != null && response.isExists()) {
+                        log.debug("searchguard index exists");
+                    } else {
+                        log.debug("searchguard index doe not exist");
+                    }               
+                }
+
+                @Override
+                public void onFailure(Throwable e) {
+                    
+                    if(e instanceof RejectedExecutionException) {
+                        log.debug("Unexpected exception while checking if searchguard index exists: {}", e.toString());       
+                    } else {
+                        log.warn("Unexpected exception while checking if searchguard index exists: {}", e.toString());         
+                    }
+                }                
+            });
+        } catch (Throwable e2) {
             log.warn("Unexpected exception while checking if searchguard index exists: {}", e2.toString());
         }
         
