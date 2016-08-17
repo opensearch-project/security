@@ -299,8 +299,9 @@ public class SearchGuardAdmin {
                 if (indexCreated) {
                     System.out.println("done");
                 } else {
-                    System.out.println("failed");
-                    return;// System.exit(-1);
+                    System.out.println("failed!");
+                    System.out.println("FAIL: Unable to create the searchguard index. See elasticsearch logs for more details");
+                    System.exit(-1);
                 }
 
             } else {
@@ -409,7 +410,7 @@ public class SearchGuardAdmin {
             } else {
                 System.out.println("   FAIL: Configuration for '"+type+"' failed for unknown reasons. Pls. consult logfile of elasticsearch");
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             System.out.println("   FAIL: Configuration for '"+type+"' failed because of "+e.toString());
         }
         
@@ -435,7 +436,7 @@ public class SearchGuardAdmin {
             } else {
                 System.out.println("   FAIL: Get configuration for '"+type+"' because it does not exist");
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             System.out.println("   FAIL: Get configuration for '"+type+"' failed because of "+e.toString());
         }
         
