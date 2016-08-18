@@ -227,7 +227,7 @@ public class SGTests extends AbstractUnitTest {
         Assert.assertEquals(HttpStatus.SC_SERVICE_UNAVAILABLE, executePutRequest("searchguard/config/0", "{}",new BasicHeader("Authorization", "Basic "+encodeBasicHeader("___", ""))).getStatusCode());
         
         this.keystore = "kirk-keystore.jks";
-        Assert.assertEquals(HttpStatus.SC_SERVICE_UNAVAILABLE, executePutRequest("searchguard/config/0", "{}",new BasicHeader("Authorization", "Basic "+encodeBasicHeader("___", ""))).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_CREATED, executePutRequest("searchguard/config/0", "{}",new BasicHeader("Authorization", "Basic "+encodeBasicHeader("___", ""))).getStatusCode());
 
     }
     
@@ -326,9 +326,10 @@ public class SGTests extends AbstractUnitTest {
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, executePutRequest("searchguard/config/0", "{}").getStatusCode());
         
         this.keystore = "kirk-keystore.jks";
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, executePutRequest("searchguard/config/0", "{}").getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, executePutRequest("searchguard/config/0", "{}").getStatusCode());
         HttpResponse res;
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = executeGetRequest("_searchguard/authinfo")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, (res = executeGetRequest("_searchguard/authinfo")).getStatusCode());
+        System.out.println(res.getBody());
     }
 
     @Test

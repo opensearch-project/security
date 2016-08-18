@@ -314,11 +314,12 @@ public class BackendRegistry implements ConfigChangeListener {
             log.trace(LogHelper.toString(request));
         }
         
-        //if(adminDns.isAdmin((String) request.getFromContext(ConfigConstants.SG_SSL_PRINCIPAL))) {
-        //    //PKI authenticated REST call
-        //    request.putInContext(ConfigConstants.SG_INTERNAL_REQUEST, Boolean.TRUE);
-        //    return true;
-        //}
+        String sslPrincipal = (String) request.getFromContext(ConfigConstants.SG_SSL_PRINCIPAL);
+        if(adminDns.isAdmin(sslPrincipal)) {
+            //PKI authenticated REST call
+            request.putInContext(ConfigConstants.SG_USER, new User(sslPrincipal));
+            return true;
+        }
         
         if (!isInitialized()) {
             log.error("Not yet initialized");
