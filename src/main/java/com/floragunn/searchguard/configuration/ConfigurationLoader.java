@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.ElasticsearchException;
@@ -42,6 +41,7 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.loader.JsonSettingsLoader;
+import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.common.xcontent.XContentHelper;
 
 import com.floragunn.searchguard.support.ConfigConstants;
@@ -76,7 +76,7 @@ public class ConfigurationLoader {
                 @Override
                 public void onFailure(Throwable e) {
                     
-                    if(e instanceof RejectedExecutionException) {
+                    if(e instanceof EsRejectedExecutionException) {
                         log.debug("Unexpected exception while checking if searchguard index exists: {}", e.toString());       
                     } else {
                         log.warn("Unexpected exception while checking if searchguard index exists: {}", e.toString());         
@@ -84,7 +84,11 @@ public class ConfigurationLoader {
                 }                
             });
         } catch (Throwable e2) {
-            log.warn("Unexpected exception while checking if searchguard index exists: {}", e2.toString());
+            if(e2 instanceof EsRejectedExecutionException) {
+                log.debug("Unexpected exception while checking if searchguard index exists: {}", e2.toString());       
+            } else {
+                log.warn("Unexpected exception while checking if searchguard index exists: {}", e2.toString());         
+            }
         }
         
         final Map<String, Settings> rs = new HashMap<String, Settings>(events.length);
@@ -192,7 +196,8 @@ public class ConfigurationLoader {
 
         } catch (final InterruptedException e1) {
             Thread.currentThread().interrupt();
-            throw ExceptionsHelper.convertToElastic(e1);
+            //do not re-throw an exception here
+            //just return what we have so far
         }
 
         return rs;
