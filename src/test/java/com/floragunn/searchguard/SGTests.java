@@ -191,7 +191,7 @@ public class SGTests extends AbstractUnitTest {
     }
     
     @Test
-    public void ensureInitViaRestWontWork() throws Exception {
+    public void ensureInitViaRestDoesWork() throws Exception {
         final Settings settings = Settings.settingsBuilder().put("searchguard.ssl.transport.enabled", true)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
