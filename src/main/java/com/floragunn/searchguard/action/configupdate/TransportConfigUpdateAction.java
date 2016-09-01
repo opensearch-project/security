@@ -22,7 +22,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReferenceArray;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
@@ -62,6 +65,7 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
     private final Provider<BackendRegistry> backendRegistry;
     private final ListMultimap<String, ConfigChangeListener> multimap = Multimaps.synchronizedListMultimap(ArrayListMultimap
             .<String, ConfigChangeListener> create());
+    private static final Lock LOCK = new ReentrantLock();
 
     private final String searchguardIndex;
     
@@ -83,7 +87,7 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
             @Override
             public void afterStart() {
 
-                threadPool.executor(ThreadPool.Names.GET).execute(new Runnable() {
+                new Thread(new Runnable() {
 
                     @Override
                     public void run() {
@@ -125,25 +129,45 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
                                 "actiongroups" });
                             }
                             
-                            synchronized (TransportConfigUpdateAction.this) {
-                                logger.debug("Retrieved config on node startup and will now update config change listeners");
-                                for (final String evt : setn.keySet()) {
-                                    for (final ConfigChangeListener cl : new ArrayList<ConfigChangeListener>(multimap.get(evt))) {
-                                        Settings settings = setn.get(evt);
-                                        if(settings != null) {
-                                            cl.onChange(evt, settings);
-                                            logger.debug("Updated {} for {} due to initial configuration on node '{}'", evt, cl.getClass().getSimpleName(), clusterService.localNode().getName());
+                            logger.debug("Retrieved {} configs", setn.keySet());
+                            
+                            boolean lockAcquired = false;
+                            try {
+                                if((lockAcquired = LOCK.tryLock(1, TimeUnit.MINUTES))) {
+                                    try {
+                                        logger.debug("Retrieved config on node startup and will now update config change listeners");
+                                        for (final String evt : setn.keySet()) {
+                                            for (final ConfigChangeListener cl : new ArrayList<ConfigChangeListener>(multimap.get(evt))) {
+                                                Settings settings = setn.get(evt);
+                                                if(settings != null) {
+                                                    cl.onChange(evt, settings);
+                                                    logger.debug("Updated {} for {} due to initial configuration on node '{}'", evt, cl.getClass().getSimpleName(), clusterService.localNode().getName());
+                                                }
+                                            }
                                         }
+                                        
+                                        logger.info("Node '{}' initialized", clusterService.localNode().getName());
+                                    } finally {
+                                        LOCK.unlock();
                                     }
+                                } else {
+                                    logger.error("Unable to get update lock for {} due to node initialization on node {}", cl.getClass().getSimpleName(), clusterService.localNode().getName());
+                                }
+                            } catch (InterruptedException e) {
+                                
+                                if(lockAcquired) {
+                                    LOCK.unlock();
                                 }
                                 
-                                logger.info("Node '{}' initialized", clusterService.localNode().getName());                            
+                                Thread.currentThread().interrupt();
+                                logger.debug("Thread was interrupted, we return just givin up");
                             }
+                            
                         } catch (Exception e) {
                             logger.error("Unexpected exception while initializing node "+e, e);
                         }                       
                     }
-                });
+                }).start();
             }
         });
 
@@ -196,7 +220,7 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
 
     @Override
     protected Node newNodeResponse() {
-        return new ConfigUpdateResponse.Node(clusterService.localNode(), new String[0]);
+        return new ConfigUpdateResponse.Node(clusterService.localNode(), new String[0], null);
     }
 
     @Override
@@ -205,22 +229,42 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
         
         if(setn.size() != request.request.getConfigTypes().length) {
             logger.error("Unable to load all configurations types. Loaded '{}' but should '{}' ", setn.keySet(), Arrays.toString(request.request.getConfigTypes()));
+            return new ConfigUpdateResponse.Node(clusterService.localNode(), setn.keySet().toArray(new String[0]),"Unable to load all configurations types");
         }
-        
-        backendRegistry.get().invalidateCache();
 
-        synchronized (TransportConfigUpdateAction.this) {
-            logger.debug("Retrieved config due to config update request and will now update config change listeners");
-            for (final String evt : setn.keySet()) {
-                for (final ConfigChangeListener cl : new ArrayList<ConfigChangeListener>(multimap.get(evt))) {
-                    Settings settings = setn.get(evt);
-                    if(settings != null) {
-                       cl.onChange(evt, settings);
-                       logger.debug("Updated {} for {} due to node operation on node {}", evt, cl.getClass().getSimpleName(), clusterService.localNode().getName());
+        boolean lockAcquired = false;
+        try {
+            if((lockAcquired = LOCK.tryLock(1, TimeUnit.MINUTES))) {
+                try {
+                    logger.debug("Retrieved config due to config update request and will now update config change listeners");
+                    backendRegistry.get().invalidateCache();
+                    for (final String evt : setn.keySet()) {
+                        for (final ConfigChangeListener cl : new ArrayList<ConfigChangeListener>(multimap.get(evt))) {
+                            Settings settings = setn.get(evt);
+                            if (settings != null) {
+                                cl.onChange(evt, settings);
+                                logger.debug("Updated {} for {} due to node operation on node {}", evt, cl.getClass().getSimpleName(),
+                                        clusterService.localNode().getName());
+                            }
+                        }
                     }
+                    return new ConfigUpdateResponse.Node(clusterService.localNode(), setn.keySet().toArray(new String[0]), null);
+                } finally {
+                    LOCK.unlock();
                 }
+            } else {
+                logger.error("Unable to get update lock for {} due to node operation on node {}", cl.getClass().getSimpleName(), clusterService.localNode().getName());
+                return new ConfigUpdateResponse.Node(clusterService.localNode(), new String[0], "Cannot get lock");
             }
-            return new ConfigUpdateResponse.Node(clusterService.localNode(), setn.keySet().toArray(new String[0]));
+        } catch (InterruptedException e) {
+            
+            if(lockAcquired) {
+                LOCK.unlock();
+            }
+            
+            Thread.currentThread().interrupt();
+            logger.debug("Thread was interrupted, we return just a empty response");
+            return new ConfigUpdateResponse.Node(clusterService.localNode(), new String[0], "Interrupted");
         }
     }
 

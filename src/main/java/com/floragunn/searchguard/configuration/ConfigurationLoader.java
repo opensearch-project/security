@@ -61,39 +61,6 @@ public class ConfigurationLoader {
     }
 
     public Map<String, Settings> load(final String[] events) {
-
-        try {
-            IndicesExistsRequest ier = new IndicesExistsRequest(searchguardIndex);
-            ier.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true");
-            client.get().admin().indices().exists(ier, new ActionListener<IndicesExistsResponse>() {
-
-                @Override
-                public void onResponse(IndicesExistsResponse response) {
-                    if(response != null && response.isExists()) {
-                        log.debug("searchguard index exists");
-                    } else {
-                        log.debug("searchguard index doe not exist");
-                    }               
-                }
-
-                @Override
-                public void onFailure(Throwable e) {
-                    
-                    if(e instanceof EsRejectedExecutionException) {
-                        log.debug("Unexpected exception while checking if searchguard index exists: {}", e.toString());       
-                    } else {
-                        log.warn("Unexpected exception while checking if searchguard index exists: {}", e.toString());         
-                    }
-                }                
-            });
-        } catch (Throwable e2) {
-            if(e2 instanceof EsRejectedExecutionException) {
-                log.debug("Unexpected exception while checking if searchguard index exists: {}", e2.toString());       
-            } else {
-                log.warn("Unexpected exception while checking if searchguard index exists: {}", e2.toString());         
-            }
-        }
-        
         final Map<String, Settings> rs = new HashMap<String, Settings>(events.length);
         
         if(events == null || events.length == 0) {
