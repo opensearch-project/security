@@ -19,6 +19,7 @@ package com.floragunn.searchguard.action.configupdate;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -253,11 +254,9 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
 
     @Override
     protected Node nodeOperation(final NodeConfigUpdateRequest request) {
-        Map<String, Settings> setn;
         try {
-            setn = cl.load(request.request.getConfigTypes(), 30, TimeUnit.SECONDS);
-            
-            logger.debug("Retrieved config due to config update request and will now update config change listeners");
+            final Map<String, Settings> setn = cl.load(request.request.getConfigTypes(), 30, TimeUnit.SECONDS);
+            logger.debug("Retrieved config ({}) due to config update request and will now update config change listeners", Arrays.toString(request.request.getConfigTypes()));
             backendRegistry.get().invalidateCache();
             for (final String evt : setn.keySet()) {
                 for (final ConfigChangeListener cl : new ArrayList<ConfigChangeListener>(multimap.get(evt))) {

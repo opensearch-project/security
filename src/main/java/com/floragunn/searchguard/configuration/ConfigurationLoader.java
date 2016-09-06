@@ -17,6 +17,7 @@
 
 package com.floragunn.searchguard.configuration;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -63,29 +64,36 @@ public class ConfigurationLoader {
             
             @Override
             public void success(String type, Settings settings) {
-                latch.countDown();
+                if(latch.getCount() <= 0) {
+                    log.error("Latch already counted down (for {} of {})", type, Arrays.toString(events));
+                }
+                
                 rs.put(type, settings);
+                latch.countDown();
+                if(log.isDebugEnabled()) {
+                    log.debug("Received config for {} (of {}) with current latch value={}", type, Arrays.toString(events), latch.getCount());
+                }
             }
             
             @Override
             public void singleFailure(Failure failure) {
-                log.error("Failure {} retrieving configuration", failure==null?null:failure.getFailure());
+                log.error("Failure {} retrieving configuration for {}", failure==null?null:failure.getFailure(), Arrays.toString(events));
             }
             
             @Override
             public void noData(String type) {
-                log.error("No data for {} while retrieving configuration", type);
+                log.error("No data for {} while retrieving configuration for {}", type, Arrays.toString(events));
             }
             
             @Override
             public void failure(Throwable t) {
-                log.error("Exception {} while retrieving configuration",t,t.toString());
+                log.error("Exception {} while retrieving configuration for {}",t,t.toString(), Arrays.toString(events));
             }
         });
         
         if(!latch.await(timeout, timeUnit)) {
             //timeout
-            throw new TimeoutException("Timeout after "+timeout+""+timeUnit+" while retrieving configuration");
+            throw new TimeoutException("Timeout after "+timeout+""+timeUnit+" while retrieving configuration for "+Arrays.toString(events));
         }
         
         return rs;
