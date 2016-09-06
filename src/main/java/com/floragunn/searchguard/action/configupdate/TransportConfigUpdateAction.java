@@ -19,16 +19,17 @@ package com.floragunn.searchguard.action.configupdate;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReferenceArray;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
+import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.nodes.BaseNodeRequest;
 import org.elasticsearch.action.support.nodes.TransportNodesAction;
@@ -43,6 +44,7 @@ import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -65,7 +67,6 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
     private final Provider<BackendRegistry> backendRegistry;
     private final ListMultimap<String, ConfigChangeListener> multimap = Multimaps.synchronizedListMultimap(ArrayListMultimap
             .<String, ConfigChangeListener> create());
-    private static final Lock LOCK = new ReentrantLock();
 
     private final String searchguardIndex;
     
@@ -83,11 +84,11 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
         this.searchguardIndex = settings.get(ConfigConstants.SG_CONFIG_INDEX, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
 
         clusterService.addLifecycleListener(new LifecycleListener() {
-
+            
             @Override
             public void afterStart() {
 
-                new Thread(new Runnable() {
+                final Thread ct = new Thread(new Runnable() {
 
                     @Override
                     public void run() {
@@ -115,59 +116,86 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
                                 }
                                 continue;
                             }
+
+                            Map<String, Settings> setn = null;
                             
-                            Map<String, Settings> setn = cl.load(new String[] { "config", "roles", "rolesmapping", "internalusers",
-                                    "actiongroups" });
-                            
-                            while(!setn.keySet().containsAll(Lists.newArrayList("config", "roles", "rolesmapping"))) {
-                                try {
-                                    Thread.sleep(1000);
-                                } catch (InterruptedException e) {
-                                    //ignore
+                            while(setn == null || !setn.keySet().containsAll(Lists.newArrayList("config", "roles", "rolesmapping"))) {
+
+                                if (setn != null) {
+                                    try {
+                                        Thread.sleep(3000);
+                                    } catch (InterruptedException e) {
+                                        Thread.currentThread().interrupt();
+                                        logger.debug("Thread was interrupted so we cancle initialization");
+                                        return;
+                                    }
                                 }
-                                setn = cl.load(new String[] { "config", "roles", "rolesmapping", "internalusers",
-                                "actiongroups" });
+                                
+                                logger.debug("Try to load config ...");
+                                
+                                try {
+                                    setn = cl.load(new String[] { "config", "roles", "rolesmapping", "internalusers",
+                                    "actiongroups" }, 1, TimeUnit.MINUTES);
+                                } catch (InterruptedException e) {
+                                    Thread.currentThread().interrupt();
+                                    logger.debug("Thread was interrupted so we cancle initialization");
+                                    return;
+                                } catch (TimeoutException e) {
+                                    logger.warn("Timeout, we just try again in a few seconds ... ");
+                                }
+                                
                             }
                             
                             logger.debug("Retrieved {} configs", setn.keySet());
                             
-                            boolean lockAcquired = false;
-                            try {
-                                if((lockAcquired = LOCK.tryLock(1, TimeUnit.MINUTES))) {
-                                    try {
-                                        logger.debug("Retrieved config on node startup and will now update config change listeners");
-                                        for (final String evt : setn.keySet()) {
-                                            for (final ConfigChangeListener cl : new ArrayList<ConfigChangeListener>(multimap.get(evt))) {
-                                                Settings settings = setn.get(evt);
-                                                if(settings != null) {
-                                                    cl.onChange(evt, settings);
-                                                    logger.debug("Updated {} for {} due to initial configuration on node '{}'", evt, cl.getClass().getSimpleName(), clusterService.localNode().getName());
-                                                }
-                                            }
-                                        }
-                                        
-                                        logger.info("Node '{}' initialized", clusterService.localNode().getName());
-                                    } finally {
-                                        LOCK.unlock();
+                            
+                            logger.debug("Retrieved config on node startup and will now update config change listeners");
+                            for (final String evt : setn.keySet()) {
+                                for (final ConfigChangeListener cl : new ArrayList<ConfigChangeListener>(multimap.get(evt))) {
+                                    Settings settings = setn.get(evt);
+                                    if(settings != null) {
+                                        cl.onChange(evt, settings);
+                                        logger.debug("Updated {} for {} due to initial configuration on node '{}'", evt, cl.getClass().getSimpleName(), clusterService.localNode().getName());
                                     }
-                                } else {
-                                    logger.error("Unable to get update lock for {} due to node initialization on node {}", cl.getClass().getSimpleName(), clusterService.localNode().getName());
                                 }
-                            } catch (InterruptedException e) {
-                                
-                                if(lockAcquired) {
-                                    LOCK.unlock();
-                                }
-                                
-                                Thread.currentThread().interrupt();
-                                logger.debug("Thread was interrupted, we return just givin up");
                             }
+                            
+                            logger.info("Node '{}' initialized", clusterService.localNode().getName());
                             
                         } catch (Exception e) {
                             logger.error("Unexpected exception while initializing node "+e, e);
                         }                       
                     }
-                }).start();
+                });
+                
+                logger.debug("Check if search guard index exists ...");
+                
+                try {
+                    IndicesExistsRequest ier = new IndicesExistsRequest("searchguard")
+                                                   
+                                                   .masterNodeTimeout(TimeValue.timeValueMinutes(1));
+                    ier.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true");
+                    clientProvider.get().admin().indices().exists(ier, new ActionListener<IndicesExistsResponse>() {
+
+                        @Override
+                        public void onResponse(IndicesExistsResponse response) {
+                            if(response != null && response.isExists()) {
+                                ct.start();
+                            } else {
+                                logger.debug("searchguard index does not exist yet, so no need to load config on node startup. Use sgadmin to initialize cluster");
+                            }               
+                        }
+
+                        @Override
+                        public void onFailure(Throwable e) {
+                            logger.error("Failure while checking searchguard index {}",e, e);
+                            ct.start();
+                        }                
+                    });
+                } catch (Throwable e2) {
+                    logger.error("Failure while executing IndicesExistsRequest {}",e2, e2);
+                    ct.start();
+                } 
             }
         });
 
@@ -225,46 +253,30 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
 
     @Override
     protected Node nodeOperation(final NodeConfigUpdateRequest request) {
-        final Map<String, Settings> setn = cl.load(request.request.getConfigTypes());
-        
-        if(setn.size() != request.request.getConfigTypes().length) {
-            logger.error("Unable to load all configurations types. Loaded '{}' but should '{}' ", setn.keySet(), Arrays.toString(request.request.getConfigTypes()));
-            return new ConfigUpdateResponse.Node(clusterService.localNode(), setn.keySet().toArray(new String[0]),"Unable to load all configurations types");
-        }
-
-        boolean lockAcquired = false;
+        Map<String, Settings> setn;
         try {
-            if((lockAcquired = LOCK.tryLock(1, TimeUnit.MINUTES))) {
-                try {
-                    logger.debug("Retrieved config due to config update request and will now update config change listeners");
-                    backendRegistry.get().invalidateCache();
-                    for (final String evt : setn.keySet()) {
-                        for (final ConfigChangeListener cl : new ArrayList<ConfigChangeListener>(multimap.get(evt))) {
-                            Settings settings = setn.get(evt);
-                            if (settings != null) {
-                                cl.onChange(evt, settings);
-                                logger.debug("Updated {} for {} due to node operation on node {}", evt, cl.getClass().getSimpleName(),
-                                        clusterService.localNode().getName());
-                            }
-                        }
+            setn = cl.load(request.request.getConfigTypes(), 30, TimeUnit.SECONDS);
+            
+            logger.debug("Retrieved config due to config update request and will now update config change listeners");
+            backendRegistry.get().invalidateCache();
+            for (final String evt : setn.keySet()) {
+                for (final ConfigChangeListener cl : new ArrayList<ConfigChangeListener>(multimap.get(evt))) {
+                    Settings settings = setn.get(evt);
+                    if (settings != null) {
+                        cl.onChange(evt, settings);
+                        logger.debug("Updated {} for {} due to node operation on node {}", evt, cl.getClass().getSimpleName(),
+                                clusterService.localNode().getName());
                     }
-                    return new ConfigUpdateResponse.Node(clusterService.localNode(), setn.keySet().toArray(new String[0]), null);
-                } finally {
-                    LOCK.unlock();
                 }
-            } else {
-                logger.error("Unable to get update lock for {} due to node operation on node {}", cl.getClass().getSimpleName(), clusterService.localNode().getName());
-                return new ConfigUpdateResponse.Node(clusterService.localNode(), new String[0], "Cannot get lock");
             }
-        } catch (InterruptedException e) {
-            
-            if(lockAcquired) {
-                LOCK.unlock();
-            }
-            
+            return new ConfigUpdateResponse.Node(clusterService.localNode(), setn.keySet().toArray(new String[0]), null);  
+        } catch (InterruptedException e1) {
             Thread.currentThread().interrupt();
             logger.debug("Thread was interrupted, we return just a empty response");
             return new ConfigUpdateResponse.Node(clusterService.localNode(), new String[0], "Interrupted");
+        } catch (TimeoutException e1) {
+            logger.error("Timeout {}",e1,e1);
+            return new ConfigUpdateResponse.Node(clusterService.localNode(), new String[0], "Timeout ("+e1+")");
         }
     }
 
