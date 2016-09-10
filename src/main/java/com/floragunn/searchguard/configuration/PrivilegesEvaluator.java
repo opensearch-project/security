@@ -78,9 +78,11 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
     private final String[] deniedActionPatterns;
     private final AuditLog auditLog;
 
+    private final String searchguardIndex;
+    
     @Inject
     public PrivilegesEvaluator(final ClusterService clusterService, final TransportConfigUpdateAction tcua, final ActionGroupHolder ah,
-            final IndexNameExpressionResolver resolver, AuditLog auditLog) {
+            final IndexNameExpressionResolver resolver, AuditLog auditLog, final Settings settings) {
         super();
         tcua.addConfigChangeListener("rolesmapping", this);
         tcua.addConfigChangeListener("roles", this);
@@ -88,6 +90,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         this.ah = ah;
         this.resolver = resolver;
         this.auditLog = auditLog;
+        this.searchguardIndex = settings.get(ConfigConstants.SG_CONFIG_INDEX, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
         
         /*
         indices:admin/template/delete
@@ -182,10 +185,10 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
             log.debug("requested resolved types: {}", requestedResolvedTypes);
         }
         
-        if (requestedResolvedAliasesIndices.contains("searchguard")
+        if (requestedResolvedAliasesIndices.contains(searchguardIndex)
                 && WildcardMatcher.matchAny(deniedActionPatterns, action)) {
             auditLog.logSgIndexAttempt(request, action);
-            log.warn(action + " for 'searchguard' index is not allowed for a regular user");
+            log.warn(action + " for '{}' index is not allowed for a regular user", searchguardIndex);
             return false;
         }
 
@@ -196,7 +199,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
             return false;
         }
         
-        if(requestedResolvedAliasesIndices.contains("searchguard") || requestedResolvedAliasesIndices.contains("_all")) {
+        if(requestedResolvedAliasesIndices.contains(searchguardIndex) || requestedResolvedAliasesIndices.contains("_all")) {
             
             if(request instanceof SearchRequest) {
                 ((SearchRequest)request).requestCache(Boolean.FALSE);

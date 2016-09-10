@@ -46,12 +46,15 @@ public class SearchGuardIndexSearcherWrapper extends AbstractIndexShardComponent
     private final AdminDNs admindns;
     protected final ESLogger log = Loggers.getLogger(this.getClass());
     private volatile boolean shardReady;
+    
+    private final String searchguardIndex;
 
     @Inject
     public SearchGuardIndexSearcherWrapper(final ShardId shardId, final IndicesLifecycle indicesLifecycle, final Settings indexSettings,
             final AdminDNs admindns) {
         super(shardId, indexSettings);
         this.admindns = admindns;
+        this.searchguardIndex = indexSettings.get(ConfigConstants.SG_CONFIG_INDEX, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
         
         if(!isSearchGuardIndexRequest()) {
             indicesLifecycle.addListener(new Listener() {
@@ -148,6 +151,6 @@ public class SearchGuardIndexSearcherWrapper extends AbstractIndexShardComponent
     }
 
     protected final boolean isSearchGuardIndexRequest() {
-        return shardId.index().getName().equals("searchguard");
+        return shardId.index().getName().equals(searchguardIndex);
     }
 }

@@ -66,6 +66,7 @@ import com.floragunn.searchguard.action.configupdate.ConfigUpdateRequest;
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateResponse;
 import com.floragunn.searchguard.ssl.SearchGuardSSLPlugin;
 import com.floragunn.searchguard.ssl.util.SSLConfigConstants;
+import com.floragunn.searchguard.support.ConfigConstants;
 
 public class SearchGuardAdmin {
     
@@ -114,6 +115,7 @@ public class SearchGuardAdmin {
         options.addOption(Option.builder("ec").longOpt("enabled-ciphers").hasArg().argName("cipers").desc("Comma separated list of TLS ciphers").build());
         options.addOption(Option.builder("ep").longOpt("enabled-protocols").hasArg().argName("protocols").desc("Comma separated list of TLS protocols").build());
         options.addOption(Option.builder("us").longOpt("update_settings").hasArg().argName("number of replicas").desc("update settings").build());
+        options.addOption(Option.builder("i").longOpt("index").hasArg().argName("index name").desc("The index Searchguard uses to store its configs in").build());
 
         
         String hostname = "localhost";
@@ -138,6 +140,7 @@ public class SearchGuardAdmin {
         String[] enabledProtocols = new String[0];
         String[] enabledCiphers = new String[0];
         Integer updateSettings = null;
+        String index = ConfigConstants.SG_DEFAULT_CONFIG_INDEX;
         
         CommandLineParser parser = new DefaultParser();
         try {
@@ -166,6 +169,7 @@ public class SearchGuardAdmin {
             retrieve = line.hasOption("r");
             ksAlias = line.getOptionValue("ksalias", ksAlias);
             tsAlias = line.getOptionValue("tsalias", tsAlias);
+            index = line.getOptionValue("i", index);
             
             String enabledCiphersString = line.getOptionValue("ec", null);
             String enabledProtocolsString = line.getOptionValue("ep", null);
@@ -253,7 +257,7 @@ public class SearchGuardAdmin {
             if(updateSettings != null) { 
                 Settings indexSettings = Settings.builder().put("index.number_of_replicas", updateSettings).build();                
                 tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();                
-                final UpdateSettingsResponse response = tc.admin().indices().updateSettings((new UpdateSettingsRequest("searchguard").settings(indexSettings))).actionGet();
+                final UpdateSettingsResponse response = tc.admin().indices().updateSettings((new UpdateSettingsRequest(index).settings(indexSettings))).actionGet();
                 System.out.println("Reload config on all nodes");
                 System.out.println("Update number of replicas to "+(updateSettings) +" with result: "+response.isAcknowledged());
                 System.exit(response.isAcknowledged()?0:-1);
@@ -285,12 +289,12 @@ public class SearchGuardAdmin {
             System.out.println("Number of nodes: "+chr.getNumberOfNodes());
             System.out.println("Number of data nodes: "+chr.getNumberOfDataNodes());
             
-            final boolean indexExists = tc.admin().indices().exists(new IndicesExistsRequest("searchguard")).actionGet().isExists();
+            final boolean indexExists = tc.admin().indices().exists(new IndicesExistsRequest(index)).actionGet().isExists();
 
             if (!indexExists) {
                 System.out.print("searchguard index does not exists, attempt to create it ... ");
 
-                final boolean indexCreated = tc.admin().indices().create(new CreateIndexRequest("searchguard")
+                final boolean indexCreated = tc.admin().indices().create(new CreateIndexRequest(index)
                 // .mapping("config", source)
                 // .settings(settings)
                 .settings("index.number_of_shards", 1, "index.number_of_replicas", chr.getNumberOfDataNodes()-1)
@@ -308,7 +312,7 @@ public class SearchGuardAdmin {
                 System.out.println("Search Guard index already exists, so we do not need to create one.");
                 
                 try {
-                    ClusterHealthResponse chrsg = tc.admin().cluster().health(new ClusterHealthRequest("searchguard")).actionGet();
+                    ClusterHealthResponse chrsg = tc.admin().cluster().health(new ClusterHealthRequest(index)).actionGet();
                              
                     if (chrsg.isTimedOut()) {
                         System.out.println("ERR: Timed out while waiting for searchguard index state.");
@@ -330,11 +334,11 @@ public class SearchGuardAdmin {
             if(retrieve) {
                 String date = new SimpleDateFormat("yyyy-MMM-dd_HH-mm-ss", Locale.ENGLISH).format(new Date());
                 
-                boolean success = retrieveFile(tc, cd+"sg_config_"+date+".yml", "config");
-                success = success & retrieveFile(tc, cd+"sg_roles_"+date+".yml", "roles");
-                success = success & retrieveFile(tc, cd+"sg_roles_mapping_"+date+".yml", "rolesmapping");
-                success = success & retrieveFile(tc, cd+"sg_internal_users_"+date+".yml", "internalusers");
-                success = success & retrieveFile(tc, cd+"sg_action_groups_"+date+".yml", "actiongroups");
+                boolean success = retrieveFile(tc, cd+"sg_config_"+date+".yml", index, "config");
+                success = success & retrieveFile(tc, cd+"sg_roles_"+date+".yml", index, "roles");
+                success = success & retrieveFile(tc, cd+"sg_roles_mapping_"+date+".yml", index, "rolesmapping");
+                success = success & retrieveFile(tc, cd+"sg_internal_users_"+date+".yml", index, "internalusers");
+                success = success & retrieveFile(tc, cd+"sg_action_groups_"+date+".yml", index, "actiongroups");
                 System.exit(success?0:-1);
             }
             
@@ -353,15 +357,15 @@ public class SearchGuardAdmin {
                     System.exit(-1);
                 }
                 
-                boolean success = uploadFile(tc, file, type);
+                boolean success = uploadFile(tc, file, index, type);
                 System.exit(success?0:-1);
             }
 
-            boolean success = uploadFile(tc, cd+"sg_config.yml", "config");
-            success = success & uploadFile(tc, cd+"sg_roles.yml", "roles");
-            success = success & uploadFile(tc, cd+"sg_roles_mapping.yml", "rolesmapping");
-            success = success & uploadFile(tc, cd+"sg_internal_users.yml", "internalusers");
-            success = success & uploadFile(tc, cd+"sg_action_groups.yml", "actiongroups");
+            boolean success = uploadFile(tc, cd+"sg_config.yml", index, "config");
+            success = success & uploadFile(tc, cd+"sg_roles.yml", index, "roles");
+            success = success & uploadFile(tc, cd+"sg_roles_mapping.yml", index, "rolesmapping");
+            success = success & uploadFile(tc, cd+"sg_internal_users.yml", index, "internalusers");
+            success = success & uploadFile(tc, cd+"sg_action_groups.yml", index, "actiongroups");
             
             ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
             
@@ -395,12 +399,12 @@ public class SearchGuardAdmin {
         return success;
     }
     
-    private static boolean uploadFile(Client tc, String filepath, String type) {
+    private static boolean uploadFile(Client tc, String filepath, String index, String type) {
         System.out.println("Will update '"+type+"' with "+filepath);
         try (Reader reader = new FileReader(filepath)) {
 
             final String id = tc
-                    .index(new IndexRequest("searchguard").type(type).id("0").refresh(true)
+                    .index(new IndexRequest(index).type(type).id("0").refresh(true)
                             .consistencyLevel(WriteConsistencyLevel.DEFAULT).source(readXContent(reader, XContentType.YAML)))
                             .actionGet().getId();
 
@@ -417,11 +421,11 @@ public class SearchGuardAdmin {
         return false;
     }
     
-    private static boolean retrieveFile(Client tc, String filepath, String type) {
+    private static boolean retrieveFile(Client tc, String filepath, String index, String type) {
         System.out.println("Will retrieve '"+type+"' into "+filepath);
         try (Writer writer = new FileWriter(filepath)) {
 
-            final GetResponse response = tc.get(new GetRequest("searchguard").type(type).id("0").refresh(true).realtime(false)).actionGet();
+            final GetResponse response = tc.get(new GetRequest(index).type(type).id("0").refresh(true).realtime(false)).actionGet();
 
             if (response.isExists()) {
                 if(response.isSourceEmpty()) {

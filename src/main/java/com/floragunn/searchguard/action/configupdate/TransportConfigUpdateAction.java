@@ -47,6 +47,7 @@ import com.floragunn.searchguard.action.configupdate.ConfigUpdateResponse.Node;
 import com.floragunn.searchguard.auth.BackendRegistry;
 import com.floragunn.searchguard.configuration.ConfigChangeListener;
 import com.floragunn.searchguard.configuration.ConfigurationLoader;
+import com.floragunn.searchguard.support.ConfigConstants;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
@@ -62,6 +63,8 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
     private final ListMultimap<String, ConfigChangeListener> multimap = Multimaps.synchronizedListMultimap(ArrayListMultimap
             .<String, ConfigChangeListener> create());
 
+    private final String searchguardIndex;
+    
     @Inject
     public TransportConfigUpdateAction(final Provider<Client> clientProvider, final Settings settings, final ClusterName clusterName,
             final ThreadPool threadPool, final ClusterService clusterService, final TransportService transportService,
@@ -73,6 +76,7 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
         this.cl = cl;
         this.clusterService = clusterService;
         this.backendRegistry = backendRegistry;
+        this.searchguardIndex = settings.get(ConfigConstants.SG_CONFIG_INDEX, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
 
         clusterService.addLifecycleListener(new LifecycleListener() {
 
@@ -88,20 +92,20 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
                             logger.debug("Node started, try to initialize it. Wait for at least yellow cluster state....");
                             ClusterHealthResponse response = null;
                             try {
-                                response = client.admin().cluster().health(new ClusterHealthRequest("searchguard").waitForYellowStatus()).actionGet();
+                                response = client.admin().cluster().health(new ClusterHealthRequest(searchguardIndex).waitForYellowStatus()).actionGet();
                             } catch (Exception e1) {
                                 logger.debug("Catched a {} but we just try again ...", e1.toString());
                             }
                             
                             while(response == null || response.isTimedOut() || response.getStatus() == ClusterHealthStatus.RED) {
-                                logger.warn("searchguard index not healthy yet, we try again ... (Reason: {})", response==null?"no response":(response.isTimedOut()?"timeout":"other, maybe red cluster"));
+                                logger.warn("searchguard index '{}' not healthy yet, we try again ... (Reason: {})", searchguardIndex, response==null?"no response":(response.isTimedOut()?"timeout":"other, maybe red cluster"));
                                 try {
                                     Thread.sleep(3000);
                                 } catch (InterruptedException e1) {
                                     //ignore
                                 }
                                 try {
-                                    response = client.admin().cluster().health(new ClusterHealthRequest("searchguard").waitForYellowStatus()).actionGet();
+                                    response = client.admin().cluster().health(new ClusterHealthRequest(searchguardIndex).waitForYellowStatus()).actionGet();
                                 } catch (Exception e1) {
                                     logger.debug("Catched again a {} but we just try again ...", e1.toString());
                                 }

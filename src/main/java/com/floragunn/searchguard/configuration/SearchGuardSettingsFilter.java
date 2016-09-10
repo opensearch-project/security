@@ -18,14 +18,18 @@
 package com.floragunn.searchguard.configuration;
 
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsFilter;
+
+import com.floragunn.searchguard.support.ConfigConstants;
 
 public class SearchGuardSettingsFilter {
 
     @Inject
-    public SearchGuardSettingsFilter(final SettingsFilter settingsFilter) {
+    public SearchGuardSettingsFilter(final SettingsFilter settingsFilter, final Settings settings) {
         super();
-        settingsFilter.addFilter("searchguard.*");
+        String searchguardIndex = settings.get(ConfigConstants.SG_CONFIG_INDEX, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
+        settingsFilter.addFilter(String.format("%s.*", searchguardIndex));
     }
     
 }
