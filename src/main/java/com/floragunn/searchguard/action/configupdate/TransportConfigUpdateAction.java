@@ -104,7 +104,7 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
                             }
                             
                             while(response == null || response.isTimedOut() || response.getStatus() == ClusterHealthStatus.RED) {
-                                logger.warn("searchguard index '{}' not healthy yet, we try again ... (Reason: {})", searchguardIndex, response==null?"no response":(response.isTimedOut()?"timeout":"other, maybe red cluster"));
+                                logger.warn("index '{}' not healthy yet, we try again ... (Reason: {})", searchguardIndex, response==null?"no response":(response.isTimedOut()?"timeout":"other, maybe red cluster"));
                                 try {
                                     Thread.sleep(3000);
                                 } catch (InterruptedException e1) {
@@ -169,11 +169,10 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
                     }
                 });
                 
-                logger.debug("Check if search guard index exists ...");
+                logger.info("Check if "+searchguardIndex+" index exists ...");
                 
                 try {
-                    IndicesExistsRequest ier = new IndicesExistsRequest("searchguard")
-                                                   
+                    IndicesExistsRequest ier = new IndicesExistsRequest(searchguardIndex)
                                                    .masterNodeTimeout(TimeValue.timeValueMinutes(1));
                     ier.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true");
                     clientProvider.get().admin().indices().exists(ier, new ActionListener<IndicesExistsResponse>() {
@@ -183,13 +182,18 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
                             if(response != null && response.isExists()) {
                                 ct.start();
                             } else {
-                                logger.debug("searchguard index does not exist yet, so no need to load config on node startup. Use sgadmin to initialize cluster");
+                                if(settings.getAsBoolean("action.master.force_local", false) && settings.getByPrefix("tribe").getAsMap().size() > 0) {
+                                    logger.info("{} index does not exist yet, but we are a tribe node. So we will load the config anyhow until we got it ...", searchguardIndex);
+                                    ct.start();
+                                } else {
+                                    logger.info("{} index does not exist yet, so no need to load config on node startup. Use sgadmin to initialize cluster", searchguardIndex);
+                                }
                             }               
                         }
 
                         @Override
                         public void onFailure(Throwable e) {
-                            logger.error("Failure while checking searchguard index {}",e, e);
+                            logger.error("Failure while checking {} index {}",e, searchguardIndex, e);
                             ct.start();
                         }                
                     });

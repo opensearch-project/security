@@ -54,6 +54,7 @@ public class ConfigurationLoader {
         super();
         this.client = client;
         this.searchguardIndex = settings.get(ConfigConstants.SG_CONFIG_INDEX, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
+        log.debug("Index is: {}", searchguardIndex);
     }
     
     public Map<String, Settings> load(final String[] events, long timeout, TimeUnit timeUnit) throws InterruptedException, TimeoutException {
@@ -65,7 +66,7 @@ public class ConfigurationLoader {
             @Override
             public void success(String type, Settings settings) {
                 if(latch.getCount() <= 0) {
-                    log.error("Latch already counted down (for {} of {})", type, Arrays.toString(events));
+                    log.error("Latch already counted down (for {} of {})  (index={})", type, Arrays.toString(events), searchguardIndex);
                 }
                 
                 rs.put(type, settings);
@@ -77,23 +78,23 @@ public class ConfigurationLoader {
             
             @Override
             public void singleFailure(Failure failure) {
-                log.error("Failure {} retrieving configuration for {}", failure==null?null:failure.getFailure(), Arrays.toString(events));
+                log.error("Failure {} retrieving configuration for {} (index={})", failure==null?null:failure.getMessage(), Arrays.toString(events), searchguardIndex);
             }
             
             @Override
             public void noData(String type) {
-                log.error("No data for {} while retrieving configuration for {}", type, Arrays.toString(events));
+                log.error("No data for {} while retrieving configuration for {}  (index={})", type, Arrays.toString(events), searchguardIndex);
             }
             
             @Override
             public void failure(Throwable t) {
-                log.error("Exception {} while retrieving configuration for {}",t,t.toString(), Arrays.toString(events));
+                log.error("Exception {} while retrieving configuration for {}  (index={})",t,t.toString(), Arrays.toString(events), searchguardIndex);
             }
         });
         
         if(!latch.await(timeout, timeUnit)) {
             //timeout
-            throw new TimeoutException("Timeout after "+timeout+""+timeUnit+" while retrieving configuration for "+Arrays.toString(events));
+            throw new TimeoutException("Timeout after "+timeout+""+timeUnit+" while retrieving configuration for "+Arrays.toString(events)+ "(index="+searchguardIndex+")");
         }
         
         return rs;

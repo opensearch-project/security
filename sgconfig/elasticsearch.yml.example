@@ -2,6 +2,12 @@
 # (alongside with the SG SSL settings)
 # This settings must always be the same on all nodes in the cluster
 
+# Name of the index where searchguard stores its configuration.
+# WARNING: Expert setting, do only use if you know what you are doing
+# If you set wrong values here this this could be a security risk
+# or make Search Guard stop working
+#searchguard.config_index_name: searchguard
+
 # This defines the DNs (distinguished names) of certificates
 # to which admin privileges should be assigned
 searchguard.authcz.admin_dn:
