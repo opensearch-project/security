@@ -33,7 +33,7 @@ public class ActionGroupHolder implements ConfigChangeListener {
 
     @Inject
     public ActionGroupHolder(final TransportConfigUpdateAction tcua) {
-        tcua.addConfigChangeListener("actiongroups", this);
+        tcua.addConfigChangeListener(ConfigurationService.CONFIGNAME_ACTION_GROUPS, this);
     }
 
     @Override

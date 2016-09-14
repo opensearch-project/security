@@ -84,8 +84,8 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
     public PrivilegesEvaluator(final ClusterService clusterService, final TransportConfigUpdateAction tcua, final ActionGroupHolder ah,
             final IndexNameExpressionResolver resolver, AuditLog auditLog, final Settings settings) {
         super();
-        tcua.addConfigChangeListener("rolesmapping", this);
-        tcua.addConfigChangeListener("roles", this);
+        tcua.addConfigChangeListener(ConfigurationService.CONFIGNAME_ROLES_MAPPING, this);
+        tcua.addConfigChangeListener(ConfigurationService.CONFIGNAME_ROLES, this);
         this.clusterService = clusterService;
         this.ah = ah;
         this.resolver = resolver;

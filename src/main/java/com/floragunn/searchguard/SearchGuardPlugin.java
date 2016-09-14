@@ -38,6 +38,7 @@ import com.floragunn.searchguard.filter.SearchGuardFilter;
 import com.floragunn.searchguard.http.SearchGuardHttpServerTransport;
 import com.floragunn.searchguard.rest.SearchGuardInfoAction;
 import com.floragunn.searchguard.ssl.util.SSLConfigConstants;
+import com.floragunn.searchguard.support.ReflectionHelper;
 import com.floragunn.searchguard.transport.SearchGuardTransportService;
 import com.google.common.collect.ImmutableList;
 
@@ -107,6 +108,12 @@ public final class SearchGuardPlugin extends Plugin {
     public void onModule(final RestModule module) {
         if (!client) {
             module.addRestAction(SearchGuardInfoAction.class);
+            if(ReflectionHelper.canLoad("com.floragunn.dlic.rest.api.UserApiAction")) {
+                module.addRestAction(ReflectionHelper.load("com.floragunn.dlic.rest.api.UserApiAction"));
+            }
+            if(ReflectionHelper.canLoad("com.floragunn.dlic.rest.api.ConfigurationApiAction")) {
+                module.addRestAction(ReflectionHelper.load("com.floragunn.dlic.rest.api.ConfigurationApiAction"));
+            }            
         }
     }
 

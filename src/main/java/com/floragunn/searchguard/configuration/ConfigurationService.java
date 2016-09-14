@@ -31,7 +31,15 @@ import org.elasticsearch.common.settings.Settings;
  */
 
 public class ConfigurationService extends AbstractLifecycleComponent<ConfigurationService> implements Closeable {
-
+	
+	public final static String CONFIGNAME_ROLES = "roles";
+	public final static String CONFIGNAME_ROLES_MAPPING = "rolesmapping";
+	public final static String CONFIGNAME_ACTION_GROUPS = "actiongroups";
+	public final static String CONFIGNAME_INTERNAL_USERS = "internalusers";
+	public final static String CONFIGNAME_CONFIG = "config";
+	public final static String[] CONFIGNAMES = new String[] {CONFIGNAME_ROLES, CONFIGNAME_ROLES_MAPPING, 
+			CONFIGNAME_ACTION_GROUPS, CONFIGNAME_INTERNAL_USERS, CONFIGNAME_CONFIG};
+	
     @Inject
     public ConfigurationService(final Settings settings, final Client client) {
         super(settings);

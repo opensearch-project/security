@@ -26,6 +26,7 @@ import org.elasticsearch.common.settings.Settings;
 import com.floragunn.searchguard.action.configupdate.TransportConfigUpdateAction;
 import com.floragunn.searchguard.auth.AuthenticationBackend;
 import com.floragunn.searchguard.configuration.ConfigChangeListener;
+import com.floragunn.searchguard.configuration.ConfigurationService;
 import com.floragunn.searchguard.crypto.BCrypt;
 import com.floragunn.searchguard.user.AuthCredentials;
 import com.floragunn.searchguard.user.User;
@@ -37,7 +38,7 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Con
     @Inject
     public InternalAuthenticationBackend(final Settings unused, final TransportConfigUpdateAction tcua) {
         super();
-        tcua.addConfigChangeListener("internalusers", this);
+        tcua.addConfigChangeListener(ConfigurationService.CONFIGNAME_INTERNAL_USERS, this);
     }
 
     @Override
