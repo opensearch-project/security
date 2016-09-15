@@ -91,6 +91,10 @@ public class Base64Helper {
         static {
             SAFE_CLASSES.add("com.floragunn.dlic.auth.ldap.LdapUser");
             SAFE_CLASSES.add("org.ldaptive.SearchEntry");
+            SAFE_CLASSES.add("org.ldaptive.LdapEntry");
+            SAFE_CLASSES.add("org.ldaptive.AbstractLdapBean");
+            SAFE_CLASSES.add("org.ldaptive.LdapAttribute");
+            SAFE_CLASSES.add("org.ldaptive.LdapAttribute$LdapAttributeValues");
         }
 
         public SafeObjectInputStream(InputStream in) throws IOException {
