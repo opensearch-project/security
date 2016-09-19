@@ -61,6 +61,7 @@ import com.floragunn.searchguard.http.HTTPHostAuthenticator;
 import com.floragunn.searchguard.http.HTTPProxyAuthenticator;
 import com.floragunn.searchguard.http.XFFResolver;
 import com.floragunn.searchguard.support.ConfigConstants;
+import com.floragunn.searchguard.support.HTTPHelper;
 import com.floragunn.searchguard.support.LogHelper;
 import com.floragunn.searchguard.user.AuthCredentials;
 import com.floragunn.searchguard.user.User;
@@ -102,6 +103,15 @@ public class BackendRegistry implements ConfigChangeListener {
                     log.debug("Clear user cache for {} due to {}", notification.getKey(), notification.getCause());
                 }
             }).build();
+    
+    private Cache<AuthCredentials, User> authenticatedUserCacheTransport = CacheBuilder.newBuilder()
+            .expireAfterWrite(1, TimeUnit.HOURS)
+            .removalListener(new RemovalListener<AuthCredentials, User>() {
+                @Override
+                public void onRemoval(RemovalNotification<AuthCredentials, User> notification) {
+                    log.debug("Clear user cache for {} due to {}", notification.getKey().getUsername(), notification.getCause());
+                }
+            }).build();
 
     @Inject
     public BackendRegistry(final Settings settings, final RestController controller, final TransportConfigUpdateAction tcua, final ClusterService cse,
@@ -138,6 +148,7 @@ public class BackendRegistry implements ConfigChangeListener {
     public void invalidateCache() {
         userCache.invalidateAll();
         userCacheTransport.invalidateAll();
+        authenticatedUserCacheTransport.invalidateAll();
     }
 
     private <T> T newInstance(final String clazzOrShortcut, String type, final Settings settings) throws ClassNotFoundException, NoSuchMethodException,
@@ -225,7 +236,9 @@ public class BackendRegistry implements ConfigChangeListener {
 
     }
 
-    public boolean authenticate(final TransportRequest request) throws ElasticsearchSecurityException {
+    public boolean authenticate(final TransportRequest request, final TransportChannel channel) throws ElasticsearchSecurityException {
+        
+        boolean impersonated = impersonate(request, channel);
 
         final User user = request.getFromContext(ConfigConstants.SG_USER);
         
@@ -236,29 +249,42 @@ public class BackendRegistry implements ConfigChangeListener {
         if(adminDns.isAdmin(user.getName())) {
             return true;
         }
+        
+        AuthCredentials _creds = null;
+        final String authorizationHeader = request.getHeader("Authorization");
+        
+        _creds = HTTPHelper.extractCredentials(authorizationHeader, log);
+        
+        final AuthCredentials creds = _creds;
+        
+        if(log.isDebugEnabled() && creds != null) {
+            log.debug("User {} submitted also basic credentials: {}", user.getName(), creds);
+        }
           
-        for (final Iterator iterator = new TreeSet<AuthDomain>(authDomains).iterator(); iterator.hasNext();) {
+        for (final Iterator<AuthDomain> iterator = new TreeSet<AuthDomain>(authDomains).iterator(); iterator.hasNext();) {
 
             final AuthDomain authDomain = (AuthDomain) iterator.next();
             User authenticatedUser = null;
-            
-            if(log.isDebugEnabled()) {
-                log.debug("Transport User '{}' is in cache? {} (cache size: {})", user.getName(), userCacheTransport.getIfPresent(user.getName())!=null, userCacheTransport.size());
-            }
-            
-            try {
+
+            if(creds == null) {
+                
+                if(log.isDebugEnabled()) {
+                    log.debug("Transport User '{}' is in cache? {} (cache size: {})", user.getName(), userCacheTransport.getIfPresent(user.getName())!=null, userCacheTransport.size());
+                }
+                
                 try {
                     authenticatedUser = userCacheTransport.get(user.getName(), new Callable<User>() {
                         @Override
                         public User call() throws Exception {
-                            if(log.isDebugEnabled()) {
-                                log.debug(user.getName()+" not cached, return from backend directly");
+                            if (log.isDebugEnabled()) {
+                                log.debug(user.getName() + " not cached, return from backend directly");
                             }
-                            if(authDomain.getBackend().exists(user)) {
+
+                            if (authDomain.getBackend().exists(user)) {
                                 for (final AuthorizationBackend ab : authorizers) {
-                                    
-                                    //TODO transform username
-                                    
+
+                                    // TODO transform username
+
                                     try {
                                         ab.fillRoles(user, new AuthCredentials(user.getName()));
                                     } catch (Exception e) {
@@ -267,13 +293,55 @@ public class BackendRegistry implements ConfigChangeListener {
                                 }
                                 return user;
                             }
-                            throw new Exception("no such user "+user.getName());
+
+                            throw new Exception("no such user " + user.getName());
                         }
                     });
                 } catch (Exception e) {
                     log.error("Unexpected exception {} ", e, e.toString());
                     throw new ElasticsearchSecurityException(e.toString(), e);
                 }
+            } else {
+                //auth
+                
+                if (log.isDebugEnabled()) {
+                    log.debug("Transport User '{}' is in cache? {} (cache size: {})", creds.getUsername(),
+                            authenticatedUserCacheTransport.getIfPresent(creds) != null, authenticatedUserCacheTransport.size());
+                }
+
+                try {
+                    authenticatedUser = authenticatedUserCacheTransport.get(creds, new Callable<User>() {
+                        @Override
+                        public User call() throws Exception {
+                            if (log.isDebugEnabled()) {
+                                log.debug(creds.getUsername() + " not cached, return from backend directly");
+                            }
+
+                            // full authentication
+                            User _user = authDomain.getBackend().authenticate(creds);
+
+                            for (final AuthorizationBackend ab : authorizers) {
+
+                                // TODO transform username
+
+                                try {
+                                    ab.fillRoles(_user, new AuthCredentials(_user.getName()));
+                                } catch (Exception e) {
+                                    log.error("Problems retrieving roles for {} from {}", _user, ab.getClass());
+                                }
+                            }
+                            return _user;
+                        }
+                    });
+                } catch (Exception e) {
+                    log.error("Unexpected exception {} ", e, e.toString());
+                    throw new ElasticsearchSecurityException(e.toString(), e);
+                } finally {
+                    creds.clearSecrets();
+                }
+            }
+     
+            try {              
                 
                 if(authenticatedUser == null) {
                     log.info("Cannot authenticate user (or add roles) with ad {} due to user is null, try next", authDomain.getOrder());
@@ -281,7 +349,8 @@ public class BackendRegistry implements ConfigChangeListener {
                 }
                 
                 if(adminDns.isAdmin(authenticatedUser.getName())) {
-                    log.error("Cannot authenticate user because admin user is not permitted to login via HTTP");
+                    log.error("Cannot authenticate user because admin user is not permitted to login");
+                    auditLog.logFailedLogin(authenticatedUser.getName(), request);
                     return false;
                 }
                 
@@ -297,6 +366,13 @@ public class BackendRegistry implements ConfigChangeListener {
             }
             
         }//end for
+        
+        if(creds == null) {
+            auditLog.logFailedLogin(user.getName(), request);
+        } else {
+            auditLog.logFailedLogin(creds.getUsername(), request);
+        }
+        
         
         return false;
     }
@@ -488,12 +564,12 @@ public class BackendRegistry implements ConfigChangeListener {
         return initialized;
     }
 
-    public void impersonate(final TransportRequest tr, final TransportChannel channel) throws ElasticsearchSecurityException {
+   private boolean impersonate(final TransportRequest tr, final TransportChannel channel) throws ElasticsearchSecurityException {
 
         final String impersonatedUser = tr.getHeader("sg_impersonate_as");
         
         if(Strings.isNullOrEmpty(impersonatedUser)) {
-            return; //nothing to do
+            return false; //nothing to do
         }
         
         if (!isInitialized()) {
@@ -526,6 +602,7 @@ public class BackendRegistry implements ConfigChangeListener {
         }
 
         tr.putInContext(ConfigConstants.SG_USER, Objects.requireNonNull((User) aU));
+        return true;
     }
 
 }
