@@ -1011,6 +1011,24 @@ public class SGTests extends AbstractUnitTest {
             
             System.out.println("------- 11 ---------");
             
+            try {
+                gr = tc.prepareGet("vulcan", "secrets", "s1").putHeader("Authorization", "basic "+encodeBasicHeader("worf", "worf")).get();
+                Assert.fail();
+            } catch (ElasticsearchSecurityException e) {
+               Assert.assertEquals("no permissions for indices:data/read/get", e.getMessage());
+            }
+            
+            
+            System.out.println("------- 12 ---------");
+            
+            try {
+                gr = tc.prepareGet("vulcan", "secrets", "s1").putHeader("Authorization", "basic "+encodeBasicHeader("worf", "worf111")).get();
+                Assert.fail();
+            } catch (ElasticsearchSecurityException e) {
+               Assert.assertTrue(e.getCause().getMessage().contains("password does not match"));
+            }
+            
+            System.out.println("------- 13 ---------");       
             
             //impersonation
             try {
@@ -1019,15 +1037,31 @@ public class SGTests extends AbstractUnitTest {
             } catch (ElasticsearchSecurityException e) {
                Assert.assertEquals("'CN=spock,OU=client,O=client,L=Test,C=DE' is not allowed to impersonate as 'gkar'", e.getMessage());
             }
+                   
+            System.out.println("------- 14 ---------");
             
-            System.out.println("------- 12 ---------");
+            boolean ok=false;
+            try {
+                gr = tc.prepareGet("vulcan", "secrets", "s1").putHeader("sg_impersonate_as", "nagilum").get();
+                ok = true;
+                gr = tc.prepareGet("vulcan", "secrets", "s1").putHeader("sg_impersonate_as", "nagilum").putHeader("Authorization", "basic "+encodeBasicHeader("worf", "worf")).get();
+                Assert.fail();
+            } catch (ElasticsearchSecurityException e) {
+               Assert.assertEquals("no permissions for indices:data/read/get", e.getMessage());
+               Assert.assertTrue(ok);
+            }
+            
+            System.out.println("------- 15 ---------");
             
             gr = tc.prepareGet("searchguard", "config", "0").putHeader("sg_impersonate_as", "nagilum").setRealtime(Boolean.TRUE).get();
             Assert.assertFalse(gr.isExists());
             Assert.assertTrue(gr.isSourceEmpty());
             
-            
-            System.out.println("------- 13 ---------");
+            gr = tc.prepareGet("searchguard", "config", "0").putHeader("Authorization", "basic "+encodeBasicHeader("nagilum", "nagilum")).setRealtime(Boolean.TRUE).get();
+            Assert.assertFalse(gr.isExists());
+            Assert.assertTrue(gr.isSourceEmpty());
+
+            System.out.println("------- 16---------");
           
             gr = tc.prepareGet("searchguard", "config", "0").putHeader("sg_impersonate_as", "nagilum").setRealtime(Boolean.FALSE).get();
             Assert.assertFalse(gr.isExists());
@@ -1035,9 +1069,7 @@ public class SGTests extends AbstractUnitTest {
             
             
             SearchResponse searchRes = tc.prepareSearch("starfleet").setTypes("ships").setScroll(TimeValue.timeValueMinutes(5)).putHeader("sg_impersonate_as", "nagilum").get();
-            SearchResponse scrollRes = tc.prepareSearchScroll(searchRes.getScrollId()).putHeader("sg_impersonate_as", "worf").get();
-            
-            
+            SearchResponse scrollRes = tc.prepareSearchScroll(searchRes.getScrollId()).putHeader("sg_impersonate_as", "worf").get();           
             
             System.out.println("------- TRC end ---------");
         }
