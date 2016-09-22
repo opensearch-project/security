@@ -45,6 +45,7 @@ import org.apache.http.Header;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpUriRequest;
@@ -320,7 +321,7 @@ public abstract class AbstractUnitTest {
         public HttpResponse(CloseableHttpResponse inner) throws IllegalStateException, IOException {
             super();
             this.inner = inner;
-            this.body = IOUtils.toString(inner.getEntity().getContent(), StandardCharsets.UTF_8);
+            this.body = inner.getEntity() == null? null : IOUtils.toString(inner.getEntity().getContent(), StandardCharsets.UTF_8);
             this.header = inner.getAllHeaders();
             this.statusCode = inner.getStatusLine().getStatusCode();
             this.statusReason = inner.getStatusLine().getReasonPhrase();
@@ -353,6 +354,10 @@ public abstract class AbstractUnitTest {
     
     protected HttpResponse executeGetRequest(final String request, Header... header) throws Exception {
         return executeRequest(new HttpGet(getHttpServerUri() + "/" + request), header);
+    }
+    
+    protected HttpResponse executeHeadRequest(final String request, Header... header) throws Exception {
+        return executeRequest(new HttpHead(getHttpServerUri() + "/" + request), header);
     }
     
     protected HttpResponse executePutRequest(final String request, String body, Header... header) throws Exception {

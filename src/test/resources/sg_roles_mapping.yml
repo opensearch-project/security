@@ -72,3 +72,19 @@ sg_role_host2:
 sg_theindex_admin:
   users:
     - theindexadmin
+    
+sg_user1:
+  users:
+    - worf
+     
+sg_user2:
+  users:
+    - picard
+    
+sg_multiget:
+  users:
+    - picard
+    
+sg_shakespeare:
+  users:
+    - picard

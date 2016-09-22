@@ -195,3 +195,39 @@ sg_theindex_admin:
     theindex:
       '*':
         - ALL
+        
+sg_user1:
+  indices:
+    'alias1':
+      '*':
+        - READ
+sg_user2:
+  indices:
+    'alias2':
+      '*':
+        - READ
+        
+sg_multiget:
+  indices:
+    'mindex1':
+      '*':
+        - READ
+    'mindex2':
+      '*':
+        - READ
+        
+sg_shakespeare:
+  cluster:
+    - cluster:monitor/nodes/info
+    - cluster:monitor/health
+    - indices:admin/template/get
+    - indices:admin/exists 
+  indices:
+    'shakespeare':
+      '*':
+        - READ
+        - indices:admin/exists
+        - indices:admin/mappings/fields/get*
+        - indices:admin/validate/query*
+        - indices:admin/get*
+        - indices:data/write/bulk*
