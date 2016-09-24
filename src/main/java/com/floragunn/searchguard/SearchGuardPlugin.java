@@ -22,6 +22,8 @@ import java.util.Collection;
 
 import org.elasticsearch.action.ActionModule;
 import org.elasticsearch.common.inject.Module;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.HttpServerModule;
 import org.elasticsearch.plugins.Plugin;
@@ -44,6 +46,8 @@ import com.google.common.collect.ImmutableList;
 
 public final class SearchGuardPlugin extends Plugin {
 
+	private final ESLogger log = Loggers.getLogger(this.getClass());
+	
     private static final String CLIENT_TYPE = "client.type";
     private final Settings settings;
     private final boolean client;
@@ -105,15 +109,20 @@ public final class SearchGuardPlugin extends Plugin {
         }
     }
 
-    public void onModule(final RestModule module) {
+    @SuppressWarnings("unchecked")
+	public void onModule(final RestModule module) {
         if (!client) {
             module.addRestAction(SearchGuardInfoAction.class);
-            if(ReflectionHelper.canLoad("com.floragunn.dlic.rest.api.UserApiAction")) {
-                module.addRestAction(ReflectionHelper.load("com.floragunn.dlic.rest.api.UserApiAction"));
-            }
-            if(ReflectionHelper.canLoad("com.floragunn.dlic.rest.api.ConfigurationApiAction")) {
-                module.addRestAction(ReflectionHelper.load("com.floragunn.dlic.rest.api.ConfigurationApiAction"));
-            }            
+            if(ReflectionHelper.canLoad("com.floragunn.dlic.rest.api.SearchGuardRestApiActions")) {
+                try {
+                	ReflectionHelper
+                    .load("com.floragunn.dlic.rest.api.SearchGuardRestApiActions")
+                    .getDeclaredMethod("addActions", RestModule.class)
+                    .invoke(null, module);                	
+                } catch(Exception ex) {
+                	log.error("Failed to register SearchGuardRestApiActions, management API not available. Cause: {}", ex.getMessage());
+                }
+            }           
         }
     }
 
