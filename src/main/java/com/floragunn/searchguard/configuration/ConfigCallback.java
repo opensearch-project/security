@@ -1,5 +1,5 @@
 /*
-SettingsFilter * Copyright 2015 floragunn UG (haftungsbeschränkt)
+ * Copyright 2015 floragunn UG (haftungsbeschränkt)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,20 +17,14 @@ SettingsFilter * Copyright 2015 floragunn UG (haftungsbeschränkt)
 
 package com.floragunn.searchguard.configuration;
 
-import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.action.get.MultiGetResponse.Failure;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.settings.SettingsFilter;
 
-import com.floragunn.searchguard.support.ConfigConstants;
-
-public class SearchGuardSettingsFilter {
-
-    @Inject 
-    // TODO 5.0: Reactivate
-    public SearchGuardSettingsFilter(final SettingsFilter settingsFilter, final Settings settings) {
-        super();
-        String searchguardIndex = settings.get(ConfigConstants.SG_CONFIG_INDEX, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
-        //settingsFilter.addFilter(String.format("%s.*", searchguardIndex));
-    }
+public interface ConfigCallback {
     
+    void success(String type, Settings settings);
+    void noData(String type);
+    void singleFailure(Failure failure);
+    void failure(Throwable t);
+
 }

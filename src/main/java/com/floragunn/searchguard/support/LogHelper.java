@@ -17,13 +17,13 @@
 
 package com.floragunn.searchguard.support;
 
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 
 public class LogHelper {
 
-    private static final ESLogger USER_TRACE_LOGGER = Loggers.getLogger("com.floragunn.searchguard.usertracelogger");
+    private static final Logger USER_TRACE_LOGGER = LogManager.getLogger("com.floragunn.searchguard.usertracelogger");
     
     public static void logUserTrace(String msg, Object... params) {
         if(USER_TRACE_LOGGER.isTraceEnabled()) {

@@ -21,8 +21,9 @@ import java.io.IOException;
 
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.search.IndexSearcher;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
@@ -37,13 +38,15 @@ import com.floragunn.searchguard.user.User;
 
 public class SearchGuardIndexSearcherWrapper extends IndexSearcherWrapper {
 
-    protected final ESLogger log = Loggers.getLogger(this.getClass());
+    protected final Logger log = LogManager.getLogger(this.getClass());
 	private final ThreadContext threadContext;
 	private final Index index;
+	private final String searchguardIndex;
 	
-	public SearchGuardIndexSearcherWrapper(final IndexService indexService) {
+	public SearchGuardIndexSearcherWrapper(final IndexService indexService, Settings settings) {
 	    index = indexService.index();
 	    threadContext = indexService.getThreadPool().getThreadContext();
+        this.searchguardIndex = settings.get(ConfigConstants.SG_CONFIG_INDEX, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
 	}
 
     @Override
@@ -111,6 +114,7 @@ public class SearchGuardIndexSearcherWrapper extends IndexSearcherWrapper {
     }
 
     protected final boolean isSearchGuardIndexRequest() {
-        return index.getName().equals("searchguard");
+        return index.getName().equals(searchguardIndex);
+
     }
 }

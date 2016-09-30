@@ -30,14 +30,29 @@ import java.util.function.Function;
 
 import org.elasticsearch.SpecialPermission;
 import org.elasticsearch.action.ActionModule;
+import org.elasticsearch.action.ActionRequest;
+import org.elasticsearch.action.ActionResponse;
+import org.elasticsearch.action.support.ActionFilter;
+import org.elasticsearch.client.Client;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.LifecycleComponent;
+import org.elasticsearch.common.inject.Guice;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexModule;
+import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.plugins.ActionPlugin.ActionHandler;
+import org.elasticsearch.rest.RestHandler;
+import org.elasticsearch.script.ScriptService;
+import org.elasticsearch.search.SearchRequestParsers;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.watcher.ResourceWatcherService;
 
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateAction;
 import com.floragunn.searchguard.action.configupdate.TransportConfigUpdateAction;
@@ -48,19 +63,25 @@ import com.floragunn.searchguard.configuration.SearchGuardIndexSearcherWrapper;
 import com.floragunn.searchguard.filter.SearchGuardFilter;
 import com.floragunn.searchguard.http.SearchGuardHttpServerTransport;
 import com.floragunn.searchguard.rest.SearchGuardInfoAction;
+import com.floragunn.searchguard.ssl.SearchGuardSSLModule;
+import com.floragunn.searchguard.ssl.SearchGuardSSLPlugin.Holder;
+import com.floragunn.searchguard.ssl.http.netty.SearchGuardSSLNettyHttpServerTransport;
 import com.floragunn.searchguard.ssl.rest.SearchGuardSSLInfoAction;
 import com.floragunn.searchguard.ssl.transport.SearchGuardSSLNettyTransport;
+import com.floragunn.searchguard.ssl.transport.SearchGuardSSLTransportInterceptor;
 import com.floragunn.searchguard.ssl.util.SSLConfigConstants;
-import com.floragunn.searchguard.transport.SearchGuardTransportService;
+import com.floragunn.searchguard.transport.SearchGuardTransportInterceptor;
 import com.google.common.collect.Lists;
 
-public final class SearchGuardPlugin extends Plugin {
+public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
 
+    private final Logger log = LogManager.getLogger(this.getClass());
     private static final String CLIENT_TYPE = "client.type";
     private final Settings settings;
     private final boolean client;
     private final boolean httpSSLEnabled;
-    //private boolean tribe; // TODO check tribe node
+    private final boolean tribeNodeClient;
+    private Holder<ThreadPool> threadPoolHolder = new Holder<ThreadPool>();
 
     public SearchGuardPlugin(final Settings settings) {
         super();
@@ -86,73 +107,106 @@ public final class SearchGuardPlugin extends Plugin {
         
         this.settings = settings;
         client = !"node".equals(this.settings.get(CLIENT_TYPE, "node"));
+        boolean tribeNode = this.settings.getAsBoolean("action.master.force_local", false) && this.settings.getByPrefix("tribe").getAsMap().size() > 0;
+        tribeNodeClient = this.settings.get("tribe.name", null) != null;
         httpSSLEnabled = settings.getAsBoolean(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLED,
                 SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLED_DEFAULT);
-    }
 
+        //TODO tribe 5.0
+        log.info("Node [{}] is a transportClient: {}/tribeNode: {}/tribeNodeClient: {}", settings.get("node.name"), client, tribeNode, tribeNodeClient);
+
+        if(client && System.getProperty("sg.nowarn.client") == null) {
+            System.out.println("*************************************************************************");
+            System.out.println("'Search Guard 2' plugin is normally not needed on transport client nodes.");
+            System.out.println("*************************************************************************");
+        }
+    }
+    
     @Override
-    public Collection<Module> nodeModules() {
-        final Collection<Module> modules = new ArrayList<>();
-        if (!client) {
+    public List<Class<? extends RestHandler>> getRestHandlers() {
+        List<Class<? extends RestHandler>> handlers = new ArrayList<Class<? extends RestHandler>>(1);
+        if (!client && !tribeNodeClient) {
+            handlers.add(SearchGuardInfoAction.class);
+            handlers.add(SearchGuardSSLInfoAction.class);
+        }
+        return handlers;
+    }
+    
+    @Override
+    public List<ActionHandler<? extends ActionRequest<?>, ? extends ActionResponse>> getActions() {
+        List<ActionHandler<? extends ActionRequest<?>, ? extends ActionResponse>> actions = new ArrayList<>(1);
+        if(!tribeNodeClient) {
+            actions.add(new ActionHandler(ConfigUpdateAction.INSTANCE, TransportConfigUpdateAction.class));
+        }
+        return actions;
+    }
+    
+    
+    @Override
+    public Collection<Module> createGuiceModules() {
+        List<Module> modules = new ArrayList<Module>(1);
+        if (!client && !tribeNodeClient) {
             modules.add(new ConfigurationModule());
             modules.add(new BackendModule());
             modules.add(new AuditLogModule());
         }
         return modules;
     }
-
+    
     @Override
     public void onIndexModule(IndexModule indexModule) {
         //TODO include
         //com.floragunn.searchguard.configuration.SearchGuardFlsDlsIndexSearcherWrapper
         if (!client) {
-            indexModule.setSearcherWrapper(indexService -> new SearchGuardIndexSearcherWrapper(indexService));
-        }
-    }
-
-    @SuppressWarnings("rawtypes")
-    @Override
-    public Collection<Class<? extends LifecycleComponent>> nodeServices() {
-        final Collection<Class<? extends LifecycleComponent>> services = new ArrayList<>();
-        if (!client) {
-            //services.add(ConfigurationService.class);
-        }
-        return services;
-    }
-
-    public void onModule(final ActionModule module) {
-        module.registerAction(ConfigUpdateAction.INSTANCE, TransportConfigUpdateAction.class);
-        if (!client) {            
-            module.registerFilter(SearchGuardFilter.class);
+            indexModule.setSearcherWrapper(indexService -> new SearchGuardIndexSearcherWrapper(indexService, settings));
         }
     }
     
-public void onModule(final NetworkModule module) {
-        
-        module.registerTransport(SearchGuardSSLNettyTransport.class.toString(), SearchGuardSSLNettyTransport.class);
-        
-        if (!client) {
-            module.registerRestHandler(SearchGuardSSLInfoAction.class);
-            module.registerRestHandler(SearchGuardInfoAction.class);
-            module.registerTransportService(SearchGuardTransportService.class.toString(), SearchGuardTransportService.class);
-        
-            if (httpSSLEnabled) {
-                module.registerHttpTransport(SearchGuardHttpServerTransport.class.toString(), SearchGuardHttpServerTransport.class);
-            }        
+    @Override
+    public Collection<Class<? extends LifecycleComponent>> getGuiceServiceClasses() {
+        return Collections.emptyList();
+    }
+    
+    @Override
+    public List<Class<? extends ActionFilter>> getActionFilters() {
+        List<Class<? extends ActionFilter>> filters = new ArrayList<>(1);
+        if (!tribeNodeClient && !client) {
+            filters.add(SearchGuardFilter.class);
         }
-    }    
+        return filters;
+    }
+    
+    public void onModule(final NetworkModule module) {
+        module.registerTransport("com.floragunn.searchguard.ssl.http.netty.SearchGuardSSLNettyTransport", SearchGuardSSLNettyTransport.class);
+
+        if (!client && httpSSLEnabled && !tribeNodeClient) {
+            module.registerHttpTransport("com.floragunn.searchguard.http.SearchGuardHttpServerTransport", SearchGuardHttpServerTransport.class);
+        }
+        
+        if (!client && !tribeNodeClient) {
+            module.addTransportInterceptor(new SearchGuardTransportInterceptor(settings, threadPoolHolder));
+        }
+    }
+    
+    
+    @Override
+    public Collection<Object> createComponents(Client client, ClusterService clusterService, ThreadPool threadPool,
+            ResourceWatcherService resourceWatcherService, ScriptService scriptService, SearchRequestParsers searchRequestParsers) {
+        threadPoolHolder.setValue(threadPool);
+        return super.createComponents(client, clusterService, threadPool, resourceWatcherService, scriptService, searchRequestParsers);
+    }
         
     @Override
     public Settings additionalSettings() {
         final Settings.Builder builder = Settings.builder();
         
-        builder.put(NetworkModule.TRANSPORT_TYPE_KEY, SearchGuardSSLNettyTransport.class.toString());
+        builder.put(NetworkModule.TRANSPORT_TYPE_KEY, "com.floragunn.searchguard.ssl.http.netty.SearchGuardSSLNettyTransport");
 
-        if (!client) {
-            builder.put(NetworkModule.TRANSPORT_SERVICE_TYPE_KEY, SearchGuardTransportService.class.toString());
+        if (!client && !tribeNodeClient) {
+            //builder.put(NetworkModule.TRANSPORT_SERVICE_TYPE_KEY, SearchGuardTransportService.class.toString());
             
             if (httpSSLEnabled) {
-                builder.put(NetworkModule.HTTP_TYPE_KEY, SearchGuardHttpServerTransport.class.toString());
+                builder.put(NetworkModule.HTTP_TYPE_KEY, "com.floragunn.searchguard.http.SearchGuardHttpServerTransport");
             }
         }
 
@@ -211,6 +265,7 @@ public void onModule(final NetworkModule module) {
         settings.add(Setting.simpleString(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLED_PROTOCOLS, Property.NodeScope, Property.Filtered));
         
         settings.add(Setting.simpleString("node.client", Property.NodeScope));
+        settings.add(Setting.simpleString("node.local", Property.NodeScope));
                 
         return settings;
     }

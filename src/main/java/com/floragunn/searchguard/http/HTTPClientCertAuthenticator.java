@@ -18,8 +18,8 @@
 package com.floragunn.searchguard.http;
 
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.rest.RestChannel;
@@ -32,7 +32,7 @@ import com.floragunn.searchguard.user.AuthCredentials;
 public class HTTPClientCertAuthenticator implements HTTPAuthenticator {
 
     
-    protected final ESLogger log = Loggers.getLogger(this.getClass());
+    protected final Logger log = LogManager.getLogger(this.getClass());
     private volatile Settings settings;
 
     public HTTPClientCertAuthenticator(final Settings settings) {

@@ -35,11 +35,9 @@ import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
-import org.apache.lucene.index.TermsEnum.SeekStatus;
+import org.apache.lucene.search.Sort;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
-
-import com.google.common.collect.Iterators;
 
 class EmptyReader extends LeafReader {
     
@@ -279,5 +277,11 @@ class EmptyReader extends LeafReader {
     @Override
     public Object getCombinedCoreAndDeletesKey() {
         return new Object();
+    }
+
+    @Override
+    public Sort getIndexSort() {
+        // TODO check if null is ok here
+        return null;
     }
 }

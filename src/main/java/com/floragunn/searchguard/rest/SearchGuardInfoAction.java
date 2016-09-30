@@ -22,6 +22,7 @@ import static org.elasticsearch.rest.RestRequest.Method.GET;
 import java.security.cert.X509Certificate;
 
 import org.elasticsearch.client.Client;
+import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
@@ -47,15 +48,15 @@ public class SearchGuardInfoAction extends BaseRestHandler {
     
     @Inject
     public SearchGuardInfoAction(final Settings settings, final RestController controller, final Client client, Provider<PrivilegesEvaluator> evaluator, ThreadPool threadPool) {
-        super(settings, client);
+        super(settings);
         this.threadContext = threadPool.getThreadContext();
         this.evaluator = evaluator;
         controller.registerHandler(GET, "/_searchguard/authinfo", this);
     }
 
-    @Override
-    protected void handleRequest(final RestRequest request, final RestChannel channel, final Client client) throws Exception {
 
+    @Override
+    public void handleRequest(RestRequest request, RestChannel channel, NodeClient client) throws Exception {
         BytesRestResponse response = null;
         final XContentBuilder builder = channel.newBuilder();
 

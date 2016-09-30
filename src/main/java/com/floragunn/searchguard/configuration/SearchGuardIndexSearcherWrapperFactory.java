@@ -19,15 +19,15 @@ package com.floragunn.searchguard.configuration;
 
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.Multibinder;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.index.IndexModule.IndexSearcherWrapperFactory;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IndexSearcherWrapper;
 
 public class SearchGuardIndexSearcherWrapperFactory implements IndexSearcherWrapperFactory {
 
-    protected final ESLogger log = Loggers.getLogger(this.getClass());
+    protected final Logger log = LogManager.getLogger(this.getClass());
     private static volatile IndexSearcherWrapper searchGuardFlsDlsIndexSearcherWrapper = null;
 
     

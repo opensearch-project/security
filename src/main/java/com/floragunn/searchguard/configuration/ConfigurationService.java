@@ -18,6 +18,7 @@
 package com.floragunn.searchguard.configuration;
 
 import java.io.Closeable;
+import java.io.IOException;
 
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
@@ -27,28 +28,28 @@ import org.elasticsearch.common.settings.Settings;
 /**
  * 
  * This class only exist to initialize guice correctly
+ * //TODO check if class can be removed
  *
  */
 
-public class ConfigurationService extends AbstractLifecycleComponent<ConfigurationService> implements Closeable {
+public class ConfigurationService extends AbstractLifecycleComponent implements Closeable {
 
     @Inject
-    public ConfigurationService(final Settings settings, final Client client) {
+    public ConfigurationService(final Settings settings) {
         super(settings);
     }
 
     @Override
     protected void doStart() {
-     // do nothing
     }
 
     @Override
     protected void doStop() {
-     // do nothing
     }
 
     @Override
     protected void doClose() {
-     // do nothing
-    }   
+    }
+
+   
 }

@@ -26,8 +26,8 @@ import org.elasticsearch.action.support.ActionFilter;
 import org.elasticsearch.action.support.ActionFilterChain;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.rest.RestStatus;
@@ -51,7 +51,7 @@ public class SearchGuardFilter implements ActionFilter {
     // "cluster:admin/reroute",
     // "indices:admin/mapping/put"
 
-    protected final ESLogger log = Loggers.getLogger(this.getClass());
+    protected final Logger log = LogManager.getLogger(this.getClass());
     private final Provider<PrivilegesEvaluator> evalp;
     private final Settings settings;
     private final AdminDNs adminDns;
@@ -127,6 +127,8 @@ public class SearchGuardFilter implements ActionFilter {
                     || action.startsWith("cluster:admin/reroute")
                     || action.startsWith("indices:admin/mapping/put")
                     || action.startsWith("internal:cluster/nodes/indices/shard/store")
+                    || action.startsWith("indices:admin/exists")
+                    || action.startsWith("internal:indices/admin/upgrade")
                ) {
 
                 if (log.isTraceEnabled()) {
@@ -138,7 +140,7 @@ public class SearchGuardFilter implements ActionFilter {
             } else {
                 log.debug("unauthenticated request {} for user {}", action, user);
                 auditLog.logFailedLogin(user.getName(), request);
-                listener.onFailure(new ElasticsearchException("unauthenticated request "+action +" for user "+user, RestStatus.FORBIDDEN));
+                listener.onFailure(new ElasticsearchSecurityException("unauthenticated request "+action +" for user "+user, RestStatus.FORBIDDEN));
                 return;
             }
             //@formatter:on
@@ -148,7 +150,7 @@ public class SearchGuardFilter implements ActionFilter {
 
         if (!eval.isInitialized()) {
             log.error("Search Guard not initialized (SG11) for {}", action);
-            listener.onFailure(new ElasticsearchException("Search Guard not initialized (SG11) for " + action, RestStatus.SERVICE_UNAVAILABLE));
+            listener.onFailure(new ElasticsearchSecurityException("Search Guard not initialized (SG11) for " + action, RestStatus.SERVICE_UNAVAILABLE));
             return;
         }
 

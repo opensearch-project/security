@@ -29,7 +29,7 @@ public class AuthDomain implements Comparable<AuthDomain> {
     public AuthDomain(final AuthenticationBackend backend, final HTTPAuthenticator httpAuthenticator, boolean challenge, final int order) {
         super();
         this.backend = Objects.requireNonNull(backend);
-        this.httpAuthenticator = Objects.requireNonNull(httpAuthenticator);
+        this.httpAuthenticator = httpAuthenticator;
         this.order = order;
         this.challenge = challenge;
     }

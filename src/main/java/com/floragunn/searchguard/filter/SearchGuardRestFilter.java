@@ -17,29 +17,25 @@
 
 package com.floragunn.searchguard.filter;
 
-import java.security.cert.Certificate;
-import java.security.cert.X509Certificate;
-import java.util.Arrays;
-
 import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.security.auth.x500.X500Principal;
 
-import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ExceptionsHelper;
+import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
-import org.elasticsearch.http.netty.NettyHttpRequest;
 import org.elasticsearch.rest.BytesRestResponse;
 import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestFilter;
 import org.elasticsearch.rest.RestFilterChain;
 import org.elasticsearch.rest.RestRequest;
+import org.elasticsearch.rest.RestRequest.Method;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.jboss.netty.handler.ssl.SslHandler;
 
 import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.auth.BackendRegistry;
+import com.floragunn.searchguard.ssl.util.SSLRequestHelper;
+import com.floragunn.searchguard.ssl.util.SSLRequestHelper.SSLInfo;
 import com.floragunn.searchguard.support.HeaderHelper;
 
 public class SearchGuardRestFilter extends RestFilter {
@@ -57,7 +53,7 @@ public class SearchGuardRestFilter extends RestFilter {
     }
 
     @Override
-    public void process(final RestRequest request, final RestChannel channel, final RestFilterChain filterChain) throws Exception {
+    public void process(RestRequest request, RestChannel channel, NodeClient client, RestFilterChain filterChain) throws Exception {
 
         try {
             HeaderHelper.checkSGHeader(this.threadContext);
@@ -67,54 +63,32 @@ public class SearchGuardRestFilter extends RestFilter {
             return;
         }
 
-        if (request instanceof NettyHttpRequest) {
-            final NettyHttpRequest nettyRequest = (NettyHttpRequest) request;
-            final SslHandler sslHandler = (SslHandler) nettyRequest.getChannel().getPipeline().get("ssl_http");
-
-            if (sslHandler != null) {
-                
-                threadContext.putTransient("_sg_ssl_protocol", sslHandler.getEngine().getSession().getProtocol());
-                threadContext.putTransient("_sg_ssl_cipher", sslHandler.getEngine().getSession().getCipherSuite());
-                
-
-                if (sslHandler.getEngine().getNeedClientAuth() || sslHandler.getEngine().getWantClientAuth()) {
-
-                    try {
-                        final Certificate[] certs = sslHandler.getEngine().getSession().getPeerCertificates();
-
-                        if (certs != null && certs.length > 0 && certs[0] instanceof X509Certificate) {
-                            final X509Certificate[] x509Certs = Arrays.copyOf(certs, certs.length, X509Certificate[].class);
-                            final X500Principal principal = x509Certs[0].getSubjectX500Principal();
-                            threadContext.putTransient("_sg_ssl_principal", principal == null ? null : principal.getName());
-                            threadContext.putTransient("_sg_ssl_peer_certificates", x509Certs);
-                        } else if (sslHandler.getEngine().getNeedClientAuth()) {
-                            final ElasticsearchException ex = new ElasticsearchException(
-                                    "No client certificates found but such are needed (SG 9).");
-                            // errorThrown(ex, nettyHttpRequest);
-                            throw ex;
-                        }
-
-                    } catch (final SSLPeerUnverifiedException e) {
-                        if (sslHandler.getEngine().getNeedClientAuth()) {
-                            // logger.error("No client certificates found but such are needed (SG 8).");
-                            // errorThrown(e, nettyHttpRequest);
-                            throw ExceptionsHelper.convertToElastic(e);
-                        }
-                    } catch (final Exception e) {
-                        // logger.error("Unknow error (SG 8) : "+e,e);
-                        // errorThrown(e, nettyHttpRequest);
-                        throw ExceptionsHelper.convertToElastic(e);
-                    }
+        final SSLInfo sslInfo;
+        try {
+            if((sslInfo = SSLRequestHelper.getSSLInfo(request)) != null) {
+                if(sslInfo.getPrincipal() != null) {
+                    threadContext.putTransient("_sg_ssl_principal", sslInfo.getPrincipal());
                 }
+                
+                if(sslInfo.getX509Certs() != null) {
+                     threadContext.putTransient("_sg_ssl_peer_certificates", sslInfo.getX509Certs());
+                }
+                threadContext.putTransient("_sg_ssl_protocol", sslInfo.getProtocol());
+                threadContext.putTransient("_sg_ssl_cipher", sslInfo.getCipher());
+            }
+        } catch (SSLPeerUnverifiedException e) {
+            //logger.error("No client certificates found but such are needed (SG 8).");
+            //errorThrown(e, request);
+            throw ExceptionsHelper.convertToElastic(e);
+        }
+
+        if(request.method() != Method.OPTIONS) {
+            if (!registry.authenticate(request, channel, threadContext)) {
+                // another roundtrip
+                return;
             }
         }
 
-        if (!registry.authenticate(request, channel, threadContext)) {
-            // another roundtrip
-            return;
-        }
-
-        filterChain.continueProcessing(request, channel);
+        filterChain.continueProcessing(request, channel, client);
     }
-
 }

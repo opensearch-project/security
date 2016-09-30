@@ -30,11 +30,15 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import javax.net.ssl.SSLContext;
+import javax.xml.bind.DatatypeConverter;
 
 import junit.framework.Assert;
 
@@ -44,6 +48,7 @@ import org.apache.http.Header;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpUriRequest;
@@ -61,10 +66,11 @@ import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
@@ -74,6 +80,7 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.node.PluginAwareNode;
+import org.elasticsearch.plugins.Plugin;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -164,11 +171,13 @@ public abstract class AbstractUnitTest {
                 .put("cluster.routing.allocation.disk.watermark.low","1mb")
                 .put("http.cors.enabled", true)
                 .put("node.local", false)
+                .put("transport.type.default", "netty4")
+                .put("node.max_local_storage_nodes", 3)
                 .put("path.home",".");
     }
     // @formatter:on
 
-    protected final ESLogger log = Loggers.getLogger(this.getClass());
+    protected final Logger log = LogManager.getLogger(this.getClass());
 
     protected final String getHttpServerUri() {
         final String address = "http" + (enableHTTPClientSSL ? "s" : "") + "://" + httpHost + ":" + httpPort;
@@ -207,19 +216,18 @@ public abstract class AbstractUnitTest {
     @After
     public void tearDown() throws Exception {
 
+        if (esNode3 != null) {
+            esNode3.close();
+        }
         Thread.sleep(300);
-        
-            if (esNode3 != null) {
-                esNode3.close();
-            }
-
-            if (esNode2 != null) {
-                esNode2.close();
-            }
-
-            if (esNode1 != null) {
-                esNode1.close();
-            }
+        if (esNode2 != null) {
+            esNode2.close();
+        }
+        Thread.sleep(300);
+        if (esNode1 != null) {
+            esNode1.close();
+        }
+        Thread.sleep(500);
     }
 
     protected void waitForGreenClusterState(final Client client) throws IOException {
@@ -318,7 +326,7 @@ public abstract class AbstractUnitTest {
         public HttpResponse(CloseableHttpResponse inner) throws IllegalStateException, IOException {
             super();
             this.inner = inner;
-            this.body = IOUtils.toString(inner.getEntity().getContent(), StandardCharsets.UTF_8);
+            this.body = inner.getEntity() == null? null : IOUtils.toString(inner.getEntity().getContent(), StandardCharsets.UTF_8);
             this.header = inner.getAllHeaders();
             this.statusCode = inner.getStatusLine().getStatusCode();
             this.statusReason = inner.getStatusLine().getReasonPhrase();
@@ -351,6 +359,10 @@ public abstract class AbstractUnitTest {
     
     protected HttpResponse executeGetRequest(final String request, Header... header) throws Exception {
         return executeRequest(new HttpGet(getHttpServerUri() + "/" + request), header);
+    }
+    
+    protected HttpResponse executeHeadRequest(final String request, Header... header) throws Exception {
+        return executeRequest(new HttpHead(getHttpServerUri() + "/" + request), header);
     }
     
     protected HttpResponse executePutRequest(final String request, String body, Header... header) throws Exception {
@@ -390,7 +402,9 @@ public abstract class AbstractUnitTest {
                 }
             }
             
-            return new HttpResponse(httpClient.execute(uriRequest));
+            HttpResponse res = new HttpResponse(httpClient.execute(uriRequest));
+            log.trace(res.getBody());
+            return res;
         } finally {
 
             if (httpClient != null) {
@@ -471,5 +485,24 @@ public abstract class AbstractUnitTest {
                 parser.close();
             }
         }
+    }
+    
+    public static String encodeBasicHeader(final String username, final String password) {
+        return new String(DatatypeConverter.printBase64Binary((username + ":" + Objects.requireNonNull(password)).getBytes(StandardCharsets.UTF_8)));
+    }
+    
+    protected Collection<Class<? extends Plugin>> asCollection(Class<? extends Plugin>... plugins) {
+        return Arrays.asList(plugins);
+    }
+    
+    protected class TransportClientImpl extends TransportClient {
+
+        public TransportClientImpl(Settings settings, Collection<Class<? extends Plugin>> plugins) {
+            super(settings, plugins);
+        }
+
+        public TransportClientImpl(Settings settings, Settings defaultSettings, Collection<Class<? extends Plugin>> plugins) {
+            super(settings, defaultSettings, plugins);
+        }       
     }
 }

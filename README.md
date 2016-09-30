@@ -1,6 +1,4 @@
-#Search Guard 2 for Elasticsearch 5 alpha-4
-
-Search Guard 2 (compatible with Elasticsearch 5-alpha4)
+#Search Guard 5 for Elasticsearch 5 beta-1
 
 ## Documentation
 
@@ -28,9 +26,7 @@ Advanced functionalities like LDAP and Kerberos authentication/authorization as 
 ##Installation
 
 * Install search-guard-2 plugin
- * ``sudo bin/elasticsearch-plugin install -b com.floragunn/search-guard-2/5.0.0-alpha4-2a``
- 
-Tribe nodes are not yet supported.
+ * ``sudo bin/elasticsearch-plugin install -b com.floragunn:search-guard-2:5.0.0-beta1-6a``
 
 After the plugin is installed you need to configure them. SSL needs to be configured statically
 in elasticsearch.yml (any change needs a restart of the node). See [search-guard-ssl documentation](https://github.com/floragunncom/search-guard-ssl) how to configure it. ``search-guard-2`` needs only a single entry in elasticsearch.yml (see below), all other configuration is stored in Elasticsearch itself and can be dynamically changed without restarting a node or the cluster.

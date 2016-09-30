@@ -21,7 +21,8 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.http.netty.NettyHttpRequest;
+import org.elasticsearch.http.netty4.Netty4HttpRequest;
+import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import com.floragunn.searchguard.auditlog.AuditLog;
@@ -40,10 +41,8 @@ public class SearchGuardHttpServerTransport extends SearchGuardSSLNettyHttpServe
     }
 
     @Override
-    protected void errorThrown(Throwable t, NettyHttpRequest request) {
+    protected void errorThrown(Throwable t, RestRequest request) {
         auditLog.logSSLException(request, t, null);
         super.errorThrown(t, request);
-    }
-
-    
+    }   
 }

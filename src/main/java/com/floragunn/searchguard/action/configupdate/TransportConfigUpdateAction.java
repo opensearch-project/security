@@ -24,8 +24,16 @@ import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.action.FailedNodeException;
+
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReferenceArray;
+
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
+import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.nodes.BaseNodeRequest;
 import org.elasticsearch.action.support.nodes.TransportNodesAction;
@@ -40,12 +48,14 @@ import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import com.floragunn.searchguard.auth.BackendRegistry;
 import com.floragunn.searchguard.configuration.ConfigChangeListener;
 import com.floragunn.searchguard.configuration.ConfigurationLoader;
+import com.floragunn.searchguard.support.ConfigConstants;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
@@ -60,7 +70,9 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
     private final Provider<BackendRegistry> backendRegistry;
     private final ListMultimap<String, ConfigChangeListener> multimap = Multimaps.synchronizedListMultimap(ArrayListMultimap
             .<String, ConfigChangeListener> create());
-
+    private final String searchguardIndex;
+    private final ThreadPool threadPool;
+    
     @Inject
     public TransportConfigUpdateAction(final Provider<Client> clientProvider, final Settings settings,
             final ThreadPool threadPool, final ClusterService clusterService, final TransportService transportService,
@@ -76,45 +88,75 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
         this.cl = cl;
         this.clusterService = clusterService;
         this.backendRegistry = backendRegistry;
-        
-        clusterService.addLifecycleListener(new LifecycleListener() {
+        this.searchguardIndex = settings.get(ConfigConstants.SG_CONFIG_INDEX, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
+        this.threadPool = threadPool;
 
+        clusterService.addLifecycleListener(new LifecycleListener() {
+            
             @Override
             public void afterStart() {
 
-                threadPool.executor(ThreadPool.Names.GET).execute(new Runnable() {
+                final Thread ct = new Thread(new Runnable() {
 
                     @Override
                     public void run() {
-                        Client client = clientProvider.get();
-                        logger.debug("Node started, try to initialize it. Wait for yellow cluster state....");
-                        ClusterHealthResponse response = client.admin().cluster().health(new ClusterHealthRequest("searchguard").waitForYellowStatus()).actionGet();
-                        
-                        while(response.isTimedOut() || response.getStatus() == ClusterHealthStatus.RED) {
-                            logger.warn("searchguard index not healthy (timeout: {})", response.isTimedOut());
+                        try {
+                            Client client = clientProvider.get();
+                            logger.debug("Node started, try to initialize it. Wait for at least yellow cluster state....");
+                            ClusterHealthResponse response = null;
                             try {
-                                Thread.sleep(3000);
-                            } catch (InterruptedException e) {
-                                //ignore
+                                response = client.admin().cluster().health(new ClusterHealthRequest(searchguardIndex).waitForYellowStatus()).actionGet();
+                            } catch (Exception e1) {
+                                logger.debug("Catched a {} but we just try again ...", e1.toString());
                             }
-                            response = client.admin().cluster().health(new ClusterHealthRequest("searchguard").waitForYellowStatus()).actionGet();
-                            continue;
-                        }
-                        
-                        Map<String, Settings> setn = cl.load(new String[] { "config", "roles", "rolesmapping", "internalusers",
-                                "actiongroups" });
-                        
-                        while(!setn.keySet().containsAll(Lists.newArrayList("config", "roles", "rolesmapping"))) {
-                            try {
-                                Thread.sleep(1000);
-                            } catch (InterruptedException e) {
-                                //ignore
+                            
+                            while(response == null || response.isTimedOut() || response.getStatus() == ClusterHealthStatus.RED) {
+                                logger.warn("index '{}' not healthy yet, we try again ... (Reason: {})", searchguardIndex, response==null?"no response":(response.isTimedOut()?"timeout":"other, maybe red cluster"));
+                                try {
+                                    Thread.sleep(3000);
+                                } catch (InterruptedException e1) {
+                                    //ignore
+                                }
+                                try {
+                                    response = client.admin().cluster().health(new ClusterHealthRequest(searchguardIndex).waitForYellowStatus()).actionGet();
+                                } catch (Exception e1) {
+                                    logger.debug("Catched again a {} but we just try again ...", e1.toString());
+                                }
+                                continue;
                             }
-                            setn = cl.load(new String[] { "config", "roles", "rolesmapping", "internalusers",
-                            "actiongroups" });
-                        }
-                        
-                        synchronized (TransportConfigUpdateAction.this) {
+
+                            Map<String, Settings> setn = null;
+                            
+                            while(setn == null || !setn.keySet().containsAll(Lists.newArrayList("config", "roles", "rolesmapping"))) {
+
+                                if (setn != null) {
+                                    try {
+                                        Thread.sleep(3000);
+                                    } catch (InterruptedException e) {
+                                        Thread.currentThread().interrupt();
+                                        logger.debug("Thread was interrupted so we cancle initialization");
+                                        return;
+                                    }
+                                }
+                                
+                                logger.debug("Try to load config ...");
+                                
+                                try {
+                                    setn = cl.load(new String[] { "config", "roles", "rolesmapping", "internalusers",
+                                    "actiongroups" }, 1, TimeUnit.MINUTES);
+                                } catch (InterruptedException e) {
+                                    Thread.currentThread().interrupt();
+                                    logger.debug("Thread was interrupted so we cancle initialization");
+                                    return;
+                                } catch (TimeoutException e) {
+                                    logger.warn("Timeout, we just try again in a few seconds ... ");
+                                }
+                                
+                            }
+                            
+                            logger.debug("Retrieved {} configs", setn.keySet());
+                            
+                            
                             logger.debug("Retrieved config on node startup and will now update config change listeners");
                             for (final String evt : setn.keySet()) {
                                 for (final ConfigChangeListener cl : new ArrayList<ConfigChangeListener>(multimap.get(evt))) {
@@ -126,10 +168,52 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
                                 }
                             }
                             
-                            logger.debug("Node '{}' initialized", clusterService.localNode().getName());                            
+                            logger.info("Node '{}' initialized", clusterService.localNode().getName());
+                            
+                        } catch (Exception e) {
+                            logger.error("Unexpected exception while initializing node "+e, e);
                         }                       
                     }
                 });
+                
+                logger.info("Check if "+searchguardIndex+" index exists ...");
+                
+                try {
+                    
+                    //TODO ctx check
+                    if(threadPool.getThreadContext().getHeader(ConfigConstants.SG_CONF_REQUEST_HEADER) == null) {
+                        threadPool.getThreadContext().putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true"); //header needed here
+                    } 
+                    
+                    IndicesExistsRequest ier = new IndicesExistsRequest(searchguardIndex)
+                                                   .masterNodeTimeout(TimeValue.timeValueMinutes(1));
+                    //ier.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true");
+                    clientProvider.get().admin().indices().exists(ier, new ActionListener<IndicesExistsResponse>() {
+
+                        @Override
+                        public void onResponse(IndicesExistsResponse response) {
+                            if(response != null && response.isExists()) {
+                                ct.start();
+                            } else {
+                                if(settings.getAsBoolean("action.master.force_local", false) && settings.getByPrefix("tribe").getAsMap().size() > 0) {
+                                    logger.info("{} index does not exist yet, but we are a tribe node. So we will load the config anyhow until we got it ...", searchguardIndex);
+                                    ct.start();
+                                } else {
+                                    logger.info("{} index does not exist yet, so no need to load config on node startup. Use sgadmin to initialize cluster", searchguardIndex);
+                                }
+                            }               
+                        }
+
+                        @Override
+                        public void onFailure(Exception e) {
+                            logger.error("Failure while checking {} index {}",e, searchguardIndex, e);
+                            ct.start();
+                        }               
+                    });
+                } catch (Throwable e2) {
+                    logger.error("Failure while executing IndicesExistsRequest {}",e2, e2);
+                    ct.start();
+                } 
             }
         });
 
@@ -167,7 +251,7 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
 
     @Override
     protected ConfigUpdateNodeResponse newNodeResponse() {
-        return new ConfigUpdateNodeResponse(clusterService.localNode());
+        return new ConfigUpdateNodeResponse(clusterService.localNode(), new String[0], null);
     }
     
     
@@ -180,25 +264,28 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
 	
     @Override
     protected ConfigUpdateNodeResponse nodeOperation(final NodeConfigUpdateRequest request) {
-        backendRegistry.get().invalidateCache();
-        final Map<String, Settings> setn = cl.load(request.request.getConfigTypes());
-        
-        if(setn.size() != request.request.getConfigTypes().length) {
-            logger.error("Unable to load all configurations types. Loaded '{}' but should '{}' ", setn.keySet(), Arrays.toString(request.request.getConfigTypes()));
-        }
-
-        synchronized (TransportConfigUpdateAction.this) {
-            logger.debug("Retrieved config due to config update request and will now update config change listeners");
+        try {
+            final Map<String, Settings> setn = cl.load(request.request.getConfigTypes(), 30, TimeUnit.SECONDS);
+            logger.debug("Retrieved config ({}) due to config update request and will now update config change listeners", Arrays.toString(request.request.getConfigTypes()));
+            backendRegistry.get().invalidateCache();
             for (final String evt : setn.keySet()) {
                 for (final ConfigChangeListener cl : new ArrayList<ConfigChangeListener>(multimap.get(evt))) {
                     Settings settings = setn.get(evt);
-                    if(settings != null) {
-                       cl.onChange(evt, settings);
-                       logger.debug("Updated {} for {} due to node operation on node {}", evt, cl.getClass().getSimpleName(), clusterService.localNode().getName());
+                    if (settings != null) {
+                        cl.onChange(evt, settings);
+                        logger.debug("Updated {} for {} due to node operation on node {}", evt, cl.getClass().getSimpleName(),
+                                clusterService.localNode().getName());
                     }
                 }
             }
-            return new ConfigUpdateNodeResponse(clusterService.localNode());
+            return new ConfigUpdateNodeResponse(clusterService.localNode(), setn.keySet().toArray(new String[0]), null);  
+        } catch (InterruptedException e1) {
+            Thread.currentThread().interrupt();
+            logger.debug("Thread was interrupted, we return just a empty response");
+            return new ConfigUpdateNodeResponse(clusterService.localNode(), new String[0], "Interrupted");
+        } catch (TimeoutException e1) {
+            logger.error("Timeout {}",e1,e1);
+            return new ConfigUpdateNodeResponse(clusterService.localNode(), new String[0], "Timeout ("+e1+")");
         }
     }
 
