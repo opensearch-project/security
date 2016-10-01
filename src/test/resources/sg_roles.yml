@@ -231,3 +231,9 @@ sg_shakespeare:
         - indices:admin/validate/query*
         - indices:admin/get*
         - indices:data/write/bulk*
+
+sg_own_index:
+  indices:
+    '${user_name}':
+      '*':
+        - ALL

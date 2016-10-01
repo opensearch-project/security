@@ -88,3 +88,8 @@ sg_multiget:
 sg_shakespeare:
   users:
     - picard
+
+sg_own_index:
+  users:
+    - spock
+    - kirk

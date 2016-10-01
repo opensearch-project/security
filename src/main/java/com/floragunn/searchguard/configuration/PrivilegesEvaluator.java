@@ -334,7 +334,13 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                 }
             }
 
-            final Map<String, Settings> permittedAliasesIndices = sgRoleSettings.getGroups(".indices");
+            final Map<String, Settings> permittedAliasesIndices0 = sgRoleSettings.getGroups(".indices");
+            final Map<String, Settings> permittedAliasesIndices = new HashMap<String, Settings>(permittedAliasesIndices0.size());
+            
+            for (String origKey : permittedAliasesIndices0.keySet()) {
+                permittedAliasesIndices.put(origKey.replace("${user.name}", user.getName()).replace("${user_name}", user.getName()),
+                        permittedAliasesIndices0.get(origKey));
+            }
 
             /*
             sg_role_starfleet:
@@ -453,7 +459,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                         if(dls != null && dls.length() > 0) {
                             
                             //TODO use UserPropertyReplacer, make it registerable for ldap user
-                            dls = dls.replace("${user.name}", user.getName());
+                            dls = dls.replace("${user.name}", user.getName()).replace("${user_name}", user.getName());
                             
                             dlsQueries.add(dls);
                                                 

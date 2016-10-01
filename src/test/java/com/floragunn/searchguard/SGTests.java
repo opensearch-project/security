@@ -406,6 +406,9 @@ public class SGTests extends AbstractUnitTest {
             tc.index(new IndexRequest("public").type("hall_of_fame").refresh(true).source("{\"content\":1}")).actionGet();
             tc.index(new IndexRequest("public").type("hall_of_fame").refresh(true).source("{\"content\":2}")).actionGet();
             
+            tc.index(new IndexRequest("spock").type("type01").refresh(true).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("kirk").type("type01").refresh(true).source("{\"content\":1}")).actionGet();
+
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAlias("sf", "starfleet","starfleet_academy","starfleet_library")).actionGet();
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAlias("nonsf", "klingonempire","vulcangov")).actionGet();
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAlias("unrestricted", "public")).actionGet();
@@ -456,6 +459,10 @@ public class SGTests extends AbstractUnitTest {
         HttpResponse resc = executeGetRequest("_cat/indices/public",new BasicHeader("Authorization", "Basic "+encodeBasicHeader("bug108", "nagilum")));
         Assert.assertTrue(resc.getBody().contains("green"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
+
+        Assert.assertEquals(HttpStatus.SC_OK, executeGetRequest("spock/type01/_search?pretty",new BasicHeader("Authorization", "Basic "+encodeBasicHeader("spock", "spock"))).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, executeGetRequest("spock/type01/_search?pretty",new BasicHeader("Authorization", "Basic "+encodeBasicHeader("kirk", "kirk"))).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, executeGetRequest("kirk/type01/_search?pretty",new BasicHeader("Authorization", "Basic "+encodeBasicHeader("kirk", "kirk"))).getStatusCode());
         
         
 //all
@@ -490,7 +497,7 @@ public class SGTests extends AbstractUnitTest {
         Assert.assertEquals(HttpStatus.SC_OK, executeGetRequest("starfleet/ships/_search?pretty", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("worf", "worf"))).getStatusCode());
         HttpResponse res = executeGetRequest("_search?pretty", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("nagilum", "nagilum")));
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
-        Assert.assertTrue(res.getBody().contains("\"total\" : 15"));
+        Assert.assertTrue(res.getBody().contains("\"total\" : 17"));
         Assert.assertTrue(!res.getBody().contains("searchguard"));
         
         res = executeGetRequest("_nodes/stats?pretty", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("nagilum", "nagilum")));
