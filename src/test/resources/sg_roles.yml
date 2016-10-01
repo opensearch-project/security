@@ -237,3 +237,10 @@ sg_own_index:
     '${user_name}':
       '*':
         - ALL
+
+sg_writer:
+  indices:
+    '*':
+      '*':
+        - WRITE
+        - CREATE_INDEX

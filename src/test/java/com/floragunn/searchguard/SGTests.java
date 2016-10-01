@@ -511,6 +511,17 @@ public class SGTests extends AbstractUnitTest {
         System.out.println(res.getBody());
         System.out.println(res.getStatusReason());
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        
+        String bulkBody = 
+            "{ \"index\" : { \"_index\" : \"test\", \"_type\" : \"type1\", \"_id\" : \"1\" } }"+System.lineSeparator()+
+            "{ \"field1\" : \"value1\" }" +System.lineSeparator()+
+            "{ \"index\" : { \"_index\" : \"test\", \"_type\" : \"type1\", \"_id\" : \"2\" } }"+System.lineSeparator()+
+            "{ \"field2\" : \"value2\" }"+System.lineSeparator();
+
+        res = executePostRequest("_bulk", bulkBody, new BasicHeader("Authorization", "Basic "+encodeBasicHeader("writer", "writer")));
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());  
+        Assert.assertTrue(res.getBody().contains("\"errors\":false"));
+        Assert.assertTrue(res.getBody().contains("\"status\":201"));      
     }
     
     

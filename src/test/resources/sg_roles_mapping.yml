@@ -93,3 +93,7 @@ sg_own_index:
   users:
     - spock
     - kirk
+
+sg_writer:
+  users:
+    - writer
