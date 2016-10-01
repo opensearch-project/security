@@ -42,11 +42,11 @@ import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.node.PluginAwareNode;
 import org.junit.Assert;
 import org.junit.Assume;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -56,7 +56,6 @@ import com.floragunn.searchguard.action.configupdate.ConfigUpdateRequest;
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateResponse;
 import com.floragunn.searchguard.ssl.SearchGuardSSLPlugin;
 import com.floragunn.searchguard.ssl.util.SSLConfigConstants;
-import com.floragunn.searchguard.support.Base64Helper;
 import com.floragunn.searchguard.support.ReflectionHelper;
 
 public class SGTests extends AbstractUnitTest {
@@ -500,6 +499,11 @@ public class SGTests extends AbstractUnitTest {
         Assert.assertTrue(res.getBody().contains("max_file_descriptors"));
         Assert.assertTrue(res.getBody().contains("buffer_pools"));
         Assert.assertFalse(res.getBody().contains("\"nodes\" : { }"));
+        
+        res = executePostRequest("*/_upgrade", "", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("nagilum", "nagilum")));
+        System.out.println(res.getBody());
+        System.out.println(res.getStatusReason());
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
     }
     
     
@@ -1007,6 +1011,24 @@ public class SGTests extends AbstractUnitTest {
             
             System.out.println("------- 11 ---------");
             
+            try {
+                gr = tc.prepareGet("vulcan", "secrets", "s1").putHeader("Authorization", "basic "+encodeBasicHeader("worf", "worf")).get();
+                Assert.fail();
+            } catch (ElasticsearchSecurityException e) {
+               Assert.assertEquals("no permissions for indices:data/read/get", e.getMessage());
+            }
+            
+            
+            System.out.println("------- 12 ---------");
+            
+            try {
+                gr = tc.prepareGet("vulcan", "secrets", "s1").putHeader("Authorization", "basic "+encodeBasicHeader("worf", "worf111")).get();
+                Assert.fail();
+            } catch (ElasticsearchSecurityException e) {
+               Assert.assertTrue(e.getCause().getMessage().contains("password does not match"));
+            }
+            
+            System.out.println("------- 13 ---------");       
             
             //impersonation
             try {
@@ -1015,15 +1037,31 @@ public class SGTests extends AbstractUnitTest {
             } catch (ElasticsearchSecurityException e) {
                Assert.assertEquals("'CN=spock,OU=client,O=client,L=Test,C=DE' is not allowed to impersonate as 'gkar'", e.getMessage());
             }
+                   
+            System.out.println("------- 14 ---------");
             
-            System.out.println("------- 12 ---------");
+            boolean ok=false;
+            try {
+                gr = tc.prepareGet("vulcan", "secrets", "s1").putHeader("sg_impersonate_as", "nagilum").get();
+                ok = true;
+                gr = tc.prepareGet("vulcan", "secrets", "s1").putHeader("sg_impersonate_as", "nagilum").putHeader("Authorization", "basic "+encodeBasicHeader("worf", "worf")).get();
+                Assert.fail();
+            } catch (ElasticsearchSecurityException e) {
+               Assert.assertEquals("no permissions for indices:data/read/get", e.getMessage());
+               Assert.assertTrue(ok);
+            }
+            
+            System.out.println("------- 15 ---------");
             
             gr = tc.prepareGet("searchguard", "config", "0").putHeader("sg_impersonate_as", "nagilum").setRealtime(Boolean.TRUE).get();
             Assert.assertFalse(gr.isExists());
             Assert.assertTrue(gr.isSourceEmpty());
             
-            
-            System.out.println("------- 13 ---------");
+            gr = tc.prepareGet("searchguard", "config", "0").putHeader("Authorization", "basic "+encodeBasicHeader("nagilum", "nagilum")).setRealtime(Boolean.TRUE).get();
+            Assert.assertFalse(gr.isExists());
+            Assert.assertTrue(gr.isSourceEmpty());
+
+            System.out.println("------- 16---------");
           
             gr = tc.prepareGet("searchguard", "config", "0").putHeader("sg_impersonate_as", "nagilum").setRealtime(Boolean.FALSE).get();
             Assert.assertFalse(gr.isExists());
@@ -1031,9 +1069,7 @@ public class SGTests extends AbstractUnitTest {
             
             
             SearchResponse searchRes = tc.prepareSearch("starfleet").setTypes("ships").setScroll(TimeValue.timeValueMinutes(5)).putHeader("sg_impersonate_as", "nagilum").get();
-            SearchResponse scrollRes = tc.prepareSearchScroll(searchRes.getScrollId()).putHeader("sg_impersonate_as", "worf").get();
-            
-            
+            SearchResponse scrollRes = tc.prepareSearchScroll(searchRes.getScrollId()).putHeader("sg_impersonate_as", "worf").get();           
             
             System.out.println("------- TRC end ---------");
         }
@@ -1640,5 +1676,187 @@ public class SGTests extends AbstractUnitTest {
         }
         
         System.out.println("------- CTC end ---------");
+    }
+    
+    @Test
+    public void testFilteredAlias() throws Exception {
+
+        final Settings settings = Settings.settingsBuilder().put("searchguard.ssl.transport.enabled", true)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
+                .put("searchguard.ssl.transport.keystore_filepath", getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+                .put("searchguard.ssl.transport.truststore_filepath", getAbsoluteFilePathFromClassPath("truststore.jks"))
+                .put("searchguard.ssl.transport.enforce_hostname_verification", false)
+                .put("searchguard.ssl.transport.resolve_hostname", false)
+                .putArray("searchguard.authcz.admin_dn", "CN=kirk,OU=client,O=client,l=tEst, C=De")
+                .build();
+        
+        startES(settings);
+
+        Settings tcSettings = Settings.builder().put("cluster.name", clustername)
+                .put(settings)
+                .put("searchguard.ssl.transport.keystore_filepath", getAbsoluteFilePathFromClassPath("kirk-keystore.jks"))
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS,"kirk")
+                .put("path.home", ".").build();
+
+        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardSSLPlugin.class).addPlugin(SearchGuardPlugin.class).build()) {
+            
+            log.debug("Start transport client to init");
+            
+            tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
+            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().length);
+
+            tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
+            tc.index(new IndexRequest("searchguard").type("config").id("0").refresh(true).source(readYamlContent("sg_config.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("internalusers").refresh(true).id("0").source(readYamlContent("sg_internal_users.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("roles").id("0").refresh(true).source(readYamlContent("sg_roles.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("rolesmapping").refresh(true).id("0").source(readYamlContent("sg_roles_mapping.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("actiongroups").refresh(true).id("0").source(readYamlContent("sg_action_groups.yml"))).actionGet();
+            
+            System.out.println("------- End INIT ---------");
+            
+            tc.index(new IndexRequest("theindex").type("type1").refresh(true).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("theindex").type("type2").refresh(true).source("{\"content\":2}")).actionGet();
+            
+            tc.admin().indices().aliases(new IndicesAliasesRequest().addAlias("alias1", QueryBuilders.termQuery("_type", "type1"), "theindex")).actionGet();
+            tc.admin().indices().aliases(new IndicesAliasesRequest().addAlias("alias2", QueryBuilders.termQuery("_type", "type2"), "theindex")).actionGet();
+            
+            ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
+            Assert.assertEquals(3, cur.getNodes().length);
+        }
+
+        //sg_user1 -> worf
+        //sg_user2 -> picard
+        
+        HttpResponse resc = executeGetRequest("alias*/_search",new BasicHeader("Authorization", "Basic "+encodeBasicHeader("worf", "worf")));
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
+        
+    }
+    
+    @Test
+    public void testMultiget() throws Exception {
+
+        final Settings settings = Settings.settingsBuilder().put("searchguard.ssl.transport.enabled", true)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
+                .put("searchguard.ssl.transport.keystore_filepath", getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+                .put("searchguard.ssl.transport.truststore_filepath", getAbsoluteFilePathFromClassPath("truststore.jks"))
+                .put("searchguard.ssl.transport.enforce_hostname_verification", false)
+                .put("searchguard.ssl.transport.resolve_hostname", false)
+                .putArray("searchguard.authcz.admin_dn", "CN=kirk,OU=client,O=client,l=tEst, C=De")
+                .build();
+        
+        startES(settings);
+
+        Settings tcSettings = Settings.builder().put("cluster.name", clustername)
+                .put(settings)
+                .put("searchguard.ssl.transport.keystore_filepath", getAbsoluteFilePathFromClassPath("kirk-keystore.jks"))
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS,"kirk")
+                .put("path.home", ".").build();
+
+        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardSSLPlugin.class).addPlugin(SearchGuardPlugin.class).build()) {
+            
+            log.debug("Start transport client to init");
+            
+            tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
+            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().length);
+
+            tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
+            tc.index(new IndexRequest("searchguard").type("config").id("0").refresh(true).source(readYamlContent("sg_config.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("internalusers").refresh(true).id("0").source(readYamlContent("sg_internal_users.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("roles").id("0").refresh(true).source(readYamlContent("sg_roles.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("rolesmapping").refresh(true).id("0").source(readYamlContent("sg_roles_mapping.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("actiongroups").refresh(true).id("0").source(readYamlContent("sg_action_groups.yml"))).actionGet();
+            
+            System.out.println("------- End INIT ---------");
+            
+            tc.index(new IndexRequest("mindex1").type("type").id("1").refresh(true).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("mindex2").type("type").id("2").refresh(true).source("{\"content\":2}")).actionGet();
+                      
+            ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
+            Assert.assertEquals(3, cur.getNodes().length);
+        }
+
+        //sg_multiget -> picard
+        
+        
+            String mgetBody = "{"+
+            "\"docs\" : ["+
+                "{"+
+                     "\"_index\" : \"mindex1\","+
+                    "\"_type\" : \"type\","+
+                    "\"_id\" : \"1\""+
+               " },"+
+               " {"+
+                   "\"_index\" : \"mindex2\","+
+                   " \"_type\" : \"type\","+
+                   " \"_id\" : \"2\""+
+                "}"+
+            "]"+
+        "}";
+        
+        HttpResponse resc = executePostRequest("_mget?refresh=true", mgetBody, new BasicHeader("Authorization", "Basic "+encodeBasicHeader("picard", "picard")));
+        System.out.println(resc.getBody());
+        Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
+        Assert.assertFalse(resc.getBody().contains("type2"));
+        
+    }
+    
+    @Test
+    public void testSingle() throws Exception {
+
+        final Settings settings = Settings.settingsBuilder().put("searchguard.ssl.transport.enabled", true)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
+                .put("searchguard.ssl.transport.keystore_filepath", getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+                .put("searchguard.ssl.transport.truststore_filepath", getAbsoluteFilePathFromClassPath("truststore.jks"))
+                .put("searchguard.ssl.transport.enforce_hostname_verification", false)
+                .put("searchguard.ssl.transport.resolve_hostname", false)
+                .putArray("searchguard.authcz.admin_dn", "CN=kirk,OU=client,O=client,l=tEst, C=De")
+                .build();
+        
+        startES(settings);
+
+        Settings tcSettings = Settings.builder().put("cluster.name", clustername)
+                .put(settings)
+                .put("searchguard.ssl.transport.keystore_filepath", getAbsoluteFilePathFromClassPath("kirk-keystore.jks"))
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS,"kirk")
+                .put("path.home", ".").build();
+
+        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardSSLPlugin.class).addPlugin(SearchGuardPlugin.class).build()) {
+            
+            log.debug("Start transport client to init");
+            
+            tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
+            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().length);
+
+            tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
+            tc.index(new IndexRequest("searchguard").type("config").id("0").refresh(true).source(readYamlContent("sg_config.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("internalusers").refresh(true).id("0").source(readYamlContent("sg_internal_users.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("roles").id("0").refresh(true).source(readYamlContent("sg_roles.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("rolesmapping").refresh(true).id("0").source(readYamlContent("sg_roles_mapping.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("actiongroups").refresh(true).id("0").source(readYamlContent("sg_action_groups.yml"))).actionGet();
+            
+            System.out.println("------- End INIT ---------");
+            
+            tc.index(new IndexRequest("shakespeare").type("type").id("1").refresh(true).source("{\"content\":1}")).actionGet();
+                      
+            ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
+            Assert.assertEquals(3, cur.getNodes().length);
+        }
+
+        //sg_shakespeare -> picard
+
+        HttpResponse resc = executeGetRequest("shakespeare/_search", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("picard", "picard")));
+        System.out.println(resc.getBody());
+        Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
+        Assert.assertTrue(resc.getBody().contains("\"content\":1"));
+        
+        resc = executeHeadRequest("shakespeare", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("picard", "picard")));
+        Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
+        
     }
 }

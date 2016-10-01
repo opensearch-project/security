@@ -57,25 +57,29 @@ public class ConfigUpdateResponse extends BaseNodesResponse<ConfigUpdateResponse
     public static class Node extends BaseNodeResponse {
         
         private String[] updatedConfigTypes;
+        private String message;
         
         Node() {
         }
 
-        Node(final DiscoveryNode node, String[] updatedConfigTypes) {
+        Node(final DiscoveryNode node, String[] updatedConfigTypes, String message) {
             super(node);
             this.updatedConfigTypes = updatedConfigTypes == null?null:Arrays.copyOf(updatedConfigTypes, updatedConfigTypes.length);
+            this.message = message;
         }
         
         @Override
         public void readFrom(StreamInput in) throws IOException {
             super.readFrom(in);
             updatedConfigTypes = in.readStringArray();
+            message = in.readOptionalString();
         }
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
             super.writeTo(out);
             out.writeStringArray(updatedConfigTypes);
+            out.writeOptionalString(message);
         }
 
         public static Node readNodeResponse(final StreamInput in) throws IOException {
@@ -92,6 +96,10 @@ public class ConfigUpdateResponse extends BaseNodesResponse<ConfigUpdateResponse
         public String[] getUpdatedConfigTypes() {
             return updatedConfigTypes==null?null:Arrays.copyOf(updatedConfigTypes, updatedConfigTypes.length);
         }
-        
+
+        public String getMessage() {
+            return message;
+        }
+
     }
 }

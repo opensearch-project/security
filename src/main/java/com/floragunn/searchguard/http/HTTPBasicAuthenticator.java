@@ -17,10 +17,6 @@
 
 package com.floragunn.searchguard.http;
 
-import java.nio.charset.StandardCharsets;
-
-import javax.xml.bind.DatatypeConverter;
-
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
@@ -30,68 +26,30 @@ import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.rest.RestStatus;
 
 import com.floragunn.searchguard.auth.HTTPAuthenticator;
+import com.floragunn.searchguard.support.HTTPHelper;
 import com.floragunn.searchguard.user.AuthCredentials;
 
 //TODO FUTURE allow only if protocol==https
 public class HTTPBasicAuthenticator implements HTTPAuthenticator {
 
     protected final ESLogger log = Loggers.getLogger(this.getClass());
-    private final Settings settings;
 
     public HTTPBasicAuthenticator(final Settings settings) {
-        super();
-        this.settings = settings;
+    
     }
 
     @Override
     public AuthCredentials extractCredentials(final RestRequest request) {
 
-        final String authorizationHeader = request.header("Authorization");
         final boolean forceLogin = request.paramAsBoolean("force_login", false);
-
-        if (authorizationHeader != null && !forceLogin) {
-            if (!authorizationHeader.trim().toLowerCase().startsWith("basic ")) {
-                log.warn("No 'Basic Authorization' header, send 401 and 'WWW-Authenticate Basic'");
-                return null;
-            } else {
-
-                final String decodedBasicHeader = new String(DatatypeConverter.parseBase64Binary(authorizationHeader.split(" ")[1]),
-                        StandardCharsets.UTF_8);
-
-                //username:password
-                //special case
-                //username must not contain a :, but password is allowed to do so
-                //   username:pass:word
-                //blank password
-                //   username:
-                
-                final int firstColonIndex = decodedBasicHeader.indexOf(':');
-
-                String username = null;
-                String password = null;
-
-                if (firstColonIndex > 0) {
-                    username = decodedBasicHeader.substring(0, firstColonIndex);
-                    
-                    if(decodedBasicHeader.length() - 1 != firstColonIndex) {
-                        password = decodedBasicHeader.substring(firstColonIndex + 1);
-                    } else {
-                        //blank password
-                        password="";
-                    }
-                }
-
-                if (username == null || password == null) {
-                    log.warn("Invalid 'Authorization' header, send 401 and 'WWW-Authenticate Basic'");
-                    return null;
-                } else {
-                    return new AuthCredentials(username, password.getBytes(StandardCharsets.UTF_8)).markComplete();
-                }
-            }
-        } else {
-            log.trace("No 'Authorization' header, send 401 and 'WWW-Authenticate Basic'");
+        
+        if(forceLogin) {
             return null;
         }
+        
+        final String authorizationHeader = request.header("Authorization");
+        
+        return HTTPHelper.extractCredentials(authorizationHeader, log);
     }
 
     @Override

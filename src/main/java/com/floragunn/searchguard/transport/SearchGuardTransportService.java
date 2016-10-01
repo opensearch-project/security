@@ -249,20 +249,17 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
                     }
                     
                     request.putInContext(ConfigConstants.SG_USER, new User(principal));
-                    // impersonation of transport requests
+                    
                     try {
-                        backendRegistry.get().impersonate(request, transportChannel);
-                    } catch (final Exception e) {
-                        log.error("Error doing impersonation "+e, e);
+                        if(!backendRegistry.get().authenticate(request, transportChannel)) {
+                            log.error("Cannot authenticate {}", request.getFromContext(ConfigConstants.SG_USER));
+                            transportChannel.sendResponse(new ElasticsearchSecurityException("Cannot authenticate "+request.getFromContext(ConfigConstants.SG_USER)));
+                            return;
+                        }
+                    } catch (Exception e) {
+                        log.error("Error authentication transport user "+e, e);
                         auditLog.logFailedLogin(principal, request);
                         transportChannel.sendResponse(ExceptionsHelper.convertToElastic(e));
-                        return;
-                    }
-                    
-                    if(!backendRegistry.get().authenticate(request)) {
-                        auditLog.logFailedLogin(principal, request);
-                        log.error("Cannot authenticate {}", request.getFromContext(ConfigConstants.SG_USER));
-                        transportChannel.sendResponse(new ElasticsearchSecurityException("Cannot authenticate "+request.getFromContext(ConfigConstants.SG_USER)));
                         return;
                     }
                     

@@ -114,9 +114,12 @@ public class SearchGuardAdmin {
         options.addOption(Option.builder("ksalias").longOpt("keystore-alias").hasArg().argName("alias").desc("Keystore alias").build());
         options.addOption(Option.builder("ec").longOpt("enabled-ciphers").hasArg().argName("cipers").desc("Comma separated list of TLS ciphers").build());
         options.addOption(Option.builder("ep").longOpt("enabled-protocols").hasArg().argName("protocols").desc("Comma separated list of TLS protocols").build());
-        options.addOption(Option.builder("us").longOpt("update_settings").hasArg().argName("number of replicas").desc("update settings").build());
-        options.addOption(Option.builder("i").longOpt("index").hasArg().argName("index name").desc("The index Searchguard uses to store its configs in").build());
-
+        //TODO mark as deprecated and replace it with "era" if "era" is mature enough
+        options.addOption(Option.builder("us").longOpt("update_settings").hasArg().argName("number of replicas").desc("update the number of replicas and reload configuration on all nodes").build());
+        options.addOption(Option.builder("i").longOpt("index").hasArg().argName("indexname").desc("The index Searchguard uses to store its configs in").build());
+        options.addOption(Option.builder("era").longOpt("enable-replica-autoexpand").desc("enable replica auto expand").build());
+        options.addOption(Option.builder("dra").longOpt("disable-replica-autoexpand").desc("disable replica auto expand").build());
+        options.addOption(Option.builder("rl").longOpt("reload").desc("reload configuration on all nodes").build());
         
         String hostname = "localhost";
         int port = 9300;
@@ -141,6 +144,8 @@ public class SearchGuardAdmin {
         String[] enabledCiphers = new String[0];
         Integer updateSettings = null;
         String index = ConfigConstants.SG_DEFAULT_CONFIG_INDEX;
+        Boolean replicaAutoExpand = null;
+        boolean reload = false;
         
         CommandLineParser parser = new DefaultParser();
         try {
@@ -183,6 +188,16 @@ public class SearchGuardAdmin {
             }
             
             updateSettings = line.hasOption("us")?Integer.parseInt(line.getOptionValue("us")):null;
+
+            reload = line.hasOption("rl");
+            
+            if(line.hasOption("era")) {
+                replicaAutoExpand = true;
+            }
+            
+            if(line.hasOption("dra")) {
+                replicaAutoExpand = false;
+            }
             
         }
         catch( ParseException exp ) {
@@ -191,8 +206,8 @@ public class SearchGuardAdmin {
             return;
         }
         
-        if(port == 9200) {
-            System.out.println("WARNING: Seems you want connect to the default HTTP port 9200."+System.lineSeparator()
+        if(port < 9300) {
+            System.out.println("WARNING: Seems you want connect to the a HTTP port."+System.lineSeparator()
                              + "         sgadmin connect through the transport port which is normally 9300.");
         }
         
@@ -261,6 +276,23 @@ public class SearchGuardAdmin {
                 System.out.println("Reload config on all nodes");
                 System.out.println("Update number of replicas to "+(updateSettings) +" with result: "+response.isAcknowledged());
                 System.exit(response.isAcknowledged()?0:-1);
+            }
+            
+            if(reload) { 
+                tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();                
+                System.out.println("Reload config on all nodes");
+                System.exit(0);
+            }
+            
+            if(replicaAutoExpand != null) { 
+                Settings indexSettings = Settings.builder()
+                        .put("index.auto_expand_replicas", replicaAutoExpand?"0-all":"false")
+                        .build();                
+                tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();                
+                final UpdateSettingsResponse response = tc.admin().indices().updateSettings((new UpdateSettingsRequest(index).settings(indexSettings))).actionGet();
+                System.out.println("Reload config on all nodes");
+                System.out.println("Auto-expand replicas "+(replicaAutoExpand?"enabled":"disabled"));
+                System.exit(response.isAcknowledged()?0:-1);
             }      
             
             System.out.println("Contacting elasticsearch cluster '"+clustername+"' and wait for YELLOW clusterstate ...");
@@ -292,42 +324,43 @@ public class SearchGuardAdmin {
             final boolean indexExists = tc.admin().indices().exists(new IndicesExistsRequest(index)).actionGet().isExists();
 
             if (!indexExists) {
-                System.out.print("searchguard index does not exists, attempt to create it ... ");
-
+                System.out.print(index +" index does not exists, attempt to create it ... ");
+                int replicas = chr.getNumberOfDataNodes()-1;
                 final boolean indexCreated = tc.admin().indices().create(new CreateIndexRequest(index)
                 // .mapping("config", source)
                 // .settings(settings)
-                .settings("index.number_of_shards", 1, "index.number_of_replicas", chr.getNumberOfDataNodes()-1)
+                //TODO "index.auto_expand_replicas", "0-all"
+                .settings("index.number_of_shards", 1, "index.number_of_replicas", replicas)
                         ).actionGet().isAcknowledged();
 
                 if (indexCreated) {
-                    System.out.println("done");
+                    System.out.println("done (with "+replicas+" replicas, auto expand replicas is off)");
                 } else {
                     System.out.println("failed!");
-                    System.out.println("FAIL: Unable to create the searchguard index. See elasticsearch logs for more details");
+                    System.out.println("FAIL: Unable to create the "+index+" index. See elasticsearch logs for more details");
                     System.exit(-1);
                 }
 
             } else {
-                System.out.println("Search Guard index already exists, so we do not need to create one.");
+                System.out.println(index+" index already exists, so we do not need to create one.");
                 
                 try {
                     ClusterHealthResponse chrsg = tc.admin().cluster().health(new ClusterHealthRequest(index)).actionGet();
                              
                     if (chrsg.isTimedOut()) {
-                        System.out.println("ERR: Timed out while waiting for searchguard index state.");
+                        System.out.println("ERR: Timed out while waiting for "+index+" index state.");
                     }
                     
                     if (chrsg.getStatus() == ClusterHealthStatus.RED) {
-                        System.out.println("ERR: searchguard index state is RED.");
+                        System.out.println("ERR: "+index+" index state is RED.");
                     }
                     
                     if (chrsg.getStatus() == ClusterHealthStatus.YELLOW) {
-                        System.out.println("INFO: searchguard index state is YELLOW, it seems you miss some replicas");
+                        System.out.println("INFO: "+index+" index state is YELLOW, it seems you miss some replicas");
                     }
                     
                 } catch (Exception e) {
-                    System.out.println("Cannot retrieve searchguard index state state due to "+e.getMessage()+". This is not an error, will keep on trying ...");
+                    System.out.println("Cannot retrieve "+index+" index state state due to "+e.getMessage()+". This is not an error, will keep on trying ...");
                 }
             }
             
@@ -390,7 +423,7 @@ public class SearchGuardAdmin {
             boolean successNode = (node.getUpdatedConfigTypes() != null && node.getUpdatedConfigTypes().length == expectedConfigCount);
             
             if(!successNode) {
-                System.out.println("FAIL: Expected "+expectedConfigCount+" config types for node "+nodeId+" but got only "+Arrays.toString(node.getUpdatedConfigTypes()));
+                System.out.println("FAIL: Expected "+expectedConfigCount+" config types for node "+nodeId+" but got only "+Arrays.toString(node.getUpdatedConfigTypes()) + " due to: "+node.getMessage()==null?"unknown reason":node.getMessage());
             }
             
             success = success & successNode;

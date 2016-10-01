@@ -32,6 +32,7 @@ import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import org.elasticsearch.ElasticsearchException;
 
@@ -89,6 +90,11 @@ public class Base64Helper {
 
         static {
             SAFE_CLASSES.add("com.floragunn.dlic.auth.ldap.LdapUser");
+            SAFE_CLASSES.add("org.ldaptive.SearchEntry");
+            SAFE_CLASSES.add("org.ldaptive.LdapEntry");
+            SAFE_CLASSES.add("org.ldaptive.AbstractLdapBean");
+            SAFE_CLASSES.add("org.ldaptive.LdapAttribute");
+            SAFE_CLASSES.add("org.ldaptive.LdapAttribute$LdapAttributeValues");
         }
 
         public SafeObjectInputStream(InputStream in) throws IOException {
@@ -108,6 +114,8 @@ public class Base64Helper {
                     InetAddress.class.isAssignableFrom(clazz) ||
                     Number.class.isAssignableFrom(clazz) ||
                     Collection.class.isAssignableFrom(clazz) ||
+                    Map.class.isAssignableFrom(clazz) ||
+                    Enum.class.isAssignableFrom(clazz) ||
                     clazz.equals(User.class) ||
                     SAFE_CLASSES.contains(clazz.getName())
                ) {
