@@ -54,6 +54,7 @@ import com.floragunn.searchguard.auth.internal.NoOpAuthenticationBackend;
 import com.floragunn.searchguard.auth.internal.NoOpAuthorizationBackend;
 import com.floragunn.searchguard.configuration.AdminDNs;
 import com.floragunn.searchguard.configuration.ConfigChangeListener;
+import com.floragunn.searchguard.configuration.ConfigurationService;
 import com.floragunn.searchguard.filter.SearchGuardRestFilter;
 import com.floragunn.searchguard.http.HTTPBasicAuthenticator;
 import com.floragunn.searchguard.http.HTTPClientCertAuthenticator;
@@ -116,7 +117,7 @@ public class BackendRegistry implements ConfigChangeListener {
     @Inject
     public BackendRegistry(final Settings settings, final RestController controller, final TransportConfigUpdateAction tcua, final ClusterService cse,
             final AdminDNs adminDns, final XFFResolver xffResolver, InternalAuthenticationBackend iab, AuditLog auditLog) {
-        tcua.addConfigChangeListener("config", this);
+        tcua.addConfigChangeListener(ConfigurationService.CONFIGNAME_CONFIG, this);
         controller.registerFilter(new SearchGuardRestFilter(this, auditLog));
         this.tcua = tcua;
         this.adminDns = adminDns;
