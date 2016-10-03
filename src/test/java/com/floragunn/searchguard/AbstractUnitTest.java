@@ -81,6 +81,7 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.node.PluginAwareNode;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.transport.Netty4Plugin;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -102,6 +103,8 @@ public abstract class AbstractUnitTest {
                 + System.getProperty("java.vm.name"));
         System.out.println("Open SSL available: "+OpenSsl.isAvailable());
         System.out.println("Open SSL version: "+OpenSsl.versionString());
+        
+        //System.setProperty("org.apache.logging.log4j.simplelog.StatusLogger.level","TRACE");
     }
 
     @Rule
@@ -190,11 +193,11 @@ public abstract class AbstractUnitTest {
         FileUtils.deleteDirectory(new File("data"));
 
         esNode1 = new PluginAwareNode(getDefaultSettingsBuilder(1, false, true).put(
-                settings == null ? Settings.Builder.EMPTY_SETTINGS : settings).build(), SearchGuardPlugin.class);
+                settings == null ? Settings.Builder.EMPTY_SETTINGS : settings).build(), Netty4Plugin.class, SearchGuardPlugin.class);
         esNode2 = new PluginAwareNode(getDefaultSettingsBuilder(2, true, true).put(
-                settings == null ? Settings.Builder.EMPTY_SETTINGS : settings).build(), SearchGuardPlugin.class);
+                settings == null ? Settings.Builder.EMPTY_SETTINGS : settings).build(), Netty4Plugin.class, SearchGuardPlugin.class);
         esNode3 = new PluginAwareNode(getDefaultSettingsBuilder(3, true, false).put(
-                settings == null ? Settings.Builder.EMPTY_SETTINGS : settings).build(), SearchGuardPlugin.class);
+                settings == null ? Settings.Builder.EMPTY_SETTINGS : settings).build(), Netty4Plugin.class, SearchGuardPlugin.class);
 
         esNode1.start();
         esNode2.start();

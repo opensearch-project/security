@@ -129,7 +129,7 @@ public class SGTests extends AbstractUnitTest {
 
         log.debug("Start node client");
         
-        try (Node node = new PluginAwareNode(tcSettings, SearchGuardPlugin.class).start()) {
+        try (Node node = new PluginAwareNode(tcSettings, Netty4Plugin.class, SearchGuardPlugin.class).start()) {
             Assert.assertEquals(1, node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
             Assert.assertEquals(3, client().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getNumberOfNodes());
            
@@ -165,7 +165,7 @@ public class SGTests extends AbstractUnitTest {
         
         //Node und Transportclient: SG Plugin required? or SSL only ok?
         
-        try (Node node = new PluginAwareNode(tcSettings, SearchGuardPlugin.class).start()) {
+        try (Node node = new PluginAwareNode(tcSettings, Netty4Plugin.class, SearchGuardPlugin.class).start()) {
             Assert.assertEquals(1, node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
             Assert.assertEquals(3, client().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getNumberOfNodes());
             
@@ -194,7 +194,7 @@ public class SGTests extends AbstractUnitTest {
 
         log.debug("Start node client");
         
-        try (Node node = new PluginAwareNode(tcSettings, SearchGuardPlugin.class).start()) {
+        try (Node node = new PluginAwareNode(tcSettings, Netty4Plugin.class, SearchGuardPlugin.class).start()) {
             Assert.assertEquals(4, node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
             Assert.assertEquals(4, client().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getNumberOfNodes());
             
@@ -565,15 +565,18 @@ public class SGTests extends AbstractUnitTest {
             tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
             Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
 
+            System.out.println("ööööö 1");
+            
+            
             tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
             //tc.index(new IndexRequest("searchguard").type("dummy").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("dummy", readYamlContent("sg_config.yml"))).actionGet();
             
             //Thread.sleep(5000);
-            
+            System.out.println("ööööö 2");
             tc.index(new IndexRequest("searchguard").type("config").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("config", readYamlContent("sg_config.yml"))).actionGet();
             
             //Thread.sleep(500000);
-            
+            System.out.println("ööööö 3");
 
             tc.index(new IndexRequest("searchguard").type("internalusers").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source("internalusers", readYamlContent("sg_internal_users.yml"))).actionGet();
             tc.index(new IndexRequest("searchguard").type("roles").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("roles", readYamlContent("sg_roles.yml"))).actionGet();
@@ -1210,35 +1213,6 @@ public class SGTests extends AbstractUnitTest {
         }
         
         System.out.println("------- CTC end ---------");
-    }
-    
-    
-    
-    
-    
-    
-    
-    
-    public void testHttps() throws Exception {
-
-        enableHTTPClientSSL = true;
-        trustHTTPServerCertificate = true;
-        sendHTTPClientCertificate = true;
-
-        final Settings settings = Settings.builder().put("searchguard.ssl.transport.enabled", false)
-                .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_KEYSTORE_ALIAS, "node-0").put("searchguard.ssl.http.enabled", true)
-                .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-                .put("searchguard.ssl.http.enforce_clientauth", true)
-                .put("searchguard.ssl.http.keystore_filepath", getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-                .put("searchguard.ssl.http.truststore_filepath", getAbsoluteFilePathFromClassPath("truststore.jks")).build();
-
-        startES(settings);
-
-        System.out.println(executeSimpleRequest("_searchguard/sslinfo?pretty"));
-        Assert.assertTrue(executeSimpleRequest("_searchguard/sslinfo?pretty").contains("TLS"));
-        Assert.assertTrue(executeSimpleRequest("_nodes/settings?pretty").contains(clustername));
-        Assert.assertFalse(executeSimpleRequest("_nodes/settings?pretty").contains("\"searchguard\""));
     }
     
     @Test

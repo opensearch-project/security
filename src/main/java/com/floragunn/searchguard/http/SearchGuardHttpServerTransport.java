@@ -18,6 +18,7 @@
 package com.floragunn.searchguard.http;
 
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
@@ -31,18 +32,18 @@ import com.floragunn.searchguard.ssl.http.netty.SearchGuardSSLNettyHttpServerTra
 
 public class SearchGuardHttpServerTransport extends SearchGuardSSLNettyHttpServerTransport {
 
-    private final AuditLog auditLog;
+    private final Provider<AuditLog> auditLog;
     
     @Inject
     public SearchGuardHttpServerTransport(Settings settings, NetworkService networkService, 
-            BigArrays bigArrays, ThreadPool threadPool, SearchGuardKeyStore sgks, AuditLog auditLog) {
+            BigArrays bigArrays, ThreadPool threadPool, SearchGuardKeyStore sgks, Provider<AuditLog> auditLog) {
         super(settings, networkService, bigArrays, threadPool, sgks);
         this.auditLog = auditLog;
     }
 
     @Override
     protected void errorThrown(Throwable t, RestRequest request) {
-        auditLog.logSSLException(request, t, null);
+        auditLog.get().logSSLException(request, t, null);
         super.errorThrown(t, request);
     }   
 }

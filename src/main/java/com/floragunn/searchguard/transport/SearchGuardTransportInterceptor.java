@@ -30,7 +30,11 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.inject.Guice;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.Provider;
+import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
@@ -58,14 +62,16 @@ import com.google.common.collect.Maps;
 
 public class SearchGuardTransportInterceptor extends SearchGuardSSLTransportInterceptor {
     
-    private final Provider<BackendRegistry> backendRegistry;
-    private final AuditLog auditLog;
+    private Provider<BackendRegistry> backendRegistry;
+    private Provider<AuditLog> auditLog;
     private final String certOid;
     
-    public SearchGuardTransportInterceptor(final Settings settings, final  Holder<ThreadPool> threadPoolHolder) {
-        super(settings, threadPoolHolder);
-        backendRegistry = null;
-        auditLog = null;
+    @Inject
+    public SearchGuardTransportInterceptor(final Settings settings, ThreadPool threadPool, Provider<BackendRegistry> backendRegistry, Provider<AuditLog> auditLog) {
+        super(settings, threadPool);
+        this.backendRegistry = backendRegistry;
+        this.auditLog = auditLog;
+        //injector = Guice.createInjector(module);
         this.certOid = settings.get("searchguard.cert.oid", "1.2.3.4.5.5");
     }
 
@@ -73,7 +79,8 @@ public class SearchGuardTransportInterceptor extends SearchGuardSSLTransportInte
     protected <T extends TransportResponse> void sendRequestDecorate(AsyncSender sender, DiscoveryNode node, String action,
             TransportRequest request, TransportRequestOptions options, TransportResponseHandler<T> handler) {
         
-
+        //backendRegistry = injector.getProvider(BackendRegistry.class);
+        //auditLog = injector.getProvider(AuditLog.class);
       //transient -> header
         //System.out.println("<<< send "+action+" from "+this.nodeName()+"->"+node.getName());
  
@@ -145,15 +152,16 @@ public class SearchGuardTransportInterceptor extends SearchGuardSSLTransportInte
     }
 
     private ThreadContext getThreadContext() {
-        return threadPoolHolder.getValue().getThreadContext();
+        return threadPool.getThreadContext();
     }
 
     
     @Override
     protected void messageReceivedDecorate(final TransportRequest request, final TransportRequestHandler handler,
             final TransportChannel transportChannel, Task task) throws Exception {
-        
-        //System.out.println("-I- "+transportChannel.action()+" on "+this.nodeName()+" via "+transportChannel.getChannelType());
+        //backendRegistry = injector.getProvider(BackendRegistry.class);
+        //auditLog = injector.getProvider(AuditLog.class);
+        System.out.println("-I- "+transportChannel.action()+" via "+transportChannel.getChannelType());
         
         final ThreadContext.StoredContext sgContext = getThreadContext().newStoredContext();
         try {
@@ -186,7 +194,7 @@ public class SearchGuardTransportInterceptor extends SearchGuardSSLTransportInte
             //if transport channel is not a netty channel but a direct or local channel (e.g. send via network) then allow it (regardless of beeing a internal: or shard request)
             if (!isInterClusterRequest(request) 
                     && (transportChannel.action().startsWith("internal:") || transportChannel.action().contains("["))) {
-                auditLog.logMissingPrivileges(transportChannel.action(), request);
+                auditLog.get().logMissingPrivileges(transportChannel.action(), request);
                 log.error("Internal or shard requests not allowed from a non-server node for transport type "+transportChannel.getChannelType());
                 transportChannel.sendResponse(new ElasticsearchSecurityException(
                         "Internal or shard requests not allowed from a non-server node for transport type "+transportChannel.getChannelType()));
@@ -202,7 +210,7 @@ public class SearchGuardTransportInterceptor extends SearchGuardSSLTransportInte
             if ((principal = getThreadContext().getTransient(ConfigConstants.SG_SSL_TRANSPORT_PRINCIPAL)) == null) {
                 Exception ex = new ElasticsearchSecurityException(
                         "No SSL client certificates found for transport type "+transportChannel.getChannelType()+". Search Guard needs the Search Guard SSL plugin to be installed");
-                auditLog.logSSLException(request, ex, transportChannel.action());
+                auditLog.get().logSSLException(request, ex, transportChannel.action());
                 log.error("No SSL client certificates found for transport type "+transportChannel.getChannelType()+". Search Guard needs the Search Guard SSL plugin to be installed");
                 transportChannel.sendResponse(ex);
                 return;
@@ -233,7 +241,7 @@ public class SearchGuardTransportInterceptor extends SearchGuardSSLTransportInte
                     try {
                         HeaderHelper.checkSGHeader(getThreadContext());
                     } catch (Exception e) {
-                        auditLog.logBadHeaders(request);
+                        auditLog.get().logBadHeaders(request);
                         log.error("Error validating headers "+e, e);
                         transportChannel.sendResponse(ExceptionsHelper.convertToElastic(e));
                         return;
@@ -249,7 +257,7 @@ public class SearchGuardTransportInterceptor extends SearchGuardSSLTransportInte
                         }
                     } catch (Exception e) {
                         log.error("Error authentication transport user "+e, e);
-                        auditLog.logFailedLogin(principal, request);
+                        auditLog.get().logFailedLogin(principal, request);
                         transportChannel.sendResponse(ExceptionsHelper.convertToElastic(e));
                         return;
                     }
@@ -348,7 +356,7 @@ public class SearchGuardTransportInterceptor extends SearchGuardSSLTransportInte
     
     @Override
     protected void errorThrown(Throwable t, final TransportRequest request, String action) {
-        auditLog.logSSLException(request, t, action);
+        auditLog.get().logSSLException(request, t, action);
     }
     
     private boolean isInterClusterRequest(final TransportRequest request) {

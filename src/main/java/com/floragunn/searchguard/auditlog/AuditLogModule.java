@@ -18,6 +18,7 @@
 package com.floragunn.searchguard.auditlog;
 
 import org.elasticsearch.common.inject.AbstractModule;
+import org.elasticsearch.common.network.NetworkModule;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 

@@ -38,7 +38,7 @@
   </licenses>
 
   <properties>
-    <sgssl.version>5.0.0-beta2-16a-SNAPSHOT</sgssl.version>
+    <sgssl.version>5.0.0-beta1-16c-SNAPSHOT</sgssl.version>
     <elasticsearch.version>5.0.0-beta1</elasticsearch.version>
     <dependency.locations.enabled>false</dependency.locations.enabled>
   </properties>

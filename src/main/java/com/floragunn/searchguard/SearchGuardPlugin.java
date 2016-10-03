@@ -180,11 +180,14 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
         module.registerTransport("com.floragunn.searchguard.ssl.http.netty.SearchGuardSSLNettyTransport", SearchGuardSSLNettyTransport.class);
 
         if (!client && httpSSLEnabled && !tribeNodeClient) {
-            module.registerHttpTransport("com.floragunn.searchguard.http.SearchGuardHttpServerTransport", SearchGuardHttpServerTransport.class);
+           System.out.println("register http");
+            
+            //module.registerHttpTransport("com.floragunn.searchguard.http.SearchGuardHttpServerTransport", SearchGuardSSLNettyHttpServerTransport.class);
+           module.registerHttpTransport("com.floragunn.searchguard.http.SearchGuardHttpServerTransport", SearchGuardHttpServerTransport.class);
         }
         
         if (!client && !tribeNodeClient) {
-            module.addTransportInterceptor(new SearchGuardTransportInterceptor(settings, threadPoolHolder));
+            module.setTransportInterceptor(SearchGuardTransportInterceptor.class);
         }
     }
     
