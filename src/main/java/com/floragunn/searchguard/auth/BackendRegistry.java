@@ -240,18 +240,19 @@ public class BackendRegistry implements ConfigChangeListener {
 
     }
 
-    public boolean authenticate(final TransportRequest request, final TransportChannel channel) throws ElasticsearchSecurityException {
+    public User authenticate(final TransportRequest request, final TransportChannel channel, String sslPrincipal) throws ElasticsearchSecurityException {
         
-        boolean impersonated = impersonate(request, channel);
+        final User origPKIUser = new User(sslPrincipal);
+        User impersonatedUser = impersonate(request, channel, origPKIUser);
 
-        final User user = threadPool.getThreadContext().getTransient(ConfigConstants.SG_USER);
+        final User user = impersonatedUser == null? origPKIUser:impersonatedUser;
         
-        if(user == null) {
-            return false;
-        }
+        //if(user == null) {
+        //    return false;
+        //}
         
         if(AdminDNs.isAdmin(user.getName())) {
-            return true;
+            return user;
         }
         
         AuthCredentials _creds = null;
@@ -355,15 +356,15 @@ public class BackendRegistry implements ConfigChangeListener {
                 if(AdminDNs.isAdmin(authenticatedUser.getName())) {
                     log.error("Cannot authenticate user because admin user is not permitted to login");
                     auditLog.logFailedLogin(authenticatedUser.getName(), request);
-                    return false;
+                    return null;
                 }
                 
                  //authenticatedUser.addRoles(ac.getBackendRoles());
                 if(log.isDebugEnabled()) {
                     log.debug("User '{}' is authenticated", authenticatedUser);
                 }
-                ((User) threadPool.getThreadContext().getTransient(ConfigConstants.SG_USER)).addRoles(authenticatedUser.getRoles());;
-                return true;
+                //((User) threadPool.getThreadContext().getTransient(ConfigConstants.SG_USER)).addRoles(authenticatedUser.getRoles());
+                return authenticatedUser;
             } catch (final ElasticsearchSecurityException e) {
                 log.info("Cannot authenticate user (or add roles) with ad {} due to {}, try next", authDomain.getOrder(), e.toString());
                 continue;
@@ -378,7 +379,7 @@ public class BackendRegistry implements ConfigChangeListener {
         }
         
         
-        return false;
+        return null;
     }
     
     /**
@@ -568,20 +569,20 @@ public class BackendRegistry implements ConfigChangeListener {
         return initialized;
     }
 
-   private boolean impersonate(final TransportRequest tr, final TransportChannel channel) throws ElasticsearchSecurityException {
+   private User impersonate(final TransportRequest tr, final TransportChannel channel, User origPKIuser) throws ElasticsearchSecurityException {
 
         final String impersonatedUser = threadPool.getThreadContext().getHeader("sg_impersonate_as");
         
         if(Strings.isNullOrEmpty(impersonatedUser)) {
             //threadPool.getThreadContext().putTransient(ConfigConstants.SG_USER, Objects.requireNonNull(origPKIuser));
-            return false; //nothing to do
+            return null; //nothing to do
         }
         
         if (!isInitialized()) {
             throw new ElasticsearchSecurityException("Could not check for impersonation because Search Guard is not yet initialized");
         }
 
-        final User origPKIuser = threadPool.getThreadContext().getTransient(ConfigConstants.SG_USER);
+        //final User origPKIuser = threadPool.getThreadContext().getTransient(ConfigConstants.SG_USER);
         if (origPKIuser == null) {
             throw new ElasticsearchSecurityException("no original PKI user found");
         }
@@ -606,8 +607,8 @@ public class BackendRegistry implements ConfigChangeListener {
                     e1);
         }
 
-        threadPool.getThreadContext().putTransient(ConfigConstants.SG_USER, Objects.requireNonNull((User) aU));
-        return true;
+        //threadPool.getThreadContext().putTransient(ConfigConstants.SG_USER, Objects.requireNonNull((User) aU));
+        return aU;
     }
 
 }

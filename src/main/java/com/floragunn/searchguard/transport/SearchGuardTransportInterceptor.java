@@ -161,7 +161,7 @@ public class SearchGuardTransportInterceptor extends SearchGuardSSLTransportInte
             final TransportChannel transportChannel, Task task) throws Exception {
         //backendRegistry = injector.getProvider(BackendRegistry.class);
         //auditLog = injector.getProvider(AuditLog.class);
-        System.out.println("-I- "+transportChannel.action()+" via "+transportChannel.getChannelType());
+        //System.out.println("-I- "+transportChannel.action()+" via "+transportChannel.getChannelType());
         
         final ThreadContext.StoredContext sgContext = getThreadContext().newStoredContext();
         try {
@@ -247,10 +247,9 @@ public class SearchGuardTransportInterceptor extends SearchGuardSSLTransportInte
                         return;
                     }
                     
-                    getThreadContext().putTransient(ConfigConstants.SG_USER, new User(principal));
-                    
+                    User user;
                     try {
-                        if(!backendRegistry.get().authenticate(request, transportChannel)) {
+                        if((user = backendRegistry.get().authenticate(request, transportChannel, principal)) == null) {
                             log.error("Cannot authenticate {}", (User) getThreadContext().getTransient(ConfigConstants.SG_USER));
                             transportChannel.sendResponse(new ElasticsearchSecurityException("Cannot authenticate "+getThreadContext().getTransient(ConfigConstants.SG_USER)));
                             return;
@@ -262,6 +261,7 @@ public class SearchGuardTransportInterceptor extends SearchGuardSSLTransportInte
                         return;
                     }
                     
+                    getThreadContext().putTransient(ConfigConstants.SG_USER, user);
                     TransportAddress originalRemoteAddress = request.remoteAddress();
                     
                     if(originalRemoteAddress != null && (originalRemoteAddress instanceof InetSocketTransportAddress)) {
