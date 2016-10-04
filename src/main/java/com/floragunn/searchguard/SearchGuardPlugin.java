@@ -40,6 +40,7 @@ import com.floragunn.searchguard.filter.SearchGuardFilter;
 import com.floragunn.searchguard.http.SearchGuardHttpServerTransport;
 import com.floragunn.searchguard.rest.SearchGuardInfoAction;
 import com.floragunn.searchguard.ssl.util.SSLConfigConstants;
+import com.floragunn.searchguard.support.ReflectionHelper;
 import com.floragunn.searchguard.transport.SearchGuardTransportService;
 import com.google.common.collect.ImmutableList;
 
@@ -114,9 +115,20 @@ public final class SearchGuardPlugin extends Plugin {
         }
     }
 
-    public void onModule(final RestModule module) {
+    @SuppressWarnings("unchecked")
+	public void onModule(final RestModule module) {
         if (!client && !tribeNodeClient) {
             module.addRestAction(SearchGuardInfoAction.class);
+            if(ReflectionHelper.canLoad("com.floragunn.dlic.rest.api.SearchGuardRestApiActions")) {
+                try {
+                	ReflectionHelper
+                    .load("com.floragunn.dlic.rest.api.SearchGuardRestApiActions")
+                    .getDeclaredMethod("addActions", RestModule.class)
+                    .invoke(null, module);                	
+                } catch(Exception ex) {
+                	log.error("Failed to register SearchGuardRestApiActions, management API not available. Cause: {}", ex.getMessage());
+                }
+            }           
         }
     }
 

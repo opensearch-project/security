@@ -122,6 +122,7 @@ public class SearchGuardFilter implements ActionFilter {
                     || action.startsWith("indices:admin/mapping/put")
                     || action.startsWith("internal:cluster/nodes/indices/shard/store")
                     || action.startsWith("indices:admin/exists")
+                    || action.startsWith("internal:indices/admin/upgrade")
                ) {
 
                 if (log.isTraceEnabled()) {
@@ -133,7 +134,7 @@ public class SearchGuardFilter implements ActionFilter {
             } else {
                 log.debug("unauthenticated request {} for user {}", action, user);
                 auditLog.logFailedLogin(user.getName(), request);
-                listener.onFailure(new ElasticsearchException("unauthenticated request "+action +" for user "+user, RestStatus.FORBIDDEN));
+                listener.onFailure(new ElasticsearchSecurityException("unauthenticated request "+action +" for user "+user, RestStatus.FORBIDDEN));
                 return;
             }
             //@formatter:on
@@ -143,7 +144,7 @@ public class SearchGuardFilter implements ActionFilter {
 
         if (!eval.isInitialized()) {
             log.error("Search Guard not initialized (SG11) for {}", action);
-            listener.onFailure(new ElasticsearchException("Search Guard not initialized (SG11) for " + action, RestStatus.SERVICE_UNAVAILABLE));
+            listener.onFailure(new ElasticsearchSecurityException("Search Guard not initialized (SG11) for " + action, RestStatus.SERVICE_UNAVAILABLE));
             return;
         }
 

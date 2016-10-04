@@ -64,4 +64,5 @@ public class ConfigConstants {
 
     public static final String SG_CONFIG_INDEX = "searchguard.config_index_name";
     public static final String SG_DEFAULT_CONFIG_INDEX = "searchguard";
+    
 }
