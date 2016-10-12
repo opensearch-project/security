@@ -27,8 +27,16 @@ public class InterceptorModule extends AbstractModule {
 
 protected final Logger log = LogManager.getLogger(this.getClass());
     
+    private final String instanceId;
+    
+    public InterceptorModule(String instanceId) {
+        super();
+        this.instanceId = instanceId;
+    }
+
     @Override
     protected void configure() {
-        bind(SearchGuardInterceptor.class).asEagerSingleton();        
+        bind(SearchGuardInterceptor.class).asEagerSingleton();
+        bind(InstanceId.class).toInstance(new InstanceIdImpl(instanceId));
     }
 }

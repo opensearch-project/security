@@ -18,6 +18,7 @@
 package com.floragunn.searchguard.transport;
 
 import java.net.InetSocketAddress;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.elasticsearch.ElasticsearchSecurityException;
@@ -38,6 +39,7 @@ import org.elasticsearch.transport.TransportResponseHandler;
 
 import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.auth.BackendRegistry;
+import com.floragunn.searchguard.configuration.InstanceId;
 import com.floragunn.searchguard.support.Base64Helper;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.user.User;
@@ -49,15 +51,22 @@ public class SearchGuardInterceptor {
     private Provider<AuditLog> auditLog;
     private final String certOid;
     private final ThreadPool threadPool;
-    public volatile static SearchGuardInterceptor INSTANCE; 
+    private static Map<String, SearchGuardInterceptor> instancemap = new HashMap<String, SearchGuardInterceptor>(); 
     
     @Inject
-    public SearchGuardInterceptor(final Settings settings, final ThreadPool threadPool, final Provider<BackendRegistry> backendRegistry, final Provider<AuditLog> auditLog) {
+    public SearchGuardInterceptor(final InstanceId id, final Settings settings, final ThreadPool threadPool, final Provider<BackendRegistry> backendRegistry, final Provider<AuditLog> auditLog) {
         this.backendRegistry = backendRegistry;
         this.auditLog = auditLog;
         this.certOid = settings.get("searchguard.cert.oid", "1.2.3.4.5.5");
         this.threadPool = threadPool;
-        INSTANCE = this;
+        
+        synchronized(SearchGuardInterceptor.class) {
+            instancemap.put(id.getId(), this);
+        }
+    }
+    
+    public static SearchGuardInterceptor getSearchGuardInterceptor(String id) {
+        return instancemap.get(id);
     }
     
     public <T extends TransportRequest> SearchGuardRequestHandler<T> getHandler(String action, 

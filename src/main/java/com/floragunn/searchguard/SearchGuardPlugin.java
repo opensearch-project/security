@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.function.Function;
 
 import org.apache.logging.log4j.LogManager;
@@ -84,6 +85,7 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
     private final boolean client;
     private final boolean httpSSLEnabled;
     private final boolean tribeNodeClient;
+    private final UUID instanceUUID = UUID.randomUUID();
     //private Holder<ThreadPool> threadPoolHolder = new Holder<ThreadPool>();
 
     public SearchGuardPlugin(final Settings settings) {
@@ -152,7 +154,7 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
             modules.add(new ConfigurationModule());
             modules.add(new BackendModule());
             modules.add(new AuditLogModule());
-            modules.add(new InterceptorModule());
+            modules.add(new InterceptorModule(instanceUUID.toString()));
         }
         
         return modules;
@@ -202,12 +204,12 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
 
                         @Override
                         public void messageReceived(T request, TransportChannel channel, Task task) throws Exception {
-                            SearchGuardInterceptor.INSTANCE.getHandler(action, actualHandler).messageReceived(request, channel, task);
+                            SearchGuardInterceptor.getSearchGuardInterceptor(instanceUUID.toString()).getHandler(action, actualHandler).messageReceived(request, channel, task);
                         }
 
                         @Override
                         public void messageReceived(T request, TransportChannel channel) throws Exception {
-                            SearchGuardInterceptor.INSTANCE.getHandler(action, actualHandler).messageReceived(request, channel);
+                            SearchGuardInterceptor.getSearchGuardInterceptor(instanceUUID.toString()).getHandler(action, actualHandler).messageReceived(request, channel);
                         }
                     };
                     
@@ -221,7 +223,7 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
                         @Override
                         public <T extends TransportResponse> void sendRequest(DiscoveryNode node, String action, TransportRequest request,
                                 TransportRequestOptions options, TransportResponseHandler<T> handler) {
-                            SearchGuardInterceptor.INSTANCE.sendRequestDecorate(sender, node, action, request, options, handler);
+                            SearchGuardInterceptor.getSearchGuardInterceptor(instanceUUID.toString()).sendRequestDecorate(sender, node, action, request, options, handler);
                         }
                     };
                 }
