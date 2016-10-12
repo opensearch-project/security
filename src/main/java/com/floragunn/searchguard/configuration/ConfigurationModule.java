@@ -17,9 +17,9 @@
 
 package com.floragunn.searchguard.configuration;
 
-import org.elasticsearch.common.inject.AbstractModule;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.inject.AbstractModule;
 
 import com.floragunn.searchguard.auth.internal.InternalAuthenticationBackend;
 import com.floragunn.searchguard.configuration.DlsFlsRequestValve.NoopDlsFlsRequestValve;

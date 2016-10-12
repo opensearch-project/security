@@ -445,7 +445,7 @@ public class SearchGuardAdmin {
             //=======
             final String id = tc
                     .index(new IndexRequest(index).type(type).id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                            .source(readXContent(reader, XContentType.YAML)))
+                            .source(type, readXContent(reader, XContentType.YAML)))
 //>>>>>>> master
                             .actionGet().getId();
 

@@ -28,30 +28,36 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.SpecialPermission;
-import org.elasticsearch.action.ActionModule;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.support.ActionFilter;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.LifecycleComponent;
-import org.elasticsearch.common.inject.Guice;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.plugins.ActionPlugin.ActionHandler;
 import org.elasticsearch.rest.RestHandler;
 import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.search.SearchRequestParsers;
+import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.TransportChannel;
+import org.elasticsearch.transport.TransportInterceptor;
+import org.elasticsearch.transport.TransportRequest;
+import org.elasticsearch.transport.TransportRequestHandler;
+import org.elasticsearch.transport.TransportRequestOptions;
+import org.elasticsearch.transport.TransportResponse;
+import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.watcher.ResourceWatcherService;
 
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateAction;
@@ -59,18 +65,15 @@ import com.floragunn.searchguard.action.configupdate.TransportConfigUpdateAction
 import com.floragunn.searchguard.auditlog.AuditLogModule;
 import com.floragunn.searchguard.configuration.BackendModule;
 import com.floragunn.searchguard.configuration.ConfigurationModule;
+import com.floragunn.searchguard.configuration.InterceptorModule;
 import com.floragunn.searchguard.configuration.SearchGuardIndexSearcherWrapper;
 import com.floragunn.searchguard.filter.SearchGuardFilter;
 import com.floragunn.searchguard.http.SearchGuardHttpServerTransport;
 import com.floragunn.searchguard.rest.SearchGuardInfoAction;
-import com.floragunn.searchguard.ssl.SearchGuardSSLModule;
-import com.floragunn.searchguard.ssl.SearchGuardSSLPlugin.Holder;
-import com.floragunn.searchguard.ssl.http.netty.SearchGuardSSLNettyHttpServerTransport;
 import com.floragunn.searchguard.ssl.rest.SearchGuardSSLInfoAction;
 import com.floragunn.searchguard.ssl.transport.SearchGuardSSLNettyTransport;
-import com.floragunn.searchguard.ssl.transport.SearchGuardSSLTransportInterceptor;
 import com.floragunn.searchguard.ssl.util.SSLConfigConstants;
-import com.floragunn.searchguard.transport.SearchGuardTransportInterceptor;
+import com.floragunn.searchguard.transport.SearchGuardInterceptor;
 import com.google.common.collect.Lists;
 
 public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
@@ -81,7 +84,7 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
     private final boolean client;
     private final boolean httpSSLEnabled;
     private final boolean tribeNodeClient;
-    private Holder<ThreadPool> threadPoolHolder = new Holder<ThreadPool>();
+    //private Holder<ThreadPool> threadPoolHolder = new Holder<ThreadPool>();
 
     public SearchGuardPlugin(final Settings settings) {
         super();
@@ -149,7 +152,9 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
             modules.add(new ConfigurationModule());
             modules.add(new BackendModule());
             modules.add(new AuditLogModule());
+            modules.add(new InterceptorModule());
         }
+        
         return modules;
     }
     
@@ -187,7 +192,40 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
         }
         
         if (!client && !tribeNodeClient) {
-            module.setTransportInterceptor(SearchGuardTransportInterceptor.class);
+            module.addTransportInterceptor(new TransportInterceptor() {
+
+                @Override
+                public <T extends TransportRequest> TransportRequestHandler<T> interceptHandler(String action,
+                        TransportRequestHandler<T> actualHandler) {
+                    
+                    return new TransportRequestHandler<T>() {
+
+                        @Override
+                        public void messageReceived(T request, TransportChannel channel, Task task) throws Exception {
+                            SearchGuardInterceptor.INSTANCE.getHandler(action, actualHandler).messageReceived(request, channel, task);
+                        }
+
+                        @Override
+                        public void messageReceived(T request, TransportChannel channel) throws Exception {
+                            SearchGuardInterceptor.INSTANCE.getHandler(action, actualHandler).messageReceived(request, channel);
+                        }
+                    };
+                    
+                }
+
+                @Override
+                public AsyncSender interceptSender(AsyncSender sender) {
+                    
+                    return new AsyncSender() {
+                        
+                        @Override
+                        public <T extends TransportResponse> void sendRequest(DiscoveryNode node, String action, TransportRequest request,
+                                TransportRequestOptions options, TransportResponseHandler<T> handler) {
+                            SearchGuardInterceptor.INSTANCE.sendRequestDecorate(sender, node, action, request, options, handler);
+                        }
+                    };
+                }
+            });
         }
     }
     
@@ -195,7 +233,7 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
     @Override
     public Collection<Object> createComponents(Client client, ClusterService clusterService, ThreadPool threadPool,
             ResourceWatcherService resourceWatcherService, ScriptService scriptService, SearchRequestParsers searchRequestParsers) {
-        threadPoolHolder.setValue(threadPool);
+        //threadPoolHolder.setValue(threadPool);
         return super.createComponents(client, clusterService, threadPool, resourceWatcherService, scriptService, searchRequestParsers);
     }
         

@@ -23,7 +23,7 @@
   <groupId>com.floragunn</groupId>
   <artifactId>search-guard-2</artifactId>
   <packaging>jar</packaging>
-  <version>5.0.0-beta1-6a-SNAPSHOT</version>
+  <version>5.0.0-rc1-6a-SNAPSHOT</version>
   <name>Search Guard</name>
   <description>Provide access control related features for Elasticsearch 5</description>
   <url>https://github.com/floragunncom/search-guard</url>
@@ -38,8 +38,8 @@
   </licenses>
 
   <properties>
-    <sgssl.version>5.0.0-beta1-16c-SNAPSHOT</sgssl.version>
-    <elasticsearch.version>5.0.0-beta1</elasticsearch.version>
+    <sgssl.version>5.0.0-rc1-16c-SNAPSHOT</sgssl.version>
+    <elasticsearch.version>5.0.0-rc1</elasticsearch.version>
     <dependency.locations.enabled>false</dependency.locations.enabled>
   </properties>
 
@@ -99,7 +99,7 @@
     <dependency>
        <groupId>org.elasticsearch.plugin</groupId>
        <artifactId>transport-netty4-client</artifactId>
-       <version>5.0.0-beta1</version>
+       <version>${elasticsearch.version}</version>
     </dependency>
 
     <!-- Only test scoped dependencies hereafter -->

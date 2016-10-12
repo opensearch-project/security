@@ -149,6 +149,8 @@ public class ConfigurationLoader {
                             final Settings _settings = toSettings(singleGetResponse.getSourceAsBytesRef(), singleGetResponse.getType());
                             if(_settings != null) {
                                 callback.success(singleGetResponse.getType(), _settings);
+                            } else {
+                                log.error("Cannot parse settings for "+singleGetResponse.getType());
                             }
                         } else {
                             //does not exist or empty source

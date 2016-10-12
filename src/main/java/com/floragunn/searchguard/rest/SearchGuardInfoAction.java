@@ -19,6 +19,7 @@ package com.floragunn.searchguard.rest;
 
 import static org.elasticsearch.rest.RestRequest.Method.GET;
 
+import java.io.IOException;
 import java.security.cert.X509Certificate;
 
 import org.elasticsearch.client.Client;
@@ -29,6 +30,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.rest.BaseRestHandler;
 import org.elasticsearch.rest.BytesRestResponse;
 import org.elasticsearch.rest.RestChannel;
@@ -55,10 +57,12 @@ public class SearchGuardInfoAction extends BaseRestHandler {
     }
 
 
+    
+    
     @Override
-    public void handleRequest(RestRequest request, RestChannel channel, NodeClient client) throws Exception {
+    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
         BytesRestResponse response = null;
-        final XContentBuilder builder = channel.newBuilder();
+        final XContentBuilder builder = XContentBuilder.builder(JsonXContent.jsonXContent);
 
         try {
 
@@ -80,6 +84,7 @@ public class SearchGuardInfoAction extends BaseRestHandler {
             response = new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, builder);
         }
 
-        channel.sendResponse(response);
+        final BytesRestResponse finalResponse = response;
+        return channel -> channel.sendResponse(finalResponse);
     }
 }
