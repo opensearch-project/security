@@ -45,6 +45,9 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexModule;
+import org.elasticsearch.index.IndexService;
+import org.elasticsearch.index.query.QueryShardContext;
+import org.elasticsearch.index.shard.IndexSearcherWrapper;
 import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.rest.RestHandler;
@@ -168,12 +171,30 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
         return modules;
     }
     
+    private IndexSearcherWrapper loadFlsDlsIndexSearcherWrapper(final IndexService indexService) {
+        try {
+            IndexSearcherWrapper flsdlsWrapper = (IndexSearcherWrapper) ReflectionHelper
+            .load("com.floragunn.searchguard.configuration.SearchGuardFlsDlsIndexSearcherWrapper")
+            .getConstructor(IndexService.class, Settings .class)
+            .newInstance(indexService, settings);
+            log.info("FLS/DLS enabled");
+            return flsdlsWrapper;
+        } catch(Exception ex) {
+            log.error("Failed to enable FLS/DLS", ex);
+        }
+        
+        return null;
+    }
+    
     @Override
     public void onIndexModule(IndexModule indexModule) {
-        //TODO include
-        //com.floragunn.searchguard.configuration.SearchGuardFlsDlsIndexSearcherWrapper
         if (!client) {
-            indexModule.setSearcherWrapper(indexService -> new SearchGuardIndexSearcherWrapper(indexService, settings));
+            if(ReflectionHelper.canLoad("com.floragunn.searchguard.configuration.SearchGuardFlsDlsIndexSearcherWrapper")) {
+                indexModule.setSearcherWrapper(indexService -> loadFlsDlsIndexSearcherWrapper(indexService));
+            } else {
+                indexModule.setSearcherWrapper(indexService -> new SearchGuardIndexSearcherWrapper(indexService, settings));
+                log.info("FLS/DLS not enabled");
+            }
         }
     }
     
