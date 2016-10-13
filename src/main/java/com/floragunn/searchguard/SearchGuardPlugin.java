@@ -74,6 +74,7 @@ import com.floragunn.searchguard.rest.SearchGuardInfoAction;
 import com.floragunn.searchguard.ssl.rest.SearchGuardSSLInfoAction;
 import com.floragunn.searchguard.ssl.transport.SearchGuardSSLNettyTransport;
 import com.floragunn.searchguard.ssl.util.SSLConfigConstants;
+import com.floragunn.searchguard.support.ReflectionHelper;
 import com.floragunn.searchguard.transport.SearchGuardInterceptor;
 import com.google.common.collect.Lists;
 
@@ -119,12 +120,6 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
 
         //TODO tribe 5.0
         log.info("Node [{}] is a transportClient: {}/tribeNode: {}/tribeNodeClient: {}", settings.get("node.name"), client, tribeNode, tribeNodeClient);
-
-        if(client && System.getProperty("sg.nowarn.client") == null) {
-            System.out.println("*************************************************************************");
-            System.out.println("'Search Guard 2' plugin is normally not needed on transport client nodes.");
-            System.out.println("*************************************************************************");
-        }
     }
     
     @Override
@@ -133,6 +128,19 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
         if (!client && !tribeNodeClient) {
             handlers.add(SearchGuardInfoAction.class);
             handlers.add(SearchGuardSSLInfoAction.class);
+            
+            if(ReflectionHelper.canLoad("com.floragunn.searchguard.dlic.rest.api.SearchGuardRestApiActions")) {
+                try {
+                    Collection<Class<? extends RestHandler>> apiHandler = (Collection<Class<? extends RestHandler>>) ReflectionHelper
+                    .load("com.floragunn.searchguard.dlic.rest.api.SearchGuardRestApiActions")
+                    .getDeclaredMethod("getHandler")
+                    .invoke(null);          
+                    handlers.addAll(apiHandler);
+                    log.debug("Added {} management rest handler", apiHandler.size());
+                } catch(Exception ex) {
+                    log.error("Failed to register SearchGuardRestApiActions, management API not available", ex);
+                }
+            }
         }
         return handlers;
     }
@@ -187,7 +195,6 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
         module.registerTransport("com.floragunn.searchguard.ssl.http.netty.SearchGuardSSLNettyTransport", SearchGuardSSLNettyTransport.class);
 
         if (!client && httpSSLEnabled && !tribeNodeClient) {
-           System.out.println("register http");
             
             //module.registerHttpTransport("com.floragunn.searchguard.http.SearchGuardHttpServerTransport", SearchGuardSSLNettyHttpServerTransport.class);
            module.registerHttpTransport("com.floragunn.searchguard.http.SearchGuardHttpServerTransport", SearchGuardHttpServerTransport.class);

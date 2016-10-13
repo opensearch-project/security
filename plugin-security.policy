@@ -22,6 +22,8 @@ grant {
   permission javax.security.auth.AuthPermission "modifyPrivateCredentials";
   permission javax.security.auth.AuthPermission "doAs";
   permission javax.security.auth.kerberos.ServicePermission "*","accept";
+  permission java.util.PropertyPermission "javax.security.auth.useSubjectCredsOnly","write";
+  permission java.util.PropertyPermission "java.security.krb5.conf","write";
   
    //below permissions are needed for netty native open ssl support
   permission java.lang.RuntimePermission "loadLibrary.*";

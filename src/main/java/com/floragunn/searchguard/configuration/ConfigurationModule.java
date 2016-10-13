@@ -32,7 +32,6 @@ public class ConfigurationModule extends AbstractModule {
     protected void configure() {
         bind(AdminDNs.class);
         bind(SearchGuardSettingsFilter.class).asEagerSingleton();
-        bind(ConfigurationService.class).asEagerSingleton();
         bind(ActionGroupHolder.class).asEagerSingleton();
         bind(PrivilegesEvaluator.class).asEagerSingleton();
         bind(InternalAuthenticationBackend.class).asEagerSingleton();

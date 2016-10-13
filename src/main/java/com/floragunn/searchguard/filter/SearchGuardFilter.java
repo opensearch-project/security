@@ -110,7 +110,7 @@ public class SearchGuardFilter implements ActionFilter {
                 || isInterClusterRequest(request) 
                 || "true".equals(HeaderHelper.getSafeFromHeader(threadContext, ConfigConstants.SG_CONF_REQUEST_HEADER))){
             
-            if(!dlsFlsValve.get().invoke(request, listener)) {
+            if(!dlsFlsValve.get().invoke(request, listener, threadContext)) {
                 return;
             }
             
@@ -159,7 +159,7 @@ public class SearchGuardFilter implements ActionFilter {
         }
 
         if (eval.evaluate(user, action, request)) {
-            if(!dlsFlsValve.get().invoke(request, listener)) {
+            if(!dlsFlsValve.get().invoke(request, listener, threadContext)) {
                 return;
             }
             auditLog.logAuthenticatedRequest(request, action);

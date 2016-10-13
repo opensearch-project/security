@@ -39,9 +39,9 @@ import com.floragunn.searchguard.user.User;
 public class SearchGuardIndexSearcherWrapper extends IndexSearcherWrapper {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
-	private final ThreadContext threadContext;
-	private final Index index;
-	private final String searchguardIndex;
+    protected final ThreadContext threadContext;
+    protected final Index index;
+    protected final String searchguardIndex;
 	
 	public SearchGuardIndexSearcherWrapper(final IndexService indexService, Settings settings) {
 	    index = indexService.index();

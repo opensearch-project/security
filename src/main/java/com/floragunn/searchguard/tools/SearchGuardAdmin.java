@@ -516,8 +516,6 @@ public class SearchGuardAdmin {
             
             parser.nextToken();
             
-            //Settings.builder().put(new JsonSettingsLoader().load(parser.binaryValue())).build();
-            
             XContentBuilder builder = XContentFactory.yamlBuilder();
             if (prettyPrint) {
                 builder.prettyPrint();
