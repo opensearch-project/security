@@ -74,6 +74,7 @@ import com.floragunn.searchguard.configuration.SearchGuardIndexSearcherWrapper;
 import com.floragunn.searchguard.filter.SearchGuardFilter;
 import com.floragunn.searchguard.http.SearchGuardHttpServerTransport;
 import com.floragunn.searchguard.rest.SearchGuardInfoAction;
+import com.floragunn.searchguard.ssl.SearchGuardSSLModule;
 import com.floragunn.searchguard.ssl.rest.SearchGuardSSLInfoAction;
 import com.floragunn.searchguard.ssl.transport.SearchGuardSSLNettyTransport;
 import com.floragunn.searchguard.ssl.util.SSLConfigConstants;
@@ -161,6 +162,7 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
     @Override
     public Collection<Module> createGuiceModules() {
         List<Module> modules = new ArrayList<Module>(1);
+        modules.add(new SearchGuardSSLModule(settings));   
         if (!client && !tribeNodeClient) {
             modules.add(new ConfigurationModule());
             modules.add(new BackendModule());

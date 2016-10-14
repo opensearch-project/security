@@ -93,6 +93,7 @@ public class SearchGuardAdmin {
 
     private static void main0(final String[] args) throws Exception {
         
+        System.out.println("Search Guard Admin v5");
         System.setProperty("sg.nowarn.client","true");
 
         final HelpFormatter formatter = new HelpFormatter();
