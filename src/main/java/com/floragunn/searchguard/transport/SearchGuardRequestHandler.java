@@ -38,9 +38,11 @@ import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportRequestHandler;
 
+import com.floragunn.searchguard.SearchGuardPlugin;
 import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.auth.BackendRegistry;
 import com.floragunn.searchguard.ssl.transport.SearchGuardSSLRequestHandler;
+import com.floragunn.searchguard.ssl.util.SSLRequestHelper;
 import com.floragunn.searchguard.support.Base64Helper;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.HeaderHelper;
@@ -68,22 +70,15 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
     @Override
     protected void messageReceivedDecorate(final T request, final TransportRequestHandler<T> handler,
             final TransportChannel transportChannel, Task task) throws Exception {
-        //backendRegistry = injector.getProvider(BackendRegistry.class);
-        //auditLog = injector.getProvider(AuditLog.class);
-        //System.out.println("-I- "+transportChannel.action()+" via "+transportChannel.getChannelType());
         
         final ThreadContext.StoredContext sgContext = getThreadContext().newStoredContext();
+        
         try {
-            
-            //TODO RequestHolder not longer needed?
-           // final com.floragunn.searchguard.configuration.RequestHolder context = new com.floragunn.searchguard.configuration.RequestHolder(
-            //         request);
-            // com.floragunn.searchguard.configuration.RequestHolder.setCurrent(context);
 
-           String ct = (String) getThreadContext().getTransient(ConfigConstants.SG_CHANNEL_TYPE);
+            String ct = (String) getThreadContext().getTransient(ConfigConstants.SG_CHANNEL_TYPE);
            
            if(transportChannel.getChannelType()==null) {
-               throw new RuntimeException("ct null");
+               throw new RuntimeException("Can not determine channel type (null)");
            }
                        
             if(ct == null)
@@ -94,15 +89,13 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
             
             //bypass non-netty requests
             if(transportChannel.getChannelType().equals("local") || transportChannel.getChannelType().equals("direct")) {
-                //System.out.println("bytpass "+transportChannel.action());
                 super.messageReceivedDecorate(request, handler, transportChannel, task);
-                
                 return;
             }
             
             //if the incoming request is an internal:* or a shard request allow only if request was sent by a server node
             //if transport channel is not a netty channel but a direct or local channel (e.g. send via network) then allow it (regardless of beeing a internal: or shard request)
-            if (!isInterClusterRequest(request) 
+            if (!HeaderHelper.isInterClusterRequest(getThreadContext()) 
                     && (transportChannel.action().startsWith("internal:") || transportChannel.action().contains("["))) {
                 auditLog.get().logMissingPrivileges(transportChannel.action(), request);
                 log.error("Internal or shard requests not allowed from a non-server node for transport type "+transportChannel.getChannelType());
@@ -113,9 +106,6 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
             
             
             String principal = null;
-            //LogHelper.logUserTrace("Received {} from {} via {}", transportChannel.action(), request.remoteAddress(),
-            //        transportChannel.getClass());
-            //LogHelper.logUserTrace("CTX/H {}/{}", request.getContext(), request.getHeaders());
 
             if ((principal = getThreadContext().getTransient(ConfigConstants.SG_SSL_TRANSPORT_PRINCIPAL)) == null) {
                 Exception ex = new ElasticsearchSecurityException(
@@ -126,7 +116,7 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
                 return;
             } else {
                 
-                if(isInterClusterRequest(request)) {
+                if(HeaderHelper.isInterClusterRequest(getThreadContext())) {
                     
                     String userHeader = getThreadContext().getHeader(ConfigConstants.SG_USER_HEADER);
                     
@@ -148,12 +138,11 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
                     //this is a netty request from a non-server node (maybe also be internal: or a shard request)
                     //and therefore issued by a transport client
                     
-                    try {
-                        HeaderHelper.checkSGHeader(getThreadContext());
-                    } catch (Exception e) {
+                    if(SSLRequestHelper.containsBadHeader(getThreadContext(), ConfigConstants.SG_CONFIG_PREFIX)) {
+                        final ElasticsearchException exception = new ElasticsearchException("bad header found");      
                         auditLog.get().logBadHeaders(request);
-                        log.error("Error validating headers "+e, e);
-                        transportChannel.sendResponse(ExceptionsHelper.convertToElastic(e));
+                        log.error("Error validating headers");
+                        transportChannel.sendResponse(exception);
                         return;
                     }
                     
@@ -184,22 +173,11 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
                 }
                 
                 super.messageReceivedDecorate(request, handler, transportChannel, task);
-                //LogHelper.logUserTrace("--> Put user {} in context (from sg_ssl_transport_principal)", principal);
             }
-
-            //LogHelper.logUserTrace(">>>> TransportService for {}", transportChannel.action());
-
-            
-            
         } finally {
-            //LogHelper.logUserTrace("<<<< TransportService {}", transportChannel.action());
-            
             if(sgContext != null) {
                 sgContext.close();
             } 
-            
-            //TODO RequestHolder no longer needed
-            //com.floragunn.searchguard.configuration.RequestHolder.removeCurrent();
         }
     }
    
@@ -256,7 +234,6 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
                 log.trace("Is inter cluster request ({}/{}/{})", action, request.getClass(), request.remoteAddress());
             }            
             
-            //if( getThreadContext().getTransient(ConfigConstants.SG_SSL_TRANSPORT_INTERCLUSTER_REQUEST) != Boolean.TRUE)
             getThreadContext().putTransient(ConfigConstants.SG_SSL_TRANSPORT_INTERCLUSTER_REQUEST, Boolean.TRUE);
         } else {
             if (log.isTraceEnabled()) {
@@ -269,9 +246,5 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
     @Override
     protected void errorThrown(Throwable t, final TransportRequest request, String action) {
         auditLog.get().logSSLException(request, t, action);
-    }
-    
-    private boolean isInterClusterRequest(final TransportRequest request) {
-        return getThreadContext().getTransient(ConfigConstants.SG_SSL_TRANSPORT_INTERCLUSTER_REQUEST) == Boolean.TRUE;
     }
 }

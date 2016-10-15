@@ -35,9 +35,7 @@ import org.elasticsearch.SpecialPermission;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.support.ActionFilter;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.network.NetworkModule;
@@ -46,15 +44,11 @@ import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.IndexSearcherWrapper;
 import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.rest.RestHandler;
-import org.elasticsearch.script.ScriptService;
-import org.elasticsearch.search.SearchRequestParsers;
 import org.elasticsearch.tasks.Task;
-import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportInterceptor;
 import org.elasticsearch.transport.TransportRequest;
@@ -62,7 +56,6 @@ import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportRequestOptions;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportResponseHandler;
-import org.elasticsearch.watcher.ResourceWatcherService;
 
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateAction;
 import com.floragunn.searchguard.action.configupdate.TransportConfigUpdateAction;
@@ -91,8 +84,7 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
     private final boolean httpSSLEnabled;
     private final boolean tribeNodeClient;
     private final UUID instanceUUID = UUID.randomUUID();
-    //private Holder<ThreadPool> threadPoolHolder = new Holder<ThreadPool>();
-
+    
     public SearchGuardPlugin(final Settings settings) {
         super();
         if(!settings.getAsBoolean(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLED, true)) {
@@ -105,7 +97,7 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
             sm.checkPermission(new SpecialPermission());
         }
 
-        // initialize native netty open ssl libs
+        //TODO check initialize native netty open ssl libs still neccessary
         AccessController.doPrivileged(new PrivilegedAction<Object>() {
             @Override
             public Object run() {
@@ -218,9 +210,7 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
         module.registerTransport("com.floragunn.searchguard.ssl.http.netty.SearchGuardSSLNettyTransport", SearchGuardSSLNettyTransport.class);
 
         if (!client && httpSSLEnabled && !tribeNodeClient) {
-            
-            //module.registerHttpTransport("com.floragunn.searchguard.http.SearchGuardHttpServerTransport", SearchGuardSSLNettyHttpServerTransport.class);
-           module.registerHttpTransport("com.floragunn.searchguard.http.SearchGuardHttpServerTransport", SearchGuardHttpServerTransport.class);
+            module.registerHttpTransport("com.floragunn.searchguard.http.SearchGuardHttpServerTransport", SearchGuardHttpServerTransport.class);
         }
         
         if (!client && !tribeNodeClient) {
@@ -260,14 +250,6 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
             });
         }
     }
-    
-    
-    @Override
-    public Collection<Object> createComponents(Client client, ClusterService clusterService, ThreadPool threadPool,
-            ResourceWatcherService resourceWatcherService, ScriptService scriptService, SearchRequestParsers searchRequestParsers) {
-        //threadPoolHolder.setValue(threadPool);
-        return super.createComponents(client, clusterService, threadPool, resourceWatcherService, scriptService, searchRequestParsers);
-    }
         
     @Override
     public Settings additionalSettings() {
@@ -275,9 +257,7 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
         
         builder.put(NetworkModule.TRANSPORT_TYPE_KEY, "com.floragunn.searchguard.ssl.http.netty.SearchGuardSSLNettyTransport");
 
-        if (!client && !tribeNodeClient) {
-            //builder.put(NetworkModule.TRANSPORT_SERVICE_TYPE_KEY, SearchGuardTransportService.class.toString());
-            
+        if (!client && !tribeNodeClient) {            
             if (httpSSLEnabled) {
                 builder.put(NetworkModule.HTTP_TYPE_KEY, "com.floragunn.searchguard.http.SearchGuardHttpServerTransport");
             }
@@ -342,6 +322,11 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
                 
         return settings;
     }
-
     
+    @Override
+    public List<String> getSettingsFilter() {
+        List<String> settingsFilter = new ArrayList<>();
+        settingsFilter.add("searchguard.*");
+        return settingsFilter;
+    }
 }

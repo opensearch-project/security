@@ -31,48 +31,14 @@ import com.google.common.base.Strings;
 
 public class HeaderHelper {
 
-    public static void checkSGHeader(final ThreadContext context) {
-        if (context != null) {
-
-        	// TODO 5.0: Original code below, this checks for invalid headers twice?? 
-//            for (final String header : request.getHeaders()) {
-//                if (header != null && header.trim().toLowerCase().startsWith(ConfigConstants.SG_CONFIG_PREFIX.toLowerCase())) {
-//                    throw new ElasticsearchSecurityException("invalid header found");
-//                }
-//            }
-
-            for (final Entry<String, String> header : context.getHeaders().entrySet()) {
-                if (header != null && header.getKey() != null
-                        && header.getKey().trim().toLowerCase().startsWith(ConfigConstants.SG_CONFIG_PREFIX.toLowerCase())) {
-                    throw new ElasticsearchSecurityException("invalid header found");
-                }
-            }
-        }
-    }
-
-    	// TODO 5.0: see above, isn't this method/implementation enough?
-//    public static void checkSGHeader(final TransportMessage<?> request) {
-//        if (request != null) {
-//            for (final String header : request.getHeaders()) {
-//                if (header != null && header.trim().toLowerCase().startsWith(ConfigConstants.SG_CONFIG_PREFIX.toLowerCase())) {
-//                    throw new ElasticsearchSecurityException("invalid header found");
-//                }
-//            }
-//        }
-//    }
-
     public static boolean isInterClusterRequest(final ThreadContext context) {
         return context.getTransient(ConfigConstants.SG_SSL_TRANSPORT_INTERCLUSTER_REQUEST) == Boolean.TRUE;
     }
 
-    //TODO is remote address null enough for detecting a direct request?
     public static boolean isDirectRequest(final ThreadContext context) {
-        return (
-                "direct".equals(context.getTransient(ConfigConstants.SG_CHANNEL_TYPE))
-                || context.getTransient(ConfigConstants.SG_CHANNEL_TYPE) == null
-                
-                );
-        //|| request.remoteAddress() == null
+        
+        return  "direct".equals(context.getTransient(ConfigConstants.SG_CHANNEL_TYPE))
+                  || context.getTransient(ConfigConstants.SG_CHANNEL_TYPE) == null;
     }
     
     

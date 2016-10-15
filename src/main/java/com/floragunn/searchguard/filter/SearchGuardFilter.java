@@ -17,7 +17,8 @@
 
 package com.floragunn.searchguard.filter;
 
-import org.elasticsearch.ElasticsearchException;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
@@ -26,14 +27,13 @@ import org.elasticsearch.action.support.ActionFilter;
 import org.elasticsearch.action.support.ActionFilterChain;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import com.floragunn.searchguard.SearchGuardPlugin;
 import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.auth.BackendRegistry;
 import com.floragunn.searchguard.configuration.AdminDNs;
@@ -78,36 +78,17 @@ public class SearchGuardFilter implements ActionFilter {
     @Override
     public void apply(Task task, final String action, final ActionRequest request, final ActionListener listener, final ActionFilterChain chain) {
 
-        // - types testen
-        // - remote address testn
-        
-        if (log.isTraceEnabled()) {
-            log.trace("Action {} from {}/{}", action, request.remoteAddress(), listener.getClass().getSimpleName());
-            // TODO 5.0: Cannot access transient map directly in threadContext
-            // log.trace("Context {}", request.getContext());
-            log.trace("Header {}", threadContext.getHeaders());
-
-        }
+        // - types test
+        // - remote address test
         
         User user = threadContext.getTransient(ConfigConstants.SG_USER);
-        
-        //System.out.println("4>>>> "+user);
         
         if(user == null && request.remoteAddress() == null) {
             user = User.SG_INTERNAL;
         }
-
-        //LogHelper.logUserTrace("--> Action {} from {}/{}", action, request.remoteAddress(), listener.getClass().getSimpleName());
-        //LogHelper.logUserTrace("--> Context {}", request.getContext());
-        //LogHelper.logUserTrace("--> Header {}", request.getHeaders());
-
-        if (log.isTraceEnabled()) {            
-            //TODO this throws an exception?
-            //log.trace("remote address: {}", threadContext.getTransient(ConfigConstants.SG_REMOTE_ADDRESS));
-        }
         
         if(isUserAdmin(user, adminDns) 
-                || isInterClusterRequest(request) 
+                || HeaderHelper.isInterClusterRequest(threadContext) 
                 || "true".equals(HeaderHelper.getSafeFromHeader(threadContext, ConfigConstants.SG_CONF_REQUEST_HEADER))){
             
             if(!dlsFlsValve.get().invoke(request, listener, threadContext)) {
@@ -178,23 +159,6 @@ public class SearchGuardFilter implements ActionFilter {
     public void apply(final String action, final ActionResponse response, final ActionListener listener, final ActionFilterChain chain) {
         chain.proceed(action, response, listener);
     }
-
-    /**
-     * 
-     * @param request
-     * @return true if request comes from a node with a server certificate
-     */
-    private  boolean isInterClusterRequest(final ActionRequest request) {
-    	// TODO 5.0: Duplicate method, see 	HeaderHelper#isInterClusterRequest
-        return threadContext.getTransient(ConfigConstants.SG_SSL_TRANSPORT_INTERCLUSTER_REQUEST) == Boolean.TRUE;
-    }
-
-    /**
-     * 
-     * @param request
-     * @return the User from header if request is InterClusterRequest and
-     *         contains a user header, otherwise null
-     */
     
     private static boolean isUserAdmin(User user, final AdminDNs adminDns) {
         if (user != null && adminDns.isAdmin(user.getName())) {

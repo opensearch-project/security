@@ -19,6 +19,7 @@ package com.floragunn.searchguard.filter;
 
 import javax.net.ssl.SSLPeerUnverifiedException;
 
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.inject.Inject;
@@ -36,6 +37,7 @@ import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.auth.BackendRegistry;
 import com.floragunn.searchguard.ssl.util.SSLRequestHelper;
 import com.floragunn.searchguard.ssl.util.SSLRequestHelper.SSLInfo;
+import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.HeaderHelper;
 
 public class SearchGuardRestFilter extends RestFilter {
@@ -55,11 +57,10 @@ public class SearchGuardRestFilter extends RestFilter {
     @Override
     public void process(RestRequest request, RestChannel channel, NodeClient client, RestFilterChain filterChain) throws Exception {
 
-        try {
-            HeaderHelper.checkSGHeader(this.threadContext);
-        } catch (final Exception e) {
+        if(SSLRequestHelper.containsBadHeader(threadContext, ConfigConstants.SG_CONFIG_PREFIX)) {
+            final ElasticsearchException exception = new ElasticsearchException("bad header found");      
             auditLog.logBadHeaders(request);
-            channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, e));
+            channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, exception));
             return;
         }
 

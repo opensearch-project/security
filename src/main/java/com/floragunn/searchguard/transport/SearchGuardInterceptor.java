@@ -37,6 +37,7 @@ import org.elasticsearch.transport.TransportRequestOptions;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportResponseHandler;
 
+import com.floragunn.searchguard.SearchGuardPlugin;
 import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.auth.BackendRegistry;
 import com.floragunn.searchguard.configuration.InstanceId;
@@ -76,70 +77,51 @@ public class SearchGuardInterceptor {
 
     public <T extends TransportResponse> void sendRequestDecorate(AsyncSender sender, DiscoveryNode node, String action,
             TransportRequest request, TransportRequestOptions options, TransportResponseHandler<T> handler) {
-        
-        //backendRegistry = injector.getProvider(BackendRegistry.class);
-        //auditLog = injector.getProvider(AuditLog.class);
-      //transient -> header
-        //System.out.println("<<< send "+action+" from "+this.nodeName()+"->"+node.getName());
  
         final Map<String, String> origHeaders = getThreadContext().getHeaders();  
-        User user = getThreadContext().getTransient(ConfigConstants.SG_USER);
-        Object remoteAdress = getThreadContext().getTransient(ConfigConstants.SG_REMOTE_ADDRESS);
-
+        final User user = getThreadContext().getTransient(ConfigConstants.SG_USER);
+        final Object remoteAdress = getThreadContext().getTransient(ConfigConstants.SG_REMOTE_ADDRESS);
+        
         ThreadContext.StoredContext storedContext = getThreadContext().newStoredContext();
-        //this.threadContext.putHeader(Maps.filterKeys(origHeaders, k->k.equals(ConfigConstants.SG_CONF_REQUEST_HEADER)));
         
         try (ThreadContext.StoredContext newCtx = getThreadContext().stashAndMergeHeaders(Maps.filterKeys(origHeaders, k->k.equals(ConfigConstants.SG_CONF_REQUEST_HEADER)))) {
             RestoringTransportResponseHandler<T> restoringHandler = new RestoringTransportResponseHandler<T>(handler, storedContext);
-
             getThreadContext().putTransient(ConfigConstants.SG_USER, user);
             getThreadContext().putTransient(ConfigConstants.SG_REMOTE_ADDRESS, remoteAdress);
-
-            attachHeaders(action);
-            // LogHelper.logUserTrace("<-- Send {} to {} with {}/{}", action,
-            // node.getName(), request.getContext(), request.getHeaders());
+            attachHeaders(action, remoteAdress, user);
             sender.sendRequest(node, action, request, options, restoringHandler);
         }
     }
     
-    private void attachHeaders(String action) { 
+    private void attachHeaders(final String action, final Object remoteAdr, final User origUser) { 
         // keep original address
-        
-        final Object remoteAdr = getThreadContext().getTransient(ConfigConstants.SG_REMOTE_ADDRESS);
+
         if (remoteAdr != null && remoteAdr instanceof InetSocketTransportAddress) {
             
-            String rHeader = getThreadContext().getHeader(ConfigConstants.SG_REMOTE_ADDRESS_HEADER);
+            String remoteAddressHeader = getThreadContext().getHeader(ConfigConstants.SG_REMOTE_ADDRESS_HEADER);
            
-            if(rHeader == null)
+            if(remoteAddressHeader == null) {
                 getThreadContext().putHeader(ConfigConstants.SG_REMOTE_ADDRESS_HEADER, Base64Helper.serializeObject(((InetSocketTransportAddress) remoteAdr).address()));
-            else
-                if(!((InetSocketAddress)Base64Helper.deserializeObject(rHeader)).equals(((InetSocketTransportAddress) remoteAdr).address())) {
-                    throw new RuntimeException("remote address mismatch "+Base64Helper.deserializeObject(rHeader)+"!="+((InetSocketTransportAddress) remoteAdr).address());
-                }
-            
-            //LogHelper.logUserTrace("<-- Put remote address {} in header (from sg_remote_address ctx)", remoteAdr);
+            } else {
+                if(!((InetSocketAddress)Base64Helper.deserializeObject(remoteAddressHeader)).equals(((InetSocketTransportAddress) remoteAdr).address())) {
+                    throw new RuntimeException("remote address mismatch "+Base64Helper.deserializeObject(remoteAddressHeader)+"!="+((InetSocketTransportAddress) remoteAdr).address());
+                }   
+            }
         }
+
+        User user = origUser;
         
-        User user = getThreadContext().getTransient(ConfigConstants.SG_USER);
-        
-        //System.out.println("<<< send user: "+user);
-        
-      //TODO check remoteAddress
-        //if(user == null /* && action.startsWith("internal:")  && request.remoteAddress() == null */) {
-        if(user == null /* && action.startsWith("internal:") */ && getThreadContext().getTransient(ConfigConstants.SG_CHANNEL_TYPE) == null) {
+        //we originate the request, so no user here to forward
+        if(user == null && remoteAdr == null && getThreadContext().getTransient(ConfigConstants.SG_CHANNEL_TYPE) == null) {
             user = User.SG_INTERNAL;
         }
         
-        if(user != null) {
-            //log.error(Thread.currentThread().getName()+" put h: "+ConfigConstants.SG_USER_HEADER+" "+action+"/"+request.remoteAddress());
-            
+        if(user != null) {            
             String userHeader = getThreadContext().getHeader(ConfigConstants.SG_USER_HEADER);
             
             if(userHeader == null) {
                 getThreadContext().putHeader(ConfigConstants.SG_USER_HEADER, Base64Helper.serializeObject(user));
-                //System.out.println("<<< send put: "+user);
-            }
-            else {
+            } else {
                 if(!((User)Base64Helper.deserializeObject(userHeader)).getName().equals(user.getName())) {
                     throw new RuntimeException("user mismatch "+Base64Helper.deserializeObject(userHeader)+"!="+user);
                 }
@@ -153,7 +135,7 @@ public class SearchGuardInterceptor {
         return threadPool.getThreadContext();
     }
     
-  //based on
+     //based on
     //org.elasticsearch.transport.TransportService.ContextRestoreResponseHandler<T>
     //which is private scoped
     private static class RestoringTransportResponseHandler<T extends TransportResponse> implements TransportResponseHandler<T> {

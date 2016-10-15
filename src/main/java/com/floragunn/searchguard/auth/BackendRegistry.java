@@ -23,7 +23,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -33,11 +32,11 @@ import java.util.concurrent.TimeUnit;
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.rest.BytesRestResponse;
@@ -64,7 +63,6 @@ import com.floragunn.searchguard.http.HTTPProxyAuthenticator;
 import com.floragunn.searchguard.http.XFFResolver;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.HTTPHelper;
-import com.floragunn.searchguard.support.LogHelper;
 import com.floragunn.searchguard.user.AuthCredentials;
 import com.floragunn.searchguard.user.User;
 import com.google.common.base.Strings;
@@ -391,10 +389,6 @@ public class BackendRegistry implements ConfigChangeListener {
      */
     public boolean authenticate(final RestRequest request, final RestChannel channel, ThreadContext threadContext) throws ElasticsearchSecurityException {
 
-        if(log.isTraceEnabled()) {
-            log.trace(LogHelper.toString(threadContext));
-        }
-        
         String sslPrincipal = (String) threadPool.getThreadContext().getTransient(ConfigConstants.SG_SSL_PRINCIPAL);
         if(AdminDNs.isAdmin(sslPrincipal)) {
             //PKI authenticated REST call
