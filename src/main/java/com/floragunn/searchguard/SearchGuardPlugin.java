@@ -20,6 +20,7 @@ package com.floragunn.searchguard;
 import io.netty.handler.ssl.OpenSsl;
 import io.netty.util.internal.PlatformDependent;
 
+import java.lang.reflect.Constructor;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
@@ -77,6 +78,7 @@ import com.google.common.collect.Lists;
 
 public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
 
+    private static final String FLS_DLS_INDEX_SEARCHER_WRAPPER_CLASS = "com.floragunn.searchguard.configuration.SearchGuardFlsDlsIndexSearcherWrapper";
     private final Logger log = LogManager.getLogger(this.getClass());
     private static final String CLIENT_TYPE = "client.type";
     private final Settings settings;
@@ -84,6 +86,8 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
     private final boolean httpSSLEnabled;
     private final boolean tribeNodeClient;
     private final UUID instanceUUID = UUID.randomUUID();
+    private final boolean dlsFlsAvailable;
+    private final Constructor dlFlsConstructor;
     
     public SearchGuardPlugin(final Settings settings) {
         super();
@@ -116,6 +120,23 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
 
         //TODO tribe 5.0
         log.info("Node [{}] is a transportClient: {}/tribeNode: {}/tribeNodeClient: {}", settings.get("node.name"), client, tribeNode, tribeNodeClient);
+    
+        if(ReflectionHelper.canLoad(FLS_DLS_INDEX_SEARCHER_WRAPPER_CLASS)) {
+            try {
+                dlFlsConstructor = ReflectionHelper
+                .load(FLS_DLS_INDEX_SEARCHER_WRAPPER_CLASS)
+                .getConstructor(IndexService.class, Settings .class);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to enable FLS/DLS", e);
+            }
+
+            dlsFlsAvailable = dlFlsConstructor != null;
+            log.info("FLS/DLS module available");
+        } else {
+            dlsFlsAvailable = false;
+            dlFlsConstructor = null;
+            log.info("FLS/DLS module not available");
+        }
     }
     
     @Override
@@ -167,27 +188,23 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
     
     private IndexSearcherWrapper loadFlsDlsIndexSearcherWrapper(final IndexService indexService) {
         try {
-            IndexSearcherWrapper flsdlsWrapper = (IndexSearcherWrapper) ReflectionHelper
-            .load("com.floragunn.searchguard.configuration.SearchGuardFlsDlsIndexSearcherWrapper")
-            .getConstructor(IndexService.class, Settings .class)
-            .newInstance(indexService, settings);
+            IndexSearcherWrapper flsdlsWrapper = (IndexSearcherWrapper) dlFlsConstructor.newInstance(indexService, settings);
             log.info("FLS/DLS enabled");
             return flsdlsWrapper;
         } catch(Exception ex) {
-            log.error("Failed to enable FLS/DLS", ex);
+            throw new RuntimeException("Failed to enable FLS/DLS", ex);
         }
-        
-        return null;
     }
     
     @Override
     public void onIndexModule(IndexModule indexModule) {
+        //called for every index!
+        
         if (!client) {
-            if(ReflectionHelper.canLoad("com.floragunn.searchguard.configuration.SearchGuardFlsDlsIndexSearcherWrapper")) {
+            if(dlsFlsAvailable) {
                 indexModule.setSearcherWrapper(indexService -> loadFlsDlsIndexSearcherWrapper(indexService));
             } else {
                 indexModule.setSearcherWrapper(indexService -> new SearchGuardIndexSearcherWrapper(indexService, settings));
-                log.info("FLS/DLS not enabled");
             }
         }
     }

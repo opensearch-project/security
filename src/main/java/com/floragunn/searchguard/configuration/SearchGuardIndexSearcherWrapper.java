@@ -41,6 +41,7 @@ public class SearchGuardIndexSearcherWrapper extends IndexSearcherWrapper {
     protected final Index index;
     protected final String searchguardIndex;
 	
+    //constructor is called per index, so avoid costly operations here
 	public SearchGuardIndexSearcherWrapper(final IndexService indexService, Settings settings) {
 	    index = indexService.index();
 	    threadContext = indexService.getThreadPool().getThreadContext();
@@ -55,7 +56,6 @@ public class SearchGuardIndexSearcherWrapper extends IndexSearcherWrapper {
         }
 
         return reader;
-
     }
 
     @Override
