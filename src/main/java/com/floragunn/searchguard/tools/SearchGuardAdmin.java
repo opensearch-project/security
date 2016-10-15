@@ -436,30 +436,24 @@ public class SearchGuardAdmin {
     }
     
     private static boolean uploadFile(Client tc, String filepath, String index, String type) {
-        System.out.println("Will update '"+type+"' with "+filepath);
+        System.out.println("Will update '" + type + "' with " + filepath);
         try (Reader reader = new FileReader(filepath)) {
 
-//<<<<<<< HEAD
-            //            final String id = tc.index(new IndexRequest("searchguard").type(type).id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-            //              .consistencyLevel(WriteConsistencyLevel.DEFAULT)
-            //              .source(type, readXContent(reader, XContentType.YAML)))
-            //=======
             final String id = tc
                     .index(new IndexRequest(index).type(type).id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                            .source(type, readXContent(reader, XContentType.YAML)))
-//>>>>>>> master
-                            .actionGet().getId();
+                            .source(type, readXContent(reader, XContentType.YAML))).actionGet().getId();
 
             if ("0".equals(id)) {
-                System.out.println("   SUCC: Configuration for '"+type+"' created or updated");
+                System.out.println("   SUCC: Configuration for '" + type + "' created or updated");
                 return true;
             } else {
-                System.out.println("   FAIL: Configuration for '"+type+"' failed for unknown reasons. Pls. consult logfile of elasticsearch");
+                System.out.println("   FAIL: Configuration for '" + type
+                        + "' failed for unknown reasons. Pls. consult logfile of elasticsearch");
             }
         } catch (Exception e) {
-            System.out.println("   FAIL: Configuration for '"+type+"' failed because of "+e.toString());
+            System.out.println("   FAIL: Configuration for '" + type + "' failed because of " + e.toString());
         }
-        
+
         return false;
     }
     
