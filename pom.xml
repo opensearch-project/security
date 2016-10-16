@@ -38,7 +38,7 @@
   </licenses>
 
   <properties>
-    <sgssl.version>5.0.0-rc1-16d-SNAPSHOT</sgssl.version>
+    <sgssl.version>5.0.0-rc1-16d</sgssl.version>
     <netty-native.version>1.1.33.Fork23</netty-native.version>
     <elasticsearch.version>5.0.0-rc1</elasticsearch.version>
     <dependency.locations.enabled>false</dependency.locations.enabled>
