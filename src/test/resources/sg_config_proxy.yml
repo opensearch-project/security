@@ -1,5 +1,6 @@
 searchguard:
   dynamic:
+    composite_enabled: true
     http:
       xff:
         enabled: true

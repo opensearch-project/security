@@ -15,6 +15,8 @@ sg_zdummy_all:
         - ALL
 
 sg_role_klingons1:
+  cluster:
+    - indices:data/read/msearch
   indices:
     klingonempire:
       ships:  
@@ -208,8 +210,6 @@ sg_user2:
         - READ
         
 sg_multiget:
-  cluster:
-    - indices:data/read/mget
   indices:
     'mindex1':
       '*':
@@ -241,8 +241,6 @@ sg_own_index:
         - ALL
 
 sg_writer:
-  cluster:
-    - indices:data/write/bulk*
   indices:
     '*':
       '*':

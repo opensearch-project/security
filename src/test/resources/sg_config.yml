@@ -18,6 +18,7 @@
 
 searchguard:
   dynamic:
+    composite_enabled: true
     http:
       anonymous_auth_enabled: false
       xff:

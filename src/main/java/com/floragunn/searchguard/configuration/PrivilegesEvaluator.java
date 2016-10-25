@@ -36,8 +36,14 @@ import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.CompositeIndicesRequest;
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.RealtimeRequest;
+import org.elasticsearch.action.admin.indices.alias.IndicesAliasesAction;
+import org.elasticsearch.action.bulk.BulkAction;
+import org.elasticsearch.action.get.MultiGetAction;
+import org.elasticsearch.action.percolate.MultiPercolateAction;
+import org.elasticsearch.action.search.MultiSearchAction;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.support.IndicesOptions;
+import org.elasticsearch.action.termvectors.MultiTermVectorsAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
@@ -74,6 +80,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
     private final ClusterService clusterService;
     private volatile Settings rolesMapping;
     private volatile Settings roles;
+    private volatile Settings config;
     private final ActionGroupHolder ah;
     private final IndexNameExpressionResolver resolver;
     private final Map<Class<?>, Method> typeCache = Collections.synchronizedMap(new HashMap<Class<?>, Method>(100));
@@ -89,6 +96,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         super();
         tcua.addConfigChangeListener(ConfigurationService.CONFIGNAME_ROLES_MAPPING, this);
         tcua.addConfigChangeListener(ConfigurationService.CONFIGNAME_ROLES, this);
+        tcua.addConfigChangeListener(ConfigurationService.CONFIGNAME_CONFIG, this);
         this.clusterService = clusterService;
         this.ah = ah;
         this.resolver = resolver;
@@ -146,6 +154,9 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
             break;
         case "rolesmapping":
             rolesMapping = settings;
+            break;
+        case "config":
+            config = settings;
             break;
         }
     }
@@ -309,10 +320,20 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                 log.debug("---------- evaluate sg_role: {}", sgRole);
             }
 
+            final boolean compositeEnabled = config.getAsBoolean("searchguard.dynamic.composite_enabled", false);
            
             if (action.startsWith("cluster:") || action.startsWith("indices:admin/template/delete")
                     || action.startsWith("indices:admin/template/get") || action.startsWith("indices:admin/template/put") 
-                || action.startsWith("indices:data/read/scroll")) {
+                || action.startsWith("indices:data/read/scroll")
+                //M*
+                || (compositeEnabled && action.startsWith(BulkAction.NAME))
+                || (compositeEnabled && action.startsWith(IndicesAliasesAction.NAME))
+                || (compositeEnabled && action.startsWith(MultiGetAction.NAME))
+                || (compositeEnabled && action.startsWith(MultiPercolateAction.NAME))
+                || (compositeEnabled && action.startsWith(MultiSearchAction.NAME))
+                || (compositeEnabled && action.startsWith(MultiTermVectorsAction.NAME))
+                //|| (compositeEnabled && action.startsWith(MultiPercolateAction.NAME))
+                ) {
                 
                 final Set<String> resolvedActions = resolveActions(sgRoleSettings.getAsArray(".cluster", new String[0]));
 
