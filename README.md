@@ -1,4 +1,4 @@
-#Search Guard 5 for Elasticsearch 5 beta-1
+#Search Guard 5 for Elasticsearch 5.0.0
 
 ## Documentation
 
@@ -25,11 +25,11 @@ Advanced functionalities like LDAP and Kerberos authentication/authorization as 
 
 ##Installation
 
-* Install search-guard-2 plugin
- * ``sudo bin/elasticsearch-plugin install -b com.floragunn:search-guard-2:5.0.0-beta1-6a``
+* Install Search Guard 5 plugin
+ * ``sudo bin/elasticsearch-plugin install -b com.floragunn:search-guard-5:5.0.0-8``
 
 After the plugin is installed you need to configure them. SSL needs to be configured statically
-in elasticsearch.yml (any change needs a restart of the node). See [search-guard-ssl documentation](https://github.com/floragunncom/search-guard-ssl) how to configure it. ``search-guard-2`` needs only a single entry in elasticsearch.yml (see below), all other configuration is stored in Elasticsearch itself and can be dynamically changed without restarting a node or the cluster.
+in elasticsearch.yml (any change needs a restart of the node). See [search-guard-ssl documentation](https://github.com/floragunncom/search-guard-ssl) how to configure it. ``search-guard-5`` needs only a single entry in elasticsearch.yml (see below), all other configuration is stored in Elasticsearch itself and can be dynamically changed without restarting a node or the cluster.
 
 ##Configuration
 
@@ -59,11 +59,11 @@ There are generally two types of certificates you need to generate:
 
 Apply the configuration:
 
-    plugins/search-guard-2/tools/sgadmin.sh -cd plugins/search-guard-2/sgconfig/ -ks plugins/search-guard-2/sgconfig/keystore.jks -ts plugins/search-guard-2/sgconfig/truststore.jks  -nhnv
+    plugins/search-guard-5/tools/sgadmin.sh -cd plugins/search-guard-5/sgconfig/ -ks plugins/search-guard-2/sgconfig/keystore.jks -ts plugins/search-guard-2/sgconfig/truststore.jks  -nhnv
 
 Generate hashed passwords for sg_internal_users.yml:
 
-    plugins/search-guard-2/tools/hasher.sh -p mycleartextpassword
+    plugins/search-guard-5/tools/hasher.sh -p mycleartextpassword
 
 All this files are stored as documents in Elasticsearch within the ``searchguard`` index.
 This index is specially secured so that only a admin user with a special SSL certificate may write or read this index. Thats the reason why you need the sgadmin tool to update the configuration (that is loading the files into ES). 
