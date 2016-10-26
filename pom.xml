@@ -41,6 +41,7 @@
     <elasticsearch.plugin.classname>com.floragunn.searchguard.SearchGuardPlugin</elasticsearch.plugin.classname>
     <tests.ifNoTests>warn</tests.ifNoTests>
     <elasticsearch.assembly.descriptor>${basedir}/src/main/assemblies/plugin.xml</elasticsearch.assembly.descriptor>
+    <sgstandalone.descriptor>${basedir}/src/main/assemblies/sgadmin-standalone.xml</sgstandalone.descriptor>
     <skip.integ.tests>true</skip.integ.tests>
     <skip.unit.tests>false</skip.unit.tests>
     <elasticsearch.license.header>build/license-check/elasticsearch_license_header.txt</elasticsearch.license.header>
@@ -85,6 +86,12 @@
       <groupId>com.floragunn</groupId>
       <artifactId>search-guard-ssl</artifactId>
       <version>${sgssl.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    
+    <dependency>
+      <groupId>com.twitter</groupId>
+      <artifactId>jsr166e</artifactId>
       <scope>provided</scope>
     </dependency>
     
@@ -155,9 +162,40 @@
           </execution>
         </executions>
       </plugin>
-      <plugin>
+            <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-assembly-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>plugin</id>
+            <phase>package</phase>
+            <configuration>
+              <appendAssemblyId>${elasticsearch.assembly.appendId}</appendAssemblyId>
+              <outputDirectory>${project.build.directory}/releases/</outputDirectory>
+              <descriptors>
+                <descriptor>${elasticsearch.assembly.descriptor}</descriptor>
+              </descriptors>
+            </configuration>
+            <goals>
+              <goal>single</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>sgadmin</id>
+            <phase>package</phase>
+            <configuration>
+              <appendAssemblyId>true</appendAssemblyId>
+              <!-- <finalName>sgadmin-standalone-${project.version}</finalName> -->
+              <outputDirectory>${project.build.directory}/releases/</outputDirectory>
+              <descriptors>
+                <descriptor>${sgstandalone.descriptor}</descriptor>
+              </descriptors>
+            </configuration>
+            <goals>
+              <goal>single</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <artifactId>maven-release-plugin</artifactId>
