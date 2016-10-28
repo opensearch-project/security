@@ -332,6 +332,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                 || (compositeEnabled && action.startsWith(MultiPercolateAction.NAME))
                 || (compositeEnabled && action.startsWith(MultiSearchAction.NAME))
                 || (compositeEnabled && action.startsWith(MultiTermVectorsAction.NAME))
+                || (compositeEnabled && action.startsWith("indices:data/read/coordinate-msearch"))
                 //|| (compositeEnabled && action.startsWith(MultiPercolateAction.NAME))
                 ) {
                 
