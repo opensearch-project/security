@@ -244,3 +244,18 @@ sg_writer:
       '*':
         - WRITE
         - CREATE_INDEX
+
+sg_dlsnoinvest:
+  cluster:
+    - ALL
+  indices:
+    'article':
+      '*':
+        - ALL
+    'investment':
+      '*':
+        - ALL
+    'company':
+      '*':
+        - ALL
+      _dls_: '{"term" : {"category_code" : "software"}}'

@@ -300,8 +300,9 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         }
         
         boolean allowAction = false;
-        final Set<String> dlsQueries = new HashSet<String>();
-        final Set<String> flsFields = new HashSet<String>();
+        
+        final Map<String,Set<String>> dlsQueries = new HashMap<String, Set<String>>();
+        final Map<String,Set<String>> flsFields = new HashMap<String, Set<String>>();
 
         for (final Iterator<String> iterator = sgRoles.iterator(); iterator.hasNext();) {
             final String sgRole = (String) iterator.next();
@@ -471,6 +472,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                 
             }// end loop permittedAliasesIndices
 
+            
             if (!resolvedRoleIndices.isEmpty()) {                
                 for(String resolvedRole: resolvedRoleIndices.keySet()) {
                     for(String resolvedIndex: resolvedRoleIndices.get(resolvedRole)) {                        
@@ -482,21 +484,31 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                             
                             //TODO use UserPropertyReplacer, make it registerable for ldap user
                             dls = dls.replace("${user.name}", user.getName()).replace("${user_name}", user.getName());
-                            
-                            dlsQueries.add(dls);
+                           
+                            if(dlsQueries.containsKey(resolvedIndex)) {
+                                dlsQueries.get(resolvedIndex).add(dls);
+                            } else {
+                                dlsQueries.put(resolvedIndex, new HashSet<String>());
+                                dlsQueries.get(resolvedIndex).add(dls);
+                            }
                                                 
                             if (log.isDebugEnabled()) {
-                                log.debug("dls query {}", dls);
+                                log.debug("dls query {} for {}", dls, resolvedIndex);
                             }
                             
                         }
                         
                         if(fls != null && fls.length > 0) {
                             
-                            flsFields.addAll(Sets.newHashSet(fls));
+                            if(flsFields.containsKey(resolvedIndex)) {
+                                flsFields.get(resolvedIndex).addAll(Sets.newHashSet(fls));
+                            } else {
+                                flsFields.put(resolvedIndex, new HashSet<String>());
+                                flsFields.get(resolvedIndex).addAll(Sets.newHashSet(fls));
+                            }
                             
                             if (log.isDebugEnabled()) {
-                                log.debug("fls fields {}", Sets.newHashSet(fls));
+                                log.debug("fls fields {} for {}", Sets.newHashSet(fls), resolvedIndex);
                             }
                             
                         }
@@ -514,11 +526,11 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         }
 
         if(!dlsQueries.isEmpty()) {
-            request.putHeader(ConfigConstants.SG_DLS_QUERY, Base64Helper.serializeObject((Serializable)dlsQueries));
+            request.putHeader(ConfigConstants.SG_DLS_QUERY, Base64Helper.serializeObject((Serializable) dlsQueries));
         }
         
         if(!flsFields.isEmpty()) {
-            request.putHeader(ConfigConstants.SG_FLS_FIELDS, Base64Helper.serializeObject((Serializable)flsFields));
+            request.putHeader(ConfigConstants.SG_FLS_FIELDS, Base64Helper.serializeObject((Serializable) flsFields));
         }
         
         return allowAction;
