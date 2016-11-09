@@ -62,6 +62,7 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.index.IndexNotFoundException;
 
 import com.floragunn.searchguard.SearchGuardPlugin;
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateAction;
@@ -82,6 +83,11 @@ public class SearchGuardAdmin {
             e.printStackTrace();
             System.exit(-1);
         } 
+        catch (IndexNotFoundException e) {
+            System.out.println("ERR: No searchguard configuartion index found. Pls. execute sgadmin with different command line parameters");
+            System.out.println("For more informations look here: https://github.com/floragunncom/search-guard/issues/228");
+            System.exit(-1);
+        }
         catch (Exception e) {
             System.out.println("ERR: An unexpected "+e.getClass().getSimpleName()+" occured: "+e.getMessage());
             System.out.println("Trace:");
