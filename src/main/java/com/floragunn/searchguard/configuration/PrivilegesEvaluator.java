@@ -510,9 +510,9 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         } // end sg role loop
 
         if (!allowAction && log.isInfoEnabled()) {
-            log.info("No perm match for {} and {}", action, sgRoles);
+            log.info("No perm match for {} {} [Action [{}]] [RolesChecked {}]", user, requestedResolvedIndexTypes, action, sgRoles);
         }
-        
+
         if(!dlsQueries.isEmpty()) {
             request.putHeader(ConfigConstants.SG_DLS_QUERY, Base64Helper.serializeObject((Serializable)dlsQueries));
         }
