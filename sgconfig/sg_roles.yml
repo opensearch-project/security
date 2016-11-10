@@ -183,3 +183,7 @@ sg_own_index:
     '${user_name}':
       '*':
         - ALL
+
+sg_public:
+  cluster:
+    - cluster:monitor/main
