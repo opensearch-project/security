@@ -196,7 +196,7 @@
             <id>plugin</id>
             <phase>package</phase>
             <configuration>
-              <appendAssemblyId>${elasticsearch.assembly.appendId}</appendAssemblyId>
+              <appendAssemblyId>false</appendAssemblyId>
               <outputDirectory>${project.build.directory}/releases/</outputDirectory>
               <descriptors>
                 <descriptor>${elasticsearch.assembly.descriptor}</descriptor>
@@ -211,7 +211,6 @@
             <phase>package</phase>
             <configuration>
               <appendAssemblyId>true</appendAssemblyId>
-              <!-- <finalName>sgadmin-standalone-${project.version}</finalName> -->
               <outputDirectory>${project.build.directory}/releases/</outputDirectory>
               <descriptors>
                 <descriptor>${sgstandalone.descriptor}</descriptor>
