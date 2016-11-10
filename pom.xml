@@ -116,12 +116,6 @@
       <artifactId>commons-cli</artifactId>
       <version>1.3.1</version>
     </dependency>
-
-    <!-- //TODO 5mg <dependency>
-      <groupId>com.twitter</groupId>
-      <artifactId>jsr166e</artifactId>
-      <scope>provided</scope>
-    </dependency>  -->
     
     <!-- Only test scoped dependencies hereafter --> 
     
@@ -177,6 +171,8 @@
           <includes>
             <include>**/*Test*.java</include>
           </includes>
+          <forkCount>0</forkCount> <!-- needed for circleci build -->
+          <reuseForks>false</reuseForks> <!-- needed for circleci build -->
         </configuration>
       </plugin>
       <plugin>
@@ -303,32 +299,6 @@
         <artifactId>coveralls-maven-plugin</artifactId>
         <version>3.1.0</version>
       </plugin>
-     <!--  <plugin>
-          <groupId>com.carrotsearch.randomizedtesting</groupId>
-          <artifactId>junit4-maven-plugin</artifactId>
-          <executions>
-            <execution>
-              <id>tests</id>
-              <phase>none</phase>
-              <goals>
-                <goal>junit4</goal>
-              </goals>
-            </execution>
-          </executions>
-      </plugin> -->
-      <!-- <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-surefire-plugin</artifactId>
-          <version>2.19.1</version>
-          <configuration>
-              <includes>
-                  <include>**/*Test*.java</include>
-              </includes>
-              <forkCount>0</forkCount>
-              <reuseForks>false</reuseForks>
-              <skip>false</skip>
-          </configuration>
-       </plugin> -->
     </plugins>
     <extensions>
       <extension>
