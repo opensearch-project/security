@@ -331,7 +331,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                 log.debug("---------- evaluate sg_role: {}", sgRole);
             }
 
-            final boolean compositeEnabled = config.getAsBoolean("searchguard.dynamic.composite_enabled", false);
+            final boolean compositeEnabled = config.getAsBoolean("searchguard.dynamic.composite_enabled", true);
            
             if (action.startsWith("cluster:") || action.startsWith("indices:admin/template/delete")
                     || action.startsWith("indices:admin/template/get") || action.startsWith("indices:admin/template/put") 
