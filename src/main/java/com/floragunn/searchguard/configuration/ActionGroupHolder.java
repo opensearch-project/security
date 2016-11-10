@@ -26,6 +26,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 
 import com.floragunn.searchguard.action.configupdate.TransportConfigUpdateAction;
+import com.floragunn.searchguard.support.ConfigConstants;
 
 public class ActionGroupHolder implements ConfigChangeListener {
 
@@ -33,7 +34,7 @@ public class ActionGroupHolder implements ConfigChangeListener {
 
     @Inject
     public ActionGroupHolder(final TransportConfigUpdateAction tcua) {
-        tcua.addConfigChangeListener("actiongroups", this);
+        tcua.addConfigChangeListener(ConfigConstants.CONFIGNAME_ACTION_GROUPS, this);
     }
 
     @Override

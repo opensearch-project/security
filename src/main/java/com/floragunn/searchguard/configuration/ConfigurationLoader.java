@@ -25,7 +25,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.elasticsearch.ElasticsearchException;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.get.GetResponse;
@@ -37,9 +38,6 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.loader.JsonSettingsLoader;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
@@ -161,13 +159,12 @@ public class ConfigurationLoader {
                         callback.singleFailure(singleResponse==null?null:singleResponse.getFailure());
                     }
                 }
-            }
-
+            }           
+            
             @Override
             public void onFailure(Exception e) {
                 callback.failure(e);
             }
-            
         });
     }
 

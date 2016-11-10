@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -117,7 +118,7 @@ public class BackendRegistry implements ConfigChangeListener {
     @Inject
     public BackendRegistry(final Settings settings, final RestController controller, final TransportConfigUpdateAction tcua, final ClusterService cse,
             final AdminDNs adminDns, final XFFResolver xffResolver, InternalAuthenticationBackend iab, AuditLog auditLog, ThreadPool threadPool) {
-        tcua.addConfigChangeListener("config", this);
+        tcua.addConfigChangeListener(ConfigConstants.CONFIGNAME_CONFIG, this);
         controller.registerFilter(new SearchGuardRestFilter(this, auditLog, threadPool));
         this.tcua = tcua;
         this.adminDns = adminDns;
@@ -245,10 +246,6 @@ public class BackendRegistry implements ConfigChangeListener {
 
         final User user = impersonatedUser == null? origPKIUser:impersonatedUser;
         
-        //if(user == null) {
-        //    return false;
-        //}
-        
         if(AdminDNs.isAdmin(user.getName())) {
             return user;
         }
@@ -361,7 +358,6 @@ public class BackendRegistry implements ConfigChangeListener {
                 if(log.isDebugEnabled()) {
                     log.debug("User '{}' is authenticated", authenticatedUser);
                 }
-                //((User) threadPool.getThreadContext().getTransient(ConfigConstants.SG_USER)).addRoles(authenticatedUser.getRoles());
                 return authenticatedUser;
             } catch (final ElasticsearchSecurityException e) {
                 log.info("Cannot authenticate user (or add roles) with ad {} due to {}, try next", authDomain.getOrder(), e.toString());
@@ -563,12 +559,11 @@ public class BackendRegistry implements ConfigChangeListener {
         return initialized;
     }
 
-   private User impersonate(final TransportRequest tr, final TransportChannel channel, User origPKIuser) throws ElasticsearchSecurityException {
+    private User impersonate(final TransportRequest tr, final TransportChannel channel, User origPKIuser) throws ElasticsearchSecurityException {
 
         final String impersonatedUser = threadPool.getThreadContext().getHeader("sg_impersonate_as");
         
         if(Strings.isNullOrEmpty(impersonatedUser)) {
-            //threadPool.getThreadContext().putTransient(ConfigConstants.SG_USER, Objects.requireNonNull(origPKIuser));
             return null; //nothing to do
         }
         
@@ -576,7 +571,6 @@ public class BackendRegistry implements ConfigChangeListener {
             throw new ElasticsearchSecurityException("Could not check for impersonation because Search Guard is not yet initialized");
         }
 
-        //final User origPKIuser = threadPool.getThreadContext().getTransient(ConfigConstants.SG_USER);
         if (origPKIuser == null) {
             throw new ElasticsearchSecurityException("no original PKI user found");
         }
@@ -601,7 +595,6 @@ public class BackendRegistry implements ConfigChangeListener {
                     e1);
         }
 
-        //threadPool.getThreadContext().putTransient(ConfigConstants.SG_USER, Objects.requireNonNull((User) aU));
         return aU;
     }
 

@@ -218,7 +218,7 @@ class RemoteIpDetector {
                 
                 if (log.isTraceEnabled()) {
                     final String originalRemoteHost = ((InetSocketAddress)request.getRemoteAddress()).getAddress().getHostName();
-                    log.trace("Incoming request " + request.request().getUri() + " with originalRemoteAddr '" + originalRemoteAddr
+                    log.trace("Incoming request " + request.request().uri() + " with originalRemoteAddr '" + originalRemoteAddr
                               + "', originalRemoteHost='" + originalRemoteHost + "', will be seen as newRemoteAddr='" + remoteIp);
                 }
                 
@@ -233,7 +233,7 @@ class RemoteIpDetector {
             
         } else {
             if (log.isTraceEnabled()) {
-                log.trace("Skip RemoteIpDetector for request " + request.request().getUri() + " with originalRemoteAddr '"
+                log.trace("Skip RemoteIpDetector for request " + request.request().uri() + " with originalRemoteAddr '"
                         + request.getRemoteAddress() + "' cause no internal proxy matches");
             }
         }

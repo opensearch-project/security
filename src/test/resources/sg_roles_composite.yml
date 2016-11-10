@@ -1,7 +1,3 @@
-sg_public:
-  cluster:
-    - 'cluster:monitor/main'
-
 sg_all_access:
   cluster:
     - 'cluster:*'
@@ -9,15 +5,7 @@ sg_all_access:
     '*':
       '*':  
         - ALL
-        
-role.with.dot:
-  cluster:
-    - '*'
-  indices:
-    'index.with.dot':
-      'type.with.dot':  
-        - ALL
-        
+
 sg_zdummy_all:
   cluster:
     - 'cluster:*'
@@ -27,6 +15,8 @@ sg_zdummy_all:
         - ALL
 
 sg_role_klingons1:
+  cluster:
+    - indices:data/read/msearch
   indices:
     klingonempire:
       ships:  
@@ -256,18 +246,3 @@ sg_writer:
       '*':
         - WRITE
         - CREATE_INDEX
-
-sg_dlsnoinvest:
-  cluster:
-    - ALL
-  indices:
-    'article':
-      '*':
-        - ALL
-    'investment':
-      '*':
-        - ALL
-    'company':
-      '*':
-        - ALL
-      _dls_: '{"term" : {"category_code" : "software"}}'

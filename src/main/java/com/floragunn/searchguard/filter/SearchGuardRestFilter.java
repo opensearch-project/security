@@ -90,6 +90,8 @@ public class SearchGuardRestFilter extends RestFilter {
             }
         }
 
+        
+        
         filterChain.continueProcessing(request, channel, client);
     }
 }

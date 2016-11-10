@@ -38,8 +38,14 @@ import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.CompositeIndicesRequest;
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.RealtimeRequest;
+import org.elasticsearch.action.admin.indices.alias.IndicesAliasesAction;
+import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
+import org.elasticsearch.action.bulk.BulkAction;
+import org.elasticsearch.action.get.MultiGetAction;
+import org.elasticsearch.action.search.MultiSearchAction;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.support.IndicesOptions;
+import org.elasticsearch.action.termvectors.MultiTermVectorsAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -52,6 +58,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportRequest;
 
@@ -75,10 +82,11 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
     private final ClusterService clusterService;
     private volatile Settings rolesMapping;
     private volatile Settings roles;
+    private volatile Settings config;
     private final ActionGroupHolder ah;
     private final IndexNameExpressionResolver resolver;
-    private final Map<Class<?>, Method> typeCache = Collections.synchronizedMap(new HashMap<>(100));
-    private final Map<Class<?>, Method> typesCache = Collections.synchronizedMap(new HashMap<>(100));
+    private final Map<Class<?>, Method> typeCache = Collections.synchronizedMap(new HashMap<Class<?>, Method>(100));
+    private final Map<Class<?>, Method> typesCache = Collections.synchronizedMap(new HashMap<Class<?>, Method>(100));
     private final String[] deniedActionPatterns;
     private final AuditLog auditLog;
     private ThreadContext threadContext;
@@ -88,8 +96,9 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
     public PrivilegesEvaluator(final ClusterService clusterService, final ThreadPool threadPool, final TransportConfigUpdateAction tcua, final ActionGroupHolder ah,
             final IndexNameExpressionResolver resolver, AuditLog auditLog, final Settings settings) {
         super();
-        tcua.addConfigChangeListener("rolesmapping", this);
-        tcua.addConfigChangeListener("roles", this);
+        tcua.addConfigChangeListener(ConfigConstants.CONFIGNAME_ROLES_MAPPING, this);
+        tcua.addConfigChangeListener(ConfigConstants.CONFIGNAME_ROLES, this);
+        tcua.addConfigChangeListener(ConfigConstants.CONFIGNAME_CONFIG, this);
         this.clusterService = clusterService;
         this.ah = ah;
         this.resolver = resolver;
@@ -101,7 +110,8 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         /*
         indices:admin/template/delete
         indices:admin/template/get
-        indices:admin/template/put      
+        indices:admin/template/put
+        
         indices:admin/aliases
         indices:admin/aliases/exists
         indices:admin/aliases/get
@@ -137,6 +147,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         //deniedActionPatternsList.add("indices:admin/upgrade");
         
         deniedActionPatterns = deniedActionPatternsList.toArray(new String[0]);
+        
     }
 
     @Override
@@ -147,6 +158,9 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
             break;
         case "rolesmapping":
             rolesMapping = settings;
+            break;
+        case "config":
+            config = settings;
             break;
         }
     }
@@ -213,13 +227,18 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         }        
     }
 
-    public boolean evaluate(final User user, final String action, final ActionRequest<?> request) {
+    public boolean evaluate(final User user, String action, final ActionRequest<?> request) {
         
         if(action.startsWith("cluster:admin/snapshot/restore")) {
             auditLog.logMissingPrivileges(action, request);
             log.warn(action + " is not allowed for a regular user");
             return false;
         }
+        
+        if(action.startsWith("internal:indices/admin/upgrade")) {
+            action = "indices:admin/upgrade";
+        }
+        
         
         
         final TransportAddress caller = Objects.requireNonNull((TransportAddress) this.threadContext.getTransient(ConfigConstants.SG_REMOTE_ADDRESS));
@@ -291,8 +310,9 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         }
         
         boolean allowAction = false;
-        final Set<String> dlsQueries = new HashSet<String>();
-        final Set<String> flsFields = new HashSet<String>();
+        
+        final Map<String,Set<String>> dlsQueries = new HashMap<String, Set<String>>();
+        final Map<String,Set<String>> flsFields = new HashMap<String, Set<String>>();
 
         for (final Iterator<String> iterator = sgRoles.iterator(); iterator.hasNext();) {
             final String sgRole = (String) iterator.next();
@@ -311,10 +331,22 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                 log.debug("---------- evaluate sg_role: {}", sgRole);
             }
 
+            final boolean compositeEnabled = config.getAsBoolean("searchguard.dynamic.composite_enabled", false);
            
             if (action.startsWith("cluster:") || action.startsWith("indices:admin/template/delete")
                     || action.startsWith("indices:admin/template/get") || action.startsWith("indices:admin/template/put") 
-                || action.startsWith("indices:data/read/scroll")) {
+                || action.startsWith("indices:data/read/scroll")
+                //M*
+                || (compositeEnabled && action.startsWith(BulkAction.NAME))
+                || (compositeEnabled && action.startsWith(IndicesAliasesAction.NAME))
+                || (compositeEnabled && action.startsWith(MultiGetAction.NAME))
+                //TODO 5mg check multipercolate action and check if there are new m* actions
+                //|| (compositeEnabled && action.startsWith(Multiper.NAME))
+                || (compositeEnabled && action.startsWith(MultiSearchAction.NAME))
+                || (compositeEnabled && action.startsWith(MultiTermVectorsAction.NAME))
+                || (compositeEnabled && action.startsWith("indices:data/read/coordinate-msearch"))
+                //|| (compositeEnabled && action.startsWith(MultiPercolateAction.NAME))
+                ) {
                 
                 final Set<String> resolvedActions = resolveActions(sgRoleSettings.getAsArray(".cluster", new String[0]));
 
@@ -336,7 +368,13 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                 }
             }
 
-            final Map<String, Settings> permittedAliasesIndices = sgRoleSettings.getGroups(".indices");
+            final Map<String, Settings> permittedAliasesIndices0 = sgRoleSettings.getGroups(".indices");
+            final Map<String, Settings> permittedAliasesIndices = new HashMap<String, Settings>(permittedAliasesIndices0.size());
+            
+            for (String origKey : permittedAliasesIndices0.keySet()) {
+                permittedAliasesIndices.put(origKey.replace("${user.name}", user.getName()).replace("${user_name}", user.getName()),
+                        permittedAliasesIndices0.get(origKey));
+            }
 
             /*
             sg_role_starfleet:
@@ -445,6 +483,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                 
             }// end loop permittedAliasesIndices
 
+            
             if (!resolvedRoleIndices.isEmpty()) {                
                 for(String resolvedRole: resolvedRoleIndices.keySet()) {
                     for(String resolvedIndex: resolvedRoleIndices.get(resolvedRole)) {                        
@@ -455,22 +494,32 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                         if(dls != null && dls.length() > 0) {
                             
                             //TODO use UserPropertyReplacer, make it registerable for ldap user
-                            dls = dls.replace("${user.name}", user.getName());
-                            
-                            dlsQueries.add(dls);
+                            dls = dls.replace("${user.name}", user.getName()).replace("${user_name}", user.getName());
+                           
+                            if(dlsQueries.containsKey(resolvedIndex)) {
+                                dlsQueries.get(resolvedIndex).add(dls);
+                            } else {
+                                dlsQueries.put(resolvedIndex, new HashSet<String>());
+                                dlsQueries.get(resolvedIndex).add(dls);
+                            }
                                                 
                             if (log.isDebugEnabled()) {
-                                log.debug("dls query {}", dls);
+                                log.debug("dls query {} for {}", dls, resolvedIndex);
                             }
                             
                         }
                         
                         if(fls != null && fls.length > 0) {
                             
-                            flsFields.addAll(Sets.newHashSet(fls));
+                            if(flsFields.containsKey(resolvedIndex)) {
+                                flsFields.get(resolvedIndex).addAll(Sets.newHashSet(fls));
+                            } else {
+                                flsFields.put(resolvedIndex, new HashSet<String>());
+                                flsFields.get(resolvedIndex).addAll(Sets.newHashSet(fls));
+                            }
                             
                             if (log.isDebugEnabled()) {
-                                log.debug("fls fields {}", Sets.newHashSet(fls));
+                                log.debug("fls fields {} for {}", Sets.newHashSet(fls), resolvedIndex);
                             }
                             
                         }
@@ -484,11 +533,11 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         } // end sg role loop
 
         if (!allowAction && log.isInfoEnabled()) {
-            log.info("No perm match for {} and {}", action, sgRoles);
+            log.info("No perm match for {} {} [Action [{}]] [RolesChecked {}]", user, requestedResolvedIndexTypes, action, sgRoles);
         }
-        
+
         if(!dlsQueries.isEmpty()) {
-            this.threadContext.putHeader(ConfigConstants.SG_DLS_QUERY, Base64Helper.serializeObject((Serializable)dlsQueries));
+            this.threadContext.putHeader(ConfigConstants.SG_DLS_QUERY, Base64Helper.serializeObject((Serializable) dlsQueries));
         }
         
         if(!flsFields.isEmpty()) {
@@ -647,6 +696,23 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
 
     private Tuple<Set<String>, Set<String>> resolve(final User user, final String action, final TransportRequest request,
             final MetaData metaData) {
+        
+        if(request instanceof PutMappingRequest) {
+            
+            if (log.isDebugEnabled()) {
+                log.debug("PutMappingRequest will be handled in a "
+                        + "special way cause they does not return indices via .indices()"
+                        + "Instead .getConcreteIndex() must be used");
+            }
+            
+            PutMappingRequest pmr = (PutMappingRequest) request;
+            Index concreteIndex = pmr.getConcreteIndex();
+            
+            if(concreteIndex != null && (pmr.indices() == null || pmr.indices().length == 0)) {
+                return new Tuple<Set<String>, Set<String>>(Sets.newHashSet(concreteIndex.getName()), Sets.newHashSet(pmr.type()));
+            }
+        }
+
 
         if (!(request instanceof CompositeIndicesRequest) && !(request instanceof IndicesRequest)) {
 
@@ -757,19 +823,9 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         }
 
         final Set<String> indices = new HashSet<String>();
-        
-        try {
-            
-            indices.addAll(Arrays.asList(resolver.concreteIndexNames(clusterService.state(), request)));
-            if(log.isDebugEnabled()) {
-                log.debug("Resolved {} to {}", indices);
-            }
-        } catch (final Exception e) {
-            log.debug("Cannot resolve {} so we use the raw values", Arrays.toString(request.indices()));
-            indices.addAll(Arrays.asList(request.indices()));
-        }
 
         if(request.indices() == null || request.indices().length == 0 || new HashSet<String>(Arrays.asList(request.indices())).equals(NULL_SET)) {
+            
             if(log.isDebugEnabled()) {
                 log.debug("No indices found in request, assume _all");
             }
@@ -779,13 +835,12 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         } else {
             
             try {
-                
                 indices.addAll(Arrays.asList(resolver.concreteIndexNames(clusterService.state(), request)));
                 if(log.isDebugEnabled()) {
-                    log.debug("Resolved {} to {}", indices);
+                    log.debug("Resolved {} to {}", request.indices(), indices);
                 }
             } catch (final Exception e) {
-                log.debug("Cannot resolve {} so we use the raw values", Arrays.toString(request.indices()));
+                log.debug("Cannot resolve {} (due to {}) so we use the raw values", Arrays.toString(request.indices()), e);
                 indices.addAll(Arrays.asList(request.indices()));
             }
         }

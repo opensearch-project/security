@@ -5,14 +5,17 @@ MANAGE:
   - "indices:admin/*"
 CREATE_INDEX:
   - "indices:admin/create"
+  - "indices:admin/mapping/put"
 MANAGE_ALIASES:
   - "indices:admin/aliases*"
 MONITOR:
   - "indices:monitor/*"
 DATA_ACCESS:
   - "indices:data/*"
+  - "indices:admin/mapping/put"
 WRITE:
   - "indices:data/write*"
+  - "indices:admin/mapping/put"
 READ:
   - "indices:data/read*"
 DELETE:
@@ -29,6 +32,7 @@ SUGGEST:
 INDEX:
   - "indices:data/write/index*"
   - "indices:data/write/update*"
+  - "indices:admin/mapping/put"
 GET:
   - "indices:data/read/get*"
   - "indices:data/read/mget*"

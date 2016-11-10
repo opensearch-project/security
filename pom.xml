@@ -38,9 +38,11 @@
   </licenses>
 
   <properties>
-    <sgssl.version>5.0.0-17-SNAPSHOT</sgssl.version>
+    <sgssl.version>5.0.0-17</sgssl.version>
     <netty-native.version>1.1.33.Fork23</netty-native.version>
     <elasticsearch.version>5.0.0</elasticsearch.version>
+    <elasticsearch.assembly.descriptor>${basedir}/src/main/assemblies/plugin.xml</elasticsearch.assembly.descriptor>
+    <sgstandalone.descriptor>${basedir}/src/main/assemblies/sgadmin-standalone.xml</sgstandalone.descriptor>
     <dependency.locations.enabled>false</dependency.locations.enabled>
   </properties>
 
@@ -84,6 +86,12 @@
     </dependency>
 
     <dependency>
+       <groupId>org.elasticsearch.plugin</groupId>
+       <artifactId>transport-netty4-client</artifactId>
+       <version>${elasticsearch.version}</version>
+    </dependency>
+
+    <dependency>
       <groupId>org.elasticsearch</groupId>
       <artifactId>elasticsearch</artifactId>
       <version>${elasticsearch.version}</version>
@@ -98,66 +106,6 @@
     </dependency>
 
     <dependency>
-       <groupId>org.elasticsearch.plugin</groupId>
-       <artifactId>transport-netty4-client</artifactId>
-       <version>${elasticsearch.version}</version>
-    </dependency>
-
-    <!-- Only test scoped dependencies hereafter -->
-
-    <!--  <dependency>
-       <groupId>com.floragunn</groupId>
-       <artifactId>dlic-search-guard-module-dlsfls</artifactId>
-       <version>2.0.0.0-SNAPSHOT</version>
-       <scope>test</scope>
-    </dependency>  
-
-    <dependency>
-      <groupId>com.floragunn</groupId>
-      <artifactId>dlic-search-guard-authbackend-ldap</artifactId>
-      <version>2.0.0.0-SNAPSHOT</version>
-      <scope>test</scope>
-    </dependency>
-  
-    <dependency>
-      <groupId>com.floragunn</groupId>
-      <artifactId>dlic-search-guard-authbackend-ldap</artifactId>
-      <version>2.0.0.0-SNAPSHOT</version>
-      <type>test-jar</type>
-      <scope>test</scope>
-    </dependency>
-    
-    
-    <dependency>
-      <groupId>org.apache.directory.server</groupId>
-      <artifactId>apacheds-all</artifactId>
-      <version>${apache.ds.version}</version>
-      <scope>test</scope>
-    </dependency>
-    
-    -->
-
-    <dependency>
-      <groupId>org.elasticsearch.test</groupId>
-      <artifactId>framework</artifactId>
-      <version>${elasticsearch.version}</version>
-      <scope>test</scope>
-      <exclusions>
-        <exclusion>
-          <artifactId>randomizedtesting-runner</artifactId>
-          <groupId>com.carrotsearch.randomizedtesting</groupId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-
-    <dependency>
-      <groupId>commons-io</groupId>
-      <artifactId>commons-io</artifactId>
-      <version>2.5</version>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
       <version>19.0</version>
@@ -167,6 +115,28 @@
       <groupId>commons-cli</groupId>
       <artifactId>commons-cli</artifactId>
       <version>1.3.1</version>
+    </dependency>
+
+    <!-- //TODO 5mg <dependency>
+      <groupId>com.twitter</groupId>
+      <artifactId>jsr166e</artifactId>
+      <scope>provided</scope>
+    </dependency>  -->
+    
+    <!-- Only test scoped dependencies hereafter --> 
+    
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.12</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>2.5</version>
+      <scope>test</scope>
     </dependency>
  
     <dependency>
@@ -182,7 +152,7 @@
       <version>${netty-native.version}</version>
       <classifier>${os.detected.classifier}</classifier>
       <scope>test</scope>
-    </dependency>
+    </dependency>    
   </dependencies>
 
   <build>
@@ -202,7 +172,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.17</version>
+        <version>2.19.1</version>
         <configuration>
           <includes>
             <include>**/*Test*.java</include>
@@ -212,6 +182,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
+        <version>3.0.2</version>
         <executions>
           <execution>
             <goals>
@@ -221,18 +192,35 @@
         </executions>
       </plugin>
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-assembly-plugin</artifactId>
-        <version>2.4</version>
-        <configuration>
-          <appendAssemblyId>false</appendAssemblyId>
-          <outputDirectory>${project.build.directory}/releases/</outputDirectory>
-          <descriptors>
-            <descriptor>${basedir}/src/main/assemblies/plugin.xml</descriptor>
-          </descriptors>
-        </configuration>
+        <version>2.6</version>
         <executions>
           <execution>
+            <id>plugin</id>
             <phase>package</phase>
+            <configuration>
+              <appendAssemblyId>${elasticsearch.assembly.appendId}</appendAssemblyId>
+              <outputDirectory>${project.build.directory}/releases/</outputDirectory>
+              <descriptors>
+                <descriptor>${elasticsearch.assembly.descriptor}</descriptor>
+              </descriptors>
+            </configuration>
+            <goals>
+              <goal>single</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>sgadmin</id>
+            <phase>package</phase>
+            <configuration>
+              <appendAssemblyId>true</appendAssemblyId>
+              <!-- <finalName>sgadmin-standalone-${project.version}</finalName> -->
+              <outputDirectory>${project.build.directory}/releases/</outputDirectory>
+              <descriptors>
+                <descriptor>${sgstandalone.descriptor}</descriptor>
+              </descriptors>
+            </configuration>
             <goals>
               <goal>single</goal>
             </goals>
@@ -255,6 +243,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
+        <version>2.10.4</version>
         <configuration>
           <encoding>${project.build.sourceEncoding}</encoding>
           <locale>en</locale>
@@ -275,7 +264,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-source-plugin</artifactId>
-        <version>2.3</version>
+        <version>3.0.1</version>
         <executions>
             <execution>
                 <id>attach-sources</id>
@@ -285,35 +274,10 @@
             </execution>
         </executions>
       </plugin>
-      <!-- skip validation -->
-      <plugin>
-        <groupId>de.thetaphi</groupId>
-        <artifactId>forbiddenapis</artifactId>
-        <executions>
-          <execution>
-            <id>check-forbidden-apis</id>
-            <phase>none</phase>
-          </execution>
-          <execution>
-            <id>check-forbidden-test-apis</id>
-            <phase>none</phase>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>com.mycila</groupId>
-        <artifactId>license-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>check-license-headers</id>
-            <phase>none</phase>
-          </execution>
-        </executions>
-      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.3</version>
+        <version>3.6.0</version>
         <configuration>
           <source>1.8</source>
           <target>1.8</target>
@@ -321,16 +285,6 @@
           <showDeprecation>true</showDeprecation>
           <showWarnings>true</showWarnings>
         </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-antrun-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>check-invalid-patterns</id>
-            <phase>none</phase>
-          </execution>
-        </executions>
       </plugin>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
@@ -349,7 +303,7 @@
         <artifactId>coveralls-maven-plugin</artifactId>
         <version>3.1.0</version>
       </plugin>
-      <plugin>
+     <!--  <plugin>
           <groupId>com.carrotsearch.randomizedtesting</groupId>
           <artifactId>junit4-maven-plugin</artifactId>
           <executions>
@@ -361,8 +315,8 @@
               </goals>
             </execution>
           </executions>
-      </plugin>
-      <plugin>
+      </plugin> -->
+      <!-- <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
           <version>2.19.1</version>
@@ -374,7 +328,7 @@
               <reuseForks>false</reuseForks>
               <skip>false</skip>
           </configuration>
-       </plugin>
+       </plugin> -->
     </plugins>
     <extensions>
       <extension>

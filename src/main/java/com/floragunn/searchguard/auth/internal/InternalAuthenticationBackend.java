@@ -27,6 +27,7 @@ import com.floragunn.searchguard.action.configupdate.TransportConfigUpdateAction
 import com.floragunn.searchguard.auth.AuthenticationBackend;
 import com.floragunn.searchguard.configuration.ConfigChangeListener;
 import com.floragunn.searchguard.crypto.BCrypt;
+import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.user.AuthCredentials;
 import com.floragunn.searchguard.user.User;
 
@@ -37,7 +38,7 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Con
     @Inject
     public InternalAuthenticationBackend(final Settings unused, final TransportConfigUpdateAction tcua) {
         super();
-        tcua.addConfigChangeListener("internalusers", this);
+        tcua.addConfigChangeListener(ConfigConstants.CONFIGNAME_INTERNAL_USERS, this);
     }
 
     @Override

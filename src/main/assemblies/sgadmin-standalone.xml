@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<assembly>
+  <id>sgadmin-standalone</id>
+  <formats>
+    <format>zip</format>
+    <format>tar.gz</format>
+  </formats>
+  <includeBaseDirectory>false</includeBaseDirectory>
+  <fileSets>
+    <fileSet>
+      <directory>${project.basedir}</directory>
+      <outputDirectory>/</outputDirectory>
+      <includes>
+        <include>tools/**</include>
+        <include>sgconfig/**</include>
+      </includes>
+      <fileMode>0755</fileMode>
+    </fileSet>
+  </fileSets>
+  <dependencySets>
+    <dependencySet>
+      <outputDirectory>/deps</outputDirectory>
+      <useProjectArtifact>true</useProjectArtifact>
+      <unpack>false</unpack>
+      <scope>provided</scope>
+    </dependencySet>
+    <dependencySet>
+      <outputDirectory>/deps</outputDirectory>
+      <useProjectArtifact>true</useProjectArtifact>
+      <unpack>false</unpack>
+    </dependencySet>
+  </dependencySets>
+</assembly>

@@ -40,6 +40,9 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
+import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
+import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest;
+import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
@@ -61,6 +64,7 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.transport.Netty4Plugin;
 
@@ -83,6 +87,11 @@ public class SearchGuardAdmin {
             e.printStackTrace();
             System.exit(-1);
         } 
+        catch (IndexNotFoundException e) {
+            System.out.println("ERR: No searchguard configuartion index found. Pls. execute sgadmin with different command line parameters");
+            System.out.println("For more informations look here: https://github.com/floragunncom/search-guard/issues/228");
+            System.exit(-1);
+        }
         catch (Exception e) {
             System.out.println("ERR: An unexpected "+e.getClass().getSimpleName()+" occured: "+e.getMessage());
             System.out.println("Trace:");
@@ -325,6 +334,8 @@ public class SearchGuardAdmin {
             System.out.println("Number of data nodes: "+chr.getNumberOfDataNodes());
             
             final boolean indexExists = tc.admin().indices().exists(new IndicesExistsRequest(index)).actionGet().isExists();
+            
+            final NodesInfoResponse nodesInfo = tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet();
 
             if (!indexExists) {
                 System.out.print(index +" index does not exists, attempt to create it ... ");
@@ -405,7 +416,7 @@ public class SearchGuardAdmin {
             
             ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
             
-            success = success & checkConfigUpdateResponse(cur, chr.getNumberOfNodes(), 5);
+            success = success & checkConfigUpdateResponse(cur, nodesInfo, 5);
             
             System.out.println("Done with "+(success?"success":"failures"));
             System.exit(success?0:-1);
@@ -414,19 +425,30 @@ public class SearchGuardAdmin {
     }
     
     
-    private static boolean checkConfigUpdateResponse(ConfigUpdateResponse response, int expectedNodeCount, int expectedConfigCount) {
+    private static boolean checkConfigUpdateResponse(ConfigUpdateResponse response, NodesInfoResponse nir, int expectedConfigCount) {
         
+        int expectedNodeCount = 0;
+        
+        for(NodeInfo ni: nir.getNodes()) {
+            Settings nodeSettings = ni.getSettings();
+          
+            //do not count tribe clients
+            if(nodeSettings.get("tribe.name", null) == null) {
+                expectedNodeCount++;
+            }           
+        }
+
         boolean success = response.getNodes().size() == expectedNodeCount;
         if(!success) {
             System.out.println("FAIL: Expected "+expectedNodeCount+" nodes to return response, but got only "+response.getNodes().size());
         }
         
         for(String nodeId: response.getNodesMap().keySet()) {
-            ConfigUpdateNodeResponse nodeResponse = response.getNodesMap().get(nodeId);
-            boolean successNode = (nodeResponse.getUpdatedConfigTypes() != null && nodeResponse.getUpdatedConfigTypes().length == expectedConfigCount);
+            ConfigUpdateNodeResponse node = response.getNodesMap().get(nodeId);
+            boolean successNode = (node.getUpdatedConfigTypes() != null && node.getUpdatedConfigTypes().length == expectedConfigCount);
             
             if(!successNode) {
-                System.out.println("FAIL: Expected "+expectedConfigCount+" config types for node "+nodeId+" but got only "+Arrays.toString(nodeResponse.getUpdatedConfigTypes()) + " due to: "+nodeResponse.getMessage()==null?"unknown reason":nodeResponse.getMessage());
+                System.out.println("FAIL: Expected "+expectedConfigCount+" config types for node "+nodeId+" but got only "+Arrays.toString(node.getUpdatedConfigTypes()) + " due to: "+node.getMessage()==null?"unknown reason":node.getMessage());
             }
             
             success = success & successNode;

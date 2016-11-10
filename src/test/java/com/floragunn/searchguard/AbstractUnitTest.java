@@ -40,8 +40,6 @@ import java.util.Set;
 import javax.net.ssl.SSLContext;
 import javax.xml.bind.DatatypeConverter;
 
-import junit.framework.Assert;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.Header;
@@ -60,6 +58,8 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
@@ -69,8 +69,6 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
@@ -89,7 +87,6 @@ import org.junit.rules.TestName;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 
-import com.floragunn.searchguard.ssl.SearchGuardSSLPlugin;
 import com.google.common.base.Strings;
 
 public abstract class AbstractUnitTest {
@@ -219,6 +216,7 @@ public abstract class AbstractUnitTest {
     @After
     public void tearDown() throws Exception {
 
+        Thread.sleep(500);
         if (esNode3 != null) {
             esNode3.close();
         }

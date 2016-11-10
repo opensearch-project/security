@@ -88,7 +88,7 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
     private final UUID instanceUUID = UUID.randomUUID();
     private final boolean dlsFlsAvailable;
     private final Constructor dlFlsConstructor;
-    
+    //TODO 5mg check tribe
     public SearchGuardPlugin(final Settings settings) {
         super();
         if(!settings.getAsBoolean(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLED, true)) {
