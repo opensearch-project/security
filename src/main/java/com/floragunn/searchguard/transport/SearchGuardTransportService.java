@@ -252,7 +252,7 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
                     
                     try {
                         if(!backendRegistry.get().authenticate(request, transportChannel)) {
-                            log.error("Cannot authenticate {}", request.getFromContext(ConfigConstants.SG_USER));
+                            log.error("Cannot authenticate {}", (User) request.getFromContext(ConfigConstants.SG_USER));
                             transportChannel.sendResponse(new ElasticsearchSecurityException("Cannot authenticate "+request.getFromContext(ConfigConstants.SG_USER)));
                             return;
                         }
