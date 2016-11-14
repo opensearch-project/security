@@ -2,6 +2,10 @@
 
 Search Guard 2 (compatible with Elasticsearch 2.4.1)
 
+## Elasticsearch 5
+
+[Search Guard 5](https://github.com/floragunncom/search-guard/tree/5.0.0) (compatible with Elasticsearch 5) is now also available. You may also want to read this [blog post about Search Guard 5](https://floragunn.com/search-guard-5/).
+
 ## Documentation
 
 [Additional documentation is provided here](https://github.com/floragunncom/search-guard-docs)
@@ -9,6 +13,7 @@ Search Guard 2 (compatible with Elasticsearch 2.4.1)
 ## Quick Start
 
 If you want to try out Search Guard, we recommend to download the [Search Guard Bundle](https://github.com/floragunncom/search-guard/wiki/Search-Guard-Bundle). This is an Elasticsearch installation, preconfigured with Search Guard. It contains all enterprise features and templates for all configuration files. Just download, unzip and you're ready to go! 
+
 ##Roadmap
 This is almost a complete rewrite of Search Guard 1 which comes with a lot of new features:
 
@@ -31,7 +36,7 @@ Advanced functionalities like LDAP and Kerberos authentication/authorization as 
  * ``sudo bin/plugin install -b com.floragunn/search-guard-ssl/2.4.1.16``
 
 * Install search-guard-2 plugin
- * ``sudo bin/plugin install -b com.floragunn/search-guard-2/2.4.1.7``
+ * ``sudo bin/plugin install -b com.floragunn/search-guard-2/2.4.1.8``
  
 (See also the [Vagrant file](https://github.com/floragunncom/search-guard/blob/master/Vagrantfile) we provide)
 
@@ -39,6 +44,12 @@ Both plugins need to be installed on every node in the cluster.
 
 After the plugins are installed you need to configure them. ``search-guard-ssl`` needs to be configured statically
 in elasticsearch.yml (any change needs a restart of the node). See [search-guard-ssl documentation](https://github.com/floragunncom/search-guard-ssl) how to configure it. ``search-guard-2`` needs only a single entry in elasticsearch.yml (see below), all other configuration is stored in Elasticsearch itself and can be dynamically changed without restarting a node or the cluster.
+
+##Known issues
+
+* Elasticsearch license plugin
+ * If you have the Elasticsearch license plugin installed, the audit log module breaks and the nodes do not start
+ * If you are on AWS and have the license plugin and Search Guard installed, node discovery breaks in certain situations
 
 ##Configuration
 

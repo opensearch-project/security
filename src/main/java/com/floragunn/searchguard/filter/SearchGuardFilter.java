@@ -17,7 +17,6 @@
 
 package com.floragunn.searchguard.filter;
 
-import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
@@ -29,6 +28,7 @@ import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.tasks.Task;
 
@@ -95,7 +95,7 @@ public class SearchGuardFilter implements ActionFilter {
         //LogHelper.logUserTrace("--> Header {}", request.getHeaders());
 
         if (log.isTraceEnabled()) {
-            log.trace("remote address: {}", request.getFromContext(ConfigConstants.SG_REMOTE_ADDRESS));
+            log.trace("remote address: {}", (TransportAddress) request.getFromContext(ConfigConstants.SG_REMOTE_ADDRESS));
         }
 
         

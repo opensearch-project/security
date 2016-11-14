@@ -239,7 +239,7 @@ public class BackendRegistry implements ConfigChangeListener {
 
     public boolean authenticate(final TransportRequest request, final TransportChannel channel) throws ElasticsearchSecurityException {
         
-        boolean impersonated = impersonate(request, channel);
+        impersonate(request, channel);
 
         final User user = request.getFromContext(ConfigConstants.SG_USER);
         

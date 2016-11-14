@@ -97,3 +97,7 @@ sg_own_index:
 sg_writer:
   users:
     - writer
+
+sg_dlsnoinvest:
+  users:
+    - dlsnoinvest

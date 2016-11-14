@@ -36,8 +36,14 @@ import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.CompositeIndicesRequest;
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.RealtimeRequest;
+import org.elasticsearch.action.admin.indices.alias.IndicesAliasesAction;
+import org.elasticsearch.action.bulk.BulkAction;
+import org.elasticsearch.action.get.MultiGetAction;
+import org.elasticsearch.action.percolate.MultiPercolateAction;
+import org.elasticsearch.action.search.MultiSearchAction;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.support.IndicesOptions;
+import org.elasticsearch.action.termvectors.MultiTermVectorsAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
@@ -74,6 +80,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
     private final ClusterService clusterService;
     private volatile Settings rolesMapping;
     private volatile Settings roles;
+    private volatile Settings config;
     private final ActionGroupHolder ah;
     private final IndexNameExpressionResolver resolver;
     private final Map<Class<?>, Method> typeCache = Collections.synchronizedMap(new HashMap<Class<?>, Method>(100));
@@ -89,6 +96,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         super();
         tcua.addConfigChangeListener(ConfigurationService.CONFIGNAME_ROLES_MAPPING, this);
         tcua.addConfigChangeListener(ConfigurationService.CONFIGNAME_ROLES, this);
+        tcua.addConfigChangeListener(ConfigurationService.CONFIGNAME_CONFIG, this);
         this.clusterService = clusterService;
         this.ah = ah;
         this.resolver = resolver;
@@ -146,6 +154,9 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
             break;
         case "rolesmapping":
             rolesMapping = settings;
+            break;
+        case "config":
+            config = settings;
             break;
         }
     }
@@ -289,8 +300,9 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         }
         
         boolean allowAction = false;
-        final Set<String> dlsQueries = new HashSet<String>();
-        final Set<String> flsFields = new HashSet<String>();
+        
+        final Map<String,Set<String>> dlsQueries = new HashMap<String, Set<String>>();
+        final Map<String,Set<String>> flsFields = new HashMap<String, Set<String>>();
 
         for (final Iterator<String> iterator = sgRoles.iterator(); iterator.hasNext();) {
             final String sgRole = (String) iterator.next();
@@ -309,10 +321,21 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                 log.debug("---------- evaluate sg_role: {}", sgRole);
             }
 
+            final boolean compositeEnabled = config.getAsBoolean("searchguard.dynamic.composite_enabled", false);
            
             if (action.startsWith("cluster:") || action.startsWith("indices:admin/template/delete")
                     || action.startsWith("indices:admin/template/get") || action.startsWith("indices:admin/template/put") 
-                || action.startsWith("indices:data/read/scroll")) {
+                || action.startsWith("indices:data/read/scroll")
+                //M*
+                || (compositeEnabled && action.startsWith(BulkAction.NAME))
+                || (compositeEnabled && action.startsWith(IndicesAliasesAction.NAME))
+                || (compositeEnabled && action.startsWith(MultiGetAction.NAME))
+                || (compositeEnabled && action.startsWith(MultiPercolateAction.NAME))
+                || (compositeEnabled && action.startsWith(MultiSearchAction.NAME))
+                || (compositeEnabled && action.startsWith(MultiTermVectorsAction.NAME))
+                || (compositeEnabled && action.startsWith("indices:data/read/coordinate-msearch"))
+                //|| (compositeEnabled && action.startsWith(MultiPercolateAction.NAME))
+                ) {
                 
                 final Set<String> resolvedActions = resolveActions(sgRoleSettings.getAsArray(".cluster", new String[0]));
 
@@ -449,6 +472,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                 
             }// end loop permittedAliasesIndices
 
+            
             if (!resolvedRoleIndices.isEmpty()) {                
                 for(String resolvedRole: resolvedRoleIndices.keySet()) {
                     for(String resolvedIndex: resolvedRoleIndices.get(resolvedRole)) {                        
@@ -460,21 +484,31 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                             
                             //TODO use UserPropertyReplacer, make it registerable for ldap user
                             dls = dls.replace("${user.name}", user.getName()).replace("${user_name}", user.getName());
-                            
-                            dlsQueries.add(dls);
+                           
+                            if(dlsQueries.containsKey(resolvedIndex)) {
+                                dlsQueries.get(resolvedIndex).add(dls);
+                            } else {
+                                dlsQueries.put(resolvedIndex, new HashSet<String>());
+                                dlsQueries.get(resolvedIndex).add(dls);
+                            }
                                                 
                             if (log.isDebugEnabled()) {
-                                log.debug("dls query {}", dls);
+                                log.debug("dls query {} for {}", dls, resolvedIndex);
                             }
                             
                         }
                         
                         if(fls != null && fls.length > 0) {
                             
-                            flsFields.addAll(Sets.newHashSet(fls));
+                            if(flsFields.containsKey(resolvedIndex)) {
+                                flsFields.get(resolvedIndex).addAll(Sets.newHashSet(fls));
+                            } else {
+                                flsFields.put(resolvedIndex, new HashSet<String>());
+                                flsFields.get(resolvedIndex).addAll(Sets.newHashSet(fls));
+                            }
                             
                             if (log.isDebugEnabled()) {
-                                log.debug("fls fields {}", Sets.newHashSet(fls));
+                                log.debug("fls fields {} for {}", Sets.newHashSet(fls), resolvedIndex);
                             }
                             
                         }
@@ -488,15 +522,15 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         } // end sg role loop
 
         if (!allowAction && log.isInfoEnabled()) {
-            log.info("No perm match for {} and {}", action, sgRoles);
+            log.info("No perm match for {} {} [Action [{}]] [RolesChecked {}]", user, requestedResolvedIndexTypes, action, sgRoles);
         }
-        
+
         if(!dlsQueries.isEmpty()) {
-            request.putHeader(ConfigConstants.SG_DLS_QUERY, Base64Helper.serializeObject((Serializable)dlsQueries));
+            request.putHeader(ConfigConstants.SG_DLS_QUERY, Base64Helper.serializeObject((Serializable) dlsQueries));
         }
         
         if(!flsFields.isEmpty()) {
-            request.putHeader(ConfigConstants.SG_FLS_FIELDS, Base64Helper.serializeObject((Serializable)flsFields));
+            request.putHeader(ConfigConstants.SG_FLS_FIELDS, Base64Helper.serializeObject((Serializable) flsFields));
         }
         
         return allowAction;

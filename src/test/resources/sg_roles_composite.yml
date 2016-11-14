@@ -15,6 +15,8 @@ sg_zdummy_all:
         - ALL
 
 sg_role_klingons1:
+  cluster:
+    - indices:data/read/msearch
   indices:
     klingonempire:
       ships:  
@@ -244,18 +246,3 @@ sg_writer:
       '*':
         - WRITE
         - CREATE_INDEX
-
-sg_dlsnoinvest:
-  cluster:
-    - ALL
-  indices:
-    'article':
-      '*':
-        - ALL
-    'investment':
-      '*':
-        - ALL
-    'company':
-      '*':
-        - ALL
-      _dls_: '{"term" : {"category_code" : "software"}}'
