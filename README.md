@@ -2,6 +2,10 @@
 
 Search Guard 2 (compatible with Elasticsearch 2.4.1)
 
+## Elasticsearch 5
+
+[Search Guard 5](https://github.com/floragunncom/search-guard/tree/5.0.0) (compatible with Elasticsearch 5) is now also available. You may also want to read this [blog post about Search Guard 5](https://floragunn.com/search-guard-5/).
+
 ## Documentation
 
 [Additional documentation is provided here](https://github.com/floragunncom/search-guard-docs)
