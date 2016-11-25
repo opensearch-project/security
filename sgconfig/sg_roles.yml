@@ -55,6 +55,8 @@ sg_all_access:
         - '*'
         
 sg_role_starfleet:
+  cluster:
+    - CLUSTER_COMPOSITE_OPS
   indices:
     sf:
        ships:  
@@ -79,23 +81,29 @@ sg_role_starfleet_captains:
          - CRUD 
   cluster:
     - 'cluster:monitor*'
+    - CLUSTER_COMPOSITE_OPS
   
 
 sg_readonly_and_monitor:
   cluster:
     - CLUSTER_MONITOR
+    - CLUSTER_COMPOSITE_OPS
   indices:
     '*':
       '*':
         - ALL
 
 sg_readall:
+  cluster:
+    - CLUSTER_COMPOSITE_OPS
   indices:
     '*':
       '*':
         - READ
 
 sg_readonly_dlsfls:
+  cluster:
+    - CLUSTER_COMPOSITE_OPS
   indices:
     '/\S*/':
       '*':
@@ -111,6 +119,8 @@ sg_transport_client:
       - cluster:monitor/state
 
 sg_kibana4:
+  cluster:
+    - CLUSTER_COMPOSITE_OPS
   indices:
     '*':
       '*':
@@ -133,6 +143,8 @@ sg_kibana4:
         - indices:data/write/update*
 
 sg_kibana4_testindex:
+  cluster:
+    - CLUSTER_COMPOSITE_OPS
   indices:
     'test*':
       '*':
@@ -158,6 +170,7 @@ sg_kibana4_server:
   cluster:
       - cluster:monitor/nodes/info
       - cluster:monitor/health
+      - CLUSTER_COMPOSITE_OPS
   indices:
     '?kibana':
       '*':
@@ -167,6 +180,7 @@ sg_logstash:
   cluster:
     - indices:admin/template/get
     - indices:admin/template/put
+    - CLUSTER_COMPOSITE_OPS
   indices:
     'logstash-*':
       '*':
@@ -179,6 +193,8 @@ sg_logstash:
 
 # Allows each user to access own named index
 sg_own_index:
+  cluster:
+    - CLUSTER_COMPOSITE_OPS
   indices:
     '${user_name}':
       '*':
@@ -187,3 +203,4 @@ sg_own_index:
 sg_public:
   cluster:
     - cluster:monitor/main
+    - CLUSTER_COMPOSITE_OPS

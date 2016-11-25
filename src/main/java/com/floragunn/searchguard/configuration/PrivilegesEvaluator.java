@@ -337,6 +337,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                     || action.startsWith("indices:admin/template/get") || action.startsWith("indices:admin/template/put") 
                 || action.startsWith("indices:data/read/scroll")
                 //M*
+                //be sure to sync the CLUSTER_COMPOSITE_OPS actiongroups
                 || (compositeEnabled && action.startsWith(BulkAction.NAME))
                 || (compositeEnabled && action.startsWith(IndicesAliasesAction.NAME))
                 || (compositeEnabled && action.startsWith(MultiGetAction.NAME))
