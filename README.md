@@ -1,4 +1,4 @@
-#Search Guard 2 for Elasticsearch 2.4.1
+#Search Guard 2 for Elasticsearch 2.x
 
 Search Guard 2 (compatible with Elasticsearch 2.4.1)
 
@@ -8,11 +8,12 @@ Search Guard 2 (compatible with Elasticsearch 2.4.1)
 
 ## Documentation
 
-[Additional documentation is provided here](https://github.com/floragunncom/search-guard-docs)
+[Documentation is provided here](https://github.com/floragunncom/search-guard-docs)
 
 ## Quick Start
 
 If you want to try out Search Guard, we recommend to download the [Search Guard Bundle](https://github.com/floragunncom/search-guard/wiki/Search-Guard-Bundle). This is an Elasticsearch installation, preconfigured with Search Guard. It contains all enterprise features and templates for all configuration files. Just download, unzip and you're ready to go! 
+
 ##Roadmap
 This is almost a complete rewrite of Search Guard 1 which comes with a lot of new features:
 
@@ -22,7 +23,7 @@ This is almost a complete rewrite of Search Guard 1 which comes with a lot of ne
  * Syntax is more easy
  * Admin CLI tool introduced (sgadmin)
  
-Advanced functionalities like LDAP and Kerberos authentication/authorization as well as DLS/FLS are also available as separate and commercial licensed add-ons (but still Open Source). See https://github.com/floragunncom/search-guard/wiki
+Advanced functionalities like LDAP and Kerberos authentication/authorization as well as DLS/FLS are also available as separate and commercial licensed add-ons (but still Open Source). See https://github.com/floragunncom/search-guard-docs/blob/master/installation.md for additional information.
 
 ##Support
 * Commercial support now available through [floragunn UG](http://floragunn.com)
@@ -49,6 +50,8 @@ in elasticsearch.yml (any change needs a restart of the node). See [search-guard
 * Elasticsearch license plugin
  * If you have the Elasticsearch license plugin installed, the audit log module breaks and the nodes do not start
  * If you are on AWS and have the license plugin and Search Guard installed, node discovery breaks in certain situations
+
+**These issues have been fixed in Search Guard version 8. If you are still on an older version, please update.**
 
 ##Configuration
 
