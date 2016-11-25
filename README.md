@@ -30,11 +30,6 @@ Advanced functionalities like LDAP and Kerberos authentication/authorization as 
 
 After the plugin is installed you need to configure them. SSL needs to be configured statically
 in elasticsearch.yml (any change needs a restart of the node). See [search-guard-ssl documentation](https://github.com/floragunncom/search-guard-ssl) how to configure it. ``search-guard-5`` needs only a single entry in elasticsearch.yml (see below), all other configuration is stored in Elasticsearch itself and can be dynamically changed without restarting a node or the cluster.
-##Known issues
-
-* Elasticsearch license plugin
- * If you have the Elasticsearch license plugin installed, the audit log module breaks and the nodes do not start
- * If you are on AWS and have the license plugin and Search Guard installed, node discovery breaks in certain situations
 
 ##Configuration
 
