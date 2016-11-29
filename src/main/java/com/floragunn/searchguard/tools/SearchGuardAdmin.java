@@ -339,16 +339,15 @@ public class SearchGuardAdmin {
 
             if (!indexExists) {
                 System.out.print(index +" index does not exists, attempt to create it ... ");
-                int replicas = chr.getNumberOfDataNodes()-1;
                 final boolean indexCreated = tc.admin().indices().create(new CreateIndexRequest(index)
-                // .mapping("config", source)
-                // .settings(settings)
-                //TODO "index.auto_expand_replicas", "0-all"
-                .settings("index.number_of_shards", 1, "index.number_of_replicas", replicas)
-                        ).actionGet().isAcknowledged();
+                .settings(
+                        "index.number_of_shards", 1, 
+                        "index.auto_expand_replicas", "0-all"
+                        ))
+                        .actionGet().isAcknowledged();
 
                 if (indexCreated) {
-                    System.out.println("done (with "+replicas+" replicas, auto expand replicas is off)");
+                    System.out.println("done (auto expand replicas is on)");
                 } else {
                     System.out.println("failed!");
                     System.out.println("FAIL: Unable to create the "+index+" index. See elasticsearch logs for more details");
