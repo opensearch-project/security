@@ -85,6 +85,7 @@ public class SearchGuardAdmin {
         } 
         catch (IndexNotFoundException e) {
             System.out.println("ERR: No searchguard configuartion index found. Pls. execute sgadmin with different command line parameters");
+            System.out.println("When you run it for the first time to not specify -us, -era, -dra or -rl");
             System.out.println("For more informations look here: https://github.com/floragunncom/search-guard/issues/228");
             System.exit(-1);
         }
@@ -124,11 +125,11 @@ public class SearchGuardAdmin {
         options.addOption(Option.builder("ec").longOpt("enabled-ciphers").hasArg().argName("cipers").desc("Comma separated list of TLS ciphers").build());
         options.addOption(Option.builder("ep").longOpt("enabled-protocols").hasArg().argName("protocols").desc("Comma separated list of TLS protocols").build());
         //TODO mark as deprecated and replace it with "era" if "era" is mature enough
-        options.addOption(Option.builder("us").longOpt("update_settings").hasArg().argName("number of replicas").desc("update the number of replicas and reload configuration on all nodes").build());
+        options.addOption(Option.builder("us").longOpt("update_settings").hasArg().argName("number of replicas").desc("update the number of replicas and reload configuration on all nodes and exit").build());
         options.addOption(Option.builder("i").longOpt("index").hasArg().argName("indexname").desc("The index Searchguard uses to store its configs in").build());
-        options.addOption(Option.builder("era").longOpt("enable-replica-autoexpand").desc("enable replica auto expand").build());
-        options.addOption(Option.builder("dra").longOpt("disable-replica-autoexpand").desc("disable replica auto expand").build());
-        options.addOption(Option.builder("rl").longOpt("reload").desc("reload configuration on all nodes").build());
+        options.addOption(Option.builder("era").longOpt("enable-replica-autoexpand").desc("enable replica auto expand and exit").build());
+        options.addOption(Option.builder("dra").longOpt("disable-replica-autoexpand").desc("disable replica auto expand and exit").build());
+        options.addOption(Option.builder("rl").longOpt("reload").desc("reload configuration on all nodes and exit").build());
         
         String hostname = "localhost";
         int port = 9300;
