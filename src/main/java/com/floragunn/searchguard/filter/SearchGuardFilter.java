@@ -33,7 +33,6 @@ import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import com.floragunn.searchguard.SearchGuardPlugin;
 import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.auth.BackendRegistry;
 import com.floragunn.searchguard.configuration.AdminDNs;
