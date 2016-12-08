@@ -313,7 +313,8 @@ public class SearchGuardAdmin {
                 try {
                     chr = tc.admin().cluster().health(new ClusterHealthRequest().timeout(TimeValue.timeValueMinutes(5)).waitForYellowStatus()).actionGet();
                 } catch (Exception e) {
-                    System.out.println("Cannot retrieve cluster state due to "+e.getMessage()+". This is not an error, will keep on trying ...");
+                    System.out.println("Cannot retrieve cluster state due to: "+e.getMessage()+". This is not an error, will keep on trying ...");
+                    System.out.println("   * Try running sgadmin.sh with -icl and -nhnv (If thats works you need to check your clustername as well as hostnames in your SSL certificates)");
                     Thread.sleep(3000);
                     continue;
                 }
@@ -323,6 +324,7 @@ public class SearchGuardAdmin {
             
             if (timedOut) {
                 System.out.println("ERR: Timed out while waiting for a green or yellow cluster state.");
+                System.out.println("   * Try running sgadmin.sh with -icl and -nhnv (If thats works you need to check your clustername as well as hostnames in your SSL certificates)");
                 System.exit(-1);
             }
             

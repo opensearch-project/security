@@ -399,8 +399,8 @@ public class BackendRegistry implements ConfigChangeListener {
         }
         
         if (!isInitialized()) {
-            log.error("Not yet initialized");
-            channel.sendResponse(new BytesRestResponse(RestStatus.SERVICE_UNAVAILABLE, "Search Guard not initialized (SG11)"));
+            log.error("Not yet initialized (you may need to run sgadmin)");
+            channel.sendResponse(new BytesRestResponse(RestStatus.SERVICE_UNAVAILABLE, "Search Guard not initialized (SG11). See https://github.com/floragunncom/search-guard-docs/blob/master/sgadmin.md"));
             return false;
         }
         
