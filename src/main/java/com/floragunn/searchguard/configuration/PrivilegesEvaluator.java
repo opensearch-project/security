@@ -419,7 +419,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                     log.debug("For index {} remaining requested indextype: {}", permittedAliasesIndex, _requestedResolvedIndexTypes);
                 }
                 
-                if (_requestedResolvedIndexTypes.isEmpty() && _requestedResolvedIndexTypes.isEmpty()) {
+                if (_requestedResolvedIndexTypes.isEmpty()) {
                     
                     int filteredAliasCount = 0;
                     
