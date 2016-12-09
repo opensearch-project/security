@@ -338,15 +338,15 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                 || action.startsWith("indices:data/read/scroll")
                 //M*
                 //be sure to sync the CLUSTER_COMPOSITE_OPS actiongroups
-                || (compositeEnabled && action.startsWith(BulkAction.NAME))
-                || (compositeEnabled && action.startsWith(IndicesAliasesAction.NAME))
-                || (compositeEnabled && action.startsWith(MultiGetAction.NAME))
+                || (compositeEnabled && action.equals(BulkAction.NAME))
+                || (compositeEnabled && action.equals(IndicesAliasesAction.NAME))
+                || (compositeEnabled && action.equals(MultiGetAction.NAME))
                 //TODO 5mg check multipercolate action and check if there are new m* actions
-                //|| (compositeEnabled && action.startsWith(Multiper.NAME))
-                || (compositeEnabled && action.startsWith(MultiSearchAction.NAME))
-                || (compositeEnabled && action.startsWith(MultiTermVectorsAction.NAME))
-                || (compositeEnabled && action.startsWith("indices:data/read/coordinate-msearch"))
-                //|| (compositeEnabled && action.startsWith(MultiPercolateAction.NAME))
+                //|| (compositeEnabled && action.equals(Multiper.NAME))
+                || (compositeEnabled && action.equals(MultiSearchAction.NAME))
+                || (compositeEnabled && action.equals(MultiTermVectorsAction.NAME))
+                || (compositeEnabled && action.equals("indices:data/read/coordinate-msearch"))
+                //|| (compositeEnabled && action.equals(MultiPercolateAction.NAME))
                 ) {
                 
                 final Set<String> resolvedActions = resolveActions(sgRoleSettings.getAsArray(".cluster", new String[0]));
@@ -431,7 +431,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                     log.debug("For index {} remaining requested indextype: {}", permittedAliasesIndex, _requestedResolvedIndexTypes);
                 }
                 
-                if (_requestedResolvedIndexTypes.isEmpty() && _requestedResolvedIndexTypes.isEmpty()) {
+                if (_requestedResolvedIndexTypes.isEmpty()) {
                     
                     int filteredAliasCount = 0;
                     
@@ -538,11 +538,25 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         }
 
         if(!dlsQueries.isEmpty()) {
-            this.threadContext.putHeader(ConfigConstants.SG_DLS_QUERY, Base64Helper.serializeObject((Serializable) dlsQueries));
+            
+            if(this.threadContext.getHeader(ConfigConstants.SG_DLS_QUERY) != null) {
+                if(!dlsQueries.equals((Map<String,Set<String>>) Base64Helper.deserializeObject(this.threadContext.getHeader(ConfigConstants.SG_DLS_QUERY)))) {
+                    throw new ElasticsearchSecurityException(ConfigConstants.SG_DLS_QUERY+" does not match (SG 900D)");
+                }
+            } else {
+                this.threadContext.putHeader(ConfigConstants.SG_DLS_QUERY, Base64Helper.serializeObject((Serializable) dlsQueries));
+            }
         }
         
         if(!flsFields.isEmpty()) {
-        	this.threadContext.putHeader(ConfigConstants.SG_FLS_FIELDS, Base64Helper.serializeObject((Serializable)flsFields));
+            
+            if(this.threadContext.getHeader(ConfigConstants.SG_FLS_FIELDS) != null) {
+                if(!flsFields.equals((Map<String,Set<String>>) Base64Helper.deserializeObject(this.threadContext.getHeader(ConfigConstants.SG_FLS_FIELDS)))) {
+                    throw new ElasticsearchSecurityException(ConfigConstants.SG_FLS_FIELDS+" does not match (SG 901D)");
+                }
+            } else {
+                this.threadContext.putHeader(ConfigConstants.SG_FLS_FIELDS, Base64Helper.serializeObject((Serializable)flsFields));
+            }
         }
         
         return allowAction;

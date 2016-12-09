@@ -91,6 +91,7 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
     //TODO 5mg check tribe
     public SearchGuardPlugin(final Settings settings) {
         super();
+        log.info("Clustername: {}", settings.get("cluster.name","elasticsearch"));
         if(!settings.getAsBoolean(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLED, true)) {
             throw new IllegalStateException(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLED+" must be set to 'true'");
         }
