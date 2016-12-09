@@ -327,13 +327,13 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                     || action.startsWith("indices:admin/template/get") || action.startsWith("indices:admin/template/put") 
                 || action.startsWith("indices:data/read/scroll")
                 //M*
-                || (compositeEnabled && action.startsWith(BulkAction.NAME))
-                || (compositeEnabled && action.startsWith(IndicesAliasesAction.NAME))
-                || (compositeEnabled && action.startsWith(MultiGetAction.NAME))
-                || (compositeEnabled && action.startsWith(MultiPercolateAction.NAME))
-                || (compositeEnabled && action.startsWith(MultiSearchAction.NAME))
-                || (compositeEnabled && action.startsWith(MultiTermVectorsAction.NAME))
-                || (compositeEnabled && action.startsWith("indices:data/read/coordinate-msearch"))
+                || (compositeEnabled && action.equals(BulkAction.NAME))
+                || (compositeEnabled && action.equals(IndicesAliasesAction.NAME))
+                || (compositeEnabled && action.equals(MultiGetAction.NAME))
+                || (compositeEnabled && action.equals(MultiPercolateAction.NAME))
+                || (compositeEnabled && action.equals(MultiSearchAction.NAME))
+                || (compositeEnabled && action.equals(MultiTermVectorsAction.NAME))
+                || (compositeEnabled && action.equals("indices:data/read/coordinate-msearch"))
                 //|| (compositeEnabled && action.startsWith(MultiPercolateAction.NAME))
                 ) {
                 
