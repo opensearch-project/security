@@ -12,12 +12,12 @@ public interface DlsFlsRequestValve {
      * @param listener
      * @return false to stop
      */
-    boolean invoke(final ActionRequest<?> request, final ActionListener listener, ThreadContext threadContext);
+    boolean invoke(final ActionRequest request, final ActionListener listener, ThreadContext threadContext);
 
     public static class NoopDlsFlsRequestValve implements DlsFlsRequestValve {
 
         @Override
-        public boolean invoke(ActionRequest<?> request, ActionListener listener, ThreadContext threadContext) {
+        public boolean invoke(ActionRequest request, ActionListener listener, ThreadContext threadContext) {
             return true;
         }
         

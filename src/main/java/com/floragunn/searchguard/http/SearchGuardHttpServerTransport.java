@@ -17,12 +17,9 @@
 
 package com.floragunn.searchguard.http;
 
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.http.netty4.Netty4HttpRequest;
 import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -32,18 +29,18 @@ import com.floragunn.searchguard.ssl.http.netty.SearchGuardSSLNettyHttpServerTra
 
 public class SearchGuardHttpServerTransport extends SearchGuardSSLNettyHttpServerTransport {
 
-    private final Provider<AuditLog> auditLog;
+    private final AuditLog auditLog;
     
-    @Inject
     public SearchGuardHttpServerTransport(Settings settings, NetworkService networkService, 
-            BigArrays bigArrays, ThreadPool threadPool, SearchGuardKeyStore sgks, Provider<AuditLog> auditLog) {
+            BigArrays bigArrays, ThreadPool threadPool, SearchGuardKeyStore sgks, AuditLog auditLog) {
         super(settings, networkService, bigArrays, threadPool, sgks);
         this.auditLog = auditLog;
     }
 
     @Override
     protected void errorThrown(Throwable t, RestRequest request) {
-        auditLog.get().logSSLException(request, t, null);
+        //FIXME reenable auditlog here
+        //auditLog.logSSLException(request, t, null);
         super.errorThrown(t, request);
     }   
 }

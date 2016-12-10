@@ -26,9 +26,12 @@ import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -39,17 +42,25 @@ import org.elasticsearch.action.support.ActionFilter;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.network.NetworkModule;
+import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IndexSearcherWrapper;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.plugins.ActionPlugin;
+import org.elasticsearch.plugins.NetworkPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.rest.RestHandler;
 import org.elasticsearch.tasks.Task;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportInterceptor;
 import org.elasticsearch.transport.TransportRequest;
@@ -68,6 +79,9 @@ import com.floragunn.searchguard.configuration.SearchGuardIndexSearcherWrapper;
 import com.floragunn.searchguard.filter.SearchGuardFilter;
 import com.floragunn.searchguard.http.SearchGuardHttpServerTransport;
 import com.floragunn.searchguard.rest.SearchGuardInfoAction;
+import com.floragunn.searchguard.ssl.DefaultSearchGuardKeyStore;
+import com.floragunn.searchguard.ssl.ExternalSearchGuardKeyStore;
+import com.floragunn.searchguard.ssl.SearchGuardKeyStore;
 import com.floragunn.searchguard.ssl.SearchGuardSSLModule;
 import com.floragunn.searchguard.ssl.rest.SearchGuardSSLInfoAction;
 import com.floragunn.searchguard.ssl.transport.SearchGuardSSLNettyTransport;
@@ -76,7 +90,7 @@ import com.floragunn.searchguard.support.ReflectionHelper;
 import com.floragunn.searchguard.transport.SearchGuardInterceptor;
 import com.google.common.collect.Lists;
 
-public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
+public final class SearchGuardPlugin extends Plugin implements ActionPlugin, NetworkPlugin {
 
     private static final String FLS_DLS_INDEX_SEARCHER_WRAPPER_CLASS = "com.floragunn.searchguard.configuration.SearchGuardFlsDlsIndexSearcherWrapper";
     private final Logger log = LogManager.getLogger(this.getClass());
@@ -88,6 +102,8 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
     private final UUID instanceUUID = UUID.randomUUID();
     private final boolean dlsFlsAvailable;
     private final Constructor dlFlsConstructor;
+    private final SearchGuardKeyStore sgks;
+    
     //TODO 5mg check tribe
     public SearchGuardPlugin(final Settings settings) {
         super();
@@ -138,6 +154,12 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
             dlFlsConstructor = null;
             log.info("FLS/DLS module not available");
         }
+        
+        if(ExternalSearchGuardKeyStore.hasExternalSslContext(settings)) {
+            this.sgks = new ExternalSearchGuardKeyStore(settings);
+        } else {
+            this.sgks = new DefaultSearchGuardKeyStore(settings);
+        }
     }
     
     @Override
@@ -164,8 +186,8 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
     }
     
     @Override
-    public List<ActionHandler<? extends ActionRequest<?>, ? extends ActionResponse>> getActions() {
-        List<ActionHandler<? extends ActionRequest<?>, ? extends ActionResponse>> actions = new ArrayList<>(1);
+    public List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
+        List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> actions = new ArrayList<>(1);
         if(!tribeNodeClient) {
             actions.add(new ActionHandler(ConfigUpdateAction.INSTANCE, TransportConfigUpdateAction.class));
         }
@@ -176,7 +198,7 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
     @Override
     public Collection<Module> createGuiceModules() {
         List<Module> modules = new ArrayList<Module>(1);
-        modules.add(new SearchGuardSSLModule(settings));   
+        modules.add(new SearchGuardSSLModule(settings, sgks));   
         if (!client && !tribeNodeClient) {
             modules.add(new ConfigurationModule());
             modules.add(new BackendModule());
@@ -223,19 +245,17 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
         }
         return filters;
     }
-    
-    public void onModule(final NetworkModule module) {
-        module.registerTransport("com.floragunn.searchguard.ssl.http.netty.SearchGuardSSLNettyTransport", SearchGuardSSLNettyTransport.class);
 
-        if (!client && httpSSLEnabled && !tribeNodeClient) {
-            module.registerHttpTransport("com.floragunn.searchguard.http.SearchGuardHttpServerTransport", SearchGuardHttpServerTransport.class);
-        }
+    
+    @Override
+    public List<TransportInterceptor> getTransportInterceptors() {
+        List<TransportInterceptor> interceptors = new ArrayList<TransportInterceptor>(1);
         
         if (!client && !tribeNodeClient) {
-            module.addTransportInterceptor(new TransportInterceptor() {
+            interceptors.add(new TransportInterceptor() {
 
                 @Override
-                public <T extends TransportRequest> TransportRequestHandler<T> interceptHandler(String action,
+                public <T extends TransportRequest> TransportRequestHandler<T> interceptHandler(String action, String executor,
                         TransportRequestHandler<T> actualHandler) {
                     
                     return new TransportRequestHandler<T>() {
@@ -266,7 +286,37 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
                     };
                 }
             });
+        
         }
+        
+        return interceptors;
+    }
+    
+    @Override
+    public Map<String, Supplier<Transport>> getTransports(Settings settings, ThreadPool threadPool, BigArrays bigArrays,
+            CircuitBreakerService circuitBreakerService, NamedWriteableRegistry namedWriteableRegistry, NetworkService networkService) {
+
+        Map<String, Supplier<Transport>> transports = new HashMap<String, Supplier<Transport>>();
+        transports.put("com.floragunn.searchguard.ssl.http.netty.SearchGuardSSLNettyTransport", 
+                () -> new SearchGuardSSLNettyTransport(settings, threadPool, networkService, bigArrays, namedWriteableRegistry, circuitBreakerService, sgks));
+ 
+        return transports;
+
+    }
+
+
+    @Override
+    public Map<String, Supplier<HttpServerTransport>> getHttpTransports(Settings settings, ThreadPool threadPool, BigArrays bigArrays,
+            CircuitBreakerService circuitBreakerService, NamedWriteableRegistry namedWriteableRegistry, NetworkService networkService) {
+
+        Map<String, Supplier<HttpServerTransport>> httpTransports = new HashMap<String, Supplier<HttpServerTransport>>(1);
+        if (!client && httpSSLEnabled && !tribeNodeClient) {
+            httpTransports.put("com.floragunn.searchguard.http.SearchGuardHttpServerTransport", 
+                    () -> new SearchGuardHttpServerTransport(settings, networkService, bigArrays, threadPool, sgks, null));
+        }
+        
+        return httpTransports;
+        
     }
         
     @Override
@@ -338,6 +388,9 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
         settings.add(Setting.simpleString(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLED_PROTOCOLS, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLED_CIPHERS, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLED_PROTOCOLS, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(SSLConfigConstants.SEARCHGUARD_SSL_CLIENT_EXTERNAL_CONTEXT_ID, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, Property.NodeScope, Property.Filtered));
+
         
         settings.add(Setting.simpleString("node.client", Property.NodeScope));
         settings.add(Setting.simpleString("node.local", Property.NodeScope));
