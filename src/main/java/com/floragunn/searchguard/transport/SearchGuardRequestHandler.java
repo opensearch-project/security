@@ -38,9 +38,9 @@ import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportRequestHandler;
 
-import com.floragunn.searchguard.SearchGuardPlugin;
 import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.auth.BackendRegistry;
+import com.floragunn.searchguard.ssl.transport.PrincipalExtractor;
 import com.floragunn.searchguard.ssl.transport.SearchGuardSSLRequestHandler;
 import com.floragunn.searchguard.ssl.util.SSLRequestHelper;
 import com.floragunn.searchguard.support.Base64Helper;
@@ -60,8 +60,9 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
             ThreadPool threadPool,
             Provider<BackendRegistry> backendRegistry,
             Provider<AuditLog> auditLog,
-            final String certOid) {
-        super(action, actualHandler, threadPool);
+            final String certOid,
+            final PrincipalExtractor principalExtractor) {
+        super(action, actualHandler, threadPool, principalExtractor);
         this.backendRegistry = backendRegistry;
         this.auditLog = auditLog;
         this.certOid = certOid;

@@ -35,6 +35,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.auth.BackendRegistry;
+import com.floragunn.searchguard.ssl.transport.PrincipalExtractor;
 import com.floragunn.searchguard.ssl.util.SSLRequestHelper;
 import com.floragunn.searchguard.ssl.util.SSLRequestHelper.SSLInfo;
 import com.floragunn.searchguard.support.ConfigConstants;
@@ -45,13 +46,16 @@ public class SearchGuardRestFilter extends RestFilter {
     private final BackendRegistry registry;
     private final AuditLog auditLog;
     private final ThreadContext threadContext;
+    private final PrincipalExtractor principalExtractor;
 
     @Inject
-    public SearchGuardRestFilter(final BackendRegistry registry, final AuditLog auditLog, final ThreadPool threadPool) {
+    public SearchGuardRestFilter(final BackendRegistry registry, final AuditLog auditLog,
+            final ThreadPool threadPool, final PrincipalExtractor principalExtractor) {
         super();
         this.registry = registry;
         this.auditLog = auditLog;
         this.threadContext = threadPool.getThreadContext();
+        this.principalExtractor = principalExtractor;
     }
 
     @Override
@@ -66,7 +70,7 @@ public class SearchGuardRestFilter extends RestFilter {
 
         final SSLInfo sslInfo;
         try {
-            if((sslInfo = SSLRequestHelper.getSSLInfo(request)) != null) {
+            if((sslInfo = SSLRequestHelper.getSSLInfo(request, principalExtractor)) != null) {
                 if(sslInfo.getPrincipal() != null) {
                     threadContext.putTransient("_sg_ssl_principal", sslInfo.getPrincipal());
                 }
