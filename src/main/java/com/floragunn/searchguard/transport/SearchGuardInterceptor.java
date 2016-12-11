@@ -41,6 +41,7 @@ import com.floragunn.searchguard.SearchGuardPlugin;
 import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.auth.BackendRegistry;
 import com.floragunn.searchguard.configuration.InstanceId;
+import com.floragunn.searchguard.ssl.transport.PrincipalExtractor;
 import com.floragunn.searchguard.support.Base64Helper;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.user.User;
@@ -52,14 +53,18 @@ public class SearchGuardInterceptor {
     private Provider<AuditLog> auditLog;
     private final String certOid;
     private final ThreadPool threadPool;
+    private final PrincipalExtractor principalExtractor;
     private static Map<String, SearchGuardInterceptor> instancemap = new HashMap<String, SearchGuardInterceptor>(); 
     
     @Inject
-    public SearchGuardInterceptor(final InstanceId id, final Settings settings, final ThreadPool threadPool, final Provider<BackendRegistry> backendRegistry, final Provider<AuditLog> auditLog) {
+    public SearchGuardInterceptor(final InstanceId id, final Settings settings, 
+            final ThreadPool threadPool, final Provider<BackendRegistry> backendRegistry, 
+            final Provider<AuditLog> auditLog, final PrincipalExtractor principalExtractor) {
         this.backendRegistry = backendRegistry;
         this.auditLog = auditLog;
         this.certOid = settings.get("searchguard.cert.oid", "1.2.3.4.5.5");
         this.threadPool = threadPool;
+        this.principalExtractor = principalExtractor;
         
         synchronized(SearchGuardInterceptor.class) {
             instancemap.put(id.getId(), this);
@@ -72,7 +77,7 @@ public class SearchGuardInterceptor {
     
     public <T extends TransportRequest> SearchGuardRequestHandler<T> getHandler(String action, 
             TransportRequestHandler<T> actualHandler) {
-        return new SearchGuardRequestHandler<T>(action, actualHandler, threadPool, backendRegistry, auditLog, certOid);
+        return new SearchGuardRequestHandler<T>(action, actualHandler, threadPool, backendRegistry, auditLog, certOid, principalExtractor);
     }
 
     public <T extends TransportResponse> void sendRequestDecorate(AsyncSender sender, DiscoveryNode node, String action,

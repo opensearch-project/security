@@ -23,7 +23,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -62,6 +61,7 @@ import com.floragunn.searchguard.http.HTTPClientCertAuthenticator;
 import com.floragunn.searchguard.http.HTTPHostAuthenticator;
 import com.floragunn.searchguard.http.HTTPProxyAuthenticator;
 import com.floragunn.searchguard.http.XFFResolver;
+import com.floragunn.searchguard.ssl.transport.PrincipalExtractor;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.HTTPHelper;
 import com.floragunn.searchguard.user.AuthCredentials;
@@ -117,9 +117,10 @@ public class BackendRegistry implements ConfigChangeListener {
 
     @Inject
     public BackendRegistry(final Settings settings, final RestController controller, final TransportConfigUpdateAction tcua, final ClusterService cse,
-            final AdminDNs adminDns, final XFFResolver xffResolver, InternalAuthenticationBackend iab, AuditLog auditLog, ThreadPool threadPool) {
+            final AdminDNs adminDns, final XFFResolver xffResolver, InternalAuthenticationBackend iab, AuditLog auditLog, ThreadPool threadPool,
+            final PrincipalExtractor principalExtractor) {
         tcua.addConfigChangeListener(ConfigConstants.CONFIGNAME_CONFIG, this);
-        controller.registerFilter(new SearchGuardRestFilter(this, auditLog, threadPool));
+        controller.registerFilter(new SearchGuardRestFilter(this, auditLog, threadPool, principalExtractor));
         this.tcua = tcua;
         this.adminDns = adminDns;
         this.esSettings = settings;

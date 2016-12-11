@@ -38,7 +38,7 @@
   </licenses>
 
   <properties>
-    <sgssl.version>5.1.1-18</sgssl.version>
+    <sgssl.version>5.1.1-19</sgssl.version>
     <netty-native.version>1.1.33.Fork23</netty-native.version>
     <elasticsearch.version>5.1.1</elasticsearch.version>
     <elasticsearch.assembly.descriptor>${basedir}/src/main/assemblies/plugin.xml</elasticsearch.assembly.descriptor>
