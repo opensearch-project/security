@@ -550,7 +550,7 @@ public class SearchGuardAdmin {
         }
         
         //validate
-        Settings.builder().put(new JsonSettingsLoader().load(XContentHelper.createParser(retVal))).build();
+        Settings.builder().put(new JsonSettingsLoader(true).load(XContentHelper.createParser(retVal))).build();
         return retVal;
     }
     
