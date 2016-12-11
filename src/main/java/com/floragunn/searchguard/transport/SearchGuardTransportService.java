@@ -47,6 +47,7 @@ import org.elasticsearch.transport.TransportResponseHandler;
 
 import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.auth.BackendRegistry;
+import com.floragunn.searchguard.ssl.transport.PrincipalExtractor;
 import com.floragunn.searchguard.ssl.transport.SearchGuardSSLTransportService;
 import com.floragunn.searchguard.support.Base64Helper;
 import com.floragunn.searchguard.support.ConfigConstants;
@@ -64,8 +65,8 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
 
     @Inject
     public SearchGuardTransportService(final Settings settings, final Transport transport, final ThreadPool threadPool,
-            final Provider<BackendRegistry> backendRegistry, AuditLog auditLog) {
-        super(settings, transport, threadPool);
+            final Provider<BackendRegistry> backendRegistry, AuditLog auditLog, final PrincipalExtractor principalExtractor) {
+        super(settings, transport, threadPool, principalExtractor);
         this.backendRegistry = backendRegistry;
         this.auditLog = auditLog;
         this.certOid = settings.get("searchguard.cert.oid", "1.2.3.4.5.5");
