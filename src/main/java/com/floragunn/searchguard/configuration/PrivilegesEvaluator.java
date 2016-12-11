@@ -183,7 +183,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         }
  
         public String getCombinedString() {
-            return index+type;
+            return index+"#"+type;
         }
 
         @Override

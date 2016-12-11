@@ -259,3 +259,14 @@ sg_dlsnoinvest:
       '*':
         - ALL
       _dls_: '{"term" : {"category_code" : "software"}}'
+      
+sg_baz:
+  cluster: 
+    - ALL
+  indices:
+    'foo*':
+      'bar':
+        - READ
+    'foo':
+      'baz':
+        - READ
