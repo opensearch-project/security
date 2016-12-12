@@ -34,7 +34,7 @@
   </licenses>
 
   <properties>
-    <sgssl.version>2.4.1.16</sgssl.version>
+    <sgssl.version>2.4.1.19</sgssl.version>
     <elasticsearch.version>2.4.1</elasticsearch.version>
     <elasticsearch.plugin.isolated>false</elasticsearch.plugin.isolated>
     <dependency.locations.enabled>false</dependency.locations.enabled>
@@ -96,14 +96,15 @@
     </dependency>
     
     <!-- Only test scoped dependencies hereafter -->
-<!-- 
+<!--  
+
     <dependency>
        <groupId>com.floragunn</groupId>
        <artifactId>dlic-search-guard-module-dlsfls</artifactId>
        <version>2.4-4-SNAPSHOT</version>
        <scope>test</scope>
     </dependency>  
- 
+
     <dependency>
       <groupId>com.floragunn</groupId>
       <artifactId>dlic-search-guard-authbackend-ldap</artifactId>

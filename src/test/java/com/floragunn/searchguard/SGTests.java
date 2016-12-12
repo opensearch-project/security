@@ -43,6 +43,8 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.indices.InvalidIndexNameException;
+import org.elasticsearch.indices.InvalidTypeNameException;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.node.PluginAwareNode;
 import org.junit.Assert;
@@ -2020,4 +2022,110 @@ public class SGTests extends AbstractUnitTest {
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("no permissions for indices:data/read/search"));
         
     }
+    
+    @Test
+    public void testIndexTypeEvaluation() throws Exception {
+
+        final Settings settings = Settings.settingsBuilder().put("searchguard.ssl.transport.enabled", true)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
+                .put("searchguard.ssl.transport.keystore_filepath", getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+                .put("searchguard.ssl.transport.truststore_filepath", getAbsoluteFilePathFromClassPath("truststore.jks"))
+                .put("searchguard.ssl.transport.enforce_hostname_verification", false)
+                .put("searchguard.ssl.transport.resolve_hostname", false)
+                .putArray("searchguard.authcz.admin_dn", "CN=kirk,OU=client,O=client,l=tEst, C=De")
+                .build();
+        
+        startES(settings);
+
+        Settings tcSettings = Settings.builder().put("cluster.name", clustername)
+                .put(settings)
+                .put("searchguard.ssl.transport.keystore_filepath", getAbsoluteFilePathFromClassPath("kirk-keystore.jks"))
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS,"kirk")
+                .put("path.home", ".").build();
+
+        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardSSLPlugin.class).addPlugin(SearchGuardPlugin.class).build()) {
+            
+            log.debug("Start transport client to init");
+            
+            tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
+            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().length);
+
+            tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
+            tc.index(new IndexRequest("searchguard").type("config").id("0").refresh(true).source(readYamlContent("sg_config.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("internalusers").refresh(true).id("0").source(readYamlContent("sg_internal_users.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("roles").id("0").refresh(true).source(readYamlContent("sg_roles.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("rolesmapping").refresh(true).id("0").source(readYamlContent("sg_roles_mapping.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("actiongroups").refresh(true).id("0").source(readYamlContent("sg_action_groups.yml"))).actionGet();
+            
+            System.out.println("------- End INIT ---------");
+            
+            tc.index(new IndexRequest("foo1").type("bar").id("1").refresh(true).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("foo2").type("bar").id("2").refresh(true).source("{\"content\":2}")).actionGet();
+            tc.index(new IndexRequest("foo").type("baz").id("3").refresh(true).source("{\"content\":3}")).actionGet();
+            tc.index(new IndexRequest("fooba").type("z").id("4").refresh(true).source("{\"content\":4}")).actionGet();
+            
+            try {
+                tc.index(new IndexRequest("x#a").type("xxx").id("4a").refresh(true).source("{\"content\":4}")).actionGet();
+                Assert.fail("Indexname can contain #");
+            } catch (InvalidIndexNameException e) {
+                //expected
+            }
+            
+            
+            try {
+                tc.index(new IndexRequest("xa").type("x#a").id("4a").refresh(true).source("{\"content\":4}")).actionGet();
+                Assert.fail("Typename can contain #");
+            } catch (InvalidTypeNameException e) {
+                //expected
+            }
+            
+            
+            ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
+            Assert.assertEquals(3, cur.getNodes().length);
+        }
+
+        HttpResponse  resc = executeGetRequest("/foo1/bar/_search?pretty", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("baz", "worf")));
+        Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
+        Assert.assertTrue(resc.getBody().contains("\"content\" : 1"));
+        
+        resc = executeGetRequest("/foo2/bar/_search?pretty", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("baz", "worf")));
+        Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
+        Assert.assertTrue(resc.getBody().contains("\"content\" : 2"));
+        
+        resc = executeGetRequest("/foo/baz/_search?pretty", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("baz", "worf")));
+        Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
+        Assert.assertTrue(resc.getBody().contains("\"content\" : 3"));
+        
+        resc = executeGetRequest("/fooba/z/_search?pretty", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("baz", "worf")));
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());        
+
+        resc = executeGetRequest("/foo1/bar/1?pretty", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("baz", "worf")));
+        Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
+        Assert.assertTrue(resc.getBody().contains("\"found\" : true"));
+        Assert.assertTrue(resc.getBody().contains("\"content\" : 1"));
+        
+        resc = executeGetRequest("/foo2/bar/2?pretty", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("baz", "worf")));
+        Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
+        Assert.assertTrue(resc.getBody().contains("\"content\" : 2"));
+        Assert.assertTrue(resc.getBody().contains("\"found\" : true"));
+        
+        resc = executeGetRequest("/foo/baz/3?pretty", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("baz", "worf")));
+        Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
+        Assert.assertTrue(resc.getBody().contains("\"content\" : 3"));
+        Assert.assertTrue(resc.getBody().contains("\"found\" : true"));
+ 
+        resc = executeGetRequest("/fooba/z/4?pretty", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("baz", "worf")));
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
+   
+        resc = executeGetRequest("/foo*/_search?pretty", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("baz", "worf")));
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
+    
+        resc = executeGetRequest("/foo*,-fooba/bar/_search?pretty", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("baz", "worf")));
+        Assert.assertEquals(200, resc.getStatusCode());
+        Assert.assertTrue(resc.getBody().contains("\"content\" : 1"));
+        Assert.assertTrue(resc.getBody().contains("\"content\" : 2"));
+    }
+
 }

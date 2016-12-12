@@ -1,0 +1,15 @@
+
+Lists of 13 third-party dependencies.
+     (The Apache Software License, Version 2.0) Search Guard SSL (com.floragunn:search-guard-ssl:2.4.1.18-SNAPSHOT - https://github.com/floragunncom/search-guard-ssl)
+     (The Apache Software License, Version 2.0) Commons Codec (commons-codec:commons-codec:1.6 - http://commons.apache.org/codec/)
+     (The Apache Software License, Version 2.0) Commons IO (commons-io:commons-io:2.4 - http://commons.apache.org/io/)
+     (The Apache Software License, Version 2.0) Commons Logging (commons-logging:commons-logging:1.1.3 - http://commons.apache.org/proper/commons-logging/)
+     (Apache License, Version 2.0) Netty/Buffer (io.netty:netty-buffer:4.0.37.Final - http://netty.io/netty-buffer/)
+     (Apache License, Version 2.0) Netty/Codec (io.netty:netty-codec:4.0.37.Final - http://netty.io/netty-codec/)
+     (Apache License, Version 2.0) Netty/Common (io.netty:netty-common:4.0.37.Final - http://netty.io/netty-common/)
+     (Apache License, Version 2.0) Netty/Handler (io.netty:netty-handler:4.0.37.Final - http://netty.io/netty-handler/)
+     (Apache License, Version 2.0) Netty/TomcatNative [OpenSSL - Dynamic] (io.netty:netty-tcnative:1.1.33.Fork17 - https://github.com/netty/netty-tcnative/netty-tcnative/)
+     (Apache License, Version 2.0) Netty/Transport (io.netty:netty-transport:4.0.37.Final - http://netty.io/netty-transport/)
+     (Apache License, Version 2.0) Fluent API for Apache HttpClient (org.apache.httpcomponents:fluent-hc:4.3.4 - http://hc.apache.org/httpcomponents-client)
+     (Apache License, Version 2.0) Apache HttpClient (org.apache.httpcomponents:httpclient:4.3.4 - http://hc.apache.org/httpcomponents-client)
+     (Apache License, Version 2.0) Apache HttpCore (org.apache.httpcomponents:httpcore:4.3.2 - http://hc.apache.org/httpcomponents-core-ga)

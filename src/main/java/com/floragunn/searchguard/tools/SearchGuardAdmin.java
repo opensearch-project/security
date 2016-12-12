@@ -56,10 +56,12 @@ import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.settings.loader.JsonSettingsLoader;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -85,6 +87,7 @@ public class SearchGuardAdmin {
         } 
         catch (IndexNotFoundException e) {
             System.out.println("ERR: No searchguard configuartion index found. Pls. execute sgadmin with different command line parameters");
+            System.out.println("When you run it for the first time to not specify -us, -era, -dra or -rl");
             System.out.println("For more informations look here: https://github.com/floragunncom/search-guard/issues/228");
             System.exit(-1);
         }
@@ -124,11 +127,13 @@ public class SearchGuardAdmin {
         options.addOption(Option.builder("ec").longOpt("enabled-ciphers").hasArg().argName("cipers").desc("Comma separated list of TLS ciphers").build());
         options.addOption(Option.builder("ep").longOpt("enabled-protocols").hasArg().argName("protocols").desc("Comma separated list of TLS protocols").build());
         //TODO mark as deprecated and replace it with "era" if "era" is mature enough
-        options.addOption(Option.builder("us").longOpt("update_settings").hasArg().argName("number of replicas").desc("update the number of replicas and reload configuration on all nodes").build());
+        options.addOption(Option.builder("us").longOpt("update_settings").hasArg().argName("number of replicas").desc("update the number of replicas and reload configuration on all nodes and exit").build());
         options.addOption(Option.builder("i").longOpt("index").hasArg().argName("indexname").desc("The index Searchguard uses to store its configs in").build());
-        options.addOption(Option.builder("era").longOpt("enable-replica-autoexpand").desc("enable replica auto expand").build());
-        options.addOption(Option.builder("dra").longOpt("disable-replica-autoexpand").desc("disable replica auto expand").build());
-        options.addOption(Option.builder("rl").longOpt("reload").desc("reload configuration on all nodes").build());
+        options.addOption(Option.builder("era").longOpt("enable-replica-autoexpand").desc("enable replica auto expand and exit").build());
+        options.addOption(Option.builder("dra").longOpt("disable-replica-autoexpand").desc("disable replica auto expand and exit").build());
+        options.addOption(Option.builder("rl").longOpt("reload").desc("reload configuration on all nodes and exit").build());
+        options.addOption(Option.builder("ff").longOpt("fail-fast").desc("fail-fast if something goes wrong").build());
+
         
         String hostname = "localhost";
         int port = 9300;
@@ -155,6 +160,7 @@ public class SearchGuardAdmin {
         String index = ConfigConstants.SG_DEFAULT_CONFIG_INDEX;
         Boolean replicaAutoExpand = null;
         boolean reload = false;
+        boolean failFast = false;
         
         CommandLineParser parser = new DefaultParser();
         try {
@@ -207,6 +213,8 @@ public class SearchGuardAdmin {
             if(line.hasOption("dra")) {
                 replicaAutoExpand = false;
             }
+            
+            failFast = line.hasOption("ff");
             
         }
         catch( ParseException exp ) {
@@ -304,6 +312,9 @@ public class SearchGuardAdmin {
                 System.exit(response.isAcknowledged()?0:-1);
             }      
             
+            if(failFast) {
+                System.out.println("Failfast is activated");
+            }
             System.out.println("Contacting elasticsearch cluster '"+clustername+"' and wait for YELLOW clusterstate ...");
             
             ClusterHealthResponse chr = null;
@@ -311,8 +322,16 @@ public class SearchGuardAdmin {
             while(chr == null) {
                 try {
                     chr = tc.admin().cluster().health(new ClusterHealthRequest().timeout(TimeValue.timeValueMinutes(5)).waitForYellowStatus()).actionGet();
-                } catch (Exception e) {
-                    System.out.println("Cannot retrieve cluster state due to "+e.getMessage()+". This is not an error, will keep on trying ...");
+                } catch (Exception e) {                   
+                    if(!failFast) {
+                        System.out.println("Cannot retrieve cluster state due to: "+e.getMessage()+". This is not an error, will keep on trying ...");
+                        System.out.println("   * Try running sgadmin.sh with -icl and -nhnv (If thats works you need to check your clustername as well as hostnames in your SSL certificates)");   
+                    } else {
+                        System.out.println("ERR: Cannot retrieve cluster state due to: "+e.getMessage()+".");
+                        System.out.println("       * Try running sgadmin.sh with -icl and -nhnv (If thats works you need to check your clustername as well as hostnames in your SSL certificates)");
+                        System.exit(-1);
+                    }
+                    
                     Thread.sleep(3000);
                     continue;
                 }
@@ -322,6 +341,7 @@ public class SearchGuardAdmin {
             
             if (timedOut) {
                 System.out.println("ERR: Timed out while waiting for a green or yellow cluster state.");
+                System.out.println("   * Try running sgadmin.sh with -icl and -nhnv (If thats works you need to check your clustername as well as hostnames in your SSL certificates)");
                 System.exit(-1);
             }
             
@@ -371,7 +391,12 @@ public class SearchGuardAdmin {
                     }
                     
                 } catch (Exception e) {
-                    System.out.println("Cannot retrieve "+index+" index state state due to "+e.getMessage()+". This is not an error, will keep on trying ...");
+                    if(!failFast) {
+                        System.out.println("Cannot retrieve "+index+" index state state due to "+e.getMessage()+". This is not an error, will keep on trying ...");
+                    } else {
+                        System.out.println("ERR: Cannot retrieve "+index+" index state state due to "+e.getMessage()+".");
+                        System.exit(-1);
+                    }
                 }
             }
             
@@ -410,6 +435,11 @@ public class SearchGuardAdmin {
             success = success & uploadFile(tc, cd+"sg_roles_mapping.yml", index, "rolesmapping");
             success = success & uploadFile(tc, cd+"sg_internal_users.yml", index, "internalusers");
             success = success & uploadFile(tc, cd+"sg_action_groups.yml", index, "actiongroups");
+            
+            if(failFast && !success) {
+                System.out.println("ERR: cannot upload configuration, see errors above");
+                System.exit(-1);
+            }
             
             ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
             
@@ -503,18 +533,23 @@ public class SearchGuardAdmin {
     }
 
     private static BytesReference readXContent(final Reader reader, final XContentType xContentType) throws IOException {
+        BytesReference retVal;
         XContentParser parser = null;
         try {
             parser = XContentFactory.xContent(xContentType).createParser(reader);
             parser.nextToken();
             final XContentBuilder builder = XContentFactory.jsonBuilder();
             builder.copyCurrentStructure(parser);
-            return builder.bytes();
+            retVal = builder.bytes();
         } finally {
             if (parser != null) {
                 parser.close();
             }
         }
+        
+        //validate
+        Settings.builder().put(new JsonSettingsLoader().load(XContentHelper.createParser(retVal))).build();
+        return retVal;
     }
     
     private static String convertToYaml(BytesReference bytes, boolean prettyPrint) throws IOException {

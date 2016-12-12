@@ -76,3 +76,6 @@ writer:
   hash: $2a$12$LZvbDVnegkTbEFTu9hHnWO4HIrdB9rGaKcEOID5n0VV4j58cnvyZ.
 dlsnoinvest:
   hash: $2a$12$9Zr4IgoJRqK6xJq4xjoa6OZAnY4QOQ6xIhcCxeYoQtB/HriMkeJSC
+baz:
+  hash: $2a$12$A41IxPXV1/Dx46C6i1ufGubv.p3qYX7xVcY46q33sylYbIqQVwTMu
+  #password is: worf
