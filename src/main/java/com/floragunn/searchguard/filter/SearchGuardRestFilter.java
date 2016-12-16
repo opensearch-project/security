@@ -39,6 +39,7 @@ import com.floragunn.searchguard.ssl.transport.PrincipalExtractor;
 import com.floragunn.searchguard.ssl.util.SSLRequestHelper;
 import com.floragunn.searchguard.ssl.util.SSLRequestHelper.SSLInfo;
 import com.floragunn.searchguard.support.ConfigConstants;
+import com.floragunn.searchguard.support.HTTPHelper;
 import com.floragunn.searchguard.support.HeaderHelper;
 
 public class SearchGuardRestFilter extends RestFilter {
@@ -61,6 +62,13 @@ public class SearchGuardRestFilter extends RestFilter {
     @Override
     public void process(RestRequest request, RestChannel channel, NodeClient client, RestFilterChain filterChain) throws Exception {
 
+        if(HTTPHelper.containsBadHeader(request)) {
+            final ElasticsearchException exception = new ElasticsearchException("bad http header found");      
+            auditLog.logBadHeaders(request);
+            channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, exception));
+            return;
+        }
+        
         if(SSLRequestHelper.containsBadHeader(threadContext, ConfigConstants.SG_CONFIG_PREFIX)) {
             final ElasticsearchException exception = new ElasticsearchException("bad header found");      
             auditLog.logBadHeaders(request);
