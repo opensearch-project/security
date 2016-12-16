@@ -248,6 +248,7 @@ public class BackendRegistry implements ConfigChangeListener {
         }
         
         if(adminDns.isAdmin(user.getName())) {
+            auditLog.logAuthenticatedRequest(request, channel.action());
             return true;
         }
         
@@ -395,6 +396,7 @@ public class BackendRegistry implements ConfigChangeListener {
         if(adminDns.isAdmin(sslPrincipal)) {
             //PKI authenticated REST call
             request.putInContext(ConfigConstants.SG_USER, new User(sslPrincipal));
+            auditLog.logFailedLogin(sslPrincipal, request);
             return true;
         }
         
@@ -447,6 +449,7 @@ public class BackendRegistry implements ConfigChangeListener {
                 }
                         
                 if(authDomain.isChallenge() && httpAuthenticator.reRequestAuthentication(channel, null)) {
+                    auditLog.logFailedLogin(null, request);
                     return false;
                 } else {
                     //no reRequest possible
@@ -458,6 +461,7 @@ public class BackendRegistry implements ConfigChangeListener {
             } else if (!ac.isComplete()) {
                 //credentials found in request but we need another client challenge
                 if(httpAuthenticator.reRequestAuthentication(channel, ac)) {
+                    auditLog.logFailedLogin(ac.getUsername()+" <incomplete>", request);
                     return false;
                 } else {
                     //no reRequest possible
@@ -498,6 +502,7 @@ public class BackendRegistry implements ConfigChangeListener {
                         }
                     });
                 } catch (Exception e) {
+                    //no audit log here, we catch this exception later
                     log.error("Unexpected exception {} ", e, e.toString());
                     throw new ElasticsearchSecurityException(e.toString(), e);
                 } finally {
@@ -511,6 +516,7 @@ public class BackendRegistry implements ConfigChangeListener {
                 
                 if(adminDns.isAdmin(authenticatedUser.getName())) {
                     log.error("Cannot authenticate user because admin user is not permitted to login via HTTP");
+                    auditLog.logFailedLogin(authenticatedUser.getName(), request);
                     channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN));
                     return false;
                 }
@@ -596,6 +602,7 @@ public class BackendRegistry implements ConfigChangeListener {
                 if(log.isDebugEnabled()) {
                     log.debug("Impersonate from '{}' to '{}'",origPKIuser.getName(), impersonatedUser);
                 }
+                auditLog.logAuthenticatedRequest(tr, channel.action());
             }
         } catch (final InvalidNameException e1) {
             throw new ElasticsearchSecurityException("PKI does not have a valid name ('" + origPKIuser.getName() + "'), should never happen",
