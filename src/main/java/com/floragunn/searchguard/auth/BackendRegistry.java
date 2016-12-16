@@ -596,8 +596,8 @@ public class BackendRegistry implements ConfigChangeListener {
                 aU = new User(impersonatedUser);
                 if(log.isDebugEnabled()) {
                     log.debug("Impersonate from '{}' to '{}'",origPKIuser.getName(), impersonatedUser);
-                    auditLog.logAuthenticatedRequest(tr, channel.action());
                 }
+                auditLog.logAuthenticatedRequest(tr, channel.action());
             }
         } catch (final InvalidNameException e1) {
             throw new ElasticsearchSecurityException("PKI does not have a valid name ('" + origPKIuser.getName() + "'), should never happen",
