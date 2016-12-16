@@ -346,6 +346,7 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         settings.add(Setting.simpleString("searchguard.audit.config.type", Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString("searchguard.audit.config.username", Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString("searchguard.audit.config.password", Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString("searchguard.audit.config.disabled_categories", Property.NodeScope, Property.Filtered));
         
         settings.add(Setting.simpleString("searchguard.kerberos.krb5_filepath", Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString("searchguard.kerberos.acceptor_keytab_filepath", Property.NodeScope, Property.Filtered));
