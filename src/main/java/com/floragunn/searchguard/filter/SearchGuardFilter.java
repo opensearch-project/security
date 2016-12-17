@@ -95,7 +95,8 @@ public class SearchGuardFilter implements ActionFilter {
         //LogHelper.logUserTrace("--> Header {}", request.getHeaders());
 
         if (log.isTraceEnabled()) {
-            log.trace("remote address: {}", (TransportAddress) request.getFromContext(ConfigConstants.SG_REMOTE_ADDRESS));
+            final Object remoteAddress = request.getFromContext(ConfigConstants.SG_REMOTE_ADDRESS);
+            log.trace("remote address: {}", String.valueOf(remoteAddress));
         }
 
         
