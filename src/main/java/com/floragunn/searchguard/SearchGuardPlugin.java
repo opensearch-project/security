@@ -314,14 +314,12 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         if (!client && httpSSLEnabled && !tribeNodeClient) {
             httpTransports.put("com.floragunn.searchguard.http.SearchGuardHttpServerTransport", 
                     () -> new SearchGuardHttpServerTransport(settings, networkService, bigArrays, threadPool, sgks, null));
-        } else {
+        } else if (!client && !tribeNodeClient) {
             httpTransports.put("com.floragunn.searchguard.http.SearchGuardHttpServerTransport", 
                     () -> new SearchGuardNonSslHttpServerTransport(settings, networkService, bigArrays, threadPool));
-
         }
         
         return httpTransports;
-        
     }
         
     @Override
