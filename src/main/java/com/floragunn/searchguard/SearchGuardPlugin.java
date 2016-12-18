@@ -67,6 +67,7 @@ import com.floragunn.searchguard.configuration.InterceptorModule;
 import com.floragunn.searchguard.configuration.SearchGuardIndexSearcherWrapper;
 import com.floragunn.searchguard.filter.SearchGuardFilter;
 import com.floragunn.searchguard.http.SearchGuardHttpServerTransport;
+import com.floragunn.searchguard.http.SearchGuardNonSslHttpServerTransport;
 import com.floragunn.searchguard.rest.SearchGuardInfoAction;
 import com.floragunn.searchguard.ssl.SearchGuardSSLModule;
 import com.floragunn.searchguard.ssl.rest.SearchGuardSSLInfoAction;
@@ -229,6 +230,8 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
 
         if (!client && httpSSLEnabled && !tribeNodeClient) {
             module.registerHttpTransport("com.floragunn.searchguard.http.SearchGuardHttpServerTransport", SearchGuardHttpServerTransport.class);
+        } else if(!client && !tribeNodeClient){
+            module.registerHttpTransport("com.floragunn.searchguard.http.SearchGuardHttpServerTransport", SearchGuardNonSslHttpServerTransport.class);
         }
         
         if (!client && !tribeNodeClient) {
@@ -268,19 +271,12 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
             });
         }
     }
-        
+ 
     @Override
     public Settings additionalSettings() {
         final Settings.Builder builder = Settings.builder();
-        
         builder.put(NetworkModule.TRANSPORT_TYPE_KEY, "com.floragunn.searchguard.ssl.http.netty.SearchGuardSSLNettyTransport");
-
-        if (!client && !tribeNodeClient) {            
-            if (httpSSLEnabled) {
-                builder.put(NetworkModule.HTTP_TYPE_KEY, "com.floragunn.searchguard.http.SearchGuardHttpServerTransport");
-            }
-        }
-
+        builder.put(NetworkModule.HTTP_TYPE_KEY, "com.floragunn.searchguard.http.SearchGuardHttpServerTransport");
         return builder.build();
     }
     
