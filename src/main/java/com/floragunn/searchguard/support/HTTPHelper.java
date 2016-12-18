@@ -18,11 +18,12 @@
 package com.floragunn.searchguard.support;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 import javax.xml.bind.DatatypeConverter;
 
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.rest.RestRequest;
 
 import com.floragunn.searchguard.user.AuthCredentials;
 
@@ -73,5 +74,20 @@ public class HTTPHelper {
             log.trace("No 'Authorization' header, send 401 and 'WWW-Authenticate Basic'");
             return null;
         }
+    }
+    
+    public static boolean containsBadHeader(final RestRequest request) {
+        
+        final Iterable<Map.Entry<String, String>> headers;
+        
+        if (request != null && ( headers = request.headers()) != null) {
+            for (final Map.Entry<String, String> header: headers) {
+                if (header != null && header.getKey() != null && header.getKey().trim().toLowerCase().startsWith(ConfigConstants.SG_CONFIG_PREFIX.toLowerCase())) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
     }
 }

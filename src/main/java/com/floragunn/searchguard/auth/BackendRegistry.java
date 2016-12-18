@@ -391,7 +391,7 @@ public class BackendRegistry implements ConfigChangeListener {
         if(AdminDNs.isAdmin(sslPrincipal)) {
             //PKI authenticated REST call
             threadPool.getThreadContext().putTransient(ConfigConstants.SG_USER, new User(sslPrincipal));
-            auditLog.logFailedLogin(sslPrincipal, request);
+            //auditLog.logAuthenticatedRequest(request);
             return true;
         }
         
@@ -497,6 +497,7 @@ public class BackendRegistry implements ConfigChangeListener {
                         }
                     });
                 } catch (Exception e) {
+                    //no audit log here, we catch this exception later
                     log.error("Unexpected exception {} ", e, e.toString());
                     //no audit log here, we catch this exception later
                     throw new ElasticsearchSecurityException(e.toString(), e);
@@ -508,14 +509,14 @@ public class BackendRegistry implements ConfigChangeListener {
                     log.info("Cannot authenticate user (or add roles) with ad {} due to user is null, try next", authDomain.getOrder());
                     continue;
                 }
-                
+
                 if(AdminDNs.isAdmin(authenticatedUser.getName())) {
-                    log.error("Cannot authenticate user because admin user is not permitted to login via HTTP");                    
+                    log.error("Cannot authenticate user because admin user is not permitted to login via HTTP");
                     auditLog.logFailedLogin(authenticatedUser.getName(), request);
                     channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, "Cannot authenticate user because admin user is not permitted to login via HTTP"));
                     return false;
                 }
-                
+
                  //authenticatedUser.addRoles(ac.getBackendRoles());
                 if(log.isDebugEnabled()) {
                     log.debug("User '{}' is authenticated", authenticatedUser);
