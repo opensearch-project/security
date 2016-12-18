@@ -396,7 +396,7 @@ public class BackendRegistry implements ConfigChangeListener {
         if(adminDns.isAdmin(sslPrincipal)) {
             //PKI authenticated REST call
             request.putInContext(ConfigConstants.SG_USER, new User(sslPrincipal));
-            auditLog.logFailedLogin(sslPrincipal, request);
+            //auditLog.logAuthenticatedRequest(request);
             return true;
         }
         
