@@ -89,8 +89,8 @@ public class XFFResolver implements ConfigChangeListener {
             detector = new RemoteIpDetector();
             detector.setInternalProxies(settings.get("searchguard.dynamic.http.xff.internalProxies", detector.getInternalProxies()));
             detector.setProxiesHeader(settings.get("searchguard.dynamic.http.xff.proxiesHeader", detector.getProxiesHeader()));
-            detector.setRemoteIpHeader(settings.get("searchguard.dynamic.http.xff.proxiesHeader.remoteIpHeader", detector.getRemoteIpHeader()));
-            detector.setTrustedProxies(settings.get("searchguard.dynamic.http.xff.proxiesHeader.trustedProxies", detector.getTrustedProxies()));
+            detector.setRemoteIpHeader(settings.get("searchguard.dynamic.http.xff.remoteIpHeader", detector.getRemoteIpHeader()));
+            detector.setTrustedProxies(settings.get("searchguard.dynamic.http.xff.trustedProxies", detector.getTrustedProxies()));
             
         } else {
             detector = null;
