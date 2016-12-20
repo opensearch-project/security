@@ -71,8 +71,6 @@ searchguard:
           config:
             # If true a lot of kerberos/security related debugging output will be logged to standard out
             krb_debug: false
-            # Acceptor (Server) Principal name, must be present in acceptor_keytab_path file
-            acceptor_principal: 'HTTP/localhost'
             # If true then the realm will be stripped from the user name
             strip_realm_from_principal: true
         authentication_backend:
