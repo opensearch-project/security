@@ -47,6 +47,8 @@ import org.elasticsearch.indices.InvalidIndexNameException;
 import org.elasticsearch.indices.InvalidTypeNameException;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.node.PluginAwareNode;
+import org.elasticsearch.rest.RestRequest;
+import org.elasticsearch.test.rest.FakeRestRequest;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Rule;
@@ -56,8 +58,10 @@ import org.junit.rules.ExpectedException;
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateAction;
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateRequest;
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateResponse;
+import com.floragunn.searchguard.http.HTTPClientCertAuthenticator;
 import com.floragunn.searchguard.ssl.SearchGuardSSLPlugin;
 import com.floragunn.searchguard.ssl.util.SSLConfigConstants;
+import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.ReflectionHelper;
 
 public class SGTests extends AbstractUnitTest {
@@ -2126,6 +2130,33 @@ public class SGTests extends AbstractUnitTest {
         Assert.assertEquals(200, resc.getStatusCode());
         Assert.assertTrue(resc.getBody().contains("\"content\" : 1"));
         Assert.assertTrue(resc.getBody().contains("\"content\" : 2"));
+    }
+
+    @Test
+    public void testDnParsingCertAuth() throws Exception {
+        Settings settings = Settings.settingsBuilder()
+                .put("username_attribute", "cn")
+                .build();
+        HTTPClientCertAuthenticator auth = new HTTPClientCertAuthenticator(settings);
+        Assert.assertEquals("abc", auth.extractCredentials(newSSLRestRequest("cn=abc,l=ert,st=zui,c=qwe")).getUsername());
+        Assert.assertEquals("abc", auth.extractCredentials(newSSLRestRequest("CN=abc,L=ert,st=zui,c=qwe")).getUsername());     
+        Assert.assertEquals("abc", auth.extractCredentials(newSSLRestRequest("l=ert,cn=abc,st=zui,c=qwe")).getUsername());
+        Assert.assertEquals("abc", auth.extractCredentials(newSSLRestRequest("L=ert,CN=abc,c,st=zui,c=qwe")).getUsername());
+        //Assert.assertEquals("ab,c", auth.extractCredentials(newSSLRestRequest("L=ert,CN=ab\\,c,c,st=zui,c=qwe")).getUsername());
+        Assert.assertEquals("abc", auth.extractCredentials(newSSLRestRequest("l=ert,st=zui,c=qwe,cn=abc")).getUsername());
+        Assert.assertEquals("abc", auth.extractCredentials(newSSLRestRequest("L=ert,st=zui,c=qwe,CN=abc")).getUsername()); 
+        Assert.assertEquals("L=ert,st=zui,c=qwe", auth.extractCredentials(newSSLRestRequest("L=ert,st=zui,c=qwe")).getUsername()); 
+        
+        settings = Settings.settingsBuilder()
+                .build();
+        auth = new HTTPClientCertAuthenticator(settings);
+        Assert.assertEquals("cn=abc,l=ert,st=zui,c=qwe", auth.extractCredentials(newSSLRestRequest("cn=abc,l=ert,st=zui,c=qwe")).getUsername());
+    }
+    
+    private RestRequest newSSLRestRequest(String sslPrincipal) {
+        FakeRestRequest request = new FakeRestRequest();
+        request.putInContext(ConfigConstants.SG_SSL_PRINCIPAL, sslPrincipal);
+        return request;
     }
 
 }

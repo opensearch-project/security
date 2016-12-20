@@ -30,22 +30,33 @@ import com.floragunn.searchguard.user.AuthCredentials;
 
 public class HTTPClientCertAuthenticator implements HTTPAuthenticator {
 
-    
     protected final ESLogger log = Loggers.getLogger(this.getClass());
-    private volatile Settings settings;
+    private final Settings settings;
 
     public HTTPClientCertAuthenticator(final Settings settings) {
-        super();
         this.settings = settings;
     }
 
     @Override
     public AuthCredentials extractCredentials(final RestRequest request) {
 
-        final String principal = request.getFromContext(ConfigConstants.SG_SSL_PRINCIPAL);
+        String principal = request.getFromContext(ConfigConstants.SG_SSL_PRINCIPAL);
 
         if (!Strings.isNullOrEmpty(principal)) {
-            return new AuthCredentials(principal).markComplete();
+            
+            final String usernameAttribute = settings.get("username_attribute");
+            
+            if(principal != null && usernameAttribute != null && usernameAttribute.length() > 0) {
+                final int start = principal.toLowerCase().indexOf(usernameAttribute.toLowerCase()+"=");
+                
+                if(start > -1) {
+                    final int commaIndex = principal.indexOf(",", start);
+                    principal = principal.substring(start+3, commaIndex==-1?principal.length():commaIndex);
+                }
+            }
+            
+            
+            return new AuthCredentials(principal.trim()).markComplete();
         } else {
             log.trace("No CLIENT CERT, send 401");
             return null;
