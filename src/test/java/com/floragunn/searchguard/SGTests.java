@@ -1643,6 +1643,11 @@ public class SGTests extends AbstractUnitTest {
             Assert.assertTrue(resc.getBody().contains("sg_anonymous"));
             Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
             
+            resc = executeGetRequest("_searchguard/authinfo?pretty=true");
+            System.out.println(resc.getBody());
+            Assert.assertTrue(resc.getBody().contains("\"remote_address\" : \"")); //check pretty print
+            Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
+            
             resc = executeGetRequest("_searchguard/authinfo", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("nagilum", "nagilum")));
             System.out.println(resc.getBody());
             Assert.assertTrue(resc.getBody().contains("nagilum"));

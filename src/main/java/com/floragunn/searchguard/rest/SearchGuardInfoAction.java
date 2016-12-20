@@ -30,7 +30,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.rest.BaseRestHandler;
 import org.elasticsearch.rest.BytesRestResponse;
 import org.elasticsearch.rest.RestChannel;
@@ -56,35 +55,36 @@ public class SearchGuardInfoAction extends BaseRestHandler {
         controller.registerHandler(GET, "/_searchguard/authinfo", this);
     }
 
-
-    
-    
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
-        BytesRestResponse response = null;
-        final XContentBuilder builder = XContentBuilder.builder(JsonXContent.jsonXContent);
+        return new RestChannelConsumer() {
 
-        try {
+            @Override
+            public void accept(RestChannel channel) throws Exception {
+                final XContentBuilder builder = channel.newBuilder();
+                BytesRestResponse response = null;
+                
+                try {
 
-            final X509Certificate[] certs = threadContext.getTransient(ConfigConstants.SG_SSL_PEER_CERTIFICATES);
-            builder.startObject();
-            builder.field("user", (User)threadContext.getTransient(ConfigConstants.SG_USER));
-            builder.field("remote_address", (TransportAddress)threadContext.getTransient(ConfigConstants.SG_REMOTE_ADDRESS));
-            builder.field("sg_roles", evaluator.get().mapSgRoles((User) threadContext.getTransient(ConfigConstants.SG_USER), (TransportAddress) threadContext.getTransient(ConfigConstants.SG_REMOTE_ADDRESS)));
-            builder.field("principal", (String)threadContext.getTransient(ConfigConstants.SG_SSL_PRINCIPAL));
-            builder.field("peer_certificates", certs != null && certs.length > 0 ? certs.length + "" : "0");
-            //builder.field("_debug_request", LogHelper.toString(request));
-            builder.endObject();
+                    final X509Certificate[] certs = threadContext.getTransient(ConfigConstants.SG_SSL_PEER_CERTIFICATES);
+                    builder.startObject();
+                    builder.field("user", (User)threadContext.getTransient(ConfigConstants.SG_USER));
+                    builder.field("remote_address", (TransportAddress)threadContext.getTransient(ConfigConstants.SG_REMOTE_ADDRESS));
+                    builder.field("sg_roles", evaluator.get().mapSgRoles((User) threadContext.getTransient(ConfigConstants.SG_USER), (TransportAddress) threadContext.getTransient(ConfigConstants.SG_REMOTE_ADDRESS)));
+                    builder.field("principal", (String)threadContext.getTransient(ConfigConstants.SG_SSL_PRINCIPAL));
+                    builder.field("peer_certificates", certs != null && certs.length > 0 ? certs.length + "" : "0");
+                    builder.endObject();
 
-            response = new BytesRestResponse(RestStatus.OK, builder);
-        } catch (final Exception e1) {
-            builder.startObject();
-            builder.field("error", e1.toString());
-            builder.endObject();
-            response = new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, builder);
-        }
+                    response = new BytesRestResponse(RestStatus.OK, builder);
+                } catch (final Exception e1) {
+                    builder.startObject();
+                    builder.field("error", e1.toString());
+                    builder.endObject();
+                    response = new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, builder);
+                }
 
-        final BytesRestResponse finalResponse = response;
-        return channel -> channel.sendResponse(finalResponse);
+                channel.sendResponse(response);
+            }
+        };
     }
 }
