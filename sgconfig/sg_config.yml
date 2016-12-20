@@ -35,7 +35,9 @@
 #   kerberos (challenging) NOT FREE FOR COMMERCIAL
 #   clientcert (not challenging, needs https)
 #   jwt (not challenging) NOT FREE FOR COMMERCIAL
-#   host (not challenging)
+#   host (not challenging) #DEPRECATED, will be removed in a future version.
+#                           host based authentication is configurable in sg_roles_mapping,
+#                           so no need for a "host http authenticator"
 
 # Authc
 #   internal
@@ -98,7 +100,7 @@ searchguard:
         enabled: false
         order: 1
         http_authenticator:
-          type: host
+          type: host #DEPRECATED, will be removed in a future version
           challenge: false
         authentication_backend:
           type: noop

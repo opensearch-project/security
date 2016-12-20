@@ -27,8 +27,8 @@ import org.elasticsearch.rest.RestRequest;
 import com.floragunn.searchguard.auth.HTTPAuthenticator;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.user.AuthCredentials;
-import com.floragunn.searchguard.user.User;
 
+@Deprecated
 public class HTTPHostAuthenticator implements HTTPAuthenticator {
 
     public HTTPHostAuthenticator(Settings settings) {
