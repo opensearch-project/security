@@ -87,6 +87,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
     private final Map<Class<?>, Method> typesCache = Collections.synchronizedMap(new HashMap<Class<?>, Method>(100));
     private final String[] deniedActionPatterns;
     private final AuditLog auditLog;
+    private final static IndicesOptions DEFAULT_INDICES_OPTIONS = IndicesOptions.lenientExpandOpen();
 
     private final String searchguardIndex;
     
@@ -475,40 +476,53 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
             
             if (!resolvedRoleIndices.isEmpty()) {                
                 for(String resolvedRole: resolvedRoleIndices.keySet()) {
-                    for(String resolvedIndex: resolvedRoleIndices.get(resolvedRole)) {                        
+                    for(String indexPattern: resolvedRoleIndices.get(resolvedRole)) {                  
+                        String dls = roles.get(resolvedRole+".indices."+indexPattern+"._dls_");
+                        final String[] fls = roles.getAsArray(resolvedRole+".indices."+indexPattern+"._fls_");
+
+                        //only when dls and fls != null
+                        String[] concreteIndices = new String[0];
                         
-                        String dls = roles.get(resolvedRole+".indices."+resolvedIndex+"._dls_");
-                        final String[] fls = roles.getAsArray(resolvedRole+".indices."+resolvedIndex+"._fls_");
+                        if(dls != null && dls.length() > 0 && fls != null && fls.length > 0) {
+                            concreteIndices = resolver.concreteIndices(clusterService.state(), DEFAULT_INDICES_OPTIONS/*??*/,indexPattern);
+                        }
                         
                         if(dls != null && dls.length() > 0) {
                             
                             //TODO use UserPropertyReplacer, make it registerable for ldap user
                             dls = dls.replace("${user.name}", user.getName()).replace("${user_name}", user.getName());
                            
-                            if(dlsQueries.containsKey(resolvedIndex)) {
-                                dlsQueries.get(resolvedIndex).add(dls);
-                            } else {
-                                dlsQueries.put(resolvedIndex, new HashSet<String>());
-                                dlsQueries.get(resolvedIndex).add(dls);
+                            for (int i = 0; i < concreteIndices.length; i++) {
+                                final String ci = concreteIndices[i];
+                                if(dlsQueries.containsKey(ci)) {
+                                    dlsQueries.get(ci).add(dls);
+                                } else {
+                                    dlsQueries.put(ci, new HashSet<String>());
+                                    dlsQueries.get(ci).add(dls);
+                                }
                             }
+                            
                                                 
                             if (log.isDebugEnabled()) {
-                                log.debug("dls query {} for {}", dls, resolvedIndex);
+                                log.debug("dls query {} for {}", dls, Arrays.toString(concreteIndices));
                             }
                             
                         }
                         
                         if(fls != null && fls.length > 0) {
                             
-                            if(flsFields.containsKey(resolvedIndex)) {
-                                flsFields.get(resolvedIndex).addAll(Sets.newHashSet(fls));
-                            } else {
-                                flsFields.put(resolvedIndex, new HashSet<String>());
-                                flsFields.get(resolvedIndex).addAll(Sets.newHashSet(fls));
+                            for (int i = 0; i < concreteIndices.length; i++) {
+                                final String ci = concreteIndices[i];
+                                if(flsFields.containsKey(ci)) {
+                                    flsFields.get(ci).addAll(Sets.newHashSet(fls));
+                                } else {
+                                    flsFields.put(ci, new HashSet<String>());
+                                    flsFields.get(ci).addAll(Sets.newHashSet(fls));
+                                }
                             }
                             
                             if (log.isDebugEnabled()) {
-                                log.debug("fls fields {} for {}", Sets.newHashSet(fls), resolvedIndex);
+                                log.debug("fls fields {} for {}", Sets.newHashSet(fls), Arrays.toString(concreteIndices));
                             }
                             
                         }
@@ -644,7 +658,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
 
         } else {
             resolvedPermittedAliasesIndex.addAll(Arrays.asList(resolver.concreteIndices(
-                    clusterService.state(), IndicesOptions.fromOptions(false, true, true, false), permittedAliasesIndex)));
+                    clusterService.state(), DEFAULT_INDICES_OPTIONS, permittedAliasesIndex)));
         }
         
         
@@ -802,7 +816,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                 log.debug("No indices found in request, assume _all");
             }
             
-            indices.addAll(Arrays.asList(resolver.concreteIndices(clusterService.state(), IndicesOptions.strictExpand(), "*")));
+            indices.addAll(Arrays.asList(resolver.concreteIndices(clusterService.state(), DEFAULT_INDICES_OPTIONS, "*")));
             
         } else {
             
