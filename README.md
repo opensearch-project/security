@@ -1,6 +1,6 @@
 #Search Guard 2 for Elasticsearch 2.x
 
-Search Guard 2 (compatible with Elasticsearch 2.4.1)
+Search Guard 2 (compatible with Elasticsearch 2.3.3 - 2.4.x)
 
 ## Elasticsearch 5
 
@@ -32,12 +32,12 @@ Advanced functionalities like LDAP and Kerberos authentication/authorization as 
 
 ##Installation
 
-* Install latest version of [search-guard-ssl plugin](https://github.com/floragunncom/search-guard-ssl)
- * ``sudo bin/plugin install -b com.floragunn/search-guard-ssl/2.4.1.16``
+* Install [latest search-guard-2 plugin](https://github.com/floragunncom/search-guard/wiki)
+ * ``sudo bin/plugin install -b com.floragunn/search-guard-2/<version>``
 
-* Install search-guard-2 plugin
- * ``sudo bin/plugin install -b com.floragunn/search-guard-2/2.4.1.7``
- 
+* Install [latest supported version of search-guard-ssl plugin](https://github.com/floragunncom/search-guard/wiki)
+ * ``sudo bin/plugin install -b com.floragunn/search-guard-ssl/<version>``
+
 (See also the [Vagrant file](https://github.com/floragunncom/search-guard/blob/master/Vagrantfile) we provide)
 
 Both plugins need to be installed on every node in the cluster.
