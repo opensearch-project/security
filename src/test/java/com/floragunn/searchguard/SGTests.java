@@ -42,15 +42,18 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.util.concurrent.ThreadContext.StoredContext;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.indices.InvalidIndexNameException;
 import org.elasticsearch.indices.InvalidTypeNameException;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.node.PluginAwareNode;
+import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.transport.Netty4Plugin;
 import org.junit.Assert;
 import org.junit.Assume;
@@ -61,7 +64,9 @@ import org.junit.rules.ExpectedException;
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateAction;
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateRequest;
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateResponse;
+import com.floragunn.searchguard.http.HTTPClientCertAuthenticator;
 import com.floragunn.searchguard.ssl.util.SSLConfigConstants;
+import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.ReflectionHelper;
 
 public class SGTests extends AbstractUnitTest {
@@ -2398,5 +2403,32 @@ public class SGTests extends AbstractUnitTest {
         Assert.assertTrue(resc.getBody().contains("10.0.0.7"));
     }
 
+
+    @Test
+    public void testDnParsingCertAuth() throws Exception {
+        Settings settings = Settings.builder()
+                .put("username_attribute", "cn")
+                .build();
+        HTTPClientCertAuthenticator auth = new HTTPClientCertAuthenticator(settings);
+        Assert.assertEquals("abc", auth.extractCredentials(null, newThreadContext("cn=abc,l=ert,st=zui,c=qwe")).getUsername());
+        Assert.assertEquals("abc", auth.extractCredentials(null, newThreadContext("CN=abc,L=ert,st=zui,c=qwe")).getUsername());     
+        Assert.assertEquals("abc", auth.extractCredentials(null, newThreadContext("l=ert,cn=abc,st=zui,c=qwe")).getUsername());
+        Assert.assertEquals("abc", auth.extractCredentials(null, newThreadContext("L=ert,CN=abc,c,st=zui,c=qwe")).getUsername());
+        //Assert.assertEquals("ab,c", auth.extractCredentials(newSSLRestRequest("L=ert,CN=ab\\,c,c,st=zui,c=qwe"),threadContext).getUsername());
+        Assert.assertEquals("abc", auth.extractCredentials(null, newThreadContext("l=ert,st=zui,c=qwe,cn=abc")).getUsername());
+        Assert.assertEquals("abc", auth.extractCredentials(null, newThreadContext("L=ert,st=zui,c=qwe,CN=abc")).getUsername()); 
+        Assert.assertEquals("L=ert,st=zui,c=qwe", auth.extractCredentials(null, newThreadContext("L=ert,st=zui,c=qwe")).getUsername()); 
+        
+        settings = Settings.builder()
+                .build();
+        auth = new HTTPClientCertAuthenticator(settings);
+        Assert.assertEquals("cn=abc,l=ert,st=zui,c=qwe", auth.extractCredentials(null, newThreadContext("cn=abc,l=ert,st=zui,c=qwe")).getUsername());
+    }
+    
+    private ThreadContext newThreadContext(String sslPrincipal) {
+        ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
+        threadContext.putTransient(ConfigConstants.SG_SSL_PRINCIPAL, sslPrincipal);
+        return threadContext;
+    }
 
 }
