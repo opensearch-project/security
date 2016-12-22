@@ -29,6 +29,7 @@ import com.floragunn.searchguard.auth.HTTPAuthenticator;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.user.AuthCredentials;
 
+@Deprecated
 public class HTTPHostAuthenticator implements HTTPAuthenticator {
 
     public HTTPHostAuthenticator(Settings settings) {

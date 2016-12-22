@@ -1,4 +1,8 @@
-#Search Guard 5 for Elasticsearch 5.0.0
+#Search Guard 5 for Elasticsearch 5
+
+Search Guard 5 (compatible with Elasticsearch >= 5.0.0)
+
+You may also want to read this [blog post about Search Guard 5](https://floragunn.com/search-guard-5/).
 
 ## Documentation
 
@@ -26,13 +30,11 @@ Advanced functionalities like LDAP and Kerberos authentication/authorization as 
 
 ##Installation
 
-* Install Search Guard 5 plugin
- * ``sudo bin/elasticsearch-plugin install -b com.floragunn:search-guard-5:5.0.0-8``
+* Install [latest search-guard-5 plugin](https://github.com/floragunncom/search-guard/wiki)
+ * ``sudo bin/elasticsearch-plugin install -b com.floragunn:search-guard-5:<version>``
 
 After the plugin is installed you need to configure them. SSL needs to be configured statically
 in elasticsearch.yml (any change needs a restart of the node). See [search-guard-ssl documentation](https://github.com/floragunncom/search-guard-ssl) how to configure it. ``search-guard-5`` needs only a single entry in elasticsearch.yml (see below), all other configuration is stored in Elasticsearch itself and can be dynamically changed without restarting a node or the cluster.
-
-**These issues have been fixed in Search Guard version 8. If you are still on an older version, please update.**
 
 ##Configuration
 
