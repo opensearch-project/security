@@ -496,7 +496,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                         //only when dls and fls != null
                         String[] concreteIndices = new String[0];
                         
-                        if(dls != null && dls.length() > 0 && fls != null && fls.length > 0) {
+                        if((dls != null && dls.length() > 0) || (fls != null && fls.length > 0)) {
                             concreteIndices = resolver.concreteIndexNames(clusterService.state(), DEFAULT_INDICES_OPTIONS/*??*/,indexPattern);
                         }
                         
