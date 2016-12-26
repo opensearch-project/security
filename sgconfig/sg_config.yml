@@ -185,7 +185,8 @@ searchguard:
             userroleattribute: null
             # Roles as an attribute of the user entry
             userrolename: memberOf
-            # The attribute in a role entry containing the name of that role
+            # The attribute in a role entry containing the name of that role, Default is "name".
+            # Can also be "dn" to use the full DN as rolename.
             rolename: cn
             # Resolve nested roles transitive (roles which are members of other roles and so on ...)
             resolve_nested_roles: true
