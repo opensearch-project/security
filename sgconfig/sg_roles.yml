@@ -87,7 +87,7 @@ sg_role_starfleet_captains:
 sg_readonly_and_monitor:
   cluster:
     - CLUSTER_MONITOR
-    - CLUSTER_COMPOSITE_OPS
+    - CLUSTER_COMPOSITE_OPS_RO
   indices:
     '*':
       '*':
@@ -95,7 +95,7 @@ sg_readonly_and_monitor:
 
 sg_readall:
   cluster:
-    - CLUSTER_COMPOSITE_OPS
+    - CLUSTER_COMPOSITE_OPS_RO
   indices:
     '*':
       '*':
@@ -103,7 +103,7 @@ sg_readall:
 
 sg_readonly_dlsfls:
   cluster:
-    - CLUSTER_COMPOSITE_OPS
+    - CLUSTER_COMPOSITE_OPS_RO
   indices:
     '/\S*/':
       '*':
@@ -120,56 +120,31 @@ sg_transport_client:
 
 sg_kibana4:
   cluster:
-    - CLUSTER_COMPOSITE_OPS
+    - CLUSTER_COMPOSITE_OPS_RO
   indices:
     '*':
       '*':
         - READ
         - indices:admin/mappings/fields/get*
-        - indices:admin/validate/query*
-        - indices:admin/get*
     '?kibana':
       '*':
-        - indices:admin/exists*
-        - indices:admin/mapping/put*
-        - indices:admin/mappings/fields/get*
-        - indices:admin/refresh*
-        - indices:admin/validate/query*
-        - indices:data/read/get*
-        - indices:data/read/mget*
-        - indices:data/read/search*
-        - indices:data/write/delete*
-        - indices:data/write/index*
-        - indices:data/write/update*
+        - ALL
 
 sg_kibana4_testindex:
   cluster:
-    - CLUSTER_COMPOSITE_OPS
+    - CLUSTER_COMPOSITE_OPS_RO
   indices:
     'test*':
       '*':
         - READ
         - indices:admin/mappings/fields/get*
-        - indices:admin/validate/query*
-        - indices:admin/get*
     '?kibana':
       '*':
-        - indices:admin/exists*
-        - indices:admin/mapping/put*
-        - indices:admin/mappings/fields/get*
-        - indices:admin/refresh*
-        - indices:admin/validate/query*
-        - indices:data/read/get*
-        - indices:data/read/mget*
-        - indices:data/read/search*
-        - indices:data/write/delete*
-        - indices:data/write/index*
-        - indices:data/write/update*
+        - ALL
 
 sg_kibana4_server:
   cluster:
-      - cluster:monitor/nodes/info
-      - cluster:monitor/health
+      - CLUSTER_MONITOR
       - CLUSTER_COMPOSITE_OPS
   indices:
     '?kibana':
@@ -180,6 +155,7 @@ sg_logstash:
   cluster:
     - indices:admin/template/get
     - indices:admin/template/put
+    - CLUSTER_MONITOR
     - CLUSTER_COMPOSITE_OPS
   indices:
     'logstash-*':
@@ -203,4 +179,4 @@ sg_own_index:
 sg_public:
   cluster:
     - cluster:monitor/main
-    - CLUSTER_COMPOSITE_OPS
+    - CLUSTER_COMPOSITE_OPS_RO
