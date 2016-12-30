@@ -118,7 +118,7 @@ sg_transport_client:
       - cluster:monitor/nodes/liveness
       - cluster:monitor/state
 
-sg_kibana4:
+sg_kibana:
   cluster:
     - CLUSTER_COMPOSITE_OPS_RO
   indices:
@@ -130,7 +130,7 @@ sg_kibana4:
       '*':
         - ALL
 
-sg_kibana4_testindex:
+sg_kibana_testindex:
   cluster:
     - CLUSTER_COMPOSITE_OPS_RO
   indices:
@@ -142,7 +142,7 @@ sg_kibana4_testindex:
       '*':
         - ALL
 
-sg_kibana4_server:
+sg_kibana_server:
   cluster:
       - CLUSTER_MONITOR
       - CLUSTER_COMPOSITE_OPS
