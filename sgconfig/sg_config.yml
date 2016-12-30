@@ -190,12 +190,14 @@ searchguard:
             rolename: cn
             # Resolve nested roles transitive (roles which are members of other roles and so on ...)
             resolve_nested_roles: true
-            
             userbase: 'ou=people,dc=example,dc=com'
             # Filter to search for users (currently in the whole subtree beneath userbase)
             # {0} is substituted with the username 
             usersearch: '(uid={0})'
-            
+            # Skip users matching a user name, a wildcard or a regex pattern
+            #skip_users: 
+            #  - 'cn=Michael Jackson,ou*people,o=TEST'
+            #  - '/\S*/'    
       roles_from_another_ldap:
         enabled: false
         authorization_backend:
