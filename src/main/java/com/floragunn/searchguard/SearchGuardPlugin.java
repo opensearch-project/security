@@ -334,16 +334,18 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
     public List<Setting<?>> getSettings() {
         List<Setting<?>> settings = new ArrayList<Setting<?>>();
         settings.add(Setting.listSetting("searchguard.authcz.admin_dn", Collections.emptyList(), Function.identity(), Property.NodeScope));
-        
+
         settings.add(Setting.groupSetting("searchguard.authcz.impersonation_dn.", Property.NodeScope));
-        
+
         settings.add(Setting.simpleString("searchguard.audit.type", Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString("searchguard.audit.config.index", Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString("searchguard.audit.config.type", Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString("searchguard.audit.config.username", Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString("searchguard.audit.config.password", Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString("searchguard.audit.config.disabled_categories", Property.NodeScope, Property.Filtered));
-        
+        settings.add(Setting.intSetting("searchguard.audit.threadpool.size", 10, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting("searchguard.audit.enable_request_details", false, Property.NodeScope, Property.Filtered));
+ 
         settings.add(Setting.simpleString("searchguard.kerberos.krb5_filepath", Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString("searchguard.kerberos.acceptor_keytab_filepath", Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString("searchguard.kerberos.acceptor_principal", Property.NodeScope, Property.Filtered));
@@ -354,9 +356,9 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         settings.add(Setting.boolSetting("searchguard.audit.config.enable_ssl_client_auth", false, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString("searchguard.audit.config.webhook_url", Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString("searchguard.audit.config.webhook_format", Property.NodeScope, Property.Filtered));
- 
+
         settings.add(Setting.simpleString("searchguard.cert.oid", Property.NodeScope, Property.Filtered));
-        
+
         //SSL
         settings.add(Setting.simpleString(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_CLIENTAUTH_MODE, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_KEYSTORE_ALIAS, Property.NodeScope, Property.Filtered));
@@ -388,10 +390,9 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         settings.add(Setting.simpleString(SSLConfigConstants.SEARCHGUARD_SSL_CLIENT_EXTERNAL_CONTEXT_ID, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, Property.NodeScope, Property.Filtered));
 
-        
         settings.add(Setting.simpleString("node.client", Property.NodeScope));
         settings.add(Setting.simpleString("node.local", Property.NodeScope));
-                
+    
         return settings;
     }
     
