@@ -28,11 +28,11 @@ sg_logstash:
   users:
     - logstash
     
-sg_kibana4_server:
+sg_kibana_server:
   users:
     - kibanaserver
     
-sg_kibana4:
+sg_kibana:
   users:
     - kibanaro
 
@@ -55,7 +55,7 @@ sg_readonly_dlsfls:
   users:
     - dlsflsuser
     
-sg_kibana4_testindex:
+sg_kibana_testindex:
   users:
     - test
 
