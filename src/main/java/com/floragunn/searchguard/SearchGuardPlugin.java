@@ -295,7 +295,11 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
         settings.add(Setting.simpleString("searchguard.audit.config.disabled_categories", Property.NodeScope, Property.Filtered));
         settings.add(Setting.intSetting("searchguard.audit.threadpool.size", 10, Property.NodeScope, Property.Filtered));
         settings.add(Setting.boolSetting("searchguard.audit.enable_request_details", false, Property.NodeScope, Property.Filtered));
- 
+        settings.add(Setting.boolSetting("searchguard.audit.config.ssl.verify", true, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString("searchguard.audit.config.webhook_url", Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString("searchguard.audit.config.webhook_format", Property.NodeScope, Property.Filtered));
+        
+        
         settings.add(Setting.simpleString("searchguard.kerberos.krb5_filepath", Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString("searchguard.kerberos.acceptor_keytab_filepath", Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString("searchguard.kerberos.acceptor_principal", Property.NodeScope, Property.Filtered));
