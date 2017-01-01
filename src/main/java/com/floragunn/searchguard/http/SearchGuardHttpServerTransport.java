@@ -17,16 +17,23 @@
 
 package com.floragunn.searchguard.http;
 
+import java.io.IOException;
+
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.http.netty.NettyHttpRequest;
+import org.elasticsearch.rest.BytesRestResponse;
+import org.elasticsearch.rest.RestChannel;
+import org.elasticsearch.rest.RestRequest;
+import org.elasticsearch.rest.RestStatus;
 
 import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.ssl.SearchGuardKeyStore;
 import com.floragunn.searchguard.ssl.http.netty.SearchGuardSSLNettyHttpServerTransport;
 import com.floragunn.searchguard.ssl.transport.PrincipalExtractor;
+import com.floragunn.searchguard.support.HeaderHelper;
 
 public class SearchGuardHttpServerTransport extends SearchGuardSSLNettyHttpServerTransport {
 
@@ -45,5 +52,22 @@ public class SearchGuardHttpServerTransport extends SearchGuardSSLNettyHttpServe
         super.errorThrown(t, request);
     }
 
+    @Override
+    public void dispatchRequest(final RestRequest request, final RestChannel channel) {
+        
+        try {
+            HeaderHelper.checkSGHeader(request);
+        } catch (Exception e) {
+            auditLog.logBadHeaders(request);
+            try {
+                channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, e));
+            } catch (IOException e1) {
+                //ignore
+            }
+            return;
+        }
+        
+        super.dispatchRequest(request, channel);
+    }
     
 }
