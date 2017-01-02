@@ -33,6 +33,7 @@ INDEX:
   - "indices:data/write/index*"
   - "indices:data/write/update*"
   - "indices:admin/mapping/put"
+  # no bulk index
 GET:
   - "indices:data/read/get*"
   - "indices:data/read/mget*"
