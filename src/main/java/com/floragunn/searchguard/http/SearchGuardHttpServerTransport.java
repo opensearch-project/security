@@ -22,13 +22,13 @@ import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.http.netty4.Netty4HttpRequest;
 import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.ssl.SearchGuardKeyStore;
 import com.floragunn.searchguard.ssl.http.netty.SearchGuardSSLNettyHttpServerTransport;
+
 
 public class SearchGuardHttpServerTransport extends SearchGuardSSLNettyHttpServerTransport {
 
@@ -46,4 +46,22 @@ public class SearchGuardHttpServerTransport extends SearchGuardSSLNettyHttpServe
         auditLog.get().logSSLException(request, t, null);
         super.errorThrown(t, request);
     }   
+
+    /*@Override
+    public void dispatchRequest(final RestRequest request, final RestChannel channel) {
+        
+        try {
+            HeaderHelper.checkSGHeader(request);
+        } catch (Exception e) {
+            auditLog.logBadHeaders(request);
+            try {
+                channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, e));
+            } catch (IOException e1) {
+                //ignore
+            }
+            return;
+        }
+        
+        super.dispatchRequest(request, channel);
+    }*/
 }
