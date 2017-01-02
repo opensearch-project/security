@@ -232,7 +232,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
     public boolean evaluate(final User user, String action, final ActionRequest request) {
         
         if(action.startsWith("cluster:admin/snapshot/restore")) {
-            auditLog.logMissingPrivileges(action, request);
+            //auditLog.logMissingPrivileges(action, request);
             log.warn(action + " is not allowed for a regular user");
             return false;
         }

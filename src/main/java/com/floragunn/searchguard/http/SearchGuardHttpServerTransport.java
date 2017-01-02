@@ -27,6 +27,7 @@ import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.ssl.SearchGuardKeyStore;
 import com.floragunn.searchguard.ssl.http.netty.SearchGuardSSLNettyHttpServerTransport;
 
+
 public class SearchGuardHttpServerTransport extends SearchGuardSSLNettyHttpServerTransport {
 
     private final AuditLog auditLog;
@@ -43,4 +44,22 @@ public class SearchGuardHttpServerTransport extends SearchGuardSSLNettyHttpServe
         //auditLog.logSSLException(request, t, null);
         super.errorThrown(t, request);
     }   
+
+    /*@Override
+    public void dispatchRequest(final RestRequest request, final RestChannel channel) {
+        
+        try {
+            HeaderHelper.checkSGHeader(request);
+        } catch (Exception e) {
+            auditLog.logBadHeaders(request);
+            try {
+                channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, e));
+            } catch (IOException e1) {
+                //ignore
+            }
+            return;
+        }
+        
+        super.dispatchRequest(request, channel);
+    }*/
 }

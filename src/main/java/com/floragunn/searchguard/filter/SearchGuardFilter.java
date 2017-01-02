@@ -140,10 +140,10 @@ public class SearchGuardFilter implements ActionFilter {
         }
 
         if (eval.evaluate(user, action, request)) {
+            auditLog.logAuthenticatedRequest(request, action);
             if(!dlsFlsValve.get().invoke(request, listener, threadContext)) {
                 return;
             }
-            auditLog.logAuthenticatedRequest(request, action);
             chain.proceed(task, action, request, listener);
             return;
         } else {
