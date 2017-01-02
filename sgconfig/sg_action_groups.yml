@@ -29,6 +29,7 @@ SUGGEST:
 INDEX:
   - "indices:data/write/index*"
   - "indices:data/write/update*"
+  # no bulk indexing
 GET:
   - "indices:data/read/get*"
   - "indices:data/read/mget*"
@@ -38,6 +39,3 @@ CLUSTER_ALL:
   - cluster:*
 CLUSTER_MONITOR:
   - cluster:monitor/*
-  
-# HEALTH_AND_STATS = n"cluster:monitor/health*", "cluster:monitor/stats*", "indices:monitor/stats*", "cluster:monitor/nodes/stats*"
-# ALL = cluster:*", "indices:admin/template/*
