@@ -33,6 +33,7 @@ INDEX:
   - "indices:data/write/index*"
   - "indices:data/write/update*"
   - "indices:admin/mapping/put"
+  # no bulk index
 GET:
   - "indices:data/read/get*"
   - "indices:data/read/mget*"
@@ -43,14 +44,14 @@ CLUSTER_ALL:
 CLUSTER_MONITOR:
   - cluster:monitor/*
 CLUSTER_COMPOSITE_OPS_RO:
-  - "indices:data/read/mget*"
-  - "indices:data/read/msearch*"
-  - "indices:data/read/mtv*"
+  - "indices:data/read/mget"
+  - "indices:data/read/msearch"
+  - "indices:data/read/mtv"
   - "indices:data/read/coordinate-msearch*"
   - "indices:admin/aliases/exists*"
   - "indices:admin/aliases/get*"
 CLUSTER_COMPOSITE_OPS:
-  - "indices:data/write/bulk*"
+  - "indices:data/write/bulk"
   - "indices:admin/aliases*"
   - CLUSTER_COMPOSITE_OPS_RO
  

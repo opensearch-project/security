@@ -25,8 +25,22 @@ searchguard.authcz.admin_dn:
 
 # Auditlog configuration:
 
+# General settings
+# Disable some categories
+#searchguard.audit.config.disabled_categories = ["AUTHENTICATED"]
+# Tune threadpool size, default is 10 and 0 means disabled
+#searchguard.audit.threadpool.size: 0
+# If enable_request_details is true then the audit log event will also contain
+# details like the search query. Default is false. 
+#searchguard.audit.enable_request_details: true
+
+# Destination of the auditlog events
 searchguard.audit.type: internal_elasticsearch
 #searchguard.audit.type: external_elasticsearch
+#searchguard.audit.type: debug
+#searchguard.audit.type: webhook
+
+# external_elasticsearch settings
 #searchguard.audit.config.http_endpoints: ['localhost:9200','localhost:9201','localhost:9202']"
 #searchguard.audit.config.index: auditlog # make sure you secure this index properly
 #searchguard.audit.config.type: auditlog
@@ -35,6 +49,12 @@ searchguard.audit.type: internal_elasticsearch
 #searchguard.audit.config.enable_ssl: false
 #searchguard.audit.config.verify_hostnames: false
 #searchguard.audit.config.enable_ssl_client_auth: false
+
+# webhook settings
+#searchguard.audit.config.webhook.url: "http://mywebhook/endpoint"
+# One of URL_PARAMETER_GET,URL_PARAMETER_POST,TEXT,JSON,SLACK
+#searchguard.audit.config.webhook.format: JSON
+#searchguard.audit.config.webhook.ssl.verify: false
 
 # If Kerberos authentication should be used you have to configure this:
 
