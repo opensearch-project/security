@@ -283,16 +283,16 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
     @Override
     public List<Setting<?>> getSettings() {
         List<Setting<?>> settings = new ArrayList<Setting<?>>();
-        settings.add(Setting.listSetting("searchguard.authcz.admin_dn", Collections.emptyList(), Function.identity(), Property.NodeScope, Property.Filtered));
+        settings.add(Setting.listSetting("searchguard.authcz.admin_dn", Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
 
-        settings.add(Setting.groupSetting("searchguard.authcz.impersonation_dn.", Property.NodeScope, Property.Filtered));
+        settings.add(Setting.groupSetting("searchguard.authcz.impersonation_dn.", Property.NodeScope)); //not filtered here
 
         settings.add(Setting.simpleString("searchguard.audit.type", Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString("searchguard.audit.config.index", Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString("searchguard.audit.config.type", Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString("searchguard.audit.config.username", Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString("searchguard.audit.config.password", Property.NodeScope, Property.Filtered));
-        settings.add(Setting.listSetting("searchguard.audit.config.disabled_categories", Collections.emptyList(), Function.identity(), Property.NodeScope, Property.Filtered));
+        settings.add(Setting.listSetting("searchguard.audit.config.disabled_categories", Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
         settings.add(Setting.intSetting("searchguard.audit.threadpool.size", 10, Property.NodeScope, Property.Filtered));
         settings.add(Setting.boolSetting("searchguard.audit.enable_request_details", false, Property.NodeScope, Property.Filtered));
         settings.add(Setting.boolSetting("searchguard.audit.config.webhook.ssl.verify", true, Property.NodeScope, Property.Filtered));
@@ -304,7 +304,7 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
         settings.add(Setting.simpleString("searchguard.kerberos.acceptor_keytab_filepath", Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString("searchguard.kerberos.acceptor_principal", Property.NodeScope, Property.Filtered));
         
-        settings.add(Setting.listSetting("searchguard.audit.config.http_endpoints", Lists.newArrayList("localhost:9200"), Function.identity(), Property.NodeScope, Property.Filtered));
+        settings.add(Setting.listSetting("searchguard.audit.config.http_endpoints", Lists.newArrayList("localhost:9200"), Function.identity(), Property.NodeScope)); //not filtered here
         settings.add(Setting.boolSetting("searchguard.audit.config.enable_ssl", false, Property.NodeScope, Property.Filtered));
         settings.add(Setting.boolSetting("searchguard.audit.config.verify_hostnames", true, Property.NodeScope, Property.Filtered));
         settings.add(Setting.boolSetting("searchguard.audit.config.enable_ssl_client_auth", false, Property.NodeScope, Property.Filtered));
