@@ -85,11 +85,19 @@ public class SearchGuardFilter implements ActionFilter {
         if(user == null && request.remoteAddress() == null) {
             user = User.SG_INTERNAL;
         }
-        
-        if(isUserAdmin(user, adminDns) 
-                || HeaderHelper.isInterClusterRequest(threadContext) 
-                || "true".equals(HeaderHelper.getSafeFromHeader(threadContext, ConfigConstants.SG_CONF_REQUEST_HEADER))){
-            
+
+        final boolean userIsAdmin = isUserAdmin(user, adminDns);
+        final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadContext);
+        final boolean conRequest = "true".equals(HeaderHelper.getSafeFromHeader(threadContext, ConfigConstants.SG_CONF_REQUEST_HEADER));
+
+        if(userIsAdmin
+                || interClusterRequest
+                || conRequest){
+
+            if(userIsAdmin && !interClusterRequest && !conRequest) {
+                auditLog.logAuthenticatedRequest(request, action);
+            }
+
             if(!dlsFlsValve.get().invoke(request, listener, threadContext)) {
                 return;
             }
