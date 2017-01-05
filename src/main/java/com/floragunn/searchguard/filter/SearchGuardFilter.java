@@ -99,12 +99,19 @@ public class SearchGuardFilter implements ActionFilter {
             log.trace("remote address: {}", String.valueOf(remoteAddress));
         }
 
+        final boolean userIsAdmin = isUserAdmin(user, adminDns);
+        final boolean interClusterRequest = isInterClusterRequest(request);
+        final boolean conRequest = "true".equals(HeaderHelper.getSafeFromHeader(request, ConfigConstants.SG_CONF_REQUEST_HEADER));
         
         
-        if(isUserAdmin(user, adminDns) 
-                || isInterClusterRequest(request) 
-                || "true".equals(HeaderHelper.getSafeFromHeader(request, ConfigConstants.SG_CONF_REQUEST_HEADER))){
+        if(userIsAdmin
+                || interClusterRequest
+                || conRequest){
             
+            if(userIsAdmin && !interClusterRequest && !conRequest) {
+                auditLog.logAuthenticatedRequest(request, action);
+            }
+
             if(!dlsFlsValve.get().invoke(request, listener)) {
                 return;
             }
