@@ -25,6 +25,7 @@ import java.io.Reader;
 import java.io.Writer;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collection;
@@ -38,15 +39,27 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.elasticsearch.ExceptionsHelper;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
+import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsRequest;
+import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsResponse;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
+import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequest;
+import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsResponse;
+import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
+import org.elasticsearch.action.admin.indices.stats.IndicesStatsResponse;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
@@ -54,8 +67,8 @@ import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.NoNodeAvailableException;
 import org.elasticsearch.client.transport.TransportClient;
-import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
+import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.loader.JsonSettingsLoader;
@@ -77,8 +90,15 @@ import com.floragunn.searchguard.action.configupdate.ConfigUpdateRequest;
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateResponse;
 import com.floragunn.searchguard.ssl.util.SSLConfigConstants;
 import com.floragunn.searchguard.support.ConfigConstants;
+import com.google.common.io.Files;
 
 public class SearchGuardAdmin {
+    
+    //not used in multithreaded fashion
+    private static SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MMM-dd_HH-mm-ss", Locale.ENGLISH);
+    private static final Settings ENABLE_ALL_ALLOCATIONS_SETTINGS = Settings.builder()
+            .put("cluster.routing.allocation.enable", "all")
+            .build();
     
     public static void main(final String[] args) {
         try {
@@ -138,6 +158,9 @@ public class SearchGuardAdmin {
         options.addOption(Option.builder("dra").longOpt("disable-replica-autoexpand").desc("disable replica auto expand and exit").build());
         options.addOption(Option.builder("rl").longOpt("reload").desc("reload configuration on all nodes and exit").build());
         options.addOption(Option.builder("ff").longOpt("fail-fast").desc("fail-fast if something goes wrong").build());
+        options.addOption(Option.builder("dg").longOpt("diagnose").desc("Log diagnostic trace into a file").build());
+        options.addOption(Option.builder("dci").longOpt("delete-config-index").desc("Delete 'searchguard' config index and exit.").build());
+        options.addOption(Option.builder("esa").longOpt("enable-shard-allocation").desc("Enable all shard allocation and exit.").build());
 
         
         String hostname = "localhost";
@@ -166,6 +189,9 @@ public class SearchGuardAdmin {
         Boolean replicaAutoExpand = null;
         boolean reload = false;
         boolean failFast = false;
+        boolean diagnose = false;
+        boolean deleteConfigIndex = false;
+        Boolean enableShardAllocation = null;
         
         CommandLineParser parser = new DefaultParser();
         try {
@@ -220,6 +246,9 @@ public class SearchGuardAdmin {
             }
             
             failFast = line.hasOption("ff");
+            diagnose = line.hasOption("dg");
+            deleteConfigIndex = line.hasOption("dci");
+            enableShardAllocation = line.hasOption("esa");
             
         }
         catch( ParseException exp ) {
@@ -313,11 +342,33 @@ public class SearchGuardAdmin {
                 System.out.println("Reload config on all nodes");
                 System.out.println("Auto-expand replicas "+(replicaAutoExpand?"enabled":"disabled"));
                 System.exit(response.isAcknowledged()?0:-1);
-            }      
+            }   
+            
+            if(enableShardAllocation != null) { 
+                final boolean successful = tc.admin().cluster()
+                        .updateSettings(new ClusterUpdateSettingsRequest()
+                        .transientSettings(ENABLE_ALL_ALLOCATIONS_SETTINGS)
+                        .persistentSettings(ENABLE_ALL_ALLOCATIONS_SETTINGS))
+                        .actionGet()
+                        .isAcknowledged();
+                
+                if(successful) {
+                    System.out.println("Persistent and transient shard allocation enabled");
+                } else {
+                    System.out.println("ERR: Unable to enable shard allocation");
+                }
+                
+                System.exit(successful?0:-1);
+            }   
             
             if(failFast) {
                 System.out.println("Failfast is activated");
             }
+            
+            if(diagnose) {
+                generateDiagnoseTrace(tc);
+            }
+            
             System.out.println("Contacting elasticsearch cluster '"+clustername+"' and wait for YELLOW clusterstate ...");
             
             ClusterHealthResponse chr = null;
@@ -329,9 +380,13 @@ public class SearchGuardAdmin {
                     if(!failFast) {
                         System.out.println("Cannot retrieve cluster state due to: "+e.getMessage()+". This is not an error, will keep on trying ...");
                         System.out.println("   * Try running sgadmin.sh with -icl and -nhnv (If thats works you need to check your clustername as well as hostnames in your SSL certificates)");   
+                        System.out.println("   * If this is not working, try running sgadmin.sh with --diagnose and see diagnose trace log file)");   
+
                     } else {
                         System.out.println("ERR: Cannot retrieve cluster state due to: "+e.getMessage()+".");
-                        System.out.println("       * Try running sgadmin.sh with -icl and -nhnv (If thats works you need to check your clustername as well as hostnames in your SSL certificates)");
+                        System.out.println("   * Try running sgadmin.sh with -icl and -nhnv (If thats works you need to check your clustername as well as hostnames in your SSL certificates)");
+                        System.out.println("   * If this is not working, try running sgadmin.sh with --diagnose and see diagnose trace log file)");   
+
                         System.exit(-1);
                     }
                     
@@ -357,6 +412,20 @@ public class SearchGuardAdmin {
             
             final NodesInfoResponse nodesInfo = tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet();
 
+            if(deleteConfigIndex) {
+                
+                boolean success = true;
+                
+                if(indexExists) {
+                    success = tc.admin().indices().delete(new DeleteIndexRequest(index)).actionGet().isAcknowledged();
+                    System.out.print("Deleted index '"+index+"'");
+                } else {
+                    System.out.print("No index '"+index+"' exists, so no need to delete it");
+                }
+                
+                System.exit(success?0:-1);
+            }
+               
             if (!indexExists) {
                 System.out.print(index +" index does not exists, attempt to create it ... ");
                 final boolean indexCreated = tc.admin().indices().create(new CreateIndexRequest(index)
@@ -403,7 +472,7 @@ public class SearchGuardAdmin {
             }
             
             if(retrieve) {
-                String date = new SimpleDateFormat("yyyy-MMM-dd_HH-mm-ss", Locale.ENGLISH).format(new Date());
+                String date = DATE_FORMAT.format(new Date());
                 
                 boolean success = retrieveFile(tc, cd+"sg_config_"+date+".yml", index, "config");
                 success = success & retrieveFile(tc, cd+"sg_roles_"+date+".yml", index, "roles");
@@ -575,7 +644,7 @@ public class SearchGuardAdmin {
             return builder.string();
         }
     }
-    
+
     protected static class TransportClientImpl extends TransportClient {
 
         public TransportClientImpl(Settings settings, Collection<Class<? extends Plugin>> plugins) {
@@ -589,5 +658,73 @@ public class SearchGuardAdmin {
     
     protected static Collection<Class<? extends Plugin>> asCollection(Class<? extends Plugin>... plugins) {
         return Arrays.asList(plugins);
+    }
+
+    protected static void generateDiagnoseTrace(final Client tc) {
+        
+        final String date = DATE_FORMAT.format(new Date());
+        
+        final StringBuilder sb = new StringBuilder();
+        sb.append("Diagnostic sgadmin trace"+System.lineSeparator());
+        sb.append("ES client version: "+Version.CURRENT+System.lineSeparator());
+        sb.append("Client properties: "+System.getProperties()+System.lineSeparator());
+        sb.append(date+System.lineSeparator());
+        sb.append(System.lineSeparator());
+        
+        try {
+            sb.append("ClusterHealthRequest:"+System.lineSeparator());
+            ClusterHealthResponse nir = tc.admin().cluster().health(new ClusterHealthRequest()).actionGet();
+            sb.append(XContentHelper.toString(nir));
+        } catch (Exception e1) {
+            sb.append(ExceptionsHelper.stackTrace(e1));
+        }
+        
+        try {
+            sb.append(System.lineSeparator()+"NodesInfoResponse:"+System.lineSeparator());
+            NodesInfoResponse nir = tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet();
+            sb.append(XContentHelper.toString(nir));
+        } catch (Exception e1) {
+            sb.append(ExceptionsHelper.stackTrace(e1));
+        }
+        
+        try {
+            sb.append(System.lineSeparator()+"NodesStatsRequest:"+System.lineSeparator());
+            NodesStatsResponse nir = tc.admin().cluster().nodesStats(new NodesStatsRequest()).actionGet();
+            sb.append(XContentHelper.toString(nir));
+        } catch (Exception e1) {
+            sb.append(ExceptionsHelper.stackTrace(e1));
+        }
+        
+        try {
+            sb.append(System.lineSeparator()+"PendingClusterTasksRequest:"+System.lineSeparator());
+            PendingClusterTasksResponse nir = tc.admin().cluster().pendingClusterTasks(new PendingClusterTasksRequest()).actionGet();
+            sb.append(XContentHelper.toString(nir));
+        } catch (Exception e1) {
+            sb.append(ExceptionsHelper.stackTrace(e1));
+        }
+        
+        try {
+            sb.append(System.lineSeparator()+"ClusterStateRequest:"+System.lineSeparator());
+            ClusterStateResponse nir = tc.admin().cluster().state(new ClusterStateRequest()).actionGet();
+            sb.append(XContentHelper.toString(nir.getState()));
+        } catch (Exception e1) {
+            sb.append(ExceptionsHelper.stackTrace(e1));
+        }
+        
+        try {
+            sb.append(System.lineSeparator()+"IndicesStatsRequest:"+System.lineSeparator());
+            IndicesStatsResponse nir = tc.admin().indices().stats(new IndicesStatsRequest()).actionGet();
+            sb.append(XContentHelper.toString(nir));
+        } catch (Exception e1) {
+            sb.append(ExceptionsHelper.stackTrace(e1));
+        }
+        
+        try {
+            File dfile = new File("sgadmin_diag_trace_"+date+".txt");
+            Files.write(sb,dfile,Charset.forName("UTF-8"));
+            System.out.println("Diagnostic trace written to: "+dfile.getAbsolutePath());
+        } catch (Exception e1) {
+            System.out.println("ERR: cannot write diag trace file due to "+e1);
+        }
     }
 }

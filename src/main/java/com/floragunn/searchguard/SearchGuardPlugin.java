@@ -335,6 +335,7 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         List<Setting<?>> settings = new ArrayList<Setting<?>>();
         settings.add(Setting.listSetting("searchguard.authcz.admin_dn", Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
 
+        settings.add(Setting.simpleString("searchguard.config_index_name", Property.NodeScope, Property.Filtered));
         settings.add(Setting.groupSetting("searchguard.authcz.impersonation_dn.", Property.NodeScope)); //not filtered here
 
         settings.add(Setting.simpleString("searchguard.audit.type", Property.NodeScope, Property.Filtered));
