@@ -60,16 +60,17 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
     
     protected final ESLogger log = Loggers.getLogger(this.getClass());
     private final Provider<BackendRegistry> backendRegistry;
+    private final Provider<InterClusterRequestEvaluator> requestEvalProvider;
     private final AuditLog auditLog;
-    private final String certOid;
 
     @Inject
     public SearchGuardTransportService(final Settings settings, final Transport transport, final ThreadPool threadPool,
-            final Provider<BackendRegistry> backendRegistry, AuditLog auditLog, final PrincipalExtractor principalExtractor) {
+            final Provider<BackendRegistry> backendRegistry, AuditLog auditLog, final PrincipalExtractor principalExtractor,
+            final Provider<InterClusterRequestEvaluator> requestEvalProvider) {
         super(settings, transport, threadPool, principalExtractor);
         this.backendRegistry = backendRegistry;
         this.auditLog = auditLog;
-        this.certOid = settings.get("searchguard.cert.oid", "1.2.3.4.5.5");
+        this.requestEvalProvider = requestEvalProvider; 
     }
 
     @Override
@@ -116,52 +117,10 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
     }
 
     @Override
-    protected void addAdditionalContextValues(final String action, final TransportRequest request, final X509Certificate[] certs)
+    protected void addAdditionalContextValues(final String action, final TransportRequest request, final X509Certificate[] localCerts, final X509Certificate[] peerCerts)
             throws Exception {
 
-        boolean isInterClusterRequest = false;
-        final Collection<List<?>> ianList = certs[0].getSubjectAlternativeNames();
-
-        if (ianList != null) {
-            final StringBuilder sb = new StringBuilder();
-
-            for (final List<?> ian : ianList) {
-
-                if (ian == null) {
-                    continue;
-                }
-
-                for (final Iterator iterator = ian.iterator(); iterator.hasNext();) {
-                    final int id = (int) iterator.next();
-                    if (id == 8) { //id 8 = OID, id 1 = name (as string or ASN.1 encoded byte[])
-                        Object value = iterator.next();
-                        
-                        if(value == null) {
-                           continue;
-                        }
-                        
-                        if(value instanceof String) {
-                            sb.append(id + "::" + value);
-                        } else if(value instanceof byte[]) {
-                            log.error("Unable to handle OID san {} with value {} of type byte[] (ASN.1 DER not supported here)", id, Arrays.toString((byte[]) value));
-                        } else {
-                            log.error("Unable to handle OID san {} with value {} of type {}", id, value, value.getClass());
-                        }
-                    } else {
-                        iterator.next();
-                    }
-                }
-            }
-
-            if (sb.indexOf("8::" + this.certOid) >= 0) {
-                isInterClusterRequest = true;
-            }
-
-        } else {
-            if (log.isTraceEnabled()) {
-                log.trace("No subject alternative names (san) found");
-            }
-        }
+        boolean isInterClusterRequest = requestEvalProvider.get().isInterClusterRequest(request, localCerts, peerCerts);
 
         if (isInterClusterRequest) {
             if (log.isTraceEnabled() && !action.startsWith("internal:")) {
@@ -173,7 +132,7 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
                 log.trace("Is not an inter cluster request");
             }
         }
-        super.addAdditionalContextValues(action, request, certs);
+        super.addAdditionalContextValues(action, request, localCerts, peerCerts);
     }
 
     @Override
