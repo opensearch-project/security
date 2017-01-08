@@ -176,6 +176,7 @@ public class BackendRegistry implements ConfigChangeListener {
     @Override
     public void onChange(final String event, final Settings settings) {
         authDomains.clear();
+        authorizers.clear();
         anonymousAuthEnabled = settings.getAsBoolean("searchguard.dynamic.http.anonymous_auth_enabled", false);
         
         final Map<String, Settings> authzDyn = settings.getGroups("searchguard.dynamic.authz");
