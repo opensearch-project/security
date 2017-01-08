@@ -186,7 +186,7 @@ public class SearchGuardAdmin {
         boolean failFast = false;
         boolean diagnose = false;
         boolean deleteConfigIndex = false;
-        Boolean enableShardAllocation = null;
+        boolean enableShardAllocation = false;
         
         CommandLineParser parser = new DefaultParser();
         try {
@@ -341,7 +341,7 @@ public class SearchGuardAdmin {
                 System.exit(response.isAcknowledged()?0:-1);
             }   
             
-            if(enableShardAllocation != null) { 
+            if(enableShardAllocation) { 
                 final boolean successful = tc.admin().cluster()
                         .updateSettings(new ClusterUpdateSettingsRequest()
                         .transientSettings(ENABLE_ALL_ALLOCATIONS_SETTINGS)
