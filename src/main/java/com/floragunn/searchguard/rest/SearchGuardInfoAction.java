@@ -53,7 +53,7 @@ public class SearchGuardInfoAction extends BaseRestHandler {
     protected void handleRequest(final RestRequest request, final RestChannel channel, final Client client) throws Exception {
 
         BytesRestResponse response = null;
-        final XContentBuilder builder = channel.newBuilder();
+        XContentBuilder builder = channel.newBuilder();
 
         try {
 
@@ -70,6 +70,7 @@ public class SearchGuardInfoAction extends BaseRestHandler {
 
             response = new BytesRestResponse(RestStatus.OK, builder);
         } catch (final Exception e1) {
+            builder = channel.newBuilder();
             builder.startObject();
             builder.field("error", e1.toString());
             builder.endObject();
