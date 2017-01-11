@@ -492,6 +492,14 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                             //TODO use UserPropertyReplacer, make it registerable for ldap user
                             dls = dls.replace("${user.name}", user.getName()).replace("${user_name}", user.getName());
                            
+                            if(dlsQueries.containsKey(indexPattern)) {
+                                dlsQueries.get(indexPattern).add(dls);
+                            } else {
+                                dlsQueries.put(indexPattern, new HashSet<String>());
+                                dlsQueries.get(indexPattern).add(dls);
+                            }
+                            
+                            
                             for (int i = 0; i < concreteIndices.length; i++) {
                                 final String ci = concreteIndices[i];
                                 if(dlsQueries.containsKey(ci)) {
@@ -510,6 +518,13 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                         }
                         
                         if(fls != null && fls.length > 0) {
+                            
+                            if(flsFields.containsKey(indexPattern)) {
+                                flsFields.get(indexPattern).addAll(Sets.newHashSet(fls));
+                            } else {
+                                flsFields.put(indexPattern, new HashSet<String>());
+                                flsFields.get(indexPattern).addAll(Sets.newHashSet(fls));
+                            }
                             
                             for (int i = 0; i < concreteIndices.length; i++) {
                                 final String ci = concreteIndices[i];
