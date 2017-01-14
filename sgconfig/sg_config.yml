@@ -153,7 +153,7 @@ searchguard:
             userbase: 'ou=people,dc=example,dc=com'
             # Filter to search for users (currently in the whole subtree beneath userbase)
             # {0} is substituted with the username 
-            usersearch: '(uid={0})'
+            usersearch: '(sAMAccountName={0})'
             # Use this attribute from the user as username (if not set then DN is used)
             username_attribute: null
     authz:    
@@ -180,11 +180,12 @@ searchguard:
             # {0} is substituted with the DN of the user
             # {1} is substituted with the username 
             # {2} is substituted with an attribute value from user's directory entry, of the authenticated user. Use userroleattribute to specify the name of the attribute            
-            rolesearch: '(uniqueMember={0})'
+            rolesearch: '(member={0})'
             # Specify the name of the attribute which value should be substituted with {2} above
             userroleattribute: null
             # Roles as an attribute of the user entry
-            userrolename: memberOf
+            userrolename: disabled
+            #userrolename: memberOf
             # The attribute in a role entry containing the name of that role, Default is "name".
             # Can also be "dn" to use the full DN as rolename.
             rolename: cn
