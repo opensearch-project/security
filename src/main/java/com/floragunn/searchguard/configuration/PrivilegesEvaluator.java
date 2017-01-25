@@ -577,6 +577,12 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         final Set<String> sgRoles = new TreeSet<String>();
         for (final String roleMap : rolesMapping.names()) {
             final Settings roleMapSettings = rolesMapping.getByPrefix(roleMap);
+            
+            if (WildcardMatcher.allPatternsMatched(roleMapSettings.getAsArray(".and_backendroles"), user.getRoles().toArray(new String[0]))) {
+                sgRoles.add(roleMap);
+                continue;
+            }
+            
             if (WildcardMatcher.matchAny(roleMapSettings.getAsArray(".backendroles"), user.getRoles().toArray(new String[0]))) {
                 sgRoles.add(roleMap);
                 continue;
