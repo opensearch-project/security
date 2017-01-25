@@ -463,7 +463,7 @@ public abstract class AbstractUnitTest {
             try {
                 return readXContent(new StringReader(loadFile(file)), XContentType.YAML);
             } catch (IOException e) {
-                return null;
+                throw new RuntimeException(e);
             }
     }
     
