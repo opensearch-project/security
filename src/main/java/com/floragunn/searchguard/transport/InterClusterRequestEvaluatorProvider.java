@@ -24,35 +24,38 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 
-public class InterClusterRequestEvaluatorProvider implements Provider<InterClusterRequestEvaluator> {
+import com.floragunn.searchguard.support.ConfigConstants;
 
-    static final String KEY = "searchguard.cert.intercluster_request_evaluator";
+public final class InterClusterRequestEvaluatorProvider implements Provider<InterClusterRequestEvaluator> {
+
+    private static final String DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = DefaultInterClusterRequestEvaluator.class.getName();
     private final ESLogger log = Loggers.getLogger(this.getClass());
     private InterClusterRequestEvaluator evaluator;
-    
+
     @Inject
     public InterClusterRequestEvaluatorProvider(final Settings settings) {
-        final String className = settings.get(KEY, DefaultInterClusterRequestEvaluator.class.getName());
-        log.info("Using {} ", className);
-        if(!className.equals(DefaultInterClusterRequestEvaluator.class.getName())) {
+        final String className = settings.get(ConfigConstants.SG_INTERCLUSTER_REQUEST_EVALUATOR_CLASS,
+                DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS);
+        log.debug("Using {} as intercluster request evaluator class", className);
+        if (!DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS.equals(className)) {
             try {
-                Class<?> klass = Class.forName(className);
-                Constructor<?> constructor = klass.getConstructor(Settings.class);
-                evaluator =  (InterClusterRequestEvaluator) constructor.newInstance(settings);
+                final Class<?> klass = Class.forName(className);
+                final Constructor<?> constructor = klass.getConstructor(Settings.class);
+                evaluator = (InterClusterRequestEvaluator) constructor.newInstance(settings);
                 return;
-            }catch(Exception e) {
-                log.warn("Using DefaultInterClusterRequestEvaluator. Unable to instantiate {} ", e, className);
-                if(log.isTraceEnabled()) {
+            } catch (Throwable e) {
+                log.error("Using DefaultInterClusterRequestEvaluator. Unable to instantiate {} ", e, className);
+                if (log.isTraceEnabled()) {
                     log.trace("Unable to instantiate InterClusterRequestEvaluator", e);
                 }
             }
         }
         evaluator = new DefaultInterClusterRequestEvaluator(settings);
     }
-    
+
     @Override
     public InterClusterRequestEvaluator get() {
         return evaluator;
     }
-    
+
 }

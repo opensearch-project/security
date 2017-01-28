@@ -26,6 +26,8 @@ import org.elasticsearch.common.settings.Settings.Builder;
 import org.elasticsearch.transport.TransportRequest;
 import org.junit.Test;
 
+import com.floragunn.searchguard.support.ConfigConstants;
+
 public class InterClusterRequestEvaluatorProviderTest {
 
     private Settings settings;
@@ -55,7 +57,7 @@ public class InterClusterRequestEvaluatorProviderTest {
     private void givenImplIs(String name) {
         Builder builder = Settings.settingsBuilder();
         if(name != null) {
-            builder.put(InterClusterRequestEvaluatorProvider.KEY, name);
+            builder.put(ConfigConstants.SG_INTERCLUSTER_REQUEST_EVALUATOR_CLASS, name);
         }
         settings = builder.build();
     }
@@ -65,10 +67,10 @@ public class InterClusterRequestEvaluatorProviderTest {
         public InterClusterRequestEvaluatorImpl(Settings settings) {
             
         }
-        
+
         @Override
-        public boolean isInterClusterRequest(TransportRequest request, X509Certificate[] certs) {
-            // TODO Auto-generated method stub
+        public boolean isInterClusterRequest(TransportRequest request, X509Certificate[] localCerts, X509Certificate[] peerCerts,
+                String principal) {
             return false;
         }
         

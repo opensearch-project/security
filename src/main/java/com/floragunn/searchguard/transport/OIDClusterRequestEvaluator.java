@@ -19,8 +19,6 @@ package com.floragunn.searchguard.transport;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.transport.TransportRequest;
 
@@ -29,20 +27,20 @@ import org.elasticsearch.transport.TransportRequest;
  * and value to the same value found on the peer certificate
  *
  */
-public class OIDClusterRequestEvaluator implements InterClusterRequestEvaluator {
-    private final ESLogger log = Loggers.getLogger(this.getClass());
+public final class OIDClusterRequestEvaluator implements InterClusterRequestEvaluator {
     private final String certOid;
-    
+
     public OIDClusterRequestEvaluator(final Settings settings) {
         this.certOid = settings.get("searchguard.cert.oid", "1.2.3.4.5.5");
     }
-    
+
     @Override
-    public boolean isInterClusterRequest(TransportRequest request, X509Certificate[] localCerts, X509Certificate[] peerCerts) {
-        if(localCerts != null && localCerts.length >0 && peerCerts != null && peerCerts.length >0) {
+    public boolean isInterClusterRequest(TransportRequest request, X509Certificate[] localCerts, X509Certificate[] peerCerts,
+            final String principal) {
+        if (localCerts != null && localCerts.length > 0 && peerCerts != null && peerCerts.length > 0) {
             final byte[] localValue = localCerts[0].getExtensionValue(certOid);
             final byte[] peerValue = peerCerts[0].getExtensionValue(certOid);
-            if(localValue != null && peerValue != null) {
+            if (localValue != null && peerValue != null) {
                 return Arrays.equals(localValue, peerValue);
             }
         }

@@ -18,10 +18,6 @@
 package com.floragunn.searchguard.transport;
 
 import java.security.cert.X509Certificate;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Objects;
 
 import org.elasticsearch.ElasticsearchException;
@@ -105,7 +101,7 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
         User user = request.getFromContext(ConfigConstants.SG_USER);
                 
         if(user == null /* && action.startsWith("internal:")*/ && request.remoteAddress() == null) {
-            user = user.SG_INTERNAL;
+            user = User.SG_INTERNAL;
         }
         
         if(user != null) {
@@ -117,10 +113,10 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
     }
 
     @Override
-    protected void addAdditionalContextValues(final String action, final TransportRequest request, final X509Certificate[] localCerts, final X509Certificate[] peerCerts)
+    protected void addAdditionalContextValues(final String action, final TransportRequest request, final X509Certificate[] localCerts, final X509Certificate[] peerCerts, final String principal)
             throws Exception {
 
-        boolean isInterClusterRequest = requestEvalProvider.get().isInterClusterRequest(request, localCerts, peerCerts);
+        boolean isInterClusterRequest = requestEvalProvider.get().isInterClusterRequest(request, localCerts, peerCerts, principal);
 
         if (isInterClusterRequest) {
             if (log.isTraceEnabled() && !action.startsWith("internal:")) {
@@ -132,7 +128,7 @@ public class SearchGuardTransportService extends SearchGuardSSLTransportService 
                 log.trace("Is not an inter cluster request");
             }
         }
-        super.addAdditionalContextValues(action, request, localCerts, peerCerts);
+        super.addAdditionalContextValues(action, request, localCerts, peerCerts, principal);
     }
 
     @Override

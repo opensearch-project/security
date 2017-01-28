@@ -42,7 +42,10 @@ public interface InterClusterRequestEvaluator {
      *                      specific to the implementation for confirming intercluster
      *                      communication
      *                      
+     * @param principal    The principal evaluated by the configured principal extractor
+     *                      
      * @return True when determined to be intercluster, false otherwise
      */
-    boolean isInterClusterRequest(final TransportRequest request, final X509Certificate[] localCerts, final X509Certificate[] peerCerts);
+    boolean isInterClusterRequest(final TransportRequest request, final X509Certificate[] localCerts, final X509Certificate[] peerCerts,
+            final String principal);
 }
