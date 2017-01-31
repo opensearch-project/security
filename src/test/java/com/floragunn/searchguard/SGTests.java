@@ -100,6 +100,25 @@ public class SGTests extends AbstractUnitTest {
         Assert.assertEquals(ClusterHealthStatus.GREEN, client().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus());
         //Assert.assertEquals(3, client().admin().cluster().nodesInfo(new NodesInfoRequest().all()).actionGet().getNodes().length);
     }
+    
+    //@Test
+    public void testCustomInterclusterRequestEvaluator() throws Exception {
+        
+        final Settings settings = Settings.settingsBuilder().put("searchguard.ssl.transport.enabled", true)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
+                .put("searchguard.ssl.transport.keystore_filepath", getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+                .put("searchguard.ssl.transport.truststore_filepath", getAbsoluteFilePathFromClassPath("truststore.jks"))
+                .put("searchguard.ssl.transport.enforce_hostname_verification", false)
+                .put("searchguard.ssl.transport.resolve_hostname", false)
+                .put(ConfigConstants.SG_INTERCLUSTER_REQUEST_EVALUATOR_CLASS, "com.floragunn.searchguard.AlwaysFalseInterClusterRequestEvaluator")
+                .build();
+
+        startES(settings);
+        Assert.assertEquals(3, client().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getNumberOfNodes());
+        Assert.assertEquals(ClusterHealthStatus.GREEN, client().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus());
+    }
 
     @Test
     public void testNodeClientDisallowedWithNonServerCertificate() throws Exception {
