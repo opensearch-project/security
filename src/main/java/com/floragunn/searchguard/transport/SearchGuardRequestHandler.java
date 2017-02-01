@@ -28,7 +28,6 @@ import java.util.Objects;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
@@ -51,15 +50,15 @@ import com.google.common.base.Strings;
 
 public class SearchGuardRequestHandler<T extends TransportRequest> extends SearchGuardSSLRequestHandler<T> {
 
-    private Provider<BackendRegistry> backendRegistry;
-    private Provider<AuditLog> auditLog;
+    private BackendRegistry backendRegistry;
+    private AuditLog auditLog;
     private final String certOid;
     
     SearchGuardRequestHandler(String action, 
             TransportRequestHandler<T> actualHandler, 
             ThreadPool threadPool,
-            Provider<BackendRegistry> backendRegistry,
-            Provider<AuditLog> auditLog,
+            BackendRegistry backendRegistry,
+            AuditLog auditLog,
             final String certOid,
             final PrincipalExtractor principalExtractor) {
         super(action, actualHandler, threadPool, principalExtractor);
@@ -72,7 +71,7 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
     protected void messageReceivedDecorate(final T request, final TransportRequestHandler<T> handler,
             final TransportChannel transportChannel, Task task) throws Exception {
         
-        final ThreadContext.StoredContext sgContext = getThreadContext().newStoredContext();
+        final ThreadContext.StoredContext sgContext = getThreadContext().newStoredContext(false);
         
         try {
 
@@ -98,7 +97,7 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
             //if transport channel is not a netty channel but a direct or local channel (e.g. send via network) then allow it (regardless of beeing a internal: or shard request)
             if (!HeaderHelper.isInterClusterRequest(getThreadContext()) 
                     && (transportChannel.action().startsWith("internal:") || transportChannel.action().contains("["))) {
-                auditLog.get().logMissingPrivileges(transportChannel.action(), request);
+                auditLog.logMissingPrivileges(transportChannel.action(), request);
                 log.error("Internal or shard requests not allowed from a non-server node for transport type "+transportChannel.getChannelType());
                 transportChannel.sendResponse(new ElasticsearchSecurityException(
                         "Internal or shard requests not allowed from a non-server node for transport type "+transportChannel.getChannelType()));
@@ -111,7 +110,7 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
             if ((principal = getThreadContext().getTransient(ConfigConstants.SG_SSL_TRANSPORT_PRINCIPAL)) == null) {
                 Exception ex = new ElasticsearchSecurityException(
                         "No SSL client certificates found for transport type "+transportChannel.getChannelType()+". Search Guard needs the Search Guard SSL plugin to be installed");
-                auditLog.get().logSSLException(request, ex, transportChannel.action());
+                auditLog.logSSLException(request, ex, transportChannel.action());
                 log.error("No SSL client certificates found for transport type "+transportChannel.getChannelType()+". Search Guard needs the Search Guard SSL plugin to be installed");
                 transportChannel.sendResponse(ex);
                 return;
@@ -141,7 +140,7 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
                     
                     if(SSLRequestHelper.containsBadHeader(getThreadContext(), ConfigConstants.SG_CONFIG_PREFIX)) {
                         final ElasticsearchException exception = new ElasticsearchException("bad header found");      
-                        auditLog.get().logBadHeaders(request);
+                        auditLog.logBadHeaders(request);
                         log.error("Error validating headers");
                         transportChannel.sendResponse(exception);
                         return;
@@ -149,14 +148,14 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
                     
                     User user;
                     try {
-                        if((user = backendRegistry.get().authenticate(request, transportChannel, principal)) == null) {
+                        if((user = backendRegistry.authenticate(request, transportChannel, principal)) == null) {
                             log.error("Cannot authenticate {}", (User) getThreadContext().getTransient(ConfigConstants.SG_USER));
                             transportChannel.sendResponse(new ElasticsearchSecurityException("Cannot authenticate "+getThreadContext().getTransient(ConfigConstants.SG_USER)));
                             return;
                         }
                     } catch (Exception e) {
                         log.error("Error authentication transport user "+e, e);
-                        auditLog.get().logFailedLogin(principal, request);
+                        auditLog.logFailedLogin(principal, request);
                         transportChannel.sendResponse(ExceptionsHelper.convertToElastic(e));
                         return;
                     }
@@ -246,6 +245,6 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
     
     @Override
     protected void errorThrown(Throwable t, final TransportRequest request, String action) {
-        auditLog.get().logSSLException(request, t, action);
+        auditLog.logSSLException(request, t, action);
     }
 }

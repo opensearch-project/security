@@ -23,7 +23,7 @@
   <groupId>com.floragunn</groupId>
   <artifactId>search-guard-5</artifactId>
   <packaging>jar</packaging>
-  <version>5.1.2-10</version>
+  <version>5.2.0-10-SNAPSHOT</version>
   <name>Search Guard</name>
   <description>Provide access control related features for Elasticsearch 5</description>
   <url>https://github.com/floragunncom/search-guard</url>
@@ -38,9 +38,9 @@
   </licenses>
 
   <properties>
-    <sgssl.version>5.1.2-19</sgssl.version>
-    <netty-native.version>1.1.33.Fork23</netty-native.version>
-    <elasticsearch.version>5.1.2</elasticsearch.version>
+    <sgssl.version>5.2.0-19</sgssl.version>
+    <netty-native.version>1.1.33.Fork25</netty-native.version>
+    <elasticsearch.version>5.2.0</elasticsearch.version>
     <elasticsearch.assembly.descriptor>${basedir}/src/main/assemblies/plugin.xml</elasticsearch.assembly.descriptor>
     <sgstandalone.descriptor>${basedir}/src/main/assemblies/sgadmin-standalone.xml</sgstandalone.descriptor>
     <dependency.locations.enabled>false</dependency.locations.enabled>
@@ -61,7 +61,7 @@
     <url>https://github.com/floragunncom/search-guard</url>
     <connection>scm:git:git@github.com:floragunncom/search-guard.git</connection>
     <developerConnection>scm:git:git@github.com:floragunncom/search-guard.git</developerConnection>
-    <tag>v5.1.2-10</tag>
+    <tag>HEAD</tag>
   </scm>
 
   <issueManagement>

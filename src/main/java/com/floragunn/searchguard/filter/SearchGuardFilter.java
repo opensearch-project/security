@@ -22,11 +22,8 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
-import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.support.ActionFilter;
 import org.elasticsearch.action.support.ActionFilterChain;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.rest.RestStatus;
@@ -34,7 +31,6 @@ import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import com.floragunn.searchguard.auditlog.AuditLog;
-import com.floragunn.searchguard.auth.BackendRegistry;
 import com.floragunn.searchguard.configuration.AdminDNs;
 import com.floragunn.searchguard.configuration.DlsFlsRequestValve;
 import com.floragunn.searchguard.configuration.PrivilegesEvaluator;
@@ -51,16 +47,15 @@ public class SearchGuardFilter implements ActionFilter {
     // "indices:admin/mapping/put"
 
     protected final Logger log = LogManager.getLogger(this.getClass());
-    private final Provider<PrivilegesEvaluator> evalp;
+    private final PrivilegesEvaluator evalp;
     private final Settings settings;
     private final AdminDNs adminDns;
-    private Provider<DlsFlsRequestValve> dlsFlsValve;
+    private DlsFlsRequestValve dlsFlsValve;
     private final AuditLog auditLog;
     private final ThreadContext threadContext;
     
-    @Inject
-    public SearchGuardFilter(final Settings settings, final Provider<PrivilegesEvaluator> evalp, final AdminDNs adminDns,
-            final Provider<BackendRegistry> backendRegistry, Provider<DlsFlsRequestValve> dlsFlsValve, AuditLog auditLog, ThreadPool threadPool) {
+    public SearchGuardFilter(final Settings settings, final PrivilegesEvaluator evalp, final AdminDNs adminDns,
+            DlsFlsRequestValve dlsFlsValve, AuditLog auditLog, ThreadPool threadPool) {
         this.settings = settings;
         this.evalp = evalp;
         this.adminDns = adminDns;
@@ -98,7 +93,7 @@ public class SearchGuardFilter implements ActionFilter {
                 auditLog.logAuthenticatedRequest(request, action);
             }
 
-            if(!dlsFlsValve.get().invoke(request, listener, threadContext)) {
+            if(!dlsFlsValve.invoke(request, listener, threadContext)) {
                 return;
             }
             
@@ -134,7 +129,7 @@ public class SearchGuardFilter implements ActionFilter {
             //@formatter:on
         }
         
-        final PrivilegesEvaluator eval = evalp.get();
+        final PrivilegesEvaluator eval = evalp;
 
         if (!eval.isInitialized()) {
             log.error("Search Guard not initialized (SG11) for {}", action);
@@ -149,7 +144,7 @@ public class SearchGuardFilter implements ActionFilter {
 
         if (eval.evaluate(user, action, request)) {
             auditLog.logAuthenticatedRequest(request, action);
-            if(!dlsFlsValve.get().invoke(request, listener, threadContext)) {
+            if(!dlsFlsValve.invoke(request, listener, threadContext)) {
                 return;
             }
             chain.proceed(task, action, request, listener);
@@ -161,11 +156,6 @@ public class SearchGuardFilter implements ActionFilter {
             return;
         }
         
-    }
-
-    @Override
-    public void apply(final String action, final ActionResponse response, final ActionListener listener, final ActionFilterChain chain) {
-        chain.proceed(action, response, listener);
     }
     
     private static boolean isUserAdmin(User user, final AdminDNs adminDns) {

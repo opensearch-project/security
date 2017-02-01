@@ -20,6 +20,7 @@ package com.floragunn.searchguard.http;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -33,8 +34,8 @@ public class SearchGuardHttpServerTransport extends SearchGuardSSLNettyHttpServe
     private final AuditLog auditLog;
     
     public SearchGuardHttpServerTransport(Settings settings, NetworkService networkService, 
-            BigArrays bigArrays, ThreadPool threadPool, SearchGuardKeyStore sgks, AuditLog auditLog) {
-        super(settings, networkService, bigArrays, threadPool, sgks);
+            BigArrays bigArrays, ThreadPool threadPool, SearchGuardKeyStore sgks, AuditLog auditLog, NamedXContentRegistry namedXContentRegistry) {
+        super(settings, networkService, bigArrays, threadPool, sgks, namedXContentRegistry);
         this.auditLog = auditLog;
     }
 

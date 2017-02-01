@@ -22,12 +22,10 @@ import javax.net.ssl.SSLPeerUnverifiedException;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.client.node.NodeClient;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.rest.BytesRestResponse;
 import org.elasticsearch.rest.RestChannel;
-import org.elasticsearch.rest.RestFilter;
-import org.elasticsearch.rest.RestFilterChain;
+import org.elasticsearch.rest.RestHandler;
 import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.rest.RestRequest.Method;
 import org.elasticsearch.rest.RestStatus;
@@ -40,16 +38,14 @@ import com.floragunn.searchguard.ssl.util.SSLRequestHelper;
 import com.floragunn.searchguard.ssl.util.SSLRequestHelper.SSLInfo;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.HTTPHelper;
-import com.floragunn.searchguard.support.HeaderHelper;
 
-public class SearchGuardRestFilter extends RestFilter {
+public class SearchGuardRestFilter {
 
     private final BackendRegistry registry;
     private final AuditLog auditLog;
     private final ThreadContext threadContext;
     private final PrincipalExtractor principalExtractor;
 
-    @Inject
     public SearchGuardRestFilter(final BackendRegistry registry, final AuditLog auditLog,
             final ThreadPool threadPool, final PrincipalExtractor principalExtractor) {
         super();
@@ -58,22 +54,34 @@ public class SearchGuardRestFilter extends RestFilter {
         this.threadContext = threadPool.getThreadContext();
         this.principalExtractor = principalExtractor;
     }
+    
+    public RestHandler wrap(RestHandler original) {
+        return new RestHandler() {
+            
+            @Override
+            public void handleRequest(RestRequest request, RestChannel channel, NodeClient client) throws Exception {
+                if(!checkAndAuthenticateRequest(request, channel, client))
+                {
+                    original.handleRequest(request, channel, client);
+                }
+            }
+        };
+    }
 
-    @Override
-    public void process(RestRequest request, RestChannel channel, NodeClient client, RestFilterChain filterChain) throws Exception {
+    private boolean checkAndAuthenticateRequest(RestRequest request, RestChannel channel, NodeClient client) throws Exception {
 
         if(HTTPHelper.containsBadHeader(request)) {
             final ElasticsearchException exception = new ElasticsearchException("bad http header found");      
             auditLog.logBadHeaders(request);
             channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, exception));
-            return;
+            return true;
         }
         
         if(SSLRequestHelper.containsBadHeader(threadContext, ConfigConstants.SG_CONFIG_PREFIX)) {
             final ElasticsearchException exception = new ElasticsearchException("bad header found");      
             auditLog.logBadHeaders(request);
             channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, exception));
-            return;
+            return true;
         }
 
         final SSLInfo sslInfo;
@@ -98,12 +106,10 @@ public class SearchGuardRestFilter extends RestFilter {
         if(request.method() != Method.OPTIONS) {
             if (!registry.authenticate(request, channel, threadContext)) {
                 // another roundtrip
-                return;
+                return true;
             }
         }
-
         
-        
-        filterChain.continueProcessing(request, channel, client);
+        return false;
     }
 }

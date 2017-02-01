@@ -29,9 +29,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -39,9 +39,12 @@ import org.elasticsearch.SpecialPermission;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.support.ActionFilter;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.component.LifecycleComponent;
+import org.elasticsearch.client.Client;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Module;
+import org.elasticsearch.common.inject.Provider;
+import org.elasticsearch.common.inject.util.Providers;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.network.NetworkService;
@@ -49,6 +52,8 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.common.util.concurrent.ThreadContext;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.index.IndexService;
@@ -58,9 +63,12 @@ import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.NetworkPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.rest.RestHandler;
+import org.elasticsearch.script.ScriptService;
+import org.elasticsearch.search.SearchRequestParsers;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.Transport;
+import org.elasticsearch.transport.Transport.Connection;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportInterceptor;
 import org.elasticsearch.transport.TransportRequest;
@@ -68,25 +76,37 @@ import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportRequestOptions;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportResponseHandler;
+import org.elasticsearch.watcher.ResourceWatcherService;
 
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateAction;
 import com.floragunn.searchguard.action.configupdate.TransportConfigUpdateAction;
-import com.floragunn.searchguard.auditlog.AuditLogModule;
-import com.floragunn.searchguard.configuration.BackendModule;
-import com.floragunn.searchguard.configuration.ConfigurationModule;
-import com.floragunn.searchguard.configuration.InterceptorModule;
+import com.floragunn.searchguard.auditlog.AuditLog;
+import com.floragunn.searchguard.auditlog.NullAuditLog;
+import com.floragunn.searchguard.auth.BackendRegistry;
+import com.floragunn.searchguard.auth.internal.InternalAuthenticationBackend;
+import com.floragunn.searchguard.configuration.ActionGroupHolder;
+import com.floragunn.searchguard.configuration.AdminDNs;
+import com.floragunn.searchguard.configuration.ConfigurationRepository;
+import com.floragunn.searchguard.configuration.DlsFlsRequestValve;
+import com.floragunn.searchguard.configuration.IndexBaseConfigurationRepository;
+import com.floragunn.searchguard.configuration.PrivilegesEvaluator;
 import com.floragunn.searchguard.configuration.SearchGuardIndexSearcherWrapper;
 import com.floragunn.searchguard.filter.SearchGuardFilter;
+import com.floragunn.searchguard.filter.SearchGuardRestFilter;
 import com.floragunn.searchguard.http.SearchGuardHttpServerTransport;
 import com.floragunn.searchguard.http.SearchGuardNonSslHttpServerTransport;
+import com.floragunn.searchguard.http.XFFResolver;
 import com.floragunn.searchguard.rest.SearchGuardInfoAction;
 import com.floragunn.searchguard.ssl.DefaultSearchGuardKeyStore;
 import com.floragunn.searchguard.ssl.ExternalSearchGuardKeyStore;
 import com.floragunn.searchguard.ssl.SearchGuardKeyStore;
 import com.floragunn.searchguard.ssl.SearchGuardSSLModule;
 import com.floragunn.searchguard.ssl.rest.SearchGuardSSLInfoAction;
+import com.floragunn.searchguard.ssl.transport.DefaultPrincipalExtractor;
+import com.floragunn.searchguard.ssl.transport.PrincipalExtractor;
 import com.floragunn.searchguard.ssl.transport.SearchGuardSSLNettyTransport;
 import com.floragunn.searchguard.ssl.util.SSLConfigConstants;
+import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.ReflectionHelper;
 import com.floragunn.searchguard.transport.SearchGuardInterceptor;
 import com.google.common.collect.Lists;
@@ -100,10 +120,11 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
     private final boolean client;
     private final boolean httpSSLEnabled;
     private final boolean tribeNodeClient;
-    private final UUID instanceUUID = UUID.randomUUID();
     private final boolean dlsFlsAvailable;
     private final Constructor dlFlsConstructor;
     private final SearchGuardKeyStore sgks;
+    private SearchGuardRestFilter sgRestHandler;
+    private SearchGuardInterceptor sgi;
     
     //TODO 5mg check tribe
     public SearchGuardPlugin(final Settings settings) {
@@ -149,7 +170,7 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
             }
 
             dlsFlsAvailable = dlFlsConstructor != null;
-            log.info("FLS/DLS module available");
+            log.info("FLS/DLS module available: "+dlsFlsAvailable);
         } else {
             dlsFlsAvailable = false;
             dlFlsConstructor = null;
@@ -178,7 +199,7 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
                     .invoke(null);          
                     handlers.addAll(apiHandler);
                     log.debug("Added {} management rest handler", apiHandler.size());
-                } catch(Exception ex) {
+                } catch(Throwable ex) {
                     log.error("Failed to register SearchGuardRestApiActions, management API not available", ex);
                 }
             }
@@ -186,6 +207,11 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         return handlers;
     }
     
+    @Override
+    public UnaryOperator<RestHandler> getRestHandlerWrapper(final ThreadContext threadContext) {
+        return (rh) -> sgRestHandler.wrap(rh);
+    }
+
     @Override
     public List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
         List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> actions = new ArrayList<>(1);
@@ -200,13 +226,6 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
     public Collection<Module> createGuiceModules() {
         List<Module> modules = new ArrayList<Module>(1);
         modules.add(new SearchGuardSSLModule(settings, sgks));   
-        if (!client && !tribeNodeClient) {
-            modules.add(new ConfigurationModule());
-            modules.add(new BackendModule());
-            modules.add(new AuditLogModule());
-            modules.add(new InterceptorModule(instanceUUID.toString()));
-        }
-        
         return modules;
     }
     
@@ -234,11 +253,6 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
     }
     
     @Override
-    public Collection<Class<? extends LifecycleComponent>> getGuiceServiceClasses() {
-        return Collections.emptyList();
-    }
-    
-    @Override
     public List<Class<? extends ActionFilter>> getActionFilters() {
         List<Class<? extends ActionFilter>> filters = new ArrayList<>(1);
         if (!tribeNodeClient && !client) {
@@ -249,7 +263,7 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
 
     
     @Override
-    public List<TransportInterceptor> getTransportInterceptors() {
+    public List<TransportInterceptor> getTransportInterceptors(ThreadContext threadContext) {
         List<TransportInterceptor> interceptors = new ArrayList<TransportInterceptor>(1);
         
         if (!client && !tribeNodeClient) {
@@ -257,18 +271,18 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
 
                 @Override
                 public <T extends TransportRequest> TransportRequestHandler<T> interceptHandler(String action, String executor,
-                        TransportRequestHandler<T> actualHandler) {
+                        boolean forceExecution, TransportRequestHandler<T> actualHandler) {
                     
                     return new TransportRequestHandler<T>() {
 
                         @Override
                         public void messageReceived(T request, TransportChannel channel, Task task) throws Exception {
-                            SearchGuardInterceptor.getSearchGuardInterceptor(instanceUUID.toString()).getHandler(action, actualHandler).messageReceived(request, channel, task);
+                            sgi.getHandler(action, actualHandler).messageReceived(request, channel, task);
                         }
 
                         @Override
                         public void messageReceived(T request, TransportChannel channel) throws Exception {
-                            SearchGuardInterceptor.getSearchGuardInterceptor(instanceUUID.toString()).getHandler(action, actualHandler).messageReceived(request, channel);
+                            sgi.getHandler(action, actualHandler).messageReceived(request, channel);
                         }
                     };
                     
@@ -278,16 +292,16 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
                 public AsyncSender interceptSender(AsyncSender sender) {
                     
                     return new AsyncSender() {
-                        
+
                         @Override
-                        public <T extends TransportResponse> void sendRequest(DiscoveryNode node, String action, TransportRequest request,
-                                TransportRequestOptions options, TransportResponseHandler<T> handler) {
-                            SearchGuardInterceptor.getSearchGuardInterceptor(instanceUUID.toString()).sendRequestDecorate(sender, node, action, request, options, handler);
+                        public <T extends TransportResponse> void sendRequest(Connection connection, String action,
+                                TransportRequest request, TransportRequestOptions options, TransportResponseHandler<T> handler) {
+                            sgi.sendRequestDecorate(sender, connection, action, request, options, handler);
+                            //SearchGuardInterceptor.getSearchGuardInterceptor(instanceUUID.toString()).sendRequestDecorate(sender, connection, action, request, options, handler);
                         }
                     };
                 }
             });
-        
         }
         
         return interceptors;
@@ -305,23 +319,99 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
 
     }
 
-
     @Override
     public Map<String, Supplier<HttpServerTransport>> getHttpTransports(Settings settings, ThreadPool threadPool, BigArrays bigArrays,
-            CircuitBreakerService circuitBreakerService, NamedWriteableRegistry namedWriteableRegistry, NetworkService networkService) {
-
+            CircuitBreakerService circuitBreakerService, NamedWriteableRegistry namedWriteableRegistry,
+            NamedXContentRegistry xContentRegistry, NetworkService networkService) {
         Map<String, Supplier<HttpServerTransport>> httpTransports = new HashMap<String, Supplier<HttpServerTransport>>(1);
         if (!client && httpSSLEnabled && !tribeNodeClient) {
             httpTransports.put("com.floragunn.searchguard.http.SearchGuardHttpServerTransport", 
-                    () -> new SearchGuardHttpServerTransport(settings, networkService, bigArrays, threadPool, sgks, null));
+                    () -> new SearchGuardHttpServerTransport(settings, networkService, bigArrays, threadPool, sgks, null, xContentRegistry));
         } else if (!client && !tribeNodeClient) {
             httpTransports.put("com.floragunn.searchguard.http.SearchGuardHttpServerTransport", 
-                    () -> new SearchGuardNonSslHttpServerTransport(settings, networkService, bigArrays, threadPool));
+                    () -> new SearchGuardNonSslHttpServerTransport(settings, networkService, bigArrays, threadPool, xContentRegistry));
         }
         
         return httpTransports;
     }
+    
+    
         
+    @Override
+    public Collection<Object> createComponents(Client localClient, ClusterService clusterService, ThreadPool threadPool,
+            ResourceWatcherService resourceWatcherService, ScriptService scriptService, SearchRequestParsers searchRequestParsers,
+            NamedXContentRegistry xContentRegistry) {
+        
+        final List<Object> components = new ArrayList<Object>();
+        
+        if (client || tribeNodeClient) {
+            return components;
+        }
+        
+        
+        DlsFlsRequestValve dlsFlsValve = new DlsFlsRequestValve.NoopDlsFlsRequestValve();
+        
+        try {
+            Class<?> dlsFlsRequestValveClass;
+            if ((dlsFlsRequestValveClass = Class.forName("com.floragunn.searchguard.configuration.DlsFlsValveImpl")) != null) {                                                                                                                           
+                dlsFlsValve = (DlsFlsRequestValve) dlsFlsRequestValveClass.newInstance(); //zero args constructor
+                log.info("FLS/DLS valve bound");
+            } 
+        } catch (Throwable e) {
+            log.info("FLS/DLS valve not bound (noop) due to "+e);
+        }
+        
+        final IndexNameExpressionResolver resolver = new IndexNameExpressionResolver(settings);
+        AuditLog auditLog = new NullAuditLog();
+
+        try {
+
+            // @Inject
+            // public AuditLogImpl(final Settings settings, Provider<Client>
+            // clientProvider, ThreadPool threadPool,
+            // final IndexNameExpressionResolver resolver, final
+            // Provider<ClusterService> clusterService) {
+
+            Class auditLogImplClass;
+            if ((auditLogImplClass = Class.forName("com.floragunn.searchguard.auditlog.impl.AuditLogImpl")) != null) {
+                auditLog = (AuditLog) auditLogImplClass.getConstructor(Settings.class, Provider.class , ThreadPool.class, IndexNameExpressionResolver.class, Provider.class)
+                        .newInstance(settings, Providers.of(localClient), threadPool, resolver, Providers.of(clusterService));
+                log.info("Auditlog available ({})", auditLogImplClass.getSimpleName());
+            } 
+        } catch (Throwable e) {
+            log.info("Auditlog not available due to "+e);
+        }
+        
+        final AdminDNs adminDns = new AdminDNs(settings);      
+        final PrincipalExtractor pe = new DefaultPrincipalExtractor();        
+        final ConfigurationRepository cr = IndexBaseConfigurationRepository.create(settings, threadPool, localClient, clusterService);        
+        final InternalAuthenticationBackend iab = new InternalAuthenticationBackend(cr);     
+        final XFFResolver xffResolver = new XFFResolver(threadPool);
+        cr.subscribeOnChange(ConfigConstants.CONFIGNAME_CONFIG, xffResolver);   
+        final BackendRegistry backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, iab, auditLog, threadPool);
+        cr.subscribeOnChange(ConfigConstants.CONFIGNAME_CONFIG, backendRegistry); 
+        final ActionGroupHolder ah = new ActionGroupHolder(cr);      
+        final PrivilegesEvaluator pre = new PrivilegesEvaluator(clusterService, threadPool, cr, ah, resolver, auditLog, settings);    
+        final SearchGuardFilter sgf = new SearchGuardFilter(settings, pre, adminDns, dlsFlsValve, auditLog, threadPool);     
+        sgi = new SearchGuardInterceptor(settings, threadPool, backendRegistry, auditLog, pe);
+        
+        components.add(adminDns);
+        //components.add(auditLog);
+        components.add(cr);
+        components.add(iab);
+        components.add(xffResolver);
+        components.add(backendRegistry);
+        components.add(ah);
+        components.add(pre);
+        components.add(sgf);
+        components.add(sgi);
+
+        sgRestHandler = new SearchGuardRestFilter(backendRegistry, auditLog, threadPool, pe);
+        
+        return components;
+        
+    }
+
     @Override
     public Settings additionalSettings() {
         final Settings.Builder builder = Settings.builder();

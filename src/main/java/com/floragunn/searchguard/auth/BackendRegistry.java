@@ -35,33 +35,27 @@ import javax.naming.ldap.LdapName;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchSecurityException;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.rest.BytesRestResponse;
 import org.elasticsearch.rest.RestChannel;
-import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportRequest;
 
-import com.floragunn.searchguard.action.configupdate.TransportConfigUpdateAction;
 import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.auth.internal.InternalAuthenticationBackend;
 import com.floragunn.searchguard.auth.internal.NoOpAuthenticationBackend;
 import com.floragunn.searchguard.auth.internal.NoOpAuthorizationBackend;
 import com.floragunn.searchguard.configuration.AdminDNs;
-import com.floragunn.searchguard.configuration.ConfigChangeListener;
-import com.floragunn.searchguard.filter.SearchGuardRestFilter;
+import com.floragunn.searchguard.configuration.ConfigurationChangeListener;
 import com.floragunn.searchguard.http.HTTPBasicAuthenticator;
 import com.floragunn.searchguard.http.HTTPClientCertAuthenticator;
 import com.floragunn.searchguard.http.HTTPHostAuthenticator;
 import com.floragunn.searchguard.http.HTTPProxyAuthenticator;
 import com.floragunn.searchguard.http.XFFResolver;
-import com.floragunn.searchguard.ssl.transport.PrincipalExtractor;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.HTTPHelper;
 import com.floragunn.searchguard.user.AuthCredentials;
@@ -72,14 +66,13 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 
-public class BackendRegistry implements ConfigChangeListener {
+public class BackendRegistry implements ConfigurationChangeListener {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
     private final Map<String, String> authImplMap = new HashMap<String, String>();
     private final SortedSet<AuthDomain> authDomains = new TreeSet<AuthDomain>();
     private final Set<AuthorizationBackend> authorizers = new HashSet<AuthorizationBackend>();
     private volatile boolean initialized;
-    private final TransportConfigUpdateAction tcua;
     private final AdminDNs adminDns;
     private final XFFResolver xffResolver;
     private volatile boolean anonymousAuthEnabled = false;
@@ -115,13 +108,8 @@ public class BackendRegistry implements ConfigChangeListener {
                 }
             }).build();
 
-    @Inject
-    public BackendRegistry(final Settings settings, final RestController controller, final TransportConfigUpdateAction tcua, final ClusterService cse,
-            final AdminDNs adminDns, final XFFResolver xffResolver, InternalAuthenticationBackend iab, AuditLog auditLog, ThreadPool threadPool,
-            final PrincipalExtractor principalExtractor) {
-        tcua.addConfigChangeListener(ConfigConstants.CONFIGNAME_CONFIG, this);
-        controller.registerFilter(new SearchGuardRestFilter(this, auditLog, threadPool, principalExtractor));
-        this.tcua = tcua;
+    public BackendRegistry(final Settings settings, final AdminDNs adminDns, 
+            final XFFResolver xffResolver, final InternalAuthenticationBackend iab, final AuditLog auditLog, final ThreadPool threadPool) {
         this.adminDns = adminDns;
         this.esSettings = settings;
         this.xffResolver = xffResolver;
@@ -166,18 +154,19 @@ public class BackendRegistry implements ConfigChangeListener {
         
         final Class<T> t = (Class<T>) Class.forName(clazz);
 
-        try {
+        //try {
             final Constructor<T> tctor = t.getConstructor(Settings.class);
             return tctor.newInstance(settings);
-        } catch (final Exception e) {
-            log.warn("Unable to create instance of class {} with (Settings.class) constructor due to {}", e, t, e.toString());
-            final Constructor<T> tctor = t.getConstructor(Settings.class, TransportConfigUpdateAction.class);
-            return tctor.newInstance(settings, tcua);
-        }
+            //} catch (final Exception e) {
+            
+            //log.warn("Unable to create instance of class {} with (Settings.class) constructor due to {}", e, t, e.toString());
+            //final Constructor<T> tctor = t.getConstructor(Settings.class, TransportConfigUpdateAction.class);
+            //return tctor.newInstance(settings, tcua);
+            //}
     }
 
     @Override
-    public void onChange(final String event, final Settings settings) {
+    public void onChange(final Settings settings) {
         authDomains.clear();
         authorizers.clear();
         anonymousAuthEnabled = settings.getAsBoolean("searchguard.dynamic.http.anonymous_auth_enabled", false);
@@ -234,11 +223,6 @@ public class BackendRegistry implements ConfigChangeListener {
         }
 
         initialized = true;
-    }
-
-    @Override
-    public void validate(final String event, final Settings settings) throws ElasticsearchSecurityException {
-
     }
 
     public User authenticate(final TransportRequest request, final TransportChannel channel, String sslPrincipal) throws ElasticsearchSecurityException {
@@ -577,7 +561,6 @@ public class BackendRegistry implements ConfigChangeListener {
         return authenticated;
     }
 
-    @Override
     public boolean isInitialized() {
         return initialized;
     }

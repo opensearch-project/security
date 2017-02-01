@@ -43,5 +43,17 @@ CLUSTER_ALL:
 CLUSTER_MONITOR:
   - cluster:monitor/*
   
+CLUSTER_COMPOSITE_OPS_RO:
+  - "indices:data/read/mget"
+  - "indices:data/read/msearch"
+  - "indices:data/read/mtv"
+  - "indices:data/read/coordinate-msearch*"
+  - "indices:admin/aliases/exists*"
+  - "indices:admin/aliases/get*"
+CLUSTER_COMPOSITE_OPS:
+  - "indices:data/write/bulk"
+  - "indices:admin/aliases*"
+  - CLUSTER_COMPOSITE_OPS_RO
+  
 # HEALTH_AND_STATS = n"cluster:monitor/health*", "cluster:monitor/stats*", "indices:monitor/stats*", "cluster:monitor/nodes/stats*"
 # ALL = cluster:*", "indices:admin/template/*

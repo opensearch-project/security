@@ -18,17 +18,14 @@
 package com.floragunn.searchguard.transport;
 
 import java.net.InetSocketAddress;
-import java.util.HashMap;
 import java.util.Map;
 
 import org.elasticsearch.ElasticsearchSecurityException;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.Transport.Connection;
 import org.elasticsearch.transport.TransportException;
 import org.elasticsearch.transport.TransportInterceptor.AsyncSender;
 import org.elasticsearch.transport.TransportRequest;
@@ -37,10 +34,8 @@ import org.elasticsearch.transport.TransportRequestOptions;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportResponseHandler;
 
-import com.floragunn.searchguard.SearchGuardPlugin;
 import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.auth.BackendRegistry;
-import com.floragunn.searchguard.configuration.InstanceId;
 import com.floragunn.searchguard.ssl.transport.PrincipalExtractor;
 import com.floragunn.searchguard.support.Base64Helper;
 import com.floragunn.searchguard.support.ConfigConstants;
@@ -49,52 +44,42 @@ import com.google.common.collect.Maps;
 
 public class SearchGuardInterceptor {
     
-    private Provider<BackendRegistry> backendRegistry;
-    private Provider<AuditLog> auditLog;
+    private BackendRegistry backendRegistry;
+    private AuditLog auditLog;
     private final String certOid;
     private final ThreadPool threadPool;
     private final PrincipalExtractor principalExtractor;
-    private static Map<String, SearchGuardInterceptor> instancemap = new HashMap<String, SearchGuardInterceptor>(); 
-    
-    @Inject
-    public SearchGuardInterceptor(final InstanceId id, final Settings settings, 
-            final ThreadPool threadPool, final Provider<BackendRegistry> backendRegistry, 
-            final Provider<AuditLog> auditLog, final PrincipalExtractor principalExtractor) {
+
+    public SearchGuardInterceptor(final Settings settings, 
+            final ThreadPool threadPool, final BackendRegistry backendRegistry, 
+            final AuditLog auditLog, final PrincipalExtractor principalExtractor) {
         this.backendRegistry = backendRegistry;
         this.auditLog = auditLog;
         this.certOid = settings.get("searchguard.cert.oid", "1.2.3.4.5.5");
         this.threadPool = threadPool;
         this.principalExtractor = principalExtractor;
-        
-        synchronized(SearchGuardInterceptor.class) {
-            instancemap.put(id.getId(), this);
-        }
     }
-    
-    public static SearchGuardInterceptor getSearchGuardInterceptor(String id) {
-        return instancemap.get(id);
-    }
-    
+
     public <T extends TransportRequest> SearchGuardRequestHandler<T> getHandler(String action, 
             TransportRequestHandler<T> actualHandler) {
         return new SearchGuardRequestHandler<T>(action, actualHandler, threadPool, backendRegistry, auditLog, certOid, principalExtractor);
     }
 
-    public <T extends TransportResponse> void sendRequestDecorate(AsyncSender sender, DiscoveryNode node, String action,
+    public <T extends TransportResponse> void sendRequestDecorate(AsyncSender sender, Connection connection, String action,
             TransportRequest request, TransportRequestOptions options, TransportResponseHandler<T> handler) {
  
         final Map<String, String> origHeaders = getThreadContext().getHeaders();  
         final User user = getThreadContext().getTransient(ConfigConstants.SG_USER);
         final Object remoteAdress = getThreadContext().getTransient(ConfigConstants.SG_REMOTE_ADDRESS);
         
-        ThreadContext.StoredContext storedContext = getThreadContext().newStoredContext();
+        ThreadContext.StoredContext storedContext = getThreadContext().newStoredContext(false);
         
         try (ThreadContext.StoredContext newCtx = getThreadContext().stashAndMergeHeaders(Maps.filterKeys(origHeaders, k->k.equals(ConfigConstants.SG_CONF_REQUEST_HEADER)))) {
             RestoringTransportResponseHandler<T> restoringHandler = new RestoringTransportResponseHandler<T>(handler, storedContext);
             getThreadContext().putTransient(ConfigConstants.SG_USER, user);
             getThreadContext().putTransient(ConfigConstants.SG_REMOTE_ADDRESS, remoteAdress);
             attachHeaders(action, remoteAdress, user);
-            sender.sendRequest(node, action, request, options, restoringHandler);
+            sender.sendRequest(connection, action, request, options, restoringHandler);
         }
     }
     

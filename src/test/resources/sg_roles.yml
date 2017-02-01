@@ -1,6 +1,7 @@
 sg_public:
   cluster:
     - 'cluster:monitor/main'
+    #- CLUSTER_COMPOSITE_OPS_RO
 
 sg_all_access:
   cluster:

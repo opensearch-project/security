@@ -24,6 +24,7 @@ import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestRequest;
@@ -35,8 +36,8 @@ public class SearchGuardNonSslHttpServerTransport extends Netty4HttpServerTransp
     private final ThreadContext threadContext;
     
     public SearchGuardNonSslHttpServerTransport(final Settings settings, final NetworkService networkService, final BigArrays bigArrays,
-            ThreadPool threadPool) {
-        super(settings, networkService, bigArrays, threadPool);
+            ThreadPool threadPool, NamedXContentRegistry namedXContentRegistry) {
+        super(settings, networkService, bigArrays, threadPool, namedXContentRegistry);
         this.threadContext = threadPool.getThreadContext();
     }
 

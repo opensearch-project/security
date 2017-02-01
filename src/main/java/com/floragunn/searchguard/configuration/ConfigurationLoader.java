@@ -36,11 +36,10 @@ import org.elasticsearch.action.get.MultiGetResponse;
 import org.elasticsearch.action.get.MultiGetResponse.Failure;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.loader.JsonSettingsLoader;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -50,14 +49,13 @@ import com.floragunn.searchguard.support.ConfigConstants;
 public class ConfigurationLoader {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
-    private final Provider<Client> clientProvider;
+    private final Client client;
 	private final ThreadContext threadContext;
     private final String searchguardIndex;
     
-    @Inject
-    public ConfigurationLoader(final Provider<Client> clientProvider, ThreadPool threadPool, final Settings settings) {
+    public ConfigurationLoader(final Client client, ThreadPool threadPool, final Settings settings) {
         super();
-        this.clientProvider = clientProvider;
+        this.client = client;
         this.threadContext = threadPool.getThreadContext();
         this.searchguardIndex = settings.get(ConfigConstants.SG_CONFIG_INDEX, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
         log.debug("Index is: {}", searchguardIndex);
@@ -127,8 +125,6 @@ public class ConfigurationLoader {
         mget.refresh(true);
         mget.realtime(true);
         
-        Client client = clientProvider.get();
-        
         //if(client.threadPool().getThreadContext().getHeader(ConfigConstants.SG_CONF_REQUEST_HEADER) == null) {
         //    client.threadPool().getThreadContext().putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true");
         //} 
@@ -176,7 +172,7 @@ public class ConfigurationLoader {
         XContentParser parser = null;
 
         try {
-            parser = XContentHelper.createParser(ref);
+            parser = XContentHelper.createParser(NamedXContentRegistry.EMPTY, ref);
             parser.nextToken();
             parser.nextToken();
          

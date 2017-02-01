@@ -41,11 +41,17 @@ import org.elasticsearch.action.RealtimeRequest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesAction;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.bulk.BulkAction;
+import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.get.MultiGetAction;
+import org.elasticsearch.action.get.MultiGetRequest;
+import org.elasticsearch.action.get.MultiGetRequest.Item;
 import org.elasticsearch.action.search.MultiSearchAction;
+import org.elasticsearch.action.search.MultiSearchRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.termvectors.MultiTermVectorsAction;
+import org.elasticsearch.action.termvectors.MultiTermVectorsRequest;
+import org.elasticsearch.action.termvectors.TermVectorsRequest;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -54,7 +60,6 @@ import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
@@ -62,7 +67,6 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportRequest;
 
-import com.floragunn.searchguard.action.configupdate.TransportConfigUpdateAction;
 import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.support.Base64Helper;
 import com.floragunn.searchguard.support.ConfigConstants;
@@ -74,15 +78,12 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
 
-public class PrivilegesEvaluator implements ConfigChangeListener {
+public class PrivilegesEvaluator {
 
     private static final Set<String> NULL_SET = Sets.newHashSet((String)null);
     private final Set<String> DLSFLS = ImmutableSet.of("_dls_", "_fls_");
     protected final Logger log = LogManager.getLogger(this.getClass());
     private final ClusterService clusterService;
-    private volatile Settings rolesMapping;
-    private volatile Settings roles;
-    private volatile Settings config;
     private final ActionGroupHolder ah;
     private final IndexNameExpressionResolver resolver;
     private final Map<Class<?>, Method> typeCache = Collections.synchronizedMap(new HashMap<Class<?>, Method>(100));
@@ -91,16 +92,14 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
     private final AuditLog auditLog;
     private ThreadContext threadContext;
     private final static IndicesOptions DEFAULT_INDICES_OPTIONS = IndicesOptions.lenientExpandOpen();
+    private final ConfigurationRepository configurationRepository;
 
     private final String searchguardIndex;
     
-    @Inject
-    public PrivilegesEvaluator(final ClusterService clusterService, final ThreadPool threadPool, final TransportConfigUpdateAction tcua, final ActionGroupHolder ah,
+    public PrivilegesEvaluator(final ClusterService clusterService, final ThreadPool threadPool, final ConfigurationRepository configurationRepository, final ActionGroupHolder ah,
             final IndexNameExpressionResolver resolver, AuditLog auditLog, final Settings settings) {
         super();
-        tcua.addConfigChangeListener(ConfigConstants.CONFIGNAME_ROLES_MAPPING, this);
-        tcua.addConfigChangeListener(ConfigConstants.CONFIGNAME_ROLES, this);
-        tcua.addConfigChangeListener(ConfigConstants.CONFIGNAME_CONFIG, this);
+        this.configurationRepository = configurationRepository;
         this.clusterService = clusterService;
         this.ah = ah;
         this.resolver = resolver;
@@ -151,30 +150,21 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         deniedActionPatterns = deniedActionPatternsList.toArray(new String[0]);
         
     }
-
-    @Override
-    public void onChange(final String event, final Settings settings) {
-        switch (event) {
-        case "roles":
-            roles = settings;
-            break;
-        case "rolesmapping":
-            rolesMapping = settings;
-            break;
-        case "config":
-            config = settings;
-            break;
-        }
+    
+    private Settings getRolesSettings() {
+        return configurationRepository.getConfiguration(ConfigConstants.CONFIGNAME_ROLES);
     }
 
-    @Override
+    private Settings getRolesMappingSettings() {
+        return configurationRepository.getConfiguration(ConfigConstants.CONFIGNAME_ROLES_MAPPING);
+    }
+    
+    private Settings getConfigSettings() {
+        return configurationRepository.getConfiguration(ConfigConstants.CONFIGNAME_CONFIG);
+    }
+    
     public boolean isInitialized() {
-        return rolesMapping != null && roles != null;
-    }
-
-    @Override
-    public void validate(final String event, final Settings settings) throws ElasticsearchSecurityException {
-
+        return getRolesSettings() != null && getRolesMappingSettings() != null && getConfigSettings() != null;
     }
     
     private static class IndexType {
@@ -230,6 +220,13 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
     }
 
     public boolean evaluate(final User user, String action, final ActionRequest request) {
+           
+        if (!isInitialized()) {
+            throw new ElasticsearchSecurityException("Search Guard is not initialized.");
+        }
+        
+        final Settings config = getConfigSettings();
+        final Settings roles = getRolesSettings();
         
         if(action.startsWith("cluster:admin/snapshot/restore")) {
             //auditLog.logMissingPrivileges(action, request);
@@ -582,10 +579,12 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
     
     public Set<String> mapSgRoles(User user, TransportAddress caller) {
         
-        if(user == null) {
+        final Settings rolesMapping = getRolesMappingSettings();
+        
+        if(user == null || rolesMapping == null) {
             return Collections.emptySet();
         }
-        
+
         final Set<String> sgRoles = new TreeSet<String>();
         for (final String roleMap : rolesMapping.names()) {
             final Settings roleMapSettings = rolesMapping.getByPrefix(roleMap);
@@ -757,11 +756,44 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         final Set<String> types = new HashSet<String>();
 
         if (request instanceof CompositeIndicesRequest) {
-            for (final IndicesRequest indicesRequest : ((CompositeIndicesRequest) request).subRequests()) {
-                final Tuple<Set<String>, Set<String>> t = resolve(user, action, indicesRequest, metaData);
-                indices.addAll(t.v1());
-                types.addAll(t.v2());
+            
+            if(request instanceof BulkRequest) {
+
+                for(ActionRequest ar: ((BulkRequest) request).requests()) {
+                    final Tuple<Set<String>, Set<String>> t = resolve(user, action, ar, metaData);
+                    indices.addAll(t.v1());
+                    types.addAll(t.v2());
+                }
+                
+            } else if(request instanceof MultiGetRequest) {
+                
+                for(Item item: ((MultiGetRequest) request).getItems()) {
+                    final Tuple<Set<String>, Set<String>> t = resolve(user, action, item, metaData);
+                    indices.addAll(t.v1());
+                    types.addAll(t.v2());
+                }
+                
+            } else if(request instanceof MultiSearchRequest) {
+                
+                for(ActionRequest ar: ((MultiSearchRequest) request).requests()) {
+                    final Tuple<Set<String>, Set<String>> t = resolve(user, action, ar, metaData);
+                    indices.addAll(t.v1());
+                    types.addAll(t.v2());
+                }
+                
+            } else if(request instanceof MultiTermVectorsRequest) {
+                
+                for(ActionRequest ar: (Iterable<TermVectorsRequest>) () -> ((MultiTermVectorsRequest) request).iterator()) {
+                    final Tuple<Set<String>, Set<String>> t = resolve(user, action, ar, metaData);
+                    indices.addAll(t.v1());
+                    types.addAll(t.v2());
+                }
+                
+                
+            } else {
+                log.debug("Can not handle composite request of type '"+request+"' here");
             }
+
         } else {
             final Tuple<Set<String>, Set<String>> t = resolve(user, action, (IndicesRequest) request, metaData);
             indices.addAll(t.v1());

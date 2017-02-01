@@ -72,6 +72,7 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
@@ -476,7 +477,7 @@ public abstract class AbstractUnitTest {
     protected BytesReference readXContent(final Reader reader, final XContentType xContentType) throws IOException {
         XContentParser parser = null;
         try {
-            parser = XContentFactory.xContent(xContentType).createParser(reader);
+            parser = XContentFactory.xContent(xContentType).createParser(NamedXContentRegistry.EMPTY, reader);
             parser.nextToken();
             final XContentBuilder builder = XContentFactory.jsonBuilder();
             builder.copyCurrentStructure(parser);

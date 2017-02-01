@@ -74,6 +74,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.loader.JsonSettingsLoader;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
@@ -607,7 +608,7 @@ public class SearchGuardAdmin {
         BytesReference retVal;
         XContentParser parser = null;
         try {
-            parser = XContentFactory.xContent(xContentType).createParser(reader);
+            parser = XContentFactory.xContent(xContentType).createParser(NamedXContentRegistry.EMPTY, reader);
             parser.nextToken();
             final XContentBuilder builder = XContentFactory.jsonBuilder();
             builder.copyCurrentStructure(parser);
@@ -619,13 +620,13 @@ public class SearchGuardAdmin {
         }
         
         //validate
-        Settings.builder().put(new JsonSettingsLoader(true).load(XContentHelper.createParser(retVal))).build();
+        Settings.builder().put(new JsonSettingsLoader(true).load(XContentHelper.createParser(NamedXContentRegistry.EMPTY, retVal))).build();
         return retVal;
     }
     
     private static String convertToYaml(String type, BytesReference bytes, boolean prettyPrint) throws IOException {
         
-        try (XContentParser parser = XContentFactory.xContent(XContentFactory.xContentType(bytes)).createParser(bytes.streamInput())) {
+        try (XContentParser parser = XContentFactory.xContent(XContentFactory.xContentType(bytes)).createParser(NamedXContentRegistry.EMPTY, bytes.streamInput())) {
             
             parser.nextToken();
             parser.nextToken();
