@@ -65,4 +65,6 @@ public class ConfigConstants {
     public static final String SG_CONFIG_INDEX = "searchguard.config_index_name";
     public static final String SG_DEFAULT_CONFIG_INDEX = "searchguard";
     
+    public static final String SG_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = "searchguard.cert.intercluster_request_evaluator_class";
+    
 }
