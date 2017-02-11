@@ -314,6 +314,10 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
 
         settings.add(Setting.simpleString("searchguard.cert.oid", Property.NodeScope, Property.Filtered));
 
+        settings.add(Setting.simpleString("searchguard.cert.intercluster_request_evaluator_class", Property.NodeScope, Property.Filtered));
+        settings.add(Setting.listSetting("searchguard.nodes_dn", Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
+
+        
         //SSL
         settings.add(Setting.simpleString(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_CLIENTAUTH_MODE, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_KEYSTORE_ALIAS, Property.NodeScope, Property.Filtered));

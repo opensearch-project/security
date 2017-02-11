@@ -75,3 +75,10 @@ searchguard.audit.type: internal_elasticsearch
 # If you set wrong values here this this could be a security risk
 # or make Search Guard stop working
 #searchguard.cert.oid: '1.2.3.4.5.5'
+
+# This specifies the implementation of com.floragunn.searchguard.transport.InterClusterRequestEvaluator
+# that is used to determine inter cluster message.  The default is to use the oid value of 'searchguard.cert.oid'
+# as described: https://github.com/floragunncom/search-guard-docs/blob/master/architecture.md
+# Instance of com.floragunn.searchguard.transport.InterClusterRequestEvaluator must implement a single arg
+# constructor that takes a org.elasticsearch.common.settings.Settings
+#searchguard.cert.intercluster_request_evaluator_class: com.floragunn.searchguard.transport.DefaultInterClusterRequestEvaluator

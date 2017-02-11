@@ -19,10 +19,6 @@ package com.floragunn.searchguard.transport;
 
 import java.net.InetSocketAddress;
 import java.security.cert.X509Certificate;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Objects;
 
 import org.elasticsearch.ElasticsearchException;
@@ -53,19 +49,19 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
 
     private Provider<BackendRegistry> backendRegistry;
     private Provider<AuditLog> auditLog;
-    private final String certOid;
+    private final Provider<InterClusterRequestEvaluator> requestEvalProvider;
     
     SearchGuardRequestHandler(String action, 
             TransportRequestHandler<T> actualHandler, 
             ThreadPool threadPool,
             Provider<BackendRegistry> backendRegistry,
             Provider<AuditLog> auditLog,
-            final String certOid,
-            final PrincipalExtractor principalExtractor) {
+            final PrincipalExtractor principalExtractor,
+            Provider<InterClusterRequestEvaluator> requestEvalProvider) {
         super(action, actualHandler, threadPool, principalExtractor);
         this.backendRegistry = backendRegistry;
         this.auditLog = auditLog;
-        this.certOid = certOid;
+        this.requestEvalProvider = requestEvalProvider;
     }
     
     @Override
@@ -183,65 +179,22 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
     }
    
     @Override
-    protected void addAdditionalContextValues(final String action, final TransportRequest request, final X509Certificate[] certs)
+    protected void addAdditionalContextValues(final String action, final TransportRequest request, final X509Certificate[] localCerts, final X509Certificate[] peerCerts, final String principal)
             throws Exception {
 
-        boolean isInterClusterRequest = false;
-        final Collection<List<?>> ianList = certs[0].getSubjectAlternativeNames();
-
-        if (ianList != null) {
-            final StringBuilder sb = new StringBuilder();
-
-            for (final List<?> ian : ianList) {
-
-                if (ian == null) {
-                    continue;
-                }
-
-                for (final Iterator iterator = ian.iterator(); iterator.hasNext();) {
-                    final int id = (int) iterator.next();
-                    if (id == 8) { //id 8 = OID, id 1 = name (as string or ASN.1 encoded byte[])
-                        Object value = iterator.next();
-                        
-                        if(value == null) {
-                           continue;
-                        }
-                        
-                        if(value instanceof String) {
-                            sb.append(id + "::" + value);
-                        } else if(value instanceof byte[]) {
-                            log.error("Unable to handle OID san {} with value {} of type byte[] (ASN.1 DER not supported here)", id, Arrays.toString((byte[]) value));
-                        } else {
-                            log.error("Unable to handle OID san {} with value {} of type {}", id, value, value.getClass());
-                        }
-                    } else {
-                        iterator.next();
-                    }
-                }
-            }
-
-            if (sb.indexOf("8::" + this.certOid) >= 0) {
-                isInterClusterRequest = true;
-            }
-
-        } else {
-            if (log.isTraceEnabled()) {
-                log.trace("No subject alternative names (san) found");
-            }
-        }
+        boolean isInterClusterRequest = requestEvalProvider.get().isInterClusterRequest(request, localCerts, peerCerts, principal);
 
         if (isInterClusterRequest) {
             if (log.isTraceEnabled() && !action.startsWith("internal:")) {
                 log.trace("Is inter cluster request ({}/{}/{})", action, request.getClass(), request.remoteAddress());
-            }            
-            
+            }
             getThreadContext().putTransient(ConfigConstants.SG_SSL_TRANSPORT_INTERCLUSTER_REQUEST, Boolean.TRUE);
         } else {
             if (log.isTraceEnabled()) {
                 log.trace("Is not an inter cluster request");
             }
         }
-        super.addAdditionalContextValues(action, request, certs);
+        super.addAdditionalContextValues(action, request, localCerts, peerCerts, principal);
     }
     
     @Override

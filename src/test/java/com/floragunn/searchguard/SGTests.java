@@ -107,6 +107,25 @@ public class SGTests extends AbstractUnitTest {
         Assert.assertEquals(ClusterHealthStatus.GREEN, client().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus());
         //Assert.assertEquals(3, client().admin().cluster().nodesInfo(new NodesInfoRequest().all()).actionGet().getNodes().size());
     }
+    
+    @Test
+    public void testCustomInterclusterRequestEvaluator() throws Exception {
+        
+        final Settings settings = Settings.builder().put("searchguard.ssl.transport.enabled", true)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
+                .put("searchguard.ssl.transport.keystore_filepath", getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+                .put("searchguard.ssl.transport.truststore_filepath", getAbsoluteFilePathFromClassPath("truststore.jks"))
+                .put("searchguard.ssl.transport.enforce_hostname_verification", false)
+                .put("searchguard.ssl.transport.resolve_hostname", false)
+                .put(ConfigConstants.SG_INTERCLUSTER_REQUEST_EVALUATOR_CLASS, "com.floragunn.searchguard.AlwaysFalseInterClusterRequestEvaluator")
+                .build();
+
+        startES(settings, 5, 1);
+        Assert.assertEquals(1, client().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getNumberOfNodes());
+        Assert.assertEquals(ClusterHealthStatus.GREEN, client().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus());
+    }
 
     @Test
     public void testNodeClientDisallowedWithNonServerCertificate() throws Exception {
@@ -424,9 +443,10 @@ public class SGTests extends AbstractUnitTest {
             tc.index(new IndexRequest("public").type("legends").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
             tc.index(new IndexRequest("public").type("hall_of_fame").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
             tc.index(new IndexRequest("public").type("hall_of_fame").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":2}")).actionGet();
-            
+
             tc.index(new IndexRequest("spock").type("type01").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
             tc.index(new IndexRequest("kirk").type("type01").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
+            tc.index(new IndexRequest("role01_role02").type("type01").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}")).actionGet();
 
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("starfleet","starfleet_academy","starfleet_library").alias("sf"))).actionGet();
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("klingonempire","vulcangov").alias("nonsf"))).actionGet();
@@ -481,6 +501,9 @@ public class SGTests extends AbstractUnitTest {
         HttpResponse resc = executeGetRequest("_cat/indices/public",new BasicHeader("Authorization", "Basic "+encodeBasicHeader("bug108", "nagilum")));
         Assert.assertTrue(resc.getBody().contains("green"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
+        
+        Assert.assertEquals(HttpStatus.SC_OK, executeGetRequest("role01_role02/type01/_search?pretty",new BasicHeader("Authorization", "Basic "+encodeBasicHeader("user_role01_role02_role03", "user_role01_role02_role03"))).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, executeGetRequest("role01_role02/type01/_search?pretty",new BasicHeader("Authorization", "Basic "+encodeBasicHeader("user_role01", "user_role01"))).getStatusCode());
 
         Assert.assertEquals(HttpStatus.SC_OK, executeGetRequest("spock/type01/_search?pretty",new BasicHeader("Authorization", "Basic "+encodeBasicHeader("spock", "spock"))).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, executeGetRequest("spock/type01/_search?pretty",new BasicHeader("Authorization", "Basic "+encodeBasicHeader("kirk", "kirk"))).getStatusCode());
@@ -521,7 +544,7 @@ public class SGTests extends AbstractUnitTest {
         Assert.assertEquals(HttpStatus.SC_OK, executeGetRequest("starfleet/ships/_search?pretty", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("worf", "worf"))).getStatusCode());
         HttpResponse res = executeGetRequest("_search?pretty", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("nagilum", "nagilum")));
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
-        Assert.assertTrue(res.getBody().contains("\"total\" : 17"));
+        Assert.assertTrue(res.getBody().contains("\"total\" : 18"));
         Assert.assertTrue(!res.getBody().contains("searchguard"));
         
         res = executeGetRequest("_nodes/stats?pretty", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("nagilum", "nagilum")));
