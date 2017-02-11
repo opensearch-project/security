@@ -46,23 +46,24 @@ public class SearchGuardInterceptor {
     
     private BackendRegistry backendRegistry;
     private AuditLog auditLog;
-    private final String certOid;
     private final ThreadPool threadPool;
     private final PrincipalExtractor principalExtractor;
+    private final InterClusterRequestEvaluator requestEvalProvider;
 
     public SearchGuardInterceptor(final Settings settings, 
             final ThreadPool threadPool, final BackendRegistry backendRegistry, 
-            final AuditLog auditLog, final PrincipalExtractor principalExtractor) {
+            final AuditLog auditLog, final PrincipalExtractor principalExtractor,
+            final InterClusterRequestEvaluator requestEvalProvider) {
         this.backendRegistry = backendRegistry;
         this.auditLog = auditLog;
-        this.certOid = settings.get("searchguard.cert.oid", "1.2.3.4.5.5");
         this.threadPool = threadPool;
         this.principalExtractor = principalExtractor;
+        this.requestEvalProvider = requestEvalProvider;
     }
 
     public <T extends TransportRequest> SearchGuardRequestHandler<T> getHandler(String action, 
             TransportRequestHandler<T> actualHandler) {
-        return new SearchGuardRequestHandler<T>(action, actualHandler, threadPool, backendRegistry, auditLog, certOid, principalExtractor);
+        return new SearchGuardRequestHandler<T>(action, actualHandler, threadPool, backendRegistry, auditLog, principalExtractor, requestEvalProvider);
     }
 
     public <T extends TransportResponse> void sendRequestDecorate(AsyncSender sender, Connection connection, String action,

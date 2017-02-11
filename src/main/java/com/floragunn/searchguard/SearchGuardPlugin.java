@@ -42,6 +42,7 @@ import org.elasticsearch.action.support.ActionFilter;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.util.Providers;
@@ -108,6 +109,8 @@ import com.floragunn.searchguard.ssl.transport.SearchGuardSSLNettyTransport;
 import com.floragunn.searchguard.ssl.util.SSLConfigConstants;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.ReflectionHelper;
+import com.floragunn.searchguard.transport.DefaultInterClusterRequestEvaluator;
+import com.floragunn.searchguard.transport.InterClusterRequestEvaluator;
 import com.floragunn.searchguard.transport.SearchGuardInterceptor;
 import com.google.common.collect.Lists;
 
@@ -382,6 +385,27 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
             log.info("Auditlog not available due to "+e);
         }
         
+        final String DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = DefaultInterClusterRequestEvaluator.class.getName();
+        InterClusterRequestEvaluator interClusterRequestEvaluator = new DefaultInterClusterRequestEvaluator(settings);
+
+     
+        final String className = settings.get(ConfigConstants.SG_INTERCLUSTER_REQUEST_EVALUATOR_CLASS,
+                DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS);
+        log.debug("Using {} as intercluster request evaluator class", className);
+        if (!DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS.equals(className)) {
+            try {
+                final Class<?> klass = Class.forName(className);
+                final Constructor<?> constructor = klass.getConstructor(Settings.class);
+                interClusterRequestEvaluator = (InterClusterRequestEvaluator) constructor.newInstance(settings);
+            } catch (Throwable e) {
+                log.error("Using DefaultInterClusterRequestEvaluator. Unable to instantiate {} ", e, className);
+                if (log.isTraceEnabled()) {
+                    log.trace("Unable to instantiate InterClusterRequestEvaluator", e);
+                }
+            }
+        }
+        
+        
         final AdminDNs adminDns = new AdminDNs(settings);      
         final PrincipalExtractor pe = new DefaultPrincipalExtractor();        
         final ConfigurationRepository cr = IndexBaseConfigurationRepository.create(settings, threadPool, localClient, clusterService);        
@@ -393,7 +417,7 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         final ActionGroupHolder ah = new ActionGroupHolder(cr);      
         final PrivilegesEvaluator pre = new PrivilegesEvaluator(clusterService, threadPool, cr, ah, resolver, auditLog, settings);    
         final SearchGuardFilter sgf = new SearchGuardFilter(settings, pre, adminDns, dlsFlsValve, auditLog, threadPool);     
-        sgi = new SearchGuardInterceptor(settings, threadPool, backendRegistry, auditLog, pe);
+        sgi = new SearchGuardInterceptor(settings, threadPool, backendRegistry, auditLog, pe, interClusterRequestEvaluator);
         
         components.add(adminDns);
         //components.add(auditLog);
@@ -454,6 +478,10 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
 
         settings.add(Setting.simpleString("searchguard.cert.oid", Property.NodeScope, Property.Filtered));
 
+        settings.add(Setting.simpleString("searchguard.cert.intercluster_request_evaluator_class", Property.NodeScope, Property.Filtered));
+        settings.add(Setting.listSetting("searchguard.nodes_dn", Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
+
+        
         //SSL
         settings.add(Setting.simpleString(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_CLIENTAUTH_MODE, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_KEYSTORE_ALIAS, Property.NodeScope, Property.Filtered));

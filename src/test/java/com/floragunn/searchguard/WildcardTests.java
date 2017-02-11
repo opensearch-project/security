@@ -26,6 +26,10 @@ public class WildcardTests {
     
     @Test
     public void test() {
+        Assert.assertTrue(!WildcardMatcher.match("a*?", "a"));
+        Assert.assertTrue(WildcardMatcher.match("a*?", "aa"));
+        Assert.assertTrue(WildcardMatcher.match("a*?", "ab"));
+        //Assert.assertTrue(WildcardMatcher.match("a*?", "abb"));
         Assert.assertTrue(WildcardMatcher.match("*my*index", "myindex"));
         Assert.assertTrue(!WildcardMatcher.match("*my*index", "myindex1"));
         Assert.assertTrue(WildcardMatcher.match("*my*index?", "myindex1"));
@@ -38,5 +42,12 @@ public class WildcardTests {
         Assert.assertTrue(WildcardMatcher.match("/(\\d{3}-?\\d{2}-?\\d{4})/", "123-45-6789"));
         Assert.assertTrue(!WildcardMatcher.match("(\\d{3}-?\\d{2}-?\\d{4})", "123-45-6789"));
         Assert.assertTrue(WildcardMatcher.match("/\\S*/", "abc"));
+        Assert.assertTrue(WildcardMatcher.match("abc", "abc"));
+        Assert.assertTrue(!WildcardMatcher.match("ABC", "abc"));
+        Assert.assertTrue(!WildcardMatcher.containsWildcard("abc"));
+        Assert.assertTrue(!WildcardMatcher.containsWildcard("abc$"));
+        Assert.assertTrue(WildcardMatcher.containsWildcard("abc*"));
+        Assert.assertTrue(WildcardMatcher.containsWildcard("a?bc"));
+        Assert.assertTrue(WildcardMatcher.containsWildcard("/(\\d{3}-\\d{2}-?\\d{4})/"));
     }
 }

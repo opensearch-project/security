@@ -105,3 +105,8 @@ sg_dlsnoinvest:
 sg_baz:
   users:
     - baz
+    
+sg_role01_role02:
+  and_backendroles:
+    - role01
+    - role02

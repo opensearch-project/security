@@ -95,6 +95,8 @@ import com.google.common.io.Files;
 
 public class SearchGuardAdmin {
     
+    private static final String SG_TS_PASS = "SG_TS_PASS";
+    private static final String SG_KS_PASS = "SG_KS_PASS";
     //not used in multithreaded fashion
     private static SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MMM-dd_HH-mm-ss", Locale.ENGLISH);
     private static final Settings ENABLE_ALL_ALLOCATIONS_SETTINGS = Settings.builder()
@@ -166,8 +168,8 @@ public class SearchGuardAdmin {
         
         String hostname = "localhost";
         int port = 9300;
-        String kspass = "changeit";
-        String tspass = kspass;
+        String kspass = System.getenv(SG_KS_PASS) != null ? System.getenv(SG_KS_PASS) : "changeit";
+        String tspass = System.getenv(SG_TS_PASS) != null ? System.getenv(SG_TS_PASS) : kspass;
         String cd = ".";
         String ks;
         String ts;
