@@ -166,6 +166,7 @@ public abstract class AbstractUnitTest {
                 .put("cluster.routing.allocation.disk.watermark.low","1mb")
                 .put("http.cors.enabled", true)
                 .put("node.local", false)
+                .put("discovery.zen.minimum_master_nodes", 1)
                 .put("path.home",".");
     }
     // @formatter:on
@@ -177,8 +178,12 @@ public abstract class AbstractUnitTest {
         log.debug("Connect to {}", address);
         return address;
     }
-
+    
     public final void startES(final Settings settings) throws Exception {
+        startES(settings, 30, 3);
+    }
+
+    public final void startES(final Settings settings, int timeOutSec, int assertNodes) throws Exception {
 
         FileUtils.deleteDirectory(new File("data"));
 
@@ -193,7 +198,7 @@ public abstract class AbstractUnitTest {
         esNode2.start();
         esNode3.start();
 
-        waitForGreenClusterState(esNode1.client());
+        waitForCluster(ClusterHealthStatus.GREEN, TimeValue.timeValueSeconds(timeOutSec), esNode1.client(), assertNodes);
     }
     
     protected Client client() {
@@ -224,14 +229,14 @@ public abstract class AbstractUnitTest {
     }
 
     protected void waitForGreenClusterState(final Client client) throws IOException {
-        waitForCluster(ClusterHealthStatus.GREEN, TimeValue.timeValueSeconds(30), client);
+        waitForCluster(ClusterHealthStatus.GREEN, TimeValue.timeValueSeconds(30), client, 3);
     }
 
-    protected void waitForCluster(final ClusterHealthStatus status, final TimeValue timeout, final Client client) throws IOException {
+    protected void waitForCluster(final ClusterHealthStatus status, final TimeValue timeout, final Client client, int assertNodes) throws IOException {
         try {
             log.debug("waiting for cluster state {}", status.name());
             final ClusterHealthResponse healthResponse = client.admin().cluster().prepareHealth().setWaitForStatus(status)
-                    .setTimeout(timeout).setWaitForNodes("3").execute().actionGet();
+                    .setTimeout(timeout).setWaitForNodes(String.valueOf(assertNodes)).execute().actionGet();
             if (healthResponse.isTimedOut()) {
                 throw new IOException("cluster state is " + healthResponse.getStatus().name() + " with "
                         + healthResponse.getNumberOfNodes() + " nodes");
@@ -240,7 +245,7 @@ public abstract class AbstractUnitTest {
                         + " nodes");
             }
             
-            org.junit.Assert.assertEquals(3, healthResponse.getNumberOfNodes());
+            org.junit.Assert.assertEquals(assertNodes, healthResponse.getNumberOfNodes());
 
             final NodesInfoResponse res = esNode1.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet();
             

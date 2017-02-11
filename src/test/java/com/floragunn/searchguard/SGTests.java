@@ -101,7 +101,7 @@ public class SGTests extends AbstractUnitTest {
         //Assert.assertEquals(3, client().admin().cluster().nodesInfo(new NodesInfoRequest().all()).actionGet().getNodes().length);
     }
     
-    //@Test
+    @Test
     public void testCustomInterclusterRequestEvaluator() throws Exception {
         
         final Settings settings = Settings.settingsBuilder().put("searchguard.ssl.transport.enabled", true)
@@ -115,8 +115,8 @@ public class SGTests extends AbstractUnitTest {
                 .put(ConfigConstants.SG_INTERCLUSTER_REQUEST_EVALUATOR_CLASS, "com.floragunn.searchguard.AlwaysFalseInterClusterRequestEvaluator")
                 .build();
 
-        startES(settings);
-        Assert.assertEquals(3, client().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getNumberOfNodes());
+        startES(settings, 5, 1);
+        Assert.assertEquals(1, client().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getNumberOfNodes());
         Assert.assertEquals(ClusterHealthStatus.GREEN, client().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus());
     }
 

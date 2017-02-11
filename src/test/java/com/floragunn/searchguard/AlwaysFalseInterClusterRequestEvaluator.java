@@ -34,6 +34,12 @@ public class AlwaysFalseInterClusterRequestEvaluator implements InterClusterRequ
     @Override
     public boolean isInterClusterRequest(TransportRequest request, X509Certificate[] localCerts, X509Certificate[] peerCerts,
             String principal) {
+        
+        if(localCerts == null || peerCerts == null || principal == null
+                || localCerts.length == 0 || peerCerts.length == 0 || principal.length() == 0) {
+            return true;
+        }
+        
         return false;
     }
 
