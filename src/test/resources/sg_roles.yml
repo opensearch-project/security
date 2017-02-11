@@ -286,3 +286,9 @@ sg_baz:
     'foo':
       'baz':
         - READ
+        
+sg_role01_role02:
+  indices:
+    'role01_role02':
+      '*':
+       - ALL

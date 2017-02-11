@@ -64,7 +64,7 @@ public class ConfigConstants {
 
     public static final String SG_CONFIG_INDEX = "searchguard.config_index_name";
     public static final String SG_DEFAULT_CONFIG_INDEX = "searchguard";
-    
+
     public final static String CONFIGNAME_ROLES = "roles";
     public final static String CONFIGNAME_ROLES_MAPPING = "rolesmapping";
     public final static String CONFIGNAME_ACTION_GROUPS = "actiongroups";
@@ -72,4 +72,6 @@ public class ConfigConstants {
     public final static String CONFIGNAME_CONFIG = "config";
     public final static String[] CONFIGNAMES = new String[] {CONFIGNAME_ROLES, CONFIGNAME_ROLES_MAPPING, 
             CONFIGNAME_ACTION_GROUPS, CONFIGNAME_INTERNAL_USERS, CONFIGNAME_CONFIG};
+    public static final String SG_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = "searchguard.cert.intercluster_request_evaluator_class";
+
 }

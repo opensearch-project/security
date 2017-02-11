@@ -23,6 +23,8 @@ import org.elasticsearch.common.inject.AbstractModule;
 
 import com.floragunn.searchguard.auth.internal.InternalAuthenticationBackend;
 import com.floragunn.searchguard.configuration.DlsFlsRequestValve.NoopDlsFlsRequestValve;
+import com.floragunn.searchguard.transport.InterClusterRequestEvaluator;
+import com.floragunn.searchguard.transport.InterClusterRequestEvaluatorProvider;
 
 public class ConfigurationModule extends AbstractModule {
 
@@ -34,6 +36,9 @@ public class ConfigurationModule extends AbstractModule {
         bind(ActionGroupHolder.class).asEagerSingleton();
         bind(PrivilegesEvaluator.class).asEagerSingleton();
         bind(InternalAuthenticationBackend.class).asEagerSingleton();
+        bind(InterClusterRequestEvaluator.class)
+            .toProvider(InterClusterRequestEvaluatorProvider.class)
+            .asEagerSingleton();
         
         try {
             Class dlsFlsRequestValve;
@@ -50,4 +55,6 @@ public class ConfigurationModule extends AbstractModule {
         }
                
     }
+    
+    
 }
