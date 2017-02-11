@@ -81,4 +81,7 @@ searchguard.audit.type: internal_elasticsearch
 # as described: https://github.com/floragunncom/search-guard-docs/blob/master/architecture.md
 # Instance of com.floragunn.searchguard.transport.InterClusterRequestEvaluator must implement a single arg
 # constructor that takes a org.elasticsearch.common.settings.Settings
-#searchguard.cert.intercluster_request_evaluator: com.floragunn.searchguard.transport.DefaultInterClusterRequestEvaluator
+# WARNING: Expert setting, do only use if you know what you are doing
+# If you set wrong values here this this could be a security risk
+# or make Search Guard stop working
+#searchguard.cert.intercluster_request_evaluator_class: com.floragunn.searchguard.transport.DefaultInterClusterRequestEvaluator
