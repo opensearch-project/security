@@ -53,6 +53,20 @@ public class ConfigurationModule extends AbstractModule {
             bind(DlsFlsRequestValve.class).to(NoopDlsFlsRequestValve.class).asEagerSingleton();
             log.info("FLS/DLS valve not bound (noop)");
         }
+        
+        try {
+            Class privilegesInterceptorImpl;
+            if ((privilegesInterceptorImpl = Class
+                    .forName("com.floragunn.searchguard.configuration.PrivilegesInterceptorImpl")) != null) {
+                bind(PrivilegesInterceptor.class).to(privilegesInterceptorImpl).asEagerSingleton();
+                log.info("Privileges interceptor bound");
+            } else {
+                throw new ClassNotFoundException();
+            }
+        } catch (ClassNotFoundException e) {
+            bind(PrivilegesInterceptor.class).asEagerSingleton();
+            log.info("Privileges interceptor not bound (noop)");
+        }
                
     }
     

@@ -32,6 +32,7 @@ public class User implements Serializable {
     private static final long serialVersionUID = -5500938501822658596L;
     private final String name;
     private final Set<String> roles = new HashSet<String>();
+    private String requestedTenant;
 
     public User(final String name, final Collection<String> toAdd) {
         super();
@@ -70,6 +71,14 @@ public class User implements Serializable {
 
     public boolean isUserInRole(final String role) {
         return roles.contains(role);
+    }
+    
+    public String getRequestedTenant() {
+        return requestedTenant;
+    }
+
+    public void setRequestedTenant(String requestedTenant) {
+        this.requestedTenant = requestedTenant;
     }
 
     @Override
