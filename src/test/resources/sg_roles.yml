@@ -32,12 +32,18 @@ sg_role_klingons1:
     klingonempire:
       ships:  
         - READ
+  tenants:
+    kltentrw: Rw
+    kltentro: RO
 
 sg_role_klingons2:
   indices:
     klingonempire:
       praxis:  
         - READ
+  tenants:
+    praxisrw: RW
+    praxisro: ro
 
 sg_role_starfleet:
   indices:

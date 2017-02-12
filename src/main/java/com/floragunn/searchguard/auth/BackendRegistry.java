@@ -417,7 +417,9 @@ public class BackendRegistry implements ConfigurationChangeListener {
             try {
                 ac = httpAuthenticator.extractCredentials(request, threadContext);
             } catch (Exception e1) {
-                log.info("{} extracting credentials from {}", e1, e1.toString(), httpAuthenticator.getType());
+                if(log.isDebugEnabled()) {
+                    log.debug("'{}' extracting credentials from {} authenticator", e1, httpAuthenticator.getType());    
+                }
                 continue;
             }
             authCredenetials = ac;
@@ -501,12 +503,17 @@ public class BackendRegistry implements ConfigurationChangeListener {
                     channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, "Cannot authenticate user because admin user is not permitted to login via HTTP"));
                     return false;
                 }
-
+                
+                final String tenant = request.header("sg_tenant");
                  //authenticatedUser.addRoles(ac.getBackendRoles());
                 if(log.isDebugEnabled()) {
                     log.debug("User '{}' is authenticated", authenticatedUser);
+                    log.debug("sg_tenant '{}'", tenant);
                 }
+
+                authenticatedUser.setRequestedTenant(tenant);
                 threadContext.putTransient(ConfigConstants.SG_USER, authenticatedUser);
+
                 authenticated = true;
                 break;
             } catch (final ElasticsearchSecurityException e) {

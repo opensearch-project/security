@@ -64,6 +64,7 @@ import org.junit.rules.ExpectedException;
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateAction;
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateRequest;
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateResponse;
+import com.floragunn.searchguard.configuration.PrivilegesInterceptorImpl;
 import com.floragunn.searchguard.http.HTTPClientCertAuthenticator;
 import com.floragunn.searchguard.ssl.util.SSLConfigConstants;
 import com.floragunn.searchguard.support.ConfigConstants;
@@ -569,7 +570,23 @@ public class SGTests extends AbstractUnitTest {
         System.out.println(res.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());  
         Assert.assertTrue(res.getBody().contains("\"errors\":false"));
-        Assert.assertTrue(res.getBody().contains("\"status\":201"));      
+        Assert.assertTrue(res.getBody().contains("\"status\":201"));  
+        
+        res = executeGetRequest("_searchguard/authinfo", new BasicHeader("sg_tenant", "unittesttenant"), new BasicHeader("Authorization", "Basic "+encodeBasicHeader("worf", "worf")));
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        Assert.assertTrue(res.getBody().contains("sg_tenants"));
+        Assert.assertTrue(res.getBody().contains("unittesttenant"));
+        Assert.assertTrue(res.getBody().contains("\"kltentrw\":true"));
+        Assert.assertTrue(res.getBody().contains("\"user_name\":\"worf\""));
+        
+        res = executeGetRequest("_searchguard/authinfo", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("worf", "worf")));
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        Assert.assertTrue(res.getBody().contains("sg_tenants"));
+        Assert.assertTrue(res.getBody().contains("\"user_requested_tenant\":null"));
+        Assert.assertTrue(res.getBody().contains("\"kltentrw\":true"));
+        Assert.assertTrue(res.getBody().contains("\"user_name\":\"worf\""));
+        
+        Assert.assertTrue(PrivilegesInterceptorImpl.count > 0);
     }
     
     

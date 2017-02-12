@@ -95,9 +95,10 @@ public class PrivilegesEvaluator {
     private final ConfigurationRepository configurationRepository;
 
     private final String searchguardIndex;
-    
+    private PrivilegesInterceptor privilegesInterceptor;
+
     public PrivilegesEvaluator(final ClusterService clusterService, final ThreadPool threadPool, final ConfigurationRepository configurationRepository, final ActionGroupHolder ah,
-            final IndexNameExpressionResolver resolver, AuditLog auditLog, final Settings settings) {
+            final IndexNameExpressionResolver resolver, AuditLog auditLog, final Settings settings, final PrivilegesInterceptor privilegesInterceptor) {
         super();
         this.configurationRepository = configurationRepository;
         this.clusterService = clusterService;
@@ -107,6 +108,7 @@ public class PrivilegesEvaluator {
 
         this.threadContext = threadPool.getThreadContext();
         this.searchguardIndex = settings.get(ConfigConstants.SG_CONFIG_INDEX, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
+        this.privilegesInterceptor = privilegesInterceptor;
         
         /*
         indices:admin/template/delete
@@ -167,7 +169,7 @@ public class PrivilegesEvaluator {
         return getRolesSettings() != null && getRolesMappingSettings() != null && getConfigSettings() != null;
     }
     
-    private static class IndexType {
+    public static class IndexType {
         
         private String index;
         private String type;
@@ -180,6 +182,14 @@ public class PrivilegesEvaluator {
  
         public String getCombinedString() {
             return index+"#"+type;
+        }
+        
+        public String getIndex() {
+            return index;
+        }
+
+        public String getType() {
+            return type;
         }
 
         @Override
@@ -305,13 +315,25 @@ public class PrivilegesEvaluator {
         final Set<String> sgRoles = mapSgRoles(user, caller);
        
         if (log.isDebugEnabled()) {
-            log.debug("mapped roles: {}", sgRoles);
+            log.debug("mapped roles for {}: {}", user.getName(), sgRoles);
+        }
+        
+        if(privilegesInterceptor.getClass() != PrivilegesInterceptor.class) {
+        
+            final boolean denyRequest = privilegesInterceptor.replaceKibanaIndex(request, action, user, config, requestedResolvedIndices, mapTenants(user, caller));
+    
+            if (denyRequest) {
+                auditLog.logMissingPrivileges(action, request);
+                return false;
+            }
         }
         
         boolean allowAction = false;
         
         final Map<String,Set<String>> dlsQueries = new HashMap<String, Set<String>>();
         final Map<String,Set<String>> flsFields = new HashMap<String, Set<String>>();
+
+        final Set<IndexType> leftovers = new HashSet<PrivilegesEvaluator.IndexType>();
 
         for (final Iterator<String> iterator = sgRoles.iterator(); iterator.hasNext();) {
             final String sgRole = (String) iterator.next();
@@ -558,6 +580,8 @@ public class PrivilegesEvaluator {
                 allowAction = true;
             }
 
+            leftovers.addAll(_requestedResolvedIndexTypes);
+            
         } // end sg role loop
 
         if (!allowAction && log.isInfoEnabled()) {
@@ -586,13 +610,17 @@ public class PrivilegesEvaluator {
             }
         }
         
+        if(!allowAction && privilegesInterceptor.getClass() != PrivilegesInterceptor.class) {
+            return privilegesInterceptor.replaceAllowedIndices(request, action, user, config, leftovers);
+        }
+        
         return allowAction;
     }
 
     
     //---- end evaluate()
     
-    public Set<String> mapSgRoles(User user, TransportAddress caller) {
+    public Set<String> mapSgRoles(final User user, final TransportAddress caller) {
         
         final Settings rolesMapping = getRolesMappingSettings();
         
@@ -634,6 +662,34 @@ public class PrivilegesEvaluator {
         return Collections.unmodifiableSet(sgRoles);
 
     }
+    
+    public Map<String, Boolean> mapTenants(final User user, final TransportAddress caller) {
+        
+        if(user == null) {
+            return Collections.emptyMap();
+        }
+        
+        final Map<String, Boolean> result = new HashMap<String, Boolean>();
+        result.put(user.getName(), true);
+        
+        for(String sgRole: mapSgRoles(user, caller)) {
+            Settings tenants = getRolesSettings().getByPrefix(sgRole+".tenants.");
+            
+            if(tenants != null) {
+                for(String tenant: tenants.names()) {
+                    if("RW".equalsIgnoreCase(tenants.get(tenant, "RO"))) {
+                        result.put(tenant, true);
+                    } else {
+                        result.put(tenant, false);
+                    }
+                }
+            }
+            
+        }
+
+        return Collections.unmodifiableMap(result);
+    }
+
 
     private void handleIndicesWithWildcard(final String action, final String permittedAliasesIndex,
             final Map<String, Settings> permittedAliasesIndices, final Set<IndexType> requestedResolvedIndexTypes, final Set<IndexType> _requestedResolvedIndexTypes, final Set<String> requestedResolvedIndices0) {
