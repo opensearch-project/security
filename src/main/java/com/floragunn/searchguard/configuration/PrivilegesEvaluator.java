@@ -93,10 +93,11 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
     private final static IndicesOptions DEFAULT_INDICES_OPTIONS = IndicesOptions.lenientExpandOpen();
 
     private final String searchguardIndex;
+    private PrivilegesInterceptor privilegesInterceptor;
     
     @Inject
     public PrivilegesEvaluator(final ClusterService clusterService, final ThreadPool threadPool, final TransportConfigUpdateAction tcua, final ActionGroupHolder ah,
-            final IndexNameExpressionResolver resolver, AuditLog auditLog, final Settings settings) {
+            final IndexNameExpressionResolver resolver, AuditLog auditLog, final Settings settings, final PrivilegesInterceptor privilegesInterceptor) {
         super();
         tcua.addConfigChangeListener(ConfigConstants.CONFIGNAME_ROLES_MAPPING, this);
         tcua.addConfigChangeListener(ConfigConstants.CONFIGNAME_ROLES, this);
@@ -108,6 +109,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
 
         this.threadContext = threadPool.getThreadContext();
         this.searchguardIndex = settings.get(ConfigConstants.SG_CONFIG_INDEX, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
+        this.privilegesInterceptor = privilegesInterceptor;
         
         /*
         indices:admin/template/delete
@@ -177,7 +179,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
 
     }
     
-    private static class IndexType {
+    public static class IndexType {
         
         private String index;
         private String type;
@@ -190,6 +192,14 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
  
         public String getCombinedString() {
             return index+"#"+type;
+        }
+        
+        public String getIndex() {
+            return index;
+        }
+
+        public String getType() {
+            return type;
         }
 
         @Override
@@ -308,13 +318,25 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         final Set<String> sgRoles = mapSgRoles(user, caller);
        
         if (log.isDebugEnabled()) {
-            log.debug("mapped roles: {}", sgRoles);
+            log.debug("mapped roles for {}: {}", user.getName(), sgRoles);
+        }
+        
+        if(privilegesInterceptor.getClass() != PrivilegesInterceptor.class) {
+        
+            final boolean denyRequest = privilegesInterceptor.replaceKibanaIndex(request, action, user, config, requestedResolvedIndices, mapTenants(user, caller));
+    
+            if (denyRequest) {
+                auditLog.logMissingPrivileges(action, request);
+                return false;
+            }
         }
         
         boolean allowAction = false;
         
         final Map<String,Set<String>> dlsQueries = new HashMap<String, Set<String>>();
         final Map<String,Set<String>> flsFields = new HashMap<String, Set<String>>();
+
+        final Set<IndexType> leftovers = new HashSet<PrivilegesEvaluator.IndexType>();
 
         for (final Iterator<String> iterator = sgRoles.iterator(); iterator.hasNext();) {
             final String sgRole = (String) iterator.next();
@@ -561,6 +583,8 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                 allowAction = true;
             }
 
+            leftovers.addAll(_requestedResolvedIndexTypes);
+            
         } // end sg role loop
 
         if (!allowAction && log.isInfoEnabled()) {
@@ -589,13 +613,17 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
             }
         }
         
+        if(!allowAction && privilegesInterceptor.getClass() != PrivilegesInterceptor.class) {
+            return privilegesInterceptor.replaceAllowedIndices(request, action, user, config, leftovers);
+        }
+        
         return allowAction;
     }
 
     
     //---- end evaluate()
     
-    public Set<String> mapSgRoles(User user, TransportAddress caller) {
+    public Set<String> mapSgRoles(final User user, final TransportAddress caller) {
         
         if(user == null) {
             return Collections.emptySet();
@@ -635,6 +663,34 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         return Collections.unmodifiableSet(sgRoles);
 
     }
+    
+    public Map<String, Boolean> mapTenants(final User user, final TransportAddress caller) {
+        
+        if(user == null) {
+            return Collections.emptyMap();
+        }
+        
+        final Map<String, Boolean> result = new HashMap<String, Boolean>();
+        result.put(user.getName(), true);
+        
+        for(String sgRole: mapSgRoles(user, caller)) {
+            Settings tenants = roles.getByPrefix(sgRole+".tenants.");
+            
+            if(tenants != null) {
+                for(String tenant: tenants.names()) {
+                    if("RW".equalsIgnoreCase(tenants.get(tenant, "RO"))) {
+                        result.put(tenant, true);
+                    } else {
+                        result.put(tenant, false);
+                    }
+                }
+            }
+            
+        }
+
+        return Collections.unmodifiableMap(result);
+    }
+
 
     private void handleIndicesWithWildcard(final String action, final String permittedAliasesIndex,
             final Map<String, Settings> permittedAliasesIndices, final Set<IndexType> requestedResolvedIndexTypes, final Set<IndexType> _requestedResolvedIndexTypes, final Set<String> requestedResolvedIndices0) {
