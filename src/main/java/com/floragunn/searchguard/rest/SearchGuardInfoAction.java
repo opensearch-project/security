@@ -58,14 +58,19 @@ public class SearchGuardInfoAction extends BaseRestHandler {
         try {
 
             final X509Certificate[] certs = request.getFromContext(ConfigConstants.SG_SSL_PEER_CERTIFICATES);
+            final User user = request.getFromContext(ConfigConstants.SG_USER);
+            final TransportAddress remoteAddress = request.getFromContext(ConfigConstants.SG_REMOTE_ADDRESS);
+
             builder.startObject();
 
-            builder.field("user", request.getFromContext(ConfigConstants.SG_USER));
-            builder.field("remote_address", request.getFromContext(ConfigConstants.SG_REMOTE_ADDRESS));
-            builder.field("sg_roles", evaluator.get().mapSgRoles((User) request.getFromContext(ConfigConstants.SG_USER), (TransportAddress) request.getFromContext(ConfigConstants.SG_REMOTE_ADDRESS)));
+            builder.field("user", user);
+            builder.field("remote_address", remoteAddress);
+            builder.field("sg_roles", evaluator.get().mapSgRoles(user, remoteAddress));
             builder.field("principal", request.getFromContext(ConfigConstants.SG_SSL_PRINCIPAL));
             builder.field("peer_certificates", certs != null && certs.length > 0 ? certs.length + "" : "0");
-            //builder.field("_debug_request", LogHelper.toString(request));
+            builder.field("user_name", user==null?null:user.getName());
+            builder.field("user_requested_tenant", user==null?null:user.getRequestedTenant());
+            builder.field("sg_tenants", evaluator.get().mapTenants(user, remoteAddress));
             builder.endObject();
 
             response = new BytesRestResponse(RestStatus.OK, builder);

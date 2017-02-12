@@ -524,10 +524,16 @@ public class BackendRegistry implements ConfigChangeListener {
                     return false;
                 }
                 
+                final String tenant = request.header("sg_tenant");
+                
                  //authenticatedUser.addRoles(ac.getBackendRoles());
                 if(log.isDebugEnabled()) {
                     log.debug("User '{}' is authenticated", authenticatedUser);
+                    log.debug("sg_tenant '{}'", tenant);
                 }
+                
+                authenticatedUser.setRequestedTenant(tenant);
+                
                 request.putInContext(ConfigConstants.SG_USER, authenticatedUser);
                 authenticated = true;
                 break;
