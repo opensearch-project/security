@@ -438,7 +438,9 @@ public class BackendRegistry implements ConfigChangeListener {
             try {
                 ac = httpAuthenticator.extractCredentials(request);
             } catch (Exception e1) {
-                log.info("{} extracting credentials from {}", e1, e1.toString(), httpAuthenticator.getType());
+                if(log.isDebugEnabled()) {
+                    log.debug("'{}' extracting credentials from {} authenticator", e1, httpAuthenticator.getType());    
+                }
                 continue;
             }
             authCredenetials = ac;
