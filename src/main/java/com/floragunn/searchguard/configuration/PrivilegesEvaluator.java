@@ -34,6 +34,7 @@ import java.util.TreeSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchSecurityException;
+import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.CompositeIndicesRequest;
 import org.elasticsearch.action.IndicesRequest;
@@ -367,6 +368,8 @@ public class PrivilegesEvaluator {
                 || (compositeEnabled && action.equals(MultiSearchAction.NAME))
                 || (compositeEnabled && action.equals(MultiTermVectorsAction.NAME))
                 || (compositeEnabled && action.equals("indices:data/read/coordinate-msearch"))
+                || (compositeEnabled && action.equals("indices:data/write/reindex"))
+                || (compositeEnabled && action.equals("indices:data/read/mpercolate"))
                 //|| (compositeEnabled && action.equals(MultiPercolateAction.NAME))
                 ) {
                 
@@ -867,6 +870,40 @@ public class PrivilegesEvaluator {
                 }
                 
                 
+            } else if(request.getClass().getName().equals("org.elasticsearch.index.reindex.ReindexRequest")) {
+                                
+                try {
+                    Tuple<Set<String>, Set<String>> t = resolve(user, action, (IndicesRequest) request.getClass().getMethod("getDestination").invoke(request), metaData);
+                    indices.addAll(t.v1());
+                    types.addAll(t.v2());
+                    
+                    t = resolve(user, action, (IndicesRequest) request.getClass().getMethod("getSearchRequest").invoke(request), metaData);
+                    indices.addAll(t.v1());
+                    types.addAll(t.v2());
+                } catch (Exception e) {
+                    log.error("Unable to handle "+request.getClass()+" due to "+e);
+                    if(log.isDebugEnabled()) {
+                        log.debug(ExceptionsHelper.stackTrace(e));
+                    }
+                }
+
+            } else if(request.getClass().getName().equals("org.elasticsearch.percolator.MultiPercolateRequest")) {
+                
+                try {
+                    final List<Object> requests = (List<Object>) request.getClass().getMethod("requests").invoke(request);
+                    
+                    for(final Object ar: requests) {
+                        final Tuple<Set<String>, Set<String>> t = resolve(user, action, (TransportRequest) ar, metaData);
+                        indices.addAll(t.v1());
+                        types.addAll(t.v2());
+                    }
+                } catch (Exception e) {
+                    log.error("Unable to handle "+request.getClass()+" due to "+e);
+                    if(log.isDebugEnabled()) {
+                        log.debug(ExceptionsHelper.stackTrace(e));
+                    }
+                }
+
             } else {
                 log.debug("Can not handle composite request of type '"+request+"' here");
             }

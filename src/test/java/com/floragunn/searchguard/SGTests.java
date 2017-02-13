@@ -53,7 +53,6 @@ import org.elasticsearch.indices.InvalidIndexNameException;
 import org.elasticsearch.indices.InvalidTypeNameException;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.node.PluginAwareNode;
-import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.transport.Netty4Plugin;
 import org.junit.Assert;
 import org.junit.Assume;
@@ -413,10 +412,8 @@ public class SGTests extends AbstractUnitTest {
             tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
             Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
 
+            tc.admin().indices().create(new CreateIndexRequest("copysf")).actionGet();
             tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
-            //tc.index(new IndexRequest("searchguard").type("dummy")"-.id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("", readYamlContent("sg_config.yml"))).actionGet();
-            
-            //Thread.sleep(5000);
             
             tc.index(new IndexRequest("searchguard").type("config").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("config", readYamlContent("sg_config.yml"))).actionGet();
             tc.index(new IndexRequest("searchguard").type("internalusers").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source("internalusers", readYamlContent("sg_internal_users.yml"))).actionGet();
@@ -455,7 +452,6 @@ public class SGTests extends AbstractUnitTest {
             
             ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
             Assert.assertEquals(3, cur.getNodes().size());
-            System.out.println(cur.getNodesMap());
         }
         
         System.out.println("------- End INIT ---------");
@@ -587,6 +583,20 @@ public class SGTests extends AbstractUnitTest {
         Assert.assertTrue(res.getBody().contains("\"user_name\":\"worf\""));
         
         Assert.assertTrue(PrivilegesInterceptorImpl.count > 0);
+        
+        final String reindex = "{"+
+                "\"source\": {"+    
+                  "\"index\": \"starfleet\""+
+                "},"+
+                "\"dest\": {"+
+                  "\"index\": \"copysf\""+
+                "}"+
+              "}";
+
+        res = executePostRequest("_reindex?pretty", reindex, new BasicHeader("Authorization", "Basic "+encodeBasicHeader("nagilum", "nagilum")));
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        Assert.assertTrue(res.getBody().contains("\"total\" : 3"));
+        Assert.assertTrue(res.getBody().contains("\"batches\" : 1"));
     }
     
     

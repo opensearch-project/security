@@ -5,7 +5,7 @@ sg_public:
 
 sg_all_access:
   cluster:
-    - 'cluster:*'
+    - '*'
   indices:
     '*':
       '*':  

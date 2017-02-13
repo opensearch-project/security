@@ -147,6 +147,20 @@
       <classifier>${os.detected.classifier}</classifier>
       <scope>test</scope>
     </dependency>    
+    
+    <dependency>
+       <groupId>org.elasticsearch.plugin</groupId>
+       <artifactId>reindex-client</artifactId>
+       <version>${elasticsearch.version}</version>
+       <scope>test</scope>
+    </dependency>
+        
+    <dependency>
+       <groupId>org.elasticsearch.plugin</groupId>
+       <artifactId>percolator-client</artifactId>
+       <version>${elasticsearch.version}</version>
+       <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
