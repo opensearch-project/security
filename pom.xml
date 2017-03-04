@@ -23,7 +23,7 @@
   <groupId>com.floragunn</groupId>
   <artifactId>search-guard-5</artifactId>
   <packaging>jar</packaging>
-  <version>5.2.2-11</version>
+  <version>5.2.2-12-SNAPSHOT</version>
   <name>Search Guard</name>
   <description>Provide access control related features for Elasticsearch 5</description>
   <url>https://github.com/floragunncom/search-guard</url>
@@ -61,7 +61,7 @@
     <url>https://github.com/floragunncom/search-guard</url>
     <connection>scm:git:git@github.com:floragunncom/search-guard.git</connection>
     <developerConnection>scm:git:git@github.com:floragunncom/search-guard.git</developerConnection>
-    <tag>ves-5.2.2-11</tag>
+    <tag>HEAD</tag>
   </scm>
 
   <issueManagement>
