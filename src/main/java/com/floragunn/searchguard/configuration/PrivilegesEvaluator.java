@@ -323,11 +323,15 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         
         if(privilegesInterceptor.getClass() != PrivilegesInterceptor.class) {
         
-            final boolean denyRequest = privilegesInterceptor.replaceKibanaIndex(request, action, user, config, requestedResolvedIndices, mapTenants(user, caller));
+            final Boolean replaceResult = privilegesInterceptor.replaceKibanaIndex(request, action, user, config, requestedResolvedIndices, mapTenants(user, caller));
     
-            if (denyRequest) {
+            if (replaceResult == Boolean.TRUE) {
                 auditLog.logMissingPrivileges(action, request);
                 return false;
+            }
+            
+            if (replaceResult == Boolean.FALSE) {
+                return true;
             }
         }
         
@@ -336,7 +340,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         final Map<String,Set<String>> dlsQueries = new HashMap<String, Set<String>>();
         final Map<String,Set<String>> flsFields = new HashMap<String, Set<String>>();
 
-        final Set<IndexType> leftovers = new HashSet<PrivilegesEvaluator.IndexType>();
+        final Map<String, Set<IndexType>> leftovers = new HashMap<String, Set<IndexType>>();
 
         for (final Iterator<String> iterator = sgRoles.iterator(); iterator.hasNext();) {
             final String sgRole = (String) iterator.next();
@@ -582,13 +586,18 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                 
                 allowAction = true;
             }
+            
+            if(log.isDebugEnabled()) {
+                log.debug("Added to leftovers {}=>{}", sgRole, _requestedResolvedIndexTypes);
+            }
 
-            leftovers.addAll(_requestedResolvedIndexTypes);
+            leftovers.put(sgRole, _requestedResolvedIndexTypes);
             
         } // end sg role loop
 
         if (!allowAction && log.isInfoEnabled()) {
             log.info("No perm match for {} {} [Action [{}]] [RolesChecked {}]", user, requestedResolvedIndexTypes, action, sgRoles);
+            log.info("No permissions for {}", leftovers);
         }
 
         if(!dlsQueries.isEmpty()) {

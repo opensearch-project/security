@@ -53,6 +53,9 @@ sg_all_access:
     '*':
       '*':
         - '*'
+  tenants:
+    adm_tenant: RW
+    test_tenant_ro: RW
         
 sg_role_starfleet:
   cluster:
@@ -141,6 +144,9 @@ sg_kibana_testindex:
     '?kibana':
       '*':
         - ALL
+  tenants:
+    test_tenant_rw: RW
+    test_tenant_ro: RO
 
 sg_kibana_server:
   cluster:
