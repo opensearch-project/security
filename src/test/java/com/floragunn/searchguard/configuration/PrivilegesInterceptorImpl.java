@@ -41,14 +41,14 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
     }
 
     @Override
-    public boolean replaceKibanaIndex(ActionRequest request, String action, User user, Settings config,
+    public Boolean replaceKibanaIndex(ActionRequest request, String action, User user, Settings config,
             Set<String> requestedResolvedIndices, Map<String, Boolean> tenants) {
         count++;
-        return false;
+        return null;
     }
 
     @Override
-    public boolean replaceAllowedIndices(ActionRequest request, String action, User user, Settings config, Set<IndexType> leftOvers) {
+    public boolean replaceAllowedIndices(ActionRequest request, String action, User user, Settings config, Map<String, Set<IndexType>> leftOvers) {
         count++;
         return false;
     }

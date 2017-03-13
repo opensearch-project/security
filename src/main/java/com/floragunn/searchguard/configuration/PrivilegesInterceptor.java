@@ -47,12 +47,12 @@ public class PrivilegesInterceptor {
         this.threadPool = threadPool;
     }
 
-    public boolean replaceKibanaIndex(final ActionRequest request, final String action, final User user, final Settings config, final Set<String> requestedResolvedIndices, final Map<String, Boolean> tenants) { 
+    public Boolean replaceKibanaIndex(final ActionRequest request, final String action, final User user, final Settings config, final Set<String> requestedResolvedIndices, final Map<String, Boolean> tenants) { 
         throw new RuntimeException("not implemented");
         //return false;
     }
     
-    public boolean replaceAllowedIndices(final ActionRequest request, final String action, final User user, final Settings config, final Set<PrivilegesEvaluator.IndexType> leftOvers) {
+    public boolean replaceAllowedIndices(final ActionRequest request, final String action, final User user, final Settings config, final Map<String, Set<PrivilegesEvaluator.IndexType>> leftOvers) {
         throw new RuntimeException("not implemented");
         //return false;   
     }
