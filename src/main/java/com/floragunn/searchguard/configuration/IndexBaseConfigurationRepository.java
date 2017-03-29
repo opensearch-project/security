@@ -39,6 +39,8 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.LifecycleListener;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.util.concurrent.ThreadContext;
+import org.elasticsearch.common.util.concurrent.ThreadContext.StoredContext;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import com.floragunn.searchguard.support.ConfigConstants;
@@ -143,35 +145,37 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                 
                 try {
                     
-                    //TODO ctx check
-                    if(threadPool.getThreadContext().getHeader(ConfigConstants.SG_CONF_REQUEST_HEADER) == null) {
-                        threadPool.getThreadContext().putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true"); //header needed here
-                    } 
-                    
                     IndicesExistsRequest ier = new IndicesExistsRequest(searchguardIndex)
-                                                   .masterNodeTimeout(TimeValue.timeValueMinutes(1));
-                    client.admin().indices().exists(ier, new ActionListener<IndicesExistsResponse>() {
+                    .masterNodeTimeout(TimeValue.timeValueMinutes(1));
+                    
+                    final ThreadContext threadContext = threadPool.getThreadContext();
+                    
+                    try(StoredContext ctx = threadContext.stashContext()) {
+                        threadContext.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true");
 
-                        @Override
-                        public void onResponse(IndicesExistsResponse response) {
-                            if(response != null && response.isExists()) {
-                               bgThread.start();
-                            } else {
-                                if(settings.getAsBoolean("action.master.force_local", false) && settings.getByPrefix("tribe").getAsMap().size() > 0) {
-                                    LOGGER.info("{} index does not exist yet, but we are a tribe node. So we will load the config anyhow until we got it ...", searchguardIndex);
-                                    bgThread.start();
+                        client.admin().indices().exists(ier, new ActionListener<IndicesExistsResponse>() {
+    
+                            @Override
+                            public void onResponse(IndicesExistsResponse response) {
+                                if(response != null && response.isExists()) {
+                                   bgThread.start();
                                 } else {
-                                    LOGGER.info("{} index does not exist yet, so no need to load config on node startup. Use sgadmin to initialize cluster", searchguardIndex);
-                                }
+                                    if(settings.getAsBoolean("action.master.force_local", false) && settings.getByPrefix("tribe").getAsMap().size() > 0) {
+                                        LOGGER.info("{} index does not exist yet, but we are a tribe node. So we will load the config anyhow until we got it ...", searchguardIndex);
+                                        bgThread.start();
+                                    } else {
+                                        LOGGER.info("{} index does not exist yet, so no need to load config on node startup. Use sgadmin to initialize cluster", searchguardIndex);
+                                    }
+                                }               
+                            }
+    
+                            @Override
+                            public void onFailure(Exception e) {
+                                LOGGER.error("Failure while checking {} index {}",e, searchguardIndex, e);
+                                bgThread.start();
                             }               
-                        }
-
-                        @Override
-                        public void onFailure(Exception e) {
-                            LOGGER.error("Failure while checking {} index {}",e, searchguardIndex, e);
-                            bgThread.start();
-                        }               
-                    });
+                        });
+                    }
                 } catch (Throwable e2) {
                     LOGGER.error("Failure while executing IndicesExistsRequest {}",e2, e2);
                     bgThread.start();
@@ -259,6 +263,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
 
         Map<String, Settings> loaded = loadConfigurations(configTypes);
 
+        typeToConfig.clear();
         typeToConfig.putAll(loaded);
         notifyAboutChanges(loaded);
 

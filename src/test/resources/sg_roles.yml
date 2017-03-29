@@ -210,6 +210,8 @@ sg_remote_marvel_agent:
         - ALL
         
 sg_theindex_admin:
+  cluster:
+    - CLUSTER_COMPOSITE_OPS
   indices:
     theindex:
       '*':

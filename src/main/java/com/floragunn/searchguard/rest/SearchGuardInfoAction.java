@@ -24,7 +24,6 @@ import java.security.cert.X509Certificate;
 
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.node.NodeClient;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
@@ -44,11 +43,10 @@ import com.floragunn.searchguard.user.User;
 
 public class SearchGuardInfoAction extends BaseRestHandler {
 
-    private final Provider<PrivilegesEvaluator> evaluator;
+    private final PrivilegesEvaluator evaluator;
     private final ThreadContext threadContext;
-    
-    @Inject
-    public SearchGuardInfoAction(final Settings settings, final RestController controller, final Client client, Provider<PrivilegesEvaluator> evaluator, ThreadPool threadPool) {
+
+    public SearchGuardInfoAction(final Settings settings, final RestController controller, final PrivilegesEvaluator evaluator, final ThreadPool threadPool) {
         super(settings);
         this.threadContext = threadPool.getThreadContext();
         this.evaluator = evaluator;
@@ -75,8 +73,8 @@ public class SearchGuardInfoAction extends BaseRestHandler {
                     builder.field("user_name", user==null?null:user.getName());
                     builder.field("user_requested_tenant", user==null?null:user.getRequestedTenant());
                     builder.field("remote_address", remoteAddress);
-                    builder.field("sg_roles", evaluator.get().mapSgRoles(user, remoteAddress));
-                    builder.field("sg_tenants", evaluator.get().mapTenants(user, remoteAddress));
+                    builder.field("sg_roles", evaluator.mapSgRoles(user, remoteAddress));
+                    builder.field("sg_tenants", evaluator.mapTenants(user, remoteAddress));
                     builder.field("principal", (String)threadContext.getTransient(ConfigConstants.SG_SSL_PRINCIPAL));
                     builder.field("peer_certificates", certs != null && certs.length > 0 ? certs.length + "" : "0");
                     builder.endObject();

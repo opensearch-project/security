@@ -17,6 +17,8 @@
 
 package com.floragunn.searchguard.http;
 
+import java.util.Objects;
+
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
@@ -27,40 +29,22 @@ import org.elasticsearch.threadpool.ThreadPool;
 import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.ssl.SearchGuardKeyStore;
 import com.floragunn.searchguard.ssl.http.netty.SearchGuardSSLNettyHttpServerTransport;
-
+import com.floragunn.searchguard.ssl.http.netty.ValidatingDispatcher;
 
 public class SearchGuardHttpServerTransport extends SearchGuardSSLNettyHttpServerTransport {
 
     private final AuditLog auditLog;
     
-    public SearchGuardHttpServerTransport(Settings settings, NetworkService networkService, 
-            BigArrays bigArrays, ThreadPool threadPool, SearchGuardKeyStore sgks, AuditLog auditLog, NamedXContentRegistry namedXContentRegistry) {
-        super(settings, networkService, bigArrays, threadPool, sgks, namedXContentRegistry);
-        this.auditLog = auditLog;
+    public SearchGuardHttpServerTransport(final Settings settings, final NetworkService networkService, 
+            final BigArrays bigArrays, final ThreadPool threadPool, final SearchGuardKeyStore sgks, 
+            final AuditLog auditLog, final NamedXContentRegistry namedXContentRegistry, final ValidatingDispatcher dispatcher) {
+        super(settings, networkService, bigArrays, threadPool, sgks, namedXContentRegistry, dispatcher);
+        this.auditLog = Objects.requireNonNull(auditLog);
     }
 
     @Override
     protected void errorThrown(Throwable t, RestRequest request) {
-        //FIXME reenable auditlog here
-        //auditLog.logSSLException(request, t, null);
+        auditLog.logSSLException(request, t, null);
         super.errorThrown(t, request);
-    }   
-
-    /*@Override
-    public void dispatchRequest(final RestRequest request, final RestChannel channel) {
-        
-        try {
-            HeaderHelper.checkSGHeader(request);
-        } catch (Exception e) {
-            auditLog.logBadHeaders(request);
-            try {
-                channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, e));
-            } catch (IOException e1) {
-                //ignore
-            }
-            return;
-        }
-        
-        super.dispatchRequest(request, channel);
-    }*/
+    }
 }

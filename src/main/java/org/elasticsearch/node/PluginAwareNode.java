@@ -20,7 +20,6 @@ package org.elasticsearch.node;
 import java.util.Arrays;
 
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.node.internal.InternalSettingsPreparer;
 import org.elasticsearch.plugins.Plugin;
 
 public class PluginAwareNode extends Node {

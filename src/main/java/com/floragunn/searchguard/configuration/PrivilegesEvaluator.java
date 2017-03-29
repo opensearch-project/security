@@ -37,6 +37,7 @@ import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.CompositeIndicesRequest;
+import org.elasticsearch.action.DocWriteRequest;
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.RealtimeRequest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesAction;
@@ -832,18 +833,40 @@ public class PrivilegesEvaluator {
             return new Tuple<Set<String>, Set<String>>(Sets.newHashSet("_all"), Sets.newHashSet("_all"));
         }
 
+        //System.out.println("--------> "+request.getClass().getName());
+        
         final Set<String> indices = new HashSet<String>();
         final Set<String> types = new HashSet<String>();
 
         if (request instanceof CompositeIndicesRequest) {
             
-            if(request instanceof BulkRequest) {
+            //System.out.println("    -----> is CompositeIndicesRequest");
+            
+            if(request instanceof IndicesRequest) {
+                
+                //System.out.println("    -----> is IndicesRequest");
 
-                for(ActionRequest ar: ((BulkRequest) request).requests()) {
-                    final Tuple<Set<String>, Set<String>> t = resolve(user, action, ar, metaData);
+                final Tuple<Set<String>, Set<String>> t = resolve(user, action, (IndicesRequest) request, metaData);
+                indices.addAll(t.v1());
+                types.addAll(t.v2());
+                
+            } else if(request instanceof BulkRequest) {
+
+                //System.out.println("    -----> is BulkRequest");
+                
+                for(IndicesRequest ar: ((BulkRequest) request).requests()) {
+                    final Tuple<Set<String>, Set<String>> t = resolve(user, action, (IndicesRequest) ar, metaData);
                     indices.addAll(t.v1());
                     types.addAll(t.v2());
                 }
+                
+            } else if(request instanceof IndicesRequest) {
+                
+                //System.out.println("    -----> is IndicesRequest");
+
+                final Tuple<Set<String>, Set<String>> t = resolve(user, action, (IndicesRequest) request, metaData);
+                indices.addAll(t.v1());
+                types.addAll(t.v2());
                 
             } else if(request instanceof MultiGetRequest) {
                 
@@ -905,7 +928,7 @@ public class PrivilegesEvaluator {
                 }
 
             } else {
-                log.debug("Can not handle composite request of type '"+request+"' here");
+                log.warn("Can not handle composite request of type '"+request.getClass().getName()+"'for "+action+" here");
             }
 
         } else {

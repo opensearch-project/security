@@ -18,6 +18,7 @@
 package com.floragunn.searchguard.support;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
 
 import javax.xml.bind.DatatypeConverter;
@@ -78,11 +79,12 @@ public class HTTPHelper {
     
     public static boolean containsBadHeader(final RestRequest request) {
         
-        final Iterable<Map.Entry<String, String>> headers;
+        final Map<String, List<String>> headers;
         
-        if (request != null && ( headers = request.headers()) != null) {
-            for (final Map.Entry<String, String> header: headers) {
-                if (header != null && header.getKey() != null && header.getKey().trim().toLowerCase().startsWith(ConfigConstants.SG_CONFIG_PREFIX.toLowerCase())) {
+        if (request != null && ( headers = request.getHeaders()) != null) {
+            for (final String key: headers.keySet()) {
+                if (    key != null 
+                        && key.trim().toLowerCase().startsWith(ConfigConstants.SG_CONFIG_PREFIX.toLowerCase())) {
                     return true;
                 }
             }

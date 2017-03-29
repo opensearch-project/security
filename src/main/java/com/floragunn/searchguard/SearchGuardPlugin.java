@@ -29,33 +29,38 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.SpecialPermission;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.support.ActionFilter;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.util.Providers;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.network.NetworkService;
+import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.settings.SettingsFilter;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.http.HttpServerTransport;
+import org.elasticsearch.http.HttpServerTransport.Dispatcher;
 import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IndexSearcherWrapper;
@@ -63,9 +68,9 @@ import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.NetworkPlugin;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestHandler;
 import org.elasticsearch.script.ScriptService;
-import org.elasticsearch.search.SearchRequestParsers;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.Transport;
@@ -87,7 +92,6 @@ import com.floragunn.searchguard.auth.BackendRegistry;
 import com.floragunn.searchguard.auth.internal.InternalAuthenticationBackend;
 import com.floragunn.searchguard.configuration.ActionGroupHolder;
 import com.floragunn.searchguard.configuration.AdminDNs;
-import com.floragunn.searchguard.configuration.ConfigurationRepository;
 import com.floragunn.searchguard.configuration.DlsFlsRequestValve;
 import com.floragunn.searchguard.configuration.IndexBaseConfigurationRepository;
 import com.floragunn.searchguard.configuration.PrivilegesEvaluator;
@@ -102,7 +106,7 @@ import com.floragunn.searchguard.rest.SearchGuardInfoAction;
 import com.floragunn.searchguard.ssl.DefaultSearchGuardKeyStore;
 import com.floragunn.searchguard.ssl.ExternalSearchGuardKeyStore;
 import com.floragunn.searchguard.ssl.SearchGuardKeyStore;
-import com.floragunn.searchguard.ssl.SearchGuardSSLModule;
+import com.floragunn.searchguard.ssl.http.netty.ValidatingDispatcher;
 import com.floragunn.searchguard.ssl.rest.SearchGuardSSLInfoAction;
 import com.floragunn.searchguard.ssl.transport.DefaultPrincipalExtractor;
 import com.floragunn.searchguard.ssl.transport.PrincipalExtractor;
@@ -125,12 +129,19 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
     private final boolean httpSSLEnabled;
     private final boolean tribeNodeClient;
     private final boolean dlsFlsAvailable;
-    private final Constructor dlFlsConstructor;
+    private final Constructor<?> dlFlsConstructor;
     private final SearchGuardKeyStore sgks;
     private SearchGuardRestFilter sgRestHandler;
     private SearchGuardInterceptor sgi;
+    private PrincipalExtractor principalExtractor;
+    private PrivilegesEvaluator evaluator;
+    private ThreadPool threadPool;
+    private IndexBaseConfigurationRepository cr;
+    private AdminDNs adminDns;
+    private ClusterService cs;
+    private AuditLog auditLog;
     
-    //TODO 5mg check tribe
+    
     public SearchGuardPlugin(final Settings settings) {
         super();
         log.info("Clustername: {}", settings.get("cluster.name","elasticsearch"));
@@ -161,7 +172,6 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         httpSSLEnabled = settings.getAsBoolean(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLED,
                 SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLED_DEFAULT);
 
-        //TODO tribe 5.0
         log.info("Node [{}] is a transportClient: {}/tribeNode: {}/tribeNodeClient: {}", settings.get("node.name"), client, tribeNode, tribeNodeClient);
     
         if(ReflectionHelper.canLoad(FLS_DLS_INDEX_SEARCHER_WRAPPER_CLASS)) {
@@ -189,18 +199,23 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
     }
     
     @Override
-    public List<Class<? extends RestHandler>> getRestHandlers() {
-        List<Class<? extends RestHandler>> handlers = new ArrayList<Class<? extends RestHandler>>(1);
+    public List<RestHandler> getRestHandlers(Settings settings, RestController restController, ClusterSettings clusterSettings,
+            IndexScopedSettings indexScopedSettings, SettingsFilter settingsFilter,
+            IndexNameExpressionResolver indexNameExpressionResolver, Supplier<DiscoveryNodes> nodesInCluster) {
+        
+        final List<RestHandler> handlers = new ArrayList<RestHandler>(1);
+        
         if (!client && !tribeNodeClient) {
-            handlers.add(SearchGuardInfoAction.class);
-            handlers.add(SearchGuardSSLInfoAction.class);
+            handlers.add(new SearchGuardInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool)));
+            handlers.add(new SearchGuardSSLInfoAction(settings, restController, sgks, Objects.requireNonNull(principalExtractor)));
             
             if(ReflectionHelper.canLoad("com.floragunn.searchguard.dlic.rest.api.SearchGuardRestApiActions")) {
                 try {
-                    Collection<Class<? extends RestHandler>> apiHandler = (Collection<Class<? extends RestHandler>>) ReflectionHelper
+                    Collection<RestHandler> apiHandler = (Collection<RestHandler>) ReflectionHelper
                     .load("com.floragunn.searchguard.dlic.rest.api.SearchGuardRestApiActions")
-                    .getDeclaredMethod("getHandler")
-                    .invoke(null);          
+                    .getDeclaredMethod("getHandler", Settings.class, RestController.class, Client.class, 
+                            AdminDNs.class, IndexBaseConfigurationRepository.class, ClusterService.class, PrincipalExtractor.class)
+                    .invoke(settings, restController, cr, adminDns, cr, cs, principalExtractor);          
                     handlers.addAll(apiHandler);
                     log.debug("Added {} management rest handler", apiHandler.size());
                 } catch(Throwable ex) {
@@ -208,6 +223,7 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
                 }
             }
         }
+        
         return handlers;
     }
     
@@ -223,14 +239,6 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
             actions.add(new ActionHandler(ConfigUpdateAction.INSTANCE, TransportConfigUpdateAction.class));
         }
         return actions;
-    }
-    
-    
-    @Override
-    public Collection<Module> createGuiceModules() {
-        List<Module> modules = new ArrayList<Module>(1);
-        modules.add(new SearchGuardSSLModule(settings, sgks));   
-        return modules;
     }
     
     private IndexSearcherWrapper loadFlsDlsIndexSearcherWrapper(final IndexService indexService) {
@@ -301,7 +309,6 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
                         public <T extends TransportResponse> void sendRequest(Connection connection, String action,
                                 TransportRequest request, TransportRequestOptions options, TransportResponseHandler<T> handler) {
                             sgi.sendRequestDecorate(sender, connection, action, request, options, handler);
-                            //SearchGuardInterceptor.getSearchGuardInterceptor(instanceUUID.toString()).sendRequestDecorate(sender, connection, action, request, options, handler);
                         }
                     };
                 }
@@ -326,14 +333,20 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
     @Override
     public Map<String, Supplier<HttpServerTransport>> getHttpTransports(Settings settings, ThreadPool threadPool, BigArrays bigArrays,
             CircuitBreakerService circuitBreakerService, NamedWriteableRegistry namedWriteableRegistry,
-            NamedXContentRegistry xContentRegistry, NetworkService networkService) {
+            NamedXContentRegistry xContentRegistry, NetworkService networkService, Dispatcher dispatcher) {
+
         Map<String, Supplier<HttpServerTransport>> httpTransports = new HashMap<String, Supplier<HttpServerTransport>>(1);
         if (!client && httpSSLEnabled && !tribeNodeClient) {
+            
+            final ValidatingDispatcher validatingDispatcher = new ValidatingDispatcher(threadPool.getThreadContext(), dispatcher);
+            final SearchGuardHttpServerTransport sghst = new SearchGuardHttpServerTransport(settings, networkService, bigArrays, threadPool, sgks, auditLog, xContentRegistry, validatingDispatcher);
+            validatingDispatcher.setAuditErrorHandler(sghst);
+            
             httpTransports.put("com.floragunn.searchguard.http.SearchGuardHttpServerTransport", 
-                    () -> new SearchGuardHttpServerTransport(settings, networkService, bigArrays, threadPool, sgks, null, xContentRegistry));
+                    () -> sghst);
         } else if (!client && !tribeNodeClient) {
             httpTransports.put("com.floragunn.searchguard.http.SearchGuardHttpServerTransport", 
-                    () -> new SearchGuardNonSslHttpServerTransport(settings, networkService, bigArrays, threadPool, xContentRegistry));
+                    () -> new SearchGuardNonSslHttpServerTransport(settings, networkService, bigArrays, threadPool, xContentRegistry, dispatcher));
         }
         
         return httpTransports;
@@ -343,8 +356,10 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         
     @Override
     public Collection<Object> createComponents(Client localClient, ClusterService clusterService, ThreadPool threadPool,
-            ResourceWatcherService resourceWatcherService, ScriptService scriptService, SearchRequestParsers searchRequestParsers,
-            NamedXContentRegistry xContentRegistry) {
+            ResourceWatcherService resourceWatcherService, ScriptService scriptService, NamedXContentRegistry xContentRegistry) {
+        
+        this.threadPool = threadPool;
+        this.cs = clusterService;
         
         final List<Object> components = new ArrayList<Object>();
         
@@ -366,7 +381,7 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         }
         
         final IndexNameExpressionResolver resolver = new IndexNameExpressionResolver(settings);
-        AuditLog auditLog = new NullAuditLog();
+        auditLog = new NullAuditLog();
 
         try {
 
@@ -423,18 +438,36 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
 
         
         
-        final AdminDNs adminDns = new AdminDNs(settings);      
+        adminDns = new AdminDNs(settings);      
         final PrincipalExtractor pe = new DefaultPrincipalExtractor();        
-        final ConfigurationRepository cr = IndexBaseConfigurationRepository.create(settings, threadPool, localClient, clusterService);        
+        cr = (IndexBaseConfigurationRepository) IndexBaseConfigurationRepository.create(settings, threadPool, localClient, clusterService);        
         final InternalAuthenticationBackend iab = new InternalAuthenticationBackend(cr);     
         final XFFResolver xffResolver = new XFFResolver(threadPool);
         cr.subscribeOnChange(ConfigConstants.CONFIGNAME_CONFIG, xffResolver);   
         final BackendRegistry backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, iab, auditLog, threadPool);
         cr.subscribeOnChange(ConfigConstants.CONFIGNAME_CONFIG, backendRegistry); 
         final ActionGroupHolder ah = new ActionGroupHolder(cr);      
-        final PrivilegesEvaluator pre = new PrivilegesEvaluator(clusterService, threadPool, cr, ah, resolver, auditLog, settings, privilegesInterceptor);    
-        final SearchGuardFilter sgf = new SearchGuardFilter(settings, pre, adminDns, dlsFlsValve, auditLog, threadPool);     
+        evaluator = new PrivilegesEvaluator(clusterService, threadPool, cr, ah, resolver, auditLog, settings, privilegesInterceptor);    
+        final SearchGuardFilter sgf = new SearchGuardFilter(settings, evaluator, adminDns, dlsFlsValve, auditLog, threadPool);     
         sgi = new SearchGuardInterceptor(settings, threadPool, backendRegistry, auditLog, pe, interClusterRequestEvaluator);
+        
+        final String principalExtractorClass = settings.get(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, null);
+
+        if(principalExtractorClass == null) {
+            principalExtractor = new com.floragunn.searchguard.ssl.transport.DefaultPrincipalExtractor();
+        } else {
+            try {
+                log.debug("Try to load and instantiate '{}'", principalExtractorClass);
+                Class<?> principalExtractorClazz = Class.forName(principalExtractorClass);
+                principalExtractor = (PrincipalExtractor) principalExtractorClazz.newInstance();
+            } catch (Exception e) {
+                log.error("Unable to load '{}' due to {}", e, principalExtractorClass, e.toString());
+                throw new ElasticsearchException(e);
+            }
+        }
+        
+        components.add(principalExtractor);
+        
         
         components.add(adminDns);
         //components.add(auditLog);
@@ -443,7 +476,7 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         components.add(xffResolver);
         components.add(backendRegistry);
         components.add(ah);
-        components.add(pre);
+        components.add(evaluator);
         components.add(sgf);
         components.add(sgi);
 

@@ -26,8 +26,6 @@ import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
-import org.elasticsearch.rest.RestChannel;
-import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.threadpool.ThreadPool;
 
 public class SearchGuardNonSslHttpServerTransport extends Netty4HttpServerTransport {
@@ -36,8 +34,8 @@ public class SearchGuardNonSslHttpServerTransport extends Netty4HttpServerTransp
     private final ThreadContext threadContext;
     
     public SearchGuardNonSslHttpServerTransport(final Settings settings, final NetworkService networkService, final BigArrays bigArrays,
-            ThreadPool threadPool, NamedXContentRegistry namedXContentRegistry) {
-        super(settings, networkService, bigArrays, threadPool, namedXContentRegistry);
+            final ThreadPool threadPool, final NamedXContentRegistry namedXContentRegistry, final Dispatcher dispatcher) {
+        super(settings, networkService, bigArrays, threadPool, namedXContentRegistry, dispatcher);
         this.threadContext = threadPool.getThreadContext();
     }
 
@@ -56,10 +54,5 @@ public class SearchGuardNonSslHttpServerTransport extends Netty4HttpServerTransp
         protected void initChannel(Channel ch) throws Exception {
             super.initChannel(ch);
         }
-    }
-
-    @Override
-    protected void dispatchRequest(final RestRequest request, final RestChannel channel) {
-        super.dispatchRequest(request, channel);
     }
 }
