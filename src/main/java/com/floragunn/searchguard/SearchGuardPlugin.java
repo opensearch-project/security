@@ -140,6 +140,7 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
     private AdminDNs adminDns;
     private ClusterService cs;
     private AuditLog auditLog;
+    private Client localClient;
     
     
     public SearchGuardPlugin(final Settings settings) {
@@ -208,14 +209,14 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         if (!client && !tribeNodeClient) {
             handlers.add(new SearchGuardInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool)));
             handlers.add(new SearchGuardSSLInfoAction(settings, restController, sgks, Objects.requireNonNull(principalExtractor)));
-            
+             
             if(ReflectionHelper.canLoad("com.floragunn.searchguard.dlic.rest.api.SearchGuardRestApiActions")) {
                 try {
                     Collection<RestHandler> apiHandler = (Collection<RestHandler>) ReflectionHelper
                     .load("com.floragunn.searchguard.dlic.rest.api.SearchGuardRestApiActions")
                     .getDeclaredMethod("getHandler", Settings.class, RestController.class, Client.class, 
                             AdminDNs.class, IndexBaseConfigurationRepository.class, ClusterService.class, PrincipalExtractor.class)
-                    .invoke(settings, restController, cr, adminDns, cr, cs, principalExtractor);          
+                    .invoke(null, settings, restController, localClient, adminDns, cr, cs, principalExtractor);          
                     handlers.addAll(apiHandler);
                     log.debug("Added {} management rest handler", apiHandler.size());
                 } catch(Throwable ex) {
@@ -360,6 +361,7 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         
         this.threadPool = threadPool;
         this.cs = clusterService;
+        this.localClient = localClient;
         
         final List<Object> components = new ArrayList<Object>();
         
