@@ -622,7 +622,7 @@ public class SearchGuardAdmin {
         }
         
         //validate
-        Settings.builder().put(new JsonSettingsLoader(true).load(XContentHelper.createParser(NamedXContentRegistry.EMPTY, retVal))).build();
+        Settings.builder().put(new JsonSettingsLoader(true).load(XContentHelper.createParser(NamedXContentRegistry.EMPTY, retVal, XContentType.JSON))).build();
         return retVal;
     }
     
@@ -643,7 +643,7 @@ public class SearchGuardAdmin {
             if (prettyPrint) {
                 builder.prettyPrint();
             }
-            builder.rawValue(new BytesArray(parser.binaryValue()));
+            builder.rawValue(new BytesArray(parser.binaryValue()), XContentType.YAML);
             return builder.string();
         }
     }

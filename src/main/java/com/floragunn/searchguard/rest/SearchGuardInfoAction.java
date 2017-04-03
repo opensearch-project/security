@@ -22,9 +22,7 @@ import static org.elasticsearch.rest.RestRequest.Method.GET;
 import java.io.IOException;
 import java.security.cert.X509Certificate;
 
-import org.elasticsearch.client.Client;
 import org.elasticsearch.client.node.NodeClient;
-import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.concurrent.ThreadContext;

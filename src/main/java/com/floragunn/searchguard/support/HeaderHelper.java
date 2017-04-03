@@ -19,13 +19,8 @@ package com.floragunn.searchguard.support;
 
 import java.io.Serializable;
 import java.util.Map;
-import java.util.Map.Entry;
 
-import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
-import org.elasticsearch.rest.RestRequest;
-import org.elasticsearch.transport.TransportMessage;
-import org.elasticsearch.transport.TransportRequest;
 
 import com.google.common.base.Strings;
 

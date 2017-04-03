@@ -43,6 +43,7 @@ import org.elasticsearch.common.util.concurrent.ThreadContext.StoredContext;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import com.floragunn.searchguard.support.ConfigConstants;
@@ -167,7 +168,7 @@ public class ConfigurationLoader {
         XContentParser parser = null;
 
         try {
-            parser = XContentHelper.createParser(NamedXContentRegistry.EMPTY, ref);
+            parser = XContentHelper.createParser(NamedXContentRegistry.EMPTY, ref, XContentType.JSON);
             parser.nextToken();
             parser.nextToken();
          

@@ -18,9 +18,7 @@
 package com.floragunn.searchguard.tools;
 
 import java.io.Console;
-import java.util.Arrays;
 import java.util.Objects;
-import java.util.Scanner;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
