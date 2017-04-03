@@ -22,14 +22,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-
-import org.elasticsearch.action.FailedNodeException;
-
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicReferenceArray;
 
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.FailedNodeException;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
@@ -38,7 +35,6 @@ import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.nodes.BaseNodeRequest;
 import org.elasticsearch.action.support.nodes.TransportNodesAction;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -49,6 +45,8 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.util.concurrent.ThreadContext;
+import org.elasticsearch.common.util.concurrent.ThreadContext.StoredContext;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -71,16 +69,13 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
     private final ListMultimap<String, ConfigChangeListener> multimap = Multimaps.synchronizedListMultimap(ArrayListMultimap
             .<String, ConfigChangeListener> create());
     private final String searchguardIndex;
-    private final ThreadPool threadPool;
     
     @Inject
     public TransportConfigUpdateAction(final Provider<Client> clientProvider, final Settings settings,
             final ThreadPool threadPool, final ClusterService clusterService, final TransportService transportService,
             final ConfigurationLoader cl, final ActionFilters actionFilters, final IndexNameExpressionResolver indexNameExpressionResolver,
             Provider<BackendRegistry> backendRegistry) {
-    	
-   	
-    	
+
     	super(settings, ConfigUpdateAction.NAME, threadPool, clusterService, transportService, actionFilters,
                 indexNameExpressionResolver, ConfigUpdateRequest::new, TransportConfigUpdateAction.NodeConfigUpdateRequest::new,
                 ThreadPool.Names.MANAGEMENT, ConfigUpdateNodeResponse.class);
@@ -89,7 +84,6 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
         this.clusterService = clusterService;
         this.backendRegistry = backendRegistry;
         this.searchguardIndex = settings.get(ConfigConstants.SG_CONFIG_INDEX, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
-        this.threadPool = threadPool;
 
         clusterService.addLifecycleListener(new LifecycleListener() {
             
@@ -180,36 +174,37 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
                 
                 try {
                     
-                    //TODO ctx check
-                    if(threadPool.getThreadContext().getHeader(ConfigConstants.SG_CONF_REQUEST_HEADER) == null) {
-                        threadPool.getThreadContext().putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true"); //header needed here
-                    } 
+                    final ThreadContext threadContext = threadPool.getThreadContext();
                     
-                    IndicesExistsRequest ier = new IndicesExistsRequest(searchguardIndex)
-                                                   .masterNodeTimeout(TimeValue.timeValueMinutes(1));
-                    //ier.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true");
-                    clientProvider.get().admin().indices().exists(ier, new ActionListener<IndicesExistsResponse>() {
+                    try(StoredContext ctx = threadContext.stashContext()) {
+                        threadContext.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true");
+                    
+                        IndicesExistsRequest ier = new IndicesExistsRequest(searchguardIndex)
+                                                       .masterNodeTimeout(TimeValue.timeValueMinutes(1));
 
-                        @Override
-                        public void onResponse(IndicesExistsResponse response) {
-                            if(response != null && response.isExists()) {
-                                ct.start();
-                            } else {
-                                if(settings.getAsBoolean("action.master.force_local", false) && settings.getByPrefix("tribe").getAsMap().size() > 0) {
-                                    logger.info("{} index does not exist yet, but we are a tribe node. So we will load the config anyhow until we got it ...", searchguardIndex);
+                        clientProvider.get().admin().indices().exists(ier, new ActionListener<IndicesExistsResponse>() {
+    
+                            @Override
+                            public void onResponse(IndicesExistsResponse response) {
+                                if(response != null && response.isExists()) {
                                     ct.start();
                                 } else {
-                                    logger.info("{} index does not exist yet, so no need to load config on node startup. Use sgadmin to initialize cluster", searchguardIndex);
-                                }
+                                    if(settings.getAsBoolean("action.master.force_local", false) && settings.getByPrefix("tribe").getAsMap().size() > 0) {
+                                        logger.info("{} index does not exist yet, but we are a tribe node. So we will load the config anyhow until we got it ...", searchguardIndex);
+                                        ct.start();
+                                    } else {
+                                        logger.info("{} index does not exist yet, so no need to load config on node startup. Use sgadmin to initialize cluster", searchguardIndex);
+                                    }
+                                }               
+                            }
+    
+                            @Override
+                            public void onFailure(Exception e) {
+                                logger.error("Failure while checking {} index {}",e, searchguardIndex, e);
+                                ct.start();
                             }               
-                        }
-
-                        @Override
-                        public void onFailure(Exception e) {
-                            logger.error("Failure while checking {} index {}",e, searchguardIndex, e);
-                            ct.start();
-                        }               
-                    });
+                        });
+                    }
                 } catch (Throwable e2) {
                     logger.error("Failure while executing IndicesExistsRequest {}",e2, e2);
                     ct.start();
