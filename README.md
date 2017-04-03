@@ -14,7 +14,7 @@ Search Guard 2 (compatible with Elasticsearch 2.3.3 - 2.4.x)
 
 If you want to try out Search Guard, we recommend to download the [Search Guard Bundle](https://github.com/floragunncom/search-guard/wiki/Search-Guard-Bundle). This is an Elasticsearch installation, preconfigured with Search Guard. It contains all enterprise features and templates for all configuration files. Just download, unzip and you're ready to go! 
 
-##Roadmap
+## Roadmap
 This is almost a complete rewrite of Search Guard 1 which comes with a lot of new features:
 
 * Configuration hot reloading
@@ -25,12 +25,12 @@ This is almost a complete rewrite of Search Guard 1 which comes with a lot of ne
  
 Advanced functionalities like LDAP and Kerberos authentication/authorization as well as DLS/FLS are also available as separate and commercial licensed add-ons (but still Open Source). See https://github.com/floragunncom/search-guard-docs/blob/master/installation.md for additional information.
 
-##Support
+## Support
 * Commercial support now available through [floragunn UG](http://floragunn.com)
 * Community support available via [google groups](https://groups.google.com/forum/#!forum/search-guard)
 * Follow us and get community support on twitter [@searchguard](https://twitter.com/searchguard)
 
-##Installation
+## Installation
 
 * Install [latest search-guard-2 plugin](https://github.com/floragunncom/search-guard/wiki)
  * ``sudo bin/plugin install -b com.floragunn/search-guard-2/<version>``
@@ -45,7 +45,7 @@ Both plugins need to be installed on every node in the cluster.
 After the plugins are installed you need to configure them. ``search-guard-ssl`` needs to be configured statically
 in elasticsearch.yml (any change needs a restart of the node). See [search-guard-ssl documentation](https://github.com/floragunncom/search-guard-ssl) how to configure it. ``search-guard-2`` needs only a single entry in elasticsearch.yml (see below), all other configuration is stored in Elasticsearch itself and can be dynamically changed without restarting a node or the cluster.
 
-##Known issues
+## Known issues
 
 * Elasticsearch license plugin
  * If you have the Elasticsearch license plugin installed, the audit log module breaks and the nodes do not start
@@ -53,9 +53,9 @@ in elasticsearch.yml (any change needs a restart of the node). See [search-guard
 
 **These issues have been fixed in Search Guard version 8. If you are still on an older version, please update.**
 
-##Configuration
+## Configuration
 
-###SSL certificates
+### SSL certificates
 HTTP SSL is optional (but strongly recommended especially if you use HTTP Basic authentication which transmits clear text passwords). Transport SSL is mandatory and you have to generate certificates for the nodes.
 
 There are generally two types of certificates you need to generate:
@@ -64,7 +64,7 @@ There are generally two types of certificates you need to generate:
  * ``oid:1.2.3.4.5.5``
 * Client certificates: Contains user DN, [see here](https://github.com/floragunncom/search-guard-ssl/blob/master/example-pki-scripts/gen_client_node_cert.sh)
 
-###elasticsearch.yml
+### elasticsearch.yml
 
     searchguard.authcz.admin_dn:
       - cn=admin,ou=Test,ou=ou,dc=company,dc=com
@@ -72,7 +72,7 @@ There are generally two types of certificates you need to generate:
 
 ``searchguard.authcz.admin_dn`` is a list of DN's which are allowed to perform administrative tasks (that is: read and write the ``searchguard`` index which holds the dynamic configuration). The client certificate (keystore) used with the sgadmin tool have to match on of the configured DN's.
 
-###Dynamic configuration
+### Dynamic configuration
 * sg_config.yml: Configure authenticators and authorization backends
 * sg_roles.yml: define the roles and the associated permissions
 * sg_roles_mapping.yml: map backend roles, hosts and users to roles
@@ -92,10 +92,10 @@ This index is specially secured so that only a admin user with a special SSL cer
 
 After one or more files are updated Search Guard will automatically reconfigure and the changes will take effect almost immediately. No need to restart ES nodes and deal with config files on the servers. The sgadmin tool can also be used fom a desktop machine as long ES servers are reachable through 9300 port (transport protocol).
 
-##How does it work
+## How does it work
 Search Guard is build upon search-guard-ssl, a plugin which enables and enforce transport protocol (node-to-node) encryption and mutual SSL authentication. This makes sure that only trusted nodes can join the cluster. If a client connects (either through HTTP/REST or TransportClient) the request will be associated with the authenticated user. The client have therefore to authenticate either via HTTP (only BASIC supported currently) or via PKI (mutual SSL) when connecting with the transport client. 
 
-###Config hot reloading
+### Config hot reloading
 All configuration is held in Elasticsearch itself and if if the configuration is updated (through sgadmin) then all nodes will be informed about the update and will reload the configuration. This has several advantages over configuration via elasticsearch.yml
 
 * Configuration is held in a central place and therefore automatically identical for all nodes
