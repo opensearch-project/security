@@ -39,6 +39,7 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.loader.JsonSettingsLoader;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
+import org.elasticsearch.common.util.concurrent.ThreadContext.StoredContext;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
@@ -116,52 +117,46 @@ public class ConfigurationLoader {
             final String event = events[i];
             mget.add(searchguardIndex, event, "0");
         }
-      
-        //TODO ctx check
-        if(threadContext.getHeader(ConfigConstants.SG_CONF_REQUEST_HEADER) == null) {
-            threadContext.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true"); //header needed here
-        } 
         
         mget.refresh(true);
         mget.realtime(true);
         
-        //if(client.threadPool().getThreadContext().getHeader(ConfigConstants.SG_CONF_REQUEST_HEADER) == null) {
-        //    client.threadPool().getThreadContext().putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true");
-        //} 
+        try(StoredContext ctx = threadContext.stashContext()) {
+            threadContext.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true");
         
-        
-        client.multiGet(mget, new ActionListener<MultiGetResponse>() {
-            @Override
-            public void onResponse(MultiGetResponse response) {
-                MultiGetItemResponse[] responses = response.getResponses();
-                for (int i = 0; i < responses.length; i++) {
-                    MultiGetItemResponse singleResponse = responses[i];
-                    if(singleResponse != null && !singleResponse.isFailed()) {
-                        GetResponse singleGetResponse = singleResponse.getResponse();
-                        if(singleGetResponse.isExists() && !singleGetResponse.isSourceEmpty()) {
-                            //success
-                            final Settings _settings = toSettings(singleGetResponse.getSourceAsBytesRef(), singleGetResponse.getType());
-                            if(_settings != null) {
-                                callback.success(singleGetResponse.getType(), _settings);
+            client.multiGet(mget, new ActionListener<MultiGetResponse>() {
+                @Override
+                public void onResponse(MultiGetResponse response) {
+                    MultiGetItemResponse[] responses = response.getResponses();
+                    for (int i = 0; i < responses.length; i++) {
+                        MultiGetItemResponse singleResponse = responses[i];
+                        if(singleResponse != null && !singleResponse.isFailed()) {
+                            GetResponse singleGetResponse = singleResponse.getResponse();
+                            if(singleGetResponse.isExists() && !singleGetResponse.isSourceEmpty()) {
+                                //success
+                                final Settings _settings = toSettings(singleGetResponse.getSourceAsBytesRef(), singleGetResponse.getType());
+                                if(_settings != null) {
+                                    callback.success(singleGetResponse.getType(), _settings);
+                                } else {
+                                    log.error("Cannot parse settings for "+singleGetResponse.getType());
+                                }
                             } else {
-                                log.error("Cannot parse settings for "+singleGetResponse.getType());
+                                //does not exist or empty source
+                                callback.noData(singleGetResponse.getType());
                             }
                         } else {
-                            //does not exist or empty source
-                            callback.noData(singleGetResponse.getType());
+                            //failure
+                            callback.singleFailure(singleResponse==null?null:singleResponse.getFailure());
                         }
-                    } else {
-                        //failure
-                        callback.singleFailure(singleResponse==null?null:singleResponse.getFailure());
                     }
+                }           
+                
+                @Override
+                public void onFailure(Exception e) {
+                    callback.failure(e);
                 }
-            }           
-            
-            @Override
-            public void onFailure(Exception e) {
-                callback.failure(e);
-            }
-        });
+            });
+        }
     }
 
     private Settings toSettings(final BytesReference ref, final String type) {

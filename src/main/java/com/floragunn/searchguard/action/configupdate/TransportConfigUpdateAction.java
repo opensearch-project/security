@@ -53,7 +53,7 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
             final IndexBaseConfigurationRepository configurationRepository, final ActionFilters actionFilters, final IndexNameExpressionResolver indexNameExpressionResolver,
             Provider<BackendRegistry> backendRegistry) {
         
-    	super(settings, ConfigUpdateAction.NAME, threadPool, clusterService, transportService, actionFilters,
+        super(settings, ConfigUpdateAction.NAME, threadPool, clusterService, transportService, actionFilters,
                 indexNameExpressionResolver, ConfigUpdateRequest::new, TransportConfigUpdateAction.NodeConfigUpdateRequest::new,
                 ThreadPool.Names.MANAGEMENT, ConfigUpdateNodeResponse.class);
 
