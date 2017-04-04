@@ -4,6 +4,9 @@ machine:
 
 deployment:
   deploysnap:
-    branch: master
+    branch:
+      - master
+      # 5.0.0 or 5.3.0 etc
+      - '/^([0-9]{1})\.([0-9]{1})\.([0-9]{1})$/'
     commands:
-      - mvn deploy -Pdev -Dskip.unit.tests -s settings.xml
+      - mvn deploy -DskipTests -s settings.xml
