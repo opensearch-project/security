@@ -85,3 +85,16 @@ searchguard.audit.type: internal_elasticsearch
 # If you set wrong values here this this could be a security risk
 # or make Search Guard stop working
 #searchguard.cert.intercluster_request_evaluator_class: com.floragunn.searchguard.transport.DefaultInterClusterRequestEvaluator
+
+# Specify a list of DNs which denote the other nodes in the cluster.
+# This is only necessary if one cannot use the OID mechanism and has a major drawback:
+# Every time a new node want to join the cluster this setting must be updated a full cluster restart must be performed.
+# This settings support wildcards and regular expressions
+# WARNING: Expert setting, do only use if you know what you are doing
+# If you set wrong values here this this could be a security risk
+# or make Search Guard stop working
+# This setting does only have an effect if 'searchguard.cert.intercluster_request_evaluator_class' is not set.
+# If 'searchguard.ssl.transport.principal_extractor_class' is set use the outcome of this as DN
+#searchguard.nodes_dn:
+#  - "CN=*.example.com, OU=SSL, O=Test, L=Test, C=DE"
+#  - "CN=node.other.com, OU=SSL, O=Test, L=Test, C=DE"
