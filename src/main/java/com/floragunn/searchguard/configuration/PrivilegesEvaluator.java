@@ -689,10 +689,17 @@ public class PrivilegesEvaluator {
             
             if(tenants != null) {
                 for(String tenant: tenants.names()) {
+                    
+                    if(tenant.equals(user.getName())) {
+                        continue;
+                    }
+                    
                     if("RW".equalsIgnoreCase(tenants.get(tenant, "RO"))) {
                         result.put(tenant, true);
                     } else {
-                        result.put(tenant, false);
+                        if(!result.containsKey(tenant)) { //RW outperforms RO
+                            result.put(tenant, false);
+                        }
                     }
                 }
             }

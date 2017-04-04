@@ -118,13 +118,13 @@ public class ConfigurationLoader {
             final String event = events[i];
             mget.add(searchguardIndex, event, "0");
         }
-
+        
         mget.refresh(true);
         mget.realtime(true);
-
+        
         try(StoredContext ctx = threadContext.stashContext()) {
             threadContext.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true");
-            
+        
             client.multiGet(mget, new ActionListener<MultiGetResponse>() {
                 @Override
                 public void onResponse(MultiGetResponse response) {
