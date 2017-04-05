@@ -102,6 +102,7 @@ import com.floragunn.searchguard.filter.SearchGuardRestFilter;
 import com.floragunn.searchguard.http.SearchGuardHttpServerTransport;
 import com.floragunn.searchguard.http.SearchGuardNonSslHttpServerTransport;
 import com.floragunn.searchguard.http.XFFResolver;
+import com.floragunn.searchguard.rest.KibanaInfoAction;
 import com.floragunn.searchguard.rest.SearchGuardInfoAction;
 import com.floragunn.searchguard.ssl.DefaultSearchGuardKeyStore;
 import com.floragunn.searchguard.ssl.ExternalSearchGuardKeyStore;
@@ -207,9 +208,11 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         final List<RestHandler> handlers = new ArrayList<RestHandler>(1);
         
         if (!client && !tribeNodeClient) {
+
             handlers.add(new SearchGuardInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool)));
+            handlers.add(new KibanaInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool)));
             handlers.add(new SearchGuardSSLInfoAction(settings, restController, sgks, Objects.requireNonNull(principalExtractor)));
-             
+
             if(ReflectionHelper.canLoad("com.floragunn.searchguard.dlic.rest.api.SearchGuardRestApiActions")) {
                 try {
                     Collection<RestHandler> apiHandler = (Collection<RestHandler>) ReflectionHelper
@@ -241,7 +244,7 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         }
         return actions;
     }
-    
+
     private IndexSearcherWrapper loadFlsDlsIndexSearcherWrapper(final IndexService indexService) {
         try {
             IndexSearcherWrapper flsdlsWrapper = (IndexSearcherWrapper) dlFlsConstructor.newInstance(indexService, settings);
@@ -449,7 +452,7 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         final BackendRegistry backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, iab, auditLog, threadPool);
         cr.subscribeOnChange(ConfigConstants.CONFIGNAME_CONFIG, backendRegistry); 
         final ActionGroupHolder ah = new ActionGroupHolder(cr);      
-        evaluator = new PrivilegesEvaluator(clusterService, threadPool, cr, ah, resolver, auditLog, settings, privilegesInterceptor);    
+        evaluator = new PrivilegesEvaluator(clusterService, threadPool, cr, ah, resolver, auditLog, settings, privilegesInterceptor, null);    
         final SearchGuardFilter sgf = new SearchGuardFilter(settings, evaluator, adminDns, dlsFlsValve, auditLog, threadPool);     
         sgi = new SearchGuardInterceptor(settings, threadPool, backendRegistry, auditLog, pe, interClusterRequestEvaluator);
         
@@ -533,7 +536,11 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         settings.add(Setting.simpleString("searchguard.cert.intercluster_request_evaluator_class", Property.NodeScope, Property.Filtered));
         settings.add(Setting.listSetting("searchguard.nodes_dn", Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
 
-        
+        settings.add(Setting.boolSetting(ConfigConstants.SG_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE, ConfigConstants.SG_DEFAULT_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE,
+                Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting(ConfigConstants.SG_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES, ConfigConstants.SG_DEFAULT_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES,
+                Property.NodeScope, Property.Filtered));
+
         //SSL
         settings.add(Setting.simpleString(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_CLIENTAUTH_MODE, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_KEYSTORE_ALIAS, Property.NodeScope, Property.Filtered));

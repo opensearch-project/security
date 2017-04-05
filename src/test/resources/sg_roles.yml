@@ -284,7 +284,7 @@ sg_dlsnoinvest:
       '*':
         - ALL
       _dls_: '{"term" : {"category_code" : "software"}}'
-      
+
 sg_baz:
   cluster: 
     - ALL
@@ -295,9 +295,44 @@ sg_baz:
     'foo':
       'baz':
         - READ
-        
+
 sg_role01_role02:
   indices:
     'role01_role02':
       '*':
        - ALL
+
+sg_restore:
+  cluster:
+    - 'cluster:admin/snapshot/restore'
+  indices:
+    # everything set on one index definition
+    'vulcangov_restore_1':
+      '*':
+        - 'indices:admin/create'
+        - 'indices:data/write/index'
+    # combined rights lead to the allowance of the restore for 2a
+    'vulcangov_restore_2a':
+      '*':
+        - 'indices:admin/create'
+    'vulcangov_restore_2*':
+      '*':
+        - 'indices:data/write/index'
+    # type is not '*'
+    'vulcangov_no_restore_1':
+      'planet':
+        - 'indices:admin/create'
+        - 'indices:data/write/index'
+    # type is not '*'
+    'vulcangov_no_restore_2':
+      'p*':
+        - 'indices:admin/create'
+        - 'indices:data/write/index'
+    # permission indices:admin/create missing
+    'vulcangov_no_restore_3':
+      '*':
+        - 'indices:data/write/index'
+    # permission indices:data/write/index missing
+    'vulcangov_no_restore_4':
+      '*':
+        - 'indices:admin/create'
