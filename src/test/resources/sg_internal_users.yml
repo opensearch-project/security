@@ -77,7 +77,7 @@ dlsnoinvest:
 baz:
   hash: $2a$12$A41IxPXV1/Dx46C6i1ufGubv.p3qYX7xVcY46q33sylYbIqQVwTMu
   #password is: worf
-  
+
 user_role01:
   hash: '$2a$12$XrBfLQh2T8wIzpxE5vzhUOPjjGfONcD8UEjd5IT5KveG8ULZaj04.'
   # password is: user_role01
@@ -91,3 +91,7 @@ user_role01_role02_role03:
     - role01
     - role02
     - role03
+
+restoreuser:
+  hash: "$2a$12$JU2QjYVTlI24Q/enEOpf2uTLCPGchN.eXWCsrBiieUcRoeh53NB0y"
+  #password is: restoreuser
