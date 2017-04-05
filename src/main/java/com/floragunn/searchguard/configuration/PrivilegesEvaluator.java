@@ -302,6 +302,9 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
 
     public boolean evaluate(final User user, String action, final ActionRequest<?> request) {
         
+        final boolean compositeEnabled = config.getAsBoolean("searchguard.dynamic.composite_enabled", true);
+        boolean clusterLevelPermissionRequired = false;
+        
         final TransportAddress caller = Objects.requireNonNull((TransportAddress) this.threadContext.getTransient(ConfigConstants.SG_REMOTE_ADDRESS));
         
         if (log.isDebugEnabled()) {
@@ -422,8 +425,6 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                 log.debug("---------- evaluate sg_role: {}", sgRole);
             }
 
-            final boolean compositeEnabled = config.getAsBoolean("searchguard.dynamic.composite_enabled", true);
-           
             if (action.startsWith("cluster:") || action.startsWith("indices:admin/template/delete")
                     || action.startsWith("indices:admin/template/get") || action.startsWith("indices:admin/template/put") 
                 || action.startsWith("indices:data/read/scroll")
@@ -441,7 +442,8 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                 ) {
                 
                 final Set<String> resolvedActions = resolveActions(sgRoleSettings.getAsArray(".cluster", new String[0]));
-
+                clusterLevelPermissionRequired = true;
+                
                 if (log.isDebugEnabled()) {
                     log.debug("  resolved cluster actions:{}", resolvedActions);
                 }
@@ -659,7 +661,7 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
         } // end sg role loop
 
         if (!allowAction && log.isInfoEnabled()) {
-            log.info("No perm match for {} {} [Action [{}]] [RolesChecked {}]", user, requestedResolvedIndexTypes, action, sgRoles);
+            log.info("No {}-level perm match for {} {} [Action [{}]] [RolesChecked {}]", clusterLevelPermissionRequired?"cluster":"index" , user, requestedResolvedIndexTypes, action, sgRoles);
             log.info("No permissions for {}", leftovers);
         }
 
