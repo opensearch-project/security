@@ -98,3 +98,19 @@ searchguard.audit.type: internal_elasticsearch
 #searchguard.nodes_dn:
 #  - "CN=*.example.com, OU=SSL, O=Test, L=Test, C=DE"
 #  - "CN=node.other.com, OU=SSL, O=Test, L=Test, C=DE"
+
+# Allow snapshot restore for normal users
+# By default only requests signed by an admin ssl certificate can do this
+# To enable snapshot restore for normal users set 'searchguard.enable_snapshot_restore_privilege: true'
+# The user who wants to restore a snapshot must have the 'cluster:admin/snapshot/restore' privilege and must also have
+# "indices:admin/create" and "indices:data/write/index" for the indices to be restores.
+# A snapshot can only be restored when it does not contain global state and does not restore the 'searchguard' index
+
+# If 'searchguard.check_snapshot_restore_write_privileges: false' is set then the additional indices checks are omitted.
+# This makes it less secure.
+
+# WARNING: Expert settings, do only use if you know what you are doing
+# If you set wrong values here this this could be a security risk
+# or make Search Guard stop working
+#searchguard.enable_snapshot_restore_privilege: true
+#searchguard.check_snapshot_restore_write_privileges: false

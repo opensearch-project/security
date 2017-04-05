@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
@@ -42,6 +43,7 @@ import org.elasticsearch.action.support.ActionFilter;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.inject.Provider;
@@ -63,6 +65,7 @@ import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.NetworkPlugin;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.rest.RestHandler;
 import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.search.SearchRequestParsers;
@@ -98,6 +101,7 @@ import com.floragunn.searchguard.filter.SearchGuardRestFilter;
 import com.floragunn.searchguard.http.SearchGuardHttpServerTransport;
 import com.floragunn.searchguard.http.SearchGuardNonSslHttpServerTransport;
 import com.floragunn.searchguard.http.XFFResolver;
+import com.floragunn.searchguard.rest.KibanaInfoAction;
 import com.floragunn.searchguard.rest.SearchGuardInfoAction;
 import com.floragunn.searchguard.ssl.DefaultSearchGuardKeyStore;
 import com.floragunn.searchguard.ssl.ExternalSearchGuardKeyStore;
@@ -193,6 +197,7 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         List<Class<? extends RestHandler>> handlers = new ArrayList<Class<? extends RestHandler>>(1);
         if (!client && !tribeNodeClient) {
             handlers.add(SearchGuardInfoAction.class);
+            handlers.add(KibanaInfoAction.class);
             handlers.add(SearchGuardSSLInfoAction.class);
             
             if(ReflectionHelper.canLoad("com.floragunn.searchguard.dlic.rest.api.SearchGuardRestApiActions")) {
@@ -225,11 +230,10 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         return actions;
     }
     
-    
     @Override
     public Collection<Module> createGuiceModules() {
         List<Module> modules = new ArrayList<Module>(1);
-        modules.add(new SearchGuardSSLModule(settings, sgks));   
+        modules.add(new SearchGuardSSLModule(settings, sgks));
         return modules;
     }
     
@@ -431,8 +435,9 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         cr.subscribeOnChange(ConfigConstants.CONFIGNAME_CONFIG, xffResolver);   
         final BackendRegistry backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, iab, auditLog, threadPool);
         cr.subscribeOnChange(ConfigConstants.CONFIGNAME_CONFIG, backendRegistry); 
-        final ActionGroupHolder ah = new ActionGroupHolder(cr);      
-        final PrivilegesEvaluator pre = new PrivilegesEvaluator(clusterService, threadPool, cr, ah, resolver, auditLog, settings, privilegesInterceptor);    
+        final ActionGroupHolder ah = new ActionGroupHolder(cr); 
+
+        final PrivilegesEvaluator pre = new PrivilegesEvaluator(clusterService, threadPool, cr, ah, resolver, auditLog, settings, privilegesInterceptor, null);    
         final SearchGuardFilter sgf = new SearchGuardFilter(settings, pre, adminDns, dlsFlsValve, auditLog, threadPool);     
         sgi = new SearchGuardInterceptor(settings, threadPool, backendRegistry, auditLog, pe, interClusterRequestEvaluator);
         
@@ -498,7 +503,11 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         settings.add(Setting.simpleString("searchguard.cert.intercluster_request_evaluator_class", Property.NodeScope, Property.Filtered));
         settings.add(Setting.listSetting("searchguard.nodes_dn", Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
 
-        
+        settings.add(Setting.boolSetting(ConfigConstants.SG_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE, ConfigConstants.SG_DEFAULT_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE,
+                Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting(ConfigConstants.SG_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES, ConfigConstants.SG_DEFAULT_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES,
+                Property.NodeScope, Property.Filtered));
+
         //SSL
         settings.add(Setting.simpleString(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_CLIENTAUTH_MODE, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_KEYSTORE_ALIAS, Property.NodeScope, Property.Filtered));
