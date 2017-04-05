@@ -18,6 +18,7 @@
 package com.floragunn.searchguard;
 
 import com.floragunn.searchguard.support.ConfigConstants;
+
 import io.netty.handler.ssl.OpenSsl;
 import io.netty.util.internal.PlatformDependent;
 
@@ -69,6 +70,7 @@ import com.floragunn.searchguard.configuration.SearchGuardIndexSearcherWrapper;
 import com.floragunn.searchguard.filter.SearchGuardFilter;
 import com.floragunn.searchguard.http.SearchGuardHttpServerTransport;
 import com.floragunn.searchguard.http.SearchGuardNonSslHttpServerTransport;
+import com.floragunn.searchguard.rest.KibanaInfoAction;
 import com.floragunn.searchguard.rest.SearchGuardInfoAction;
 import com.floragunn.searchguard.ssl.SearchGuardSSLModule;
 import com.floragunn.searchguard.ssl.rest.SearchGuardSSLInfoAction;
@@ -147,6 +149,7 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin {
         List<Class<? extends RestHandler>> handlers = new ArrayList<Class<? extends RestHandler>>(1);
         if (!client && !tribeNodeClient) {
             handlers.add(SearchGuardInfoAction.class);
+            handlers.add(KibanaInfoAction.class);
             handlers.add(SearchGuardSSLInfoAction.class);
             
             if(ReflectionHelper.canLoad("com.floragunn.searchguard.dlic.rest.api.SearchGuardRestApiActions")) {

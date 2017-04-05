@@ -1259,4 +1259,59 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
             return modified;
         }  
     }
+    
+    public boolean multitenancyEnabled() {
+        return privilegesInterceptor.getClass() != PrivilegesInterceptor.class 
+                && config.getAsBoolean("searchguard.dynamic.kibana.multitenancy_enabled", true);
+    }
+    
+    public boolean notFailOnForbiddenEnabled() {
+        return privilegesInterceptor.getClass() != PrivilegesInterceptor.class
+                && config.getAsBoolean("searchguard.dynamic.kibana.do_not_fail_on_forbidden", false);
+    }
+    
+    public String kibanaIndex() {
+        return config.get("searchguard.dynamic.kibana.index",".kibana");
+    }
+    
+    public String kibanaServerUsername() {
+        return config.get("searchguard.dynamic.kibana.server_username","kibanaserver");
+    }
+    
+    public boolean kibanaIndexReadonly(final User user, final TransportAddress caller) {
+        final Set<String> sgRoles = mapSgRoles(user, caller);
+        
+        final String kibanaIndex = kibanaIndex();
+        
+        for (final Iterator<String> iterator = sgRoles.iterator(); iterator.hasNext();) {
+            final String sgRole = iterator.next();
+            final Settings sgRoleSettings = roles.getByPrefix(sgRole);
+            
+            if (sgRoleSettings.names().isEmpty()) {
+                continue;
+            }
+
+            final Map<String, Settings> permittedAliasesIndices0 = sgRoleSettings.getGroups(".indices");
+            final Map<String, Settings> permittedAliasesIndices = new HashMap<String, Settings>(permittedAliasesIndices0.size());
+
+            for (String origKey : permittedAliasesIndices0.keySet()) {
+                permittedAliasesIndices.put(origKey.replace("${user.name}", user.getName()).replace("${user_name}", user.getName()),
+                        permittedAliasesIndices0.get(origKey));
+            }
+            
+            for(String indexPattern: permittedAliasesIndices.keySet()) {                
+                if(WildcardMatcher.match(indexPattern, kibanaIndex)) {
+                    final Settings innerSettings = permittedAliasesIndices.get(indexPattern);
+                    final String[] perms = innerSettings.getAsArray("*");
+                    if(perms!= null && perms.length > 0) {
+                        if(WildcardMatcher.matchAny(resolveActions(perms).toArray(new String[0]), "indices:data/write/update")) {
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+
+        return true;
+    }
 }
