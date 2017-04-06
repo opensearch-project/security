@@ -29,7 +29,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
@@ -43,7 +42,9 @@ import org.elasticsearch.action.support.ActionFilter;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.AbstractModule;
+import org.elasticsearch.common.component.Lifecycle.State;
+import org.elasticsearch.common.component.LifecycleComponent;
+import org.elasticsearch.common.component.LifecycleListener;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.inject.Provider;
@@ -437,7 +438,7 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         cr.subscribeOnChange(ConfigConstants.CONFIGNAME_CONFIG, backendRegistry); 
         final ActionGroupHolder ah = new ActionGroupHolder(cr); 
 
-        final PrivilegesEvaluator pre = new PrivilegesEvaluator(clusterService, threadPool, cr, ah, resolver, auditLog, settings, privilegesInterceptor, null);    
+        final PrivilegesEvaluator pre = new PrivilegesEvaluator(clusterService, threadPool, cr, ah, resolver, auditLog, settings, privilegesInterceptor);    
         final SearchGuardFilter sgf = new SearchGuardFilter(settings, pre, adminDns, dlsFlsValve, auditLog, threadPool);     
         sgi = new SearchGuardInterceptor(settings, threadPool, backendRegistry, auditLog, pe, interClusterRequestEvaluator);
         
@@ -561,5 +562,61 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         List<String> settingsFilter = new ArrayList<>();
         settingsFilter.add("searchguard.*");
         return settingsFilter;
+    }
+
+    //below is a hack because it seems not possible to access RepositoriesService from a non guice class
+    //the way of how deguice is organized is really a mess - hope this can be fixed in later versions
+    //TODO check if this could be removed
+    
+    @Override
+    public Collection<Class<? extends LifecycleComponent>> getGuiceServiceClasses() {
+
+        if (client || tribeNodeClient) {
+            return Collections.emptyList();
+        }
+        
+        final List<Class<? extends LifecycleComponent>> services = new ArrayList<>(1);
+        services.add(RepositoriesServiceHolder.class);
+        return services;
+    }
+    
+    public static class RepositoriesServiceHolder implements LifecycleComponent {
+
+        private static RepositoriesService repositoriesService;
+        
+        @Inject
+        public RepositoriesServiceHolder(final RepositoriesService repositoriesService) {
+            RepositoriesServiceHolder.repositoriesService = repositoriesService;
+        }
+
+        public static RepositoriesService getRepositoriesService() {
+            return repositoriesService;
+        }
+
+        @Override
+        public void close() {            
+        }
+
+        @Override
+        public State lifecycleState() {
+            return null;
+        }
+
+        @Override
+        public void addLifecycleListener(LifecycleListener listener) {            
+        }
+
+        @Override
+        public void removeLifecycleListener(LifecycleListener listener) {            
+        }
+
+        @Override
+        public void start() {            
+        }
+
+        @Override
+        public void stop() {            
+        }
+        
     }
 }

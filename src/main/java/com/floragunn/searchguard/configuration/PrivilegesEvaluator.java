@@ -74,6 +74,7 @@ import org.elasticsearch.snapshots.SnapshotUtils;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportRequest;
 
+import com.floragunn.searchguard.SearchGuardPlugin;
 import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.support.Base64Helper;
 import com.floragunn.searchguard.support.ConfigConstants;
@@ -97,7 +98,6 @@ public class PrivilegesEvaluator {
     private final Map<Class<?>, Method> typesCache = Collections.synchronizedMap(new HashMap<Class<?>, Method>(100));
     private final String[] deniedActionPatterns;
     private final AuditLog auditLog;
-    private final RepositoriesService repositoriesService;
     private ThreadContext threadContext;
     private final static IndicesOptions DEFAULT_INDICES_OPTIONS = IndicesOptions.lenientExpandOpen();
     private final ConfigurationRepository configurationRepository;
@@ -109,7 +109,7 @@ public class PrivilegesEvaluator {
     private final boolean checkSnapshotRestoreWritePrivileges;
 
     public PrivilegesEvaluator(final ClusterService clusterService, final ThreadPool threadPool, final ConfigurationRepository configurationRepository, final ActionGroupHolder ah,
-            final IndexNameExpressionResolver resolver, AuditLog auditLog, final Settings settings, final PrivilegesInterceptor privilegesInterceptor, final RepositoriesService repositoriesService) {
+            final IndexNameExpressionResolver resolver, AuditLog auditLog, final Settings settings, final PrivilegesInterceptor privilegesInterceptor) {
 
         super();
         this.configurationRepository = configurationRepository;
@@ -117,7 +117,6 @@ public class PrivilegesEvaluator {
         this.ah = ah;
         this.resolver = resolver;
         this.auditLog = auditLog;
-        this.repositoriesService = repositoriesService;
 
         this.threadContext = threadPool.getThreadContext();
         this.searchguardIndex = settings.get(ConfigConstants.SG_CONFIG_INDEX, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
@@ -714,6 +713,8 @@ public class PrivilegesEvaluator {
         }
 
         // Start resolve for RestoreSnapshotRequest
+        final RepositoriesService repositoriesService = Objects.requireNonNull(SearchGuardPlugin.RepositoriesServiceHolder.getRepositoriesService(), "RepositoriesService not initialized");     
+        //hack, because it seems not possible to access RepositoriesService from a non guice class
         final Repository repository = repositoriesService.repository(restoreRequest.repository());
         SnapshotInfo snapshotInfo = null;
 
