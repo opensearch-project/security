@@ -57,7 +57,6 @@ import org.elasticsearch.node.Node;
 import org.elasticsearch.node.PluginAwareNode;
 import org.elasticsearch.transport.Netty4Plugin;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -606,7 +605,6 @@ public class SGTests extends AbstractUnitTest {
     
     
     @Test
-    @Ignore
     public void testSnapshot() throws Exception {
 
         final Settings settings = Settings.builder().put("searchguard.ssl.transport.enabled", true)
@@ -707,7 +705,6 @@ public class SGTests extends AbstractUnitTest {
     }
 
     @Test
-    @Ignore
     public void testSnapshotCheckWritePrivileges() throws Exception {
 
         final Settings settings = Settings.builder().put("searchguard.ssl.transport.enabled", true)

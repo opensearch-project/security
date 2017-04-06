@@ -45,6 +45,11 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.component.Lifecycle.State;
+import org.elasticsearch.common.component.LifecycleComponent;
+import org.elasticsearch.common.component.LifecycleListener;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.util.Providers;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
@@ -68,6 +73,7 @@ import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.NetworkPlugin;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestHandler;
 import org.elasticsearch.script.ScriptService;
@@ -450,9 +456,9 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         final XFFResolver xffResolver = new XFFResolver(threadPool);
         cr.subscribeOnChange(ConfigConstants.CONFIGNAME_CONFIG, xffResolver);   
         final BackendRegistry backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, iab, auditLog, threadPool);
-        cr.subscribeOnChange(ConfigConstants.CONFIGNAME_CONFIG, backendRegistry); 
+        cr.subscribeOnChange(ConfigConstants.CONFIGNAME_CONFIG, backendRegistry);
         final ActionGroupHolder ah = new ActionGroupHolder(cr);      
-        evaluator = new PrivilegesEvaluator(clusterService, threadPool, cr, ah, resolver, auditLog, settings, privilegesInterceptor, null);    
+        evaluator = new PrivilegesEvaluator(clusterService, threadPool, cr, ah, resolver, auditLog, settings, privilegesInterceptor);    
         final SearchGuardFilter sgf = new SearchGuardFilter(settings, evaluator, adminDns, dlsFlsValve, auditLog, threadPool);     
         sgi = new SearchGuardInterceptor(settings, threadPool, backendRegistry, auditLog, pe, interClusterRequestEvaluator);
         
@@ -594,5 +600,61 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         List<String> settingsFilter = new ArrayList<>();
         settingsFilter.add("searchguard.*");
         return settingsFilter;
+    }
+
+    //below is a hack because it seems not possible to access RepositoriesService from a non guice class
+    //the way of how deguice is organized is really a mess - hope this can be fixed in later versions
+    //TODO check if this could be removed
+    
+    @Override
+    public Collection<Class<? extends LifecycleComponent>> getGuiceServiceClasses() {
+
+        if (client || tribeNodeClient) {
+            return Collections.emptyList();
+        }
+        
+        final List<Class<? extends LifecycleComponent>> services = new ArrayList<>(1);
+        services.add(RepositoriesServiceHolder.class);
+        return services;
+    }
+    
+    public static class RepositoriesServiceHolder implements LifecycleComponent {
+
+        private static RepositoriesService repositoriesService;
+        
+        @Inject
+        public RepositoriesServiceHolder(final RepositoriesService repositoriesService) {
+            RepositoriesServiceHolder.repositoriesService = repositoriesService;
+        }
+
+        public static RepositoriesService getRepositoriesService() {
+            return repositoriesService;
+        }
+
+        @Override
+        public void close() {            
+        }
+
+        @Override
+        public State lifecycleState() {
+            return null;
+        }
+
+        @Override
+        public void addLifecycleListener(LifecycleListener listener) {            
+        }
+
+        @Override
+        public void removeLifecycleListener(LifecycleListener listener) {            
+        }
+
+        @Override
+        public void start() {            
+        }
+
+        @Override
+        public void stop() {            
+        }
+        
     }
 }
