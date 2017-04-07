@@ -33,60 +33,40 @@
 # See https://docs.oracle.com/javase/7/docs/api/java/util/regex/Pattern.html
 
 
-# DLS (Document level security) NOT FREE FOR COMMERCIAL
+# DLS (Document level security) - NOT FREE FOR COMMERCIAL
 # Install https://github.com/floragunncom/search-guard-module-dlsfls
 # Per Index you can define a DLS query
 # If more than one DLS query match they will be OR'ed
 
-# FLS (Field level security) NOT FREE FOR COMMERCIAL
+# FLS (Field level security) - NOT FREE FOR COMMERCIAL
 # Per Index you can define a FLS fields
 # If more than one FLS config match the field will be appended
 # Install https://github.com/floragunncom/search-guard-module-dlsfls
 
+# Kibana multitenancy - NOT FREE FOR COMMERCIAL
+# Per role you can define on ore more tenants
+# https://github.com/floragunncom/search-guard-docs/blob/master/multitenancy.md
+
+# Default role for all users (including anonymous)
+sg_public:
+  cluster:
+    - cluster:monitor/main
+    - CLUSTER_COMPOSITE_OPS_RO
 
 # Allows everything
 # but not changes to searchguard config/index
 sg_all_access:
   cluster:
-    - '*'
+    - UNLIMITED
   indices:
     '*':
       '*':
-        - '*'
+        - UNLIMITED
   tenants:
     adm_tenant: RW
     test_tenant_ro: RW
-        
-sg_role_starfleet:
-  cluster:
-    - CLUSTER_COMPOSITE_OPS
-  indices:
-    sf:
-       ships:  
-         - READ
-       public:  
-         - 'indices:*'
-       students:  
-         - READ
-       alumni:  
-         - READ
-    'pub*':
-       '*':  
-         - READ
 
-sg_role_starfleet_captains:
-  indices:
-    sf:
-       '*':  
-         - CRUD
-    pub*:
-       '*':  
-         - CRUD 
-  cluster:
-    - 'cluster:monitor*'
-    - CLUSTER_COMPOSITE_OPS
-  
-
+# Read all and monitor, but no write permissions 
 sg_readonly_and_monitor:
   cluster:
     - CLUSTER_MONITOR
@@ -94,8 +74,9 @@ sg_readonly_and_monitor:
   indices:
     '*':
       '*':
-        - ALL
+        - INDICES_ALL
 
+# Read all, but no write permissions
 sg_readall:
   cluster:
     - CLUSTER_COMPOSITE_OPS_RO
@@ -104,23 +85,7 @@ sg_readall:
       '*':
         - READ
 
-sg_readonly_dlsfls:
-  cluster:
-    - CLUSTER_COMPOSITE_OPS_RO
-  indices:
-    '/\S*/':
-      '*':
-        - READ    
-      _dls_: '{"term" : {"_type" : "legends"}}'
-      _fls_:
-        - 'aaa'
-        - 'bbb'
-
-sg_transport_client:
-  cluster:
-      - cluster:monitor/nodes/liveness
-      - cluster:monitor/state
-
+# For users which use kibana
 sg_kibana:
   cluster:
     - CLUSTER_COMPOSITE_OPS_RO
@@ -128,26 +93,11 @@ sg_kibana:
     '*':
       '*':
         - READ
-        - indices:admin/mappings/fields/get*
     '?kibana':
       '*':
-        - ALL
+        - INDICES_ALL
 
-sg_kibana_testindex:
-  cluster:
-    - CLUSTER_COMPOSITE_OPS_RO
-  indices:
-    'test*':
-      '*':
-        - READ
-        - indices:admin/mappings/fields/get*
-    '?kibana':
-      '*':
-        - ALL
-  tenants:
-    test_tenant_rw: RW
-    test_tenant_ro: RO
-
+# For the kibana server
 sg_kibana_server:
   cluster:
       - CLUSTER_MONITOR
@@ -155,8 +105,9 @@ sg_kibana_server:
   indices:
     '?kibana':
       '*':
-        - ALL
+        - INDICES_ALL
 
+# For logstash and beats
 sg_logstash:
   cluster:
     - indices:admin/template/get
@@ -180,9 +131,67 @@ sg_own_index:
   indices:
     '${user_name}':
       '*':
-        - ALL
+        - INDICES_ALL
 
-sg_public:
+    
+# Examples
+sg_role_starfleet:
   cluster:
-    - cluster:monitor/main
+    - CLUSTER_COMPOSITE_OPS
+  indices:
+    sf:
+       ships:  
+         - READ
+       public:  
+         - INDICES_ALL
+       students:  
+         - READ
+       alumni:  
+         - READ
+    'pub*':
+       '*':  
+         - READ
+  tenants:
+    enterprise_tenant: RW
+    test_tenant_ro: RW
+
+sg_role_starfleet_captains:
+  indices:
+    sf:
+       '*':  
+         - CRUD
+    pub*:
+       '*':  
+         - CRUD 
+  cluster:
+    - 'cluster:monitor*'
+    - CLUSTER_COMPOSITE_OPS
+  tenants:
+    command_tenant: RW
+    
+sg_readonly_dlsfls:
+  cluster:
     - CLUSTER_COMPOSITE_OPS_RO
+  indices:
+    '/\S*/':
+      '*':
+        - READ    
+      _dls_: '{"term" : {"_type" : "legends"}}'
+      _fls_:
+        - 'aaa'
+        - 'bbb'
+
+sg_kibana_testindex:
+  cluster:
+    - CLUSTER_COMPOSITE_OPS_RO
+  indices:
+    'test*':
+      '*':
+        - READ
+        - indices:admin/mappings/fields/get*
+    '?kibana':
+      '*':
+        - INDICES_ALL
+  tenants:
+    test_tenant_rw: RW
+    test_tenant_ro: RO

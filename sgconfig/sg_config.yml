@@ -50,6 +50,14 @@
 
 searchguard:
   dynamic:
+    kibana:
+      # Kibana multitenancy - NOT FREE FOR COMMERCIAL USE
+      # see https://github.com/floragunncom/search-guard-docs/blob/master/multitenancy.md
+      # To make this work you need to install https://github.com/floragunncom/search-guard-module-kibana-multitenancy/wiki
+      #multitenancy_enabled: true
+      #server_username: kibanaserver
+      #index: '.kibana'
+      #do_not_fail_on_forbidden: false
     http:
       anonymous_auth_enabled: false
       xff:
