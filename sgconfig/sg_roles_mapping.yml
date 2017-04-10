@@ -1,28 +1,9 @@
 # In this file users, backendroles and hosts can be mapped to search guard roles.
 # What a role is allowed to do you specify in sg_roles.yml
 
-sg_role_starfleet:
-  backendroles:
-    - starfleet
-    - captains
-    - defectors
-    - 'cn=ldaprole,ou=groups,dc=example,dc=com'
-  hosts:
-    - "*.starfleetintranet.com"
+sg_all_access:
   users:
-    - worf
-
-sg_role_starfleet_captains:
-  backendroles:
-    - captains
-
-sg_role_klingons1:
-  backendroles:
-    - klingon
-  hosts:
-    - "*.klingongov.kli"
-  users:
-    - worf
+    - admin
 
 sg_logstash:
   users:
@@ -36,11 +17,6 @@ sg_kibana:
   users:
     - kibanaro
 
-sg_all_access:
-  users:
-    - admin
-    - adm
-    
 sg_public:
   users:
     - '*'
@@ -48,17 +24,41 @@ sg_public:
 sg_readall:
   users:
     - readall
+    
+sg_own_index:
+  users:
+    - '*'
+    
+# Examples
+sg_role_starfleet:
+  backendroles:
+    - starfleet
+    - captains
+    - defectors
+    - 'cn=ldaprole,ou=groups,dc=example,dc=com'
+  hosts:
+    - "*.starfleetintranet.com"
+  users:
+    - worf
     - riker
     - troid
-    
-sg_readonly_dlsfls:
+
+sg_role_starfleet_captains:
+  backendroles:
+    - captains
+
+sg_role_klingons1:
+  backendroles:
+    - klingon
+  hosts:
+    - "*.klingongov.kli"
   users:
-    - dlsflsuser
+    - worf
     
 sg_kibana_testindex:
   users:
     - test
-
-sg_own_index:
+    
+sg_readonly_dlsfls:
   users:
-    - '*'
+    - dlsflsuser
