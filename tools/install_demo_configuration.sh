@@ -1,7 +1,6 @@
 #!/bin/bash
 #install_demo_configuration.sh [-y]
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-echo ""
 echo "## Search Guard Demo Installer ##"
 echo "Warning: Do not use on production or public reachable systems"
 
@@ -27,7 +26,7 @@ BASE_64_DECODE_CMD="base64 -d"
 ES_INSTALL_TYPE=".tar.gz"
 
 #Check if its a rpm/deb install
-if [ -f /etc/elasticsearch/elasticsearch.yml ]; then
+if [ -f /usr/share/elasticsearch/bin/elasticsearch ]; then
     ES_CONF_FILE="/etc/elasticsearch/elasticsearch.yml"
     ES_BIN_DIR="/usr/share/elasticsearch/bin"
     ES_PLUGINS_DIR="/usr/share/elasticsearch/plugins"
@@ -37,31 +36,38 @@ if [ -f /etc/elasticsearch/elasticsearch.yml ]; then
     echo "This script maybe require your root password for 'sudo' privileges"
 fi
 
-if [ ! -f $ES_CONF_FILE ]; then
-    	echo "Unable to determine elasticsearch config directory. Quit."
-    	exit -1
-    fi
-    
-    if [ ! -d $ES_BIN_DIR ]; then
-    	echo "Unable to determine elasticsearch bin directory. Quit."
-    	exit -1
-    fi
-    
-    if [ ! -d $ES_PLUGINS_DIR ]; then
-    	echo "Unable to determine elasticsearch plugins directory. Quit."
-    	exit -1
-    fi
-    
-    if [ ! -d $ES_LIB_PATH ]; then
-    	echo "Unable to determine elasticsearch lib directory. Quit."
-    	exit -1
+if $SUDO_CMD test -f "$ES_CONF_FILE"; then
+    :
+else
+    echo "Unable to determine elasticsearch config directory. Quit."
+    exit -1
 fi
 
-ES_CONF_DIR=$(dirname "${ES_CONF_FILE}")
-ES_CONF_DIR=`cd "$ES_CONF_DIR" ; pwd`
+if [ ! -d $ES_BIN_DIR ]; then
+	echo "Unable to determine elasticsearch bin directory. Quit."
+	exit -1
+fi
+
+if [ ! -d $ES_PLUGINS_DIR ]; then
+	echo "Unable to determine elasticsearch plugins directory. Quit."
+	exit -1
+fi
+
+if [ ! -d $ES_LIB_PATH ]; then
+	echo "Unable to determine elasticsearch lib directory. Quit."
+	exit -1
+fi
+
+if [ "$ES_INSTALL_TYPE" != "rpm/deb" ];then
+    ES_CONF_DIR=$(dirname "${ES_CONF_FILE}")
+    ES_CONF_DIR=`cd "$ES_CONF_DIR" ; pwd`
+else
+    ES_CONF_DIR="/etc/elasticsearch"    
+fi
+
 ES_CONF_FILE="$ES_CONF_DIR/elasticsearch.yml"
 
-if grep --quiet -i searchguard $ES_CONF_FILE; then
+if $SUDO_CMD grep --quiet -i searchguard $ES_CONF_FILE; then
   echo "$ES_CONF_FILE seems to be already configured for Search Guard. Quit."
   exit -1
 fi
@@ -91,37 +97,36 @@ if [ "$(uname)" == "Darwin" ]; then
     BASE_64_DECODE_CMD="base64 -D"
 fi
 
-echo "$SG_ADMIN_KSEYSTORE_B64" | $BASE_64_DECODE_CMD > "$ES_CONF_DIR/kirk.jks"
-echo "$SG_KEYSTORE_B64" | $BASE_64_DECODE_CMD > "$ES_CONF_DIR/keystore.jks"
-echo "$SG_TRUSTSTORE_B64" | $BASE_64_DECODE_CMD > "$ES_CONF_DIR/truststore.jks"
+echo "$SG_ADMIN_KSEYSTORE_B64" | $BASE_64_DECODE_CMD | $SUDO_CMD tee "$ES_CONF_DIR/kirk.jks" > /dev/null 
+echo "$SG_KEYSTORE_B64" | $BASE_64_DECODE_CMD | $SUDO_CMD tee "$ES_CONF_DIR/keystore.jks" > /dev/null
+echo "$SG_TRUSTSTORE_B64" | $BASE_64_DECODE_CMD | $SUDO_CMD tee "$ES_CONF_DIR/truststore.jks" > /dev/null
 
-echo "" >> $ES_CONF_FILE
-echo "######## Start Search Guard Demo Configuration ########" >> $ES_CONF_FILE
-echo "searchguard.ssl.transport.keystore_filepath: keystore.jks" >> $ES_CONF_FILE
-echo "searchguard.ssl.transport.truststore_filepath: truststore.jks" >> $ES_CONF_FILE
-echo "searchguard.ssl.transport.enforce_hostname_verification: false" >> $ES_CONF_FILE
-echo "searchguard.ssl.http.enabled: true" >> $ES_CONF_FILE
-echo "searchguard.ssl.http.keystore_filepath: keystore.jks" >> $ES_CONF_FILE
-echo "searchguard.ssl.http.truststore_filepath: truststore.jks" >> $ES_CONF_FILE
-echo "searchguard.authcz.admin_dn:">> $ES_CONF_FILE
-echo "  - CN=kirk,OU=client,O=client,L=test, C=de" >> $ES_CONF_FILE
-echo "" >> $ES_CONF_FILE
-echo "cluster.name: searchguard_demo" >> $ES_CONF_FILE
-echo "network.host: 0.0.0.0" >> $ES_CONF_FILE
-echo "######## End Search Guard Demo Configuration ########" >> $ES_CONF_FILE
+echo "" | $SUDO_CMD tee -a  $ES_CONF_FILE
+echo "######## Start Search Guard Demo Configuration ########" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null 
+echo "searchguard.ssl.transport.keystore_filepath: keystore.jks" | $SUDO_CMD tee -a  $ES_CONF_FILE > /dev/null 
+echo "searchguard.ssl.transport.truststore_filepath: truststore.jks" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null 
+echo "searchguard.ssl.transport.enforce_hostname_verification: false" | $SUDO_CMD tee -a  $ES_CONF_FILE > /dev/null 
+echo "searchguard.ssl.http.enabled: true" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null 
+echo "searchguard.ssl.http.keystore_filepath: keystore.jks" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null 
+echo "searchguard.ssl.http.truststore_filepath: truststore.jks" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null 
+echo "searchguard.authcz.admin_dn:" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null 
+echo "  - CN=kirk,OU=client,O=client,L=test, C=de" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null 
+echo "" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null 
+echo "cluster.name: searchguard_demo" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null 
+echo "network.host: 0.0.0.0" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null 
+echo "######## End Search Guard Demo Configuration ########" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null 
 
 $SUDO_CMD chmod +x "$ES_PLUGINS_DIR/search-guard-5/tools/sgadmin.sh"
 
 ES_PLUGINS_DIR=`cd "$ES_PLUGINS_DIR" ; pwd`
 
-echo ""
 echo "### Success"
 echo "### Execute this script now on all your nodes and then start all nodes"
 echo "### After the whole cluster is up execute: "
-echo "#!/bin/bash" > sgadmin_demo.sh
-echo $SUDO_CMD "$ES_PLUGINS_DIR/search-guard-5/tools/sgadmin.sh" -cd "$ES_PLUGINS_DIR/search-guard-5/sgconfig" -cn searchguard_demo -ks "$ES_CONF_DIR/kirk.jks" -ts "$ES_CONF_DIR/truststore.jks" -nhnv >> sgadmin_demo.sh
+echo "#!/bin/bash" | $SUDO_CMD tee sgadmin_demo.sh > /dev/null 
+echo $SUDO_CMD "$ES_PLUGINS_DIR/search-guard-5/tools/sgadmin.sh" -cd "$ES_PLUGINS_DIR/search-guard-5/sgconfig" -cn searchguard_demo -ks "$ES_CONF_DIR/kirk.jks" -ts "$ES_CONF_DIR/truststore.jks" -nhnv | $SUDO_CMD tee -a sgadmin_demo.sh > /dev/null
 $SUDO_CMD chmod +x sgadmin_demo.sh
-cat sgadmin_demo.sh | tail -1
+$SUDO_CMD cat sgadmin_demo.sh | tail -1
 echo "### or run ./sgadmin_demo.sh"
 echo "### Then open https://localhost:9200 an login with admin/admin"
 echo "### (Just ignore the ssl certificate warning because we installed a self signed demo certificate)"

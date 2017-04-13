@@ -142,7 +142,7 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         //TODO tribe 5.0
         log.info("Node [{}] is a transportClient: {}/tribeNode: {}/tribeNodeClient: {}", settings.get("node.name"), client, tribeNode, tribeNodeClient);
     
-        if(ReflectionHelper.canLoad(FLS_DLS_INDEX_SEARCHER_WRAPPER_CLASS)) {
+        if(!client && ReflectionHelper.canLoad(FLS_DLS_INDEX_SEARCHER_WRAPPER_CLASS)) {
             try {
                 dlFlsConstructor = ReflectionHelper
                 .load(FLS_DLS_INDEX_SEARCHER_WRAPPER_CLASS)
@@ -217,7 +217,9 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
     private IndexSearcherWrapper loadFlsDlsIndexSearcherWrapper(final IndexService indexService) {
         try {
             IndexSearcherWrapper flsdlsWrapper = (IndexSearcherWrapper) dlFlsConstructor.newInstance(indexService, settings);
-            log.info("FLS/DLS enabled");
+            if(log.isDebugEnabled()) {
+                log.debug("FLS/DLS enabled for index {}", indexService.index().getName());
+            }
             return flsdlsWrapper;
         } catch(Exception ex) {
             throw new RuntimeException("Failed to enable FLS/DLS", ex);
