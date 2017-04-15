@@ -8,5 +8,7 @@ deployment:
       - master
       # 5.0.0 or 5.3.0 etc
       - '/^([0-9]{1})\.([0-9]{1})\.([0-9]{1})$/'
+      # es-5.0.1 etc
+      - '/^es-([0-9]{1})\.([0-9]{1})\.([0-9]{1})$/'
     commands:
       - mvn deploy -DskipTests -s settings.xml
