@@ -1,4 +1,4 @@
-#Search Guard 2 for Elasticsearch 2.x
+# Search Guard 2 for Elasticsearch 2.x
 
 Search Guard 2 (compatible with Elasticsearch 2.3.3 - 2.4.x)
 
@@ -26,7 +26,7 @@ This is almost a complete rewrite of Search Guard 1 which comes with a lot of ne
 Advanced functionalities like LDAP and Kerberos authentication/authorization as well as DLS/FLS are also available as separate and commercial licensed add-ons (but still Open Source). See https://github.com/floragunncom/search-guard-docs/blob/master/installation.md for additional information.
 
 ## Support
-* Commercial support now available through [floragunn UG](http://floragunn.com)
+* Commercial support now available through [floragunn GmbH](https://floragunn.com/searchguard/searchguard-license-support/)
 * Community support available via [google groups](https://groups.google.com/forum/#!forum/search-guard)
 * Follow us and get community support on twitter [@searchguard](https://twitter.com/searchguard)
 
@@ -102,4 +102,18 @@ All configuration is held in Elasticsearch itself and if if the configuration is
 * Easy update, no dealing with files on different servers
 * Configuration change will not need node restarts
 
+### License
+Copyright 2015-2017 floragunn GmbH
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   ``http://www.apache.org/licenses/LICENSE-2.0``
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 
