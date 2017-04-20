@@ -158,6 +158,7 @@ public class SearchGuardAdmin {
         options.addOption(Option.builder("dg").longOpt("diagnose").desc("Log diagnostic trace into a file").build());
         options.addOption(Option.builder("dci").longOpt("delete-config-index").desc("Delete 'searchguard' config index and exit.").build());
         options.addOption(Option.builder("esa").longOpt("enable-shard-allocation").desc("Enable all shard allocation and exit.").build());
+        options.addOption(Option.builder("arc").longOpt("accept-red-cluster").desc("Also operate on a red cluster. Normally we wait for yellow state.").build());
 
         
         String hostname = "localhost";
@@ -189,6 +190,7 @@ public class SearchGuardAdmin {
         boolean diagnose = false;
         boolean deleteConfigIndex = false;
         boolean enableShardAllocation = false;
+        boolean acceptRedCluster = false;
         
         CommandLineParser parser = new DefaultParser();
         try {
@@ -246,6 +248,7 @@ public class SearchGuardAdmin {
             diagnose = line.hasOption("dg");
             deleteConfigIndex = line.hasOption("dci");
             enableShardAllocation = line.hasOption("esa");
+            acceptRedCluster = line.hasOption("arc");
             
         }
         catch( ParseException exp ) {
@@ -368,23 +371,29 @@ public class SearchGuardAdmin {
                 generateDiagnoseTrace(tc);
             }
             
-            System.out.println("Contacting elasticsearch cluster '"+clustername+"' and wait for YELLOW clusterstate ...");
+            System.out.println("Contacting elasticsearch cluster '"+clustername+"'"+(acceptRedCluster?"":" and wait for YELLOW clusterstate")+" ...");
             
             ClusterHealthResponse chr = null;
             
             while(chr == null) {
                 try {
-                    chr = tc.admin().cluster().health(new ClusterHealthRequest().timeout(TimeValue.timeValueMinutes(5)).waitForYellowStatus()).actionGet();
+                    final ClusterHealthRequest chrequest = new ClusterHealthRequest().timeout(TimeValue.timeValueMinutes(5));
+                    if(!acceptRedCluster) {
+                        chrequest.waitForYellowStatus();
+                    }
+                    chr = tc.admin().cluster().health(chrequest).actionGet();
                 } catch (Exception e) {                   
                     if(!failFast) {
                         System.out.println("Cannot retrieve cluster state due to: "+e.getMessage()+". This is not an error, will keep on trying ...");
                         System.out.println("   * Try running sgadmin.sh with -icl and -nhnv (If thats works you need to check your clustername as well as hostnames in your SSL certificates)");   
-                        System.out.println("   * If this is not working, try running sgadmin.sh with --diagnose and see diagnose trace log file)");   
+                        System.out.println("   * If this is not working, try running sgadmin.sh with --diagnose and see diagnose trace log file)");
+                        System.out.println("   * Add --accept-red-cluster to allow sgadmin to operate on a red cluster.");
 
                     } else {
                         System.out.println("ERR: Cannot retrieve cluster state due to: "+e.getMessage()+".");
                         System.out.println("   * Try running sgadmin.sh with -icl and -nhnv (If thats works you need to check your clustername as well as hostnames in your SSL certificates)");
-                        System.out.println("   * If this is not working, try running sgadmin.sh with --diagnose and see diagnose trace log file)");   
+                        System.out.println("   * If this is not working, try running sgadmin.sh with --diagnose and see diagnose trace log file)"); 
+                        System.out.println("   * Add --accept-red-cluster to allow sgadmin to operate on a red cluster.");
 
                         System.exit(-1);
                     }
@@ -396,9 +405,11 @@ public class SearchGuardAdmin {
 
             final boolean timedOut = chr.isTimedOut();
             
-            if (timedOut) {
+            if (!acceptRedCluster && timedOut) {
                 System.out.println("ERR: Timed out while waiting for a green or yellow cluster state.");
                 System.out.println("   * Try running sgadmin.sh with -icl and -nhnv (If thats works you need to check your clustername as well as hostnames in your SSL certificates)");
+                System.out.println("   * If this is not working, try running sgadmin.sh with --diagnose and see diagnose trace log file)"); 
+                System.out.println("   * Add --accept-red-cluster to allow sgadmin to operate on a red cluster.");
                 System.exit(-1);
             }
             
