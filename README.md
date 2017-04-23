@@ -8,27 +8,19 @@ Search Guard 2 (compatible with Elasticsearch 2.3.3 - 2.4.x)
 
 ## Documentation
 
-[Documentation is provided here](https://github.com/floragunncom/search-guard-docs)
+[Documentation is provided here](http://floragunncom.github.io/search-guard-docs/)
 
 ## Quick Start
 
 If you want to try out Search Guard, we recommend to download the [Search Guard Bundle](https://github.com/floragunncom/search-guard/wiki/Search-Guard-Bundle). This is an Elasticsearch installation, preconfigured with Search Guard. It contains all enterprise features and templates for all configuration files. Just download, unzip and you're ready to go! 
 
-## Roadmap
-This is almost a complete rewrite of Search Guard 1 which comes with a lot of new features:
-
-* Configuration hot reloading
-* Open SSL support
-* Easier to configure
- * Syntax is more easy
- * Admin CLI tool introduced (sgadmin)
- 
-Advanced functionalities like LDAP and Kerberos authentication/authorization as well as DLS/FLS are also available as separate and commercial licensed add-ons (but still Open Source). See https://github.com/floragunncom/search-guard-docs/blob/master/installation.md for additional information.
-
 ## Support
 * Commercial support now available through [floragunn GmbH](https://floragunn.com/searchguard/searchguard-license-support/)
 * Community support available via [google groups](https://groups.google.com/forum/#!forum/search-guard)
 * Follow us and get community support on twitter [@searchguard](https://twitter.com/searchguard)
+
+## Enterprise Features
+Advanced functionalities like LDAP and Kerberos authentication/authorization as well as Document- and Fieldlevelsecurity are also available as separate and commercial licensed add-ons (but still Open Source). See https://github.com/floragunncom/search-guard-docs/blob/master/installation.md for additional information.
 
 ## Installation
 
@@ -38,22 +30,14 @@ Advanced functionalities like LDAP and Kerberos authentication/authorization as 
 * Install [latest supported version of search-guard-ssl plugin](https://github.com/floragunncom/search-guard/wiki)
  * ``sudo bin/plugin install -b com.floragunn/search-guard-ssl/<version>``
 
-(See also the [Vagrant file](https://github.com/floragunncom/search-guard/blob/master/Vagrantfile) we provide)
-
 Both plugins need to be installed on every node in the cluster.
 
 After the plugins are installed you need to configure them. ``search-guard-ssl`` needs to be configured statically
-in elasticsearch.yml (any change needs a restart of the node). See [search-guard-ssl documentation](https://github.com/floragunncom/search-guard-ssl) how to configure it. ``search-guard-2`` needs only a single entry in elasticsearch.yml (see below), all other configuration is stored in Elasticsearch itself and can be dynamically changed without restarting a node or the cluster.
-
-## Known issues
-
-* Elasticsearch license plugin
- * If you have the Elasticsearch license plugin installed, the audit log module breaks and the nodes do not start
- * If you are on AWS and have the license plugin and Search Guard installed, node discovery breaks in certain situations
-
-**These issues have been fixed in Search Guard version 8. If you are still on an older version, please update.**
+in elasticsearch.yml (any change needs a restart of the node). See [search-guard-ssl documentation](http://floragunncom.github.io/search-guard-docs/) how to configure it. ``search-guard-2`` needs only a single entry in elasticsearch.yml (see below), all other configuration is stored in Elasticsearch itself and can be dynamically changed without restarting a node or the cluster.
 
 ## Configuration
+
+[Documentation is provided here](http://floragunncom.github.io/search-guard-docs/)
 
 ### SSL certificates
 HTTP SSL is optional (but strongly recommended especially if you use HTTP Basic authentication which transmits clear text passwords). Transport SSL is mandatory and you have to generate certificates for the nodes.
@@ -116,4 +100,7 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+
+<sub><sup>Search Guard is a trademark of floragunn GmbH, registered in the U.S. and in other countries.
+Elasticsearch, Kibana, Logstash, and Beats are trademarks of Elasticsearch BV, registered in the U.S. and in other countries. floragunn GmbH is not affiliated with Elasticsearch BV.</sup></sub>
 
