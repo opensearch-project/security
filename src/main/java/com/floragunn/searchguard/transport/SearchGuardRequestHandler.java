@@ -92,9 +92,9 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
             //if the incoming request is an internal:* or a shard request allow only if request was sent by a server node
             //if transport channel is not a netty channel but a direct or local channel (e.g. send via network) then allow it (regardless of beeing a internal: or shard request)
             if (!HeaderHelper.isInterClusterRequest(getThreadContext()) 
-                    && (transportChannel.action().startsWith("internal:") || transportChannel.action().contains("["))) {
+                    && ((transportChannel.action().startsWith("internal:") && !transportChannel.action().equals("internal:transport/handshake")) || transportChannel.action().contains("["))) {
                 auditLog.logMissingPrivileges(transportChannel.action(), request);
-                log.error("Internal or shard requests not allowed from a non-server node for transport type "+transportChannel.getChannelType());
+                log.error("Internal or shard requests ("+transportChannel.action()+") not allowed from a non-server node for transport type "+transportChannel.getChannelType());
                 transportChannel.sendResponse(new ElasticsearchSecurityException(
                         "Internal or shard requests not allowed from a non-server node for transport type "+transportChannel.getChannelType()));
                 return;

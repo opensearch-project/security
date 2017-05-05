@@ -41,8 +41,11 @@ import org.apache.lucene.util.BytesRef;
 
 class EmptyReader extends LeafReader {
     
-    public EmptyReader() {
+    private final Object coreCacheKey;
+    
+    public EmptyReader(final Object coreCacheKey) {
         super();
+        this.coreCacheKey = coreCacheKey;
         tryIncRef();
     }
 
@@ -271,7 +274,7 @@ class EmptyReader extends LeafReader {
 
     @Override
     public Object getCoreCacheKey() {
-        return new Object();
+        return coreCacheKey;
     }
 
     @Override
