@@ -20,7 +20,7 @@ package com.floragunn.searchguard.transport;
 import java.net.InetSocketAddress;
 import java.util.Map;
 
-import org.elasticsearch.ElasticsearchSecurityException;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
@@ -49,42 +49,50 @@ public class SearchGuardInterceptor {
     private final ThreadPool threadPool;
     private final PrincipalExtractor principalExtractor;
     private final InterClusterRequestEvaluator requestEvalProvider;
+    private final ClusterService cs;
 
     public SearchGuardInterceptor(final Settings settings, 
             final ThreadPool threadPool, final BackendRegistry backendRegistry, 
             final AuditLog auditLog, final PrincipalExtractor principalExtractor,
-            final InterClusterRequestEvaluator requestEvalProvider) {
+            final InterClusterRequestEvaluator requestEvalProvider,
+            final ClusterService cs) {
         this.backendRegistry = backendRegistry;
         this.auditLog = auditLog;
         this.threadPool = threadPool;
         this.principalExtractor = principalExtractor;
         this.requestEvalProvider = requestEvalProvider;
+        this.cs = cs;
     }
 
     public <T extends TransportRequest> SearchGuardRequestHandler<T> getHandler(String action, 
             TransportRequestHandler<T> actualHandler) {
-        return new SearchGuardRequestHandler<T>(action, actualHandler, threadPool, backendRegistry, auditLog, principalExtractor, requestEvalProvider);
+        return new SearchGuardRequestHandler<T>(action, actualHandler, threadPool, backendRegistry, auditLog, principalExtractor, requestEvalProvider, cs);
     }
 
+    
     public <T extends TransportResponse> void sendRequestDecorate(AsyncSender sender, Connection connection, String action,
             TransportRequest request, TransportRequestOptions options, TransportResponseHandler<T> handler) {
  
-        final Map<String, String> origHeaders = getThreadContext().getHeaders();  
-        final User user = getThreadContext().getTransient(ConfigConstants.SG_USER);
-        final Object remoteAdress = getThreadContext().getTransient(ConfigConstants.SG_REMOTE_ADDRESS);
+        final Map<String, String> origHeaders0 = getThreadContext().getHeaders();  
+        final User user0 = getThreadContext().getTransient(ConfigConstants.SG_USER);
+        final Object remoteAdress0 = getThreadContext().getTransient(ConfigConstants.SG_REMOTE_ADDRESS);
         
-        ThreadContext.StoredContext storedContext = getThreadContext().newStoredContext(false);
-        
-        try (ThreadContext.StoredContext newCtx = getThreadContext().stashAndMergeHeaders(Maps.filterKeys(origHeaders, k->k.equals(ConfigConstants.SG_CONF_REQUEST_HEADER)))) {
-            RestoringTransportResponseHandler<T> restoringHandler = new RestoringTransportResponseHandler<T>(handler, storedContext);
-            getThreadContext().putTransient(ConfigConstants.SG_USER, user);
-            getThreadContext().putTransient(ConfigConstants.SG_REMOTE_ADDRESS, remoteAdress);
-            attachHeaders(action, remoteAdress, user);
+        try (ThreadContext.StoredContext stashedContext = getThreadContext().stashContext()) {
+            final RestoringTransportResponseHandler<T> restoringHandler = new RestoringTransportResponseHandler<T>(handler, stashedContext);
+            getThreadContext().putHeader("_sg_remotecn", cs.getClusterName().value());
+            //add conf request header if any
+            getThreadContext().putHeader(
+                    Maps.filterKeys(origHeaders0, k->k!=null && (
+                            k.equals(ConfigConstants.SG_CONF_REQUEST_HEADER)
+                            || k.equals(ConfigConstants.SG_REMOTE_ADDRESS_HEADER)
+                            || k.equals(ConfigConstants.SG_USER_HEADER)
+                            )));
+            ensureCorrectHeaders(action, remoteAdress0, user0);
             sender.sendRequest(connection, action, request, options, restoringHandler);
         }
     }
-    
-    private void attachHeaders(final String action, final Object remoteAdr, final User origUser) { 
+
+    private void ensureCorrectHeaders(final String action, final Object remoteAdr, final User origUser) { 
         // keep original address
 
         if (remoteAdr != null && remoteAdr instanceof InetSocketTransportAddress) {
@@ -99,26 +107,17 @@ public class SearchGuardInterceptor {
                 }   
             }
         }
-
-        User user = origUser;
         
-        //we originate the request, so no user here to forward
-        if(user == null && remoteAdr == null && getThreadContext().getTransient(ConfigConstants.SG_CHANNEL_TYPE) == null) {
-            user = User.SG_INTERNAL;
-        }
-        
-        if(user != null) {            
+        if(origUser != null) {            
             String userHeader = getThreadContext().getHeader(ConfigConstants.SG_USER_HEADER);
             
             if(userHeader == null) {
-                getThreadContext().putHeader(ConfigConstants.SG_USER_HEADER, Base64Helper.serializeObject(user));
+                getThreadContext().putHeader(ConfigConstants.SG_USER_HEADER, Base64Helper.serializeObject(origUser));
             } else {
-                if(!((User)Base64Helper.deserializeObject(userHeader)).getName().equals(user.getName())) {
-                    throw new RuntimeException("user mismatch "+Base64Helper.deserializeObject(userHeader)+"!="+user);
+                if(!((User)Base64Helper.deserializeObject(userHeader)).getName().equals(origUser.getName())) {
+                    throw new RuntimeException("user mismatch "+Base64Helper.deserializeObject(userHeader)+"!="+origUser);
                 }
             }
-        } else {
-            throw new ElasticsearchSecurityException("user must not be null here for " + action);
         }
     }
 

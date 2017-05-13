@@ -1327,7 +1327,7 @@ public class SGTests extends AbstractUnitTest {
             //impersonation
             try {
                 
-                StoredContext ctx = tc.threadPool().getThreadContext().newStoredContext(false);
+                StoredContext ctx = tc.threadPool().getThreadContext().stashContext();
                 try {
                     tc.threadPool().getThreadContext().putHeader("sg_impersonate_as", "worf");
                     gr = tc.prepareGet("vulcan", "secrets", "s1").get();
@@ -1341,7 +1341,7 @@ public class SGTests extends AbstractUnitTest {
             
             System.out.println("------- 11 ---------");
    
-            StoredContext ctx = tc.threadPool().getThreadContext().newStoredContext(false);
+            StoredContext ctx = tc.threadPool().getThreadContext().stashContext();
             try {
                 tc.threadPool().getThreadContext().putHeader("Authorization", "basic "+encodeBasicHeader("worf", "worf"));
                 gr = tc.prepareGet("vulcan", "secrets", "s1").get();
@@ -1361,7 +1361,7 @@ public class SGTests extends AbstractUnitTest {
             }*/
             
             System.out.println("------- 12 ---------");
-            ctx = tc.threadPool().getThreadContext().newStoredContext(false);
+            ctx = tc.threadPool().getThreadContext().stashContext();
             try {
                 tc.threadPool().getThreadContext().putHeader("Authorization", "basic "+encodeBasicHeader("worf", "worf111"));
                 gr = tc.prepareGet("vulcan", "secrets", "s1").get();
@@ -1376,7 +1376,7 @@ public class SGTests extends AbstractUnitTest {
             
             //impersonation
             try {
-                ctx = tc.threadPool().getThreadContext().newStoredContext(false);
+                ctx = tc.threadPool().getThreadContext().stashContext();
                 try {
                     tc.threadPool().getThreadContext().putHeader("sg_impersonate_as", "gkar");
                     gr = tc.prepareGet("vulcan", "secrets", "s1").get();
@@ -1429,7 +1429,7 @@ public class SGTests extends AbstractUnitTest {
             */
             System.out.println("------- 12 ---------");
 
-            ctx = tc.threadPool().getThreadContext().newStoredContext(false);
+            ctx = tc.threadPool().getThreadContext().stashContext();
             try {
                 tc.threadPool().getThreadContext().putHeader("sg_impersonate_as", "nagilum");
                 gr = tc.prepareGet("searchguard", "config", "0").setRealtime(Boolean.TRUE).get();
@@ -1440,7 +1440,7 @@ public class SGTests extends AbstractUnitTest {
             }
 
             System.out.println("------- 13 ---------");
-            ctx = tc.threadPool().getThreadContext().newStoredContext(false);
+            ctx = tc.threadPool().getThreadContext().stashContext();
             try {
                 tc.threadPool().getThreadContext().putHeader("sg_impersonate_as", "nagilum");
                 gr = tc.prepareGet("searchguard", "config", "0").setRealtime(Boolean.FALSE).get();
@@ -1452,7 +1452,7 @@ public class SGTests extends AbstractUnitTest {
             
             
             String scrollId = null;
-            ctx = tc.threadPool().getThreadContext().newStoredContext(false);
+            ctx = tc.threadPool().getThreadContext().stashContext();
             try {
                 tc.threadPool().getThreadContext().putHeader("sg_impersonate_as", "nagilum");
                 SearchResponse searchRes = tc.prepareSearch("starfleet").setTypes("ships").setScroll(TimeValue.timeValueMinutes(5)).get();
@@ -1462,7 +1462,7 @@ public class SGTests extends AbstractUnitTest {
             }
 
             //TODO fails (but this could be ok?)
-            ctx = tc.threadPool().getThreadContext().newStoredContext(false);
+            ctx = tc.threadPool().getThreadContext().stashContext();
             try {
                 tc.threadPool().getThreadContext().putHeader("sg_impersonate_as", "worf");
                 SearchResponse scrollRes = tc.prepareSearchScroll(scrollId).get();
@@ -1474,13 +1474,13 @@ public class SGTests extends AbstractUnitTest {
             System.out.println("------- 14 ---------");
             
             boolean ok=false;
-            ctx = tc.threadPool().getThreadContext().newStoredContext(false);
+            ctx = tc.threadPool().getThreadContext().stashContext();
             try {
                 tc.threadPool().getThreadContext().putHeader("sg_impersonate_as", "nagilum");
                 gr = tc.prepareGet("vulcan", "secrets", "s1").get();
                 ok = true;
                 ctx.close();
-                ctx = tc.threadPool().getThreadContext().newStoredContext(false);
+                ctx = tc.threadPool().getThreadContext().stashContext();
                 tc.threadPool().getThreadContext().putHeader("sg_impersonate_as", "nagilum");
                 tc.threadPool().getThreadContext().putHeader("Authorization", "basic "+encodeBasicHeader("worf", "worf"));
                 gr = tc.prepareGet("vulcan", "secrets", "s1").get();
@@ -1493,7 +1493,7 @@ public class SGTests extends AbstractUnitTest {
             }
             
             System.out.println("------- 15 ---------");
-            ctx = tc.threadPool().getThreadContext().newStoredContext(false);
+            ctx = tc.threadPool().getThreadContext().stashContext();
             try {
                 tc.threadPool().getThreadContext().putHeader("sg_impersonate_as", "nagilum");
                 gr = tc.prepareGet("searchguard", "config", "0").setRealtime(Boolean.TRUE).get();
@@ -1503,7 +1503,7 @@ public class SGTests extends AbstractUnitTest {
                 ctx.close();
             }
             
-            ctx = tc.threadPool().getThreadContext().newStoredContext(false);
+            ctx = tc.threadPool().getThreadContext().stashContext();
             try {
                 tc.threadPool().getThreadContext().putHeader("Authorization", "basic "+encodeBasicHeader("nagilum", "nagilum"));
                 gr = tc.prepareGet("searchguard", "config", "0").setRealtime(Boolean.TRUE).get();
@@ -1514,7 +1514,7 @@ public class SGTests extends AbstractUnitTest {
             }
             System.out.println("------- 16---------");
           
-            ctx = tc.threadPool().getThreadContext().newStoredContext(false);
+            ctx = tc.threadPool().getThreadContext().stashContext();
             try {
                 tc.threadPool().getThreadContext().putHeader("sg_impersonate_as", "nagilum");
                 gr = tc.prepareGet("searchguard", "config", "0").setRealtime(Boolean.FALSE).get();
@@ -1524,7 +1524,7 @@ public class SGTests extends AbstractUnitTest {
                 ctx.close();
             }
             
-            ctx = tc.threadPool().getThreadContext().newStoredContext(false);
+            ctx = tc.threadPool().getThreadContext().stashContext();
             SearchResponse searchRes = null;
             try {
                 tc.threadPool().getThreadContext().putHeader("sg_impersonate_as", "nagilum");
@@ -1535,7 +1535,7 @@ public class SGTests extends AbstractUnitTest {
             
             Assert.assertNotNull(searchRes.getScrollId());
             
-            ctx = tc.threadPool().getThreadContext().newStoredContext(false);
+            ctx = tc.threadPool().getThreadContext().stashContext();
             try {
                 tc.threadPool().getThreadContext().putHeader("sg_impersonate_as", "worf");
                 SearchResponse scrollRes = tc.prepareSearchScroll(searchRes.getScrollId()).get(); 

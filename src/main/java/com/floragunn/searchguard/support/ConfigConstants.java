@@ -57,6 +57,9 @@ public class ConfigConstants {
      */
     public static final String SG_SSL_TRANSPORT_INTERCLUSTER_REQUEST = SG_CONFIG_PREFIX+"ssl_transport_intercluster_request";
     
+    public static final String SG_SSL_TRANSPORT_TRUSTED_CLUSTER_REQUEST = SG_CONFIG_PREFIX+"ssl_transport_trustedcluster_request";
+    
+    
     /**
      * Set by the SSL plugin, this is the peer node certificate on the transport layer
      */
