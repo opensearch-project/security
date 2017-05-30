@@ -301,7 +301,7 @@ public class BackendRegistry implements ConfigChangeListener {
                         }
                     });
                 } catch (Exception e) {
-                    log.error("Unexpected exception {} ", e, e.toString());
+                    //log.error("Unexpected exception {} ", e, e.toString());
                     throw new ElasticsearchSecurityException(e.toString(), e);
                 }
             } else {
@@ -337,7 +337,7 @@ public class BackendRegistry implements ConfigChangeListener {
                         }
                     });
                 } catch (Exception e) {
-                    log.error("Unexpected exception {} ", e, e.toString());
+                    //log.error("Unexpected exception {} ", e, e.toString());
                     throw new ElasticsearchSecurityException(e.toString(), e);
                 } finally {
                     creds.clearSecrets();
@@ -347,7 +347,9 @@ public class BackendRegistry implements ConfigChangeListener {
             try {              
                 
                 if(authenticatedUser == null) {
-                    log.info("Cannot authenticate user (or add roles) with ad {} due to user is null, try next", authDomain.getOrder());
+                    if(log.isDebugEnabled()) {
+                        log.debug("Cannot authenticate user (or add roles) with ad {} due to user is null, try next", authDomain.getOrder());
+                    }
                     continue;
                 }
                 
@@ -364,7 +366,9 @@ public class BackendRegistry implements ConfigChangeListener {
                 request.putInContext(ConfigConstants.SG_USER, authenticatedUser);
                 return true;
             } catch (final ElasticsearchSecurityException e) {
-                log.info("Cannot authenticate user (or add roles) with ad {} due to {}, try next", authDomain.getOrder(), e.toString());
+                if(log.isDebugEnabled()) {
+                    log.debug("Cannot authenticate user (or add roles) with ad {} due to {}, try next", authDomain.getOrder(), e.toString());
+                }
                 continue;
             }
             
@@ -376,6 +380,7 @@ public class BackendRegistry implements ConfigChangeListener {
             auditLog.logFailedLogin(creds.getUsername(), request);
         }
         
+        log.warn("Transport authentication finally failed for {}", creds == null ? user.getName():creds.getUsername());
         
         return false;
     }
@@ -506,14 +511,16 @@ public class BackendRegistry implements ConfigChangeListener {
                     });
                 } catch (Exception e) {
                     //no audit log here, we catch this exception later
-                    log.error("Unexpected exception {} ", e, e.toString());
+                    //log.error("Unexpected exception {} ", e, e.toString());
                     throw new ElasticsearchSecurityException(e.toString(), e);
                 } finally {
                     ac.clearSecrets();
                 }
                 
                 if(authenticatedUser == null) {
-                    log.info("Cannot authenticate user (or add roles) with ad {} due to user is null, try next", authDomain.getOrder());
+                    if(log.isDebugEnabled()) {
+                        log.debug("Cannot authenticate user (or add roles) with ad {} due to user is null, try next", authDomain.getOrder());
+                    }
                     continue;
                 }
                 
@@ -538,7 +545,9 @@ public class BackendRegistry implements ConfigChangeListener {
                 authenticated = true;
                 break;
             } catch (final ElasticsearchSecurityException e) {
-                log.info("Cannot authenticate user (or add roles) with ad {} due to {}, try next", authDomain.getOrder(), e.toString());
+                if(log.isDebugEnabled()) {
+                    log.debug("Cannot authenticate user (or add roles) with ad {} due to {}, try next", authDomain.getOrder(), e.toString());
+                }
                 continue;
             }
             
@@ -575,14 +584,13 @@ public class BackendRegistry implements ConfigChangeListener {
                         log.debug("Rerequest {} failed", firstChallengingHttpAuthenticator.getClass());
                     }
                     
+                    log.warn("Authentication finally failed for {}", authCredenetials == null ? null:authCredenetials.getUsername());
                     auditLog.logFailedLogin(authCredenetials == null ? null:authCredenetials.getUsername(), request);
                     return false;
                 }
             }
             
-            if(log.isDebugEnabled()) {
-                log.debug("Authentication finally failed");
-            }
+            log.warn("Authentication finally failed for {}", authCredenetials == null ? null:authCredenetials.getUsername());
             auditLog.logFailedLogin(authCredenetials == null ? null:authCredenetials.getUsername(), request);
             channel.sendResponse(new BytesRestResponse(RestStatus.UNAUTHORIZED));
             return false;
