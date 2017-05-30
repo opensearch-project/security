@@ -17,7 +17,7 @@
 
 package com.floragunn.searchguard.rest;
 
-import static org.elasticsearch.rest.RestRequest.Method.GET;
+import static org.elasticsearch.rest.RestRequest.Method.*;
 
 import java.io.IOException;
 
@@ -50,6 +50,7 @@ public class KibanaInfoAction extends BaseRestHandler {
         this.threadContext = threadPool.getThreadContext();
         this.evaluator = evaluator;
         controller.registerHandler(GET, "/_searchguard/kibanainfo", this);
+        controller.registerHandler(POST, "/_searchguard/kibanainfo", this);       
     }
 
     @Override
