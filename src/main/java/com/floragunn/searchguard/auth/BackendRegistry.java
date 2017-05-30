@@ -120,7 +120,7 @@ public class BackendRegistry implements ConfigChangeListener {
             final AdminDNs adminDns, final XFFResolver xffResolver, InternalAuthenticationBackend iab, AuditLog auditLog, ThreadPool threadPool,
             final PrincipalExtractor principalExtractor) {
         tcua.addConfigChangeListener(ConfigConstants.CONFIGNAME_CONFIG, this);
-        controller.registerFilter(new SearchGuardRestFilter(this, auditLog, threadPool, principalExtractor));
+        controller.registerFilter(new SearchGuardRestFilter(this, auditLog, threadPool, principalExtractor, settings));
         this.tcua = tcua;
         this.adminDns = adminDns;
         this.esSettings = settings;
