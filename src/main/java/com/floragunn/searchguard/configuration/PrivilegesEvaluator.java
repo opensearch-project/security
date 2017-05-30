@@ -1223,8 +1223,12 @@ public class PrivilegesEvaluator {
             if(log.isDebugEnabled()) {
                 log.debug("The following list are '_all' indices: {}", indices);
             }
-            indices.clear();
-            indices.add("_all");
+            
+            //fix https://github.com/floragunncom/search-guard/issues/332
+            if(!indices.isEmpty()) {
+                indices.clear();
+                indices.add("_all");
+            }
         }
 
         if (types.isEmpty()) {
