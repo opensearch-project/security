@@ -92,6 +92,7 @@ public class SearchGuardAdmin {
     
     private static final String SG_TS_PASS = "SG_TS_PASS";
     private static final String SG_KS_PASS = "SG_KS_PASS";
+    private static final String SG_KEYPASS = "SG_KEYPASS";
     //not used in multithreaded fashion
     private static SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MMM-dd_HH-mm-ss", Locale.ENGLISH);
     private static final Settings ENABLE_ALL_ALLOCATIONS_SETTINGS = Settings.builder()
@@ -129,18 +130,18 @@ public class SearchGuardAdmin {
         Options options = new Options();
         options.addOption( "nhnv", "disable-host-name-verification", false, "Disable hostname verification" );
         options.addOption( "nrhn", "disable-resolve-hostname", false, "Disable hostname beeing resolved" );
-        options.addOption(Option.builder("ts").longOpt("truststore").hasArg().argName("file").required().desc("Path to truststore (JKS/PKCS12 format)").build());
-        options.addOption(Option.builder("ks").longOpt("keystore").hasArg().argName("file").required().desc("Path to keystore (JKS/PKCS12 format").build());
+        options.addOption(Option.builder("ts").longOpt("truststore").hasArg().argName("file").desc("Path to truststore (JKS/PKCS12 format)").build());
+        options.addOption(Option.builder("ks").longOpt("keystore").hasArg().argName("file").desc("Path to keystore (JKS/PKCS12 format").build());
         options.addOption(Option.builder("tst").longOpt("truststore-type").hasArg().argName("type").desc("JKS or PKCS12, if not given use file ext. to dectect type").build());
         options.addOption(Option.builder("kst").longOpt("keystore-type").hasArg().argName("type").desc("JKS or PKCS12, if not given use file ext. to dectect type").build());
         options.addOption(Option.builder("tspass").longOpt("truststore-password").hasArg().argName("password").desc("Truststore password").build());
         options.addOption(Option.builder("kspass").longOpt("keystore-password").hasArg().argName("password").desc("Keystore password").build());
         options.addOption(Option.builder("cd").longOpt("configdir").hasArg().argName("directory").desc("Directory for config files").build());
-        options.addOption(Option.builder("h").longOpt("hostname").hasArg().argName("host").desc("Elasticsearch host").build());
-        options.addOption(Option.builder("p").longOpt("port").hasArg().argName("port").desc("Elasticsearch transport port (normally 9300)").build());
-        options.addOption(Option.builder("cn").longOpt("clustername").hasArg().argName("clustername").desc("Clustername").build());
+        options.addOption(Option.builder("h").longOpt("hostname").hasArg().argName("host").desc("Elasticsearch host (default: localhost)").build());
+        options.addOption(Option.builder("p").longOpt("port").hasArg().argName("port").desc("Elasticsearch transport port (default: 9300)").build());
+        options.addOption(Option.builder("cn").longOpt("clustername").hasArg().argName("clustername").desc("Clustername (do not use together with -icl)").build());
         options.addOption( "sniff", "enable-sniffing", false, "Enable client.transport.sniff" );
-        options.addOption( "icl", "ignore-clustername", false, "Ignore clustername" );
+        options.addOption( "icl", "ignore-clustername", false, "Ignore clustername (do not use together with -cn)" );
         options.addOption(Option.builder("r").longOpt("retrieve").desc("retrieve current config").build());
         options.addOption(Option.builder("f").longOpt("file").hasArg().argName("file").desc("file").build());
         options.addOption(Option.builder("t").longOpt("type").hasArg().argName("file-type").desc("file-type").build());
@@ -160,6 +161,12 @@ public class SearchGuardAdmin {
         options.addOption(Option.builder("esa").longOpt("enable-shard-allocation").desc("Enable all shard allocation and exit.").build());
         options.addOption(Option.builder("arc").longOpt("accept-red-cluster").desc("Also operate on a red cluster. Normally we wait for yellow state.").build());
 
+        options.addOption(Option.builder("cacert").hasArg().argName("file").desc("Path to trusted cacert (PEM format)").build());
+        options.addOption(Option.builder("cert").hasArg().argName("file").desc("Path to admin certificate in PEM format").build());
+        options.addOption(Option.builder("key").hasArg().argName("file").desc("Path to the key of admin certificate").build());
+        options.addOption(Option.builder("keypass").hasArg().argName("password").desc("Password of the key of admin certificate (optional)").build());
+
+        //when adding new options also adjust validate(CommandLine line)
         
         String hostname = "localhost";
         int port = 9300;
@@ -191,10 +198,17 @@ public class SearchGuardAdmin {
         boolean deleteConfigIndex = false;
         boolean enableShardAllocation = false;
         boolean acceptRedCluster = false;
+        String cacert = null;
+        String cert = null;
+        String key = null;
+        String keypass = System.getenv(SG_KEYPASS);
         
         CommandLineParser parser = new DefaultParser();
         try {
             CommandLine line = parser.parse( options, args );
+            
+            validate(line);
+            
             hostname = line.getOptionValue("h", hostname);
             port = Integer.parseInt(line.getOptionValue("p", String.valueOf(port)));
             kspass = line.getOptionValue("kspass", kspass); //TODO null? //when no passwd is set
@@ -250,6 +264,11 @@ public class SearchGuardAdmin {
             enableShardAllocation = line.hasOption("esa");
             acceptRedCluster = line.hasOption("arc");
             
+            cacert = line.getOptionValue("cacert");
+            cert = line.getOptionValue("cert");
+            key = line.getOptionValue("key");
+            keypass = line.getOptionValue("keypass");
+            
         }
         catch( ParseException exp ) {
             System.err.println("ERR: Parsing failed.  Reason: " + exp.getMessage());
@@ -287,8 +306,6 @@ public class SearchGuardAdmin {
                 .builder()
                 .put("path.home", ".")
                 .put("path.conf", ".")
-                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_FILEPATH, ks)
-                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, ts)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_PASSWORD, kspass)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_TRUSTSTORE_PASSWORD, tspass)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, !nhnv)
@@ -311,9 +328,32 @@ public class SearchGuardAdmin {
                 if(tsAlias != null) {
                     settingsBuilder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_TRUSTSTORE_ALIAS, tsAlias);
                 }
+                
+                if(ks != null) {
+                    settingsBuilder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_FILEPATH, ks);
+                }
+                
+                if(ts != null) {
+                    settingsBuilder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, ts);
+                }            
+                
+                if(cacert != null) {
+                    settingsBuilder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH, cacert);
+                }
+                
+                if(cert != null) {
+                    settingsBuilder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_PEMCERT_FILEPATH, cert);
+                }
+                
+                if(key != null) {
+                    settingsBuilder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_PEMKEY_FILEPATH, key);
+                }
+                
+                if(keypass != null) {
+                    settingsBuilder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_PEMKEY_PASSWORD, keypass);
+                }
         
-                Settings settings = settingsBuilder.build();  
-              
+                Settings settings = settingsBuilder.build();             
 
         try (TransportClient tc = TransportClient.builder().settings(settings).addPlugin(SearchGuardSSLPlugin.class)
                 .addPlugin(SearchGuardPlugin.class) //needed for config update action only
@@ -537,8 +577,7 @@ public class SearchGuardAdmin {
         }
         // TODO audit changes to searchguard index
     }
-    
-    
+
     private static boolean checkConfigUpdateResponse(ConfigUpdateResponse response, NodesInfoResponse nir, int expectedConfigCount) {
         
         int expectedNodeCount = 0;
@@ -717,5 +756,38 @@ public class SearchGuardAdmin {
         } catch (Exception e1) {
             System.out.println("ERR: cannot write diag trace file due to "+e1);
         }
+    }
+    
+    private static void validate(CommandLine line) throws ParseException{
+        
+        if(line.hasOption("ts") && line.hasOption("cacert")) {
+            System.out.println("WARN: It makes no sense to specify -ts as well as -cacert");
+        }
+        
+        if(line.hasOption("ks") && line.hasOption("cert")) {
+            System.out.println("WARN: It makes no sense to specify -ks as well as -cert");
+        }
+        
+        if(line.hasOption("ks") && line.hasOption("key")) {
+            System.out.println("WARN: It makes no sense to specify -ks as well as -key");
+        }
+        
+        if(line.hasOption("cd") && line.hasOption("r")) {
+            System.out.println("WARN: It makes no sense to specify -cd as well as -r");
+        }
+        
+        if(line.hasOption("cd") && line.hasOption("rl")) {
+            System.out.println("WARN: It makes no sense to specify -cd as well as -r");
+        }
+        
+        if(line.hasOption("cd") && line.hasOption("f")) {
+            System.out.println("WARN: It makes no sense to specify -cd as well as -f");
+        }
+        
+        if(line.hasOption("cn") && line.hasOption("icl")) {
+            throw new ParseException("Only set one of -cn or -icl");
+        }
+        
+        //TODO add more validation rules
     }
 }
