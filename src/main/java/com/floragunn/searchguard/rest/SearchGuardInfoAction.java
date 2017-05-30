@@ -17,7 +17,7 @@
 
 package com.floragunn.searchguard.rest;
 
-import static org.elasticsearch.rest.RestRequest.Method.GET;
+import static org.elasticsearch.rest.RestRequest.Method.*;
 
 import java.security.cert.X509Certificate;
 
@@ -47,6 +47,7 @@ public class SearchGuardInfoAction extends BaseRestHandler {
         super(settings, controller, client);
         this.evaluator = evaluator;
         controller.registerHandler(GET, "/_searchguard/authinfo", this);
+        controller.registerHandler(POST, "/_searchguard/authinfo", this);
     }
 
     @Override
