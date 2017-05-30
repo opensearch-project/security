@@ -509,6 +509,11 @@ public class SearchGuardAdmin {
                 }
                 
                 boolean success = uploadFile(tc, file, index, type);
+                ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{type})).actionGet();
+                
+                success = success & checkConfigUpdateResponse(cur, nodesInfo, 1);
+                
+                System.out.println("Done with "+(success?"success":"failures"));
                 System.exit(success?0:-1);
             }
 
