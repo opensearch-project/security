@@ -43,4 +43,8 @@ grant {
   permission java.lang.RuntimePermission "accessClassInPackage.sun.nio.ch";
   permission java.io.FilePermission "/proc/sys/net/core/somaxconn","read";
   permission java.util.PropertyPermission "sun.nio.ch.bugLevel", "write";
+  
+  permission java.security.SecurityPermission "setProperty.ocsp.enable";
+  permission java.util.PropertyPermission "com.sun.security.enableCRLDP", "write";
+  
 };

@@ -22,6 +22,8 @@ import javax.net.ssl.SSLPeerUnverifiedException;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.client.node.NodeClient;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.rest.BytesRestResponse;
 import org.elasticsearch.rest.RestChannel;
@@ -45,14 +47,17 @@ public class SearchGuardRestFilter {
     private final AuditLog auditLog;
     private final ThreadContext threadContext;
     private final PrincipalExtractor principalExtractor;
+    private final Settings settings;
 
     public SearchGuardRestFilter(final BackendRegistry registry, final AuditLog auditLog,
-            final ThreadPool threadPool, final PrincipalExtractor principalExtractor) {
+            final ThreadPool threadPool, final PrincipalExtractor principalExtractor,
+            final Settings settings) {
         super();
         this.registry = registry;
         this.auditLog = auditLog;
         this.threadContext = threadPool.getThreadContext();
         this.principalExtractor = principalExtractor;
+        this.settings = settings;
     }
     
     public RestHandler wrap(RestHandler original) {
@@ -86,7 +91,7 @@ public class SearchGuardRestFilter {
 
         final SSLInfo sslInfo;
         try {
-            if((sslInfo = SSLRequestHelper.getSSLInfo(request, principalExtractor)) != null) {
+            if((sslInfo = SSLRequestHelper.getSSLInfo(settings, request, principalExtractor)) != null) {
                 if(sslInfo.getPrincipal() != null) {
                     threadContext.putTransient("_sg_ssl_principal", sslInfo.getPrincipal());
                 }

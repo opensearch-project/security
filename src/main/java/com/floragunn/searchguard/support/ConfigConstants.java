@@ -57,6 +57,9 @@ public class ConfigConstants {
      */
     public static final String SG_SSL_TRANSPORT_INTERCLUSTER_REQUEST = SG_CONFIG_PREFIX+"ssl_transport_intercluster_request";
     
+    public static final String SG_SSL_TRANSPORT_TRUSTED_CLUSTER_REQUEST = SG_CONFIG_PREFIX+"ssl_transport_trustedcluster_request";
+    
+    
     /**
      * Set by the SSL plugin, this is the peer node certificate on the transport layer
      */
@@ -89,6 +92,7 @@ public class ConfigConstants {
     public final static String CONFIGNAME_CONFIG = "config";
     
     //TODO public static arrays are unsafe. Check callers and change to an unmodifiable Set
+    @Deprecated
     public final static String[] CONFIGNAMES = new String[] {CONFIGNAME_ROLES, CONFIGNAME_ROLES_MAPPING, 
             CONFIGNAME_ACTION_GROUPS, CONFIGNAME_INTERNAL_USERS, CONFIGNAME_CONFIG};
     public static final String SG_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = "searchguard.cert.intercluster_request_evaluator_class";

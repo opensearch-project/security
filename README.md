@@ -1,88 +1,120 @@
-#Search Guard 5 for Elasticsearch 5
+# Search Guard - Security for Elasticsearch
 
-Search Guard 5 (compatible with Elasticsearch >= 5.0.0)
+![Logo](https://raw.githubusercontent.com/floragunncom/sg-assets/master/logo/sg_dlic_small.png) 
 
-You may also want to read this [blog post about Search Guard 5](https://floragunn.com/search-guard-5/).
+Search Guard(®) is an Elasticsearch plugin that offers encryption, authentication, and authorization. It builds on Search Guard SSL and provides pluggable authentication and authorization modules in addition. Search Guard is fully compatible with Kibana, Logstash and Beats.
 
-## Documentation
+As an alternative to other security solutions for Elasticsearch, Search Guard offers the following main features:
 
-[Documentation is provided here](https://github.com/floragunncom/search-guard-docs)
+* TLS on transport- and REST-layer
+* Fine-grained role- and index-based access control
+* HTTP Basic Authentication
+* LDAP / Active Directory
+* Kerberos / SPNEGO
+* JSON web token
+* Document- and Field-level security
+* Audit logging
+* Kibana multi-tenancy
+* REST management API
+* Proxy support
+* User impersonation
+
+Search Guard supports **OpenSSL** for maximum performance and security. The complete code is **Open Source**.
 
 ## Quick Start
 
-If you want to try out Search Guard, we recommend to download the [Search Guard Bundle](https://github.com/floragunncom/search-guard/wiki/Search-Guard-Bundle). This is an Elasticsearch installation, preconfigured with Search Guard. It contains all enterprise features and templates for all configuration files. Just download, unzip and you're ready to go! 
+* Install Elasticsearch
 
-## Roadmap
-This is almost a complete rewrite of Search Guard 1 which comes with a lot of new features:
+* Install the Search Guard plugin for your [Elasticsearch version](https://github.com/floragunncom/search-guard/wiki), e.g.:
 
-* Configuration hot reloading
-* Open SSL support
-* Easier to configure
- * Syntax is more easy
- * Admin CLI tool introduced (sgadmin)
- 
-Advanced functionalities like LDAP and Kerberos authentication/authorization as well as DLS/FLS are also available as separate and commercial licensed add-ons (but still Open Source). See https://github.com/floragunncom/search-guard-docs/blob/master/installation.md for additional information.
+```
+<ES directory>/bin/elasticsearch-plugin install \
+  -b com.floragunn:search-guard-5:5.4.0-12
+```
+
+* ``cd`` into ``<ES directory>/plugins/search-guard-<version>/tools``
+
+* Execute ``./install_demo_configuration.sh``, ``chmod`` the script first if necessary. This will generate all required TLS certificates and add the Search Guard configuration to your ``elasticsearch.yml`` file. 
+
+* Start Elasticsearch
+
+* Execute ``./sgadmin_demo.sh``, ``chmod`` the script if necessary first. This will execute ``sgadmin`` and populate the Search Guard configuration index with the files contained in the ``plugins/search-guard-<version>/sgconfig`` directory.
+
+* Test the installation by visiting ``https://localhost:9200``. When prompted, use admin/admin as username and password. This user has full access to the cluster.
+
+* Display information about the currently logged in user by visiting ``https://localhost:9200/_searchguard/authinfo``.
+
+* Deep dive into all Search Guard features by reading the [Search Guard documentation](http://floragunncom.github.io/search-guard-docs/)
+
+If you want to play around with different configuration settings, you can change the files in the ``sgconfig`` directory directly. After that, just execute ``./sgadmin_demo.sh`` again for the changes to take effect. 
+
+* sg\_config.yml: Configure authenticators and authorization backends
+* sg\_internal\_users.yml: user and hashed passwords (hash with hasher.sh)
+* sg\_roles\_mapping.yml: map backend roles, hosts and users to roles
+* sg\_action\_groups.yml: define permission groups
+* sg\_roles.yml: define the roles and the associated permissions
+
+Please refer to the official [Search Guard documentation](http://floragunncom.github.io/search-guard-docs/) for a complete guide.
+
+### Search Guard Bundle
+As an alternative, you can also download the [Search Guard Bundle](https://github.com/floragunncom/search-guard/wiki/Search-Guard-Bundle). This is an Elasticsearch installation, pre-installed and pre-configured with Search Guard. It contains all enterprise features and templates for all configuration files. Just download, unzip and run! 
+
+## Documentation
+
+The [Official Search Guard documentation](http://floragunncom.github.io/search-guard-docs/) is available on GitHub.
+
+## Commercial use
+
+Search Guard offers all basic security features for free. If you want to use our enterprise features for commercial projects, you need to obtain a license. We offer a [very flexible licensing model](https://floragunn.com/searchguard/searchguard-license-support/), based on productive clusters, not the number of nodes. Scale your cluster, not your cost! Non-productive systems like Development, Staging or QA are included in the license as well.
+
+## Enterprise modules trial
+
+You can test all enterprise modules for as long as you like, a trial license key is not required. Please refer to the chapter "Installing enterprise modules" from the [Official Search Guard documentation](https://github.com/floragunncom/search-guard-docs/blob/master/installation.md) for installation instructions.
+
+## Architecture
+
+![Architecture](https://github.com/floragunncom/sg-assets/raw/master/diagrams/SG_Architecture_Overview.png)
+
+
+## Config hot reloading
+
+The Search Guard configuration is stored in a dedicated index in Elasticsearch itself. Changes to the configuration are pushed to this index via the [sgadmin command line tool](https://github.com/floragunncom/search-guard-docs/blob/master/sgadmin.md). This will trigger a reload of the configuration on all nodes automatically. This has several advantages over configuration via elasticsearch.yml:
+
+* Configuration is stored in a central place
+* No configuration files on the nodes necessary
+* Configuration changes do not require a restart
+* Configuration changes take effect immediately
 
 ## Support
-* Commercial support now available through [floragunn UG](http://floragunn.com)
+* Commercial support available through [floragunn GmbH](https://floragunn.com/searchguard/searchguard-license-support/)
 * Community support available via [google groups](https://groups.google.com/forum/#!forum/search-guard)
 * Follow us and get community support on twitter [@searchguard](https://twitter.com/searchguard)
 
-## Installation
+## License
 
-* Install [latest search-guard-5 plugin](https://github.com/floragunncom/search-guard/wiki)
- * ``sudo bin/elasticsearch-plugin install -b com.floragunn:search-guard-5:<version>``
+```
+This software is licensed under the Apache License, version 2 ("ALv2"), quoted below.
 
-After the plugin is installed you need to configure them. SSL needs to be configured statically
-in elasticsearch.yml (any change needs a restart of the node). See [search-guard-ssl documentation](https://github.com/floragunncom/search-guard-ssl) how to configure it. ``search-guard-5`` needs only a single entry in elasticsearch.yml (see below), all other configuration is stored in Elasticsearch itself and can be dynamically changed without restarting a node or the cluster.
+Copyright 2015-2017 floragunn GmbH 
+https://floragunn.com
 
-## Configuration
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-### SSL certificates
-HTTP SSL is optional (but strongly recommended especially if you use HTTP Basic authentication which transmits clear text passwords). Transport SSL is mandatory and you have to generate certificates for the nodes.
+http://www.apache.org/licenses/LICENSE-2.0
 
-There are generally two types of certificates you need to generate:
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+```
 
-* Server/Node certificate: They need a special [Subject Alternative Name entry (san)](https://github.com/floragunncom/search-guard-ssl/blob/master/example-pki-scripts/gen_node_cert.sh) to identify
- * ``oid:1.2.3.4.5.5``
-* Client certificates: Contains user DN, [see here](https://github.com/floragunncom/search-guard-ssl/blob/master/example-pki-scripts/gen_client_node_cert.sh)
+## Legal 
 
-### elasticsearch.yml
+Search Guard is an independent implementation of a security access layer for Elasticsearch. Search Guard is completely independent from Elasticsearch own security offerings. floragunn GmbH is not affiliated with Elasticsearch BV.
 
-    searchguard.authcz.admin_dn:
-      - cn=admin,ou=Test,ou=ou,dc=company,dc=com
-      - cn=smith,ou=IT,ou=IT,dc=company,dc=com
+Search Guard is a trademark of floragunn GmbH, registered in the U.S. and in other countries.
 
-``searchguard.authcz.admin_dn`` is a list of DN's which are allowed to perform administrative tasks (that is: read and write the ``searchguard`` index which holds the dynamic configuration). The client certificate (keystore) used with the sgadmin tool have to match on of the configured DN's.
-
-### Dynamic configuration
-* sg_config.yml: Configure authenticators and authorization backends
-* sg_roles.yml: define the roles and the associated permissions
-* sg_roles_mapping.yml: map backend roles, hosts and users to roles
-* sg_internal_users.yml: user and hashed passwords (hash with hasher.sh)
-* sg_action_groups.yml: group permissions together
-
-Apply the configuration:
-
-    plugins/search-guard-5/tools/sgadmin.sh -cd plugins/search-guard-5/sgconfig/ -ks plugins/search-guard-2/sgconfig/keystore.jks -ts plugins/search-guard-2/sgconfig/truststore.jks  -nhnv
-
-Generate hashed passwords for sg_internal_users.yml:
-
-    plugins/search-guard-5/tools/hasher.sh -p mycleartextpassword
-
-All this files are stored as documents in Elasticsearch within the ``searchguard`` index.
-This index is specially secured so that only a admin user with a special SSL certificate may write or read this index. Thats the reason why you need the sgadmin tool to update the configuration (that is loading the files into ES). 
-
-After one or more files are updated Search Guard will automatically reconfigure and the changes will take effect almost immediately. No need to restart ES nodes and deal with config files on the servers. The sgadmin tool can also be used fom a desktop machine as long ES servers are reachable through 9300 port (transport protocol).
-
-## How does it work
-Search Guard is build upon search-guard-ssl, a plugin which enables and enforce transport protocol (node-to-node) encryption and mutual SSL authentication. This makes sure that only trusted nodes can join the cluster. If a client connects (either through HTTP/REST or TransportClient) the request will be associated with the authenticated user. The client have therefore to authenticate either via HTTP (only BASIC supported currently) or via PKI (mutual SSL) when connecting with the transport client. 
-
-### Config hot reloading
-All configuration is held in Elasticsearch itself and if if the configuration is updated (through sgadmin) then all nodes will be informed about the update and will reload the configuration. This has several advantages over configuration via elasticsearch.yml
-
-* Configuration is held in a central place and therefore automatically identical for all nodes
-* Easy update, no dealing with files on different servers
-* Configuration change will not need node restarts
-
-
+Elasticsearch, Kibana and Logstash are trademarks of Elasticsearch BV, registered in the U.S. and in other countries. 

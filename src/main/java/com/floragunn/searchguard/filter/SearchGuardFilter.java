@@ -17,6 +17,8 @@
 
 package com.floragunn.searchguard.filter;
 
+import java.util.Objects;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchSecurityException;
@@ -39,12 +41,6 @@ import com.floragunn.searchguard.support.HeaderHelper;
 import com.floragunn.searchguard.user.User;
 
 public class SearchGuardFilter implements ActionFilter {
-
-    // "internal:*",
-    // "indices:monitor/*",
-    // "cluster:monitor/*",
-    // "cluster:admin/reroute",
-    // "indices:admin/mapping/put"
 
     protected final Logger log = LogManager.getLogger(this.getClass());
     private final PrivilegesEvaluator evalp;
@@ -72,16 +68,23 @@ public class SearchGuardFilter implements ActionFilter {
     @Override
     public void apply(Task task, final String action, final ActionRequest request, final ActionListener listener, final ActionFilterChain chain) {
 
-        // - types test
-        // - remote address test
+        //TODO types test
+        //TODO remote address test
         
-        User user = threadContext.getTransient(ConfigConstants.SG_USER);
+        final User user = threadContext.getTransient(ConfigConstants.SG_USER);
         
-        if(user == null && request.remoteAddress() == null) {
-            user = User.SG_INTERNAL;
+        if(user == null && HeaderHelper.isDirectRequest(threadContext)) {
+            
+            //TODO check dls valve
+            //if(!dlsFlsValve.invoke(request, listener, threadContext)) {
+            //    return;
+            //}
+            
+            chain.proceed(task, action, request, listener);
+            return;
         }
 
-        final boolean userIsAdmin = isUserAdmin(user, adminDns);
+        final boolean userIsAdmin = isUserAdmin(Objects.requireNonNull(user), adminDns);
         final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadContext);
         final boolean conRequest = "true".equals(HeaderHelper.getSafeFromHeader(threadContext, ConfigConstants.SG_CONF_REQUEST_HEADER));
 
@@ -100,35 +103,18 @@ public class SearchGuardFilter implements ActionFilter {
             chain.proceed(task, action, request, listener);
             return;
         }
-
-        if(User.SG_INTERNAL.equals(user)) {
         
-            //@formatter:off
-            if (       action.startsWith("internal:gateway")
-                    || action.startsWith("cluster:monitor/")
-                    || action.startsWith("indices:monitor/")
-                    || action.startsWith("cluster:admin/reroute")
-                    || action.startsWith("indices:admin/mapping/put")
-                    || action.startsWith("internal:cluster/nodes/indices/shard/store")
-                    || action.startsWith("indices:admin/exists")
-                    //|| action.startsWith("internal:indices/admin/upgrade")
-               ) {
-
+        if(User.SG_INTERNAL.equals(user) && HeaderHelper.isTrustedClusterRequest(threadContext)) {
+            if (action.startsWith("cluster:monitor/")) {
                 if (log.isTraceEnabled()) {
-                    log.trace("No user, will allow only standard discovery and monitoring actions");
+                    log.trace("No cross cluster search user, will allow only standard discovery and monitoring actions");
                 }
 
                 chain.proceed(task, action, request, listener);
                 return;
-            } else {
-                log.debug("unauthenticated request {} for user {}", action, user);
-                auditLog.logFailedLogin(user.getName(), request);
-                listener.onFailure(new ElasticsearchSecurityException("unauthenticated request "+action +" for user "+user, RestStatus.FORBIDDEN));
-                return;
             }
-            //@formatter:on
         }
-        
+       
         final PrivilegesEvaluator eval = evalp;
 
         if (!eval.isInitialized()) {

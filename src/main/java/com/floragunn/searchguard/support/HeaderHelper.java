@@ -67,5 +67,8 @@ public class HeaderHelper {
 
         return null;
     }
-
+    
+    public static boolean isTrustedClusterRequest(final ThreadContext context) {
+        return context.getTransient(ConfigConstants.SG_SSL_TRANSPORT_TRUSTED_CLUSTER_REQUEST) == Boolean.TRUE;
+    }
 }
