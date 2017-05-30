@@ -24,4 +24,8 @@ grant {
   permission javax.security.auth.kerberos.ServicePermission "*","accept";
   permission java.lang.RuntimePermission "accessDeclaredMembers";
   permission java.lang.reflect.ReflectPermission "suppressAccessChecks";
+  
+  permission java.security.SecurityPermission "setProperty.ocsp.enable";
+  permission java.util.PropertyPermission "com.sun.security.enableCRLDP", "write";
+  
 };
