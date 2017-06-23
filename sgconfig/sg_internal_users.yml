@@ -18,11 +18,8 @@ readall:
 
 
 #Examples
- 
-#keys cannot contain dots
-#if you have a username with dots then specify it with username: XXX
-mister_picard:
-  username: mister.picard
+
+mister.picard:
   hash: $2a$12$wkY2BsRneCU5za1OPYlzsehQit6gu2vprVv/4jHiSEEBv2ThunaTS
   #password is: picard
 spock:
