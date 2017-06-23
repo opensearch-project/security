@@ -22,16 +22,11 @@
 # A question mark (?) will match any single character (but NOT empty character)
 # Example: '*my*index' will match 'my_first_index' as well as 'myindex' but not 'myindex1'
 # Example: '?kibana' will match '.kibana' but not 'kibana'
-# Note: You cannot have a dot (.) in the <permission>, <indexname or alias> or <type> name/wildcard
 
 # For <permission>, <indexname or alias> and <type> are also regular expressions possible. 
 # You have to pre- and apend a '/' to use regex instead of simple wildcards
 # '/<java regex>/'
 # Example: '/\S*/' will match any non whitespace characters
-# Note: You cannot have a dot (.) in the <permission>, <indexname or alias> or <type> regex
-# Use \S instead
-# See https://docs.oracle.com/javase/7/docs/api/java/util/regex/Pattern.html
-
 
 # DLS (Document level security) - NOT FREE FOR COMMERCIAL
 # Install https://github.com/floragunncom/search-guard-module-dlsfls
@@ -93,7 +88,7 @@ sg_kibana:
     '*':
       '*':
         - READ
-    '?kibana':
+    '.kibana':
       '*':
         - INDICES_ALL
 
@@ -103,7 +98,7 @@ sg_kibana_server:
       - CLUSTER_MONITOR
       - CLUSTER_COMPOSITE_OPS
   indices:
-    '?kibana':
+    '.kibana':
       '*':
         - INDICES_ALL
 
@@ -189,7 +184,7 @@ sg_kibana_testindex:
       '*':
         - READ
         - indices:admin/mappings/fields/get*
-    '?kibana':
+    '.kibana':
       '*':
         - INDICES_ALL
   tenants:
