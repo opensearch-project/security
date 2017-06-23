@@ -22,15 +22,18 @@
 # A question mark (?) will match any single character (but NOT empty character)
 # Example: '*my*index' will match 'my_first_index' as well as 'myindex' but not 'myindex1'
 # Example: '?kibana' will match '.kibana' but not 'kibana'
-# Note: You cannot have a dot (.) in the <permission>, <indexname or alias> or <type> name/wildcard
 
 # For <permission>, <indexname or alias> and <type> are also regular expressions possible. 
 # You have to pre- and apend a '/' to use regex instead of simple wildcards
 # '/<java regex>/'
 # Example: '/\S*/' will match any non whitespace characters
 # Note: You cannot have a dot (.) in the <permission>, <indexname or alias> or <type> regex
-# Use \S instead
-# See https://docs.oracle.com/javase/7/docs/api/java/util/regex/Pattern.html
+#       Reason is that elasticsearch does not allow dots in fields names and since we store this file in an index we have this limitation
+#       Workaround: It's not difficult to work around this limitation, just modify your regex to contain no dots.
+#       A dot can be replaced with (\S|\s)
+#       If you an escaped dot its \x2E
+#       For more details pls. refer to https://github.com/floragunncom/search-guard/issues/358
+#       and See https://docs.oracle.com/javase/7/docs/api/java/util/regex/Pattern.html
 
 
 # DLS (Document level security) NOT FREE FOR COMMERCIAL
