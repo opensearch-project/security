@@ -17,7 +17,14 @@
 
 package com.floragunn.searchguard.http;
 
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.DecoderException;
+import io.netty.handler.ssl.NotSslRecordException;
+
 import java.util.Objects;
+
+import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLHandshakeException;
 
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
@@ -46,5 +53,32 @@ public class SearchGuardHttpServerTransport extends SearchGuardSSLNettyHttpServe
     protected void errorThrown(Throwable t, RestRequest request) {
         auditLog.logSSLException(request, t, null);
         super.errorThrown(t, request);
+    }
+    
+    @Override
+    protected void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        
+        if(this.lifecycle.started()) {
+
+            if(cause instanceof DecoderException && cause != null) {
+                cause = cause.getCause();
+            }
+
+            if(cause instanceof NotSslRecordException) {
+                logger.warn("Someone ({}) speaks http plaintext instead of ssl, will close the channel", ctx.channel().remoteAddress());
+                ctx.channel().close();
+                return;
+            } else if (cause instanceof SSLException) {
+                logger.error("SSL Problem "+cause.getMessage(),cause);
+                ctx.channel().close();
+                return;
+            } else if (cause instanceof SSLHandshakeException) {
+                logger.error("Problem during handshake "+cause.getMessage());
+                ctx.channel().close();
+                return;
+            }
+        }
+        
+        super.exceptionCaught(ctx, cause);
     }
 }
