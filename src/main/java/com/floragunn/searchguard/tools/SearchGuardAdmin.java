@@ -172,6 +172,8 @@ public class SearchGuardAdmin {
         options.addOption(Option.builder("key").hasArg().argName("file").desc("Path to the key of admin certificate").build());
         options.addOption(Option.builder("keypass").hasArg().argName("password").desc("Password of the key of admin certificate (optional)").build());
 
+        options.addOption(Option.builder("noopenssl").longOpt("no-openssl").desc("Do not use openssl even if available (default: use it if available)").build());
+
         //when adding new options also adjust validate(CommandLine line)
         
         String hostname = "localhost";
@@ -208,6 +210,7 @@ public class SearchGuardAdmin {
         String cert = null;
         String key = null;
         String keypass = System.getenv(SG_KEYPASS);
+        boolean useOpenSSLIfAvailable = true;
         
         CommandLineParser parser = new DefaultParser();
         try {
@@ -275,6 +278,8 @@ public class SearchGuardAdmin {
             key = line.getOptionValue("key");
             keypass = line.getOptionValue("keypass");
             
+            useOpenSSLIfAvailable = !line.hasOption("noopenssl");
+            
         }
         catch( ParseException exp ) {
             System.err.println("ERR: Parsing failed.  Reason: " + exp.getMessage());
@@ -317,6 +322,7 @@ public class SearchGuardAdmin {
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, !nhnv)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, !nrhn)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLED, true)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, useOpenSSLIfAvailable)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_TYPE, kst==null?(ks.endsWith(".jks")?"JKS":"PKCS12"):kst)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_TRUSTSTORE_TYPE, tst==null?(ts.endsWith(".jks")?"JKS":"PKCS12"):tst)
                 

@@ -134,11 +134,37 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
     private final SearchGuardKeyStore sgks;
     private SearchGuardRestFilter sgRestHandler;
     private SearchGuardInterceptor sgi;
+    private static final String LB = System.lineSeparator();
     
     //TODO 5mg check tribe
     public SearchGuardPlugin(final Settings settings) {
         super();
         log.info("Clustername: {}", settings.get("cluster.name","elasticsearch"));
+
+        final String licenseText =
+        
+        LB+"### LICENSE NOTICE Search Guard ###"+LB+LB+
+
+        "If you use one or more of the following features in production"+LB+
+        "make sure you have a valid Search Guard license"+LB+
+        "(See https://floragunn.com/searchguard-validate-license)"+LB+LB+
+
+        "* Kibana Multitenancy"+LB+
+        "* LDAP authentication/authorization"+LB+
+        "* Active Directory authentication/authorization"+LB+
+        "* REST Management API"+LB+
+        "* JSON Web Token (JWT) authentication/authorization"+LB+
+        "* Kerberos authentication/authorization"+LB+
+        "* Document- and Fieldlevel Security (DLS/FLS)"+LB+
+        "* Auditlogging"+LB+LB+
+
+        "In case of any doubt mail to <sales@floragunn.com>"+LB+
+        "###################################";
+                
+        log.warn(licenseText);
+        System.out.println(licenseText);
+        System.err.println(licenseText);
+
         if(!settings.getAsBoolean(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLED, true)) {
             throw new IllegalStateException(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLED+" must be set to 'true'");
         }
@@ -535,10 +561,10 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         settings.add(Setting.simpleString(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_TRUSTSTORE_PASSWORD, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_TRUSTSTORE_TYPE, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLED_CIPHERS, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLED_PROTOCOLS, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLED_CIPHERS, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLED_PROTOCOLS, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.listSetting(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLED_CIPHERS, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
+        settings.add(Setting.listSetting(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLED_PROTOCOLS, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
+        settings.add(Setting.listSetting(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLED_CIPHERS, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
+        settings.add(Setting.listSetting(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLED_PROTOCOLS, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
         
         settings.add(Setting.simpleString(SSLConfigConstants.SEARCHGUARD_SSL_CLIENT_EXTERNAL_CONTEXT_ID, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, Property.NodeScope, Property.Filtered));
