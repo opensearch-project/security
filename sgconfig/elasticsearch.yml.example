@@ -33,6 +33,8 @@ searchguard.authcz.admin_dn:
 # If enable_request_details is true then the audit log event will also contain
 # details like the search query. Default is false. 
 #searchguard.audit.enable_request_details: true
+# Ignore users, e.g. do not log audit requests from that users (default: no ignored users)
+#searchguard.audit.ignore_users: ['kibanaserver','some*user','/also.*regex possible/']"
 
 # Destination of the auditlog events
 searchguard.audit.type: internal_elasticsearch
@@ -42,7 +44,9 @@ searchguard.audit.type: internal_elasticsearch
 
 # external_elasticsearch settings
 #searchguard.audit.config.http_endpoints: ['localhost:9200','localhost:9201','localhost:9202']"
+# Auditlog index can be a static one or one with a date pattern (default is 'auditlog')
 #searchguard.audit.config.index: auditlog # make sure you secure this index properly
+#searchguard.audit.config.index: "'auditlog-'YYYY.MM.dd" #rotates index daily - make sure you secure this index properly
 #searchguard.audit.config.type: auditlog
 #searchguard.audit.config.username: auditloguser
 #searchguard.audit.config.password: auditlogpassword
