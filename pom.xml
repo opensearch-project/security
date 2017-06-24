@@ -39,8 +39,9 @@
 
   <properties>
     <sgssl.version>5.3.x-HEAD-SNAPSHOT</sgssl.version>
+    <!-- <netty.replace.version>4.1.12.Final</netty.replace.version>  -->
     <netty-native.version>1.1.33.Fork25</netty-native.version>
-    <elasticsearch.version>5.3.0</elasticsearch.version>
+    <elasticsearch.version>5.3.3</elasticsearch.version>
     <elasticsearch.assembly.descriptor>${basedir}/src/main/assemblies/plugin.xml</elasticsearch.assembly.descriptor>
     <sgstandalone.descriptor>${basedir}/src/main/assemblies/sgadmin-standalone.xml</sgstandalone.descriptor>
     <dependency.locations.enabled>false</dependency.locations.enabled>
@@ -89,7 +90,57 @@
        <groupId>org.elasticsearch.plugin</groupId>
        <artifactId>transport-netty4-client</artifactId>
        <version>${elasticsearch.version}</version>
+       <!--  <exclusions>
+         <exclusion>
+           <artifactId>*</artifactId>
+           <groupId>io.netty</groupId>
+         </exclusion>
+       </exclusions>  -->
     </dependency>
+    
+    <!-- 
+    <dependency>
+        <artifactId>netty-buffer</artifactId>
+        <groupId>io.netty</groupId>
+        <version>${netty.replace.version}</version>
+    </dependency>
+    
+    <dependency>
+        <artifactId>netty-codec</artifactId>
+        <groupId>io.netty</groupId>
+        <version>${netty.replace.version}</version>
+    </dependency>
+    
+    <dependency>
+        <artifactId>netty-codec-http</artifactId>
+        <groupId>io.netty</groupId>
+        <version>${netty.replace.version}</version>
+    </dependency>
+    
+    <dependency>
+        <artifactId>netty-common</artifactId>
+        <groupId>io.netty</groupId>
+        <version>${netty.replace.version}</version>
+    </dependency>
+    
+    <dependency>
+        <artifactId>netty-handler</artifactId>
+        <groupId>io.netty</groupId>
+        <version>${netty.replace.version}</version>
+    </dependency>
+    
+    <dependency>
+        <artifactId>netty-resolver</artifactId>
+        <groupId>io.netty</groupId>
+        <version>${netty.replace.version}</version>
+    </dependency>
+    
+    <dependency>
+        <artifactId>netty-transport</artifactId>
+        <groupId>io.netty</groupId>
+        <version>${netty.replace.version}</version>
+    </dependency>
+     -->
 
     <dependency>
       <groupId>org.elasticsearch</groupId>
