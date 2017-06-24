@@ -21,7 +21,6 @@ import io.netty.handler.ssl.OpenSsl;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.PrintStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
@@ -41,6 +40,7 @@ import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest.AliasA
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
+import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
@@ -465,6 +465,20 @@ public class SGTests extends AbstractUnitTest {
             
             ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
             Assert.assertEquals(3, cur.getNodes().size());
+            
+            SearchResponse sr = tc.search(new SearchRequest("searchguard")).actionGet();
+            Assert.assertEquals(5L, sr.getHits().getTotalHits());
+            
+            sr = tc.search(new SearchRequest("searchguard")).actionGet();
+            Assert.assertEquals(5L, sr.getHits().getTotalHits());
+
+            Assert.assertTrue(tc.get(new GetRequest("searchguard","config","0")).actionGet().isExists());
+            Assert.assertTrue(tc.get(new GetRequest("searchguard","internalusers","0")).actionGet().isExists());
+            Assert.assertTrue(tc.get(new GetRequest("searchguard","roles","0")).actionGet().isExists());
+            Assert.assertTrue(tc.get(new GetRequest("searchguard","rolesmapping","0")).actionGet().isExists());
+            Assert.assertTrue(tc.get(new GetRequest("searchguard","actiongroups","0")).actionGet().isExists());
+            Assert.assertFalse(tc.get(new GetRequest("searchguard","rolesmapping","1")).actionGet().isExists());
+            Assert.assertTrue(tc.get(new GetRequest("searchguard","config","0")).actionGet().isExists());
         }
         
         System.out.println("------- End INIT ---------");
@@ -474,6 +488,7 @@ public class SGTests extends AbstractUnitTest {
         Assert.assertEquals(HttpStatus.SC_OK, executeGetRequest("", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_OK, executeDeleteRequest("nonexistentindex*", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_OK, executeGetRequest(".nonexistentindex*", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, executePutRequest("searchguard/config/2", "{}",new BasicHeader("Authorization", "Basic "+encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, executeGetRequest("searchguard/config/0", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, executeGetRequest("xxxxyyyy/config/0", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_OK, executeGetRequest("", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("abc", "abc:abc"))).getStatusCode());

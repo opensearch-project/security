@@ -81,6 +81,8 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
                throw new RuntimeException("Can not determine channel type (null)");
            }
                        
+           getThreadContext().putTransient(ConfigConstants.SG_ACTION_NAME, transportChannel.action());
+           
             if(ct == null) {
                  getThreadContext().putTransient(ConfigConstants.SG_CHANNEL_TYPE, transportChannel.getChannelType());
             } else if(!ct.equals(transportChannel.getChannelType())) {
@@ -89,6 +91,12 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
             
             //bypass non-netty requests
             if(transportChannel.getChannelType().equals("local") || transportChannel.getChannelType().equals("direct")) {
+                String userHeader = getThreadContext().getHeader(ConfigConstants.SG_USER_HEADER);
+                
+                if(!Strings.isNullOrEmpty(userHeader)) {
+                    getThreadContext().putTransient(ConfigConstants.SG_USER+"copy", Objects.requireNonNull((User) Base64Helper.deserializeObject(userHeader)));  
+                }
+                
                 super.messageReceivedDecorate(request, handler, transportChannel, task);
                 return;
             }
