@@ -114,3 +114,7 @@ sg_role01_role02:
 sg_restore:
   users:
     - restoreuser
+    
+sg_snapres:
+  users:
+    - snapresuser
