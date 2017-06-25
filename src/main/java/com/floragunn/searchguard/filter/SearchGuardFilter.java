@@ -67,18 +67,14 @@ public class SearchGuardFilter implements ActionFilter {
 
     @Override
     public void apply(Task task, final String action, final ActionRequest request, final ActionListener listener, final ActionFilterChain chain) {
-
-        //TODO types test
-        //TODO remote address test
         
         final User user = threadContext.getTransient(ConfigConstants.SG_USER);
         
         if(user == null && HeaderHelper.isDirectRequest(threadContext)) {
-            
-            //TODO check dls valve
-            //if(!dlsFlsValve.invoke(request, listener, threadContext)) {
-            //    return;
-            //}
+
+            if(!dlsFlsValve.invoke(request, listener, threadContext)) {
+                return;
+            }
             
             chain.proceed(task, action, request, listener);
             return;
@@ -100,6 +96,16 @@ public class SearchGuardFilter implements ActionFilter {
                 return;
             }
             
+            chain.proceed(task, action, request, listener);
+            return;
+        }
+        
+        if(action.startsWith("internal:gateway/local/started_shards")
+                || action.startsWith("internal:cluster/nodes/indices/shard/store")) {
+            if (log.isTraceEnabled()) {
+                log.trace("Allow "+action+" always");
+            }
+
             chain.proceed(task, action, request, listener);
             return;
         }
