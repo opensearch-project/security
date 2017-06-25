@@ -95,3 +95,7 @@ user_role01_role02_role03:
 restoreuser:
   hash: "$2a$12$JU2QjYVTlI24Q/enEOpf2uTLCPGchN.eXWCsrBiieUcRoeh53NB0y"
   #password is: restoreuser
+  
+snapresuser:
+  hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
+  #password is: nagilum

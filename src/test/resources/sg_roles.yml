@@ -138,7 +138,7 @@ sg_kibana4:
         - indices:data/read/search-
         - indices:data/read/msearch
         - indices:admin/get
-    '.kibana':
+    '?kibana':
       '*':
         - indices:admin/exists
         - indices:admin/mapping/put
@@ -157,7 +157,7 @@ sg_kibana4_server:
       - cluster:monitor/nodes/info
       - cluster:monitor/health
   indices:
-    '.kibana':
+    '?kibana':
       '*':
         - indices:admin/create
         - indices:admin/exists
@@ -188,10 +188,10 @@ sg_logstash:
 
 sg_marvel_user:
   indices:
-    '.marvel-es-*':
+    '?marvel-es-*':
       '*':
         - READ
-    '.kibana':
+    '?kibana':
       '*':
         - indices:admin/exists
         - indices:admin/mappings/fields/get
@@ -205,7 +205,7 @@ sg_remote_marvel_agent:
     - indices:admin/template/put
     - indices:admin/template/get
   indices:
-    '.marvel-es-*':
+    '?marvel-es-*':
       '*':
         - ALL
         
@@ -336,3 +336,12 @@ sg_restore:
     'vulcangov_no_restore_4':
       '*':
         - 'indices:admin/create'
+
+sg_snapres:
+  cluster:
+    - MANAGE_SNAPSHOTS
+  indices:
+    '*':
+      '*':
+        - "indices:data/write/index"
+        - "indices:admin/create"
