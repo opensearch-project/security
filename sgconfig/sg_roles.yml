@@ -128,6 +128,30 @@ sg_own_index:
       '*':
         - INDICES_ALL
 
+# Allows adding and modifying repositories
+# and creating and restoring snapshots
+sg_manage_snapshots:
+  cluster:
+    - MANAGE_SNAPSHOTS
+  indices:
+    '*':
+      '*':
+        - "indices:data/write/index"
+        - "indices:admin/create"
+
+# Make xpack monitoring work
+sg_monitor:
+  cluster:
+    - "cluster:admin/xpack/monitoring/*"
+    - "indices:admin/template/get"
+    - "indices:admin/template/put"
+    - "indices:admin/*get"
+    - CLUSTER_MONITOR
+    - CLUSTER_COMPOSITE_OPS
+  indices:
+    '.monitoring*':
+      '*':
+        - INDICES_ALL
     
 # Examples
 sg_role_starfleet:

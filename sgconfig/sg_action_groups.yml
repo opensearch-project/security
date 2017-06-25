@@ -85,4 +85,7 @@ CLUSTER_COMPOSITE_OPS:
   - "indices:data/write/bulk"
   - "indices:admin/aliases*"
   - CLUSTER_COMPOSITE_OPS_RO
- 
+  
+MANAGE_SNAPSHOTS:
+  - "cluster:admin/snapshot/*"
+  - "cluster:admin/repository/*"

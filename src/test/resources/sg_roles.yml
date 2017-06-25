@@ -333,3 +333,12 @@ sg_restore:
     'vulcangov_no_restore_4':
       '*':
         - 'indices:admin/create'
+
+sg_snapres:
+  cluster:
+    - MANAGE_SNAPSHOTS
+  indices:
+    '*':
+      '*':
+        - "indices:data/write/index"
+        - "indices:admin/create"
