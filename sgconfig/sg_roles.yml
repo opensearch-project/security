@@ -17,16 +17,21 @@
 # for the request to be successful. If no role match then the request will be denied. Currently a match must happen within
 # one single role - that means that permissions can not span multiple roles. 
 
-# For <permission>, <indexname or alias> and <type> simple wildcards are possible. 
+# For <permission>, <indexname or alias> and <type> simple wildcards and regular expressions are possible. 
 # A asterix (*) will match any character sequence (or an empty sequence)
 # A question mark (?) will match any single character (but NOT empty character)
 # Example: '*my*index' will match 'my_first_index' as well as 'myindex' but not 'myindex1'
 # Example: '?kibana' will match '.kibana' but not 'kibana'
 
-# For <permission>, <indexname or alias> and <type> are also regular expressions possible. 
-# You have to pre- and apend a '/' to use regex instead of simple wildcards
+# To use a full blown regex you have to pre- and apend a '/' to use regex instead of simple wildcards
 # '/<java regex>/'
 # Example: '/\S*/' will match any non whitespace characters
+
+# Important: 
+# Index or alias names cannon start with a dot (.) in the <permission> expression.
+# Reason is that we currently parse the config file into a elasticsearch settings object which cannot cope with leading dots.
+# Workaround: Just configure something like '?kibana' instead of '.kibana'
+# This limitation will likely removed with Search Guard 6
 
 # DLS (Document level security) - NOT FREE FOR COMMERCIAL
 # Install https://github.com/floragunncom/search-guard-module-dlsfls
@@ -88,7 +93,7 @@ sg_kibana:
     '*':
       '*':
         - READ
-    '.kibana':
+    '?kibana':
       '*':
         - INDICES_ALL
 
@@ -98,7 +103,7 @@ sg_kibana_server:
       - CLUSTER_MONITOR
       - CLUSTER_COMPOSITE_OPS
   indices:
-    '.kibana':
+    '?kibana':
       '*':
         - INDICES_ALL
 
@@ -208,7 +213,7 @@ sg_kibana_testindex:
       '*':
         - READ
         - indices:admin/mappings/fields/get*
-    '.kibana':
+    '?kibana':
       '*':
         - INDICES_ALL
   tenants:
