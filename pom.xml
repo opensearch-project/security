@@ -216,7 +216,7 @@
     <dependency>
        <groupId>com.floragunn</groupId>
        <artifactId>dlic-search-guard-test-framework</artifactId>
-       <version>5.3-1-SNAPSHOT</version>
+       <version>5.3-1</version>
        <classifier>tests</classifier>
        <scope>test</scope>
     </dependency>
