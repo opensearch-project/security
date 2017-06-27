@@ -161,12 +161,16 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         "In case of any doubt mail to <sales@floragunn.com>"+LB+
         "###################################";
         
-        if(!Boolean.getBoolean("sg.display_lic_only_stdout")) {
-            log.warn(licenseText);
-            System.err.println(licenseText);
-        }
+        if(!Boolean.getBoolean("sg.display_lic_none")) {
+            
+            if(!Boolean.getBoolean("sg.display_lic_only_stdout")) {
+                log.warn(licenseText);
+                System.err.println(licenseText);
+            }
+    
+            System.out.println(licenseText);
 
-        System.out.println(licenseText);
+        }
 
         if(!settings.getAsBoolean(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLED, true)) {
             throw new IllegalStateException(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLED+" must be set to 'true'");
