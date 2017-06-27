@@ -131,6 +131,7 @@ public class SearchGuardAdmin {
         
         System.out.println("Search Guard Admin v5");
         System.setProperty("sg.nowarn.client","true");
+        System.setProperty("sg.display_lic_only_stdout","true");
 
         final HelpFormatter formatter = new HelpFormatter();
         Options options = new Options();
