@@ -125,6 +125,7 @@ public class SearchGuardAdmin {
     private static void main0(final String[] args) throws Exception {
         
         System.setProperty("sg.nowarn.client","true");
+        System.setProperty("sg.display_lic_only_stdout","true");
 
         final HelpFormatter formatter = new HelpFormatter();
         Options options = new Options();
