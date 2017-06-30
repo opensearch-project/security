@@ -688,7 +688,9 @@ public class PrivilegesEvaluator {
             }
         }
         
-        if(!allowAction && privilegesInterceptor.getClass() != PrivilegesInterceptor.class) {
+        if(!allowAction 
+                && privilegesInterceptor.getClass() != PrivilegesInterceptor.class
+                && leftovers.size() > 0) {
             return privilegesInterceptor.replaceAllowedIndices(request, action, user, config, leftovers);
         }
         
