@@ -822,6 +822,14 @@ public class SearchGuardAdmin {
         if(line.hasOption("cn") && line.hasOption("icl")) {
             throw new ParseException("Only set one of -cn or -icl");
         }
+
+        if(!line.hasOption("ks") && !line.hasOption("cert")) {
+            throw new ParseException("Specify at least -ks or -cert");
+        }
+        
+        if(!line.hasOption("ts") && !line.hasOption("cacert")) {
+            throw new ParseException("Specify at least -ts or -cacert");
+        }
         
         //TODO add more validation rules
     }
