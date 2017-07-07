@@ -198,6 +198,7 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         AccessController.doPrivileged(new PrivilegedAction<Object>() {
             @Override
             public Object run() {
+                System.setProperty("es.set.netty.runtime.available.processors", "false");
                 PlatformDependent.newFixedMpscQueue(1);
                 OpenSsl.isAvailable();
                 return null;

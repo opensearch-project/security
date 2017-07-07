@@ -27,13 +27,13 @@ grant {
   permission java.util.PropertyPermission "sun.security.krb5.debug","write";
   permission java.util.PropertyPermission "java.security.debug","write";
   permission java.util.PropertyPermission "sun.security.spnego.debug","write";
-  
+
   //Enable when we switch to UnboundID LDAP SDK
   //permission java.util.PropertyPermission "*", "read,write";
   //permission java.lang.RuntimePermission "setFactory";
   //permission javax.net.ssl.SSLPermission "setHostnameVerifier";
 
-   //below permissions are needed for netty native open ssl support
+  //below permissions are needed for netty native open ssl support
   permission java.lang.RuntimePermission "loadLibrary.*";
   permission java.lang.RuntimePermission "accessClassInPackage.sun.misc";
   permission java.lang.reflect.ReflectPermission "suppressAccessChecks";
@@ -43,8 +43,9 @@ grant {
   permission java.lang.RuntimePermission "accessClassInPackage.sun.nio.ch";
   permission java.io.FilePermission "/proc/sys/net/core/somaxconn","read";
   permission java.util.PropertyPermission "sun.nio.ch.bugLevel", "write";
-  
+  permission java.util.PropertyPermission "es.set.netty.runtime.available.processors", "write";
+
   permission java.security.SecurityPermission "setProperty.ocsp.enable";
   permission java.util.PropertyPermission "com.sun.security.enableCRLDP", "write";
-  
+
 };
