@@ -14,8 +14,16 @@ sg_kibana_server:
     - kibanaserver
     
 sg_kibana:
-  users:
-    - kibanaro
+  backendroles:
+    - kibanarole
+
+sg_monitor:
+  backendroles:
+    - kibanarole
+   
+sg_alerting:
+  backendroles:
+    - kibanarole
 
 sg_public:
   users:
