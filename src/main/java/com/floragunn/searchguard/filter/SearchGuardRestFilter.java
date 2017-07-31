@@ -36,6 +36,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.auth.BackendRegistry;
 import com.floragunn.searchguard.ssl.transport.PrincipalExtractor;
+import com.floragunn.searchguard.ssl.util.ExceptionUtils;
 import com.floragunn.searchguard.ssl.util.SSLRequestHelper;
 import com.floragunn.searchguard.ssl.util.SSLRequestHelper.SSLInfo;
 import com.floragunn.searchguard.support.ConfigConstants;
@@ -76,14 +77,14 @@ public class SearchGuardRestFilter {
     private boolean checkAndAuthenticateRequest(RestRequest request, RestChannel channel, NodeClient client) throws Exception {
 
         if(HTTPHelper.containsBadHeader(request)) {
-            final ElasticsearchException exception = new ElasticsearchException("bad http header found");      
+            final ElasticsearchException exception = new ElasticsearchException("bad http header found");
             auditLog.logBadHeaders(request);
             channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, exception));
             return true;
         }
         
         if(SSLRequestHelper.containsBadHeader(threadContext, ConfigConstants.SG_CONFIG_PREFIX)) {
-            final ElasticsearchException exception = new ElasticsearchException("bad header found");      
+            final ElasticsearchException exception = ExceptionUtils.createBadHeaderException();
             auditLog.logBadHeaders(request);
             channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, exception));
             return true;

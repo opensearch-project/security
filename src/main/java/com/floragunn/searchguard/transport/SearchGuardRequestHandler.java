@@ -38,6 +38,7 @@ import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.auth.BackendRegistry;
 import com.floragunn.searchguard.ssl.transport.PrincipalExtractor;
 import com.floragunn.searchguard.ssl.transport.SearchGuardSSLRequestHandler;
+import com.floragunn.searchguard.ssl.util.ExceptionUtils;
 import com.floragunn.searchguard.ssl.util.SSLRequestHelper;
 import com.floragunn.searchguard.support.Base64Helper;
 import com.floragunn.searchguard.support.ConfigConstants;
@@ -155,7 +156,7 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
                     //and therefore issued by a transport client
                     
                     if(SSLRequestHelper.containsBadHeader(getThreadContext(), ConfigConstants.SG_CONFIG_PREFIX)) {
-                        final ElasticsearchException exception = new ElasticsearchException("bad header found");      
+                        final ElasticsearchException exception = ExceptionUtils.createBadHeaderException();
                         auditLog.logBadHeaders(request);
                         log.error("Error validating headers");
                         transportChannel.sendResponse(exception);
