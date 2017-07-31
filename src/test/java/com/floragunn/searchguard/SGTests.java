@@ -2844,6 +2844,18 @@ public class SGTests extends AbstractUnitTest {
         Assert.assertEquals(HttpStatus.SC_OK, executePutRequest("_snapshot/bckrepo/"+putSnapshot.hashCode()+"?wait_for_completion=true&pretty", putSnapshot, new BasicHeader("Authorization", "Basic "+encodeBasicHeader("snapresuser", "nagilum"))).getStatusCode()); 
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, executePostRequest("_snapshot/bckrepo/"+putSnapshot.hashCode()+"/_restore?wait_for_completion=true&pretty","{ \"include_global_state\": true, \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_$1\" }", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("snapresuser", "nagilum"))).getStatusCode());
     }
+    
+    @Test
+    public void testDisabled() throws Exception {
+
+        final Settings settings = Settings.builder().put("searchguard.disabled", true).build();
+        
+        startES(settings);
+            
+        HttpResponse resc = executeGetRequest("_search");
+        Assert.assertEquals(200, resc.getStatusCode());
+        Assert.assertTrue(resc.getBody(), resc.getBody().contains("hits"));        
+    }
 
     private ThreadContext newThreadContext(String sslPrincipal) {
         ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
