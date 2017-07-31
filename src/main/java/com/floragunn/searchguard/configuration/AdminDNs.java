@@ -34,7 +34,7 @@ import com.google.common.collect.ListMultimap;
 
 public class AdminDNs {
 
-    protected final Logger log = LogManager.getLogger(this.getClass());
+    protected static final Logger log = LogManager.getLogger(AdminDNs.class);
     private static final Set<LdapName> adminDn = new HashSet<LdapName>(); //TODO static hack
     private final ListMultimap<LdapName, String> allowedImpersonations = ArrayListMultimap.<LdapName, String> create();
     
@@ -45,7 +45,7 @@ public class AdminDNs {
         for (int i = 0; i < adminDnsA.length; i++) {
             final String dn = adminDnsA[i];
             try {
-                log.debug(dn);
+                log.debug("{} is registered as an admin dn", dn);
                 adminDn.add(new LdapName(dn));
             } catch (final InvalidNameException e) {
                 log.error("Unable to parse admin dn {} {}",e, dn, e);
@@ -83,7 +83,13 @@ public class AdminDNs {
     public static boolean isAdmin(LdapName dn) {
         if(dn == null) return false;
         
-        return adminDn.contains(dn);
+        boolean isAdmin = adminDn.contains(dn);
+        
+        if (log.isTraceEnabled()) {
+            log.trace("Is principal {} an admin cert? {}", dn.toString(), isAdmin);
+        }
+        
+        return isAdmin;
     }
     
     public boolean isImpersonationAllowed(LdapName dn, String impersonated) {
