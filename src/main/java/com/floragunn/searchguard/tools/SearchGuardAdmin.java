@@ -39,6 +39,7 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
@@ -120,6 +121,17 @@ public class SearchGuardAdmin {
             System.exit(-1);
         }
         catch (Exception e) {
+            
+            if (e instanceof ElasticsearchException 
+                    && e.getMessage() != null 
+                    && e.getMessage().contains("no permissions")) {
+
+                System.out.println("ERR: You try to connect with a ssl node certificate instead of an admin client certificate");
+                System.out.println("This may have worked in previous versions of Search Guard but is now forbidden");
+                System.out.println("For more informations look here: https://github.com/floragunncom/search-guard-docs/blob/master/sgadmin.md#configuring-the-admin-certificate");
+                System.exit(-1);
+            }
+            
             System.out.println("ERR: An unexpected "+e.getClass().getSimpleName()+" occured: "+e.getMessage());
             System.out.println("Trace:");
             e.printStackTrace();
@@ -435,13 +447,15 @@ public class SearchGuardAdmin {
                 } catch (Exception e) {                   
                     if(!failFast) {
                         System.out.println("Cannot retrieve cluster state due to: "+e.getMessage()+". This is not an error, will keep on trying ...");
-                        System.out.println("   * Try running sgadmin.sh with -icl and -nhnv (If thats works you need to check your clustername as well as hostnames in your SSL certificates)");   
+                        System.out.println("   * Try running sgadmin.sh with -icl (but no -cl) and -nhnv (If thats works you need to check your clustername as well as hostnames in your SSL certificates)");   
+                        System.out.println("   * Make also sure that your keystore or cert is a client certificate (not a node certificate) and configured properly in elasticsearch.yml"); 
                         System.out.println("   * If this is not working, try running sgadmin.sh with --diagnose and see diagnose trace log file)");
                         System.out.println("   * Add --accept-red-cluster to allow sgadmin to operate on a red cluster.");
 
                     } else {
                         System.out.println("ERR: Cannot retrieve cluster state due to: "+e.getMessage()+".");
-                        System.out.println("   * Try running sgadmin.sh with -icl and -nhnv (If thats works you need to check your clustername as well as hostnames in your SSL certificates)");
+                        System.out.println("   * Try running sgadmin.sh with -icl (but no -cl) and -nhnv (If thats works you need to check your clustername as well as hostnames in your SSL certificates)");
+                        System.out.println("   * Make also sure that your keystore or cert is a client certificate (not a node certificate) and configured properly in elasticsearch.yml"); 
                         System.out.println("   * If this is not working, try running sgadmin.sh with --diagnose and see diagnose trace log file)"); 
                         System.out.println("   * Add --accept-red-cluster to allow sgadmin to operate on a red cluster.");
 
@@ -457,7 +471,8 @@ public class SearchGuardAdmin {
             
             if (!acceptRedCluster && timedOut) {
                 System.out.println("ERR: Timed out while waiting for a green or yellow cluster state.");
-                System.out.println("   * Try running sgadmin.sh with -icl and -nhnv (If thats works you need to check your clustername as well as hostnames in your SSL certificates)");
+                System.out.println("   * Try running sgadmin.sh with -icl (but no -cl) and -nhnv (If thats works you need to check your clustername as well as hostnames in your SSL certificates)");
+                System.out.println("   * Make also sure that your keystore or cert is a client certificate (not a node certificate) and configured properly in elasticsearch.yml"); 
                 System.out.println("   * If this is not working, try running sgadmin.sh with --diagnose and see diagnose trace log file)"); 
                 System.out.println("   * Add --accept-red-cluster to allow sgadmin to operate on a red cluster.");
                 System.exit(-1);
