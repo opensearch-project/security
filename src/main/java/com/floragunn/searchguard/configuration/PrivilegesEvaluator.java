@@ -535,7 +535,11 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                         IndexMetaData indexMetaData = clusterState.metaData().getIndices().get(requestAliasOrIndex);
                         
                         if(indexMetaData == null) {
-                            log.warn("{} does not exist in cluster metadata", requestAliasOrIndex);
+                            
+                            if(log.isDebugEnabled()) {
+                                log.debug("{} does not exist in cluster metadata", requestAliasOrIndex);
+                            }
+                            
                             continue;
                         }
                         
