@@ -590,51 +590,60 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
                 
                 if (_requestedResolvedIndexTypes.isEmpty()) {
                     
-                    int filteredAliasCount = 0;
-                    
                     //check filtered aliases
                     for(String requestAliasOrIndex: requestedResolvedIndices) {      
+                        
+                        final List<AliasMetaData> filteredAliases = new ArrayList<AliasMetaData>();
 
-                        //System.out.println(clusterState.metaData().getAliasAndIndexLookup().get(requestAliasOrIndex));
-                        IndexMetaData indexMetaData = clusterState.metaData().getIndices().get(requestAliasOrIndex);
+                        final IndexMetaData indexMetaData = clusterState.metaData().getIndices().get(requestAliasOrIndex);
                         
                         if(indexMetaData == null) {
-                            
-                            if(log.isDebugEnabled()) {
-                                log.debug("{} does not exist in cluster metadata", requestAliasOrIndex);
-                            }
-                            
+                            log.warn("{} does not exist in cluster metadata", requestAliasOrIndex);
                             continue;
                         }
                         
-                        ImmutableOpenMap<String, AliasMetaData> aliases = indexMetaData.getAliases();
-                        
-                        log.debug("Aliases for {}: {}", requestAliasOrIndex, aliases);
+                        final ImmutableOpenMap<String, AliasMetaData> aliases = indexMetaData.getAliases();
                         
                         if(aliases != null && aliases.size() > 0) {
+                            
+                            if(log.isDebugEnabled()) {
+                                log.debug("Aliases for {}: {}", requestAliasOrIndex, aliases);
+                            }
                         
-                            Iterator<String> it = aliases.keysIt();
+                            final Iterator<String> it = aliases.keysIt();
                             while(it.hasNext()) {
-                                String a = it.next();
-                                AliasMetaData aliasMetaData = aliases.get(a);
+                                final String alias = it.next();
+                                final AliasMetaData aliasMetaData = aliases.get(alias);
                                 
                                 if(aliasMetaData != null && aliasMetaData.filteringRequired()) {
-                                    filteredAliasCount++;
-                                    log.debug(a+" is a filtered alias "+aliasMetaData.getFilter());
+                                    filteredAliases.add(aliasMetaData);
+                                    if(log.isDebugEnabled()) {
+                                        log.debug(alias+" is a filtered alias "+aliasMetaData.getFilter());
+                                    }
                                 } else {
-                                    log.debug(a+" is not an alias or does not have a filter");
+                                    if(log.isDebugEnabled()) {
+                                        log.debug(alias+" is not an alias or does not have a filter");
+                                    }
                                 }
-                                
                             }
-                            
                         }
-                    }
-                    
-                    if(filteredAliasCount > 1) {
-                        //TODO add queries as dls queries (works only if dls module is installed)
-                        log.warn("More than one ({}) filtered alias found for same index ({}). This is currently not supported", filteredAliasCount, permittedAliasesIndex);
-                        continue permittedAliasesIndices;
-                    }
+
+                        if(filteredAliases.size() > 1) {
+                            //TODO add queries as dls queries (works only if dls module is installed)
+                            final String faMode = config.get("searchguard.dynamic.filtered_alias_mode","warn");
+                            
+                            if(faMode.equals("warn")) {
+                                log.warn("More than one ({}) filtered alias found for same index ({}). This is currently not recommended. Aliases: {}", filteredAliases.size(), requestedResolvedIndices, toString(filteredAliases));
+                            } else if (faMode.equals("disallow")) {
+                                log.error("More than one ({}) filtered alias found for same index ({}). This is currently not supported. Aliases: {}", filteredAliases.size(), requestedResolvedIndices, toString(filteredAliases));
+                                continue permittedAliasesIndices;
+                            } else {
+                                if (log.isDebugEnabled()) {
+                                    log.debug("More than one ({}) filtered alias found for same index ({}). Aliases: {}", filteredAliases.size(), requestedResolvedIndices, toString(filteredAliases));
+                                }
+                            }
+                        }
+                    } //end-for
                     
                     if (log.isDebugEnabled()) {
                         log.debug("found a match for '{}.{}', evaluate other roles", sgRole, permittedAliasesIndex);
@@ -1264,6 +1273,22 @@ public class PrivilegesEvaluator implements ConfigChangeListener {
             }
             return modified;
         }  
+    }
+    
+    private List<String> toString(List<AliasMetaData> aliases) {
+        if(aliases == null || aliases.size() == 0) {
+            return Collections.emptyList();
+        }
+        
+        final List<String> ret = new ArrayList<String>(aliases.size());
+        
+        for(final AliasMetaData amd: aliases) {
+            if(amd != null) {
+                ret.add(amd.alias());
+            }
+        }
+        
+        return Collections.unmodifiableList(ret);
     }
     
     public boolean multitenancyEnabled() {
