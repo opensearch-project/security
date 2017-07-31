@@ -152,6 +152,15 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
 
     public SearchGuardPlugin(final Settings settings) {
         super();
+        
+        AccessController.doPrivileged(new PrivilegedAction<Object>() {
+            @Override
+            public Object run() {
+                System.setProperty("es.set.netty.runtime.available.processors", "false");
+                return null;
+            }
+        });
+        
         disabled = settings.getAsBoolean("searchguard.disabled", false);
         
         if(disabled) {
