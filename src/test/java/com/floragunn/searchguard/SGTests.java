@@ -1026,6 +1026,7 @@ public class SGTests extends AbstractUnitTest {
                 .put("searchguard.ssl.transport.resolve_hostname", false)
                 .putArray("searchguard.authcz.admin_dn", "CN=kirk,OU=client,O=client,l=tEst, C=De")
                 .putArray("searchguard.authcz.impersonation_dn.CN=spock,OU=client,O=client,L=Test,C=DE", "worf")
+                .put("searchguard.cache.ttl_minutes", 0)
                 .build();
         
         startES(settings);
