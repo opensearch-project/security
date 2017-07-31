@@ -110,4 +110,10 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
         backendRegistry.get().invalidateCache();
         return new ConfigUpdateNodeResponse(clusterService.localNode(), setn.keySet().toArray(new String[0]), null); 
     }
+
+    @Override
+    protected boolean accumulateExceptions() {
+        return false;
+    }
+
 }

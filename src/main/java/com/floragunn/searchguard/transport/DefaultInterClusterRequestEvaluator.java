@@ -45,15 +45,28 @@ public final class DefaultInterClusterRequestEvaluator implements InterClusterRe
     @Override
     public boolean isInterClusterRequest(TransportRequest request, X509Certificate[] localCerts, X509Certificate[] peerCerts,
             final String principal) {
-                
-        if (principal != null && principal.length() > 0 && WildcardMatcher.matchAny(nodesDn, principal)) {
-
-            if (log.isDebugEnabled()) {
-                log.debug("Treat certificate with principal '{}' as other node because of it matches one of {}", principal,
+        
+        String[] principals = new String[2];
+        
+        if (principal != null && principal.length() > 0) {
+            principals[0] = principal;
+            principals[1] = principal.replace(" ","");
+        }
+        
+        if (principals[0] != null && WildcardMatcher.matchAny(nodesDn, principals, true)) {
+            
+            if (log.isTraceEnabled()) {
+                log.trace("Treat certificate with principal {} as other node because of it matches one of {}", Arrays.toString(principals),
                         Arrays.toString(nodesDn));
             }
-
+            
             return true;
+            
+        } else {
+            if (log.isTraceEnabled()) {
+                log.trace("Treat certificate with principal {} NOT as other node because we it does not matches one of {}", Arrays.toString(principals),
+                        Arrays.toString(nodesDn));
+            }
         }
 
         try {

@@ -27,10 +27,14 @@ public class WildcardMatcher {
     private static final int NOT_FOUND = -1;
 
     public static boolean matchAny(final String[] pattern, final String[] candidate) {
+        return matchAny(pattern, candidate, false);
+    }
+    
+    public static boolean matchAny(final String[] pattern, final String[] candidate, boolean ignoreCase) {
 
         for (int i = 0; i < pattern.length; i++) {
             final String string = pattern[i];
-            if (matchAny(string, candidate)) {
+            if (matchAny(string, candidate, ignoreCase)) {
                 return true;
             }
         }
@@ -65,10 +69,14 @@ public class WildcardMatcher {
     }
 
     public static boolean matchAny(final String pattern, final String[] candidate) {
+        return matchAny(pattern, candidate, false);
+    }
+    
+    public static boolean matchAny(final String pattern, final String[] candidate, boolean ignoreCase) {
 
         for (int i = 0; i < candidate.length; i++) {
             final String string = candidate[i];
-            if (match(pattern, string)) {
+            if (match(pattern, string, ignoreCase)) {
                 return true;
             }
         }
@@ -101,11 +109,20 @@ public class WildcardMatcher {
 
         return false;
     }
-
+    
     public static boolean match(final String pattern, final String candidate) {
+        return match(pattern, candidate, false);
+    }
+
+    public static boolean match(String pattern, String candidate, boolean ignoreCase) {
 
         if (pattern == null || candidate == null) {
             return false;
+        }
+        
+        if(ignoreCase) {
+            pattern = pattern.toLowerCase();
+            candidate = candidate.toLowerCase();
         }
 
         if (pattern.startsWith("/") && pattern.endsWith("/")) {
