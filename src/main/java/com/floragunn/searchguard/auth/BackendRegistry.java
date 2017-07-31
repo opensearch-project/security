@@ -87,33 +87,39 @@ public class BackendRegistry implements ConfigChangeListener {
     private final InternalAuthenticationBackend iab;
     private final AuditLog auditLog;
     private final ThreadPool threadPool;
-
-    private Cache<AuthCredentials, User> userCache = CacheBuilder.newBuilder()
-            .expireAfterWrite(1, TimeUnit.HOURS)
-            .removalListener(new RemovalListener<AuthCredentials, User>() {
-                @Override
-                public void onRemoval(RemovalNotification<AuthCredentials, User> notification) {
-                    log.debug("Clear user cache for {} due to {}", notification.getKey().getUsername(), notification.getCause());
-                }
-            }).build();
+    private final int ttlInMin;
+    private Cache<AuthCredentials, User> userCache;
+    private Cache<String, User> userCacheTransport;
+    private Cache<AuthCredentials, User> authenticatedUserCacheTransport;
     
-    private Cache<String, User> userCacheTransport = CacheBuilder.newBuilder()
-            .expireAfterWrite(1, TimeUnit.HOURS)
-            .removalListener(new RemovalListener<String, User>() {
-                @Override
-                public void onRemoval(RemovalNotification<String, User> notification) {
-                    log.debug("Clear user cache for {} due to {}", notification.getKey(), notification.getCause());
-                }
-            }).build();
-    
-    private Cache<AuthCredentials, User> authenticatedUserCacheTransport = CacheBuilder.newBuilder()
-            .expireAfterWrite(1, TimeUnit.HOURS)
-            .removalListener(new RemovalListener<AuthCredentials, User>() {
-                @Override
-                public void onRemoval(RemovalNotification<AuthCredentials, User> notification) {
-                    log.debug("Clear user cache for {} due to {}", notification.getKey().getUsername(), notification.getCause());
-                }
-            }).build();
+    private void createCaches() {
+        userCache = CacheBuilder.newBuilder()
+                .expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
+                .removalListener(new RemovalListener<AuthCredentials, User>() {
+                    @Override
+                    public void onRemoval(RemovalNotification<AuthCredentials, User> notification) {
+                        log.debug("Clear user cache for {} due to {}", notification.getKey().getUsername(), notification.getCause());
+                    }
+                }).build();
+        
+        userCacheTransport = CacheBuilder.newBuilder()
+                .expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
+                .removalListener(new RemovalListener<String, User>() {
+                    @Override
+                    public void onRemoval(RemovalNotification<String, User> notification) {
+                        log.debug("Clear user cache for {} due to {}", notification.getKey(), notification.getCause());
+                    }
+                }).build();
+        
+        authenticatedUserCacheTransport = CacheBuilder.newBuilder()
+                .expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
+                .removalListener(new RemovalListener<AuthCredentials, User>() {
+                    @Override
+                    public void onRemoval(RemovalNotification<AuthCredentials, User> notification) {
+                        log.debug("Clear user cache for {} due to {}", notification.getKey().getUsername(), notification.getCause());
+                    }
+                }).build();
+    }
 
     @Inject
     public BackendRegistry(final Settings settings, final RestController controller, final TransportConfigUpdateAction tcua, final ClusterService cse,
@@ -147,6 +153,9 @@ public class BackendRegistry implements ConfigChangeListener {
         authImplMap.put("kerberos_h", "com.floragunn.dlic.auth.http.kerberos.HTTPSpnegoAuthenticator");
         authImplMap.put("jwt_h", "com.floragunn.dlic.auth.http.jwt.HTTPJwtAuthenticator");
         authImplMap.put("host_h", HTTPHostAuthenticator.class.getName());
+        
+        this.ttlInMin = settings.getAsInt("searchguard.cache.ttl_minutes", 60);
+        createCaches();
     }
     
     public void invalidateCache() {

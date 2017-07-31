@@ -18,6 +18,7 @@
 
 searchguard:
   dynamic:
+    filtered_alias_mode: disallow
     http:
       anonymous_auth_enabled: false
       xff:
