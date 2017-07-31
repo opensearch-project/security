@@ -501,10 +501,74 @@ public class PrivilegesEvaluator {
             //iterate over all beneath indices:
             permittedAliasesIndices:
             for (final String permittedAliasesIndex : permittedAliasesIndices.keySet()) {
+
+                final String resolvedRole = sgRole;
+                final String indexPattern = permittedAliasesIndex;
                 
-                //final Map<String, Settings> permittedTypes = sgRoleSettings.getGroups(".indices."+permittedAliasesIndex);
+                String dls = roles.get(resolvedRole+".indices."+indexPattern+"._dls_");
+                final String[] fls = roles.getAsArray(resolvedRole+".indices."+indexPattern+"._fls_");
+
+                //only when dls and fls != null
+                String[] concreteIndices = new String[0];
                 
-                //System.out.println(permittedTypes);
+                if((dls != null && dls.length() > 0) || (fls != null && fls.length > 0)) {
+                    concreteIndices = resolver.concreteIndexNames(clusterService.state(), DEFAULT_INDICES_OPTIONS/*??*/,indexPattern);
+                }
+                
+                if(dls != null && dls.length() > 0) {
+                    
+                    //TODO use UserPropertyReplacer, make it registerable for ldap user
+                    dls = dls.replace("${user.name}", user.getName()).replace("${user_name}", user.getName());
+                   
+                    if(dlsQueries.containsKey(indexPattern)) {
+                        dlsQueries.get(indexPattern).add(dls);
+                    } else {
+                        dlsQueries.put(indexPattern, new HashSet<String>());
+                        dlsQueries.get(indexPattern).add(dls);
+                    }
+                    
+                    
+                    for (int i = 0; i < concreteIndices.length; i++) {
+                        final String ci = concreteIndices[i];
+                        if(dlsQueries.containsKey(ci)) {
+                            dlsQueries.get(ci).add(dls);
+                        } else {
+                            dlsQueries.put(ci, new HashSet<String>());
+                            dlsQueries.get(ci).add(dls);
+                        }
+                    }
+                    
+                                        
+                    if (log.isDebugEnabled()) {
+                        log.debug("dls query {} for {}", dls, Arrays.toString(concreteIndices));
+                    }
+                    
+                }
+                
+                if(fls != null && fls.length > 0) {
+                    
+                    if(flsFields.containsKey(indexPattern)) {
+                        flsFields.get(indexPattern).addAll(Sets.newHashSet(fls));
+                    } else {
+                        flsFields.put(indexPattern, new HashSet<String>());
+                        flsFields.get(indexPattern).addAll(Sets.newHashSet(fls));
+                    }
+                    
+                    for (int i = 0; i < concreteIndices.length; i++) {
+                        final String ci = concreteIndices[i];
+                        if(flsFields.containsKey(ci)) {
+                            flsFields.get(ci).addAll(Sets.newHashSet(fls));
+                        } else {
+                            flsFields.put(ci, new HashSet<String>());
+                            flsFields.get(ci).addAll(Sets.newHashSet(fls));
+                        }
+                    }
+                    
+                    if (log.isDebugEnabled()) {
+                        log.debug("fls fields {} for {}", Sets.newHashSet(fls), Arrays.toString(concreteIndices));
+                    }
+                    
+                }
 
                 if (WildcardMatcher.containsWildcard(permittedAliasesIndex)) {
                     if (log.isDebugEnabled()) {
@@ -527,47 +591,60 @@ public class PrivilegesEvaluator {
                 
                 if (_requestedResolvedIndexTypes.isEmpty()) {
                     
-                    int filteredAliasCount = 0;
-                    
                     //check filtered aliases
                     for(String requestAliasOrIndex: requestedResolvedIndices) {      
+                        
+                        final List<AliasMetaData> filteredAliases = new ArrayList<AliasMetaData>();
 
-                        //System.out.println(clusterState.metaData().getAliasAndIndexLookup().get(requestAliasOrIndex));
-                        IndexMetaData indexMetaData = clusterState.metaData().getIndices().get(requestAliasOrIndex);
+                        final IndexMetaData indexMetaData = clusterState.metaData().getIndices().get(requestAliasOrIndex);
                         
                         if(indexMetaData == null) {
                             log.warn("{} does not exist in cluster metadata", requestAliasOrIndex);
                             continue;
                         }
                         
-                        ImmutableOpenMap<String, AliasMetaData> aliases = indexMetaData.getAliases();
-                        
-                        log.debug("Aliases for {}: {}", requestAliasOrIndex, aliases);
+                        final ImmutableOpenMap<String, AliasMetaData> aliases = indexMetaData.getAliases();
                         
                         if(aliases != null && aliases.size() > 0) {
+                            
+                            if(log.isDebugEnabled()) {
+                                log.debug("Aliases for {}: {}", requestAliasOrIndex, aliases);
+                            }
                         
-                            Iterator<String> it = aliases.keysIt();
+                            final Iterator<String> it = aliases.keysIt();
                             while(it.hasNext()) {
-                                String a = it.next();
-                                AliasMetaData aliasMetaData = aliases.get(a);
+                                final String alias = it.next();
+                                final AliasMetaData aliasMetaData = aliases.get(alias);
                                 
                                 if(aliasMetaData != null && aliasMetaData.filteringRequired()) {
-                                    filteredAliasCount++;
-                                    log.debug(a+" is a filtered alias "+aliasMetaData.getFilter());
+                                    filteredAliases.add(aliasMetaData);
+                                    if(log.isDebugEnabled()) {
+                                        log.debug(alias+" is a filtered alias "+aliasMetaData.getFilter());
+                                    }
                                 } else {
-                                    log.debug(a+" is not an alias or does not have a filter");
+                                    if(log.isDebugEnabled()) {
+                                        log.debug(alias+" is not an alias or does not have a filter");
+                                    }
                                 }
-                                
                             }
-                            
                         }
-                    }
-                    
-                    if(filteredAliasCount > 1) {
-                        //TODO add queries as dls queries (works only if dls module is installed)
-                        log.warn("More than one ({}) filtered alias found for same index ({}). This is currently not supported", filteredAliasCount, permittedAliasesIndex);
-                        continue permittedAliasesIndices;
-                    }
+
+                        if(filteredAliases.size() > 1) {
+                            //TODO add queries as dls queries (works only if dls module is installed)
+                            final String faMode = config.get("searchguard.dynamic.filtered_alias_mode","warn");
+                            
+                            if(faMode.equals("warn")) {
+                                log.warn("More than one ({}) filtered alias found for same index ({}). This is currently not recommended. Aliases: {}", filteredAliases.size(), requestedResolvedIndices, toString(filteredAliases));
+                            } else if (faMode.equals("disallow")) {
+                                log.error("More than one ({}) filtered alias found for same index ({}). This is currently not supported. Aliases: {}", filteredAliases.size(), requestedResolvedIndices, toString(filteredAliases));
+                                continue permittedAliasesIndices;
+                            } else {
+                                if (log.isDebugEnabled()) {
+                                    log.debug("More than one ({}) filtered alias found for same index ({}). Aliases: {}", filteredAliases.size(), requestedResolvedIndices, toString(filteredAliases));
+                                }
+                            }
+                        }
+                    } //end-for
                     
                     if (log.isDebugEnabled()) {
                         log.debug("found a match for '{}.{}', evaluate other roles", sgRole, permittedAliasesIndex);
@@ -579,77 +656,7 @@ public class PrivilegesEvaluator {
             }// end loop permittedAliasesIndices
 
             
-            if (!resolvedRoleIndices.isEmpty()) {                
-                for(String resolvedRole: resolvedRoleIndices.keySet()) {
-                    for(String indexPattern: resolvedRoleIndices.get(resolvedRole)) {                  
-                        String dls = roles.get(resolvedRole+".indices."+indexPattern+"._dls_");
-                        final String[] fls = roles.getAsArray(resolvedRole+".indices."+indexPattern+"._fls_");
-
-                        //only when dls and fls != null
-                        String[] concreteIndices = new String[0];
-                        
-                        if((dls != null && dls.length() > 0) || (fls != null && fls.length > 0)) {
-                            concreteIndices = resolver.concreteIndexNames(clusterService.state(), DEFAULT_INDICES_OPTIONS/*??*/,indexPattern);
-                        }
-                        
-                        if(dls != null && dls.length() > 0) {
-                            
-                            //TODO use UserPropertyReplacer, make it registerable for ldap user
-                            dls = dls.replace("${user.name}", user.getName()).replace("${user_name}", user.getName());
-                           
-                            if(dlsQueries.containsKey(indexPattern)) {
-                                dlsQueries.get(indexPattern).add(dls);
-                            } else {
-                                dlsQueries.put(indexPattern, new HashSet<String>());
-                                dlsQueries.get(indexPattern).add(dls);
-                            }
-                            
-                            
-                            for (int i = 0; i < concreteIndices.length; i++) {
-                                final String ci = concreteIndices[i];
-                                if(dlsQueries.containsKey(ci)) {
-                                    dlsQueries.get(ci).add(dls);
-                                } else {
-                                    dlsQueries.put(ci, new HashSet<String>());
-                                    dlsQueries.get(ci).add(dls);
-                                }
-                            }
-                            
-                                                
-                            if (log.isDebugEnabled()) {
-                                log.debug("dls query {} for {}", dls, Arrays.toString(concreteIndices));
-                            }
-                            
-                        }
-                        
-                        if(fls != null && fls.length > 0) {
-                            
-                            if(flsFields.containsKey(indexPattern)) {
-                                flsFields.get(indexPattern).addAll(Sets.newHashSet(fls));
-                            } else {
-                                flsFields.put(indexPattern, new HashSet<String>());
-                                flsFields.get(indexPattern).addAll(Sets.newHashSet(fls));
-                            }
-                            
-                            for (int i = 0; i < concreteIndices.length; i++) {
-                                final String ci = concreteIndices[i];
-                                if(flsFields.containsKey(ci)) {
-                                    flsFields.get(ci).addAll(Sets.newHashSet(fls));
-                                } else {
-                                    flsFields.put(ci, new HashSet<String>());
-                                    flsFields.get(ci).addAll(Sets.newHashSet(fls));
-                                }
-                            }
-                            
-                            if (log.isDebugEnabled()) {
-                                log.debug("fls fields {} for {}", Sets.newHashSet(fls), Arrays.toString(concreteIndices));
-                            }
-                            
-                        }
-                        
-                    }
-                }
-                
+            if (!resolvedRoleIndices.isEmpty()) {
                 allowAction = true;
             }
             
@@ -1363,6 +1370,22 @@ public class PrivilegesEvaluator {
             }
             return modified;
         }  
+    }
+    
+    private List<String> toString(List<AliasMetaData> aliases) {
+        if(aliases == null || aliases.size() == 0) {
+            return Collections.emptyList();
+        }
+        
+        final List<String> ret = new ArrayList<String>(aliases.size());
+        
+        for(final AliasMetaData amd: aliases) {
+            if(amd != null) {
+                ret.add(amd.alias());
+            }
+        }
+        
+        return Collections.unmodifiableList(ret);
     }
     
     public boolean multitenancyEnabled() {
