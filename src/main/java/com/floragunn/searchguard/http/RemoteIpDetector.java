@@ -1,5 +1,3 @@
-package com.floragunn.searchguard.http;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -16,6 +14,8 @@ package com.floragunn.searchguard.http;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+package com.floragunn.searchguard.http;
 
 import java.net.InetSocketAddress;
 import java.util.Iterator;
