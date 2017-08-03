@@ -1,11 +1,10 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
- *
+ * Copyright 2015-2017 floragunn Gmbh
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
@@ -13,6 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * 
  */
 
 package com.floragunn.searchguard.configuration;
@@ -358,12 +358,38 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
     
     private Map<String, Settings> loadConfigurations(Collection<String> configTypes) {
         try {
-            return cl.load(configTypes.toArray(new String[0]), 1, TimeUnit.MINUTES);
-        } catch (InterruptedException | TimeoutException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            return validate(cl.load(configTypes.toArray(new String[0]), 1, TimeUnit.MINUTES));
+        } catch (Exception e) {
+            LOGGER.error("Unable to load configuration because of "+e,e);
         }
         
         return Collections.emptyMap();
     }
+    
+    private Map<String, Settings> validate(Map<String, Settings> conf) throws InvalidConfigException {
+
+        final Settings roles = conf.get("roles");
+        final String rolesDelimited;
+
+        if (roles != null && (rolesDelimited = roles.toDelimitedString('#')) != null) {
+
+            // #<role>.indices.<indice>._dls_= OK
+            // #<role>.indices.<indice>._fls_.<num>= OK
+
+            final String[] rolesString = rolesDelimited.split("#");
+
+            for (String role : rolesString) {
+                if (role.contains("_fls_") && !role.matches(".+\\.indices\\..+\\._fls_\\.[0-9]+=.+")) {
+                    LOGGER.error("Invalid FLS configuration detected, FLS/DLS will not work correctly: {}", role);
+                }
+
+                if (role.contains("_dls_") && !role.matches(".+\\.indices\\..+\\._dls_=.+")) {
+                    LOGGER.error("Invalid DLS configuration detected, FLS/DLS will not work correctly: {}", role);
+                }
+            }
+        }
+
+        return conf;
+    }
+    
 }
