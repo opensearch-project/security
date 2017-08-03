@@ -358,12 +358,38 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
     
     private Map<String, Settings> loadConfigurations(Collection<String> configTypes) {
         try {
-            return cl.load(configTypes.toArray(new String[0]), 1, TimeUnit.MINUTES);
-        } catch (InterruptedException | TimeoutException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            return validate(cl.load(configTypes.toArray(new String[0]), 1, TimeUnit.MINUTES));
+        } catch (Exception e) {
+            LOGGER.error("Unable to load configuration because of "+e,e);
         }
         
         return Collections.emptyMap();
     }
+    
+    private Map<String, Settings> validate(Map<String, Settings> conf) throws InvalidConfigException {
+
+        final Settings roles = conf.get("roles");
+        final String rolesDelimited;
+
+        if (roles != null && (rolesDelimited = roles.toDelimitedString('#')) != null) {
+
+            // #<role>.indices.<indice>._dls_= OK
+            // #<role>.indices.<indice>._fls_.<num>= OK
+
+            final String[] rolesString = rolesDelimited.split("#");
+
+            for (String role : rolesString) {
+                if (role.contains("_fls_") && !role.matches(".+\\.indices\\..+\\._fls_\\.[0-9]+=.+")) {
+                    LOGGER.error("Invalid FLS configuration detected, FLS/DLS will not work correctly: {}", role);
+                }
+
+                if (role.contains("_dls_") && !role.matches(".+\\.indices\\..+\\._dls_=.+")) {
+                    LOGGER.error("Invalid DLS configuration detected, FLS/DLS will not work correctly: {}", role);
+                }
+            }
+        }
+
+        return conf;
+    }
+    
 }
