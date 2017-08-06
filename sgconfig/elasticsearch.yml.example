@@ -118,3 +118,16 @@ searchguard.audit.type: internal_elasticsearch
 # or make Search Guard stop working
 #searchguard.enable_snapshot_restore_privilege: true
 #searchguard.check_snapshot_restore_write_privileges: false
+
+# Authentication cache timeout in minutes (A value of 0 disables caching, default is 60)
+# WARNING: Expert settings, do only use if you know what you are doing
+# If you set wrong values here this this could be a security risk
+# or make Search Guard stop working
+#searchguard.cache.ttl_minutes: 60
+
+# Disable Search Guard
+# WARNING: This can expose your configuration (including passwords) to the public.
+# WARNING: Expert settings, do only use if you know what you are doing
+# If you set wrong values here this this could be a security risk
+# or make Search Guard stop working.
+#searchguard.disabled: false

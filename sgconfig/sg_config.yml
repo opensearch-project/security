@@ -50,6 +50,10 @@
 
 searchguard:
   dynamic:
+    # Set filtered_alias_mode to 'disallow' to forbid more than 2 filtered aliases per index
+    # Set filtered_alias_mode to 'warn' to allow more than 2 filtered aliases per index but warns about it (default)
+    # Set filtered_alias_mode to 'nowarn' to allow more than 2 filtered aliases per index silently
+    #filtered_alias_mode: warn
     kibana:
       # Kibana multitenancy - NOT FREE FOR COMMERCIAL USE
       # see https://github.com/floragunncom/search-guard-docs/blob/master/multitenancy.md
