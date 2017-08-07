@@ -17,6 +17,7 @@
 
 package com.floragunn.searchguard.tools;
 
+import java.io.Console;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -26,11 +27,15 @@ import java.io.Writer;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Locale;
+import java.util.Objects;
+
+import javax.xml.bind.DatatypeConverter;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -188,6 +193,9 @@ public class SearchGuardAdmin {
 
         options.addOption(Option.builder("noopenssl").longOpt("no-openssl").desc("Do not use openssl even if available (default: use it if available)").build());
 
+        //options.addOption(Option.builder("sia").longOpt("simple-auth").desc("simple-auth").build());
+
+        
         //when adding new options also adjust validate(CommandLine line)
         
         String hostname = "localhost";
@@ -195,8 +203,8 @@ public class SearchGuardAdmin {
         String kspass = System.getenv(SG_KS_PASS) != null ? System.getenv(SG_KS_PASS) : "changeit";
         String tspass = System.getenv(SG_TS_PASS) != null ? System.getenv(SG_TS_PASS) : kspass;
         String cd = ".";
-        String ks;
-        String ts;
+        String ks = null;
+        String ts = null;
         String kst = null;
         String tst = null;
         boolean nhnv = false;
@@ -220,11 +228,13 @@ public class SearchGuardAdmin {
         boolean deleteConfigIndex = false;
         boolean enableShardAllocation = false;
         boolean acceptRedCluster = false;
+        
+        String keypass = System.getenv(SG_KEYPASS);
+        boolean useOpenSSLIfAvailable = true;
+        boolean simpleAuth = false;
         String cacert = null;
         String cert = null;
         String key = null;
-        String keypass = System.getenv(SG_KEYPASS);
-        boolean useOpenSSLIfAvailable = true;
         
         CommandLineParser parser = new DefaultParser();
         try {
@@ -242,8 +252,8 @@ public class SearchGuardAdmin {
                 cd += File.separator;
             }
             
-            ks = line.getOptionValue("ks");
-            ts = line.getOptionValue("ts");
+            ks = line.getOptionValue("ks",ks);
+            ts = line.getOptionValue("ts",ts);
             kst = line.getOptionValue("kst", kst);
             tst = line.getOptionValue("tst", tst);
             nhnv = line.hasOption("nhnv");
@@ -294,6 +304,21 @@ public class SearchGuardAdmin {
             
             useOpenSSLIfAvailable = !line.hasOption("noopenssl");
             
+            //simpleAuth = line.hasOption("sia");
+            
+            if (cert == null && ks == null) {
+                nhnv = true;
+                simpleAuth = true;
+                //jar location
+                // /Users/temp/search-guard/smoketests/elasticsearch-5.5.1-1/plugins/search-guard-5/search-guard-5-6.0.x-HEAD-SNAPSHOT.jar
+                String jarPath = new File(SearchGuardAdmin.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath()).getParentFile().getAbsolutePath();
+                //System.out.println("jarPath "+jarPath);
+                cd = ("."+File.separator).equals(cd) ? (jarPath+"/sgconfig/") : cd;
+                cacert = cacert == null ? jarPath+"/defaultcerts/root-ca.pem" : cacert;
+                cert = cert == null ? jarPath+"/defaultcerts/sgadmin.crtfull.pem" : cert;
+                key = key == null ? jarPath+"/defaultcerts/sgadmin.key.pem" : key;
+            }
+            
         }
         catch( ParseException exp ) {
             System.err.println("ERR: Parsing failed.  Reason: " + exp.getMessage());
@@ -329,8 +354,8 @@ public class SearchGuardAdmin {
         
         final Settings.Builder settingsBuilder = Settings
                 .builder()
-                .put("path.home", ".")
-                .put("path.conf", ".")
+                //.put("path.home", ".")
+                //.put("path.conf", ".")
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_PASSWORD, kspass)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_TRUSTSTORE_PASSWORD, tspass)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, !nhnv)
@@ -377,12 +402,39 @@ public class SearchGuardAdmin {
                 if(keypass != null) {
                     settingsBuilder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_PEMKEY_PASSWORD, keypass);
                 }
+                
+                if (simpleAuth) {
+                    
+                    String pwdEnv = System.getenv("SGROOT_PWD");
+                    
+                    if(pwdEnv == null) {
+                    
+                        final String defaultPassword = "admin";
+                        
+                        Console console = System.console();
+                        if (console == null) {
+                            System.out.println("Couldn't get Console instance, use default password");
+                            pwdEnv = defaultPassword;
+                        } else {
+                            char[] passwordArray = console.readPassword("sg root password: ");
+                            if(passwordArray == null) {
+                                System.out.println("No password entered, use default password");
+                                pwdEnv = defaultPassword;
+                            } else {
+                                pwdEnv = new String(passwordArray);
+                            }
+                        }
+
+                    }
+
+                    settingsBuilder.put("request.headers.Authorization", "Basic "+encodeBasicHeader("sgroot",pwdEnv));
+                }
 
                 Settings settings = settingsBuilder.build();  
 
         try (TransportClient tc = new TransportClientImpl(settings, asCollection(Netty4Plugin.class, SearchGuardPlugin.class))
                 .addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(hostname, port)))) {
-
+            
             if(updateSettings != null) { 
                 Settings indexSettings = Settings.builder().put("index.number_of_replicas", updateSettings).build();                
                 tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();                
@@ -452,6 +504,7 @@ public class SearchGuardAdmin {
                         System.out.println("   * Make also sure that your keystore or cert is a client certificate (not a node certificate) and configured properly in elasticsearch.yml"); 
                         System.out.println("   * If this is not working, try running sgadmin.sh with --diagnose and see diagnose trace log file)");
                         System.out.println("   * Add --accept-red-cluster to allow sgadmin to operate on a red cluster.");
+                        System.out.println("   * sgroot password does not match");
 
                     } else {
                         System.out.println("ERR: Cannot retrieve cluster state due to: "+e.getMessage()+".");
@@ -459,6 +512,7 @@ public class SearchGuardAdmin {
                         System.out.println("   * Make also sure that your keystore or cert is a client certificate (not a node certificate) and configured properly in elasticsearch.yml"); 
                         System.out.println("   * If this is not working, try running sgadmin.sh with --diagnose and see diagnose trace log file)"); 
                         System.out.println("   * Add --accept-red-cluster to allow sgadmin to operate on a red cluster.");
+                        System.out.println("   * sgroot password does not match");
 
                         System.exit(-1);
                     }
@@ -476,6 +530,7 @@ public class SearchGuardAdmin {
                 System.out.println("   * Make also sure that your keystore or cert is a client certificate (not a node certificate) and configured properly in elasticsearch.yml"); 
                 System.out.println("   * If this is not working, try running sgadmin.sh with --diagnose and see diagnose trace log file)"); 
                 System.out.println("   * Add --accept-red-cluster to allow sgadmin to operate on a red cluster.");
+                System.out.println("   * sgroot password does not match");
                 System.exit(-1);
             }
             
@@ -834,14 +889,19 @@ public class SearchGuardAdmin {
             throw new ParseException("Only set one of -cn or -icl");
         }
 
-        if(!line.hasOption("ks") && !line.hasOption("cert")) {
-            throw new ParseException("Specify at least -ks or -cert");
+        if(!line.hasOption("ks") && !line.hasOption("cert") && !line.hasOption("simple-auth")) {
+            //throw new ParseException("Specify at least -ks or -cert");
         }
         
-        if(!line.hasOption("ts") && !line.hasOption("cacert")) {
-            throw new ParseException("Specify at least -ts or -cacert");
+        if(!line.hasOption("ts") && !line.hasOption("cacert") && !line.hasOption("simple-auth")) {
+            //throw new ParseException("Specify at least -ts or -cacert");
         }
         
         //TODO add more validation rules
     }
+    
+    private static String encodeBasicHeader(final String username, final String password) {
+        return new String(DatatypeConverter.printBase64Binary((username + ":" + Objects.requireNonNull(password)).getBytes(StandardCharsets.UTF_8)));
+    }
+    
 }

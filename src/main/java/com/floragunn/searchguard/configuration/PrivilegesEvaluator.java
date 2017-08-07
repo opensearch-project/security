@@ -599,7 +599,7 @@ public class PrivilegesEvaluator {
                         final IndexMetaData indexMetaData = clusterState.metaData().getIndices().get(requestAliasOrIndex);
                         
                         if(indexMetaData == null) {
-                            log.warn("{} does not exist in cluster metadata", requestAliasOrIndex);
+                            log.debug("{} does not exist in cluster metadata", requestAliasOrIndex);
                             continue;
                         }
                         

@@ -84,6 +84,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
     private Cache<AuthCredentials, User> userCache;
     private Cache<String, User> userCacheTransport;
     private Cache<AuthCredentials, User> authenticatedUserCacheTransport;
+    private final boolean sgrootEnabled;
     
     private void createCaches() {
         userCache = CacheBuilder.newBuilder()
@@ -122,6 +123,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
         this.iab = iab;
         this.auditLog = auditLog;
         this.threadPool = threadPool;
+        sgrootEnabled = settings.getAsBoolean("searchguard.sgroot_enabled", true);
         
         authImplMap.put("intern_c", InternalAuthenticationBackend.class.getName());
         authImplMap.put("intern_z", NoOpAuthorizationBackend.class.getName());
@@ -140,7 +142,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
         authImplMap.put("clientcert_h", HTTPClientCertAuthenticator.class.getName());
         authImplMap.put("kerberos_h", "com.floragunn.dlic.auth.http.kerberos.HTTPSpnegoAuthenticator");
         authImplMap.put("jwt_h", "com.floragunn.dlic.auth.http.jwt.HTTPJwtAuthenticator");
-        authImplMap.put("host_h", HTTPHostAuthenticator.class.getName());
+        //authImplMap.put("host_h", HTTPHostAuthenticator.class.getName());
         
         this.ttlInMin = settings.getAsInt("searchguard.cache.ttl_minutes", 60);
         createCaches();
@@ -346,7 +348,8 @@ public class BackendRegistry implements ConfigurationChangeListener {
                     continue;
                 }
                 
-                if(AdminDNs.isAdmin(authenticatedUser.getName())) {
+               //TODO userexp - we need to allow this
+                if(!sgrootEnabled && AdminDNs.isAdmin(authenticatedUser.getName())) {
                     log.error("Cannot authenticate user because admin user is not permitted to login");
                     auditLog.logFailedLogin(authenticatedUser.getName(), request);
                     return null;
@@ -512,7 +515,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
                     continue;
                 }
 
-                if(AdminDNs.isAdmin(authenticatedUser.getName())) {
+                if(!sgrootEnabled && AdminDNs.isAdmin(authenticatedUser.getName())) {
                     log.error("Cannot authenticate user because admin user is not permitted to login via HTTP");
                     auditLog.logFailedLogin(authenticatedUser.getName(), request);
                     channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, "Cannot authenticate user because admin user is not permitted to login via HTTP"));

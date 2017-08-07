@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
@@ -63,6 +64,7 @@ import org.elasticsearch.common.settings.SettingsFilter;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.env.Environment;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.http.HttpServerTransport.Dispatcher;
 import org.elasticsearch.index.IndexModule;
@@ -150,9 +152,8 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
     private final boolean disabled;
     private static final String LB = System.lineSeparator();
 
-    public SearchGuardPlugin(final Settings settings) {
+    public SearchGuardPlugin(final Settings settings0) {
         super();
-        
         AccessController.doPrivileged(new PrivilegedAction<Object>() {
             @Override
             public Object run() {
@@ -161,7 +162,7 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
             }
         });
         
-        disabled = settings.getAsBoolean("searchguard.disabled", false);
+        disabled = settings0.getAsBoolean("searchguard.disabled", false);
         
         if(disabled) {
             this.settings = null;
@@ -173,6 +174,9 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
             this.sgks = null;
             log.warn("Search Guard plugin installed but disabled. This can expose your configuration (including passwords) to the public.");
             return;
+        } else {
+            client = !"node".equals(settings0.get(CLIENT_TYPE, "node"));
+            this.settings = Settings.builder().put(settings0).put(getDefaultSettings(settings0)).build();
         }
         
         log.info("Clustername: {}", settings.get("cluster.name","elasticsearch"));
@@ -233,14 +237,13 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         AccessController.doPrivileged(new PrivilegedAction<Object>() {
             @Override
             public Object run() {
+                System.setProperty("es.set.netty.runtime.available.processors", "false");
                 PlatformDependent.newFixedMpscQueue(1);
                 OpenSsl.isAvailable();
                 return null;
             }
         });
         
-        this.settings = settings;
-        client = !"node".equals(this.settings.get(CLIENT_TYPE, "node"));
         boolean tribeNode = this.settings.getAsBoolean("action.master.force_local", false) && this.settings.getByPrefix("tribe").getAsMap().size() > 0;
         tribeNodeClient = this.settings.get("tribe.name", null) != null;
         httpSSLEnabled = settings.getAsBoolean(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLED,
@@ -276,6 +279,8 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
     public List<RestHandler> getRestHandlers(Settings settings, RestController restController, ClusterSettings clusterSettings,
             IndexScopedSettings indexScopedSettings, SettingsFilter settingsFilter,
             IndexNameExpressionResolver indexNameExpressionResolver, Supplier<DiscoveryNodes> nodesInCluster) {
+        
+        settings = Settings.builder().put(settings).put(getDefaultSettings(settings)).build();
         
         final List<RestHandler> handlers = new ArrayList<RestHandler>(1);
         
@@ -403,37 +408,41 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
     }
     
     @Override
-    public Map<String, Supplier<Transport>> getTransports(Settings settings, ThreadPool threadPool, BigArrays bigArrays,
+    public Map<String, Supplier<Transport>> getTransports(Settings settings0, ThreadPool threadPool, BigArrays bigArrays,
             CircuitBreakerService circuitBreakerService, NamedWriteableRegistry namedWriteableRegistry, NetworkService networkService) {
 
+        final Settings settings1 = Settings.builder().put(settings0).put(getDefaultSettings(settings0)).build();
+        
         Map<String, Supplier<Transport>> transports = new HashMap<String, Supplier<Transport>>();
         if(!disabled) {        
             transports.put("com.floragunn.searchguard.ssl.http.netty.SearchGuardSSLNettyTransport", 
-                    () -> new SearchGuardSSLNettyTransport(settings, threadPool, networkService, bigArrays, namedWriteableRegistry, circuitBreakerService, sgks));
+                    () -> new SearchGuardSSLNettyTransport(settings1, threadPool, networkService, bigArrays, namedWriteableRegistry, circuitBreakerService, sgks));
         }
         return transports;
 
     }
 
     @Override
-    public Map<String, Supplier<HttpServerTransport>> getHttpTransports(Settings settings, ThreadPool threadPool, BigArrays bigArrays,
+    public Map<String, Supplier<HttpServerTransport>> getHttpTransports(Settings settings0, ThreadPool threadPool, BigArrays bigArrays,
             CircuitBreakerService circuitBreakerService, NamedWriteableRegistry namedWriteableRegistry,
             NamedXContentRegistry xContentRegistry, NetworkService networkService, Dispatcher dispatcher) {
 
+        final Settings settings1 = Settings.builder().put(settings0).put(getDefaultSettings(settings0)).build();
+        
         Map<String, Supplier<HttpServerTransport>> httpTransports = new HashMap<String, Supplier<HttpServerTransport>>(1);
 
         if(!disabled) {
             if (!client && httpSSLEnabled && !tribeNodeClient) {
                 
-                final ValidatingDispatcher validatingDispatcher = new ValidatingDispatcher(threadPool.getThreadContext(), dispatcher, settings);
-                final SearchGuardHttpServerTransport sghst = new SearchGuardHttpServerTransport(settings, networkService, bigArrays, threadPool, sgks, auditLog, xContentRegistry, validatingDispatcher);
+                final ValidatingDispatcher validatingDispatcher = new ValidatingDispatcher(threadPool.getThreadContext(), dispatcher, settings1);
+                final SearchGuardHttpServerTransport sghst = new SearchGuardHttpServerTransport(settings1, networkService, bigArrays, threadPool, sgks, auditLog, xContentRegistry, validatingDispatcher);
                 validatingDispatcher.setAuditErrorHandler(sghst);
                 
                 httpTransports.put("com.floragunn.searchguard.http.SearchGuardHttpServerTransport", 
                         () -> sghst);
             } else if (!client && !tribeNodeClient) {
                 httpTransports.put("com.floragunn.searchguard.http.SearchGuardHttpServerTransport", 
-                        () -> new SearchGuardNonSslHttpServerTransport(settings, networkService, bigArrays, threadPool, xContentRegistry, dispatcher));
+                        () -> new SearchGuardNonSslHttpServerTransport(settings1, networkService, bigArrays, threadPool, xContentRegistry, dispatcher));
             }
         }
         return httpTransports;
@@ -573,6 +582,33 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         return components;
         
     }
+    
+    //TODO userexp refine
+    protected Settings getDefaultSettings(final Settings settings0) {
+
+        if(settings0.get(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_FILEPATH) != null
+                || settings0.get(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_PEMCERT_FILEPATH) != null
+                )
+                /*|| client)*/ {
+            //System.out.println("CLIENT--CLIENT--CLIENT--CLIENT--CLIENT");
+            return Settings.EMPTY;
+            
+        }
+        
+        
+        //System.out.println("---- Apply default settings");
+        
+        final Settings.Builder builder = Settings.builder();
+        final String path = new Environment(settings0).pluginsFile().toAbsolutePath().toString()+"/search-guard-5/defaultcerts/";
+        builder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_PEMCERT_FILEPATH,path+"es-node.crt.pem");
+        builder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_PEMKEY_FILEPATH,path+"es-node.key");
+        builder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH,path+"root-ca.pem");
+        builder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_PEMKEY_PASSWORD,"changeit");
+        builder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, false);
+        builder.put("network.host", "0.0.0.0");
+        
+        return builder.build();
+    }
 
     @Override
     public Settings additionalSettings() {
@@ -689,6 +725,9 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         settings.add(Setting.intSetting("searchguard.cache.ttl_minutes", 60, 0, Property.NodeScope, Property.Filtered));
 
         
+        settings.add(Setting.boolSetting("searchguard.no_default_init", false, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting("searchguard.sgroot_enabled", true, Property.NodeScope, Property.Filtered));
+
 
     
         return settings;
