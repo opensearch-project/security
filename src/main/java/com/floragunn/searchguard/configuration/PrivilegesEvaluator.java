@@ -897,7 +897,7 @@ public class PrivilegesEvaluator {
                 continue;
             }
 
-            if (caller != null && WildcardMatcher.matchAny(roleMapSettings.getAsArray(".hosts"), caller.getHost())) {
+            if (caller != null && WildcardMatcher.matchAny(roleMapSettings.getAsArray(".hosts"), caller.getAddress())) {
                 sgRoles.add(roleMap);
                 continue;
             }
