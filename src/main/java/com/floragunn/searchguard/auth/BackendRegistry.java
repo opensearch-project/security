@@ -58,6 +58,7 @@ import com.floragunn.searchguard.http.HTTPProxyAuthenticator;
 import com.floragunn.searchguard.http.XFFResolver;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.HTTPHelper;
+import com.floragunn.searchguard.support.ReflectionHelper;
 import com.floragunn.searchguard.user.AuthCredentials;
 import com.floragunn.searchguard.user.User;
 import com.google.common.base.Strings;
@@ -140,7 +141,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
         authImplMap.put("clientcert_h", HTTPClientCertAuthenticator.class.getName());
         authImplMap.put("kerberos_h", "com.floragunn.dlic.auth.http.kerberos.HTTPSpnegoAuthenticator");
         authImplMap.put("jwt_h", "com.floragunn.dlic.auth.http.jwt.HTTPJwtAuthenticator");
-        authImplMap.put("host_h", HTTPHostAuthenticator.class.getName());
+        //authImplMap.put("host_h", HTTPHostAuthenticator.class.getName());
         
         this.ttlInMin = settings.getAsInt("searchguard.cache.ttl_minutes", 60);
         createCaches();
@@ -152,26 +153,22 @@ public class BackendRegistry implements ConfigurationChangeListener {
         authenticatedUserCacheTransport.invalidateAll();
     }
 
-    private <T> T newInstance(final String clazzOrShortcut, String type, final Settings settings) throws ClassNotFoundException, NoSuchMethodException,
-            SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+    private <T> T newInstance(final String clazzOrShortcut, String type, final Settings settings) {
         
         String clazz = clazzOrShortcut;
+        boolean isEnterprise = false;
         
         if(authImplMap.containsKey(clazz+"_"+type)) {
             clazz = authImplMap.get(clazz+"_"+type);
+        } else {
+            isEnterprise = true;
         }
         
-        final Class<T> t = (Class<T>) Class.forName(clazz);
-
-        //try {
-            final Constructor<T> tctor = t.getConstructor(Settings.class);
-            return tctor.newInstance(settings);
-            //} catch (final Exception e) {
-            
-            //log.warn("Unable to create instance of class {} with (Settings.class) constructor due to {}", e, t, e.toString());
-            //final Constructor<T> tctor = t.getConstructor(Settings.class, TransportConfigUpdateAction.class);
-            //return tctor.newInstance(settings, tcua);
-            //}
+        if(ReflectionHelper.isEnterpriseAAAModule(clazz)) {
+            isEnterprise = true;
+        }
+        
+        return ReflectionHelper.instantiateAAA(clazz, settings, isEnterprise);
     }
 
     @Override

@@ -17,6 +17,8 @@
 
 package com.floragunn.searchguard.configuration;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -28,6 +30,10 @@ import java.util.concurrent.TimeoutException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.bouncycastle.bcpg.ArmoredInputStream;
+import org.bouncycastle.openpgp.PGPObjectFactory;
+import org.bouncycastle.openpgp.PGPPublicKeyRingCollection;
+import org.bouncycastle.openpgp.PGPSignatureList;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
@@ -41,32 +47,37 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.util.concurrent.ThreadContext.StoredContext;
+import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import com.floragunn.searchguard.support.ConfigConstants;
+import com.floragunn.searchguard.support.ReflectionHelper;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.io.BaseEncoding;
 
 public class IndexBaseConfigurationRepository implements ConfigurationRepository {
     private static final Logger LOGGER = LogManager.getLogger(IndexBaseConfigurationRepository.class);
 
     private final String searchguardIndex;
     //private final Client client; 
-    //private final ClusterService clusterService;
+    private final ClusterService clusterService;
     private final ConcurrentMap<String, Settings> typeToConfig;
     private final Multimap<String, ConfigurationChangeListener> configTypeToChancheListener;
     private final ConfigurationLoader cl;
-
+    private final Settings settings;
     //private volatile boolean indexReady = false;
 
     private IndexBaseConfigurationRepository(Settings settings, ThreadPool threadPool, Client client, ClusterService clusterService) {
         this.searchguardIndex = settings.get(ConfigConstants.SG_CONFIG_INDEX, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
         //this.client = client;
+        this.settings = settings;
         this.typeToConfig = Maps.newConcurrentMap();
         this.configTypeToChancheListener = ArrayListMultimap.create();
-        //this.clusterService = clusterService;
+        this.clusterService = clusterService;
         cl = new ConfigurationLoader(client, threadPool, settings);
         
         clusterService.addLifecycleListener(new LifecycleListener() {
@@ -392,4 +403,48 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
         return conf;
     }
     
+    public SearchGuardLicense getLicense() {
+
+        //TODO check spoof with cluster settings and elasticsearch.yml without node restart
+        boolean enterpriseModulesEnabled = settings.getAsBoolean("searchguard.enterprise_modules_enabled", true);
+        
+        if(!enterpriseModulesEnabled) {
+            return null;
+        }
+        
+        String licenseText = getConfiguration("config").get("searchguard.dynamic.license");
+        
+        if(licenseText == null || licenseText.isEmpty()) {
+            return SearchGuardLicense.createTrialLicense(issueDate, clusterService);
+        } else {
+            try {
+                final byte[] armoredPgp = BaseEncoding.base64().decode(licenseText.trim());
+                
+                final ArmoredInputStream in = new ArmoredInputStream(new ByteArrayInputStream(armoredPgp));
+                
+                //
+                // read the input, making sure we ingore the last newline.
+                //
+                //https://github.com/bcgit/bc-java/blob/master/pg/src/test/java/org/bouncycastle/openpgp/test/PGPClearSignedSignatureTest.java
+
+                final ByteArrayOutputStream bout = new ByteArrayOutputStream();
+                int ch;
+
+                while ((ch = in.read()) >= 0 && in.isClearText()) {
+                    bout.write((byte)ch);
+                }
+                
+                final PGPObjectFactory factory = new PGPObjectFactory(in);
+                final PGPSignatureList sigL = (PGPSignatureList) factory.nextObject();
+                final PGPPublicKeyRingCollection pgpRings = new PGPPublicKeyRingCollection(new ArmoredInputStream(this.getClass().getResourceAsStream("/KEYS")));
+                sigL.get(0).initVerify(pgpRings.getPublicKey(sigL.get(0).getKeyID()), "BC");
+                licenseText = bout.toString();
+            } catch (Exception e) {
+                LOGGER.error("Unable to verify license",e);
+                licenseText = null;
+            }
+        }
+        
+        return new SearchGuardLicense(XContentHelper.convertToMap(XContentType.JSON.xContent(), licenseText, true), clusterService);
+    }
 }

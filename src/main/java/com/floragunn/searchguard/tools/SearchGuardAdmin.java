@@ -25,7 +25,7 @@ import java.io.Reader;
 import java.io.Writer;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collection;
@@ -801,7 +801,7 @@ public class SearchGuardAdmin {
         
         try {
             File dfile = new File("sgadmin_diag_trace_"+date+".txt");
-            Files.write(sb,dfile,Charset.forName("UTF-8"));
+            Files.write(sb,dfile, StandardCharsets.UTF_8);
             System.out.println("Diagnostic trace written to: "+dfile.getAbsolutePath());
         } catch (Exception e1) {
             System.out.println("ERR: cannot write diag trace file due to "+e1);
