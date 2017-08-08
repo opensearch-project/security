@@ -32,6 +32,7 @@ import org.apache.http.message.BasicHeader;
 import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.action.DocWriteResponse.Result;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
@@ -235,6 +236,11 @@ public class SGTests extends AbstractUnitTest {
         try (Node node = new PluginAwareNode(tcSettings, Netty4Plugin.class, SearchGuardPlugin.class).start()) {
             Thread.sleep(50);
             Assert.assertEquals(4, node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
+
+            //Assert.assertEquals(4, client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
+            //final ClusterHealthResponse chr = client().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet();            
+            //Assert.assertEquals(4, chr.getNumberOfNodes());
+
             //Assert.assertEquals(4, client().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getNumberOfNodes());     
         }
     }
@@ -1366,7 +1372,7 @@ public class SGTests extends AbstractUnitTest {
                 }
                 Assert.fail();
             } catch (ElasticsearchSecurityException e) {
-               Assert.assertEquals("no permissions for indices:data/read/get", e.getMessage());
+               Assert.assertTrue(e.getMessage().startsWith("no permissions for indices:data/read/get"));
             }
             
             System.out.println("------- 11 ---------");
@@ -1377,7 +1383,7 @@ public class SGTests extends AbstractUnitTest {
                 gr = tc.prepareGet("vulcan", "secrets", "s1").get();
                 Assert.fail();
             } catch (ElasticsearchSecurityException e) {
-               Assert.assertEquals("no permissions for indices:data/read/get", e.getMessage());
+                Assert.assertTrue(e.getMessage().startsWith("no permissions for indices:data/read/get"));
             } finally {
                 ctx.close();
             }
@@ -1516,7 +1522,7 @@ public class SGTests extends AbstractUnitTest {
                 gr = tc.prepareGet("vulcan", "secrets", "s1").get();
                 Assert.fail();
             } catch (ElasticsearchSecurityException e) {
-               Assert.assertEquals("no permissions for indices:data/read/get", e.getMessage());
+                Assert.assertTrue(e.getMessage().startsWith("no permissions for indices:data/read/get"));
                Assert.assertTrue(ok);
             } finally {
                 ctx.close();
@@ -2970,6 +2976,7 @@ public class SGTests extends AbstractUnitTest {
         //Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
         
 }
+   
     
     @Test
     public void testFullLicense() throws Exception {
@@ -3046,6 +3053,34 @@ public class SGTests extends AbstractUnitTest {
         //Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
         
 }
+
+    
+    @Test
+    public void testDefaultConfig() throws Exception {
+        
+        //FileUtils.copyDirectory(new File("./sgconfig"), new File("./plugins/search-guard-5/"));
+        System.setProperty("sg.default_init.dir", new File("./sgconfig").getAbsolutePath());
+
+        final Settings settings = Settings.builder().put("searchguard.ssl.transport.enabled", true)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
+                .put("searchguard.ssl.transport.keystore_filepath", getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+                .put("searchguard.ssl.transport.truststore_filepath", getAbsoluteFilePathFromClassPath("truststore.jks"))
+                .put("searchguard.ssl.transport.enforce_hostname_verification", false)
+                .put("searchguard.ssl.transport.resolve_hostname", false)
+                .putArray("searchguard.authcz.admin_dn", "CN=kirk,OU=client,O=client,l=tEst, C=De")
+                .build();
+        
+        startES(settings);
+   
+        Thread.sleep(10000);
+        
+        Assert.assertEquals(HttpStatus.SC_OK, executeGetRequest("", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("admin", "admin"))).getStatusCode());
+
+    }
+
+
 
     private ThreadContext newThreadContext(String sslPrincipal) {
         ThreadContext threadContext = new ThreadContext(Settings.EMPTY);

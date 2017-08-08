@@ -89,7 +89,7 @@ public class ConfigurationLoader {
             
             @Override
             public void noData(String type) {
-                log.error("No data for {} while retrieving configuration for {}  (index={})", type, Arrays.toString(events), searchguardIndex);
+                log.info("No data for {} while retrieving configuration for {}  (index={})", type, Arrays.toString(events), searchguardIndex);
             }
             
             @Override

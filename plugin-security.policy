@@ -47,5 +47,4 @@ grant {
 
   permission java.security.SecurityPermission "setProperty.ocsp.enable";
   permission java.util.PropertyPermission "com.sun.security.enableCRLDP", "write";
-
 };

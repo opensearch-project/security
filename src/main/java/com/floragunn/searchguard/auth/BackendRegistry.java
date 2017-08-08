@@ -85,6 +85,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
     private Cache<AuthCredentials, User> userCache;
     private Cache<String, User> userCacheTransport;
     private Cache<AuthCredentials, User> authenticatedUserCacheTransport;
+    private final boolean sgrootEnabled;
     
     private void createCaches() {
         userCache = CacheBuilder.newBuilder()
@@ -123,6 +124,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
         this.iab = iab;
         this.auditLog = auditLog;
         this.threadPool = threadPool;
+        sgrootEnabled = settings.getAsBoolean("searchguard.sgroot_enabled", true);
         
         authImplMap.put("intern_c", InternalAuthenticationBackend.class.getName());
         authImplMap.put("intern_z", NoOpAuthorizationBackend.class.getName());
@@ -343,7 +345,8 @@ public class BackendRegistry implements ConfigurationChangeListener {
                     continue;
                 }
                 
-                if(AdminDNs.isAdmin(authenticatedUser.getName())) {
+               //TODO userexp - we need to allow this
+                if(!sgrootEnabled && AdminDNs.isAdmin(authenticatedUser.getName())) {
                     log.error("Cannot authenticate user because admin user is not permitted to login");
                     auditLog.logFailedLogin(authenticatedUser.getName(), request);
                     return null;
@@ -509,7 +512,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
                     continue;
                 }
 
-                if(AdminDNs.isAdmin(authenticatedUser.getName())) {
+                if(!sgrootEnabled && AdminDNs.isAdmin(authenticatedUser.getName())) {
                     log.error("Cannot authenticate user because admin user is not permitted to login via HTTP");
                     auditLog.logFailedLogin(authenticatedUser.getName(), request);
                     channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, "Cannot authenticate user because admin user is not permitted to login via HTTP"));

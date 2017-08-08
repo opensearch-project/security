@@ -37,10 +37,12 @@ public class AdminDNs {
     protected static final Logger log = LogManager.getLogger(AdminDNs.class);
     private static final Set<LdapName> adminDn = new HashSet<LdapName>(); //TODO static hack
     private final ListMultimap<LdapName, String> allowedImpersonations = ArrayListMultimap.<LdapName, String> create();
+    private static boolean sgrootEnabled;
     
     public AdminDNs(Settings settings) 
     {
-        final String[] adminDnsA = settings.getAsArray("searchguard.authcz.admin_dn");
+        sgrootEnabled = settings.getAsBoolean("searchguard.sgroot_enabled", true);
+        final String[] adminDnsA = settings.getAsArray("searchguard.authcz.admin_dn", new String[0]);
 
         for (int i = 0; i < adminDnsA.length; i++) {
             final String dn = adminDnsA[i];
@@ -72,6 +74,12 @@ public class AdminDNs {
         
         if(dn == null) return false;
         
+        //TODO userexp - auditlog?
+        if(sgrootEnabled && "sgroot".equals(dn)) {
+            //System.out.println("sgoot admin allowed");
+            return true;
+        }
+        
         try {
             return isAdmin(new LdapName(dn));
         } catch (InvalidNameException e) {
@@ -80,7 +88,7 @@ public class AdminDNs {
     }
     
     //TODO static hack
-    public static boolean isAdmin(LdapName dn) {
+    private static boolean isAdmin(LdapName dn) {
         if(dn == null) return false;
         
         boolean isAdmin = adminDn.contains(dn);

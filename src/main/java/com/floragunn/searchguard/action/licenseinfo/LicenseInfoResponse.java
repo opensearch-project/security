@@ -51,7 +51,7 @@ public class LicenseInfoResponse extends BaseNodesResponse<LicenseInfoNodeRespon
                 overallExpired = true;
                 break;
             } else {
-                license.isValid()
+                //license.isValid()
             }
         }
     }
