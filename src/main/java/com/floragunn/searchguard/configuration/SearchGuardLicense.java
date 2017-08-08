@@ -59,7 +59,7 @@ public final class SearchGuardLicense implements Writeable, ToXContent{
     private final ClusterService clusterService;
     
     public static SearchGuardLicense createTrialLicense(String issueDate, ClusterService clusterService) {
-        return new SearchGuardLicense("trial", Type.TRIAL, issueDate, addDays(issueDate, 90), "the world", "floragunn GmbH", issueDate, 5, "*", clusterService);
+        return new SearchGuardLicense("00000000-0000-0000-0000-000000000000", Type.TRIAL, issueDate, addDays(issueDate, 92L), "the world", "floragunn GmbH", issueDate, 5, "*", clusterService);
     }
     
     @Override
@@ -254,13 +254,15 @@ public final class SearchGuardLicense implements Writeable, ToXContent{
         TRIAL
     }
     
+    
+    
     private static Date parseDate(String date) throws ParseException {
-        return new SimpleDateFormat("YYYY-mm-dd").parse(date);
+        return new SimpleDateFormat("yyyy-MM-dd").parse(date);
     }
     
-    private static String addDays(String date, int days) {
+    private static String addDays(String date, long days) {
         try {
-            return new SimpleDateFormat("YYYY-mm-dd").format(new Date(parseDate(date).getTime()+(days*1000*60*60*24)));
+            return new SimpleDateFormat("yyyy-MM-dd").format(new Date(parseDate(date).getTime()+(days*1000L*60L*60L*24L)));
         } catch (Exception e) {
             return e.toString();
         } 

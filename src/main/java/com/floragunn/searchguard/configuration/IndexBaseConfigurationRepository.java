@@ -20,9 +20,12 @@ package com.floragunn.searchguard.configuration;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
@@ -42,6 +45,9 @@ import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsResponse;
+import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -72,10 +78,14 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
     private final ConcurrentMap<String, Settings> typeToConfig;
     private final Multimap<String, ConfigurationChangeListener> configTypeToChancheListener;
     private final ConfigurationLoader cl;
+    private final Client client;
+    private ThreadPool threadPool;
 
     private IndexBaseConfigurationRepository(Settings settings, ThreadPool threadPool, Client client, ClusterService clusterService) {
         this.searchguardIndex = settings.get(ConfigConstants.SG_CONFIG_INDEX, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
         this.settings = settings;
+        this.client = client;
+        this.threadPool = threadPool;
         this.clusterService = clusterService;
         this.typeToConfig = Maps.newConcurrentMap();
         this.configTypeToChancheListener = ArrayListMultimap.create();
@@ -114,6 +124,13 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                                             ConfigHelper.uploadFile(client, cd+"sg_roles_mapping.yml", searchguardIndex, "rolesmapping");
                                             ConfigHelper.uploadFile(client, cd+"sg_internal_users.yml", searchguardIndex, "internalusers");
                                             ConfigHelper.uploadFile(client, cd+"sg_action_groups.yml", searchguardIndex, "actiongroups");
+                                            
+                                            /*client.index(new IndexRequest(searchguardIndex)
+                                                .type("trial")
+                                                .id("0")
+                                                .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                                                .source("{\"created\": "+System.currentTimeMillis()+"}", XContentType.JSON)).actionGet();
+                                            */
                                             LOGGER.info("Default config applied");
                                         }
                                     } else {
@@ -376,6 +393,14 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
         return conf;
     }
     
+    private static String formatDate(long date) {
+        return new SimpleDateFormat("yyyy-MM-dd").format(new Date(date));
+    }
+    
+    /**
+     * 
+     * @return null if no license is needed
+     */
     public SearchGuardLicense getLicense() {
 
         //TODO check spoof with cluster settings and elasticsearch.yml without node restart
@@ -388,7 +413,25 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
         String licenseText = getConfiguration("config").get("searchguard.dynamic.license");
         
         if(licenseText == null || licenseText.isEmpty()) {
-            return null;//SearchGuardLicense.createTrialLicense(issueDate, clusterService);
+            
+            long created = System.currentTimeMillis();
+            ThreadContext threadContext = threadPool.getThreadContext();
+            
+            try(StoredContext ctx = threadContext.stashContext()) {
+                threadContext.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true");
+                GetResponse get = client.prepareGet(searchguardIndex, "trial", "0").get();
+                if(get.isExists()) {
+                    created = (long) get.getSource().get("created");
+                } else {
+                    client.index(new IndexRequest(searchguardIndex)
+                    .type("trial")
+                    .id("0")
+                    .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .source("{\"created\": "+System.currentTimeMillis()+"}", XContentType.JSON)).actionGet();
+                }
+            }
+            
+              return SearchGuardLicense.createTrialLicense(formatDate(created), clusterService);
         } else {
             try {
                 final byte[] armoredPgp = BaseEncoding.base64().decode(licenseText.trim());
