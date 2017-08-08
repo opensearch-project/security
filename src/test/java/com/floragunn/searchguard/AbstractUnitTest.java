@@ -72,7 +72,7 @@ import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -118,7 +118,7 @@ public abstract class AbstractUnitTest {
     private Node esNode3;
     private String httpHost = null;
     private int httpPort = -1;
-    protected Set<InetSocketTransportAddress> httpAdresses = new HashSet<InetSocketTransportAddress>();
+    protected Set<TransportAddress> httpAdresses = new HashSet<>();
     protected String nodeHost;
     protected int nodePort;
     protected boolean enableHTTPClientSSL = false;
@@ -165,17 +165,11 @@ public abstract class AbstractUnitTest {
                 .put("node.master", masterNode)
                 .put("cluster.name", clustername)
                 .put("path.data", "data/data")
-                //.put("path.work", "data/work")
                 .put("path.logs", "data/logs")
-                .put("path.conf", "data/config")
-                //.put("path.plugins", "data/plugins")
-                //.put("index.number_of_shards", "1")
-                //.put("index.number_of_replicas", "0")
                 .put("http.enabled", true)
-                .put("cluster.routing.allocation.disk.watermark.high","1mb")
-                .put("cluster.routing.allocation.disk.watermark.low","1mb")
+                //.put("cluster.routing.allocation.disk.watermark.high","1mb")
+                //.put("cluster.routing.allocation.disk.watermark.low","1mb")
                 .put("http.cors.enabled", true)
-                .put("node.local", false)
                 .put("transport.type.default", "netty4")
                 .put("node.max_local_storage_nodes", 3)
                 .put("discovery.zen.minimum_master_nodes", 1)
@@ -270,15 +264,15 @@ public abstract class AbstractUnitTest {
             final List<NodeInfo> nodes = res.getNodes();
             for (NodeInfo nodeInfo : nodes) {
                 if (nodeInfo.getHttp() != null && nodeInfo.getHttp().address() != null) {
-                    final InetSocketTransportAddress is = (InetSocketTransportAddress) nodeInfo.getHttp().address().publishAddress();
+                    final TransportAddress is = (TransportAddress) nodeInfo.getHttp().address().publishAddress();
                     httpPort = is.getPort();
-                    httpHost = is.getHost();
+                    httpHost = is.getAddress();
                     httpAdresses.add(is);
                 }
 
-                final InetSocketTransportAddress is = (InetSocketTransportAddress) nodeInfo.getTransport().getAddress().publishAddress();
+                final TransportAddress is = (TransportAddress) nodeInfo.getTransport().getAddress().publishAddress();
                 nodePort = is.getPort();
-                nodeHost = is.getHost();				
+                nodeHost = is.getAddress();			
 			}
         } catch (final ElasticsearchTimeoutException e) {
             throw new IOException("timeout, cluster does not respond to health request, cowardly refusing to continue with operations");
@@ -418,6 +412,8 @@ public abstract class AbstractUnitTest {
                 }
             }
             
+            uriRequest.addHeader("Content-Type","application/json");
+            
             HttpResponse res = new HttpResponse(httpClient.execute(uriRequest));
             log.trace(res.getBody());
             return res;
@@ -450,6 +446,7 @@ public abstract class AbstractUnitTest {
             }
 
             if (sendHTTPClientCertificate) {
+                log.debug("Send {} as client certificate", keystore);
                 sslContextbBuilder.loadKeyMaterial(keyStore, "changeit".toCharArray());
             }
 

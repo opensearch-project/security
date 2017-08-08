@@ -62,7 +62,7 @@ public class SearchGuardIndexSearcherWrapper extends IndexSearcherWrapper {
     public final IndexSearcher wrap(final IndexSearcher searcher) throws EngineException {
 
         if (isSearchGuardIndexRequest() && !isAdminAuthenticatedOrInternalRequest()) {
-            return new IndexSearcher(new EmptyReader(searcher.getIndexReader().getCoreCacheKey()));
+            return new IndexSearcher(new EmptyReader(searcher.getIndexReader()));
         }
 
         if (!isAdminAuthenticatedOrInternalRequest()) {

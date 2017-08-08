@@ -25,6 +25,7 @@ import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.Fields;
+import org.apache.lucene.index.LeafMetaData;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.PointValues;
@@ -41,153 +42,51 @@ import org.apache.lucene.util.BytesRef;
 
 class EmptyReader extends LeafReader {
     
-    private final Object coreCacheKey;
+    //private final Object coreCacheKey;
     
     public EmptyReader(final Object coreCacheKey) {
         super();
-        this.coreCacheKey = coreCacheKey;
+        //this.coreCacheKey = coreCacheKey;
         tryIncRef();
-    }
-
-    @Override
-    public void addCoreClosedListener(final CoreClosedListener listener) {
-    }
-
-    @Override
-    public void removeCoreClosedListener(final CoreClosedListener listener) {
-    }
-
-    @Override
-    public Fields fields() throws IOException {
-        return new Fields() {
-            @Override
-            public Iterator<String> iterator() {
-                return Collections.<String> emptyList().iterator();
-            }
-
-            @Override
-            public Terms terms(final String field) throws IOException {
-                return new Terms() {
-                    
-                    @Override
-                    public long size() throws IOException {
-                        
-                        return 0;
-                    }
-                    
-                    @Override
-                    public TermsEnum iterator() throws IOException {
-                        
-                        return new TermsEnum() {
-                            
-                            @Override
-                            public BytesRef next() throws IOException {
-                                
-                                return null;
-                            }
-                            
-                            @Override
-                            public long totalTermFreq() throws IOException {
-                                
-                                return 0;
-                            }
-                            
-                            @Override
-                            public BytesRef term() throws IOException {
-                                
-                                return null;
-                            }
-                            
-                            @Override
-                            public void seekExact(long ord) throws IOException {
-                                
-                                
-                            }
-                            
-                            @Override
-                            public SeekStatus seekCeil(BytesRef text) throws IOException {
-                                
-                                return null;
-                            }
-                            
-                            @Override
-                            public PostingsEnum postings(PostingsEnum reuse, int flags) throws IOException {
-                                
-                                return null;
-                            }
-                            
-                            @Override
-                            public long ord() throws IOException {
-                                
-                                return 0;
-                            }
-                            
-                            @Override
-                            public int docFreq() throws IOException {
-                                
-                                return 0;
-                            }
-                        };
-                    }
-                    
-                    @Override
-                    public boolean hasPositions() {
-                        
-                        return false;
-                    }
-                    
-                    @Override
-                    public boolean hasPayloads() {
-                        
-                        return false;
-                    }
-                    
-                    @Override
-                    public boolean hasOffsets() {
-                        
-                        return false;
-                    }
-                    
-                    @Override
-                    public boolean hasFreqs() {
-                        
-                        return false;
-                    }
-                    
-                    @Override
-                    public long getSumTotalTermFreq() throws IOException {
-                        
-                        return 0;
-                    }
-                    
-                    @Override
-                    public long getSumDocFreq() throws IOException {
-                        
-                        return 0;
-                    }
-                    
-                    @Override
-                    public int getDocCount() throws IOException {
-                        
-                        return 0;
-                    }
-                };
-            }
-
-            @Override
-            public int size() {
-                return 0;
-            }
-        };
     }
 
     @Override
     public NumericDocValues getNumericDocValues(final String field) throws IOException {
         return new NumericDocValues() {
-            
+
             @Override
-            public long get(int docID) {
-                
+            public long longValue() throws IOException {
+                // TODO Auto-generated method stub
+                return 0;
+            }
+
+            @Override
+            public boolean advanceExact(int target) throws IOException {
+                // TODO Auto-generated method stub
+                return false;
+            }
+
+            @Override
+            public int docID() {
+                // TODO Auto-generated method stub
+                return 0;
+            }
+
+            @Override
+            public int nextDoc() throws IOException {
+                // TODO Auto-generated method stub
+                return 0;
+            }
+
+            @Override
+            public int advance(int target) throws IOException {
+                // TODO Auto-generated method stub
+                return 0;
+            }
+
+            @Override
+            public long cost() {
+                // TODO Auto-generated method stub
                 return 0;
             }
         };
@@ -214,18 +113,8 @@ class EmptyReader extends LeafReader {
     }
 
     @Override
-    public Bits getDocsWithField(final String field) throws IOException {
-        return null;
-    }
-
-    @Override
     public NumericDocValues getNormValues(final String field) throws IOException {
         return null;
-    }
-
-    @Override
-    public PointValues getPointValues() {
-    	return null;
     }
     
     @Override
@@ -273,18 +162,32 @@ class EmptyReader extends LeafReader {
     }
 
     @Override
-    public Object getCoreCacheKey() {
-        return coreCacheKey;
+    public CacheHelper getCoreCacheHelper() {
+        // TODO Auto-generated method stub
+        return null;
     }
 
     @Override
-    public Object getCombinedCoreAndDeletesKey() {
-        return new Object();
+    public Terms terms(String field) throws IOException {
+        // TODO Auto-generated method stub
+        return null;
     }
 
     @Override
-    public Sort getIndexSort() {
-        // TODO check if null is ok here
+    public PointValues getPointValues(String field) throws IOException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public LeafMetaData getMetaData() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public CacheHelper getReaderCacheHelper() {
+        // TODO Auto-generated method stub
         return null;
     }
 }

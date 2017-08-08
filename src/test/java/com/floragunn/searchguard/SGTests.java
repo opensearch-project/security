@@ -50,7 +50,7 @@ import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.util.concurrent.ThreadContext.StoredContext;
@@ -323,47 +323,21 @@ public class SGTests extends AbstractUnitTest {
             
             log.debug("Start transport client to init");
             
-            tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
+            tc.addTransportAddress(new TransportAddress(new InetSocketAddress(nodeHost, nodePort)));
             
             Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
 
             tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
-            //tc.index(new IndexRequest("searchguard").type("dummy")"-.id("0").source("", readYamlContent("sg_config.yml"))).actionGet();
             
-            //Thread.sleep(5000);
-            
-            tc.index(new IndexRequest("searchguard").type("config").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("config", readYamlContent("sg_config_clientcert.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("internalusers").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source("internalusers", readYamlContent("sg_internal_users.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("roles").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("roles", readYamlContent("sg_roles.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("rolesmapping").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source("rolesmapping", readYamlContent("sg_roles_mapping.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("actiongroups").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source("actiongroups", readYamlContent("sg_action_groups.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("type").id("config").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("config", readYamlContent("sg_config_clientcert.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("type").id("internalusers").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("internalusers", readYamlContent("sg_internal_users.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("type").id("roles").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("roles", readYamlContent("sg_roles.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("type").id("rolesmapping").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("rolesmapping", readYamlContent("sg_roles_mapping.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("type").id("actiongroups").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("actiongroups", readYamlContent("sg_action_groups.yml"))).actionGet();
             
             System.out.println("------- End INIT ---------");
             
-            tc.index(new IndexRequest("vulcangov").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("vulcangov").type("secrets").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("vulcangov").type("planet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-            
-            tc.index(new IndexRequest("starfleet").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("starfleet").type("captains").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("starfleet").type("public").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-            
-            tc.index(new IndexRequest("starfleet_academy").type("students").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("starfleet_academy").type("alumni").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-            
-            tc.index(new IndexRequest("starfleet_library").type("public").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("starfleet_library").type("administration").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-            
-            tc.index(new IndexRequest("klingonempire").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("klingonempire").type("praxis").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-            
-            tc.index(new IndexRequest("public").type("legends").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("public").type("hall_of_fame").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("public").type("hall_of_fame").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":2}", XContentType.JSON)).actionGet();
-            
-            tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("starfleet","starfleet_academy","starfleet_library").alias("sf"))).actionGet();
-            tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("klingonempire","vulcangov").alias("nonsf"))).actionGet();
-            tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("public").alias("unrestricted"))).actionGet();
+            tc.index(new IndexRequest("vulcangov").type("type").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
             
             ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
             Assert.assertEquals(3, cur.getNodes().size());
@@ -375,10 +349,10 @@ public class SGTests extends AbstractUnitTest {
         this.sendHTTPClientCertificate = true;
         this.keystore = "spock-keystore.jks";
         Assert.assertEquals(HttpStatus.SC_OK, executeGetRequest("_search").getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, executePutRequest("searchguard/config/0", "{}").getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, executePutRequest("searchguard/type/x", "{}").getStatusCode());
         
         this.keystore = "kirk-keystore.jks";
-        Assert.assertEquals(HttpStatus.SC_OK, executePutRequest("searchguard/config/0", "{}").getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_CREATED, executePutRequest("searchguard/type/y", "{}").getStatusCode());
         HttpResponse res;
         Assert.assertEquals(HttpStatus.SC_OK, (res = executeGetRequest("_searchguard/authinfo")).getStatusCode());
         System.out.println(res.getBody());
@@ -422,7 +396,7 @@ public class SGTests extends AbstractUnitTest {
             
             log.debug("Start transport client to init");
             
-            tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
+            tc.addTransportAddress(new TransportAddress(new InetSocketAddress(nodeHost, nodePort)));
             Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
 
             tc.admin().indices().create(new CreateIndexRequest("copysf")).actionGet();
@@ -548,7 +522,7 @@ public class SGTests extends AbstractUnitTest {
             
             log.debug("Start transport client to init 2");
             
-            tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));            
+            tc.addTransportAddress(new TransportAddress(new InetSocketAddress(nodeHost, nodePort)));            
 
             tc.index(new IndexRequest("searchguard").type("roles").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("roles", readYamlContent("sg_roles_deny.yml"))).actionGet();
             ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"roles"})).actionGet();
@@ -561,7 +535,7 @@ public class SGTests extends AbstractUnitTest {
             
             log.debug("Start transport client to init 3");
             
-            tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));            
+            tc.addTransportAddress(new TransportAddress(new InetSocketAddress(nodeHost, nodePort)));            
             
             tc.index(new IndexRequest("searchguard").type("roles").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("roles", readYamlContent("sg_roles.yml"))).actionGet();
             ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"roles"})).actionGet();
@@ -671,7 +645,7 @@ public class SGTests extends AbstractUnitTest {
 
             log.debug("Start transport client to init");
 
-            tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
+            tc.addTransportAddress(new TransportAddress(new InetSocketAddress(nodeHost, nodePort)));
             Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
 
             tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
@@ -771,7 +745,7 @@ public class SGTests extends AbstractUnitTest {
 
             log.debug("Start transport client to init");
 
-            tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
+            tc.addTransportAddress(new TransportAddress(new InetSocketAddress(nodeHost, nodePort)));
             Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
 
             tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
@@ -877,7 +851,7 @@ public class SGTests extends AbstractUnitTest {
             
             log.debug("Start transport client to init");
             
-            tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
+            tc.addTransportAddress(new TransportAddress(new InetSocketAddress(nodeHost, nodePort)));
             Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
 
             System.out.println("ööööö 1");
@@ -907,8 +881,8 @@ public class SGTests extends AbstractUnitTest {
         BasicHeader spock = new BasicHeader("Authorization", "Basic "+encodeBasicHeader("spock", "spock"));
           
         for (Iterator iterator = httpAdresses.iterator(); iterator.hasNext();) {
-            InetSocketTransportAddress inetSocketTransportAddress = (InetSocketTransportAddress) iterator.next();
-            HttpResponse res = executeRequest(new HttpGet("http://"+inetSocketTransportAddress.getHost()+":"+inetSocketTransportAddress.getPort() + "/" + "_searchguard/authinfo?pretty=true"), spock);
+            TransportAddress TransportAddress = (TransportAddress) iterator.next();
+            HttpResponse res = executeRequest(new HttpGet("http://"+TransportAddress.getAddress()+":"+TransportAddress.getPort() + "/" + "_searchguard/authinfo?pretty=true"), spock);
             Assert.assertTrue(res.getBody().contains("spock"));
             Assert.assertFalse(res.getBody().contains("additionalrole"));
             Assert.assertTrue(res.getBody().contains("vulcan"));
@@ -918,7 +892,7 @@ public class SGTests extends AbstractUnitTest {
             
             log.debug("Start transport client to init");
             
-            tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
+            tc.addTransportAddress(new TransportAddress(new InetSocketAddress(nodeHost, nodePort)));
 
             Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
             tc.index(new IndexRequest("searchguard").type("internalusers").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source("internalusers", readYamlContent("sg_internal_users_spock_add_roles.yml"))).actionGet();
@@ -927,9 +901,9 @@ public class SGTests extends AbstractUnitTest {
         } 
         
         for (Iterator iterator = httpAdresses.iterator(); iterator.hasNext();) {
-            InetSocketTransportAddress inetSocketTransportAddress = (InetSocketTransportAddress) iterator.next();
-            log.debug("http://"+inetSocketTransportAddress.getHost()+":"+inetSocketTransportAddress.getPort());
-            HttpResponse res = executeRequest(new HttpGet("http://"+inetSocketTransportAddress.getHost()+":"+inetSocketTransportAddress.getPort() + "/" + "_searchguard/authinfo?pretty=true"), spock);
+            TransportAddress TransportAddress = (TransportAddress) iterator.next();
+            log.debug("http://"+TransportAddress.getAddress()+":"+TransportAddress.getPort());
+            HttpResponse res = executeRequest(new HttpGet("http://"+TransportAddress.getAddress()+":"+TransportAddress.getPort() + "/" + "_searchguard/authinfo?pretty=true"), spock);
             Assert.assertTrue(res.getBody().contains("spock"));
             Assert.assertTrue(res.getBody().contains("additionalrole1"));
             Assert.assertTrue(res.getBody().contains("additionalrole2"));
@@ -940,7 +914,7 @@ public class SGTests extends AbstractUnitTest {
             
             log.debug("Start transport client to init");
             
-            tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
+            tc.addTransportAddress(new TransportAddress(new InetSocketAddress(nodeHost, nodePort)));
 
             Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
             tc.index(new IndexRequest("searchguard").type("config").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source("config", readYamlContent("sg_config_host.yml"))).actionGet();
@@ -949,8 +923,8 @@ public class SGTests extends AbstractUnitTest {
         } 
         
         for (Iterator iterator = httpAdresses.iterator(); iterator.hasNext();) {
-            InetSocketTransportAddress inetSocketTransportAddress = (InetSocketTransportAddress) iterator.next();
-            HttpResponse res = executeRequest(new HttpGet("http://"+inetSocketTransportAddress.getHost()+":"+inetSocketTransportAddress.getPort() + "/" + "_searchguard/authinfo?pretty=true"));
+            TransportAddress TransportAddress = (TransportAddress) iterator.next();
+            HttpResponse res = executeRequest(new HttpGet("http://"+TransportAddress.getAddress()+":"+TransportAddress.getPort() + "/" + "_searchguard/authinfo?pretty=true"));
             log.debug(res.getBody());
             Assert.assertTrue(res.getBody().contains("sg_role_host1"));
             Assert.assertTrue(res.getBody().contains("sg_role_host2"));
@@ -988,7 +962,7 @@ public class SGTests extends AbstractUnitTest {
             
             log.debug("Start transport client to init");
             
-            tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
+            tc.addTransportAddress(new TransportAddress(new InetSocketAddress(nodeHost, nodePort)));
 
             Assert.assertEquals("Expected 3 nodes", 3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
 
@@ -1066,7 +1040,7 @@ public class SGTests extends AbstractUnitTest {
             
             log.debug("Start transport client to init");
             
-            tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
+            tc.addTransportAddress(new TransportAddress(new InetSocketAddress(nodeHost, nodePort)));
             Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
 
             tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
@@ -1157,7 +1131,7 @@ public class SGTests extends AbstractUnitTest {
             
             log.debug("Start transport client to init");
             
-            tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
+            tc.addTransportAddress(new TransportAddress(new InetSocketAddress(nodeHost, nodePort)));
             Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
 
             tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
@@ -1257,7 +1231,7 @@ public class SGTests extends AbstractUnitTest {
             
             log.debug("Start transport client to init");
             
-            tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
+            tc.addTransportAddress(new TransportAddress(new InetSocketAddress(nodeHost, nodePort)));
             Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
 
             tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
@@ -1294,7 +1268,7 @@ public class SGTests extends AbstractUnitTest {
             
             log.debug("Start transport client to use");
             
-            tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
+            tc.addTransportAddress(new TransportAddress(new InetSocketAddress(nodeHost, nodePort)));
             
             //Thread.sleep(10000);
             
@@ -1620,7 +1594,7 @@ public class SGTests extends AbstractUnitTest {
             
             log.debug("Start transport client to init");
             
-            tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
+            tc.addTransportAddress(new TransportAddress(new InetSocketAddress(nodeHost, nodePort)));
             Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
 
             tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
@@ -1709,7 +1683,7 @@ public class SGTests extends AbstractUnitTest {
                 
                 log.debug("Start transport client to init");
                 
-                tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
+                tc.addTransportAddress(new TransportAddress(new InetSocketAddress(nodeHost, nodePort)));
                 Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
     
                 tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
@@ -1778,7 +1752,7 @@ public class SGTests extends AbstractUnitTest {
                 
                 log.debug("Start transport client to init");
                 
-                tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
+                tc.addTransportAddress(new TransportAddress(new InetSocketAddress(nodeHost, nodePort)));
                 Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
     
                 tc.index(new IndexRequest("searchguard").type("config").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("config", readYamlContent("sg_config.yml"))).actionGet();
@@ -1827,7 +1801,7 @@ public class SGTests extends AbstractUnitTest {
             
             log.debug("Start transport client to init");
             
-            tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
+            tc.addTransportAddress(new TransportAddress(new InetSocketAddress(nodeHost, nodePort)));
             Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
     
             tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
@@ -1926,7 +1900,7 @@ public class SGTests extends AbstractUnitTest {
             
             log.debug("Start transport client to init");
             
-            tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
+            tc.addTransportAddress(new TransportAddress(new InetSocketAddress(nodeHost, nodePort)));
             Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
     
             tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
@@ -1965,7 +1939,7 @@ public class SGTests extends AbstractUnitTest {
             
             log.debug("Start transport client to use");
             
-            tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
+            tc.addTransportAddress(new TransportAddress(new InetSocketAddress(nodeHost, nodePort)));
             NodesInfoRequest nir = new NodesInfoRequest();
             
             Assert.assertEquals(3, tc.admin().cluster().nodesInfo(nir).actionGet().getNodes().size());
@@ -2019,7 +1993,7 @@ public class SGTests extends AbstractUnitTest {
             
             log.debug("Start transport client to init");
             
-            tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
+            tc.addTransportAddress(new TransportAddress(new InetSocketAddress(nodeHost, nodePort)));
             Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
     
             tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
@@ -2058,7 +2032,7 @@ public class SGTests extends AbstractUnitTest {
             
             log.debug("Start transport client to use");
             
-            tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
+            tc.addTransportAddress(new TransportAddress(new InetSocketAddress(nodeHost, nodePort)));
             NodesInfoRequest nir = new NodesInfoRequest();
             //nir.putHeader("_sg_request.headers.sg_impersonate_as", "worf1111");
             
@@ -2096,7 +2070,7 @@ public class SGTests extends AbstractUnitTest {
             
             log.debug("Start transport client to init");
             
-            tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
+            tc.addTransportAddress(new TransportAddress(new InetSocketAddress(nodeHost, nodePort)));
             Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
 
             tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
@@ -2152,7 +2126,7 @@ public class SGTests extends AbstractUnitTest {
             
             log.debug("Start transport client to init");
             
-            tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
+            tc.addTransportAddress(new TransportAddress(new InetSocketAddress(nodeHost, nodePort)));
             Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
 
             tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();        
@@ -2227,7 +2201,7 @@ public class SGTests extends AbstractUnitTest {
             
             log.debug("Start transport client to init");
             
-            tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
+            tc.addTransportAddress(new TransportAddress(new InetSocketAddress(nodeHost, nodePort)));
             Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
 
             tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
@@ -2284,7 +2258,7 @@ public class SGTests extends AbstractUnitTest {
                 
             log.debug("Start transport client to init");
             
-            tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
+            tc.addTransportAddress(new TransportAddress(new InetSocketAddress(nodeHost, nodePort)));
             Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
 
             tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
@@ -2346,7 +2320,7 @@ public class SGTests extends AbstractUnitTest {
             
             log.debug("Start transport client to init");
             
-            tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
+            tc.addTransportAddress(new TransportAddress(new InetSocketAddress(nodeHost, nodePort)));
             Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
 
             tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
@@ -2465,7 +2439,7 @@ public class SGTests extends AbstractUnitTest {
             
             log.debug("Start transport client to init");
             
-            tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
+            tc.addTransportAddress(new TransportAddress(new InetSocketAddress(nodeHost, nodePort)));
             Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
 
             tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
@@ -2583,7 +2557,7 @@ public class SGTests extends AbstractUnitTest {
                 
                 log.debug("Start transport client to init");
                 
-                tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
+                tc.addTransportAddress(new TransportAddress(new InetSocketAddress(nodeHost, nodePort)));
                 Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
 
                 tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
@@ -2639,7 +2613,7 @@ public class SGTests extends AbstractUnitTest {
 
             log.debug("Start transport client to init");
 
-            tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
+            tc.addTransportAddress(new TransportAddress(new InetSocketAddress(nodeHost, nodePort)));
             Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
 
             tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
@@ -2722,7 +2696,7 @@ public class SGTests extends AbstractUnitTest {
             
             log.debug("Start transport client to init");
             
-            tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
+            tc.addTransportAddress(new TransportAddress(new InetSocketAddress(nodeHost, nodePort)));
             Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
 
             tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
@@ -2786,7 +2760,7 @@ public class SGTests extends AbstractUnitTest {
             
             log.debug("Start transport client to init");
             
-            tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
+            tc.addTransportAddress(new TransportAddress(new InetSocketAddress(nodeHost, nodePort)));
             Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
 
             tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
@@ -2862,7 +2836,7 @@ public class SGTests extends AbstractUnitTest {
             
             log.debug("Start transport client to init");
             
-            tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
+            tc.addTransportAddress(new TransportAddress(new InetSocketAddress(nodeHost, nodePort)));
             Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
 
             tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();

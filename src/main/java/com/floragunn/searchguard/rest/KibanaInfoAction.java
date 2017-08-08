@@ -87,4 +87,11 @@ public class KibanaInfoAction extends BaseRestHandler {
             }
         };
     }
+
+    @Override
+    public String getName() {
+        return "Kibana Info Action";
+    }
+    
+    
 }

@@ -19,7 +19,6 @@ package com.floragunn.searchguard.http;
 
 import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.rest.RestChannel;
@@ -41,11 +40,11 @@ public class HTTPHostAuthenticator implements HTTPAuthenticator {
         
         TransportAddress hostAddress = threadContext.getTransient(ConfigConstants.SG_REMOTE_ADDRESS);
         
-        if(hostAddress == null || !(hostAddress instanceof InetSocketTransportAddress)) {
+        if(hostAddress == null) {
             throw new ElasticsearchSecurityException("No valid host address found");
         }
         
-        return new AuthCredentials("sg_host_"+((InetSocketTransportAddress) hostAddress).address().getHostString()).markComplete();
+        return new AuthCredentials("sg_host_"+(hostAddress).address().getHostString()).markComplete();
     }
 
     @Override

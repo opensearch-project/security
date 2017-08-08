@@ -8,7 +8,7 @@ import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.transport.Netty4Plugin;
 import org.junit.After;
@@ -96,7 +96,7 @@ public class CrossClusterSearchTest extends AbstractSGUnitTest{
 
             log.debug("Start transport client to init");
 
-            tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(info.nodeHost, info.nodePort)));
+            tc.addTransportAddress(new TransportAddress(new InetSocketAddress(info.nodeHost, info.nodePort)));
             Assert.assertEquals(info.numNodes,
                     tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
 

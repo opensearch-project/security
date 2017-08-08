@@ -21,11 +21,11 @@
   </parent>
 
   <groupId>com.floragunn</groupId>
-  <artifactId>search-guard-5</artifactId>
+  <artifactId>search-guard-6</artifactId>
   <packaging>jar</packaging>
-  <version>5.5.x-HEAD-SNAPSHOT</version>
+  <version>6.0.x-HEAD-SNAPSHOT</version>
   <name>Search Guard</name>
-  <description>Provide access control related features for Elasticsearch 5</description>
+  <description>Provide access control related features for Elasticsearch 6</description>
   <url>https://github.com/floragunncom/search-guard</url>
   <inceptionYear>2015</inceptionYear>
 
@@ -38,14 +38,26 @@
   </licenses>
 
   <properties>
-    <sgssl.version>5.5.x-HEAD-SNAPSHOT</sgssl.version>
+    <sgssl.version>6.0.x-HEAD-SNAPSHOT</sgssl.version>
     <!-- <netty.replace.version>4.1.12.Final</netty.replace.version>  -->
-    <netty-native.version>2.0.3.Final</netty-native.version>
-    <elasticsearch.version>5.5.0</elasticsearch.version>
+    <netty-native.version>2.0.5.Final</netty-native.version>
+    <elasticsearch.version>6.0.0-beta1</elasticsearch.version>
     <elasticsearch.assembly.descriptor>${basedir}/src/main/assemblies/plugin.xml</elasticsearch.assembly.descriptor>
     <sgstandalone.descriptor>${basedir}/src/main/assemblies/sgadmin-standalone.xml</sgstandalone.descriptor>
     <dependency.locations.enabled>false</dependency.locations.enabled>
   </properties>
+  
+  <repositories>
+      <repository>
+        <id>lucene-repository</id>
+        <name>Lucene Maven</name>
+        <url>https://download.elasticsearch.org/lucenesnapshots/00142c9</url>
+        <snapshots>
+          <enabled>true</enabled>
+          <updatePolicy>always</updatePolicy>
+        </snapshots>
+      </repository>
+    </repositories>
 
     <distributionManagement>
         <snapshotRepository>

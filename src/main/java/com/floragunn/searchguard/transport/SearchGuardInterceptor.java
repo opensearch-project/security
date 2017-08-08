@@ -22,7 +22,7 @@ import java.util.Map;
 
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.Transport.Connection;
@@ -97,15 +97,15 @@ public class SearchGuardInterceptor {
     private void ensureCorrectHeaders(final String action, final Object remoteAdr, final User origUser) { 
         // keep original address
 
-        if (remoteAdr != null && remoteAdr instanceof InetSocketTransportAddress) {
+        if (remoteAdr != null && remoteAdr instanceof TransportAddress) {
             
             String remoteAddressHeader = getThreadContext().getHeader(ConfigConstants.SG_REMOTE_ADDRESS_HEADER);
            
             if(remoteAddressHeader == null) {
-                getThreadContext().putHeader(ConfigConstants.SG_REMOTE_ADDRESS_HEADER, Base64Helper.serializeObject(((InetSocketTransportAddress) remoteAdr).address()));
+                getThreadContext().putHeader(ConfigConstants.SG_REMOTE_ADDRESS_HEADER, Base64Helper.serializeObject(((TransportAddress) remoteAdr).address()));
             } else {
-                if(!((InetSocketAddress)Base64Helper.deserializeObject(remoteAddressHeader)).equals(((InetSocketTransportAddress) remoteAdr).address())) {
-                    throw new RuntimeException("remote address mismatch "+Base64Helper.deserializeObject(remoteAddressHeader)+"!="+((InetSocketTransportAddress) remoteAdr).address());
+                if(!((InetSocketAddress)Base64Helper.deserializeObject(remoteAddressHeader)).equals(((TransportAddress) remoteAdr).address())) {
+                    throw new RuntimeException("remote address mismatch "+Base64Helper.deserializeObject(remoteAddressHeader)+"!="+((TransportAddress) remoteAdr).address());
                 }   
             }
         }

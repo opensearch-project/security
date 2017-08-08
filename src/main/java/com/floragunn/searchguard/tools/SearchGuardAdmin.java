@@ -73,7 +73,7 @@ import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.loader.JsonSettingsLoader;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -381,7 +381,7 @@ public class SearchGuardAdmin {
                 Settings settings = settingsBuilder.build();  
 
         try (TransportClient tc = new TransportClientImpl(settings, asCollection(Netty4Plugin.class, SearchGuardPlugin.class))
-                .addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(hostname, port)))) {
+                .addTransportAddress(new TransportAddress(new InetSocketAddress(hostname, port)))) {
 
             if(updateSettings != null) { 
                 Settings indexSettings = Settings.builder().put("index.number_of_replicas", updateSettings).build();                

@@ -22,8 +22,8 @@ import org.elasticsearch.common.settings.Settings;
 
 public interface ConfigCallback {
     
-    void success(String type, Settings settings);
-    void noData(String type);
+    void success(String id, Settings settings);
+    void noData(String id);
     void singleFailure(Failure failure);
     void failure(Throwable t);
 

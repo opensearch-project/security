@@ -63,6 +63,8 @@ import org.elasticsearch.common.settings.SettingsFilter;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.env.Environment;
+import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.http.HttpServerTransport.Dispatcher;
 import org.elasticsearch.index.IndexModule;
@@ -357,9 +359,9 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         }
         return filters;
     }
-    
+
     @Override
-    public List<TransportInterceptor> getTransportInterceptors(ThreadContext threadContext) {
+    public List<TransportInterceptor> getTransportInterceptors(NamedWriteableRegistry namedWriteableRegistry, ThreadContext threadContext) {
         List<TransportInterceptor> interceptors = new ArrayList<TransportInterceptor>(1);
         
         if (!client && !tribeNodeClient && !disabled) {
@@ -443,7 +445,8 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         
     @Override
     public Collection<Object> createComponents(Client localClient, ClusterService clusterService, ThreadPool threadPool,
-            ResourceWatcherService resourceWatcherService, ScriptService scriptService, NamedXContentRegistry xContentRegistry) {
+            ResourceWatcherService resourceWatcherService, ScriptService scriptService, NamedXContentRegistry xContentRegistry,
+            Environment environment, NodeEnvironment nodeEnvironment, NamedWriteableRegistry namedWriteableRegistry) {
         
         this.threadPool = threadPool;
         this.cs = clusterService;
@@ -682,8 +685,8 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
 
         settings.add(Setting.listSetting("searchguard.audit.ignore_users", Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
 
-        settings.add(Setting.simpleString("node.client", Property.NodeScope));
-        settings.add(Setting.simpleString("node.local", Property.NodeScope));
+        //settings.add(Setting.simpleString("node.client", Property.NodeScope));
+        //settings.add(Setting.simpleString("node.local", Property.NodeScope));
         
         settings.add(Setting.boolSetting("searchguard.disabled", false, Property.NodeScope, Property.Filtered));
         settings.add(Setting.intSetting("searchguard.cache.ttl_minutes", 60, 0, Property.NodeScope, Property.Filtered));

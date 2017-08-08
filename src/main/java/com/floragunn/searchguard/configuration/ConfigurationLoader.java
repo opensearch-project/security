@@ -70,15 +70,15 @@ public class ConfigurationLoader {
         loadAsync(events, new ConfigCallback() {
             
             @Override
-            public void success(String type, Settings settings) {
+            public void success(String id, Settings settings) {
                 if(latch.getCount() <= 0) {
-                    log.error("Latch already counted down (for {} of {})  (index={})", type, Arrays.toString(events), searchguardIndex);
+                    log.error("Latch already counted down (for {} of {})  (index={})", id, Arrays.toString(events), searchguardIndex);
                 }
                 
-                rs.put(type, settings);
+                rs.put(id, settings);
                 latch.countDown();
                 if(log.isDebugEnabled()) {
-                    log.debug("Received config for {} (of {}) with current latch value={}", type, Arrays.toString(events), latch.getCount());
+                    log.debug("Received config for {} (of {}) with current latch value={}", id, Arrays.toString(events), latch.getCount());
                 }
             }
             
@@ -88,8 +88,8 @@ public class ConfigurationLoader {
             }
             
             @Override
-            public void noData(String type) {
-                log.error("No data for {} while retrieving configuration for {}  (index={})", type, Arrays.toString(events), searchguardIndex);
+            public void noData(String id) {
+                log.error("No data for {} while retrieving configuration for {}  (index={})", id, Arrays.toString(events), searchguardIndex);
             }
             
             @Override
@@ -116,7 +116,7 @@ public class ConfigurationLoader {
 
         for (int i = 0; i < events.length; i++) {
             final String event = events[i];
-            mget.add(searchguardIndex, event, "0");
+            mget.add(searchguardIndex, "type", event);
         }
         
         mget.refresh(true);
@@ -135,15 +135,15 @@ public class ConfigurationLoader {
                             GetResponse singleGetResponse = singleResponse.getResponse();
                             if(singleGetResponse.isExists() && !singleGetResponse.isSourceEmpty()) {
                                 //success
-                                final Settings _settings = toSettings(singleGetResponse.getSourceAsBytesRef(), singleGetResponse.getType());
+                                final Settings _settings = toSettings(singleGetResponse.getSourceAsBytesRef(), singleGetResponse.getId());
                                 if(_settings != null) {
-                                    callback.success(singleGetResponse.getType(), _settings);
+                                    callback.success(singleGetResponse.getId(), _settings);
                                 } else {
-                                    log.error("Cannot parse settings for "+singleGetResponse.getType());
+                                    log.error("Cannot parse settings for "+singleGetResponse.getId());
                                 }
                             } else {
                                 //does not exist or empty source
-                                callback.noData(singleGetResponse.getType());
+                                callback.noData(singleGetResponse.getId());
                             }
                         } else {
                             //failure
@@ -160,7 +160,7 @@ public class ConfigurationLoader {
         }
     }
 
-    private Settings toSettings(final BytesReference ref, final String type) {
+    private Settings toSettings(final BytesReference ref, final String id) {
         if (ref == null || ref.length() == 0) {
             return null;
         }
@@ -172,7 +172,7 @@ public class ConfigurationLoader {
             parser.nextToken();
             parser.nextToken();
          
-            if(!type.equals((parser.currentName()))) {
+            if(!id.equals((parser.currentName()))) {
                 return null;
             }
             

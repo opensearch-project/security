@@ -91,4 +91,9 @@ public class SearchGuardInfoAction extends BaseRestHandler {
             }
         };
     }
+    
+    @Override
+    public String getName() {
+        return "Search Guard Info Action";
+    }
 }

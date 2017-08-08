@@ -25,7 +25,6 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.tasks.Task;
@@ -145,9 +144,9 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
                     String originalRemoteAddress = getThreadContext().getHeader(ConfigConstants.SG_REMOTE_ADDRESS_HEADER);
                     
                     if(!Strings.isNullOrEmpty(originalRemoteAddress)) {
-                        getThreadContext().putTransient(ConfigConstants.SG_REMOTE_ADDRESS, new InetSocketTransportAddress((InetSocketAddress) Base64Helper.deserializeObject(originalRemoteAddress)));
+                        getThreadContext().putTransient(ConfigConstants.SG_REMOTE_ADDRESS, new TransportAddress((InetSocketAddress) Base64Helper.deserializeObject(originalRemoteAddress)));
                     } else {
-                        getThreadContext().putTransient(ConfigConstants.SG_REMOTE_ADDRESS, (InetSocketTransportAddress)request.remoteAddress());
+                        getThreadContext().putTransient(ConfigConstants.SG_REMOTE_ADDRESS, (TransportAddress)request.remoteAddress());
                     }
                     
                 } else {
@@ -180,7 +179,7 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
                     getThreadContext().putTransient(ConfigConstants.SG_USER, user);
                     TransportAddress originalRemoteAddress = request.remoteAddress();
                     
-                    if(originalRemoteAddress != null && (originalRemoteAddress instanceof InetSocketTransportAddress)) {
+                    if(originalRemoteAddress != null && (originalRemoteAddress instanceof TransportAddress)) {
                         getThreadContext().putTransient(ConfigConstants.SG_REMOTE_ADDRESS, originalRemoteAddress);
                     } else {
                         log.error("Request has no proper remote address {}", originalRemoteAddress);

@@ -23,7 +23,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.http.netty4.Netty4HttpRequest;
@@ -67,14 +66,14 @@ public class XFFResolver implements ConfigurationChangeListener {
                     log.trace("no xff done for {}",request.getClass());
                 }
             }
-            return new InetSocketTransportAddress(isa);
+            return new TransportAddress(isa);
         } else if(request.getRemoteAddress() instanceof InetSocketAddress){
             
             if(log.isTraceEnabled()) {
                 log.trace("no xff done (enabled or no netty request) {},{},{},{}",enabled, request.getClass());
 
             }
-            return new InetSocketTransportAddress((InetSocketAddress)request.getRemoteAddress());
+            return new TransportAddress((InetSocketAddress)request.getRemoteAddress());
         } else {
             throw new ElasticsearchSecurityException("Cannot handle this request. Remote address is "+request.getRemoteAddress()+" with request class "+request.getClass());
         }
