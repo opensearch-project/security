@@ -48,14 +48,14 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import com.floragunn.searchguard.support.ConfigConstants;
 
-class ConfigurationLoader {
+class LegacyConfigurationLoader {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
     private final Client client;
-	private final ThreadContext threadContext;
+    private final ThreadContext threadContext;
     private final String searchguardIndex;
     
-    ConfigurationLoader(final Client client, ThreadPool threadPool, final Settings settings) {
+    LegacyConfigurationLoader(final Client client, ThreadPool threadPool, final Settings settings) {
         super();
         this.client = client;
         this.threadContext = threadPool.getThreadContext();
@@ -63,22 +63,22 @@ class ConfigurationLoader {
         log.debug("Index is: {}", searchguardIndex);
     }
     
-    Map<String, Settings> load(final String[] events, long timeout, TimeUnit timeUnit) throws InterruptedException, TimeoutException {
+    Map<String, Settings> loadLegacy(final String[] events, long timeout, TimeUnit timeUnit) throws InterruptedException, TimeoutException {
         final CountDownLatch latch = new CountDownLatch(events.length);
         final Map<String, Settings> rs = new HashMap<String, Settings>(events.length);
         
-        loadAsync(events, new ConfigCallback() {
+        loadAsyncLegacy(events, new ConfigCallback() {
             
             @Override
-            public void success(String id, Settings settings) {
+            public void success(String type, Settings settings) {
                 if(latch.getCount() <= 0) {
-                    log.error("Latch already counted down (for {} of {})  (index={})", id, Arrays.toString(events), searchguardIndex);
+                    log.error("Latch already counted down (for {} of {})  (index={})", type, Arrays.toString(events), searchguardIndex);
                 }
                 
-                rs.put(id, settings);
+                rs.put(type, settings);
                 latch.countDown();
                 if(log.isDebugEnabled()) {
-                    log.debug("Received config for {} (of {}) with current latch value={}", id, Arrays.toString(events), latch.getCount());
+                    log.debug("Received config for {} (of {}) with current latch value={}", type, Arrays.toString(events), latch.getCount());
                 }
             }
             
@@ -88,8 +88,8 @@ class ConfigurationLoader {
             }
             
             @Override
-            public void noData(String id) {
-                log.error("No data for {} while retrieving configuration for {}  (index={})", id, Arrays.toString(events), searchguardIndex);
+            public void noData(String type) {
+                log.error("No data for {} while retrieving configuration for {}  (index={})", type, Arrays.toString(events), searchguardIndex);
             }
             
             @Override
@@ -106,7 +106,7 @@ class ConfigurationLoader {
         return rs;
     }
     
-    void loadAsync(final String[] events, final ConfigCallback callback) {        
+    void loadAsyncLegacy(final String[] events, final ConfigCallback callback) {        
         if(events == null || events.length == 0) {
             log.warn("No config events requested to load");
             return;
@@ -116,15 +116,15 @@ class ConfigurationLoader {
 
         for (int i = 0; i < events.length; i++) {
             final String event = events[i];
-            mget.add(searchguardIndex, "sg", event);
+            mget.add(searchguardIndex, event, "0");
         }
         
         mget.refresh(true);
         mget.realtime(true);
         
         //try(StoredContext ctx = threadContext.stashContext()) {
-        //    threadContext.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true");
-        {
+          //  threadContext.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true");
+            {
             client.multiGet(mget, new ActionListener<MultiGetResponse>() {
                 @Override
                 public void onResponse(MultiGetResponse response) {
@@ -135,15 +135,15 @@ class ConfigurationLoader {
                             GetResponse singleGetResponse = singleResponse.getResponse();
                             if(singleGetResponse.isExists() && !singleGetResponse.isSourceEmpty()) {
                                 //success
-                                final Settings _settings = toSettings(singleGetResponse.getSourceAsBytesRef(), singleGetResponse.getId());
+                                final Settings _settings = toSettings(singleGetResponse.getSourceAsBytesRef(), singleGetResponse.getType());
                                 if(_settings != null) {
-                                    callback.success(singleGetResponse.getId(), _settings);
+                                    callback.success(singleGetResponse.getType(), _settings);
                                 } else {
-                                    log.error("Cannot parse settings for "+singleGetResponse.getId());
+                                    log.error("Cannot parse settings for "+singleGetResponse.getType());
                                 }
                             } else {
                                 //does not exist or empty source
-                                callback.noData(singleGetResponse.getId());
+                                callback.noData(singleGetResponse.getType());
                             }
                         } else {
                             //failure
@@ -160,7 +160,7 @@ class ConfigurationLoader {
         }
     }
 
-    private Settings toSettings(final BytesReference ref, final String id) {
+    private Settings toSettings(final BytesReference ref, final String type) {
         if (ref == null || ref.length() == 0) {
             return null;
         }
@@ -172,7 +172,7 @@ class ConfigurationLoader {
             parser.nextToken();
             parser.nextToken();
          
-            if(!id.equals((parser.currentName()))) {
+            if(!type.equals((parser.currentName()))) {
                 return null;
             }
             

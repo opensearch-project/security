@@ -29,7 +29,7 @@ Search Guard supports **OpenSSL** for maximum performance and security. The comp
 
 ```
 <ES directory>/bin/elasticsearch-plugin install \
-  -b com.floragunn:search-guard-5:5.4.0-12
+  -b com.floragunn:search-guard-6:6.0.0-15-beta1
 ```
 
 * ``cd`` into ``<ES directory>/plugins/search-guard-<version>/tools``

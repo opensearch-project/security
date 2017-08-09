@@ -73,7 +73,7 @@ if $SUDO_CMD grep --quiet -i searchguard $ES_CONF_FILE; then
 fi
 
 
-if [ ! -d "$ES_PLUGINS_DIR/search-guard-5" ]; then
+if [ ! -d "$ES_PLUGINS_DIR/search-guard-6" ]; then
   echo "Search Guard plugin not installed. Quit."
   exit -1
 fi
@@ -81,8 +81,8 @@ fi
 ES_VERSION=("$ES_LIB_PATH/elasticsearch-*.jar")
 ES_VERSION=$(echo $ES_VERSION | sed 's/.*elasticsearch-\(.*\)\.jar/\1/')
 
-SG_VERSION=("$ES_PLUGINS_DIR/search-guard-5/search-guard-5-*.jar")
-SG_VERSION=$(echo $SG_VERSION | sed 's/.*search-guard-5-\(.*\)\.jar/\1/')
+SG_VERSION=("$ES_PLUGINS_DIR/search-guard-6/search-guard-6-*.jar")
+SG_VERSION=$(echo $SG_VERSION | sed 's/.*search-guard-6-\(.*\)\.jar/\1/')
 
 echo "Elasticsearch install type: $ES_INSTALL_TYPE"
 echo "Elasticsearch config dir: $ES_CONF_DIR"
@@ -116,7 +116,7 @@ echo "cluster.name: searchguard_demo" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/nu
 echo "network.host: 0.0.0.0" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null 
 echo "######## End Search Guard Demo Configuration ########" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null 
 
-$SUDO_CMD chmod +x "$ES_PLUGINS_DIR/search-guard-5/tools/sgadmin.sh"
+$SUDO_CMD chmod +x "$ES_PLUGINS_DIR/search-guard-6/tools/sgadmin.sh"
 
 ES_PLUGINS_DIR=`cd "$ES_PLUGINS_DIR" ; pwd`
 
@@ -124,7 +124,7 @@ echo "### Success"
 echo "### Execute this script now on all your nodes and then start all nodes"
 echo "### After the whole cluster is up execute: "
 echo "#!/bin/bash" | $SUDO_CMD tee sgadmin_demo.sh > /dev/null 
-echo $SUDO_CMD "$ES_PLUGINS_DIR/search-guard-5/tools/sgadmin.sh" -cd "$ES_PLUGINS_DIR/search-guard-5/sgconfig" -cn searchguard_demo -ks "$ES_CONF_DIR/kirk.jks" -ts "$ES_CONF_DIR/truststore.jks" -nhnv | $SUDO_CMD tee -a sgadmin_demo.sh > /dev/null
+echo $SUDO_CMD "$ES_PLUGINS_DIR/search-guard-6/tools/sgadmin.sh" -cd "$ES_PLUGINS_DIR/search-guard-6/sgconfig" -cn searchguard_demo -ks "$ES_CONF_DIR/kirk.jks" -ts "$ES_CONF_DIR/truststore.jks" -nhnv | $SUDO_CMD tee -a sgadmin_demo.sh > /dev/null
 $SUDO_CMD chmod +x sgadmin_demo.sh
 $SUDO_CMD cat sgadmin_demo.sh | tail -1
 echo "### or run ./sgadmin_demo.sh"

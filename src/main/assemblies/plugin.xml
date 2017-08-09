@@ -14,7 +14,7 @@
     <dependencySet>
       <outputDirectory>/elasticsearch/</outputDirectory>
       <includes>
-        <include>com.floragunn:search-guard-5</include>
+        <include>com.floragunn:search-guard-6</include>
         <include>com.floragunn:search-guard-ssl</include>
       </includes>
     </dependencySet>

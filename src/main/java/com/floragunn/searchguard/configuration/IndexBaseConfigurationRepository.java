@@ -28,6 +28,7 @@ import java.util.concurrent.TimeoutException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
@@ -53,21 +54,25 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
     private static final Logger LOGGER = LogManager.getLogger(IndexBaseConfigurationRepository.class);
 
     private final String searchguardIndex;
-    //private final Client client; 
+    private final Client client; 
     //private final ClusterService clusterService;
     private final ConcurrentMap<String, Settings> typeToConfig;
     private final Multimap<String, ConfigurationChangeListener> configTypeToChancheListener;
     private final ConfigurationLoader cl;
+    private final LegacyConfigurationLoader legacycl;
+    private final ThreadPool threadPool;
 
     //private volatile boolean indexReady = false;
 
     private IndexBaseConfigurationRepository(Settings settings, ThreadPool threadPool, Client client, ClusterService clusterService) {
         this.searchguardIndex = settings.get(ConfigConstants.SG_CONFIG_INDEX, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
-        //this.client = client;
+        this.client = client;
+        this.threadPool = threadPool;
         this.typeToConfig = Maps.newConcurrentMap();
         this.configTypeToChancheListener = ArrayListMultimap.create();
         //this.clusterService = clusterService;
         cl = new ConfigurationLoader(client, threadPool, settings);
+        legacycl = new LegacyConfigurationLoader(client, threadPool, settings);
         
         clusterService.addLifecycleListener(new LifecycleListener() {
             
@@ -102,7 +107,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                                 continue;
                             }
 
-                            Map<String, Settings> setn = null;
+                            /*Map<String, Settings> setn = null;
                             
                             while(setn == null || !setn.keySet().containsAll(Lists.newArrayList("config", "roles", "rolesmapping"))) {
 
@@ -131,8 +136,24 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                                 
                             }
                             
-                            LOGGER.debug("Retrieved {} configs", setn.keySet());                         
-                            reloadConfiguration(Arrays.asList(new String[] { "config", "roles", "rolesmapping", "internalusers", "actiongroups"} ));                           
+                            LOGGER.debug("Retrieved {} configs", setn.keySet());  */                       
+                            
+                            while(true) {
+                                try {
+                                    LOGGER.debug("Try to load config ...");
+                                    reloadConfiguration(Arrays.asList(new String[] { "config", "roles", "rolesmapping", "internalusers", "actiongroups"} ));
+                                    break;
+                                } catch (Exception e) {
+                                    try {
+                                        Thread.sleep(3000);
+                                    } catch (InterruptedException e1) {
+                                        Thread.currentThread().interrupt();
+                                        LOGGER.debug("Thread was interrupted so we cancel initialization");
+                                        break;
+                                    }
+                                }                           
+                            }
+                            
                             LOGGER.info("Node '{}' initialized", clusterService.localNode().getName());
                             
                         } catch (Exception e) {
@@ -262,7 +283,6 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
         //}
 
         Map<String, Settings> loaded = loadConfigurations(configTypes);
-
         typeToConfig.clear();
         typeToConfig.putAll(loaded);
         notifyAboutChanges(loaded);
@@ -358,16 +378,31 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
     
     private Map<String, Settings> loadConfigurations(Collection<String> configTypes) {
         try {
-            return validate(cl.load(configTypes.toArray(new String[0]), 1, TimeUnit.MINUTES));
+            
+            ThreadContext threadContext = threadPool.getThreadContext();
+            
+            try(StoredContext ctx = threadContext.stashContext()) {
+                threadContext.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true");
+                
+               if(client.prepareGet(searchguardIndex, "sg", "config").get().isExists()) {
+                   return validate(cl.load(configTypes.toArray(new String[0]), 1, TimeUnit.MINUTES), configTypes.size());
+               } else {
+                   return validate(legacycl.loadLegacy(configTypes.toArray(new String[0]), 1, TimeUnit.MINUTES), configTypes.size());
+               }
+                
+            }
         } catch (Exception e) {
             LOGGER.error("Unable to load configuration because of "+e,e);
+            throw new ElasticsearchException(e);
         }
-        
-        return Collections.emptyMap();
     }
     
-    private Map<String, Settings> validate(Map<String, Settings> conf) throws InvalidConfigException {
+    private Map<String, Settings> validate(Map<String, Settings> conf, int expectedSize) throws InvalidConfigException {
 
+        if(conf == null || conf.size() != expectedSize) {
+            throw new InvalidConfigException("Retrieved only partial configuration");
+        }
+        
         final Settings roles = conf.get("roles");
         final String rolesDelimited;
 

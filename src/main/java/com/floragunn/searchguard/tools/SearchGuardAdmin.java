@@ -141,7 +141,7 @@ public class SearchGuardAdmin {
 
     private static void main0(final String[] args) throws Exception {
         
-        System.out.println("Search Guard Admin v5");
+        System.out.println("Search Guard Admin v6");
         System.setProperty("sg.nowarn.client","true");
         System.setProperty("sg.display_lic_only_stdout","true");
         System.setProperty("jdk.tls.rejectClientInitiatedRenegotiation","true");
@@ -329,8 +329,7 @@ public class SearchGuardAdmin {
         
         final Settings.Builder settingsBuilder = Settings
                 .builder()
-                .put("path.home", ".")
-                .put("path.conf", ".")
+                //.put("path.home", ".")
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_PASSWORD, kspass)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_TRUSTSTORE_PASSWORD, tspass)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, !nhnv)
@@ -635,49 +634,49 @@ public class SearchGuardAdmin {
         return success;
     }
     
-    private static boolean uploadFile(Client tc, String filepath, String index, String type) {
-        System.out.println("Will update '" + type + "' with " + filepath);
+    private static boolean uploadFile(Client tc, String filepath, String index, String id) {
+        System.out.println("Will update '" + id + "' with " + filepath);
         try (Reader reader = new FileReader(filepath)) {
 
-            final String id = tc
-                    .index(new IndexRequest(index).type(type).id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                            .source(type, readXContent(reader, XContentType.YAML))).actionGet().getId();
+            final String res = tc
+                    .index(new IndexRequest(index).type("sg").id(id).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                            .source(id, readXContent(reader, XContentType.YAML))).actionGet().getId();
 
-            if ("0".equals(id)) {
-                System.out.println("   SUCC: Configuration for '" + type + "' created or updated");
+            if (id.equals(res)) {
+                System.out.println("   SUCC: Configuration for '" + id + "' created or updated");
                 return true;
             } else {
-                System.out.println("   FAIL: Configuration for '" + type
+                System.out.println("   FAIL: Configuration for '" + id
                         + "' failed for unknown reasons. Pls. consult logfile of elasticsearch");
             }
         } catch (Exception e) {
-            System.out.println("   FAIL: Configuration for '" + type + "' failed because of " + e.toString());
+            System.out.println("   FAIL: Configuration for '" + id + "' failed because of " + e.toString());
         }
 
         return false;
     }
     
-    private static boolean retrieveFile(Client tc, String filepath, String index, String type) {
-        System.out.println("Will retrieve '"+type+"' into "+filepath);
+    private static boolean retrieveFile(Client tc, String filepath, String index, String id) {
+        System.out.println("Will retrieve '"+id+"' into "+filepath);
         try (Writer writer = new FileWriter(filepath)) {
 
-            final GetResponse response = tc.get(new GetRequest(index).type(type).id("0").refresh(true).realtime(false)).actionGet();
+            final GetResponse response = tc.get(new GetRequest(index).type("sg").id(id).refresh(true).realtime(false)).actionGet();
 
             if (response.isExists()) {
                 if(response.isSourceEmpty()) {
-                    System.out.println("   FAIL: Configuration for '"+type+"' failed because of empty source");
+                    System.out.println("   FAIL: Configuration for '"+id+"' failed because of empty source");
                     return false;
                 }
                 
-                String yaml = convertToYaml(type, response.getSourceAsBytesRef(), true);
+                String yaml = convertToYaml(id, response.getSourceAsBytesRef(), true);
                 writer.write(yaml);
-                System.out.println("   SUCC: Configuration for '"+type+"' stored in "+filepath);
+                System.out.println("   SUCC: Configuration for '"+id+"' stored in "+filepath);
                 return true;
             } else {
-                System.out.println("   FAIL: Get configuration for '"+type+"' because it does not exist");
+                System.out.println("   FAIL: Get configuration for '"+id+"' because it does not exist");
             }
         } catch (Exception e) {
-            System.out.println("   FAIL: Get configuration for '"+type+"' failed because of "+e.toString());
+            System.out.println("   FAIL: Get configuration for '"+id+"' failed because of "+e.toString());
         }
         
         return false;
