@@ -114,7 +114,7 @@ public class CrossClusterSearchTest extends AbstractSGUnitTest{
                     .source("actiongroups", FileHelper.readYamlContent("sg_action_groups.yml"))).actionGet();
 
             ConfigUpdateResponse cur = tc
-                    .execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(ConfigConstants.CONFIGNAMES))
+                    .execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(ConfigConstants.CONFIG_NAMES.toArray(new String[0])))
                     .actionGet();
             Assert.assertEquals(info.numNodes, cur.getNodes().size());
             

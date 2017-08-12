@@ -144,7 +144,7 @@ public class SearchGuardFilter implements ActionFilter {
         } else {
             auditLog.logMissingPrivileges(action, request);
             log.debug("no permissions for {}", action);
-            listener.onFailure(new ElasticsearchSecurityException("no permissions for " + action, RestStatus.FORBIDDEN));
+            listener.onFailure(new ElasticsearchSecurityException("no permissions for " + action+" and "+user, RestStatus.FORBIDDEN));
             return;
         }
         

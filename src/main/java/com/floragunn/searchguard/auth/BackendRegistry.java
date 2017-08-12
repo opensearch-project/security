@@ -53,11 +53,11 @@ import com.floragunn.searchguard.configuration.AdminDNs;
 import com.floragunn.searchguard.configuration.ConfigurationChangeListener;
 import com.floragunn.searchguard.http.HTTPBasicAuthenticator;
 import com.floragunn.searchguard.http.HTTPClientCertAuthenticator;
-import com.floragunn.searchguard.http.HTTPHostAuthenticator;
 import com.floragunn.searchguard.http.HTTPProxyAuthenticator;
 import com.floragunn.searchguard.http.XFFResolver;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.HTTPHelper;
+import com.floragunn.searchguard.support.ReflectionHelper;
 import com.floragunn.searchguard.user.AuthCredentials;
 import com.floragunn.searchguard.user.User;
 import com.google.common.base.Strings;
@@ -84,6 +84,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
     private Cache<AuthCredentials, User> userCache;
     private Cache<String, User> userCacheTransport;
     private Cache<AuthCredentials, User> authenticatedUserCacheTransport;
+    private final boolean sgrootEnabled;
     
     private void createCaches() {
         userCache = CacheBuilder.newBuilder()
@@ -122,6 +123,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
         this.iab = iab;
         this.auditLog = auditLog;
         this.threadPool = threadPool;
+        sgrootEnabled = settings.getAsBoolean("searchguard.sgroot_enabled", true);
         
         authImplMap.put("intern_c", InternalAuthenticationBackend.class.getName());
         authImplMap.put("intern_z", NoOpAuthorizationBackend.class.getName());
@@ -140,7 +142,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
         authImplMap.put("clientcert_h", HTTPClientCertAuthenticator.class.getName());
         authImplMap.put("kerberos_h", "com.floragunn.dlic.auth.http.kerberos.HTTPSpnegoAuthenticator");
         authImplMap.put("jwt_h", "com.floragunn.dlic.auth.http.jwt.HTTPJwtAuthenticator");
-        authImplMap.put("host_h", HTTPHostAuthenticator.class.getName());
+        //authImplMap.put("host_h", HTTPHostAuthenticator.class.getName());
         
         this.ttlInMin = settings.getAsInt("searchguard.cache.ttl_minutes", 60);
         createCaches();
@@ -152,26 +154,22 @@ public class BackendRegistry implements ConfigurationChangeListener {
         authenticatedUserCacheTransport.invalidateAll();
     }
 
-    private <T> T newInstance(final String clazzOrShortcut, String type, final Settings settings) throws ClassNotFoundException, NoSuchMethodException,
-            SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+    private <T> T newInstance(final String clazzOrShortcut, String type, final Settings settings) {
         
         String clazz = clazzOrShortcut;
+        boolean isEnterprise = false;
         
         if(authImplMap.containsKey(clazz+"_"+type)) {
             clazz = authImplMap.get(clazz+"_"+type);
+        } else {
+            isEnterprise = true;
         }
         
-        final Class<T> t = (Class<T>) Class.forName(clazz);
-
-        //try {
-            final Constructor<T> tctor = t.getConstructor(Settings.class);
-            return tctor.newInstance(settings);
-            //} catch (final Exception e) {
-            
-            //log.warn("Unable to create instance of class {} with (Settings.class) constructor due to {}", e, t, e.toString());
-            //final Constructor<T> tctor = t.getConstructor(Settings.class, TransportConfigUpdateAction.class);
-            //return tctor.newInstance(settings, tcua);
-            //}
+        if(ReflectionHelper.isEnterpriseAAAModule(clazz)) {
+            isEnterprise = true;
+        }
+        
+        return ReflectionHelper.instantiateAAA(clazz, settings, isEnterprise);
     }
 
     @Override
@@ -346,7 +344,8 @@ public class BackendRegistry implements ConfigurationChangeListener {
                     continue;
                 }
                 
-                if(AdminDNs.isAdmin(authenticatedUser.getName())) {
+               //TODO userexp - we need to allow this
+                if(!sgrootEnabled && AdminDNs.isAdmin(authenticatedUser.getName())) {
                     log.error("Cannot authenticate user because admin user is not permitted to login");
                     auditLog.logFailedLogin(authenticatedUser.getName(), request);
                     return null;
@@ -512,7 +511,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
                     continue;
                 }
 
-                if(AdminDNs.isAdmin(authenticatedUser.getName())) {
+                if(!sgrootEnabled && AdminDNs.isAdmin(authenticatedUser.getName())) {
                     log.error("Cannot authenticate user because admin user is not permitted to login via HTTP");
                     auditLog.logFailedLogin(authenticatedUser.getName(), request);
                     channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, "Cannot authenticate user because admin user is not permitted to login via HTTP"));

@@ -17,14 +17,17 @@
 
 package com.floragunn.searchguard.auth.internal;
 
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
+import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
 import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.common.settings.Settings;
 
 import com.floragunn.searchguard.auth.AuthenticationBackend;
 import com.floragunn.searchguard.configuration.ConfigurationRepository;
-import com.floragunn.searchguard.crypto.BCrypt;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.user.AuthCredentials;
 import com.floragunn.searchguard.user.User;
@@ -98,17 +101,30 @@ public class InternalAuthenticationBackend implements AuthenticationBackend {
             }
         }
         
-        byte[] password = credentials.getPassword();
+        final byte[] password = credentials.getPassword();
         
         if(password == null || password.length == 0) {
             throw new ElasticsearchSecurityException("empty passwords not supported");
         }
+
+        ByteBuffer wrap = ByteBuffer.wrap(password);
+        CharBuffer buf = StandardCharsets.UTF_8.decode(wrap);
+        char[] array = new char[buf.limit()];
+        buf.get(array);
         
-        if (BCrypt.checkpw(password, hashed)) {
-            final String[] roles = cfg.getAsArray(credentials.getUsername() + ".roles", new String[0]);
-            return new User(credentials.getUsername(), Arrays.asList(roles));
-        } else {
-            throw new ElasticsearchSecurityException("password does not match");
+        Arrays.fill(password, (byte)0);
+       
+        try {
+            if (OpenBSDBCrypt.checkPassword(hashed, array)) {
+                final String[] roles = cfg.getAsArray(credentials.getUsername() + ".roles", new String[0]);
+                return new User(credentials.getUsername(), Arrays.asList(roles));
+            } else {
+                throw new ElasticsearchSecurityException("password does not match");
+            }
+        } finally {
+            Arrays.fill(wrap.array(), (byte)0);
+            Arrays.fill(buf.array(), '\0');
+            Arrays.fill(array, '\0');
         }
     }
 

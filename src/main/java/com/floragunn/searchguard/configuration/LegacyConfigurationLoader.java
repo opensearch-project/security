@@ -38,8 +38,6 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.loader.JsonSettingsLoader;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
-import org.elasticsearch.common.util.concurrent.ThreadContext.StoredContext;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
@@ -52,13 +50,13 @@ class LegacyConfigurationLoader {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
     private final Client client;
-    private final ThreadContext threadContext;
+    //private final ThreadContext threadContext;
     private final String searchguardIndex;
     
     LegacyConfigurationLoader(final Client client, ThreadPool threadPool, final Settings settings) {
         super();
         this.client = client;
-        this.threadContext = threadPool.getThreadContext();
+        //this.threadContext = threadPool.getThreadContext();
         this.searchguardIndex = settings.get(ConfigConstants.SG_CONFIG_INDEX, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
         log.debug("Index is: {}", searchguardIndex);
     }
@@ -89,7 +87,7 @@ class LegacyConfigurationLoader {
             
             @Override
             public void noData(String type) {
-                log.error("No data for {} while retrieving configuration for {}  (index={})", type, Arrays.toString(events), searchguardIndex);
+                log.warn("No data for {} while retrieving configuration for {}  (index={})", type, Arrays.toString(events), searchguardIndex);
             }
             
             @Override
@@ -100,7 +98,7 @@ class LegacyConfigurationLoader {
         
         if(!latch.await(timeout, timeUnit)) {
             //timeout
-            throw new TimeoutException("Timeout after "+timeout+""+timeUnit+" while retrieving configuration for "+Arrays.toString(events)+ "(index="+searchguardIndex+")");
+            throw new TimeoutException("Timeout after "+timeout+" "+timeUnit+" while retrieving configuration for "+Arrays.toString(events)+ "(index="+searchguardIndex+")");
         }
         
         return rs;

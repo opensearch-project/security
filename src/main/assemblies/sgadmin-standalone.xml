@@ -9,23 +9,31 @@
   <fileSets>
     <fileSet>
       <directory>${project.basedir}</directory>
-      <outputDirectory>/</outputDirectory>
+      <outputDirectory>${file.separator}</outputDirectory>
       <includes>
         <include>tools/**</include>
+      </includes>
+      <fileMode>0755</fileMode>
+    </fileSet>
+    <fileSet>
+      <directory>${project.basedir}</directory>
+      <outputDirectory>${file.separator}deps</outputDirectory>
+      <includes>
         <include>sgconfig/**</include>
+        <include>defaultcerts/**</include>
       </includes>
       <fileMode>0755</fileMode>
     </fileSet>
   </fileSets>
   <dependencySets>
     <dependencySet>
-      <outputDirectory>/deps</outputDirectory>
+      <outputDirectory>${file.separator}deps</outputDirectory>
       <useProjectArtifact>true</useProjectArtifact>
       <unpack>false</unpack>
       <scope>provided</scope>
     </dependencySet>
     <dependencySet>
-      <outputDirectory>/deps</outputDirectory>
+      <outputDirectory>${file.separator}deps</outputDirectory>
       <useProjectArtifact>true</useProjectArtifact>
       <unpack>false</unpack>
     </dependencySet>

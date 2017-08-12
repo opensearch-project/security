@@ -23,7 +23,7 @@
   <groupId>com.floragunn</groupId>
   <artifactId>search-guard-6</artifactId>
   <packaging>jar</packaging>
-  <version>6.0.x-HEAD-SNAPSHOT</version>
+  <version>6.0.x-HEAD-enterprise-SNAPSHOT</version>
   <name>Search Guard</name>
   <description>Provide access control related features for Elasticsearch 6</description>
   <url>https://github.com/floragunncom/search-guard</url>
@@ -92,6 +92,50 @@
   </developers>
 
   <dependencies>
+
+  <!-- <dependency>
+    <groupId>com.floragunn</groupId>
+    <artifactId>dlic-search-guard-module-dlsfls</artifactId>
+    <version>5.3-6</version>
+  </dependency> -->
+
+  <dependency>
+    <groupId>com.floragunn</groupId>
+    <artifactId>dlic-search-guard-authbackend-ldap</artifactId>
+    <version>5.0-7</version>
+  </dependency>
+
+  <dependency>
+    <groupId>com.floragunn</groupId>
+    <artifactId>dlic-search-guard-auth-http-kerberos</artifactId>
+    <version>5.0-4</version>
+  </dependency>
+
+  <dependency>
+    <groupId>com.floragunn</groupId>
+    <artifactId>dlic-search-guard-module-auditlog</artifactId>
+    <version>5.3-5</version>
+  </dependency>
+
+  <dependency>
+    <groupId>com.floragunn</groupId>
+    <artifactId>dlic-search-guard-rest-api</artifactId>
+    <version>5.3-5</version>
+  </dependency>
+
+  <dependency>
+    <groupId>com.floragunn</groupId>
+    <artifactId>dlic-search-guard-module-kibana-multitenancy</artifactId>
+    <version>5.4-3</version>
+  </dependency>
+  
+  <dependency>
+    <groupId>com.floragunn</groupId>
+    <artifactId>dlic-search-guard-auth-http-jwt</artifactId>
+    <version>5.0-5</version>
+  </dependency>
+
+
     <dependency>
       <groupId>com.floragunn</groupId>
       <artifactId>search-guard-ssl</artifactId>
@@ -179,7 +223,18 @@
       <artifactId>commons-cli</artifactId>
       <version>1.3.1</version>
     </dependency>
+    
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcpg-jdk15on</artifactId>
+      <version>1.57</version>
+    </dependency>
 
+   <dependency>
+<groupId>org.bouncycastle</groupId>
+<artifactId>bcprov-jdk15on</artifactId>
+<version>1.57</version>
+ </dependency>
     <!-- Only test scoped dependencies hereafter --> 
 
     <dependency>
@@ -321,40 +376,8 @@
           <arguments>-Prelease</arguments>
         </configuration>
       </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-javadoc-plugin</artifactId>
-        <version>2.10.4</version>
-        <configuration>
-          <encoding>${project.build.sourceEncoding}</encoding>
-          <locale>en</locale>
-          <additionalparam>-Xdoclint:none</additionalparam>
-        </configuration>
-        <executions>
-          <execution>
-            <id>attach-javadocs</id>
-            <goals>
-              <goal>jar</goal>
-            </goals>
-            <configuration>
-              <additionalparam>-Xdoclint:none</additionalparam>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-source-plugin</artifactId>
-        <version>3.0.1</version>
-        <executions>
-            <execution>
-                <id>attach-sources</id>
-                <goals>
-                    <goal>jar</goal>
-                </goals>
-            </execution>
-        </executions>
-      </plugin>
+      
+      
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
@@ -399,6 +422,43 @@
       <id>release</id>
       <build>
         <plugins>
+        
+        
+        <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>2.10.4</version>
+        <configuration>
+          <encoding>${project.build.sourceEncoding}</encoding>
+          <locale>en</locale>
+          <additionalparam>-Xdoclint:none</additionalparam>
+        </configuration>
+        <executions>
+          <execution>
+            <id>attach-javadocs</id>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+            <configuration>
+              <additionalparam>-Xdoclint:none</additionalparam>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+        
+        <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+        <version>3.0.1</version>
+        <executions>
+            <execution>
+                <id>attach-sources</id>
+                <goals>
+                    <goal>jar</goal>
+                </goals>
+            </execution>
+        </executions>
+      </plugin>
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-gpg-plugin</artifactId>

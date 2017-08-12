@@ -7,12 +7,12 @@
   <includeBaseDirectory>false</includeBaseDirectory>
   <dependencySets>
     <dependencySet>
-      <outputDirectory>/elasticsearch/</outputDirectory>
+      <outputDirectory>${file.separator}elasticsearch${file.separator}</outputDirectory>
       <useProjectArtifact>true</useProjectArtifact>
       <useTransitiveFiltering>true</useTransitiveFiltering>
     </dependencySet>
     <dependencySet>
-      <outputDirectory>/elasticsearch/</outputDirectory>
+      <outputDirectory>${file.separator}elasticsearch${file.separator}</outputDirectory>
       <includes>
         <include>com.floragunn:search-guard-6</include>
         <include>com.floragunn:search-guard-ssl</include>
@@ -22,15 +22,16 @@
   <fileSets>
      <fileSet>
       <directory>${project.basedir}</directory>
-      <outputDirectory>/elasticsearch/</outputDirectory>
+      <outputDirectory>${file.separator}elasticsearch${file.separator}</outputDirectory>
       <includes>
         <include>tools/**</include>
         <include>sgconfig/**</include>
+        <include>defaultcerts/**</include>
       </includes>
       <fileMode>0755</fileMode>
     </fileSet>
     <fileSet>
-      <outputDirectory>/elasticsearch/</outputDirectory>
+      <outputDirectory>${file.separator}elasticsearch${file.separator}</outputDirectory>
       <includes>
         <include>plugin-descriptor.properties</include>
         <include>plugin-security.policy</include>

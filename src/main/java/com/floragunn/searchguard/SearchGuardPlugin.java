@@ -23,6 +23,7 @@ import io.netty.util.internal.PlatformDependent;
 import java.lang.reflect.Constructor;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.security.Security;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -36,7 +37,7 @@ import java.util.function.UnaryOperator;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchException;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.elasticsearch.SpecialPermission;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionResponse;
@@ -49,7 +50,6 @@ import org.elasticsearch.common.component.Lifecycle.State;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.component.LifecycleListener;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.util.Providers;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.network.NetworkModule;
@@ -93,8 +93,9 @@ import org.elasticsearch.watcher.ResourceWatcherService;
 
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateAction;
 import com.floragunn.searchguard.action.configupdate.TransportConfigUpdateAction;
+import com.floragunn.searchguard.action.licenseinfo.LicenseInfoAction;
+import com.floragunn.searchguard.action.licenseinfo.TransportLicenseInfoAction;
 import com.floragunn.searchguard.auditlog.AuditLog;
-import com.floragunn.searchguard.auditlog.NullAuditLog;
 import com.floragunn.searchguard.auth.BackendRegistry;
 import com.floragunn.searchguard.auth.internal.InternalAuthenticationBackend;
 import com.floragunn.searchguard.configuration.ActionGroupHolder;
@@ -111,6 +112,7 @@ import com.floragunn.searchguard.http.SearchGuardNonSslHttpServerTransport;
 import com.floragunn.searchguard.http.XFFResolver;
 import com.floragunn.searchguard.rest.KibanaInfoAction;
 import com.floragunn.searchguard.rest.SearchGuardInfoAction;
+import com.floragunn.searchguard.rest.SearchGuardLicenseAction;
 import com.floragunn.searchguard.ssl.DefaultSearchGuardKeyStore;
 import com.floragunn.searchguard.ssl.ExternalSearchGuardKeyStore;
 import com.floragunn.searchguard.ssl.SearchGuardKeyStore;
@@ -127,9 +129,10 @@ import com.floragunn.searchguard.transport.InterClusterRequestEvaluator;
 import com.floragunn.searchguard.transport.SearchGuardInterceptor;
 import com.google.common.collect.Lists;
 
+//TODO general
+//- check elasticsearchyml reload
 public final class SearchGuardPlugin extends Plugin implements ActionPlugin, NetworkPlugin {
 
-    private static final String FLS_DLS_INDEX_SEARCHER_WRAPPER_CLASS = "com.floragunn.searchguard.configuration.SearchGuardFlsDlsIndexSearcherWrapper";
     private final Logger log = LogManager.getLogger(this.getClass());
     private static final String CLIENT_TYPE = "client.type";
     private final Settings settings;
@@ -150,20 +153,23 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
     private AuditLog auditLog;
     private Client localClient;
     private final boolean disabled;
+    private final boolean enterpriseModulesEnabled;
     private static final String LB = System.lineSeparator();
 
-    public SearchGuardPlugin(final Settings settings) {
+    public SearchGuardPlugin(final Settings settings0) {
         super();
-        
         AccessController.doPrivileged(new PrivilegedAction<Object>() {
             @Override
             public Object run() {
                 System.setProperty("es.set.netty.runtime.available.processors", "false");
+                if(Security.getProvider("BC") == null) {
+                    Security.addProvider(new BouncyCastleProvider());
+                }
                 return null;
             }
         });
         
-        disabled = settings.getAsBoolean("searchguard.disabled", false);
+        disabled = settings0.getAsBoolean("searchguard.disabled", false);
         
         if(disabled) {
             this.settings = null;
@@ -173,10 +179,17 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
             this.dlsFlsAvailable = false;
             this.dlsFlsConstructor = null;
             this.sgks = null;
+            enterpriseModulesEnabled = false;
             log.warn("Search Guard plugin installed but disabled. This can expose your configuration (including passwords) to the public.");
             return;
+        } else {
+            client = !"node".equals(settings0.get(CLIENT_TYPE, "node"));
+            this.settings = Settings.builder().put(settings0).put(getDefaultSettings(settings0)).build();
         }
         
+        enterpriseModulesEnabled = settings.getAsBoolean("searchguard.enterprise_modules_enabled", true);
+        ReflectionHelper.init(enterpriseModulesEnabled);
+
         log.info("Clustername: {}", settings.get("cluster.name","elasticsearch"));
 
         final String licenseText =
@@ -235,14 +248,13 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         AccessController.doPrivileged(new PrivilegedAction<Object>() {
             @Override
             public Object run() {
+                System.setProperty("es.set.netty.runtime.available.processors", "false");
                 PlatformDependent.newFixedMpscQueue(1);
                 OpenSsl.isAvailable();
                 return null;
             }
         });
         
-        this.settings = settings;
-        client = !"node".equals(this.settings.get(CLIENT_TYPE, "node"));
         boolean tribeNode = this.settings.getAsBoolean("action.master.force_local", false) && this.settings.getByPrefix("tribe").getAsMap().size() > 0;
         tribeNodeClient = this.settings.get("tribe.name", null) != null;
         httpSSLEnabled = settings.getAsBoolean(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLED,
@@ -250,21 +262,13 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
 
         log.info("Node [{}] is a transportClient: {}/tribeNode: {}/tribeNodeClient: {}", settings.get("node.name"), client, tribeNode, tribeNodeClient);
     
-        if(!client && ReflectionHelper.canLoad(FLS_DLS_INDEX_SEARCHER_WRAPPER_CLASS)) {
-            try {
-                dlsFlsConstructor = ReflectionHelper
-                .load(FLS_DLS_INDEX_SEARCHER_WRAPPER_CLASS)
-                .getConstructor(IndexService.class, Settings .class);
-            } catch (Exception e) {
-                throw new RuntimeException("Failed to enable FLS/DLS", e);
-            }
-
+        if(!client) {
+            dlsFlsConstructor = ReflectionHelper.instantiateDlsFlsConstructor();
             dlsFlsAvailable = dlsFlsConstructor != null;
             log.info("FLS/DLS module available: "+dlsFlsAvailable);
         } else {
             dlsFlsAvailable = false;
             dlsFlsConstructor = null;
-            log.info("FLS/DLS module not available");
         }
         
         if(ExternalSearchGuardKeyStore.hasExternalSslContext(settings)) {
@@ -279,6 +283,8 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
             IndexScopedSettings indexScopedSettings, SettingsFilter settingsFilter,
             IndexNameExpressionResolver indexNameExpressionResolver, Supplier<DiscoveryNodes> nodesInCluster) {
         
+        settings = Settings.builder().put(settings).put(getDefaultSettings(settings)).build();
+        
         final List<RestHandler> handlers = new ArrayList<RestHandler>(1);
         
         if (!client && !tribeNodeClient && !disabled) {
@@ -286,20 +292,12 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
             handlers.add(new SearchGuardInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool)));
             handlers.add(new KibanaInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool)));
             handlers.add(new SearchGuardSSLInfoAction(settings, restController, sgks, Objects.requireNonNull(principalExtractor)));
+            handlers.add(new SearchGuardLicenseAction(settings, restController));
 
-            if(ReflectionHelper.canLoad("com.floragunn.searchguard.dlic.rest.api.SearchGuardRestApiActions")) {
-                try {
-                    Collection<RestHandler> apiHandler = (Collection<RestHandler>) ReflectionHelper
-                    .load("com.floragunn.searchguard.dlic.rest.api.SearchGuardRestApiActions")
-                    .getDeclaredMethod("getHandler", Settings.class, RestController.class, Client.class, 
-                            AdminDNs.class, IndexBaseConfigurationRepository.class, ClusterService.class, PrincipalExtractor.class)
-                    .invoke(null, settings, restController, localClient, adminDns, cr, cs, principalExtractor);          
-                    handlers.addAll(apiHandler);
-                    log.debug("Added {} management rest handler", apiHandler.size());
-                } catch(Throwable ex) {
-                    log.error("Failed to register SearchGuardRestApiActions, management API not available", ex);
-                }
-            }
+            Collection<RestHandler> apiHandler = ReflectionHelper
+                    .instantiateMngtRestApiHandler(settings, restController, localClient, adminDns, cr, cs, principalExtractor);
+            handlers.addAll(apiHandler);
+            log.debug("Added {} management rest handler", apiHandler.size());
         }
         
         return handlers;
@@ -319,7 +317,8 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
     public List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
         List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> actions = new ArrayList<>(1);
         if(!tribeNodeClient && !disabled) {
-            actions.add(new ActionHandler(ConfigUpdateAction.INSTANCE, TransportConfigUpdateAction.class));
+            actions.add(new ActionHandler<>(ConfigUpdateAction.INSTANCE, TransportConfigUpdateAction.class));
+            actions.add(new ActionHandler<>(LicenseInfoAction.INSTANCE, TransportLicenseInfoAction.class));
         }
         return actions;
     }
@@ -405,37 +404,41 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
     }
     
     @Override
-    public Map<String, Supplier<Transport>> getTransports(Settings settings, ThreadPool threadPool, BigArrays bigArrays,
+    public Map<String, Supplier<Transport>> getTransports(Settings settings0, ThreadPool threadPool, BigArrays bigArrays,
             CircuitBreakerService circuitBreakerService, NamedWriteableRegistry namedWriteableRegistry, NetworkService networkService) {
 
+        final Settings settings1 = Settings.builder().put(settings0).put(getDefaultSettings(settings0)).build();
+        
         Map<String, Supplier<Transport>> transports = new HashMap<String, Supplier<Transport>>();
         if(!disabled) {        
             transports.put("com.floragunn.searchguard.ssl.http.netty.SearchGuardSSLNettyTransport", 
-                    () -> new SearchGuardSSLNettyTransport(settings, threadPool, networkService, bigArrays, namedWriteableRegistry, circuitBreakerService, sgks));
+                    () -> new SearchGuardSSLNettyTransport(settings1, threadPool, networkService, bigArrays, namedWriteableRegistry, circuitBreakerService, sgks));
         }
         return transports;
 
     }
 
     @Override
-    public Map<String, Supplier<HttpServerTransport>> getHttpTransports(Settings settings, ThreadPool threadPool, BigArrays bigArrays,
+    public Map<String, Supplier<HttpServerTransport>> getHttpTransports(Settings settings0, ThreadPool threadPool, BigArrays bigArrays,
             CircuitBreakerService circuitBreakerService, NamedWriteableRegistry namedWriteableRegistry,
             NamedXContentRegistry xContentRegistry, NetworkService networkService, Dispatcher dispatcher) {
 
+        final Settings settings1 = Settings.builder().put(settings0).put(getDefaultSettings(settings0)).build();
+        
         Map<String, Supplier<HttpServerTransport>> httpTransports = new HashMap<String, Supplier<HttpServerTransport>>(1);
 
         if(!disabled) {
             if (!client && httpSSLEnabled && !tribeNodeClient) {
                 
-                final ValidatingDispatcher validatingDispatcher = new ValidatingDispatcher(threadPool.getThreadContext(), dispatcher, settings);
-                final SearchGuardHttpServerTransport sghst = new SearchGuardHttpServerTransport(settings, networkService, bigArrays, threadPool, sgks, auditLog, xContentRegistry, validatingDispatcher);
+                final ValidatingDispatcher validatingDispatcher = new ValidatingDispatcher(threadPool.getThreadContext(), dispatcher, settings1);
+                final SearchGuardHttpServerTransport sghst = new SearchGuardHttpServerTransport(settings1, networkService, bigArrays, threadPool, sgks, auditLog, xContentRegistry, validatingDispatcher);
                 validatingDispatcher.setAuditErrorHandler(sghst);
                 
                 httpTransports.put("com.floragunn.searchguard.http.SearchGuardHttpServerTransport", 
                         () -> sghst);
             } else if (!client && !tribeNodeClient) {
                 httpTransports.put("com.floragunn.searchguard.http.SearchGuardHttpServerTransport", 
-                        () -> new SearchGuardNonSslHttpServerTransport(settings, networkService, bigArrays, threadPool, xContentRegistry, dispatcher));
+                        () -> new SearchGuardNonSslHttpServerTransport(settings1, networkService, bigArrays, threadPool, xContentRegistry, dispatcher));
             }
         }
         return httpTransports;
@@ -459,38 +462,10 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         }
         
         
-        DlsFlsRequestValve dlsFlsValve = new DlsFlsRequestValve.NoopDlsFlsRequestValve();
-        
-        try {
-            Class<?> dlsFlsRequestValveClass;
-            if ((dlsFlsRequestValveClass = Class.forName("com.floragunn.searchguard.configuration.DlsFlsValveImpl")) != null) {                                                                                                                           
-                dlsFlsValve = (DlsFlsRequestValve) dlsFlsRequestValveClass.newInstance(); //zero args constructor
-                log.info("FLS/DLS valve bound");
-            } 
-        } catch (Throwable e) {
-            log.info("FLS/DLS valve not bound (noop) due to "+e);
-        }
+        DlsFlsRequestValve dlsFlsValve = ReflectionHelper.instantiateDlsFlsValve();
         
         final IndexNameExpressionResolver resolver = new IndexNameExpressionResolver(settings);
-        auditLog = new NullAuditLog();
-
-        try {
-
-            // @Inject
-            // public AuditLogImpl(final Settings settings, Provider<Client>
-            // clientProvider, ThreadPool threadPool,
-            // final IndexNameExpressionResolver resolver, final
-            // Provider<ClusterService> clusterService) {
-
-            Class auditLogImplClass;
-            if ((auditLogImplClass = Class.forName("com.floragunn.searchguard.auditlog.impl.AuditLogImpl")) != null) {
-                auditLog = (AuditLog) auditLogImplClass.getConstructor(Settings.class, Provider.class , ThreadPool.class, IndexNameExpressionResolver.class, Provider.class)
-                        .newInstance(settings, Providers.of(localClient), threadPool, resolver, Providers.of(clusterService));
-                log.info("Auditlog available ({})", auditLogImplClass.getSimpleName());
-            } 
-        } catch (Throwable e) {
-            log.info("Auditlog not available due to "+e);
-        }
+        auditLog = ReflectionHelper.instantiateAuditLog(settings, Providers.of(localClient), threadPool, resolver, Providers.of(clusterService));
         
         final String DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = DefaultInterClusterRequestEvaluator.class.getName();
         InterClusterRequestEvaluator interClusterRequestEvaluator = new DefaultInterClusterRequestEvaluator(settings);
@@ -500,35 +475,11 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
                 DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS);
         log.debug("Using {} as intercluster request evaluator class", className);
         if (!DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS.equals(className)) {
-            try {
-                final Class<?> klass = Class.forName(className);
-                final Constructor<?> constructor = klass.getConstructor(Settings.class);
-                interClusterRequestEvaluator = (InterClusterRequestEvaluator) constructor.newInstance(settings);
-            } catch (Throwable e) {
-                log.error("Using DefaultInterClusterRequestEvaluator. Unable to instantiate {} ", e, className);
-                if (log.isTraceEnabled()) {
-                    log.trace("Unable to instantiate InterClusterRequestEvaluator", e);
-                }
-            }
+            interClusterRequestEvaluator = ReflectionHelper.instantiateInterClusterRequestEvaluator(className, settings);
         }
         
-        PrivilegesInterceptor privilegesInterceptor = new PrivilegesInterceptor(resolver, clusterService, localClient, threadPool);
-        
-        try {
-            Class privilegesInterceptorImplClass;
-            if ((privilegesInterceptorImplClass = Class
-                    .forName("com.floragunn.searchguard.configuration.PrivilegesInterceptorImpl")) != null) {
-                privilegesInterceptor = (PrivilegesInterceptor) privilegesInterceptorImplClass
-                        .getConstructor(IndexNameExpressionResolver.class, ClusterService.class, Client.class, ThreadPool.class)
-                        .newInstance(resolver, clusterService, localClient, threadPool);
-                log.info("Privileges interceptor bound");
-            }
-        } catch (Throwable e) {
-            log.info("Privileges interceptor not bound (noop) due to "+e);
-        }
+        PrivilegesInterceptor privilegesInterceptor = ReflectionHelper.instantiatePrivilegesInterceptorImpl(resolver, clusterService, localClient, threadPool);
 
-        
-        
         adminDns = new AdminDNs(settings);      
         final PrincipalExtractor pe = new DefaultPrincipalExtractor();        
         cr = (IndexBaseConfigurationRepository) IndexBaseConfigurationRepository.create(settings, threadPool, localClient, clusterService);        
@@ -547,14 +498,7 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         if(principalExtractorClass == null) {
             principalExtractor = new com.floragunn.searchguard.ssl.transport.DefaultPrincipalExtractor();
         } else {
-            try {
-                log.debug("Try to load and instantiate '{}'", principalExtractorClass);
-                Class<?> principalExtractorClazz = Class.forName(principalExtractorClass);
-                principalExtractor = (PrincipalExtractor) principalExtractorClazz.newInstance();
-            } catch (Exception e) {
-                log.error("Unable to load '{}' due to {}", e, principalExtractorClass, e.toString());
-                throw new ElasticsearchException(e);
-            }
+            principalExtractor = ReflectionHelper.instantiatePrincipalExtractor(principalExtractorClass);
         }
         
         components.add(principalExtractor);
@@ -575,6 +519,37 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         
         return components;
         
+    }
+    
+    //TODO userexp refine
+    protected Settings getDefaultSettings(final Settings settings0) {
+
+        if(settings0.getAsStructuredMap().containsKey("searchguard")) {
+            return Settings.EMPTY;
+        }
+        
+//        if(settings0.get(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_FILEPATH) != null
+//                || settings0.get(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_PEMCERT_FILEPATH) != null
+//                )
+//                /*|| client)*/ {
+//            //System.out.println("CLIENT--CLIENT--CLIENT--CLIENT--CLIENT");
+//            return Settings.EMPTY;
+//            
+//        }
+        
+        
+        //System.out.println("---- Apply default settings");
+        
+        final Settings.Builder builder = Settings.builder();
+        final String path = new Environment(settings0).pluginsFile().toAbsolutePath().toString()+"/search-guard-6/defaultcerts/";
+        builder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_PEMCERT_FILEPATH,path+"es-node.crt.pem");
+        builder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_PEMKEY_FILEPATH,path+"es-node.key");
+        builder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH,path+"root-ca.pem");
+        builder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_PEMKEY_PASSWORD,"changeit");
+        builder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, false);
+        builder.put("network.host", "0.0.0.0");
+        
+        return builder.build();
     }
 
     @Override
@@ -691,8 +666,10 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         settings.add(Setting.boolSetting("searchguard.disabled", false, Property.NodeScope, Property.Filtered));
         settings.add(Setting.intSetting("searchguard.cache.ttl_minutes", 60, 0, Property.NodeScope, Property.Filtered));
 
-        
-
+        //SG6
+        settings.add(Setting.boolSetting("searchguard.enterprise_modules_enabled", true, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting("searchguard.no_default_init", false, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting("searchguard.sgroot_enabled", true, Property.NodeScope, Property.Filtered));
     
         return settings;
     }

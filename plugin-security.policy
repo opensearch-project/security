@@ -50,5 +50,7 @@ grant {
   
   permission java.net.NetPermission "getNetworkInformation";
   permission java.net.SocketPermission "*", "connect,accept,resolve";
-
+  
+  permission java.security.SecurityPermission "putProviderProperty.BC";
+  permission java.security.SecurityPermission "insertProvider.BC";
 };

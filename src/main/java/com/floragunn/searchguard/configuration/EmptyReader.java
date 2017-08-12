@@ -18,8 +18,6 @@
 package com.floragunn.searchguard.configuration;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Iterator;
 
 import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.FieldInfo;
@@ -29,16 +27,12 @@ import org.apache.lucene.index.LeafMetaData;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.PointValues;
-import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.index.Terms;
-import org.apache.lucene.index.TermsEnum;
-import org.apache.lucene.search.Sort;
 import org.apache.lucene.util.Bits;
-import org.apache.lucene.util.BytesRef;
 
 class EmptyReader extends LeafReader {
     

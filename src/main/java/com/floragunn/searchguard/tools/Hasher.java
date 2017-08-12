@@ -18,6 +18,8 @@
 package com.floragunn.searchguard.tools;
 
 import java.io.Console;
+import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.Objects;
 
 import org.apache.commons.cli.CommandLine;
@@ -26,8 +28,7 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-
-import com.floragunn.searchguard.crypto.BCrypt;
+import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
 
 public class Hasher {
 
@@ -43,20 +44,20 @@ public class Hasher {
             final CommandLine line = parser.parse(options, args);
             
             if(line.hasOption("p")) {
-                System.out.println(hash(line.getOptionValue("p").getBytes("UTF-8")));
+                System.out.println(hash(line.getOptionValue("p").toCharArray()));
             } else if(line.hasOption("env")) {
                 final String pwd = System.getenv(line.getOptionValue("env"));
                 if(pwd == null || pwd.isEmpty()) {
                     throw new Exception("No environment variable '"+line.getOptionValue("env")+"' set");
                 }
-                System.out.println(hash(pwd.getBytes("UTF-8")));
+                System.out.println(hash(pwd.toCharArray()));
             } else {
                 final Console console = System.console();
                 if(console == null) {
                     throw new Exception("Cannot allocate a console");
                 }
                 final char[] passwd = console.readPassword("[%s]", "Password:");
-                System.out.println(hash(new String(passwd).getBytes("UTF-8")));
+                System.out.println(hash(passwd));
             }  
         } catch (final Exception exp) {
             System.err.println("Parsing failed.  Reason: " + exp.getMessage());
@@ -65,7 +66,12 @@ public class Hasher {
         }
     }
 
-    public static String hash(final byte[] clearTextPassword) {
-        return BCrypt.hashpw(Objects.requireNonNull(clearTextPassword), BCrypt.gensalt(12));
+    public static String hash(final char[] clearTextPassword) {
+        final byte[] salt = new byte[16];
+        new SecureRandom().nextBytes(salt);
+        final String hash = OpenBSDBCrypt.generate((Objects.requireNonNull(clearTextPassword)), salt, 12);
+        Arrays.fill(salt, (byte)0);
+        Arrays.fill(clearTextPassword, '\0');
+        return hash;
     }
 }

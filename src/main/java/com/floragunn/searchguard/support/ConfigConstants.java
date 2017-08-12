@@ -20,6 +20,7 @@ package com.floragunn.searchguard.support;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public class ConfigConstants {
@@ -92,10 +93,8 @@ public class ConfigConstants {
     public final static String CONFIGNAME_INTERNAL_USERS = "internalusers";
     public final static String CONFIGNAME_CONFIG = "config";
     
-    //TODO public static arrays are unsafe. Check callers and change to an unmodifiable Set
-    @Deprecated
-    public final static String[] CONFIGNAMES = new String[] {CONFIGNAME_ROLES, CONFIGNAME_ROLES_MAPPING, 
-            CONFIGNAME_ACTION_GROUPS, CONFIGNAME_INTERNAL_USERS, CONFIGNAME_CONFIG};
+    public final static List<String> CONFIG_NAMES = Collections.unmodifiableList(Arrays.asList(new String[] {CONFIGNAME_ROLES, CONFIGNAME_ROLES_MAPPING, 
+            CONFIGNAME_ACTION_GROUPS, CONFIGNAME_INTERNAL_USERS, CONFIGNAME_CONFIG}));
     public static final String SG_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = "searchguard.cert.intercluster_request_evaluator_class";
     public static final String SG_ACTION_NAME = SG_CONFIG_PREFIX+"action_name";
 
