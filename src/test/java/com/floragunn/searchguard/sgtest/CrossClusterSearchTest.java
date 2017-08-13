@@ -1,26 +1,11 @@
 package com.floragunn.searchguard.sgtest;
 
-import java.net.InetSocketAddress;
-
-import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest;
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
-import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.transport.Netty4Plugin;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.floragunn.searchguard.SearchGuardPlugin;
-import com.floragunn.searchguard.action.configupdate.ConfigUpdateAction;
-import com.floragunn.searchguard.action.configupdate.ConfigUpdateRequest;
-import com.floragunn.searchguard.action.configupdate.ConfigUpdateResponse;
 import com.floragunn.searchguard.ssl.util.SSLConfigConstants;
-import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.test.AbstractSGUnitTest;
 import com.floragunn.searchguard.test.helper.cluster.ClusterConfiguration;
 import com.floragunn.searchguard.test.helper.cluster.ClusterHelper;
@@ -37,12 +22,12 @@ public class CrossClusterSearchTest extends AbstractSGUnitTest{
     
     protected void setup() throws Exception {    
         cl2Info = cl2.startCluster(defaultNodeSettings(first3()), ClusterConfiguration.DEFAULT);
-        setupAndInitializeSearchGuardIndex(cl2Info);
+        initialize(cl2Info);
         System.out.println("### cl2 complete ###");
         //Thread.sleep(20000);
         cl1Info = cl1.startCluster(defaultNodeSettings(crossClusterNodeSettings(cl2Info)), ClusterConfiguration.DEFAULT);
         System.out.println("### cl1 start ###");
-        setupAndInitializeSearchGuardIndex(cl1Info);
+        initialize(cl1Info);
         System.out.println("### cl1 initialized ###");
     }
     
@@ -64,6 +49,7 @@ public class CrossClusterSearchTest extends AbstractSGUnitTest{
                 .put("searchguard.ssl.transport.enforce_hostname_verification", false)
                 .put("searchguard.ssl.transport.resolve_hostname", false)
                 .putArray("searchguard.authcz.admin_dn", "CN=kirk,OU=client,O=client,l=tEst, C=De")
+                .put("searchguard.no_default_init", true)
                 .put(other==null?Settings.EMPTY:other);
         return builder.build();
     }
@@ -81,49 +67,6 @@ public class CrossClusterSearchTest extends AbstractSGUnitTest{
         return builder.build();
     }
 
-    protected void setupAndInitializeSearchGuardIndex(ClusterInfo info) {
-        Settings tcSettings = Settings.builder()
-                .put("cluster.name", info.clustername)
-                .put("searchguard.ssl.transport.truststore_filepath",
-                        FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
-                .put("searchguard.ssl.transport.enforce_hostname_verification", false)
-                .put("searchguard.ssl.transport.resolve_hostname", false)
-                .put("searchguard.ssl.transport.keystore_filepath",
-                        FileHelper.getAbsoluteFilePathFromClassPath("kirk-keystore.jks"))
-                .put("path.home", ".").build();
-
-        try (TransportClient tc = new TransportClientImpl(tcSettings,asCollection(Netty4Plugin.class, SearchGuardPlugin.class))) {
-
-            log.debug("Start transport client to init");
-
-            tc.addTransportAddress(new TransportAddress(new InetSocketAddress(info.nodeHost, info.nodePort)));
-            Assert.assertEquals(info.numNodes,
-                    tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
-
-            tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
-
-            tc.index(new IndexRequest("searchguard").type("config").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                    .source("config", FileHelper.readYamlContent("sg_config.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("internalusers").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
-                    .source("internalusers", FileHelper.readYamlContent("sg_internal_users.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("roles").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                    .source("roles", FileHelper.readYamlContent("sg_roles.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("rolesmapping").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
-                    .source("rolesmapping", FileHelper.readYamlContent("sg_roles_mapping.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("actiongroups").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
-                    .source("actiongroups", FileHelper.readYamlContent("sg_action_groups.yml"))).actionGet();
-
-            ConfigUpdateResponse cur = tc
-                    .execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(ConfigConstants.CONFIG_NAMES.toArray(new String[0])))
-                    .actionGet();
-            Assert.assertEquals(info.numNodes, cur.getNodes().size());
-            
-            tc.index(new IndexRequest("twitter").type("tweet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
-                    .source("{\"cluster\": \""+info.clustername+"\"}", XContentType.JSON)).actionGet();
-
-
-        }   
-    }
     
     @Test
     public void test() throws Exception {
