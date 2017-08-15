@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -51,6 +52,8 @@ import com.google.common.collect.Multimap;
 
 public class IndexBaseConfigurationRepository implements ConfigurationRepository {
     private static final Logger LOGGER = LogManager.getLogger(IndexBaseConfigurationRepository.class);
+    private static final Pattern DLS_PATTERN = Pattern.compile(".+\\.indices\\..+\\._dls_=.+", Pattern.DOTALL);
+    private static final Pattern FLS_PATTERN = Pattern.compile(".+\\.indices\\..+\\._fls_\\.[0-9]+=.+", Pattern.DOTALL);
 
     private final String searchguardIndex;
     //private final Client client; 
@@ -373,17 +376,17 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
 
         if (roles != null && (rolesDelimited = roles.toDelimitedString('#')) != null) {
 
-            // #<role>.indices.<indice>._dls_= OK
-            // #<role>.indices.<indice>._fls_.<num>= OK
+            //<role>.indices.<indice>._dls_= OK
+            //<role>.indices.<indice>._fls_.<num>= OK
 
             final String[] rolesString = rolesDelimited.split("#");
 
             for (String role : rolesString) {
-                if (role.contains("_fls_") && !role.matches(".+\\.indices\\..+\\._fls_\\.[0-9]+=.+")) {
+                if (role.contains("_fls_.") && !FLS_PATTERN.matcher(role).matches()) {
                     LOGGER.error("Invalid FLS configuration detected, FLS/DLS will not work correctly: {}", role);
                 }
 
-                if (role.contains("_dls_") && !role.matches(".+\\.indices\\..+\\._dls_=.+")) {
+                if (role.contains("_dls_=") && !DLS_PATTERN.matcher(role).matches()) {
                     LOGGER.error("Invalid DLS configuration detected, FLS/DLS will not work correctly: {}", role);
                 }
             }
