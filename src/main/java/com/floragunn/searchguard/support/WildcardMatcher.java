@@ -18,6 +18,7 @@
 package com.floragunn.searchguard.support;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Stack;
 import java.util.regex.Pattern;
@@ -102,6 +103,17 @@ public class WildcardMatcher {
 
         for (int i = 0; i < pattern.length; i++) {
             final String string = pattern[i];
+            if (match(string, candidate)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+    
+    public static boolean matchAny(final Collection<String> pattern, final String candidate) {
+
+        for (String string: pattern) {
             if (match(string, candidate)) {
                 return true;
             }
@@ -346,5 +358,4 @@ public class WildcardMatcher {
     private static boolean checkRegionMatches(final String str, final int strStartIndex, final String search) {
         return str.regionMatches(false, strStartIndex, search, 0, search.length());
     }
-
 }
