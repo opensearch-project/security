@@ -176,14 +176,12 @@ sg_logstash:
   cluster:
     - indices:admin/template/get
     - indices:admin/template/put
+    - indices:data/write*
   indices:
     'logstash-*':
       '*':
-        - indices:data/write/bulk
-        - indices:data/write/delete
-        - indices:data/write/update
-        - indices:data/read/search
-        - indices:data/read/scroll
+        - indices:data/write/*
+        - indices:data/read/*
         - CREATE_INDEX
 
 sg_marvel_user:

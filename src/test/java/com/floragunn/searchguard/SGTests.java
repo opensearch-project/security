@@ -23,6 +23,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Iterator;
 
 import org.apache.commons.io.FileUtils;
@@ -2890,6 +2892,102 @@ public class SGTests extends AbstractUnitTest {
         
         resc = executeGetRequest("_cat/indices",new BasicHeader("Authorization", "Basic "+encodeBasicHeader("nagilum", "nagilum")));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
+    }
+    
+    @Test
+    public void testIndices() throws Exception {
+
+        final Settings settings = Settings.builder().put("searchguard.ssl.transport.enabled", true)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
+                .put("searchguard.ssl.transport.keystore_filepath", getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+                .put("searchguard.ssl.transport.truststore_filepath", getAbsoluteFilePathFromClassPath("truststore.jks"))
+                .put("searchguard.ssl.transport.enforce_hostname_verification", false)
+                .put("searchguard.ssl.transport.resolve_hostname", false)
+                .putArray("searchguard.authcz.admin_dn", "CN=kirk,OU=client,O=client,l=tEst, C=De")
+                .build();
+        
+        startES(settings);
+
+        Settings tcSettings = Settings.builder().put("cluster.name", clustername)
+                .put(settings)
+                .put("searchguard.ssl.transport.keystore_filepath", getAbsoluteFilePathFromClassPath("kirk-keystore.jks"))
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS,"kirk")
+                .put("path.home", ".").build();
+
+        try (TransportClient tc = new TransportClientImpl(tcSettings, asCollection(Netty4Plugin.class, SearchGuardPlugin.class))) {
+            
+            log.debug("Start transport client to init");
+            
+            tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
+            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
+
+            tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
+            
+            tc.index(new IndexRequest("searchguard").type("config").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("config", readYamlContent("sg_config.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("internalusers").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source("internalusers", readYamlContent("sg_internal_users.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("roles").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("roles", readYamlContent("sg_roles.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("rolesmapping").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source("rolesmapping", readYamlContent("sg_roles_mapping.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("actiongroups").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0").source("actiongroups", readYamlContent("sg_action_groups.yml"))).actionGet();
+            
+            tc.index(new IndexRequest("nopermindex").type("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
+
+            tc.index(new IndexRequest("logstash-1").type("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest("logstash-2").type("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest("logstash-3").type("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest("logstash-4").type("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
+
+            String date = new SimpleDateFormat("YYYY.MM.dd").format(new Date());
+            tc.index(new IndexRequest("logstash-"+date).type("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
+
+            
+            ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
+            Assert.assertEquals(3, cur.getNodes().size());
+        }
+        
+        System.out.println("------- End INIT ---------");
+        
+        HttpResponse res = null;
+        Assert.assertEquals(HttpStatus.SC_OK, (res = executeGetRequest("/logstash-1/_search", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("logstash", "nagilum")))).getStatusCode());
+
+        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, (res = executeGetRequest("/logstash-nonex/_search", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("logstash", "nagilum")))).getStatusCode());
+
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = executeGetRequest("/nopermindex/_search", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("logstash", "nagilum")))).getStatusCode());
+
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = executeGetRequest("/_search", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("logstash", "nagilum")))).getStatusCode());
+        
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = executeGetRequest("/_all/_search", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("logstash", "nagilum")))).getStatusCode());
+
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = executeGetRequest("/*/_search", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("logstash", "nagilum")))).getStatusCode());        
+
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = executeGetRequest("/nopermindex,logstash-1,nonexist/_search", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("logstash", "nagilum")))).getStatusCode());
+        
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = executeGetRequest("/logstash-1,nonexist/_search", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("logstash", "nagilum")))).getStatusCode());
+        
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = executeGetRequest("/nonexist/_search", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("logstash", "nagilum")))).getStatusCode());
+        
+        Assert.assertEquals(HttpStatus.SC_OK, (res = executeGetRequest("/%3Clogstash-%7Bnow%2Fd%7D%3E/_search", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("logstash", "nagilum")))).getStatusCode());
+
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = executeGetRequest("/%3Cnonex-%7Bnow%2Fd%7D%3E/_search", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("logstash", "nagilum")))).getStatusCode());
+        
+        Assert.assertEquals(HttpStatus.SC_OK, (res = executeGetRequest("/%3Clogstash-%7Bnow%2Fd%7D%3E,logstash-*/_search", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("logstash", "nagilum")))).getStatusCode());
+        
+        Assert.assertEquals(HttpStatus.SC_OK, (res = executeGetRequest("/%3Clogstash-%7Bnow%2Fd%7D%3E,logstash-1/_search", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("logstash", "nagilum")))).getStatusCode());
+        
+        Assert.assertEquals(HttpStatus.SC_CREATED, (res = executePutRequest("/logstash-b/logs/1", "{}",new BasicHeader("Authorization", "Basic "+encodeBasicHeader("logstash", "nagilum")))).getStatusCode());
+
+        Assert.assertEquals(HttpStatus.SC_OK, (res = executePutRequest("/%3Clogstash-cnew-%7Bnow%2Fd%7D%3E", "{}",new BasicHeader("Authorization", "Basic "+encodeBasicHeader("logstash", "nagilum")))).getStatusCode());
+        
+        Assert.assertEquals(HttpStatus.SC_CREATED, (res = executePutRequest("/%3Clogstash-new-%7Bnow%2Fd%7D%3E/logs/1", "{}",new BasicHeader("Authorization", "Basic "+encodeBasicHeader("logstash", "nagilum")))).getStatusCode());
+ 
+        Assert.assertEquals(HttpStatus.SC_OK, (res = executeGetRequest("/_cat/indices?v" ,new BasicHeader("Authorization", "Basic "+encodeBasicHeader("nagilum", "nagilum")))).getStatusCode());
+
+        System.out.println(res.getBody());
+        Assert.assertTrue(res.getBody().contains("logstash-b"));
+        Assert.assertTrue(res.getBody().contains("logstash-new-20"));
+        Assert.assertTrue(res.getBody().contains("logstash-cnew-20"));
+        Assert.assertFalse(res.getBody().contains("<"));
     }
 
 

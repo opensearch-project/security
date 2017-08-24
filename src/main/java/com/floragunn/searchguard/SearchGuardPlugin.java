@@ -688,9 +688,8 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         settings.add(Setting.boolSetting("searchguard.disabled", false, Property.NodeScope, Property.Filtered));
         settings.add(Setting.intSetting("searchguard.cache.ttl_minutes", 60, 0, Property.NodeScope, Property.Filtered));
 
-        
+        settings.add(Setting.simpleString("searchguard.tribe.clustername", Property.NodeScope, Property.Filtered));
 
-    
         return settings;
     }
     
