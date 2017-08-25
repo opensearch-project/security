@@ -117,7 +117,7 @@ public class SearchGuardAdmin {
         } 
         catch (IndexNotFoundException e) {
             System.out.println("ERR: No searchguard configuartion index found. Pls. execute sgadmin with different command line parameters");
-            System.out.println("When you run it for the first time to not specify -us, -era, -dra or -rl");
+            System.out.println("When you run it for the first time do not specify -us, -era, -dra or -rl");
             System.out.println("For more informations look here: https://github.com/floragunncom/search-guard/issues/228");
             System.exit(-1);
         }
