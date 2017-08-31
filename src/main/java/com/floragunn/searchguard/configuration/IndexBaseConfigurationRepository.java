@@ -21,14 +21,18 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 
@@ -380,24 +384,61 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
 
     
     private Map<String, Settings> loadConfigurations(Collection<String> configTypes) {
-        try {
             
-            ThreadContext threadContext = threadPool.getThreadContext();
+            final ThreadContext threadContext = threadPool.getThreadContext();
+            final Map<String, Settings> retVal = new HashMap<String, Settings>();
+            final List<Exception> exception = new ArrayList<Exception>(1);
+            final CountDownLatch latch = new CountDownLatch(1);
             
             try(StoredContext ctx = threadContext.stashContext()) {
                 threadContext.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true");
+               
+                client.prepareGet(searchguardIndex, "config", "0").execute(new ActionListener<GetResponse>() {
+
+                    @Override
+                    public void onResponse(GetResponse response) {
+                        try {
+                            if(response.isExists()) {
+                                retVal.putAll(validate(legacycl.loadLegacy(configTypes.toArray(new String[0]), 5, TimeUnit.SECONDS), configTypes.size()));
+                            } else {
+                                retVal.putAll(validate(cl.load(configTypes.toArray(new String[0]), 5, TimeUnit.SECONDS), configTypes.size()));
+                            }
+                            latch.countDown();
+                        } catch (Exception e) {
+                            exception.add(e);
+                            latch.countDown();
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        exception.add(e);
+                        latch.countDown();
+                    }
+                });
                 
-               if(client.prepareGet(searchguardIndex, "sg", "config").get().isExists()) {
+               /*if(client.prepareGet(searchguardIndex, "sg", "config").get().isExists()) {
                    return validate(cl.load(configTypes.toArray(new String[0]), 5, TimeUnit.SECONDS), configTypes.size());
                } else {
                    return validate(legacycl.loadLegacy(configTypes.toArray(new String[0]), 5, TimeUnit.SECONDS), configTypes.size());
-               }
+               }*/
                 
             }
-        } catch (Exception e) {
-            //LOGGER.error("Unable to load configuration because of "+e,e);
-            throw new ElasticsearchException(e);
-        }
+            
+            try {
+                if(!latch.await(30, TimeUnit.SECONDS)) {
+                    //timeout
+                    throw new ElasticsearchException("Timeout while retrieving configuration");
+                }
+            } catch (InterruptedException e) {
+                //ignore
+            }
+            
+            if(!exception.isEmpty()) {
+                throw new ElasticsearchException(exception.get(0));
+            }
+            
+            return retVal;
     }
     
     private Map<String, Settings> validate(Map<String, Settings> conf, int expectedSize) throws InvalidConfigException {
