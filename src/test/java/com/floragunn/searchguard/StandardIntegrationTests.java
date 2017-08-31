@@ -160,6 +160,7 @@ public class StandardIntegrationTests extends SingleClusterTest {
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest("searchguard/config/0","{}",encodeBasicHeader("worf", "worf")).getStatusCode());
         
         HttpResponse resc = rh.executeGetRequest("_cat/indices/public",encodeBasicHeader("bug108", "nagilum"));
+        System.out.println(resc.getBody());
         Assert.assertTrue(resc.getBody().contains("green"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
         

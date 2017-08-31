@@ -117,11 +117,7 @@
     <version>5.3-5</version>
   </dependency>
 
-  <dependency>
-    <groupId>com.floragunn</groupId>
-    <artifactId>dlic-search-guard-rest-api</artifactId>
-    <version>5.3-5</version>
-  </dependency>
+
 
   <dependency>
     <groupId>com.floragunn</groupId>
@@ -279,14 +275,7 @@
        <version>${elasticsearch.version}</version>
        <scope>test</scope>
     </dependency>
-    
-    <dependency>
-       <groupId>com.floragunn</groupId>
-       <artifactId>dlic-search-guard-test-framework</artifactId>
-       <version>6.x-HEAD-SNAPSHOT</version>
-       <classifier>tests</classifier>
-       <scope>test</scope>
-    </dependency>
+  
     
   </dependencies>
 

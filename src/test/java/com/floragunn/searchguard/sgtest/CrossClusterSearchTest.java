@@ -1,6 +1,11 @@
 package com.floragunn.searchguard.sgtest;
 
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
+import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
@@ -21,11 +26,11 @@ public class CrossClusterSearchTest extends AbstractSGUnitTest{
     ClusterInfo cl2Info;
     
     protected void setup() throws Exception {    
-        cl2Info = cl2.startCluster(defaultNodeSettings(first3()), ClusterConfiguration.DEFAULT);
+        cl2Info = cl2.startCluster(minimumSearchGuardSettings(defaultNodeSettings(first3())), ClusterConfiguration.DEFAULT);
         initialize(cl2Info);
         System.out.println("### cl2 complete ###");
         //Thread.sleep(20000);
-        cl1Info = cl1.startCluster(defaultNodeSettings(crossClusterNodeSettings(cl2Info)), ClusterConfiguration.DEFAULT);
+        cl1Info = cl1.startCluster(minimumSearchGuardSettings(defaultNodeSettings(crossClusterNodeSettings(cl2Info))), ClusterConfiguration.DEFAULT);
         System.out.println("### cl1 start ###");
         initialize(cl1Info);
         System.out.println("### cl1 initialized ###");
@@ -38,17 +43,7 @@ public class CrossClusterSearchTest extends AbstractSGUnitTest{
     }
     
     protected Settings defaultNodeSettings(Settings other) {
-        Settings.Builder builder = Settings.builder().put("searchguard.ssl.transport.enabled", true)
-                .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, false)
-                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, false)
-                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
-                .put("searchguard.ssl.transport.keystore_filepath",
-                        FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-                .put("searchguard.ssl.transport.truststore_filepath",
-                        FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
-                .put("searchguard.ssl.transport.enforce_hostname_verification", false)
-                .put("searchguard.ssl.transport.resolve_hostname", false)
-                .putArray("searchguard.authcz.admin_dn", "CN=kirk,OU=client,O=client,l=tEst, C=De")
+        Settings.Builder builder = Settings.builder()
                 .put("searchguard.no_default_init", true)
                 .put(other==null?Settings.EMPTY:other);
         return builder.build();
@@ -75,15 +70,29 @@ public class CrossClusterSearchTest extends AbstractSGUnitTest{
         final String cl1BodyMain = new RestHelper(cl1Info, false, false).executeGetRequest("", encodeBasicHeader("nagilum","nagilum")).getBody();
         Assert.assertTrue(cl1BodyMain.contains("crl1"));
         
+        try (TransportClient tc = getInternalTransportClient(cl1Info, Settings.EMPTY)) {
+            tc.index(
+                    new IndexRequest("twitter").type("tweet").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                            .source("{\"content\":1}", XContentType.JSON)).actionGet();
+        }
+        
         final String cl2BodyMain = new RestHelper(cl2Info, false, false).executeGetRequest("", encodeBasicHeader("nagilum","nagilum")).getBody();
         Assert.assertTrue(cl2BodyMain.contains("crl2"));
+        
+        try (TransportClient tc = getInternalTransportClient(cl2Info, Settings.EMPTY)) {
+            tc.index(
+                    new IndexRequest("twitter").type("tweet").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                            .source("{\"content\":2}", XContentType.JSON)).actionGet();
+        }
            
         final String ccs = new RestHelper(cl1Info, false, false).executeGetRequest("cross_cluster_one:twitter,twitter/tweet/_search?pretty", encodeBasicHeader("nagilum","nagilum")).getBody();
         System.out.println(ccs);
         Assert.assertFalse(ccs.contains("security_exception"));
         Assert.assertTrue(ccs.contains("\"timed_out\" : false"));
-        Assert.assertTrue(ccs.contains("crl1"));
-        Assert.assertTrue(ccs.contains("crl2"));
-        Assert.assertTrue(ccs.contains("cross_cluster"));
+        Assert.assertTrue(ccs.contains("\"successful\" : 10"));
+        Assert.assertTrue(ccs.contains("\"total\" : 2"));
+        Assert.assertTrue(ccs.contains("\"content\" : 1"));
+        Assert.assertTrue(ccs.contains("\"content\" : 2"));
+        Assert.assertTrue(ccs.contains("cross_cluster_one:twitter"));
     }
 }
