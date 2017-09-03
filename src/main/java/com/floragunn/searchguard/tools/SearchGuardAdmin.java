@@ -17,7 +17,6 @@
 
 package com.floragunn.searchguard.tools;
 
-import java.io.Console;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;

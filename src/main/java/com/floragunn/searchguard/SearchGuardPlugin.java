@@ -20,8 +20,13 @@ package com.floragunn.searchguard;
 import io.netty.handler.ssl.OpenSsl;
 import io.netty.util.internal.PlatformDependent;
 
+import java.io.IOException;
 import java.lang.reflect.Constructor;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
 import java.security.AccessController;
+import java.security.MessageDigest;
 import java.security.PrivilegedAction;
 import java.security.Security;
 import java.util.ArrayList;
@@ -34,10 +39,12 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.SpecialPermission;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionResponse;
@@ -155,9 +162,21 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
     private final boolean disabled;
     private final boolean enterpriseModulesEnabled;
     private static final String LB = System.lineSeparator();
+    private final List<String> demoCertHashes = new ArrayList<String>(3);
+    
 
     public SearchGuardPlugin(final Settings settings0) {
         super();
+        
+        demoCertHashes.add("54a92508de7a39d06242a0ffbf59414d7eb478633c719e6af03938daf6de8a1a");
+        demoCertHashes.add("742e4659c79d7cad89ea86aab70aea490f23bbfc7e72abd5f0a5d3fb4c84d212");
+        demoCertHashes.add("db1264612891406639ecd25c894f256b7c5a6b7e1d9054cbe37b77acd2ddd913");
+        demoCertHashes.add("2a5398e20fcb851ec30aa141f37233ee91a802683415be2945c3c312c65c97cf");
+        demoCertHashes.add("33129547ce617f784c04e965104b2c671cce9e794d1c64c7efe58c77026246ae");
+        demoCertHashes.add("c4af0297cc75546e1905bdfe3934a950161eee11173d979ce929f086fdf9794d");
+        demoCertHashes.add("7a355f42c90e7543a267fbe3976c02f619036f5a34ce712995a22b342d83c3ce");
+        demoCertHashes.add("a9b5eca1399ec8518081c0d4a21a34eec4589087ce64c04fb01a488f9ad8edc9");
+        
         AccessController.doPrivileged(new PrivilegedAction<Object>() {
             @Override
             public Object run() {
@@ -275,6 +294,59 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
             this.sgks = new ExternalSearchGuardKeyStore(settings);
         } else {
             this.sgks = new DefaultSearchGuardKeyStore(settings);
+        }
+        
+        
+        
+        
+        
+        if(!client && !tribeNodeClient && !settings.getAsBoolean(ConfigConstants.SEARCHGUARD_ALLOW_UNSAFE_DEMOCERTIFICATES, false)) {
+            //check for demo certificates
+            final List<String> files = AccessController.doPrivileged(new PrivilegedAction<List<String>>() {
+                @Override
+                public List<String> run() {
+                  final Path confPath = new Environment(settings).configFile().toAbsolutePath(); //TODO check Environment(settings, confpath)
+                    if(Files.isDirectory(confPath, LinkOption.NOFOLLOW_LINKS)) {
+                        try {
+                            return Files.walk(confPath)
+                            .distinct()
+                            .map(p->sha256(p))
+                            .collect(Collectors.toList());
+                        } catch (Exception e) {
+                            log.error(e);
+                            return null;
+                        }
+                    }
+                    
+                    return Collections.emptyList();
+                }
+            });
+            
+            if(files != null) {
+                demoCertHashes.retainAll(files);
+                if(!demoCertHashes.isEmpty()) {
+                    throw new RuntimeException("Demo certificates found "+demoCertHashes);
+                }
+            } else {
+                throw new RuntimeException("Unable to look for demo certificates");
+            }
+            
+        }
+    }
+    
+    private static String sha256(Path p) {
+        
+        if(!Files.isRegularFile(p, LinkOption.NOFOLLOW_LINKS)) {
+            return "";
+        }
+
+        try {
+            MessageDigest digester = MessageDigest.getInstance("SHA256");
+            final String hash = org.bouncycastle.util.encoders.Hex.toHexString(digester.digest(Files.readAllBytes(p)));
+            System.out.println(hash +" :: "+p);
+            return hash;
+        } catch (Exception e) {
+            throw new ElasticsearchSecurityException("Unable to digest file", e);
         }
     }
     
