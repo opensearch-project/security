@@ -4,7 +4,34 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 echo "## Search Guard Demo Installer ##"
 echo "Warning: Do not use on production or public reachable systems"
 
-if [ "$1" != "-y" ]; then
+OPTIND=1
+assumeyes=0
+initsg=0
+
+function show_help() {
+    echo "install_demo_configuration.sh [-y] [-i]"
+    echo "  -h show help"
+    echo "  -y assume yes for all questions (non-ineractive)"
+    echo "  -i initialize Search Guard with default configuration"
+}
+
+while getopts "h?yi" opt; do
+    case "$opt" in
+    h|\?)
+        show_help
+        exit 0
+        ;;
+    y)  assumeyes=1
+        ;;
+    i)  initsg=1
+    esac
+done
+
+shift $((OPTIND-1))
+
+[ "$1" = "--" ] && shift
+
+if [ "$assumeyes" == 0 ]; then
 	read -r -p "Continue? [y/N] " response
 	case "$response" in
 	    [yY][eE][sS]|[yY]) 
@@ -277,7 +304,10 @@ echo "searchguard.ssl.http.enabled: true" | $SUDO_CMD tee -a $ES_CONF_FILE > /de
 echo "searchguard.ssl.http.pemcert_filepath: esnode.pem" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null
 echo "searchguard.ssl.http.pemkey_filepath: esnode-key.pem" | $SUDO_CMD tee -a  $ES_CONF_FILE > /dev/null 
 echo "searchguard.ssl.http.pemtrustedcas_filepath: root-ca.pem" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null 
-echo "searchguard.allow_unsafe_democertificates: true" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null 
+echo "searchguard.allow_unsafe_democertificates: true" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null
+if [ "$initsg" == 1 ]; then
+    echo "searchguard.allow_default_init_sgindex: true" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null
+fi
 echo "searchguard.authcz.admin_dn:" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null 
 echo "  - CN=kirk,OU=client,O=client,L=test, C=de" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null 
 echo "" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null 
