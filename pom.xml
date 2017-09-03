@@ -98,7 +98,7 @@
     <artifactId>dlic-search-guard-module-dlsfls</artifactId>
     <version>5.3-6</version>
   </dependency>
-
+     -->
   <dependency>
     <groupId>com.floragunn</groupId>
     <artifactId>dlic-search-guard-authbackend-ldap</artifactId>
@@ -128,7 +128,7 @@
     <artifactId>dlic-search-guard-auth-http-jwt</artifactId>
     <version>5.0-5</version>
   </dependency>
-     -->
+
 
     <dependency>
       <groupId>com.floragunn</groupId>
