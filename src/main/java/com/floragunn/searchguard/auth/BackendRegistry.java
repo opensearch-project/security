@@ -17,8 +17,6 @@
 
 package com.floragunn.searchguard.auth;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -84,7 +82,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
     private Cache<AuthCredentials, User> userCache;
     private Cache<String, User> userCacheTransport;
     private Cache<AuthCredentials, User> authenticatedUserCacheTransport;
-    private final boolean sgrootEnabled;
+    private static final boolean sgrootEnabled = false;//TODO sgrootEnabled
     
     private void createCaches() {
         userCache = CacheBuilder.newBuilder()
@@ -123,7 +121,6 @@ public class BackendRegistry implements ConfigurationChangeListener {
         this.iab = iab;
         this.auditLog = auditLog;
         this.threadPool = threadPool;
-        sgrootEnabled = settings.getAsBoolean("searchguard.sgroot_enabled", true);
         
         authImplMap.put("intern_c", InternalAuthenticationBackend.class.getName());
         authImplMap.put("intern_z", NoOpAuthorizationBackend.class.getName());
@@ -144,7 +141,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
         authImplMap.put("jwt_h", "com.floragunn.dlic.auth.http.jwt.HTTPJwtAuthenticator");
         //authImplMap.put("host_h", HTTPHostAuthenticator.class.getName());
         
-        this.ttlInMin = settings.getAsInt("searchguard.cache.ttl_minutes", 60);
+        this.ttlInMin = settings.getAsInt(ConfigConstants.SEARCHGUARD_CACHE_TTL_MINUTES, 60);
         createCaches();
     }
     
@@ -239,7 +236,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
 
         final User user = impersonatedUser == null? origPKIUser:impersonatedUser;
         
-        if(AdminDNs.isAdmin(user.getName())) {
+        if(adminDns.isAdmin(user.getName())) {
             auditLog.logAuthenticatedRequest(request, channel.action());
             return user;
         }
@@ -345,7 +342,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
                 }
                 
                //TODO userexp - we need to allow this
-                if(!sgrootEnabled && AdminDNs.isAdmin(authenticatedUser.getName())) {
+                if(!sgrootEnabled && adminDns.isAdmin(authenticatedUser.getName())) {
                     log.error("Cannot authenticate user because admin user is not permitted to login");
                     auditLog.logFailedLogin(authenticatedUser.getName(), request);
                     return null;
@@ -386,7 +383,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
     public boolean authenticate(final RestRequest request, final RestChannel channel, ThreadContext threadContext) throws ElasticsearchSecurityException {
 
         String sslPrincipal = (String) threadPool.getThreadContext().getTransient(ConfigConstants.SG_SSL_PRINCIPAL);
-        if(AdminDNs.isAdmin(sslPrincipal)) {
+        if(adminDns.isAdmin(sslPrincipal)) {
             //PKI authenticated REST call
             threadPool.getThreadContext().putTransient(ConfigConstants.SG_USER, new User(sslPrincipal));
             //auditLog.logAuthenticatedRequest(request);
@@ -511,7 +508,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
                     continue;
                 }
 
-                if(!sgrootEnabled && AdminDNs.isAdmin(authenticatedUser.getName())) {
+                if(!sgrootEnabled && adminDns.isAdmin(authenticatedUser.getName())) {
                     log.error("Cannot authenticate user because admin user is not permitted to login via HTTP");
                     auditLog.logFailedLogin(authenticatedUser.getName(), request);
                     channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, "Cannot authenticate user because admin user is not permitted to login via HTTP"));
@@ -606,7 +603,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
 
         User aU = origPKIuser;
 
-        if (AdminDNs.isAdmin(impersonatedUser)) {
+        if (adminDns.isAdmin(impersonatedUser)) {
             throw new ElasticsearchSecurityException("'"+origPKIuser.getName() + "' is not allowed to impersonate as an adminuser  '" + impersonatedUser+"'");
         }
         

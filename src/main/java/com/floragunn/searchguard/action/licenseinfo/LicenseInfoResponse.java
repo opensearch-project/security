@@ -32,7 +32,6 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 
 import com.floragunn.searchguard.configuration.SearchGuardLicense;
-import com.floragunn.searchguard.support.ReflectionHelper;
 
 public class LicenseInfoResponse extends BaseNodesResponse<LicenseInfoNodeResponse> implements ToXContent {
     

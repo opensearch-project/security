@@ -16,12 +16,10 @@ package com.floragunn.searchguard.test;
 
 import io.netty.handler.ssl.OpenSsl;
 
-import java.io.File;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
 import java.util.Objects;
 
 import javax.xml.bind.DatatypeConverter;
@@ -36,11 +34,9 @@ import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.transport.Netty4Plugin;
 import org.junit.Assert;
@@ -100,6 +96,7 @@ public abstract class AbstractSGUnitTest {
         }       
     }
     
+    @SafeVarargs
     protected static Collection<Class<? extends Plugin>> asCollection(Class<? extends Plugin>... plugins) {
         return Arrays.asList(plugins);
     }
@@ -159,7 +156,7 @@ public abstract class AbstractSGUnitTest {
     
     protected Settings.Builder minimumSearchGuardSettingsBuilder(int node) {
         return Settings.builder().put("searchguard.ssl.transport.enabled", true)
-                 .put("searchguard.no_default_init", true)
+                 //.put("searchguard.no_default_init", true)
                 //.put("searchguard.ssl.http.enable_openssl_if_available", false)
                 //.put("searchguard.ssl.transport.enable_openssl_if_available", false)
                 .put("searchguard.ssl.transport.keystore_alias", "node-0")

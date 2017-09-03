@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 
@@ -254,7 +253,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                                         bgThread.start();
                                     } else {
 
-                                        if(!settings.getAsBoolean("searchguard.no_default_init", false)){
+                                        if(settings.getAsBoolean(ConfigConstants.SEARCHGUARD_ALLOW_DEFAULT_INIT_SGINDEX, false)){
                                             LOGGER.info("{} index does not exist yet, so we create a default config", searchguardIndex);
                                             installDefaultConfig.set(true);
                                             bgThread.start();
@@ -482,7 +481,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
     public SearchGuardLicense getLicense() {
 
         //TODO check spoof with cluster settings and elasticsearch.yml without node restart
-        boolean enterpriseModulesEnabled = settings.getAsBoolean("searchguard.enterprise_modules_enabled", true);
+        boolean enterpriseModulesEnabled = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_ENTERPRISE_MODULES_ENABLED, true);
         
         if(!enterpriseModulesEnabled) {
             return null;

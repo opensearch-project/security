@@ -29,6 +29,7 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.transport.TransportRequest;
 
+import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.WildcardMatcher;
 
 public final class DefaultInterClusterRequestEvaluator implements InterClusterRequestEvaluator {
@@ -38,8 +39,8 @@ public final class DefaultInterClusterRequestEvaluator implements InterClusterRe
     private final String[] nodesDn;
 
     public DefaultInterClusterRequestEvaluator(final Settings settings) {
-        this.certOid = settings.get("searchguard.cert.oid", "1.2.3.4.5.5");
-        this.nodesDn = settings.getAsArray("searchguard.nodes_dn", new String[0]);
+        this.certOid = settings.get(ConfigConstants.SEARCHGUARD_CERT_OID, "1.2.3.4.5.5");
+        this.nodesDn = settings.getAsArray(ConfigConstants.SEARCHGUARD_NODES_DN, new String[0]);
     }
 
     @Override

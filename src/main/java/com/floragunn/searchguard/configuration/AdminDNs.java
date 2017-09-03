@@ -29,20 +29,20 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.Settings;
 
+import com.floragunn.searchguard.support.ConfigConstants;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 
 public class AdminDNs {
 
-    protected static final Logger log = LogManager.getLogger(AdminDNs.class);
-    private static final Set<LdapName> adminDn = new HashSet<LdapName>(); //TODO static hack
+    protected final Logger log = LogManager.getLogger(AdminDNs.class);
+    private final Set<LdapName> adminDn = new HashSet<LdapName>(); //TODO static hack
     private final ListMultimap<LdapName, String> allowedImpersonations = ArrayListMultimap.<LdapName, String> create();
-    private static boolean sgrootEnabled;
+    //private boolean sgrootEnabled = false; //TODO sgrootEnabled
     
     public AdminDNs(Settings settings) 
     {
-        sgrootEnabled = settings.getAsBoolean("searchguard.sgroot_enabled", true);
-        final String[] adminDnsA = settings.getAsArray("searchguard.authcz.admin_dn", new String[0]);
+        final String[] adminDnsA = settings.getAsArray(ConfigConstants.SEARCHGUARD_AUTHCZ_ADMIN_DN, new String[0]);
 
         for (int i = 0; i < adminDnsA.length; i++) {
             final String dn = adminDnsA[i];
@@ -53,14 +53,14 @@ public class AdminDNs {
                 log.error("Unable to parse admin dn {} {}",e, dn, e);
             }
         }
-        
+       
         log.debug("Loaded {} admin DN's {}",adminDn.size(),  adminDn);
         
-        final Map<String, Settings> impersonationDns = settings.getGroups("searchguard.authcz.impersonation_dn");
+        final Map<String, Settings> impersonationDns = settings.getGroups(ConfigConstants.SEARCHGUARD_AUTHCZ_IMPERSONATION_DN);
 
         for (String dnString:impersonationDns.keySet()) {
             try {
-                allowedImpersonations.putAll(new LdapName(dnString), Arrays.asList(settings.getAsArray("searchguard.authcz.impersonation_dn."+dnString)));
+                allowedImpersonations.putAll(new LdapName(dnString), Arrays.asList(settings.getAsArray(ConfigConstants.SEARCHGUARD_AUTHCZ_IMPERSONATION_DN+"."+dnString)));
             } catch (final InvalidNameException e) {
                 log.error("Unable to parse allowedImpersonations dn {} {}",e, dnString, e);
             }
@@ -70,15 +70,14 @@ public class AdminDNs {
     }
     
     //TODO static hack
-    public static boolean isAdmin(String dn) {
+    public boolean isAdmin(String dn) {
         
         if(dn == null) return false;
         
         //TODO userexp - auditlog?
-        if(sgrootEnabled && "sgroot".equals(dn)) {
-            //System.out.println("sgoot admin allowed");
+        /*if(sgrootEnabled && "sgroot".equals(dn)) {
             return true;
-        }
+        }*/
         
         try {
             return isAdmin(new LdapName(dn));
@@ -88,7 +87,7 @@ public class AdminDNs {
     }
     
     //TODO static hack
-    private static boolean isAdmin(LdapName dn) {
+    private boolean isAdmin(LdapName dn) {
         if(dn == null) return false;
         
         boolean isAdmin = adminDn.contains(dn);

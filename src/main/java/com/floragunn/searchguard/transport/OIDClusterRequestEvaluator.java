@@ -22,6 +22,8 @@ import java.util.Arrays;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.transport.TransportRequest;
 
+import com.floragunn.searchguard.support.ConfigConstants;
+
 /**
  * Implementation to evaluate a certificate extension with a given OID
  * and value to the same value found on the peer certificate
@@ -31,7 +33,7 @@ public final class OIDClusterRequestEvaluator implements InterClusterRequestEval
     private final String certOid;
 
     public OIDClusterRequestEvaluator(final Settings settings) {
-        this.certOid = settings.get("searchguard.cert.oid", "1.2.3.4.5.5");
+        this.certOid = settings.get(ConfigConstants.SEARCHGUARD_CERT_OID, "1.2.3.4.5.5");
     }
 
     @Override

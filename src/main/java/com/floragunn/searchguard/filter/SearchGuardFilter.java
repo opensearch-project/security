@@ -24,6 +24,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
+import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.support.ActionFilter;
 import org.elasticsearch.action.support.ActionFilterChain;
 import org.elasticsearch.common.settings.Settings;
@@ -65,8 +66,11 @@ public class SearchGuardFilter implements ActionFilter {
         return Integer.MIN_VALUE;
     }
 
+    
+    
     @Override
-    public void apply(Task task, final String action, final ActionRequest request, final ActionListener listener, final ActionFilterChain chain) {
+    public <Request extends ActionRequest, Response extends ActionResponse> void apply(Task task, String action, Request request,
+            ActionListener<Response> listener, ActionFilterChain<Request, Response> chain) {
         
         final User user = threadContext.getTransient(ConfigConstants.SG_USER);
         

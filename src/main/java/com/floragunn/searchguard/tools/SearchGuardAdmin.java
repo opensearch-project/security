@@ -85,6 +85,7 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.transport.Netty4Plugin;
@@ -195,7 +196,7 @@ public class SearchGuardAdmin {
 
         options.addOption(Option.builder("noopenssl").longOpt("no-openssl").desc("Do not use openssl even if available (default: use it if available)").build());
 
-        options.addOption(Option.builder("si").longOpt("show-info").desc("simple-auth").build());
+        options.addOption(Option.builder("si").longOpt("show-info").desc("show infos").build());
 
         
         //when adding new options also adjust validate(CommandLine line)
@@ -233,7 +234,7 @@ public class SearchGuardAdmin {
         
         String keypass = System.getenv(SG_KEYPASS);
         boolean useOpenSSLIfAvailable = true;
-        boolean simpleAuth = false;
+        //boolean simpleAuth = false;
         String cacert = null;
         String cert = null;
         String key = null;
@@ -311,7 +312,7 @@ public class SearchGuardAdmin {
             
             if (cert == null && ks == null) {
                 nhnv = true;
-                simpleAuth = true;
+                //simpleAuth = true;
                 final String jarPath = new File(SearchGuardAdmin.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath()).getParentFile().getAbsolutePath();
                 cd = ("."+File.separator).equals(cd) ? (jarPath+"/sgconfig/") : cd;
                 cacert = cacert == null ? jarPath+"/defaultcerts/root-ca.pem" : cacert;
@@ -401,7 +402,7 @@ public class SearchGuardAdmin {
                     settingsBuilder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_PEMKEY_PASSWORD, keypass);
                 }
                 
-                if (simpleAuth) {
+                /*if (simpleAuth) {
                     
                     String pwdEnv = System.getenv("SGROOT_PWD");
                     
@@ -426,7 +427,7 @@ public class SearchGuardAdmin {
                     }
 
                     settingsBuilder.put("request.headers.Authorization", "Basic "+encodeBasicHeader("sgroot",pwdEnv));
-                }
+                }*/
 
                 Settings settings = settingsBuilder.build();  
 
@@ -508,7 +509,7 @@ public class SearchGuardAdmin {
                         System.out.println("   * Make also sure that your keystore or cert is a client certificate (not a node certificate) and configured properly in elasticsearch.yml"); 
                         System.out.println("   * If this is not working, try running sgadmin.sh with --diagnose and see diagnose trace log file)");
                         System.out.println("   * Add --accept-red-cluster to allow sgadmin to operate on a red cluster.");
-                        System.out.println("   * sgroot password does not match");
+                        //System.out.println("   * sgroot password does not match");
 
                     } else {
                         System.out.println("ERR: Cannot retrieve cluster state due to: "+e.getMessage()+".");
@@ -516,7 +517,7 @@ public class SearchGuardAdmin {
                         System.out.println("   * Make also sure that your keystore or cert is a client certificate (not a node certificate) and configured properly in elasticsearch.yml"); 
                         System.out.println("   * If this is not working, try running sgadmin.sh with --diagnose and see diagnose trace log file)"); 
                         System.out.println("   * Add --accept-red-cluster to allow sgadmin to operate on a red cluster.");
-                        System.out.println("   * sgroot password does not match");
+                        //System.out.println("   * sgroot password does not match");
 
                         System.exit(-1);
                     }
@@ -534,7 +535,7 @@ public class SearchGuardAdmin {
                 System.out.println("   * Make also sure that your keystore or cert is a client certificate (not a node certificate) and configured properly in elasticsearch.yml"); 
                 System.out.println("   * If this is not working, try running sgadmin.sh with --diagnose and see diagnose trace log file)"); 
                 System.out.println("   * Add --accept-red-cluster to allow sgadmin to operate on a red cluster.");
-                System.out.println("   * sgroot password does not match");
+                //System.out.println("   * sgroot password does not match");
                 System.exit(-1);
             }
             
@@ -764,7 +765,7 @@ public class SearchGuardAdmin {
     
     private static String convertToYaml(String type, BytesReference bytes, boolean prettyPrint) throws IOException {
         
-        try (XContentParser parser = XContentFactory.xContent(XContentFactory.xContentType(bytes)).createParser(NamedXContentRegistry.EMPTY, bytes.streamInput())) {
+        try (XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, bytes.streamInput())) {
             
             parser.nextToken();
             parser.nextToken();

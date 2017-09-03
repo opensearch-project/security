@@ -132,7 +132,7 @@ import com.google.common.collect.Lists;
 //TODO general
 //- check elasticsearchyml reload
 public final class SearchGuardPlugin extends Plugin implements ActionPlugin, NetworkPlugin {
-
+    
     private final Logger log = LogManager.getLogger(this.getClass());
     private static final String CLIENT_TYPE = "client.type";
     private final Settings settings;
@@ -169,7 +169,7 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
             }
         });
         
-        disabled = settings0.getAsBoolean("searchguard.disabled", false);
+        disabled = settings0.getAsBoolean(ConfigConstants.SEARCHGUARD_DISABLED, false);
         
         if(disabled) {
             this.settings = null;
@@ -187,7 +187,7 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
             this.settings = Settings.builder().put(settings0).put(getDefaultSettings(settings0)).build();
         }
         
-        enterpriseModulesEnabled = settings.getAsBoolean("searchguard.enterprise_modules_enabled", true);
+        enterpriseModulesEnabled = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_ENTERPRISE_MODULES_ENABLED, true);
         ReflectionHelper.init(enterpriseModulesEnabled);
 
         log.info("Clustername: {}", settings.get("cluster.name","elasticsearch"));
@@ -325,7 +325,7 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
 
     private IndexSearcherWrapper loadFlsDlsIndexSearcherWrapper(final IndexService indexService) {
         try {
-            IndexSearcherWrapper flsdlsWrapper = (IndexSearcherWrapper) dlsFlsConstructor.newInstance(indexService, settings);
+            IndexSearcherWrapper flsdlsWrapper = (IndexSearcherWrapper) dlsFlsConstructor.newInstance(indexService, settings, Objects.requireNonNull(adminDns));
             if(log.isDebugEnabled()) {
                 log.debug("FLS/DLS enabled for index {}", indexService.index().getName());
             }
@@ -344,7 +344,7 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
                 if(dlsFlsAvailable) {
                     indexModule.setSearcherWrapper(indexService -> loadFlsDlsIndexSearcherWrapper(indexService));
                 } else {
-                    indexModule.setSearcherWrapper(indexService -> new SearchGuardIndexSearcherWrapper(indexService, settings));
+                    indexModule.setSearcherWrapper(indexService -> new SearchGuardIndexSearcherWrapper(indexService, settings, Objects.requireNonNull(adminDns)));
                 }
             }
         }
@@ -521,26 +521,15 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         
     }
     
-    //TODO userexp refine
     protected Settings getDefaultSettings(final Settings settings0) {
 
         if(settings0.getAsStructuredMap().containsKey("searchguard")) {
             return Settings.EMPTY;
         }
+                
+        return Settings.EMPTY;
         
-//        if(settings0.get(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_FILEPATH) != null
-//                || settings0.get(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_PEMCERT_FILEPATH) != null
-//                )
-//                /*|| client)*/ {
-//            //System.out.println("CLIENT--CLIENT--CLIENT--CLIENT--CLIENT");
-//            return Settings.EMPTY;
-//            
-//        }
-        
-        
-        //System.out.println("---- Apply default settings");
-        
-        final Settings.Builder builder = Settings.builder();
+        /*final Settings.Builder builder = Settings.builder();
         final String path = new Environment(settings0).pluginsFile().toAbsolutePath().toString()+"/search-guard-6/defaultcerts/";
         builder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_PEMCERT_FILEPATH,path+"es-node.crt.pem");
         builder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_PEMKEY_FILEPATH,path+"es-node.key");
@@ -549,7 +538,7 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         builder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, false);
         builder.put("network.host", "0.0.0.0");
         
-        return builder.build();
+        return builder.build();*/
     }
 
     @Override
@@ -569,39 +558,39 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
     public List<Setting<?>> getSettings() {
         List<Setting<?>> settings = new ArrayList<Setting<?>>();
         
-        settings.add(Setting.listSetting("searchguard.authcz.admin_dn", Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
+        settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_AUTHCZ_ADMIN_DN, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
 
-        settings.add(Setting.simpleString("searchguard.config_index_name", Property.NodeScope, Property.Filtered));
-        settings.add(Setting.groupSetting("searchguard.authcz.impersonation_dn.", Property.NodeScope)); //not filtered here
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_CONFIG_INDEX_NAME, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.groupSetting(ConfigConstants.SEARCHGUARD_AUTHCZ_IMPERSONATION_DN, Property.NodeScope)); //not filtered here
 
-        settings.add(Setting.simpleString("searchguard.audit.type", Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString("searchguard.audit.config.index", Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString("searchguard.audit.config.type", Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString("searchguard.audit.config.username", Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString("searchguard.audit.config.password", Property.NodeScope, Property.Filtered));
-        settings.add(Setting.listSetting("searchguard.audit.config.disabled_categories", Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
-        settings.add(Setting.intSetting("searchguard.audit.threadpool.size", 10, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.boolSetting("searchguard.audit.enable_request_details", false, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.boolSetting("searchguard.audit.config.webhook.ssl.verify", true, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString("searchguard.audit.config.webhook.url", Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString("searchguard.audit.config.webhook.format", Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_TYPE, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_INDEX, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_TYPE, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_USERNAME, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_PASSWORD, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DISABLED_CATEGORIES, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
+        settings.add(Setting.intSetting(ConfigConstants.SEARCHGUARD_AUDIT_THREADPOOL_SIZE, 10, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_ENABLE_REQUEST_DETAILS, false, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_SSL_VERIFY, true, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_URL2, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_FORMAT2, Property.NodeScope, Property.Filtered));
         
         
-        settings.add(Setting.simpleString("searchguard.kerberos.krb5_filepath", Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString("searchguard.kerberos.acceptor_keytab_filepath", Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString("searchguard.kerberos.acceptor_principal", Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_KERBEROS_KRB5_FILEPATH, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_KERBEROS_ACCEPTOR_KEYTAB_FILEPATH, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_KERBEROS_ACCEPTOR_PRINCIPAL, Property.NodeScope, Property.Filtered));
         
-        settings.add(Setting.listSetting("searchguard.audit.config.http_endpoints", Lists.newArrayList("localhost:9200"), Function.identity(), Property.NodeScope)); //not filtered here
-        settings.add(Setting.boolSetting("searchguard.audit.config.enable_ssl", false, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.boolSetting("searchguard.audit.config.verify_hostnames", true, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.boolSetting("searchguard.audit.config.enable_ssl_client_auth", false, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString("searchguard.audit.config.webhook_url", Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString("searchguard.audit.config.webhook_format", Property.NodeScope, Property.Filtered));
+        settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_HTTP_ENDPOINTS, Lists.newArrayList("localhost:9200"), Function.identity(), Property.NodeScope)); //not filtered here
+        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_ENABLE_SSL, false, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_VERIFY_HOSTNAMES, true, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_ENABLE_SSL_CLIENT_AUTH, false, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_URL, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_FORMAT, Property.NodeScope, Property.Filtered));
 
-        settings.add(Setting.simpleString("searchguard.cert.oid", Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_CERT_OID, Property.NodeScope, Property.Filtered));
 
-        settings.add(Setting.simpleString("searchguard.cert.intercluster_request_evaluator_class", Property.NodeScope, Property.Filtered));
-        settings.add(Setting.listSetting("searchguard.nodes_dn", Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_CERT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_NODES_DN, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
 
         settings.add(Setting.boolSetting(ConfigConstants.SG_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE, ConfigConstants.SG_DEFAULT_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE,
                 Property.NodeScope, Property.Filtered));
@@ -658,19 +647,21 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         settings.add(Setting.boolSetting(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_CRL_DISABLE_OCSP, false, Property.NodeScope, Property.Filtered));
         settings.add(Setting.longSetting(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_CRL_VALIDATION_DATE, -1, -1, Property.NodeScope, Property.Filtered));
 
-        settings.add(Setting.listSetting("searchguard.audit.ignore_users", Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
-
-        //settings.add(Setting.simpleString("node.client", Property.NodeScope));
-        //settings.add(Setting.simpleString("node.local", Property.NodeScope));
+        settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_AUDIT_IGNORE_USERS, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
         
-        settings.add(Setting.boolSetting("searchguard.disabled", false, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.intSetting("searchguard.cache.ttl_minutes", 60, 0, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_DISABLED, false, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.intSetting(ConfigConstants.SEARCHGUARD_CACHE_TTL_MINUTES, 60, 0, Property.NodeScope, Property.Filtered));
 
         //SG6
-        settings.add(Setting.boolSetting("searchguard.enterprise_modules_enabled", true, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.boolSetting("searchguard.no_default_init", false, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.boolSetting("searchguard.sgroot_enabled", true, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_ENTERPRISE_MODULES_ENABLED, true, Property.NodeScope, Property.Filtered));
+        //settings.add(Setting.boolSetting("searchguard.no_default_init", false, Property.NodeScope, Property.Filtered));
+        //settings.add(Setting.boolSetting("searchguard.sgroot_enabled", true, Property.NodeScope, Property.Filtered));
     
+        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_ALLOW_UNSAFE_DEMOCERTIFICATES, false, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_ALLOW_DEFAULT_INIT_SGINDEX, false, Property.NodeScope, Property.Filtered));
+        
+        
+        
         return settings;
     }
     

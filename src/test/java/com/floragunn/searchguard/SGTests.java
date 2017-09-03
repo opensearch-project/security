@@ -887,7 +887,7 @@ public class SGTests extends AbstractUnitTest {
         
         BasicHeader spock = new BasicHeader("Authorization", "Basic "+encodeBasicHeader("spock", "spock"));
           
-        for (Iterator iterator = httpAdresses.iterator(); iterator.hasNext();) {
+        for (Iterator<TransportAddress> iterator = httpAdresses.iterator(); iterator.hasNext();) {
             TransportAddress TransportAddress = (TransportAddress) iterator.next();
             HttpResponse res = executeRequest(new HttpGet("http://"+TransportAddress.getAddress()+":"+TransportAddress.getPort() + "/" + "_searchguard/authinfo?pretty=true"), spock);
             Assert.assertTrue(res.getBody().contains("spock"));
@@ -907,7 +907,7 @@ public class SGTests extends AbstractUnitTest {
             Assert.assertEquals(3, cur.getNodes().size());   
         } 
         
-        for (Iterator iterator = httpAdresses.iterator(); iterator.hasNext();) {
+        for (Iterator<TransportAddress> iterator = httpAdresses.iterator(); iterator.hasNext();) {
             TransportAddress TransportAddress = (TransportAddress) iterator.next();
             log.debug("http://"+TransportAddress.getAddress()+":"+TransportAddress.getPort());
             HttpResponse res = executeRequest(new HttpGet("http://"+TransportAddress.getAddress()+":"+TransportAddress.getPort() + "/" + "_searchguard/authinfo?pretty=true"), spock);
@@ -929,7 +929,7 @@ public class SGTests extends AbstractUnitTest {
             Assert.assertEquals(3, cur.getNodes().size());   
         } 
         
-        for (Iterator iterator = httpAdresses.iterator(); iterator.hasNext();) {
+        for (Iterator<TransportAddress> iterator = httpAdresses.iterator(); iterator.hasNext();) {
             TransportAddress TransportAddress = (TransportAddress) iterator.next();
             HttpResponse res = executeRequest(new HttpGet("http://"+TransportAddress.getAddress()+":"+TransportAddress.getPort() + "/" + "_searchguard/authinfo?pretty=true"));
             log.debug(res.getBody());

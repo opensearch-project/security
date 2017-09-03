@@ -18,9 +18,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Supplier;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -122,7 +119,7 @@ public final class ClusterHelper {
 		Node node = esNodes.get(0);
 		Client client = node.client();
 		try {
-			log.debug("waiting for cluster state {}", status.name());
+			log.debug("waiting for cluster state {} and {} nodes", status.name(), esNodes.size());
 			final ClusterHealthResponse healthResponse = client.admin().cluster().prepareHealth()
 					.setWaitForStatus(status).setTimeout(timeout).setWaitForNodes("" + esNodes.size()).execute()
 					.actionGet();

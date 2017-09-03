@@ -1,6 +1,5 @@
 package com.floragunn.searchguard.sgtest;
 
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
 import org.elasticsearch.client.transport.TransportClient;
@@ -10,12 +9,10 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.floragunn.searchguard.ssl.util.SSLConfigConstants;
 import com.floragunn.searchguard.test.AbstractSGUnitTest;
 import com.floragunn.searchguard.test.helper.cluster.ClusterConfiguration;
 import com.floragunn.searchguard.test.helper.cluster.ClusterHelper;
 import com.floragunn.searchguard.test.helper.cluster.ClusterInfo;
-import com.floragunn.searchguard.test.helper.file.FileHelper;
 import com.floragunn.searchguard.test.helper.rest.RestHelper;
 
 public class CrossClusterSearchTest extends AbstractSGUnitTest{

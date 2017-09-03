@@ -40,12 +40,15 @@ public class SearchGuardIndexSearcherWrapper extends IndexSearcherWrapper {
     protected final ThreadContext threadContext;
     protected final Index index;
     protected final String searchguardIndex;
+    private final AdminDNs adminDns;
+
 	
     //constructor is called per index, so avoid costly operations here
-	public SearchGuardIndexSearcherWrapper(final IndexService indexService, Settings settings) {
+	public SearchGuardIndexSearcherWrapper(final IndexService indexService, final Settings settings, final AdminDNs adminDNs) {
 	    index = indexService.index();
 	    threadContext = indexService.getThreadPool().getThreadContext();
         this.searchguardIndex = settings.get(ConfigConstants.SG_CONFIG_INDEX, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
+        this.adminDns = adminDNs;
 	}
 
     @Override
@@ -88,7 +91,7 @@ public class SearchGuardIndexSearcherWrapper extends IndexSearcherWrapper {
             user = (User) threadContext.getTransient(ConfigConstants.SG_USER+"copy");
         }
                 
-        if (user != null && AdminDNs.isAdmin(user.getName())) { //TODO static hack
+        if (user != null && adminDns.isAdmin(user.getName())) { //TODO static hack
             return true;
         }
         

@@ -17,7 +17,6 @@
 
 package com.floragunn.searchguard.support;
 
-import java.io.File;
 import java.io.InputStream;
 import java.lang.reflect.Constructor;
 import java.net.URL;
@@ -50,7 +49,6 @@ import com.floragunn.searchguard.configuration.IndexBaseConfigurationRepository;
 import com.floragunn.searchguard.configuration.PrivilegesInterceptor;
 import com.floragunn.searchguard.ssl.transport.DefaultPrincipalExtractor;
 import com.floragunn.searchguard.ssl.transport.PrincipalExtractor;
-import com.floragunn.searchguard.tools.SearchGuardAdmin;
 import com.floragunn.searchguard.transport.DefaultInterClusterRequestEvaluator;
 import com.floragunn.searchguard.transport.InterClusterRequestEvaluator;
 
@@ -115,7 +113,7 @@ public class ReflectionHelper {
 
         try {
             final Class<?> clazz = Class.forName("com.floragunn.searchguard.configuration.SearchGuardFlsDlsIndexSearcherWrapper");
-            final Constructor<?> ret = clazz.getConstructor(IndexService.class, Settings.class);
+            final Constructor<?> ret = clazz.getConstructor(IndexService.class, Settings.class, AdminDNs.class);
             modulesLoaded.put("dls-fls-wrapper", getModuleInfo(clazz));
             return ret;
         } catch (final Throwable e) {

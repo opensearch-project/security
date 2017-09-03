@@ -504,7 +504,8 @@ public abstract class AbstractUnitTest {
         return new String(DatatypeConverter.printBase64Binary((username + ":" + Objects.requireNonNull(password)).getBytes(StandardCharsets.UTF_8)));
     }
     
-    protected Collection<Class<? extends Plugin>> asCollection(Class<? extends Plugin>... plugins) {
+    @SafeVarargs
+    protected final Collection<Class<? extends Plugin>> asCollection(Class<? extends Plugin>... plugins) {
         return Arrays.asList(plugins);
     }
     

@@ -34,7 +34,6 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 
 import com.floragunn.searchguard.SearchGuardPlugin;
-import com.floragunn.searchguard.test.AbstractSGUnitTest;
 
 public class FileHelper {
 

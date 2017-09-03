@@ -97,5 +97,39 @@ public class ConfigConstants {
             CONFIGNAME_ACTION_GROUPS, CONFIGNAME_INTERNAL_USERS, CONFIGNAME_CONFIG}));
     public static final String SG_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = "searchguard.cert.intercluster_request_evaluator_class";
     public static final String SG_ACTION_NAME = SG_CONFIG_PREFIX+"action_name";
+    
+    
+    public static final String SEARCHGUARD_AUTHCZ_ADMIN_DN = "searchguard.authcz.admin_dn";
+    public static final String SEARCHGUARD_CONFIG_INDEX_NAME = "searchguard.config_index_name";
+    public static final String SEARCHGUARD_AUTHCZ_IMPERSONATION_DN = "searchguard.authcz.impersonation_dn.";
+    public static final String SEARCHGUARD_AUDIT_TYPE = "searchguard.audit.type";
+    public static final String SEARCHGUARD_AUDIT_CONFIG_INDEX = "searchguard.audit.config.index";
+    public static final String SEARCHGUARD_AUDIT_CONFIG_TYPE = "searchguard.audit.config.type";
+    public static final String SEARCHGUARD_AUDIT_CONFIG_USERNAME = "searchguard.audit.config.username";
+    public static final String SEARCHGUARD_AUDIT_CONFIG_PASSWORD = "searchguard.audit.config.password";
+    public static final String SEARCHGUARD_AUDIT_CONFIG_DISABLED_CATEGORIES = "searchguard.audit.config.disabled_categories";
+    public static final String SEARCHGUARD_AUDIT_THREADPOOL_SIZE = "searchguard.audit.threadpool.size";
+    public static final String SEARCHGUARD_AUDIT_ENABLE_REQUEST_DETAILS = "searchguard.audit.enable_request_details";
+    public static final String SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_SSL_VERIFY = "searchguard.audit.config.webhook.ssl.verify";
+    public static final String SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_URL2 = "searchguard.audit.config.webhook.url";
+    public static final String SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_FORMAT2 = "searchguard.audit.config.webhook.format";
+    public static final String SEARCHGUARD_KERBEROS_KRB5_FILEPATH = "searchguard.kerberos.krb5_filepath";
+    public static final String SEARCHGUARD_KERBEROS_ACCEPTOR_KEYTAB_FILEPATH = "searchguard.kerberos.acceptor_keytab_filepath";
+    public static final String SEARCHGUARD_KERBEROS_ACCEPTOR_PRINCIPAL = "searchguard.kerberos.acceptor_principal";
+    public static final String SEARCHGUARD_AUDIT_CONFIG_HTTP_ENDPOINTS = "searchguard.audit.config.http_endpoints";
+    public static final String SEARCHGUARD_AUDIT_CONFIG_ENABLE_SSL = "searchguard.audit.config.enable_ssl";
+    public static final String SEARCHGUARD_AUDIT_CONFIG_VERIFY_HOSTNAMES = "searchguard.audit.config.verify_hostnames";
+    public static final String SEARCHGUARD_AUDIT_CONFIG_ENABLE_SSL_CLIENT_AUTH = "searchguard.audit.config.enable_ssl_client_auth";
+    public static final String SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_URL = "searchguard.audit.config.webhook_url";
+    public static final String SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_FORMAT = "searchguard.audit.config.webhook_format";
+    public static final String SEARCHGUARD_CERT_OID = "searchguard.cert.oid";
+    public static final String SEARCHGUARD_CERT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = "searchguard.cert.intercluster_request_evaluator_class";
+    public static final String SEARCHGUARD_ENTERPRISE_MODULES_ENABLED = "searchguard.enterprise_modules_enabled";
+    public static final String SEARCHGUARD_NODES_DN = "searchguard.nodes_dn";
+    public static final String SEARCHGUARD_AUDIT_IGNORE_USERS = "searchguard.audit.ignore_users";
+    public static final String SEARCHGUARD_DISABLED = "searchguard.disabled";
+    public static final String SEARCHGUARD_CACHE_TTL_MINUTES = "searchguard.cache.ttl_minutes";
+    public static final String SEARCHGUARD_ALLOW_UNSAFE_DEMOCERTIFICATES = "searchguard.allow_unsafe_democertificates";
+    public static final String SEARCHGUARD_ALLOW_DEFAULT_INIT_SGINDEX = "searchguard.allow_default_init_sgindex";
 
 }

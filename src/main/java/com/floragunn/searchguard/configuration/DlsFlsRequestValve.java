@@ -29,7 +29,7 @@ public interface DlsFlsRequestValve {
      * @param listener
      * @return false to stop
      */
-    boolean invoke(final ActionRequest request, final ActionListener listener, ThreadContext threadContext);
+    boolean invoke(final ActionRequest request, final ActionListener<?> listener, ThreadContext threadContext);
 
     public static class NoopDlsFlsRequestValve implements DlsFlsRequestValve {
 
