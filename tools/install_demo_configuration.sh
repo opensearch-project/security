@@ -1,8 +1,8 @@
 #!/bin/bash
 #install_demo_configuration.sh [-y]
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-echo "## Search Guard Demo Installer ##"
-echo "Warning: Do not use on production or public reachable systems"
+echo "Search Guard 6 Demo Installer"
+echo " ** Warning: Do not use on production or public reachable systems **"
 
 OPTIND=1
 assumeyes=0
@@ -321,11 +321,15 @@ ES_PLUGINS_DIR=`cd "$ES_PLUGINS_DIR" ; pwd`
 
 echo "### Success"
 echo "### Execute this script now on all your nodes and then start all nodes"
-echo "### After the whole cluster is up execute: "
-echo "#!/bin/bash" | $SUDO_CMD tee sgadmin_demo.sh > /dev/null 
-echo $SUDO_CMD "$ES_PLUGINS_DIR/search-guard-6/tools/sgadmin.sh" -cd "$ES_PLUGINS_DIR/search-guard-6/sgconfig" -cn searchguard_demo -key "$ES_CONF_DIR/kirk-key.pem" -cert "$ES_CONF_DIR/kirk.pem" -cacert "$ES_CONF_DIR/root-ca.pem" -nhnv | $SUDO_CMD tee -a sgadmin_demo.sh > /dev/null
-$SUDO_CMD chmod +x sgadmin_demo.sh
-$SUDO_CMD cat sgadmin_demo.sh | tail -1
-echo "### or run ./sgadmin_demo.sh"
-echo "### Then open https://localhost:9200 an login with admin/admin"
+
+if [ "$initsg" == 0 ]; then
+    echo "### After the whole cluster is up execute: "
+    echo "#!/bin/bash" | $SUDO_CMD tee sgadmin_demo.sh > /dev/null 
+    echo $SUDO_CMD "$ES_PLUGINS_DIR/search-guard-6/tools/sgadmin.sh" -cd "$ES_PLUGINS_DIR/search-guard-6/sgconfig" -cn searchguard_demo -key "$ES_CONF_DIR/kirk-key.pem" -cert "$ES_CONF_DIR/kirk.pem" -cacert "$ES_CONF_DIR/root-ca.pem" -nhnv | $SUDO_CMD tee -a sgadmin_demo.sh > /dev/null
+    $SUDO_CMD chmod +x sgadmin_demo.sh
+    $SUDO_CMD cat sgadmin_demo.sh | tail -1
+    echo "### or run ./sgadmin_demo.sh"
+fi
+
+echo "### Then open https://$(hostname -f):9200 an login with admin/admin"
 echo "### (Just ignore the ssl certificate warning because we installed a self signed demo certificate)"
