@@ -31,9 +31,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Locale;
-import java.util.Objects;
-
-import javax.xml.bind.DatatypeConverter;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -309,7 +306,7 @@ public class SearchGuardAdmin {
             
             si = line.hasOption("si");
             
-            if (cert == null && ks == null) {
+            /*if (cert == null && ks == null) {
                 nhnv = true;
                 //simpleAuth = true;
                 final String jarPath = new File(SearchGuardAdmin.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath()).getParentFile().getAbsolutePath();
@@ -317,7 +314,7 @@ public class SearchGuardAdmin {
                 cacert = cacert == null ? jarPath+"/defaultcerts/root-ca.pem" : cacert;
                 cert = cert == null ? jarPath+"/defaultcerts/sgadmin.crtfull.pem" : cert;
                 key = key == null ? jarPath+"/defaultcerts/sgadmin.key.pem" : key;
-            }
+            }*/
             
         }
         catch( ParseException exp ) {
@@ -430,7 +427,8 @@ public class SearchGuardAdmin {
 
                 Settings settings = settingsBuilder.build();  
 
-        try (TransportClient tc = new TransportClientImpl(settings, asCollection(Netty4Plugin.class, SearchGuardPlugin.class))
+        try (@SuppressWarnings("resource")
+        TransportClient tc = new TransportClientImpl(settings, asCollection(Netty4Plugin.class, SearchGuardPlugin.class))
                 .addTransportAddress(new TransportAddress(new InetSocketAddress(hostname, port)))) {
 
             if(updateSettings != null) { 
@@ -795,6 +793,7 @@ public class SearchGuardAdmin {
         }       
     }
     
+    @SafeVarargs
     protected static Collection<Class<? extends Plugin>> asCollection(Class<? extends Plugin>... plugins) {
         return Arrays.asList(plugins);
     }
@@ -893,19 +892,19 @@ public class SearchGuardAdmin {
             throw new ParseException("Only set one of -cn or -icl");
         }
 
-        if(!line.hasOption("ks") && !line.hasOption("cert") && !line.hasOption("simple-auth")) {
-            //throw new ParseException("Specify at least -ks or -cert");
+        if(!line.hasOption("ks") && !line.hasOption("cert") /*&& !line.hasOption("simple-auth")*/) {
+            throw new ParseException("Specify at least -ks or -cert");
         }
         
-        if(!line.hasOption("ts") && !line.hasOption("cacert") && !line.hasOption("simple-auth")) {
-            //throw new ParseException("Specify at least -ts or -cacert");
+        if(!line.hasOption("ts") && !line.hasOption("cacert") /*&& !line.hasOption("simple-auth")*/) {
+            throw new ParseException("Specify at least -ts or -cacert");
         }
         
         //TODO add more validation rules
     }
     
-    private static String encodeBasicHeader(final String username, final String password) {
+    /*private static String encodeBasicHeader(final String username, final String password) {
         return new String(DatatypeConverter.printBase64Binary((username + ":" + Objects.requireNonNull(password)).getBytes(StandardCharsets.UTF_8)));
-    }
+    }*/
     
 }
