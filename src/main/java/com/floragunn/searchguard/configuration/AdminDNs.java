@@ -36,9 +36,8 @@ import com.google.common.collect.ListMultimap;
 public class AdminDNs {
 
     protected final Logger log = LogManager.getLogger(AdminDNs.class);
-    private final Set<LdapName> adminDn = new HashSet<LdapName>(); //TODO static hack
+    private final Set<LdapName> adminDn = new HashSet<LdapName>();
     private final ListMultimap<LdapName, String> allowedImpersonations = ArrayListMultimap.<LdapName, String> create();
-    //private boolean sgrootEnabled = false; //TODO sgrootEnabled
     
     public AdminDNs(Settings settings) 
     {
@@ -68,25 +67,18 @@ public class AdminDNs {
         
         log.debug("Loaded {} impersonation DN's {}",allowedImpersonations.size(), allowedImpersonations);
     }
-    
-    //TODO static hack
+
     public boolean isAdmin(String dn) {
         
         if(dn == null) return false;
-        
-        //TODO userexp - auditlog?
-        /*if(sgrootEnabled && "sgroot".equals(dn)) {
-            return true;
-        }*/
-        
+
         try {
             return isAdmin(new LdapName(dn));
         } catch (InvalidNameException e) {
            return false;
         }
     }
-    
-    //TODO static hack
+
     private boolean isAdmin(LdapName dn) {
         if(dn == null) return false;
         

@@ -20,6 +20,7 @@ package com.floragunn.searchguard.configuration;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.nio.file.Path;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -90,7 +91,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
     private final ClusterService clusterService;
     private ThreadPool threadPool;
 
-    private IndexBaseConfigurationRepository(Settings settings, ThreadPool threadPool, Client client, ClusterService clusterService) {
+    private IndexBaseConfigurationRepository(Settings settings, final Path configPath, ThreadPool threadPool, Client client, ClusterService clusterService) {
         this.searchguardIndex = settings.get(ConfigConstants.SG_CONFIG_INDEX, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
         this.settings = settings;
         this.client = client;
@@ -118,7 +119,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                                 
                                 try {
                                     String lookupDir = System.getProperty("sg.default_init.dir");
-                                    final String cd = lookupDir != null? (lookupDir+"/") : new Environment(settings).pluginsFile().toAbsolutePath().toString()+"/search-guard-6/sgconfig/";                                        
+                                    final String cd = lookupDir != null? (lookupDir+"/") : new Environment(settings, configPath).pluginsFile().toAbsolutePath().toString()+"/search-guard-6/sgconfig/";                                        
                                     File confFile = new File(cd+"sg_config.yml");
                                     if(confFile.exists()) {
                                         LOGGER.info("Will create {} index so we can apply default config", searchguardIndex);
@@ -280,8 +281,8 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
     }
 
     
-    public static ConfigurationRepository create(Settings settings, final ThreadPool threadPool, Client client,  ClusterService clusterService) {
-        final IndexBaseConfigurationRepository repository = new IndexBaseConfigurationRepository(settings, threadPool, client, clusterService);
+    public static ConfigurationRepository create(Settings settings, final Path configPath, final ThreadPool threadPool, Client client,  ClusterService clusterService) {
+        final IndexBaseConfigurationRepository repository = new IndexBaseConfigurationRepository(settings, configPath, threadPool, client, clusterService);
         return repository;
     }
 

@@ -118,9 +118,7 @@ public abstract class AbstractSGUnitTest {
     }
     
     protected void initialize(ClusterInfo info, Settings initTransportClientSettings, DynamicSgConfig sgconfig) {
-        
-        //TODO load modules?
-        //TODO test modules like delete by query etc
+
         try (TransportClient tc = getInternalTransportClient(info, initTransportClientSettings)) {
 
             tc.addTransportAddress(new TransportAddress(new InetSocketAddress(info.nodeHost, info.nodePort)));

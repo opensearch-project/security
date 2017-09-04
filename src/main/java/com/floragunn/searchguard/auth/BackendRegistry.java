@@ -82,7 +82,6 @@ public class BackendRegistry implements ConfigurationChangeListener {
     private Cache<AuthCredentials, User> userCache;
     private Cache<String, User> userCacheTransport;
     private Cache<AuthCredentials, User> authenticatedUserCacheTransport;
-    private static final boolean sgrootEnabled = false;//TODO sgrootEnabled
     
     private void createCaches() {
         userCache = CacheBuilder.newBuilder()
@@ -340,9 +339,8 @@ public class BackendRegistry implements ConfigurationChangeListener {
                     }
                     continue;
                 }
-                
-               //TODO userexp - we need to allow this
-                if(!sgrootEnabled && adminDns.isAdmin(authenticatedUser.getName())) {
+
+                if(adminDns.isAdmin(authenticatedUser.getName())) {
                     log.error("Cannot authenticate user because admin user is not permitted to login");
                     auditLog.logFailedLogin(authenticatedUser.getName(), request);
                     return null;
@@ -508,7 +506,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
                     continue;
                 }
 
-                if(!sgrootEnabled && adminDns.isAdmin(authenticatedUser.getName())) {
+                if(adminDns.isAdmin(authenticatedUser.getName())) {
                     log.error("Cannot authenticate user because admin user is not permitted to login via HTTP");
                     auditLog.logFailedLogin(authenticatedUser.getName(), request);
                     channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, "Cannot authenticate user because admin user is not permitted to login via HTTP"));

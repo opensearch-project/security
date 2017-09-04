@@ -17,6 +17,8 @@
 
 package com.floragunn.searchguard.filter;
 
+import java.nio.file.Path;
+
 import javax.net.ssl.SSLPeerUnverifiedException;
 
 import org.elasticsearch.ElasticsearchException;
@@ -48,16 +50,18 @@ public class SearchGuardRestFilter {
     private final ThreadContext threadContext;
     private final PrincipalExtractor principalExtractor;
     private final Settings settings;
+    private final Path configPath;
 
     public SearchGuardRestFilter(final BackendRegistry registry, final AuditLog auditLog,
             final ThreadPool threadPool, final PrincipalExtractor principalExtractor,
-            final Settings settings) {
+            final Settings settings, final Path configPath) {
         super();
         this.registry = registry;
         this.auditLog = auditLog;
         this.threadContext = threadPool.getThreadContext();
         this.principalExtractor = principalExtractor;
         this.settings = settings;
+        this.configPath = configPath;
     }
     
     public RestHandler wrap(RestHandler original) {
@@ -91,7 +95,7 @@ public class SearchGuardRestFilter {
 
         final SSLInfo sslInfo;
         try {
-            if((sslInfo = SSLRequestHelper.getSSLInfo(settings, request, principalExtractor)) != null) {
+            if((sslInfo = SSLRequestHelper.getSSLInfo(settings, configPath, request, principalExtractor)) != null) {
                 if(sslInfo.getPrincipal() != null) {
                     threadContext.putTransient("_sg_ssl_principal", sslInfo.getPrincipal());
                 }

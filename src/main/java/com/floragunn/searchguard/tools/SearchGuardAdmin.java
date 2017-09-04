@@ -398,33 +398,6 @@ public class SearchGuardAdmin {
                     settingsBuilder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_PEMKEY_PASSWORD, keypass);
                 }
                 
-                /*if (simpleAuth) {
-                    
-                    String pwdEnv = System.getenv("SGROOT_PWD");
-                    
-                    if(pwdEnv == null) {
-                    
-                        final String defaultPassword = "admin";
-                        
-                        Console console = System.console();
-                        if (console == null) {
-                            System.out.println("Couldn't get Console instance, use default password");
-                            pwdEnv = defaultPassword;
-                        } else {
-                            char[] passwordArray = console.readPassword("sg root password: ");
-                            if(passwordArray == null) {
-                                System.out.println("No password entered, use default password");
-                                pwdEnv = defaultPassword;
-                            } else {
-                                pwdEnv = new String(passwordArray);
-                            }
-                        }
-
-                    }
-
-                    settingsBuilder.put("request.headers.Authorization", "Basic "+encodeBasicHeader("sgroot",pwdEnv));
-                }*/
-
                 Settings settings = settingsBuilder.build();  
 
         try (@SuppressWarnings("resource")
@@ -506,7 +479,6 @@ public class SearchGuardAdmin {
                         System.out.println("   * Make also sure that your keystore or cert is a client certificate (not a node certificate) and configured properly in elasticsearch.yml"); 
                         System.out.println("   * If this is not working, try running sgadmin.sh with --diagnose and see diagnose trace log file)");
                         System.out.println("   * Add --accept-red-cluster to allow sgadmin to operate on a red cluster.");
-                        //System.out.println("   * sgroot password does not match");
 
                     } else {
                         System.out.println("ERR: Cannot retrieve cluster state due to: "+e.getMessage()+".");
@@ -514,7 +486,6 @@ public class SearchGuardAdmin {
                         System.out.println("   * Make also sure that your keystore or cert is a client certificate (not a node certificate) and configured properly in elasticsearch.yml"); 
                         System.out.println("   * If this is not working, try running sgadmin.sh with --diagnose and see diagnose trace log file)"); 
                         System.out.println("   * Add --accept-red-cluster to allow sgadmin to operate on a red cluster.");
-                        //System.out.println("   * sgroot password does not match");
 
                         System.exit(-1);
                     }
@@ -532,7 +503,6 @@ public class SearchGuardAdmin {
                 System.out.println("   * Make also sure that your keystore or cert is a client certificate (not a node certificate) and configured properly in elasticsearch.yml"); 
                 System.out.println("   * If this is not working, try running sgadmin.sh with --diagnose and see diagnose trace log file)"); 
                 System.out.println("   * Add --accept-red-cluster to allow sgadmin to operate on a red cluster.");
-                //System.out.println("   * sgroot password does not match");
                 System.exit(-1);
             }
             
