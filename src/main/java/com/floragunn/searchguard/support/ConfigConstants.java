@@ -72,13 +72,12 @@ public class ConfigConstants {
     
     public static final String SG_XFF_DONE = SG_CONFIG_PREFIX+"xff_done";
 
-    public static final String SG_CONFIG_INDEX = "searchguard.config_index_name";
     public static final String SG_DEFAULT_CONFIG_INDEX = "searchguard";
 
-    public static final String SG_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE = "searchguard.enable_snapshot_restore_privilege";
+    public static final String SEARCHGUARD_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE = "searchguard.enable_snapshot_restore_privilege";
     public static final boolean SG_DEFAULT_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE = false;
 
-    public static final String SG_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES = "searchguard.check_snapshot_restore_write_privileges";
+    public static final String SEARCHGUARD_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES = "searchguard.check_snapshot_restore_write_privileges";
     public static final boolean SG_DEFAULT_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES = true;
     public static final Set<String> SG_SNAPSHOT_RESTORE_NEEDED_WRITE_PRIVILEGES = Collections.unmodifiableSet(
             new HashSet<String>(Arrays.asList(

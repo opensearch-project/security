@@ -57,7 +57,7 @@ class LegacyConfigurationLoader {
         super();
         this.client = client;
         //this.threadContext = threadPool.getThreadContext();
-        this.searchguardIndex = settings.get(ConfigConstants.SG_CONFIG_INDEX, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
+        this.searchguardIndex = settings.get(ConfigConstants.SEARCHGUARD_CONFIG_INDEX_NAME, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
         log.debug("Index is: {}", searchguardIndex);
     }
     

@@ -92,7 +92,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
     private ThreadPool threadPool;
 
     private IndexBaseConfigurationRepository(Settings settings, final Path configPath, ThreadPool threadPool, Client client, ClusterService clusterService) {
-        this.searchguardIndex = settings.get(ConfigConstants.SG_CONFIG_INDEX, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
+        this.searchguardIndex = settings.get(ConfigConstants.SEARCHGUARD_CONFIG_INDEX_NAME, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
         this.settings = settings;
         this.client = client;
         this.threadPool = threadPool;
