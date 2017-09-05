@@ -18,6 +18,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -61,8 +62,15 @@ public final class ClusterHelper {
 	 * Start n Elasticsearch nodes with the provided settings
 	 * 
 	 * @return
+     * @throws Exception 
 	 */
-	public final ClusterInfo startCluster(final NodeSettingsSupplier nodeSettingsSupplier, ClusterConfiguration clusterConfiguration)
+	
+	public final ClusterInfo startCluster(final NodeSettingsSupplier nodeSettingsSupplier, ClusterConfiguration clusterConfiguration) throws Exception {
+	    return startCluster(nodeSettingsSupplier, clusterConfiguration, 10, null);
+	}
+	
+	
+	public final ClusterInfo startCluster(final NodeSettingsSupplier nodeSettingsSupplier, ClusterConfiguration clusterConfiguration, int timeout, Integer nodes)
 			throws Exception {
 	    
 		if (!esNodes.isEmpty()) {
@@ -85,7 +93,7 @@ public final class ClusterHelper {
 			esNodes.add(node);
 			Thread.sleep(200);
 		}
-		ClusterInfo cInfo = waitForGreenClusterState();
+		ClusterInfo cInfo = waitForCluster(ClusterHealthStatus.GREEN, TimeValue.timeValueSeconds(timeout), nodes == null?esNodes.size():nodes.intValue());
 		cInfo.numNodes = internalNodeSettings.size();
 		cInfo.clustername = clustername;
 		return cInfo;
@@ -99,17 +107,11 @@ public final class ClusterHelper {
 		esNodes.clear();
 	}
 
-	/**
-	 * Waits for a green cluster state.
-	 * 
-	 * @return
-	 */
-
-	protected ClusterInfo waitForGreenClusterState() throws IOException {
-		return waitForCluster(ClusterHealthStatus.GREEN, TimeValue.timeValueSeconds(10));
+	public Client nodeClient() {
+	    return esNodes.get(0).client();
 	}
-
-	protected ClusterInfo waitForCluster(final ClusterHealthStatus status, final TimeValue timeout) throws IOException {
+	
+	protected ClusterInfo waitForCluster(final ClusterHealthStatus status, final TimeValue timeout, final int expectedNodeCount) throws IOException {
 		if (esNodes.isEmpty()) {
 			throw new RuntimeException("List of nodes was empty.");
 		}
@@ -119,9 +121,9 @@ public final class ClusterHelper {
 		Node node = esNodes.get(0);
 		Client client = node.client();
 		try {
-			log.debug("waiting for cluster state {} and {} nodes", status.name(), esNodes.size());
+			log.debug("waiting for cluster state {} and {} nodes", status.name(), expectedNodeCount);
 			final ClusterHealthResponse healthResponse = client.admin().cluster().prepareHealth()
-					.setWaitForStatus(status).setTimeout(timeout).setWaitForNodes("" + esNodes.size()).execute()
+					.setWaitForStatus(status).setTimeout(timeout).setMasterNodeTimeout(timeout).setWaitForNodes("" + expectedNodeCount).execute()
 					.actionGet();
 			if (healthResponse.isTimedOut()) {
 				throw new IOException("cluster state is " + healthResponse.getStatus().name() + " with "
@@ -131,7 +133,7 @@ public final class ClusterHelper {
 						+ healthResponse.getNumberOfNodes() + " nodes");
 			}
 
-			org.junit.Assert.assertEquals(esNodes.size(), healthResponse.getNumberOfNodes());
+			org.junit.Assert.assertEquals(expectedNodeCount, healthResponse.getNumberOfNodes());
 
 			final NodesInfoResponse res = client.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet();
 
@@ -171,9 +173,9 @@ public final class ClusterHelper {
 				.put("path.data", "data/"+clustername+"/data")
 				.put("path.logs", "data/"+clustername+"/logs")
 				.put("node.max_local_storage_nodes", nodeCount)
-				.put("discovery.zen.minimum_master_nodes", minMasterNodes(masterCount))
-				.put("discovery.zen.no_master_block", "all")
-				.put("discovery.zen.fd.ping_timeout", "2s")
+				//.put("discovery.zen.minimum_master_nodes", minMasterNodes(masterCount))
+				//.put("discovery.zen.no_master_block", "all")
+				//.put("discovery.zen.fd.ping_timeout", "2s")
 				.put("http.enabled", true)
 				.put("cluster.routing.allocation.disk.threshold_enabled", false)
 				.put("http.cors.enabled", true)

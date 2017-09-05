@@ -20,6 +20,7 @@ package com.floragunn.searchguard.support;
 import java.io.InputStream;
 import java.lang.reflect.Constructor;
 import java.net.URL;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -84,7 +85,7 @@ public class ReflectionHelper {
     }
 
     @SuppressWarnings("unchecked")
-    public static Collection<RestHandler> instantiateMngtRestApiHandler(final Settings settings, final RestController restController,
+    public static Collection<RestHandler> instantiateMngtRestApiHandler(final Settings settings, final Path configPath, final RestController restController,
             final Client localClient, final AdminDNs adminDns, final IndexBaseConfigurationRepository cr, final ClusterService cs,
             final PrincipalExtractor principalExtractor) {
 
@@ -95,8 +96,8 @@ public class ReflectionHelper {
         try {
             final Class<?> clazz = Class.forName("com.floragunn.searchguard.dlic.rest.api.SearchGuardRestApiActions");
             final Collection<RestHandler> ret = (Collection<RestHandler>) clazz.getDeclaredMethod("getHandler", Settings.class,
-                    RestController.class, Client.class, AdminDNs.class, IndexBaseConfigurationRepository.class, ClusterService.class,
-                    PrincipalExtractor.class).invoke(null, settings, restController, localClient, adminDns, cr, cs, principalExtractor);
+                    Path.class, RestController.class, Client.class, AdminDNs.class, IndexBaseConfigurationRepository.class, ClusterService.class,
+                    PrincipalExtractor.class).invoke(null, settings, configPath, restController, localClient, adminDns, cr, cs, principalExtractor);
             modulesLoaded.put("rest-mngt-api", getModuleInfo(clazz));
             return ret;
         } catch (final Throwable e) {

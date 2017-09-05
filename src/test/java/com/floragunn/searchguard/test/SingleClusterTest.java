@@ -18,7 +18,19 @@ public class SingleClusterTest extends AbstractSGUnitTest {
     }
     
     protected void setup(Settings initTransportClientSettings, DynamicSgConfig dynamicSgSettings, Settings nodeOverride, boolean initSeachGuardIndex) throws Exception {    
-        clusterInfo = clusterHelper.startCluster(minimumSearchGuardSettings(nodeOverride), ClusterConfiguration.SINGLENODE);
+        setup(initTransportClientSettings, dynamicSgSettings, nodeOverride, initSeachGuardIndex, ClusterConfiguration.SINGLENODE);
+    }
+    
+    protected void setup(Settings initTransportClientSettings, DynamicSgConfig dynamicSgSettings, Settings nodeOverride, boolean initSeachGuardIndex, ClusterConfiguration clusterConfiguration) throws Exception {    
+        clusterInfo = clusterHelper.startCluster(minimumSearchGuardSettings(nodeOverride), clusterConfiguration);
+        if(initSeachGuardIndex) {
+            initialize(clusterInfo, initTransportClientSettings, dynamicSgSettings);
+        }
+    }
+    
+    protected void setup(Settings initTransportClientSettings, DynamicSgConfig dynamicSgSettings, Settings nodeOverride
+            , boolean initSeachGuardIndex, ClusterConfiguration clusterConfiguration, int timeout, Integer nodes) throws Exception {    
+        clusterInfo = clusterHelper.startCluster(minimumSearchGuardSettings(nodeOverride), clusterConfiguration, timeout, nodes);
         if(initSeachGuardIndex) {
             initialize(clusterInfo, initTransportClientSettings, dynamicSgSettings);
         }

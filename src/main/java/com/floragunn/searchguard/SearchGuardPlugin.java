@@ -299,7 +299,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
             handlers.add(new SearchGuardLicenseAction(settings, restController));
 
             Collection<RestHandler> apiHandler = ReflectionHelper
-                    .instantiateMngtRestApiHandler(settings, restController, localClient, adminDns, cr, cs, Objects.requireNonNull(principalExtractor));
+                    .instantiateMngtRestApiHandler(settings, configPath, restController, localClient, adminDns, cr, cs, Objects.requireNonNull(principalExtractor));
             handlers.addAll(apiHandler);
             log.debug("Added {} management rest handler", apiHandler.size());
         }

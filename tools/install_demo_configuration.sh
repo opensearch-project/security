@@ -11,8 +11,8 @@ initsg=0
 function show_help() {
     echo "install_demo_configuration.sh [-y] [-i]"
     echo "  -h show help"
-    echo "  -y assume yes for all questions (non-ineractive)"
-    echo "  -i initialize Search Guard with default configuration"
+    echo "  -y do not ask no confirmation for installation"
+    echo "  -i initialize Search Guard with default configuration (default is to ask)"
 }
 
 while getopts "h?yi" opt; do
@@ -32,7 +32,7 @@ shift $((OPTIND-1))
 [ "$1" = "--" ] && shift
 
 if [ "$assumeyes" == 0 ]; then
-	read -r -p "Continue? [y/N] " response
+	read -r -p "Install demo certificates? [y/N] " response
 	case "$response" in
 	    [yY][eE][sS]|[yY]) 
 	        ;;
@@ -42,7 +42,20 @@ if [ "$assumeyes" == 0 ]; then
 	esac
 fi
 
-#set -e
+if [ "$initsg" == 0 ]; then
+	read -r -p "Initialize Search Guard? [y/N] " response
+	case "$response" in
+	    [yY][eE][sS]|[yY]) 
+	        initsg=1
+	        ;;
+	    *)
+	        initsg=0
+	        ;;
+	esac
+fi
+
+
+set -e
 BASE_DIR="$DIR/../../../"
 ES_CONF_FILE="$BASE_DIR/config/elasticsearch.yml"
 ES_BIN_DIR="$BASE_DIR/bin"
@@ -98,7 +111,6 @@ if $SUDO_CMD grep --quiet -i searchguard $ES_CONF_FILE; then
   exit -1
 fi
 
-
 if [ ! -d "$ES_PLUGINS_DIR/search-guard-6" ]; then
   echo "Search Guard plugin not installed. Quit."
   exit -1
@@ -114,7 +126,7 @@ echo "Elasticsearch install type: $ES_INSTALL_TYPE"
 echo "Elasticsearch config dir: $ES_CONF_DIR"
 echo "Detected Elasticsearch Version: $ES_VERSION"
 echo "Detected Search Guard Version: $SG_VERSION"
-
+set +e
 
 read -r -d '' SG_ADMIN_CERT << EOM
 -----BEGIN CERTIFICATE-----
@@ -285,6 +297,7 @@ ZRP/AFlscD6hWl22tRqOt7xp
 -----END CERTIFICATE-----
 EOM
 
+set -e
 echo "$SG_ADMIN_CERT" | $SUDO_CMD tee "$ES_CONF_DIR/kirk.pem" > /dev/null
 echo "$CA_CHAIN" | $SUDO_CMD tee -a "$ES_CONF_DIR/kirk.pem" > /dev/null
 echo "$NODE_CERT" | $SUDO_CMD tee "$ES_CONF_DIR/esnode.pem" > /dev/null 
@@ -322,14 +335,12 @@ ES_PLUGINS_DIR=`cd "$ES_PLUGINS_DIR" ; pwd`
 echo "### Success"
 echo "### Execute this script now on all your nodes and then start all nodes"
 
-if [ "$initsg" == 0 ]; then
-    echo "### After the whole cluster is up execute: "
-    echo "#!/bin/bash" | $SUDO_CMD tee sgadmin_demo.sh > /dev/null 
-    echo $SUDO_CMD "$ES_PLUGINS_DIR/search-guard-6/tools/sgadmin.sh" -cd "$ES_PLUGINS_DIR/search-guard-6/sgconfig" -cn searchguard_demo -key "$ES_CONF_DIR/kirk-key.pem" -cert "$ES_CONF_DIR/kirk.pem" -cacert "$ES_CONF_DIR/root-ca.pem" -nhnv | $SUDO_CMD tee -a sgadmin_demo.sh > /dev/null
-    $SUDO_CMD chmod +x sgadmin_demo.sh
-    $SUDO_CMD cat sgadmin_demo.sh | tail -1
-    echo "### or run ./sgadmin_demo.sh"
-fi
+echo "#!/bin/bash" | $SUDO_CMD tee sgadmin_demo.sh > /dev/null 
+echo $SUDO_CMD "$ES_PLUGINS_DIR/search-guard-6/tools/sgadmin.sh" -h $(hostname -f) -cd "$ES_PLUGINS_DIR/search-guard-6/sgconfig" -cn searchguard_demo -key "$ES_CONF_DIR/kirk-key.pem" -cert "$ES_CONF_DIR/kirk.pem" -cacert "$ES_CONF_DIR/root-ca.pem" -nhnv | $SUDO_CMD tee -a sgadmin_demo.sh > /dev/null
+$SUDO_CMD chmod +x sgadmin_demo.sh
+echo "### After the whole cluster is up execute: "
+$SUDO_CMD cat sgadmin_demo.sh | tail -1
+echo "### or run ./sgadmin_demo.sh"
 
 echo "### Then open https://$(hostname -f):9200 an login with admin/admin"
 echo "### (Just ignore the ssl certificate warning because we installed a self signed demo certificate)"
