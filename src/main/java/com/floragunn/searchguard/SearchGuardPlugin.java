@@ -267,7 +267,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         }
     }
     
-    private static String sha256(Path p) {
+    private String sha256(Path p) {
         
         if(!Files.isRegularFile(p, LinkOption.NOFOLLOW_LINKS)) {
             return "";
@@ -276,7 +276,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         try {
             MessageDigest digester = MessageDigest.getInstance("SHA256");
             final String hash = org.bouncycastle.util.encoders.Hex.toHexString(digester.digest(Files.readAllBytes(p)));
-            System.out.println(hash +" :: "+p);
+            log.debug(hash +" :: "+p);
             return hash;
         } catch (Exception e) {
             throw new ElasticsearchSecurityException("Unable to digest file", e);
@@ -583,9 +583,10 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_ENTERPRISE_MODULES_ENABLED, true, Property.NodeScope, Property.Filtered));    
         settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_ALLOW_UNSAFE_DEMOCERTIFICATES, false, Property.NodeScope, Property.Filtered));
         settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_ALLOW_DEFAULT_INIT_SGINDEX, false, Property.NodeScope, Property.Filtered));
-        
-        
-        
+
+        //TODO remove searchguard.tribe.clustername?
+        settings.add(Setting.simpleString("searchguard.tribe.clustername", Property.NodeScope, Property.Filtered));
+
         return settings;
     }
     

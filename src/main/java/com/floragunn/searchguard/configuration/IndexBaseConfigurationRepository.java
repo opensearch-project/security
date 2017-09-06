@@ -387,11 +387,31 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
             
             final ThreadContext threadContext = threadPool.getThreadContext();
             final Map<String, Settings> retVal = new HashMap<String, Settings>();
-            final List<Exception> exception = new ArrayList<Exception>(1);
-            final CountDownLatch latch = new CountDownLatch(1);
+            //final List<Exception> exception = new ArrayList<Exception>(1);
+           // final CountDownLatch latch = new CountDownLatch(1);
             
             try(StoredContext ctx = threadContext.stashContext()) {
                 threadContext.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true");
+                
+                boolean searchGuardIndexExists = clusterService.state().metaData().hasConcreteIndex(this.searchguardIndex);
+                
+                if(searchGuardIndexExists) {
+                    if(clusterService.state().metaData().index(this.searchguardIndex).mapping("config") != null) {
+                        //legacy layout
+                        LOGGER.debug("sg index exists and was created before ES 6 (legacy layout)");
+                        retVal.putAll(validate(legacycl.loadLegacy(configTypes.toArray(new String[0]), 5, TimeUnit.SECONDS), configTypes.size()));
+                    } else {
+                        LOGGER.debug("sg index exists and was created with ES 6 (new layout)");
+                        retVal.putAll(validate(cl.load(configTypes.toArray(new String[0]), 5, TimeUnit.SECONDS), configTypes.size()));
+                    }
+                } else {
+                    //wait (and use new layout)
+                    LOGGER.debug("sg index not exists (yet)");
+                    retVal.putAll(validate(cl.load(configTypes.toArray(new String[0]), 30, TimeUnit.SECONDS), configTypes.size()));
+                }
+
+/*
+
                
                 client.prepareGet(searchguardIndex, "config", "0").execute(new ActionListener<GetResponse>() {
 
@@ -399,9 +419,9 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                     public void onResponse(GetResponse response) {
                         try {
                             if(response.isExists()) {
-                                retVal.putAll(validate(legacycl.loadLegacy(configTypes.toArray(new String[0]), 5, TimeUnit.SECONDS), configTypes.size()));
+                                retVal.putAll(validate(legacycl.loadLegacy(configTypes.toArray(new String[0]), 30, TimeUnit.SECONDS), configTypes.size()));
                             } else {
-                                retVal.putAll(validate(cl.load(configTypes.toArray(new String[0]), 5, TimeUnit.SECONDS), configTypes.size()));
+                                retVal.putAll(validate(cl.load(configTypes.toArray(new String[0]), 30, TimeUnit.SECONDS), configTypes.size()));
                             }
                             latch.countDown();
                         } catch (Exception e) {
@@ -415,14 +435,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                         exception.add(e);
                         latch.countDown();
                     }
-                });
-                
-               /*if(client.prepareGet(searchguardIndex, "sg", "config").get().isExists()) {
-                   return validate(cl.load(configTypes.toArray(new String[0]), 5, TimeUnit.SECONDS), configTypes.size());
-               } else {
-                   return validate(legacycl.loadLegacy(configTypes.toArray(new String[0]), 5, TimeUnit.SECONDS), configTypes.size());
-               }*/
-                
+                });                
             }
             
             try {
@@ -436,8 +449,10 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
             
             if(!exception.isEmpty()) {
                 throw new ElasticsearchException(exception.get(0));
+            }*/
+            } catch (Exception e) {
+                throw new ElasticsearchException(e);
             }
-            
             return retVal;
     }
     

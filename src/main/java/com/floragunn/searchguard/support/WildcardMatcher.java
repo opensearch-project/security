@@ -84,6 +84,19 @@ public class WildcardMatcher {
 
         return false;
     }
+    
+    public static String[] matches(final String pattern, final String[] candidate, boolean ignoreCase) {
+
+        final List<String> ret = new ArrayList<String>(candidate.length);
+        for (int i = 0; i < candidate.length; i++) {
+            final String string = candidate[i];
+            if (match(pattern, string, ignoreCase)) {
+                ret.add(string);
+            }
+        }
+
+        return ret.toArray(new String[0]);
+    }
 
     public static List<String> getMatchAny(final String pattern, final String[] candidate) {
 

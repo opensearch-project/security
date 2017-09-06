@@ -94,6 +94,7 @@ import com.floragunn.searchguard.action.configupdate.ConfigUpdateResponse;
 import com.floragunn.searchguard.action.licenseinfo.LicenseInfoAction;
 import com.floragunn.searchguard.action.licenseinfo.LicenseInfoRequest;
 import com.floragunn.searchguard.action.licenseinfo.LicenseInfoResponse;
+import com.floragunn.searchguard.ssl.util.ExceptionUtils;
 import com.floragunn.searchguard.ssl.util.SSLConfigConstants;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.google.common.io.Files;
@@ -120,7 +121,7 @@ public class SearchGuardAdmin {
         } 
         catch (IndexNotFoundException e) {
             System.out.println("ERR: No searchguard configuartion index found. Pls. execute sgadmin with different command line parameters");
-            System.out.println("When you run it for the first time to not specify -us, -era, -dra or -rl");
+            System.out.println("When you run it for the first time do not specify -us, -era, -dra or -rl");
             System.out.println("For more informations look here: https://github.com/floragunncom/search-guard/issues/228");
             System.exit(-1);
         }
@@ -472,9 +473,13 @@ public class SearchGuardAdmin {
                         chrequest.waitForYellowStatus();
                     }
                     chr = tc.admin().cluster().health(chrequest).actionGet();
-                } catch (Exception e) {                   
+                } catch (Exception e) {
+                    
+                    Throwable rootCause = ExceptionUtils.getRootCause(e);
+                    
                     if(!failFast) {
                         System.out.println("Cannot retrieve cluster state due to: "+e.getMessage()+". This is not an error, will keep on trying ...");
+                        System.out.println("  Root cause: "+rootCause+" ("+e.getClass().getName()+"/"+rootCause.getClass().getName()+")");
                         System.out.println("   * Try running sgadmin.sh with -icl (but no -cl) and -nhnv (If thats works you need to check your clustername as well as hostnames in your SSL certificates)");   
                         System.out.println("   * Make also sure that your keystore or cert is a client certificate (not a node certificate) and configured properly in elasticsearch.yml"); 
                         System.out.println("   * If this is not working, try running sgadmin.sh with --diagnose and see diagnose trace log file)");
@@ -482,6 +487,7 @@ public class SearchGuardAdmin {
 
                     } else {
                         System.out.println("ERR: Cannot retrieve cluster state due to: "+e.getMessage()+".");
+                        System.out.println("  Root cause: "+rootCause+" ("+e.getClass().getName()+"/"+rootCause.getClass().getName()+")");
                         System.out.println("   * Try running sgadmin.sh with -icl (but no -cl) and -nhnv (If thats works you need to check your clustername as well as hostnames in your SSL certificates)");
                         System.out.println("   * Make also sure that your keystore or cert is a client certificate (not a node certificate) and configured properly in elasticsearch.yml"); 
                         System.out.println("   * If this is not working, try running sgadmin.sh with --diagnose and see diagnose trace log file)"); 

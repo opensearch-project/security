@@ -512,7 +512,7 @@ public class PrivilegesEvaluator {
                 String[] concreteIndices = new String[0];
                 
                 if((dls != null && dls.length() > 0) || (fls != null && fls.length > 0)) {
-                    concreteIndices = resolver.concreteIndexNames(clusterService.state(), DEFAULT_INDICES_OPTIONS/*??*/,indexPattern);
+                    concreteIndices = resolver.concreteIndexNames(clusterService.state(), DEFAULT_INDICES_OPTIONS,indexPattern);
                 }
                 
                 if(dls != null && dls.length() > 0) {
@@ -1312,7 +1312,7 @@ public class PrivilegesEvaluator {
 
         if (log.isDebugEnabled()) {
             log.debug("indicesOptions {}", request.indicesOptions());
-            log.debug("raw indices {}", Arrays.toString(request.indices()));
+            log.debug("{} raw indices {}", request.indices().length, Arrays.toString(request.indices()));
         }
 
         final Set<String> indices = new HashSet<String>();
@@ -1327,11 +1327,46 @@ public class PrivilegesEvaluator {
             
         } else {
             
-            try {
-                indices.addAll(Arrays.asList(resolver.concreteIndexNames(clusterService.state(), request)));
-                if(log.isDebugEnabled()) {
-                    log.debug("Resolved {} to {}", request.indices(), indices);
-                }
+            try { 
+                final String[] dateMathIndices;
+                if((dateMathIndices = WildcardMatcher.matches("<*>", request.indices(), false)).length > 0) {
+                    //date math
+                    
+                    if(log.isDebugEnabled()) {
+                        log.debug("Date math indices detected {} (all: {})", dateMathIndices, request.indices());
+                    }
+                    
+                    for(String dateMathIndex: dateMathIndices) {
+                        indices.addAll(Arrays.asList(resolver.resolveDateMathExpression(dateMathIndex)));
+                    }
+                    
+                    if(log.isDebugEnabled()) {
+                        log.debug("Resolved date math indices {} to {}", dateMathIndices, indices);
+                    }
+                    
+                    if(request.indices().length > dateMathIndices.length) {
+                        for(String nonDateMath: request.indices()) {
+                            if(!WildcardMatcher.match("<*>", nonDateMath)) {
+                                indices.addAll(Arrays.asList(resolver.concreteIndexNames(clusterService.state(), request.indicesOptions(), dateMathIndices)));
+                            }
+                        }
+                        
+                        if(log.isDebugEnabled()) {
+                            log.debug("Resolved additional non date math indices {} to {}", request.indices(), indices);
+                        }
+                    }
+
+                } else {
+                    
+                    if(log.isDebugEnabled()) {
+                        log.debug("No date math indices found");
+                    }
+                    
+                    indices.addAll(Arrays.asList(resolver.concreteIndexNames(clusterService.state(), request)));
+                    if(log.isDebugEnabled()) {
+                        log.debug("Resolved {} to {}", request.indices(), indices);
+                    }
+                }                
             } catch (final Exception e) {
                 log.debug("Cannot resolve {} (due to {}) so we use the raw values", Arrays.toString(request.indices()), e);
                 indices.addAll(Arrays.asList(request.indices()));

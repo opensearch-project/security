@@ -118,3 +118,7 @@ sg_restore:
 sg_snapres:
   users:
     - snapresuser
+    
+sg_logstash:
+  users:
+    - logstash
