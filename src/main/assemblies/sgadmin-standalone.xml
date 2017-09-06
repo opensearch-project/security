@@ -36,6 +36,9 @@
       <outputDirectory>${file.separator}deps</outputDirectory>
       <useProjectArtifact>true</useProjectArtifact>
       <unpack>false</unpack>
+      <excludes>
+        <exclude>com.floragunn:dlic*</exclude>
+      </excludes>
     </dependencySet>
   </dependencySets>
 </assembly>
