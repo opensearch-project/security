@@ -20,17 +20,14 @@
     <artifactId>oss-parent</artifactId>
     <version>9</version>
   </parent>
-  
-  <!-- 
-  //TODO
-  - Update THIRD-PARTY.txt
-  - Rework LICENSE since we deliver enterprise modules alongside
-   -->
+
+  <!-- //TODO - Update THIRD-PARTY.txt - Rework LICENSE since we deliver 
+    enterprise modules alongside -->
 
   <groupId>com.floragunn</groupId>
   <artifactId>search-guard-6</artifactId>
   <packaging>jar</packaging>
-  <version>6.0.x-HEAD-SNAPSHOT</version>
+  <version>6.x-HEAD-SNAPSHOT</version>
   <name>Search Guard</name>
   <description>Provide access control related features for Elasticsearch 6</description>
   <url>https://github.com/floragunncom/search-guard</url>
@@ -45,7 +42,7 @@
   </licenses>
 
   <properties>
-    <sgssl.version>6.0.x-HEAD-SNAPSHOT</sgssl.version>
+    <sgssl.version>6.x-HEAD-SNAPSHOT</sgssl.version>
     <elasticsearch.version>6.0.0-beta2</elasticsearch.version>
     <netty-native.version>2.0.5.Final</netty-native.version>
     <bc.version>1.58</bc.version>
@@ -257,6 +254,20 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
         <version>3.0.2</version>
+        <configuration>
+          <excludes>
+            <exclude>**/*cobertura*</exclude>
+          </excludes>
+          <archive>
+            <manifest>
+              <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+            </manifest>
+            <manifestEntries>
+              <Built-By>floragunn GmbH</Built-By>
+              <Build-Time>${maven.build.timestamp}</Build-Time>
+            </manifestEntries>
+          </archive>
+        </configuration>
         <executions>
           <execution>
             <goals>
@@ -348,27 +359,27 @@
         <dependency>
           <groupId>com.floragunn</groupId>
           <artifactId>dlic-search-guard-authbackend-ldap</artifactId>
-          <version>5.0-7</version>
+          <version>6.x-HEAD-SNAPSHOT</version>
         </dependency>
         <dependency>
           <groupId>com.floragunn</groupId>
           <artifactId>dlic-search-guard-auth-http-kerberos</artifactId>
-          <version>5.0-4</version>
+          <version>6.x-HEAD-SNAPSHOT</version>
         </dependency>
         <dependency>
           <groupId>com.floragunn</groupId>
           <artifactId>dlic-search-guard-module-auditlog</artifactId>
-          <version>5.3-5</version>
+          <version>6.x-HEAD-SNAPSHOT</version>
         </dependency>
         <dependency>
           <groupId>com.floragunn</groupId>
           <artifactId>dlic-search-guard-module-kibana-multitenancy</artifactId>
-          <version>5.4-3</version>
+          <version>6.x-HEAD-SNAPSHOT</version>
         </dependency>
         <dependency>
           <groupId>com.floragunn</groupId>
           <artifactId>dlic-search-guard-auth-http-jwt</artifactId>
-          <version>5.0-5</version>
+          <version>6.x-HEAD-SNAPSHOT</version>
         </dependency>
       </dependencies>
     </profile>
