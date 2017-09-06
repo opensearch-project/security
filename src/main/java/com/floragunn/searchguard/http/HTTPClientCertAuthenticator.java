@@ -17,6 +17,8 @@
 
 package com.floragunn.searchguard.http;
 
+import java.nio.file.Path;
+
 import org.elasticsearch.common.Strings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -34,7 +36,7 @@ public class HTTPClientCertAuthenticator implements HTTPAuthenticator {
     protected final Logger log = LogManager.getLogger(this.getClass());
     private volatile Settings settings;
 
-    public HTTPClientCertAuthenticator(final Settings settings) {
+    public HTTPClientCertAuthenticator(final Settings settings, final Path configPath) {
         this.settings = settings;
     }
 

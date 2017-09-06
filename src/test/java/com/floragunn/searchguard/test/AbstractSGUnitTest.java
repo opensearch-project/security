@@ -38,6 +38,7 @@ import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.Netty4Plugin;
 import org.junit.Assert;
 import org.junit.Rule;
@@ -73,6 +74,7 @@ public abstract class AbstractSGUnitTest {
 	}
 	
 	protected final Logger log = LogManager.getLogger(this.getClass());
+    public static final ThreadPool MOCK_POOL = new ThreadPool(Settings.builder().put("node.name",  "mock").build());
 	
 	@Rule
 	public TestName name = new TestName();

@@ -17,6 +17,8 @@
 
 package com.floragunn.searchguard.auth.internal;
 
+import java.nio.file.Path;
+
 import org.elasticsearch.common.settings.Settings;
 
 import com.floragunn.searchguard.auth.AuthenticationBackend;
@@ -25,11 +27,8 @@ import com.floragunn.searchguard.user.User;
 
 public class NoOpAuthenticationBackend implements AuthenticationBackend {
 
-    private final Settings settings;
-
-    public NoOpAuthenticationBackend(final Settings settings) {
+    public NoOpAuthenticationBackend(final Settings settings, final Path configPath) {
         super();
-        this.settings = settings;
     }
 
     @Override

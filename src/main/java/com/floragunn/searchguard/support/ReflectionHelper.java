@@ -17,6 +17,7 @@
 
 package com.floragunn.searchguard.support;
 
+import java.io.File;
 import java.io.InputStream;
 import java.lang.reflect.Constructor;
 import java.net.URL;
@@ -34,8 +35,6 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Provider;
-import org.elasticsearch.common.inject.util.Providers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.rest.RestController;
@@ -140,8 +139,8 @@ public class ReflectionHelper {
         }
     }
 
-    public static AuditLog instantiateAuditLog(final Settings settings, final Provider<Client> localClient, final ThreadPool threadPool,
-            final IndexNameExpressionResolver resolver, final Provider<ClusterService> clusterService) {
+    public static AuditLog instantiateAuditLog(final Settings settings, final Client localClient, final ThreadPool threadPool,
+            final IndexNameExpressionResolver resolver, final ClusterService clusterService) {
 
         if (enterpriseModulesDisabled()) {
             return new NullAuditLog();
@@ -149,9 +148,9 @@ public class ReflectionHelper {
 
         try {
             final Class<?> clazz = Class.forName("com.floragunn.searchguard.auditlog.impl.AuditLogImpl");
-            final AuditLog impl = (AuditLog) clazz.getConstructor(Settings.class, Provider.class, ThreadPool.class,
-                    IndexNameExpressionResolver.class, Provider.class).newInstance(settings, Providers.of(localClient), threadPool,
-                            resolver, Providers.of(clusterService));
+            final AuditLog impl = (AuditLog) clazz.getConstructor(Settings.class, Client.class, ThreadPool.class,
+                    IndexNameExpressionResolver.class, ClusterService.class).newInstance(settings, localClient, threadPool,
+                            resolver, clusterService);
 
             modulesLoaded.put("auditlog", getModuleInfo(clazz));
             return impl;
@@ -183,7 +182,7 @@ public class ReflectionHelper {
     }
 
     @SuppressWarnings("unchecked")
-    public static <T> T instantiateAAA(final String clazz, final Settings settings, final boolean checkEnterprise) {
+    public static <T> T instantiateAAA(final String clazz, final Settings settings, final Path configPath, final boolean checkEnterprise) {
 
         if (checkEnterprise && enterpriseModulesDisabled()) {
             throw new ElasticsearchException("Can not load '{}' because enterprise modules are disabled");
@@ -191,7 +190,7 @@ public class ReflectionHelper {
 
         try {
             final Class<?> clazz0 = Class.forName(clazz);
-            final T ret = (T) clazz0.getConstructor(Settings.class).newInstance(settings);
+            final T ret = (T) clazz0.getConstructor(Settings.class, Path.class).newInstance(settings, configPath);
 
             if (checkEnterprise) {
                 modulesLoaded.put(clazz, getModuleInfo(clazz0));
@@ -265,12 +264,13 @@ public class ReflectionHelper {
         final Map<String, String> ret = new HashMap<String, String>();
 
         try {
-            //final String jarPath = new File(impl.getProtectionDomain().getCodeSource().getLocation().toURI().getPath()).getParentFile().getAbsolutePath();
+            final String jarPath = new File(impl.getProtectionDomain().getCodeSource().getLocation().toURI().getPath()).getParentFile().getAbsolutePath();
 
             final String className = impl.getSimpleName() + ".class";
             final String classPath = impl.getResource(className).toString();
             ret.put("class", className);
-            //ret.put("classpath", classPath);
+            ret.put("classpath", classPath);
+            ret.put("jarPath", jarPath);
             if (!classPath.startsWith("jar")) {
                 return ret;
             }
@@ -280,7 +280,7 @@ public class ReflectionHelper {
             try (InputStream stream = new URL(manifestPath).openStream()) {
                 final Manifest manifest = new Manifest(stream);
                 final Attributes attr = manifest.getMainAttributes();
-                // System.out.println(attr.entrySet());
+                System.out.println(attr.entrySet());
                 final String value = attr.getValue("Implementation-Version");
                 ret.put("version", value);
             }

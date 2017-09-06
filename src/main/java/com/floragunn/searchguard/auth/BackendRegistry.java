@@ -17,6 +17,7 @@
 
 package com.floragunn.searchguard.auth;
 
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -75,6 +76,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
     private final XFFResolver xffResolver;
     private volatile boolean anonymousAuthEnabled = false;
     private final Settings esSettings;
+    private final Path configPath;
     private final InternalAuthenticationBackend iab;
     private final AuditLog auditLog;
     private final ThreadPool threadPool;
@@ -112,10 +114,11 @@ public class BackendRegistry implements ConfigurationChangeListener {
                 }).build();
     }
 
-    public BackendRegistry(final Settings settings, final AdminDNs adminDns, 
+    public BackendRegistry(final Settings settings, final Path configPath, final AdminDNs adminDns, 
             final XFFResolver xffResolver, final InternalAuthenticationBackend iab, final AuditLog auditLog, final ThreadPool threadPool) {
         this.adminDns = adminDns;
         this.esSettings = settings;
+        this.configPath = configPath;
         this.xffResolver = xffResolver;
         this.iab = iab;
         this.auditLog = auditLog;
@@ -150,7 +153,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
         authenticatedUserCacheTransport.invalidateAll();
     }
 
-    private <T> T newInstance(final String clazzOrShortcut, String type, final Settings settings) {
+    private <T> T newInstance(final String clazzOrShortcut, String type, final Settings settings, final Path configPath) {
         
         String clazz = clazzOrShortcut;
         boolean isEnterprise = false;
@@ -165,7 +168,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
             isEnterprise = true;
         }
         
-        return ReflectionHelper.instantiateAAA(clazz, settings, isEnterprise);
+        return ReflectionHelper.instantiateAAA(clazz, settings, configPath, isEnterprise);
     }
 
     @Override
@@ -182,7 +185,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
                 try {
                     final AuthorizationBackend authorizationBackend = newInstance(
                             ads.get("authorization_backend.type", "noop"),"z",
-                            Settings.builder().put(esSettings).put(ads.getAsSettings("authorization_backend.config")).build());
+                            Settings.builder().put(esSettings).put(ads.getAsSettings("authorization_backend.config")).build(), configPath);
                     authorizers.add(authorizationBackend);
                 } catch (final Exception e) {
                     log.error("Unable to initialize AuthorizationBackend {} due to {}", e, ad, e.toString());
@@ -205,12 +208,12 @@ public class BackendRegistry implements ConfigurationChangeListener {
                     } else {
                         authenticationBackend = newInstance(
                                 authBackendClazz,"c",
-                                Settings.builder().put(esSettings).put(ads.getAsSettings("authentication_backend.config")).build());
+                                Settings.builder().put(esSettings).put(ads.getAsSettings("authentication_backend.config")).build(), configPath);
                     }
                     
                     String httpAuthenticatorType = ads.get("http_authenticator.type"); //no default
                     HTTPAuthenticator httpAuthenticator = httpAuthenticatorType==null?null:  (HTTPAuthenticator) newInstance(httpAuthenticatorType,"h",
-                            Settings.builder().put(esSettings).put(ads.getAsSettings("http_authenticator.config")).build());
+                            Settings.builder().put(esSettings).put(ads.getAsSettings("http_authenticator.config")).build(), configPath);
                                         
                     authDomains.add(new AuthDomain(authenticationBackend, httpAuthenticator,
                             ads.getAsBoolean("http_authenticator.challenge", true), ads.getAsInt("order", 0)));
@@ -222,7 +225,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
         }
         
         if(authDomains.isEmpty()) {
-            authDomains.add(new AuthDomain(iab, new HTTPBasicAuthenticator(Settings.EMPTY), true, 0));
+            authDomains.add(new AuthDomain(iab, new HTTPBasicAuthenticator(Settings.EMPTY, configPath), true, 0));
         }
 
         initialized = true;

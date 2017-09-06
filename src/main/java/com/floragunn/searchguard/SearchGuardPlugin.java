@@ -51,7 +51,6 @@ import org.elasticsearch.common.component.Lifecycle.State;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.component.LifecycleListener;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.util.Providers;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.network.NetworkService;
@@ -459,7 +458,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         DlsFlsRequestValve dlsFlsValve = ReflectionHelper.instantiateDlsFlsValve();
         
         final IndexNameExpressionResolver resolver = new IndexNameExpressionResolver(settings);
-        auditLog = ReflectionHelper.instantiateAuditLog(settings, Providers.of(localClient), threadPool, resolver, Providers.of(clusterService));
+        auditLog = ReflectionHelper.instantiateAuditLog(settings, localClient, threadPool, resolver, clusterService);
         
         final String DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = DefaultInterClusterRequestEvaluator.class.getName();
         InterClusterRequestEvaluator interClusterRequestEvaluator = new DefaultInterClusterRequestEvaluator(settings);
@@ -480,7 +479,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         final InternalAuthenticationBackend iab = new InternalAuthenticationBackend(cr);     
         final XFFResolver xffResolver = new XFFResolver(threadPool);
         cr.subscribeOnChange(ConfigConstants.CONFIGNAME_CONFIG, xffResolver);   
-        final BackendRegistry backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, iab, auditLog, threadPool);
+        final BackendRegistry backendRegistry = new BackendRegistry(settings, configPath, adminDns, xffResolver, iab, auditLog, threadPool);
         cr.subscribeOnChange(ConfigConstants.CONFIGNAME_CONFIG, backendRegistry);
         final ActionGroupHolder ah = new ActionGroupHolder(cr);      
         evaluator = new PrivilegesEvaluator(clusterService, threadPool, cr, ah, resolver, auditLog, settings, privilegesInterceptor);    

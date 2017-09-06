@@ -1,9 +1,10 @@
 netty*/
-
+smoketests/
 target/
 test-output/
 kibana*/
 logstash*/
+deploy_all.sh
 /build.gradle
 *.log
 .externalToolBuilders

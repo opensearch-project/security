@@ -2327,7 +2327,7 @@ public class SGTests extends AbstractUnitTest {
         Settings settings = Settings.builder()
                 .put("username_attribute", "cn")
                 .build();
-        HTTPClientCertAuthenticator auth = new HTTPClientCertAuthenticator(settings);
+        HTTPClientCertAuthenticator auth = new HTTPClientCertAuthenticator(settings, null);
         Assert.assertEquals("abc", auth.extractCredentials(null, newThreadContext("cn=abc,l=ert,st=zui,c=qwe")).getUsername());
         Assert.assertEquals("abc", auth.extractCredentials(null, newThreadContext("CN=abc,L=ert,st=zui,c=qwe")).getUsername());     
         Assert.assertEquals("abc", auth.extractCredentials(null, newThreadContext("l=ert,cn=abc,st=zui,c=qwe")).getUsername());
@@ -2339,7 +2339,7 @@ public class SGTests extends AbstractUnitTest {
         
         settings = Settings.builder()
                 .build();
-        auth = new HTTPClientCertAuthenticator(settings);
+        auth = new HTTPClientCertAuthenticator(settings, null);
         Assert.assertEquals("cn=abc,l=ert,st=zui,c=qwe", auth.extractCredentials(null, newThreadContext("cn=abc,l=ert,st=zui,c=qwe")).getUsername());
     }
     
