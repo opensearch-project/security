@@ -114,7 +114,7 @@ public class ReflectionHelper {
         try {
             final Class<?> clazz = Class.forName("com.floragunn.searchguard.configuration.SearchGuardFlsDlsIndexSearcherWrapper");
             final Constructor<?> ret = clazz.getConstructor(IndexService.class, Settings.class, AdminDNs.class);
-            modulesLoaded.put("dls-fls-wrapper", getModuleInfo(clazz));
+            modulesLoaded.put("dls-fls", getModuleInfo(clazz));
             return ret;
         } catch (final Throwable e) {
             log.warn("Unable to enable DLS/FLS Module due to {}", e.toString());
@@ -131,7 +131,7 @@ public class ReflectionHelper {
         try {
             final Class<?> clazz = Class.forName("com.floragunn.searchguard.configuration.DlsFlsValveImpl");
             final DlsFlsRequestValve ret = (DlsFlsRequestValve) clazz.newInstance();
-            modulesLoaded.put("dls-fls-valve", getModuleInfo(clazz));
+            //modulesLoaded.put("dls-fls-valve", getModuleInfo(clazz));
             return ret;
         } catch (final Throwable e) {
             log.warn("Unable to enable DLS/FLS Valve Module due to {}", e.toString());
@@ -139,7 +139,7 @@ public class ReflectionHelper {
         }
     }
 
-    public static AuditLog instantiateAuditLog(final Settings settings, final Client localClient, final ThreadPool threadPool,
+    public static AuditLog instantiateAuditLog(final Settings settings, final Path configPath, final Client localClient, final ThreadPool threadPool,
             final IndexNameExpressionResolver resolver, final ClusterService clusterService) {
 
         if (enterpriseModulesDisabled()) {
@@ -148,8 +148,8 @@ public class ReflectionHelper {
 
         try {
             final Class<?> clazz = Class.forName("com.floragunn.searchguard.auditlog.impl.AuditLogImpl");
-            final AuditLog impl = (AuditLog) clazz.getConstructor(Settings.class, Client.class, ThreadPool.class,
-                    IndexNameExpressionResolver.class, ClusterService.class).newInstance(settings, localClient, threadPool,
+            final AuditLog impl = (AuditLog) clazz.getConstructor(Settings.class, Path.class, Client.class, ThreadPool.class,
+                    IndexNameExpressionResolver.class, ClusterService.class).newInstance(settings, configPath, localClient, threadPool,
                             resolver, clusterService);
 
             modulesLoaded.put("auditlog", getModuleInfo(clazz));
@@ -173,7 +173,7 @@ public class ReflectionHelper {
             final Class<?> clazz = Class.forName("com.floragunn.searchguard.configuration.PrivilegesInterceptorImpl");
             final PrivilegesInterceptor ret = (PrivilegesInterceptor) clazz.getConstructor(IndexNameExpressionResolver.class,
                     ClusterService.class, Client.class, ThreadPool.class).newInstance(resolver, clusterService, localClient, threadPool);
-            modulesLoaded.put("privileges-interceptor", getModuleInfo(clazz));
+            modulesLoaded.put("multitenancy", getModuleInfo(clazz));
             return ret;
         } catch (final Throwable e) {
             log.warn("Unable to enable Kibana Module due to {}", e.toString());
@@ -264,13 +264,13 @@ public class ReflectionHelper {
         final Map<String, String> ret = new HashMap<String, String>();
 
         try {
-            final String jarPath = new File(impl.getProtectionDomain().getCodeSource().getLocation().toURI().getPath()).getParentFile().getAbsolutePath();
+            //final String jarPath = new File(impl.getProtectionDomain().getCodeSource().getLocation().toURI().getPath()).getParentFile().getAbsolutePath();
 
             final String className = impl.getSimpleName() + ".class";
             final String classPath = impl.getResource(className).toString();
-            ret.put("class", className);
-            ret.put("classpath", classPath);
-            ret.put("jarPath", jarPath);
+            //ret.put("class", className);
+            //ret.put("classpath", classPath);
+            //ret.put("jarPath", jarPath);
             if (!classPath.startsWith("jar")) {
                 return ret;
             }
@@ -280,9 +280,8 @@ public class ReflectionHelper {
             try (InputStream stream = new URL(manifestPath).openStream()) {
                 final Manifest manifest = new Manifest(stream);
                 final Attributes attr = manifest.getMainAttributes();
-                System.out.println(attr.entrySet());
-                final String value = attr.getValue("Implementation-Version");
-                ret.put("version", value);
+                ret.put("version", attr.getValue("Implementation-Version"));
+                ret.put("Build-Time", attr.getValue("Build-Time"));                
             }
         } catch (final Throwable e) {
             log.error("Unable to retrieve module info for " + impl, e);

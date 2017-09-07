@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
@@ -221,12 +222,11 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         boolean tribeNode = this.settings.getAsBoolean("action.master.force_local", false) && this.settings.getByPrefix("tribe").getAsMap().size() > 0;
         tribeNodeClient = this.settings.get("tribe.name", null) != null;
 
-        log.info("Node [{}] is a transportClient: {}/tribeNode: {}/tribeNodeClient: {}", settings.get("node.name"), client, tribeNode, tribeNodeClient);
-    
+        log.debug("This node [{}] is a transportClient: {}/tribeNode: {}/tribeNodeClient: {}", settings.get("node.name"), client, tribeNode, tribeNodeClient);
+
         if(!client) {
             dlsFlsConstructor = ReflectionHelper.instantiateDlsFlsConstructor();
             dlsFlsAvailable = dlsFlsConstructor != null;
-            log.info("FLS/DLS module available: "+dlsFlsAvailable);
         } else {
             dlsFlsAvailable = false;
             dlsFlsConstructor = null;
@@ -276,6 +276,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
             MessageDigest digester = MessageDigest.getInstance("SHA256");
             final String hash = org.bouncycastle.util.encoders.Hex.toHexString(digester.digest(Files.readAllBytes(p)));
             log.debug(hash +" :: "+p);
+            System.out.println(hash +" :: "+p);
             return hash;
         } catch (Exception e) {
             throw new ElasticsearchSecurityException("Unable to digest file", e);
@@ -300,8 +301,13 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
             Collection<RestHandler> apiHandler = ReflectionHelper
                     .instantiateMngtRestApiHandler(settings, configPath, restController, localClient, adminDns, cr, cs, Objects.requireNonNull(principalExtractor));
             handlers.addAll(apiHandler);
-            log.debug("Added {} management rest handler", apiHandler.size());
+            log.debug("Added {} management rest handler(s)", apiHandler.size());
         }
+        
+        
+        final Set<String> sgModules = ReflectionHelper.getModulesLoaded().keySet();
+        
+        log.info("{} Search Guard modules loaded so far: {}", sgModules.size(), sgModules);
         
         return handlers;
     }
@@ -365,10 +371,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
     public List<TransportInterceptor> getTransportInterceptors(NamedWriteableRegistry namedWriteableRegistry, ThreadContext threadContext) {
         List<TransportInterceptor> interceptors = new ArrayList<TransportInterceptor>(1);
         
-        if (!client && !tribeNodeClient && !disabled) {
-            
-            //interceptors.addAll(super.getTransportInterceptors(namedWriteableRegistry, threadContext));
-            
+        if (!client && !tribeNodeClient && !disabled) {            
             interceptors.add(new TransportInterceptor() {
 
                 @Override
@@ -458,7 +461,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         DlsFlsRequestValve dlsFlsValve = ReflectionHelper.instantiateDlsFlsValve();
         
         final IndexNameExpressionResolver resolver = new IndexNameExpressionResolver(settings);
-        auditLog = ReflectionHelper.instantiateAuditLog(settings, localClient, threadPool, resolver, clusterService);
+        auditLog = ReflectionHelper.instantiateAuditLog(settings, configPath, localClient, threadPool, resolver, clusterService);
         
         final String DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = DefaultInterClusterRequestEvaluator.class.getName();
         InterClusterRequestEvaluator interClusterRequestEvaluator = new DefaultInterClusterRequestEvaluator(settings);
