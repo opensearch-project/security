@@ -327,7 +327,9 @@ echo "" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null
 echo "cluster.name: searchguard_demo" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null 
 echo "network.host: 0.0.0.0" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null
 echo "searchguard.audit.type: internal_elasticsearch" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null
+#echo "searchguard.audit.config.disabled_categories: ["AUTHENTICATED"]" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null
 echo "searchguard.enable_snapshot_restore_privilege: true" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null
+echo "searchguard.check_snapshot_restore_write_privileges: true" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null
 echo "######## End Search Guard Demo Configuration ########" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null 
 
 $SUDO_CMD chmod +x "$ES_PLUGINS_DIR/search-guard-6/tools/sgadmin.sh"

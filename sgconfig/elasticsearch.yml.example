@@ -27,7 +27,7 @@ searchguard.authcz.admin_dn:
 
 # General settings
 # Disable some categories
-#searchguard.audit.config.disabled_categories = ["AUTHENTICATED"]
+#searchguard.audit.config.disabled_categories: ["AUTHENTICATED"]
 # Tune threadpool size, default is 10 and 0 means disabled
 #searchguard.audit.threadpool.size: 0
 # If enable_request_details is true then the audit log event will also contain
