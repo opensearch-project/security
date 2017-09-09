@@ -45,6 +45,7 @@ public final class SearchGuardLicense implements Writeable {
     private String startDate;
     private Integer majorVersion;
     private String clusterName;
+    private int allowedNodeCount;
     private final List<String> msgs = new ArrayList<>();
     private long expiresInDays = 0;
     private boolean isExpired = true;
@@ -54,30 +55,8 @@ public final class SearchGuardLicense implements Writeable {
     private final ClusterService clusterService;
     
     public static SearchGuardLicense createTrialLicense(String issueDate, ClusterService clusterService) {
-        return new SearchGuardLicense("00000000-0000-0000-0000-000000000000", Type.TRIAL, issueDate, addDays(issueDate, 92L), "the world", "floragunn GmbH", issueDate, 5, "*", clusterService);
+        return new SearchGuardLicense("00000000-0000-0000-0000-000000000000", Type.TRIAL, issueDate, addDays(issueDate, 92L), "the world", "floragunn GmbH", issueDate, 5, "*", Integer.MAX_VALUE, clusterService);
     }
-    
-    /*@Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject("license");
-        builder.field("uid",uid);
-        builder.field("type",type);
-        builder.field("issue_date",issueDate);
-        builder.field("expiry_date",expiryDate);
-        builder.field("issued_to",issuedTo);
-        builder.field("issuer",issuer);
-        builder.field("start_date",startDate);
-        builder.field("major_version",majorVersion);
-        builder.field("cluster_name",clusterName);
-        builder.field("msgs",msgs);
-        builder.field("expiry_in_days",expiresInDays);
-        builder.field("is_expired",isExpired);
-        builder.field("is_valid",valid);
-        builder.field("action",action);
-        builder.field("prod_usage",prodUsage);
-        builder.endObject();
-        return builder;
-    }*/
     
     @Override
     public void writeTo(StreamOutput out) throws IOException {
@@ -90,6 +69,7 @@ public final class SearchGuardLicense implements Writeable {
         out.writeString(startDate);
         out.writeOptionalVInt(majorVersion);
         out.writeString(clusterName);
+        out.writeInt(allowedNodeCount);
         out.writeStringList(msgs);
         out.writeLong(expiresInDays);
         out.writeBoolean(isExpired);
@@ -108,6 +88,7 @@ public final class SearchGuardLicense implements Writeable {
         startDate = in.readString();
         majorVersion = in.readOptionalVInt();
         clusterName = in.readString();
+        allowedNodeCount = in.readInt();
         msgs.addAll(in.readList(StreamInput::readString));
         expiresInDays = in.readLong();
         isExpired = in.readBoolean();
@@ -127,12 +108,13 @@ public final class SearchGuardLicense implements Writeable {
                  (String) (map==null?null:map.get("issuer")),
                  (String) (map==null?null:map.get("start_date")),
                  (Integer)(map==null?null:map.get("major_version")),
-                 (String) (map==null?null:map.get("cluster_name"))    
+                 (String) (map==null?null:map.get("cluster_name")),
+                 (Integer) (map==null?0:map.get("allowed_node_count_per_cluster"))    
                  , clusterService
         );
     }
     
-    public SearchGuardLicense(String uid, Type type, String issueDate, String expiryDate, String issuedTo, String issuer, String startDate, Integer majorVersion, String clusterName, ClusterService clusterService) {
+    public SearchGuardLicense(String uid, Type type, String issueDate, String expiryDate, String issuedTo, String issuer, String startDate, Integer majorVersion, String clusterName, int allowedNodeCount,  ClusterService clusterService) {
         super();
         this.uid = Objects.requireNonNull(uid);
         this.type = Objects.requireNonNull(type);
@@ -143,6 +125,7 @@ public final class SearchGuardLicense implements Writeable {
         this.startDate = Objects.requireNonNull(startDate);
         this.majorVersion = Objects.requireNonNull(majorVersion);
         this.clusterName = Objects.requireNonNull(clusterName);
+        this.allowedNodeCount = allowedNodeCount;
         this.clusterService = Objects.requireNonNull(clusterService);
         validate();
     }
@@ -225,12 +208,12 @@ public final class SearchGuardLicense implements Writeable {
 
         final int numberOfNodes = clusterService.state().getNodes().getSize();
         
-        if(type == Type.SME && numberOfNodes > 5) {
+        if(numberOfNodes > allowedNodeCount) {
             valid = false;
-            msgs.add("Only 5 nodes with SME license allowed but you run "+numberOfNodes+" of nodes");
+            msgs.add("Only "+allowedNodeCount+" nodes allowed but you run "+numberOfNodes+" of nodes");
         }
         
-        final String nodes = type == Type.SME?"max. 5":"unlimited";
+        final String nodes = allowedNodeCount > 1500 ?"unlimited":String.valueOf(allowedNodeCount);
 
         if(!valid) {
             prodUsage = "No, because you have no valid license!";
@@ -322,12 +305,19 @@ public final class SearchGuardLicense implements Writeable {
     public String getProdUsage() {
         return prodUsage;
     }
+    
+    public int getAllowedNodeCount() {
+        return allowedNodeCount;
+    }
 
     @Override
     public String toString() {
         return "SearchGuardLicense [uid=" + uid + ", type=" + type + ", issueDate=" + issueDate + ", expiryDate=" + expiryDate
                 + ", issuedTo=" + issuedTo + ", issuer=" + issuer + ", startDate=" + startDate + ", majorVersion=" + majorVersion
-                + ", clusterName=" + clusterName + ", msgs=" + msgs + ", expiresInDays=" + expiresInDays + ", isExpired=" + isExpired
-                + ", valid=" + valid + ", action=" + action + ", prodUsage=" + prodUsage + "]";
+                + ", clusterName=" + clusterName + ", allowedNodeCount=" + allowedNodeCount + ", msgs=" + msgs + ", expiresInDays="
+                + expiresInDays + ", isExpired=" + isExpired + ", valid=" + valid + ", action=" + action + ", prodUsage=" + prodUsage
+                + ", clusterService=" + clusterService + ", getMsgs()=" + getMsgs() + ", getExpiresInDays()=" + getExpiresInDays()
+                + ", isExpired()=" + isExpired() + ", isValid()=" + isValid() + ", getAction()=" + getAction() + ", getProdUsage()="
+                + getProdUsage() + "]";
     }
 }

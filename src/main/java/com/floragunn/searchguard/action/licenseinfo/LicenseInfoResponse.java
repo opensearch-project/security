@@ -85,6 +85,7 @@ public class LicenseInfoResponse extends BaseNodesResponse<LicenseInfoNodeRespon
             builder.field("action", "Enable or disable enterprise modules on all your nodes");
             builder.field("prod_usage", "No");
             builder.field("license_required", true);
+            builder.field("allowed_node_count_per_cluster", license.getAllowedNodeCount() > 1500?"unlimited":String.valueOf(license.getAllowedNodeCount()));
             
         } else if (nonNullLicenseNodes.size() == 0) {
             builder.field("msgs", new String[]{"No license required because enterprise modules not enabled."});
@@ -109,7 +110,7 @@ public class LicenseInfoResponse extends BaseNodesResponse<LicenseInfoNodeRespon
             builder.field("action", license.getAction());
             builder.field("prod_usage", license.getProdUsage());
             builder.field("license_required", true);
-            
+            builder.field("allowed_node_count_per_cluster", license.getAllowedNodeCount() > 1500?"unlimited":String.valueOf(license.getAllowedNodeCount()));
         }
         
         builder.endObject();
@@ -126,7 +127,6 @@ public class LicenseInfoResponse extends BaseNodesResponse<LicenseInfoNodeRespon
         for(LicenseInfoNodeResponse node: allNodes) {
             if(!node.getModules().equals(mod0)) {
                 mismatch = true;
-                System.out.println("NODE MODULE MISMATCH ON "+node.getNode().getId());
             }
         }
         
