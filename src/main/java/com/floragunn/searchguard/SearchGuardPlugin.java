@@ -585,6 +585,10 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_ENTERPRISE_MODULES_ENABLED, true, Property.NodeScope, Property.Filtered));    
         settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_ALLOW_UNSAFE_DEMOCERTIFICATES, false, Property.NodeScope, Property.Filtered));
         settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_ALLOW_DEFAULT_INIT_SGINDEX, false, Property.NodeScope, Property.Filtered));
+        
+        settings.add(Setting.groupSetting(ConfigConstants.SEARCHGUARD_AUTHCZ_REST_IMPERSONATION_USERS, Property.NodeScope)); //not filtered here
+        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_PASS_BACKENDROLES, false, Property.NodeScope, Property.Filtered));
+        
 
         //TODO remove searchguard.tribe.clustername?
         settings.add(Setting.simpleString("searchguard.tribe.clustername", Property.NodeScope, Property.Filtered));
