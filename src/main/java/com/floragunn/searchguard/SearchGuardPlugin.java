@@ -474,7 +474,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
             interClusterRequestEvaluator = ReflectionHelper.instantiateInterClusterRequestEvaluator(className, settings);
         }
         
-        PrivilegesInterceptor privilegesInterceptor = ReflectionHelper.instantiatePrivilegesInterceptorImpl(resolver, clusterService, localClient, threadPool);
+        final PrivilegesInterceptor privilegesInterceptor = ReflectionHelper.instantiatePrivilegesInterceptorImpl(resolver, clusterService, localClient, threadPool);
 
         adminDns = new AdminDNs(settings);      
         //final PrincipalExtractor pe = new DefaultPrincipalExtractor();        
@@ -540,7 +540,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_AUTHCZ_ADMIN_DN, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
 
         settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_CONFIG_INDEX_NAME, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.groupSetting(ConfigConstants.SEARCHGUARD_AUTHCZ_IMPERSONATION_DN, Property.NodeScope)); //not filtered here
+        settings.add(Setting.groupSetting(ConfigConstants.SEARCHGUARD_AUTHCZ_IMPERSONATION_DN+".", Property.NodeScope)); //not filtered here
 
         settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_TYPE, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_INDEX, Property.NodeScope, Property.Filtered));
@@ -586,9 +586,8 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_ALLOW_UNSAFE_DEMOCERTIFICATES, false, Property.NodeScope, Property.Filtered));
         settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_ALLOW_DEFAULT_INIT_SGINDEX, false, Property.NodeScope, Property.Filtered));
         
-        settings.add(Setting.groupSetting(ConfigConstants.SEARCHGUARD_AUTHCZ_REST_IMPERSONATION_USERS, Property.NodeScope)); //not filtered here
+        settings.add(Setting.groupSetting(ConfigConstants.SEARCHGUARD_AUTHCZ_REST_IMPERSONATION_USERS+".", Property.NodeScope)); //not filtered here
         settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_PASS_BACKENDROLES, false, Property.NodeScope, Property.Filtered));
-        
 
         //TODO remove searchguard.tribe.clustername?
         settings.add(Setting.simpleString("searchguard.tribe.clustername", Property.NodeScope, Property.Filtered));
