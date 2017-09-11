@@ -20,7 +20,6 @@ package com.floragunn.searchguard.auth;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
@@ -41,7 +40,6 @@ import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportRequest;
 
 import com.floragunn.searchguard.auditlog.AuditLog;
@@ -69,8 +67,10 @@ public class BackendRegistry implements ConfigurationChangeListener {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
     private final Map<String, String> authImplMap = new HashMap<String, String>();
-    private final SortedSet<AuthDomain> authDomains = new TreeSet<AuthDomain>();
-    private final Set<AuthorizationBackend> authorizers = new HashSet<AuthorizationBackend>();
+    private final SortedSet<AuthDomain> restAuthDomains = new TreeSet<AuthDomain>();
+    private final Set<AuthorizationBackend> restAuthorizers = new HashSet<AuthorizationBackend>();
+    private final SortedSet<AuthDomain> transportAuthDomains = new TreeSet<AuthDomain>();
+    private final Set<AuthorizationBackend> transportAuthorizers = new HashSet<AuthorizationBackend>();
     private volatile boolean initialized;
     private final AdminDNs adminDns;
     private final XFFResolver xffResolver;
@@ -84,6 +84,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
     private Cache<AuthCredentials, User> userCache;
     private Cache<String, User> userCacheTransport;
     private Cache<AuthCredentials, User> authenticatedUserCacheTransport;
+    private Cache<String, User> restImpersonationCache;
     
     private void createCaches() {
         userCache = CacheBuilder.newBuilder()
@@ -110,6 +111,15 @@ public class BackendRegistry implements ConfigurationChangeListener {
                     @Override
                     public void onRemoval(RemovalNotification<AuthCredentials, User> notification) {
                         log.debug("Clear user cache for {} due to {}", notification.getKey().getUsername(), notification.getCause());
+                    }
+                }).build();
+
+        restImpersonationCache = CacheBuilder.newBuilder()
+                .expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
+                .removalListener(new RemovalListener<String, User>() {
+                    @Override
+                    public void onRemoval(RemovalNotification<String, User> notification) {
+                        log.debug("Clear user cache for {} due to {}", notification.getKey(), notification.getCause());
                     }
                 }).build();
     }
@@ -141,40 +151,31 @@ public class BackendRegistry implements ConfigurationChangeListener {
         authImplMap.put("clientcert_h", HTTPClientCertAuthenticator.class.getName());
         authImplMap.put("kerberos_h", "com.floragunn.dlic.auth.http.kerberos.HTTPSpnegoAuthenticator");
         authImplMap.put("jwt_h", "com.floragunn.dlic.auth.http.jwt.HTTPJwtAuthenticator");
-        //authImplMap.put("host_h", HTTPHostAuthenticator.class.getName());
         
         this.ttlInMin = settings.getAsInt(ConfigConstants.SEARCHGUARD_CACHE_TTL_MINUTES, 60);
         createCaches();
+    }
+
+    public boolean isInitialized() {
+        return initialized;
     }
     
     public void invalidateCache() {
         userCache.invalidateAll();
         userCacheTransport.invalidateAll();
         authenticatedUserCacheTransport.invalidateAll();
-    }
-
-    private <T> T newInstance(final String clazzOrShortcut, String type, final Settings settings, final Path configPath) {
-        
-        String clazz = clazzOrShortcut;
-        boolean isEnterprise = false;
-        
-        if(authImplMap.containsKey(clazz+"_"+type)) {
-            clazz = authImplMap.get(clazz+"_"+type);
-        } else {
-            isEnterprise = true;
-        }
-        
-        if(ReflectionHelper.isEnterpriseAAAModule(clazz)) {
-            isEnterprise = true;
-        }
-        
-        return ReflectionHelper.instantiateAAA(clazz, settings, configPath, isEnterprise);
+        restImpersonationCache.invalidateAll();
     }
 
     @Override
     public void onChange(final Settings settings) {
-        authDomains.clear();
-        authorizers.clear();
+        
+        //TODO synchronize via semaphore/atomicref
+        restAuthDomains.clear();
+        transportAuthDomains.clear();
+        restAuthorizers.clear();
+        transportAuthorizers.clear();
+        invalidateCache();
         anonymousAuthEnabled = settings.getAsBoolean("searchguard.dynamic.http.anonymous_auth_enabled", false);
         
         final Map<String, Settings> authzDyn = settings.getGroups("searchguard.dynamic.authz");
@@ -186,9 +187,16 @@ public class BackendRegistry implements ConfigurationChangeListener {
                     final AuthorizationBackend authorizationBackend = newInstance(
                             ads.get("authorization_backend.type", "noop"),"z",
                             Settings.builder().put(esSettings).put(ads.getAsSettings("authorization_backend.config")).build(), configPath);
-                    authorizers.add(authorizationBackend);
+                    
+                    if (ads.getAsBoolean("http_enabled", true)) {
+                        restAuthorizers.add(authorizationBackend);
+                    }
+                    
+                    if (ads.getAsBoolean("transport_enabled", true)) {
+                        transportAuthorizers.add(authorizationBackend);
+                    }
                 } catch (final Exception e) {
-                    log.error("Unable to initialize AuthorizationBackend {} due to {}", e, ad, e.toString());
+                    log.error("Unable to initialize AuthorizationBackend {} due to {}", ad, e.toString());
                 }
             }
         }
@@ -214,165 +222,100 @@ public class BackendRegistry implements ConfigurationChangeListener {
                     String httpAuthenticatorType = ads.get("http_authenticator.type"); //no default
                     HTTPAuthenticator httpAuthenticator = httpAuthenticatorType==null?null:  (HTTPAuthenticator) newInstance(httpAuthenticatorType,"h",
                             Settings.builder().put(esSettings).put(ads.getAsSettings("http_authenticator.config")).build(), configPath);
-                                        
-                    authDomains.add(new AuthDomain(authenticationBackend, httpAuthenticator,
-                            ads.getAsBoolean("http_authenticator.challenge", true), ads.getAsInt("order", 0)));
+                    
+                    final AuthDomain _ad = new AuthDomain(authenticationBackend, httpAuthenticator,
+                            ads.getAsBoolean("http_authenticator.challenge", true), ads.getAsInt("order", 0));
+                    
+                    if (ads.getAsBoolean("http_enabled", true) && _ad.getHttpAuthenticator() != null) {
+                        restAuthDomains.add(_ad);
+                    }
+                    
+                    if (ads.getAsBoolean("transport_enabled", true)) {
+                        transportAuthDomains.add(_ad);
+                    }
                 } catch (final Exception e) {
-                    log.error("Unable to initialize auth domain {} due to {}", e, ad, e.toString());
+                    log.error("Unable to initialize auth domain {} due to {}", ad, e.toString());
                 }
 
             }
         }
         
-        if(authDomains.isEmpty()) {
-            authDomains.add(new AuthDomain(iab, new HTTPBasicAuthenticator(Settings.EMPTY, configPath), true, 0));
-        }
-
-        initialized = true;
+        //SG6 no default authc
+        initialized = !restAuthDomains.isEmpty();
     }
 
-    public User authenticate(final TransportRequest request, final TransportChannel channel, String sslPrincipal) throws ElasticsearchSecurityException {
+    public User authenticate(final TransportRequest request, final String sslPrincipal) {
         
-        final User origPKIUser = new User(sslPrincipal);
-        User impersonatedUser = impersonate(request, channel, origPKIUser);
-
-        final User user = impersonatedUser == null? origPKIUser:impersonatedUser;
-        
-        if(adminDns.isAdmin(user.getName())) {
-            auditLog.logAuthenticatedRequest(request, channel.action());
-            return user;
+        final User origPKIUser = new User(sslPrincipal);        
+        if(adminDns.isAdmin(origPKIUser.getName())) {
+            auditLog.logSucceededLogin(origPKIUser.getName(), true, null, request);
+            return origPKIUser;
         }
         
-        AuthCredentials _creds = null;
-        final String authorizationHeader = threadPool.getThreadContext().getHeader("Authorization");
+        final String authorizationHeader = threadPool.getThreadContext().getHeader("Authorization");        
+        //Use either impersonation OR credentials authentication
+        //if both is supplied credentials authentication win
+        final AuthCredentials creds = HTTPHelper.extractCredentials(authorizationHeader, log);
         
-        _creds = HTTPHelper.extractCredentials(authorizationHeader, log);
+        User impersonatedTransportUser = null;
         
-        final AuthCredentials creds = _creds;
-        
-        if(log.isDebugEnabled() && creds != null) {
-            log.debug("User {} submitted also basic credentials: {}", user.getName(), creds);
-        }
-          
-        for (final Iterator<AuthDomain> iterator = new TreeSet<AuthDomain>(authDomains).iterator(); iterator.hasNext();) {
-
-            final AuthDomain authDomain = (AuthDomain) iterator.next();
-            User authenticatedUser = null;
-
-            if(creds == null) {
-                
-                if(log.isDebugEnabled()) {
-                    log.debug("Transport User '{}' is in cache? {} (cache size: {})", user.getName(), userCacheTransport.getIfPresent(user.getName())!=null, userCacheTransport.size());
-                }
-                
-                try {
-                    authenticatedUser = userCacheTransport.get(user.getName(), new Callable<User>() {
-                        @Override
-                        public User call() throws Exception {
-                            if (log.isDebugEnabled()) {
-                                log.debug(user.getName() + " not cached, return from backend directly");
-                            }
-
-                            if (authDomain.getBackend().exists(user)) {
-                                for (final AuthorizationBackend ab : authorizers) {
-
-                                    // TODO transform username
-
-                                    try {
-                                        ab.fillRoles(user, new AuthCredentials(user.getName()));
-                                    } catch (Exception e) {
-                                        log.error("Problems retrieving roles for {} from {}", user, ab.getClass());
-                                    }
-                                }
-                                return user;
-                            }
-
-                            throw new Exception("no such user " + user.getName());
-                        }
-                    });
-                } catch (Exception e) {
-                    //log.error("Unexpected exception {} ", e, e.toString());
-                    throw new ElasticsearchSecurityException(e.toString(), e);
-                }
-            } else {
-                //auth
-                
-                if (log.isDebugEnabled()) {
-                    log.debug("Transport User '{}' is in cache? {} (cache size: {})", creds.getUsername(),
-                            authenticatedUserCacheTransport.getIfPresent(creds) != null, authenticatedUserCacheTransport.size());
-                }
-
-                try {
-                    authenticatedUser = authenticatedUserCacheTransport.get(creds, new Callable<User>() {
-                        @Override
-                        public User call() throws Exception {
-                            if (log.isDebugEnabled()) {
-                                log.debug(creds.getUsername() + " not cached, return from backend directly");
-                            }
-
-                            // full authentication
-                            User _user = authDomain.getBackend().authenticate(creds);
-
-                            for (final AuthorizationBackend ab : authorizers) {
-
-                                // TODO transform username
-
-                                try {
-                                    ab.fillRoles(_user, new AuthCredentials(_user.getName()));
-                                } catch (Exception e) {
-                                    log.error("Problems retrieving roles for {} from {}", _user, ab.getClass());
-                                }
-                            }
-                            return _user;
-                        }
-                    });
-                } catch (Exception e) {
-                    //log.error("Unexpected exception {} ", e, e.toString());
-                    throw new ElasticsearchSecurityException(e.toString(), e);
-                } finally {
-                    creds.clearSecrets();
-                }
+        if(creds != null) {
+            if(log.isDebugEnabled())  {
+                log.debug("User {} submitted also basic credentials: {}", origPKIUser.getName(), creds);
             }
-     
-            try {              
-                
-                if(authenticatedUser == null) {
-                    if(log.isDebugEnabled()) {
-                        log.debug("Cannot authenticate user (or add roles) with ad {} due to user is null, try next", authDomain.getOrder());
-                    }
-                    continue;
-                }
+        }
+        
+        //loop over all transport auth domains
+        for (final AuthDomain authDomain: transportAuthDomains) {
 
-                if(adminDns.isAdmin(authenticatedUser.getName())) {
-                    log.error("Cannot authenticate user because admin user is not permitted to login");
-                    auditLog.logFailedLogin(authenticatedUser.getName(), request);
-                    return null;
-                }
-                
-                 //authenticatedUser.addRoles(ac.getBackendRoles());
+            User authenticatedUser = null;
+            
+            if(creds == null) {
+                //no credentials submitted
+                //impersonation possible
+                impersonatedTransportUser = impersonate(request, origPKIUser);
+                authenticatedUser = checkExistsAndAuthz(userCacheTransport, impersonatedTransportUser==null?origPKIUser:impersonatedTransportUser, authDomain, transportAuthorizers);
+            } else {
+                 //auth credentials submitted
+                //impersonation not possible, if requested it will be ignored
+                authenticatedUser = authcz(authenticatedUserCacheTransport, creds, authDomain, transportAuthorizers);
+            }
+            
+            if(authenticatedUser == null) {
                 if(log.isDebugEnabled()) {
-                    log.debug("User '{}' is authenticated", authenticatedUser);
-                }
-                return authenticatedUser;
-            } catch (final ElasticsearchSecurityException e) {
-                if(log.isDebugEnabled()) {
-                    log.debug("Cannot authenticate user (or add roles) with ad {} due to {}, try next", authDomain.getOrder(), e.toString());
+                    log.debug("Cannot authenticate user {} (or add roles) with authdomain {}/{}, try next", creds==null?(impersonatedTransportUser==null?origPKIUser.getName():impersonatedTransportUser.getName()):creds.getUsername(), authDomain.getBackend().getType(), authDomain.getOrder());
                 }
                 continue;
             }
             
-        }//end for
+            if(adminDns.isAdmin(authenticatedUser.getName())) {
+                log.error("Cannot authenticate user because admin user is not permitted to login");
+                auditLog.logFailedLogin(authenticatedUser.getName(), true, null, request);
+                return null;
+            }
+     
+            if(log.isDebugEnabled()) {
+                log.debug("User '{}' is authenticated", authenticatedUser);
+            }
+            
+            auditLog.logSucceededLogin(authenticatedUser.getName(), false, impersonatedTransportUser==null?null:origPKIUser.getName(), request);
+            
+            return authenticatedUser;            
+        }//end looping auth domains
         
+        
+        //auditlog
         if(creds == null) {
-            auditLog.logFailedLogin(user.getName(), request);
+            auditLog.logFailedLogin(impersonatedTransportUser==null?origPKIUser.getName():impersonatedTransportUser.getName(), false, impersonatedTransportUser==null?null:origPKIUser.getName(), request);
         } else {
-            auditLog.logFailedLogin(creds.getUsername(), request);
+            auditLog.logFailedLogin(creds.getUsername(), false, null, request);
         }
         
-        log.warn("Transport authentication finally failed for {}", creds == null ? user.getName():creds.getUsername());
+        log.warn("Transport authentication finally failed for {}", creds == null ? impersonatedTransportUser==null?origPKIUser.getName():impersonatedTransportUser.getName():creds.getUsername());
         
         return null;
     }
+
     
     /**
      * 
@@ -381,13 +324,14 @@ public class BackendRegistry implements ConfigurationChangeListener {
      * @return The authenticated user, null means another roundtrip
      * @throws ElasticsearchSecurityException
      */
-    public boolean authenticate(final RestRequest request, final RestChannel channel, ThreadContext threadContext) throws ElasticsearchSecurityException {
+    public boolean authenticate(final RestRequest request, final RestChannel channel, final ThreadContext threadContext) {
 
-        String sslPrincipal = (String) threadPool.getThreadContext().getTransient(ConfigConstants.SG_SSL_PRINCIPAL);
+        final String sslPrincipal = (String) threadPool.getThreadContext().getTransient(ConfigConstants.SG_SSL_PRINCIPAL);
+
         if(adminDns.isAdmin(sslPrincipal)) {
             //PKI authenticated REST call
             threadPool.getThreadContext().putTransient(ConfigConstants.SG_USER, new User(sslPrincipal));
-            //auditLog.logAuthenticatedRequest(request);
+            auditLog.logSucceededLogin(sslPrincipal, true, null, request);
             return true;
         }
         
@@ -407,29 +351,24 @@ public class BackendRegistry implements ConfigurationChangeListener {
         
         HTTPAuthenticator firstChallengingHttpAuthenticator = null;
         
-        for (final Iterator<AuthDomain> iterator = new TreeSet<AuthDomain>(authDomains).iterator(); iterator.hasNext();) {
-
-            final AuthDomain authDomain = iterator.next();
+        //loop over all http/rest auth domains
+        for (final AuthDomain authDomain: restAuthDomains) {
             
             final HTTPAuthenticator httpAuthenticator = authDomain.getHttpAuthenticator();
-            
-            if(httpAuthenticator == null) {
-                continue; //this domain is for transport protocol only
-            }
             
             if(authDomain.isChallenge() && firstChallengingHttpAuthenticator == null) {
                 firstChallengingHttpAuthenticator = httpAuthenticator;
             }
 
             if(log.isDebugEnabled()) {
-                log.debug("Try to extract auth creds from http {} ",httpAuthenticator.getType());
+                log.debug("Try to extract auth creds from {} http authenticator", httpAuthenticator.getType());
             }
             final AuthCredentials ac;
             try {
                 ac = httpAuthenticator.extractCredentials(request, threadContext);
             } catch (Exception e1) {
                 if(log.isDebugEnabled()) {
-                    log.debug("'{}' extracting credentials from {} authenticator", e1, httpAuthenticator.getType());    
+                    log.debug("'{}' extracting credentials from {} http authenticator", e1, httpAuthenticator.getType());    
                 }
                 continue;
             }
@@ -442,114 +381,67 @@ public class BackendRegistry implements ConfigurationChangeListener {
                 }
                         
                 if(authDomain.isChallenge() && httpAuthenticator.reRequestAuthentication(channel, null)) {
-                    auditLog.logFailedLogin(null, request);
+                    auditLog.logFailedLogin(null, false, null, request);
                     return false;
                 } else {
                     //no reRequest possible
                     continue;
-                    //log.debug("extraction authentication credentials from http request finally failed");
-                    //channel.sendResponse(new BytesRestResponse(RestStatus.UNAUTHORIZED));
-                    //return false;
                 }      
             } else if (!ac.isComplete()) {
                 //credentials found in request but we need another client challenge
                 if(httpAuthenticator.reRequestAuthentication(channel, ac)) {
-                    auditLog.logFailedLogin(ac.getUsername()+" <incomplete>", request);
+                    //auditLog.logFailedLogin(ac.getUsername()+" <incomplete>", request); --noauditlog
                     return false;
                 } else {
                     //no reRequest possible
                     continue;
-                    //log.error(httpAuthenticator.getClass()+" does not support reRequestAuthentication but return incomplete authentication credentials");
-                    //channel.sendResponse(new BytesRestResponse(RestStatus.UNAUTHORIZED));
-                    //return false;
                 }
               
-            } 
-            ////credentials found in request and they are complete
-
-            if(log.isDebugEnabled()) {
-                log.debug("User '{}' is in cache? {} (cache size: {})", ac.getUsername(), userCache.getIfPresent(ac)!=null, userCache.size());
             }
+
+            //http completed
             
-            try {
-                try {
-                    authenticatedUser = userCache.get(ac, new Callable<User>() {
-                        @Override
-                        public User call() throws Exception {
-                            if(log.isDebugEnabled()) {
-                                log.debug(ac.getUsername()+" not cached, return from "+authDomain.getBackend().getType()+" backend directly");
-                            }
-                            User authenticatedUser = authDomain.getBackend().authenticate(ac);
-                            for (final AuthorizationBackend ab : authorizers) {
-                                
-                                //TODO transform username
-                                
-                                try {
-                                    ab.fillRoles(authenticatedUser, new AuthCredentials(authenticatedUser.getName()));
-                                } catch (Exception e) {
-                                    log.error("Problems retrieving roles for {} from {}", authenticatedUser, ab.getClass());
-                                }
-                            }
-                            //authDomain.getAbackend().fillRoles(authenticatedUser, new AuthCredentials(authenticatedUser.getName(), (Object) null));
-                            return authenticatedUser;
-                        }
-                    });
-                } catch (Exception e) {
-                    //no audit log here, we catch this exception later
-                    //log.error("Unexpected exception {} ", e, e.toString());
-                    throw new ElasticsearchSecurityException(e.toString(), e);
-                } finally {
-                    ac.clearSecrets();
-                }
-                
-                if(authenticatedUser == null) {
-                    if(log.isDebugEnabled()) {
-                        log.debug("Cannot authenticate user (or add roles) with ad {} due to user is null, try next", authDomain.getOrder());
-                    }
-                    continue;
-                }
-
-                if(adminDns.isAdmin(authenticatedUser.getName())) {
-                    log.error("Cannot authenticate user because admin user is not permitted to login via HTTP");
-                    auditLog.logFailedLogin(authenticatedUser.getName(), request);
-                    channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, "Cannot authenticate user because admin user is not permitted to login via HTTP"));
-                    return false;
-                }
-                
-                final String tenant = request.header("sg_tenant");
-                 //authenticatedUser.addRoles(ac.getBackendRoles());
+            authenticatedUser = authcz(userCache, ac, authDomain, restAuthorizers);
+     
+            if(authenticatedUser == null) {
                 if(log.isDebugEnabled()) {
-                    log.debug("User '{}' is authenticated", authenticatedUser);
-                    log.debug("sg_tenant '{}'", tenant);
-                }
-
-                authenticatedUser.setRequestedTenant(tenant);
-                threadContext.putTransient(ConfigConstants.SG_USER, authenticatedUser);
-
-                authenticated = true;
-                break;
-            } catch (final ElasticsearchSecurityException e) {
-                if(log.isDebugEnabled()) {
-                    log.debug("Cannot authenticate user (or add roles) with ad {} due to {}, try next", authDomain.getOrder(), e.toString());
+                    log.debug("Cannot authenticate user {} (or add roles) with authdomain {}/{}, try next", ac.getUsername(), authDomain.getBackend().getType(), authDomain.getOrder());
                 }
                 continue;
             }
-            
-        }//end for
-        
 
-        if(!authenticated) {
-            //if(httpAuthenticator.reRequestAuthentication(channel, null)) {
-            //  return false;
-            //}
-            //no reRequest possible
+            if(adminDns.isAdmin(authenticatedUser.getName())) {
+                log.error("Cannot authenticate user because admin user is not permitted to login via HTTP");
+                auditLog.logFailedLogin(authenticatedUser.getName(), true, null, request);
+                channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, "Cannot authenticate user because admin user is not permitted to login via HTTP"));
+                return false;
+            }
+            
+            final String tenant = request.header("sg_tenant");
             
             if(log.isDebugEnabled()) {
-                log.debug("User not authenticated after checking {} auth domains", authDomains.size());
+                log.debug("User '{}' is authenticated", authenticatedUser);
+                log.debug("sg_tenant '{}'", tenant);
+            }
+
+            authenticatedUser.setRequestedTenant(tenant);
+            final User impersonatedUser = impersonate(request, authenticatedUser, authDomain);
+            threadContext.putTransient(ConfigConstants.SG_USER, impersonatedUser==null?authenticatedUser:impersonatedUser);
+            
+            auditLog.logSucceededLogin((impersonatedUser==null?authenticatedUser:impersonatedUser).getName(), false, authenticatedUser.getName(), request);
+            authenticated = true;
+            break;
+        }//end looping auth domains
+        
+
+        if(!authenticated) {        
+            if(log.isDebugEnabled()) {
+                log.debug("User still not authenticated after checking {} auth domains", restAuthDomains.size());
             }
             
             if(authCredenetials == null && anonymousAuthEnabled) {
             	threadContext.putTransient(ConfigConstants.SG_USER, User.ANONYMOUS);
+            	auditLog.logSucceededLogin(User.ANONYMOUS.getName(), false, null, request);
                 if(log.isDebugEnabled()) {
                     log.debug("Anonymous User is authenticated");
                 }
@@ -568,25 +460,109 @@ public class BackendRegistry implements ConfigurationChangeListener {
                     }
                     
                     log.warn("Authentication finally failed for {}", authCredenetials == null ? null:authCredenetials.getUsername());
-                    auditLog.logFailedLogin(authCredenetials == null ? null:authCredenetials.getUsername(), request);
+                    auditLog.logFailedLogin(authCredenetials == null ? null:authCredenetials.getUsername(), false, null, request);
                     return false;
                 }
             }
             
             log.warn("Authentication finally failed for {}", authCredenetials == null ? null:authCredenetials.getUsername());
-            auditLog.logFailedLogin(authCredenetials == null ? null:authCredenetials.getUsername(), request);
+            auditLog.logFailedLogin(authCredenetials == null ? null:authCredenetials.getUsername(), false, null, request);
             channel.sendResponse(new BytesRestResponse(RestStatus.UNAUTHORIZED, "Authentication finally failed"));
             return false;
         }
-        
+
         return authenticated;
     }
 
-    public boolean isInitialized() {
-        return initialized;
+    /**
+     * no auditlog, throw no exception, does also authz for all authorizers
+     * 
+     * @param cache
+     * @param ac
+     * @param authDomain
+     * @return null if user cannot b authenticated
+     */
+    private User checkExistsAndAuthz(final Cache<String, User> cache, final User user, final AuthDomain authDomain, final Set<AuthorizationBackend> authorizers) {
+        if(user == null) {
+            return null;
+        }
+
+        try {
+            return cache.get(user.getName(), new Callable<User>() {
+                @Override
+                public User call() throws Exception {
+                    if(log.isDebugEnabled()) {
+                        log.debug(user.getName()+" not cached, return from "+authDomain.getBackend().getType()+" backend directly");
+                    }
+                    if(authDomain.getBackend().exists(user)) {
+                        for (final AuthorizationBackend ab : authorizers) {
+                            try {
+                                ab.fillRoles(user, new AuthCredentials(user.getName()));
+                            } catch (Exception e) {
+                                log.error("Cannot retrieve roles for {} from {} due to {}", user.getName(), ab.getType(), e.toString());
+                            }
+                        }
+                        
+                    return user;
+                    
+                    }
+
+                    if(log.isDebugEnabled()) {
+                        log.debug("User "+user.getName()+" does not exist in "+authDomain.getBackend().getType());
+                    }
+                    return null;
+                }
+            });
+        } catch (Exception e) {
+            if(log.isDebugEnabled()) {
+                log.debug("Can not check and authorize "+user.getName()+" due to "+e.toString());
+            }
+            return null;
+        }
+    }
+    /**
+     * no auditlog, throw no exception, does also authz for all authorizers
+     * 
+     * @param cache
+     * @param ac
+     * @param authDomain
+     * @return null if user cannot b authenticated
+     */
+    private User authcz(final Cache<AuthCredentials, User> cache, final AuthCredentials ac, final AuthDomain authDomain, final Set<AuthorizationBackend> authorizers) {
+        if(ac == null) {
+            return null;
+        }
+
+        try {
+            return cache.get(ac, new Callable<User>() {
+                @Override
+                public User call() throws Exception {
+                    if(log.isDebugEnabled()) {
+                        log.debug(ac.getUsername()+" not cached, return from "+authDomain.getBackend().getType()+" backend directly");
+                    }
+                    final User authenticatedUser = authDomain.getBackend().authenticate(ac);
+                    for (final AuthorizationBackend ab : authorizers) {
+                        try {
+                            ab.fillRoles(authenticatedUser, new AuthCredentials(authenticatedUser.getName()));
+                        } catch (Exception e) {
+                            log.error("Cannot retrieve roles for {} from {} due to {}", authenticatedUser, ab.getType(), e.toString());
+                        }
+                    }
+
+                    return authenticatedUser;
+                }
+            });
+        } catch (Exception e) {
+            if(log.isDebugEnabled()) {
+                log.debug("Can not authenticate "+ac.getUsername()+" due to "+e.toString());
+            }
+            return null;
+        } finally {
+            ac.clearSecrets();
+        }
     }
 
-    private User impersonate(final TransportRequest tr, final TransportChannel channel, User origPKIuser) throws ElasticsearchSecurityException {
+    private User impersonate(final TransportRequest tr, final User origPKIuser) throws ElasticsearchSecurityException {
 
         final String impersonatedUser = threadPool.getThreadContext().getHeader("sg_impersonate_as");
         
@@ -609,14 +585,13 @@ public class BackendRegistry implements ConfigurationChangeListener {
         }
         
         try {
-            if (impersonatedUser != null && !adminDns.isImpersonationAllowed(new LdapName(origPKIuser.getName()), impersonatedUser)) {
+            if (impersonatedUser != null && !adminDns.isTransportImpersonationAllowed(new LdapName(origPKIuser.getName()), impersonatedUser)) {
                 throw new ElasticsearchSecurityException("'"+origPKIuser.getName() + "' is not allowed to impersonate as '" + impersonatedUser+"'");
             } else if (impersonatedUser != null) {
                 aU = new User(impersonatedUser);
                 if(log.isDebugEnabled()) {
                     log.debug("Impersonate from '{}' to '{}'",origPKIuser.getName(), impersonatedUser);
                 }
-                auditLog.logAuthenticatedRequest(tr, channel.action());
             }
         } catch (final InvalidNameException e1) {
             throw new ElasticsearchSecurityException("PKI does not have a valid name ('" + origPKIuser.getName() + "'), should never happen",
@@ -625,5 +600,58 @@ public class BackendRegistry implements ConfigurationChangeListener {
 
         return aU;
     }
+    
+    private User impersonate(final RestRequest request, final User originalUser, final AuthDomain authDomain) throws ElasticsearchSecurityException {
 
+        final String impersonatedUserHeader = request.header("sg_impersonate_as");
+
+        if (Strings.isNullOrEmpty(impersonatedUserHeader) || originalUser == null) {
+            return null; // nothing to do
+        }
+
+        if (!isInitialized()) {
+            throw new ElasticsearchSecurityException("Could not check for impersonation because Search Guard is not yet initialized");
+        }
+
+        if (adminDns.isAdmin(impersonatedUserHeader)) {
+            throw new ElasticsearchSecurityException("It is not allowed to impersonate as an adminuser  '" + impersonatedUserHeader + "'",
+                    RestStatus.FORBIDDEN);
+        }
+
+        if (!adminDns.isRestImpersonationAllowed(originalUser.getName(), impersonatedUserHeader)) {
+            throw new ElasticsearchSecurityException("'" + originalUser.getName() + "' is not allowed to impersonate as '" + impersonatedUserHeader
+                    + "'", RestStatus.FORBIDDEN);
+        } else {
+            final User impersonatedUser = checkExistsAndAuthz(restImpersonationCache, new User(impersonatedUserHeader), authDomain, restAuthorizers);
+            
+            if(impersonatedUser == null) {
+                log.debug("Unable to impersonate rest user from '{}' to '{}' because the impersonated user does not exists in {}", originalUser.getName(), impersonatedUserHeader, authDomain.getBackend().getType());
+                return null;
+            }
+            
+            if (log.isDebugEnabled()) {
+                log.debug("Impersonate rest user from '{}' to '{}'", originalUser.getName(), impersonatedUserHeader);
+            }
+            return impersonatedUser;
+        }
+
+    }
+    
+    private <T> T newInstance(final String clazzOrShortcut, String type, final Settings settings, final Path configPath) {
+        
+        String clazz = clazzOrShortcut;
+        boolean isEnterprise = false;
+        
+        if(authImplMap.containsKey(clazz+"_"+type)) {
+            clazz = authImplMap.get(clazz+"_"+type);
+        } else {
+            isEnterprise = true;
+        }
+        
+        if(ReflectionHelper.isEnterpriseAAAModule(clazz)) {
+            isEnterprise = true;
+        }
+        
+        return ReflectionHelper.instantiateAAA(clazz, settings, configPath, isEnterprise);
+    }
 }

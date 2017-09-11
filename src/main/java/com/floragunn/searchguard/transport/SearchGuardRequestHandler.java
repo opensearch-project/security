@@ -23,7 +23,6 @@ import java.util.Objects;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchSecurityException;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
@@ -34,6 +33,7 @@ import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportRequestHandler;
 
 import com.floragunn.searchguard.auditlog.AuditLog;
+import com.floragunn.searchguard.auditlog.AuditLog.Origin;
 import com.floragunn.searchguard.auth.BackendRegistry;
 import com.floragunn.searchguard.ssl.transport.PrincipalExtractor;
 import com.floragunn.searchguard.ssl.transport.SearchGuardSSLRequestHandler;
@@ -70,7 +70,7 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
     @Override
     protected void messageReceivedDecorate(final T request, final TransportRequestHandler<T> handler,
             final TransportChannel transportChannel, Task task) throws Exception {
-        
+
         final ThreadContext.StoredContext sgContext = getThreadContext().newStoredContext(false);
         
         try {
@@ -94,8 +94,16 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
                 String userHeader = getThreadContext().getHeader(ConfigConstants.SG_USER_HEADER);
                 
                 if(!Strings.isNullOrEmpty(userHeader)) {
-                    getThreadContext().putTransient(ConfigConstants.SG_USER+"copy", Objects.requireNonNull((User) Base64Helper.deserializeObject(userHeader)));  
+                    getThreadContext().putTransient(ConfigConstants.SG_USER, Objects.requireNonNull((User) Base64Helper.deserializeObject(userHeader)));  
                 }
+                
+                /*String originalRemoteAddress = getThreadContext().getHeader(ConfigConstants.SG_REMOTE_ADDRESS_HEADER);
+                
+                if(!Strings.isNullOrEmpty(originalRemoteAddress)) {
+                    getThreadContext().putTransient(ConfigConstants.SG_REMOTE_ADDRESS, new TransportAddress((InetSocketAddress) Base64Helper.deserializeObject(originalRemoteAddress)));
+                } else {
+                    //getThreadContext().putTransient(ConfigConstants.SG_REMOTE_ADDRESS, (TransportAddress)request.remoteAddress());
+                }*/
                 
                 super.messageReceivedDecorate(request, handler, transportChannel, task);
                 return;
@@ -128,6 +136,8 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
                 return;
             } else {
                 
+                getThreadContext().putTransient("_sg_origin", Origin.TRANSPORT.toString());
+                
                 //network intercluster request or cross search cluster request
                 if(HeaderHelper.isInterClusterRequest(getThreadContext()) 
                         || HeaderHelper.isTrustedClusterRequest(getThreadContext())) {
@@ -156,25 +166,27 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
                     
                     if(SSLRequestHelper.containsBadHeader(getThreadContext(), ConfigConstants.SG_CONFIG_PREFIX)) {
                         final ElasticsearchException exception = ExceptionUtils.createBadHeaderException();
-                        auditLog.logBadHeaders(request);
+                        auditLog.logBadHeaders(request, transportChannel.action());
                         log.error("Error validating headers");
                         transportChannel.sendResponse(exception);
                         return;
                     }
                     
+                    //TODO SG6 exception handling, introduce authexception
+                    
                     User user;
-                    try {
-                        if((user = backendRegistry.authenticate(request, transportChannel, principal)) == null) {
+                    //try {
+                        if((user = backendRegistry.authenticate(request, principal)) == null) {
                             log.error("Cannot authenticate {}", (User) getThreadContext().getTransient(ConfigConstants.SG_USER));
                             transportChannel.sendResponse(new ElasticsearchSecurityException("Cannot authenticate "+getThreadContext().getTransient(ConfigConstants.SG_USER)));
                             return;
                         }
-                    } catch (Exception e) {
-                        log.error("Error authentication transport user "+e, e);
-                        auditLog.logFailedLogin(principal, request);
-                        transportChannel.sendResponse(ExceptionsHelper.convertToElastic(e));
-                        return;
-                    }
+                    //} catch (Exception e) {
+                        //    log.error("Error authentication transport user "+e, e);
+                        //auditLog.logFailedLogin(principal, false, null, request);
+                        //transportChannel.sendResponse(ExceptionsHelper.convertToElastic(e));
+                        //return;
+                        //}
                     
                     getThreadContext().putTransient(ConfigConstants.SG_USER, user);
                     TransportAddress originalRemoteAddress = request.remoteAddress();
