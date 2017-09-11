@@ -100,8 +100,8 @@ public class ConfigConstants {
     
     public static final String SEARCHGUARD_AUTHCZ_ADMIN_DN = "searchguard.authcz.admin_dn";
     public static final String SEARCHGUARD_CONFIG_INDEX_NAME = "searchguard.config_index_name";
-    public static final String SEARCHGUARD_AUTHCZ_IMPERSONATION_DN = "searchguard.authcz.impersonation_dn.";
-    public static final String SEARCHGUARD_AUTHCZ_REST_IMPERSONATION_USERS="searchguard.authcz.rest_impersonation_user.";
+    public static final String SEARCHGUARD_AUTHCZ_IMPERSONATION_DN = "searchguard.authcz.impersonation_dn";
+    public static final String SEARCHGUARD_AUTHCZ_REST_IMPERSONATION_USERS="searchguard.authcz.rest_impersonation_user";
     public static final String SEARCHGUARD_AUDIT_TYPE = "searchguard.audit.type";
     public static final String SEARCHGUARD_AUDIT_CONFIG_INDEX = "searchguard.audit.config.index";
     public static final String SEARCHGUARD_AUDIT_CONFIG_TYPE = "searchguard.audit.config.type";
