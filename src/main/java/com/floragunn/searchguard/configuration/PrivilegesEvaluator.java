@@ -37,6 +37,7 @@ import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.CompositeIndicesRequest;
+import org.elasticsearch.action.DocWriteRequest;
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.RealtimeRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
@@ -96,7 +97,7 @@ public class PrivilegesEvaluator {
     private final IndexNameExpressionResolver resolver;
     private final Map<Class<?>, Method> typeCache = Collections.synchronizedMap(new HashMap<Class<?>, Method>(100));
     private final Map<Class<?>, Method> typesCache = Collections.synchronizedMap(new HashMap<Class<?>, Method>(100));
-    private final String[] deniedActionPatterns;
+    private final String[] sgDeniedActionPatterns;
     private final AuditLog auditLog;
     private ThreadContext threadContext;
     private final static IndicesOptions DEFAULT_INDICES_OPTIONS = IndicesOptions.lenientExpandOpen();
@@ -107,6 +108,7 @@ public class PrivilegesEvaluator {
     
     private final boolean enableSnapshotRestorePrivilege;
     private final boolean checkSnapshotRestoreWritePrivileges;
+    private final boolean passBackendRoles;
 
     public PrivilegesEvaluator(final ClusterService clusterService, final ThreadPool threadPool, final ConfigurationRepository configurationRepository, final ActionGroupHolder ah,
             final IndexNameExpressionResolver resolver, AuditLog auditLog, final Settings settings, final PrivilegesInterceptor privilegesInterceptor) {
@@ -125,47 +127,17 @@ public class PrivilegesEvaluator {
                 ConfigConstants.SG_DEFAULT_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE);
         this.checkSnapshotRestoreWritePrivileges = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES,
                 ConfigConstants.SG_DEFAULT_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES);
-
-        /*
-        indices:admin/template/delete
-        indices:admin/template/get
-        indices:admin/template/put
         
-        indices:admin/aliases
-        indices:admin/aliases/exists
-        indices:admin/aliases/get
-        indices:admin/analyze
-        indices:admin/cache/clear
-        -> indices:admin/close
-        indices:admin/create
-        -> indices:admin/delete
-        indices:admin/get
-        indices:admin/exists
-        indices:admin/flush
-        indices:admin/mapping/put
-        indices:admin/mappings/fields/get
-        indices:admin/mappings/get
-        indices:admin/open
-        indices:admin/optimize
-        indices:admin/refresh
-        indices:admin/settings/update
-        indices:admin/shards/search_shards
-        indices:admin/types/exists
-        indices:admin/upgrade
-        indices:admin/validate/query
-        indices:admin/warmers/delete
-        indices:admin/warmers/get
-        indices:admin/warmers/put
-        */
+        passBackendRoles = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_PASS_BACKENDROLES, false);
         
-        final List<String> deniedActionPatternsList = new ArrayList<String>();
-        deniedActionPatternsList.add("indices:data/write*");
-        deniedActionPatternsList.add("indices:admin/close");
-        deniedActionPatternsList.add("indices:admin/delete");
+        final List<String> sgIndexdeniedActionPatternsList = new ArrayList<String>();
+        sgIndexdeniedActionPatternsList.add("indices:data/write*");
+        sgIndexdeniedActionPatternsList.add("indices:admin/close");
+        sgIndexdeniedActionPatternsList.add("indices:admin/delete");
         //deniedActionPatternsList.add("indices:admin/settings/update");
         //deniedActionPatternsList.add("indices:admin/upgrade");
         
-        deniedActionPatterns = deniedActionPatternsList.toArray(new String[0]);
+        sgDeniedActionPatterns = sgIndexdeniedActionPatternsList.toArray(new String[0]);
         
     }
     
@@ -301,7 +273,6 @@ public class PrivilegesEvaluator {
         final Settings config = getConfigSettings();
         final Settings roles = getRolesSettings();
 
-        final boolean compositeEnabled = config.getAsBoolean("searchguard.dynamic.composite_enabled", true);
         boolean clusterLevelPermissionRequired = false;
         
         final TransportAddress caller = Objects.requireNonNull((TransportAddress) this.threadContext.getTransient(ConfigConstants.SG_REMOTE_ADDRESS));
@@ -320,10 +291,16 @@ public class PrivilegesEvaluator {
             }
         }
         
+        //TODO SG6 skip indices:data/write/bulk[s] bulk shard requests
+        if(action.equals("indices:data/write/bulk[s]")) {
+            return true;
+        }
+        
+        assert !action.contains("["): "no '[' requests allowed like "+action;
+        
         if(action.startsWith("internal:indices/admin/upgrade")) {
             action = "indices:admin/upgrade";
         }
-
 
         final ClusterState clusterState = clusterService.state();
         final MetaData metaData = clusterState.metaData();
@@ -350,14 +327,14 @@ public class PrivilegesEvaluator {
         }
         
         if (requestedResolvedIndices.contains(searchguardIndex)
-                && WildcardMatcher.matchAny(deniedActionPatterns, action)) {
+                && WildcardMatcher.matchAny(sgDeniedActionPatterns, action)) {
             auditLog.logSgIndexAttempt(request, action);
             log.warn(action + " for '{}' index is not allowed for a regular user", searchguardIndex);
             return false;
         }
 
         if (requestedResolvedIndices.contains("_all")
-                && WildcardMatcher.matchAny(deniedActionPatterns, action)) {
+                && WildcardMatcher.matchAny(sgDeniedActionPatterns, action)) {
             auditLog.logSgIndexAttempt(request, action);
             log.warn(action + " for '_all' indices is not allowed for a regular user");
             return false;
@@ -406,6 +383,27 @@ public class PrivilegesEvaluator {
         final Map<String,Set<String>> flsFields = new HashMap<String, Set<String>>();
 
         final Map<String, Set<IndexType>> leftovers = new HashMap<String, Set<IndexType>>();
+        
+        //TODO SG6 check bulk requests
+        /*final Set<String> additionalPermissionsRequired = new HashSet<>();
+        
+        if(request instanceof BulkRequest) {
+            
+            for(DocWriteRequest<?> ar: ((BulkRequest) request).requests()) {
+                //require also op type permissions
+                switch(ar.opType()) {
+                    case CREATE: additionalPermissionsRequired.add(IndexAction.NAME);break;
+                    case INDEX: additionalPermissionsRequired.add(IndexAction.NAME);break;
+                    case DELETE: additionalPermissionsRequired.add(DeleteAction.NAME);break;
+                    case UPDATE: additionalPermissionsRequired.add(UpdateAction.NAME);break;
+                }
+                
+            }
+        }
+        
+        if(log.isDebugEnabled()) {
+            log.debug("Additional permissions required: "+additionalPermissionsRequired);
+        }*/
 
         for (final Iterator<String> iterator = sgRoles.iterator(); iterator.hasNext();) {
             final String sgRole = (String) iterator.next();
@@ -424,22 +422,23 @@ public class PrivilegesEvaluator {
                 log.debug("---------- evaluate sg_role: {}", sgRole);
             }
 
-            if (action.startsWith("cluster:") || action.startsWith("indices:admin/template/delete")
-                    || action.startsWith("indices:admin/template/get") || action.startsWith("indices:admin/template/put") 
+            if (    action.startsWith("cluster:") 
+                    || action.startsWith("indices:admin/template/")
+                    
+                
+               //TODO SG5 compat mode
+
+                    
                 || action.startsWith("indices:data/read/scroll")
-                //M*
-                //be sure to sync the CLUSTER_COMPOSITE_OPS actiongroups
-                || (compositeEnabled && action.equals(BulkAction.NAME))
-                || (compositeEnabled && action.equals(IndicesAliasesAction.NAME))
-                || (compositeEnabled && action.equals(MultiGetAction.NAME))
-                //TODO 5mg check multipercolate action and check if there are new m* actions
-                //|| (compositeEnabled && action.equals(Multiper.NAME))
-                || (compositeEnabled && action.equals(MultiSearchAction.NAME))
-                || (compositeEnabled && action.equals(MultiTermVectorsAction.NAME))
-                || (compositeEnabled && action.equals("indices:data/read/coordinate-msearch"))
-                || (compositeEnabled && action.equals("indices:data/write/reindex"))
-                || (compositeEnabled && action.equals("indices:data/read/mpercolate"))
-                //|| (compositeEnabled && action.equals(MultiPercolateAction.NAME))
+                || (action.equals(BulkAction.NAME))
+                || (action.equals(IndicesAliasesAction.NAME))
+                || (action.equals(MultiGetAction.NAME))
+                || (action.equals(MultiSearchAction.NAME))
+                || (action.equals(MultiTermVectorsAction.NAME))
+                || (action.equals("indices:data/read/coordinate-msearch"))
+                || (action.equals("indices:data/write/reindex"))
+                || (action.equals("indices:data/read/mpercolate"))
+
                 ) {
                 
                 final Set<String> resolvedActions = resolveActions(sgRoleSettings.getAsArray(".cluster", new String[0]));
@@ -868,42 +867,51 @@ public class PrivilegesEvaluator {
     public Set<String> mapSgRoles(final User user, final TransportAddress caller) {
         
         final Settings rolesMapping = getRolesMappingSettings();
+        final Set<String> sgRoles = new TreeSet<String>();
         
-        if(user == null || rolesMapping == null) {
+        if(user == null) {
             return Collections.emptySet();
         }
-
-        final Set<String> sgRoles = new TreeSet<String>();
-        for (final String roleMap : rolesMapping.names()) {
-            final Settings roleMapSettings = rolesMapping.getByPrefix(roleMap);
-            
-            if (WildcardMatcher.allPatternsMatched(roleMapSettings.getAsArray(".and_backendroles"), user.getRoles().toArray(new String[0]))) {
-                sgRoles.add(roleMap);
-                continue;
+        
+        if(passBackendRoles) {
+            if(log.isDebugEnabled()) {
+                log.debug("Pass backendroles from {}", user);
             }
-            
-            if (WildcardMatcher.matchAny(roleMapSettings.getAsArray(".backendroles"), user.getRoles().toArray(new String[0]))) {
-                sgRoles.add(roleMap);
-                continue;
-            }
-
-            if (WildcardMatcher.matchAny(roleMapSettings.getAsArray(".users"), user.getName())) {
-                sgRoles.add(roleMap);
-                continue;
-            }
-
-            if (caller != null &&  WildcardMatcher.matchAny(roleMapSettings.getAsArray(".hosts"), caller.getAddress())) {
-                sgRoles.add(roleMap);
-                continue;
-            }
-
-            if (caller != null && WildcardMatcher.matchAny(roleMapSettings.getAsArray(".hosts"), caller.getAddress())) {
-                sgRoles.add(roleMap);
-                continue;
-            }
-
+            sgRoles.addAll(user.getRoles());
         }
         
+        if(rolesMapping != null) {
+            for (final String roleMap : rolesMapping.names()) {
+                final Settings roleMapSettings = rolesMapping.getByPrefix(roleMap);
+                
+                if (WildcardMatcher.allPatternsMatched(roleMapSettings.getAsArray(".and_backendroles"), user.getRoles().toArray(new String[0]))) {
+                    sgRoles.add(roleMap);
+                    continue;
+                }
+                
+                if (WildcardMatcher.matchAny(roleMapSettings.getAsArray(".backendroles"), user.getRoles().toArray(new String[0]))) {
+                    sgRoles.add(roleMap);
+                    continue;
+                }
+
+                if (WildcardMatcher.matchAny(roleMapSettings.getAsArray(".users"), user.getName())) {
+                    sgRoles.add(roleMap);
+                    continue;
+                }
+
+                if (caller != null &&  WildcardMatcher.matchAny(roleMapSettings.getAsArray(".hosts"), caller.getAddress())) {
+                    sgRoles.add(roleMap);
+                    continue;
+                }
+
+                if (caller != null && WildcardMatcher.matchAny(roleMapSettings.getAsArray(".hosts"), caller.getAddress())) {
+                    sgRoles.add(roleMap);
+                    continue;
+                }
+
+            }
+        }
+
         return Collections.unmodifiableSet(sgRoles);
 
     }
@@ -1122,37 +1130,31 @@ public class PrivilegesEvaluator {
 
             return new Tuple<Set<String>, Set<String>>(Sets.newHashSet("_all"), Sets.newHashSet("_all"));
         }
-
-        //System.out.println("--------> "+request.getClass().getName());
         
         final Set<String> indices = new HashSet<String>();
         final Set<String> types = new HashSet<String>();
 
         if (request instanceof CompositeIndicesRequest) {
-            
-            //System.out.println("    -----> is CompositeIndicesRequest");
-            
-            if(request instanceof IndicesRequest) {
-                
-                //System.out.println("    -----> is IndicesRequest");
+          
+            if(request instanceof IndicesRequest) { //skip BulkShardRequest?
 
                 final Tuple<Set<String>, Set<String>> t = resolve(user, action, (IndicesRequest) request, metaData);
                 indices.addAll(t.v1());
                 types.addAll(t.v2());
                 
             } else if(request instanceof BulkRequest) {
-
-                //System.out.println("    -----> is BulkRequest");
                 
-                for(IndicesRequest ar: ((BulkRequest) request).requests()) {
+                for(DocWriteRequest<?> ar: ((BulkRequest) request).requests()) {
+                    
+                    //require also op type permissions
+                    //ar.opType()
+                    
                     final Tuple<Set<String>, Set<String>> t = resolve(user, action, (IndicesRequest) ar, metaData);
                     indices.addAll(t.v1());
                     types.addAll(t.v2());
                 }
                 
             } else if(request instanceof IndicesRequest) {
-                
-                //System.out.println("    -----> is IndicesRequest");
 
                 final Tuple<Set<String>, Set<String>> t = resolve(user, action, (IndicesRequest) request, metaData);
                 indices.addAll(t.v1());

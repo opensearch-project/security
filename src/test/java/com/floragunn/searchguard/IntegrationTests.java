@@ -110,6 +110,47 @@ public class IntegrationTests extends SingleClusterTest {
     }
     
     @Test
+    public void testSearchScroll() throws Exception {
+        
+        Thread.setDefaultUncaughtExceptionHandler(new UncaughtExceptionHandler() {
+            
+            @Override
+            public void uncaughtException(Thread t, Throwable e) {
+                e.printStackTrace();
+                
+            }
+        });
+        
+    final Settings settings = Settings.builder()
+            .putArray(ConfigConstants.SEARCHGUARD_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "knuddel","nonexists")
+            .build();
+    setup(settings);
+    final RestHelper rh = nonSslRestHelper();
+
+        try (TransportClient tc = getInternalTransportClient()) {                    
+            for(int i=0; i<3; i++)
+            tc.index(new IndexRequest("vulcangov").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();                
+        }
+        
+        
+        System.out.println("########search");
+        HttpResponse res;
+        Assert.assertEquals(HttpStatus.SC_OK, (res=rh.executeGetRequest("vulcangov/_search?scroll=1m&pretty=true", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
+        
+        System.out.println(res.getBody());
+        int start = res.getBody().indexOf("_scroll_id") + 15;
+        String scrollid = res.getBody().substring(start, res.getBody().indexOf("\"", start+1));
+        System.out.println(scrollid);
+        System.out.println("########search scroll");
+        Assert.assertEquals(HttpStatus.SC_OK, (res=rh.executePostRequest("/_search/scroll?pretty=true", "{\"scroll_id\" : \""+scrollid+"\"}", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
+
+
+        System.out.println("########search done");
+        
+        
+    }
+    
+    @Test
         public void testHTTPBasic() throws Exception {
         final Settings settings = Settings.builder()
                 .putArray(ConfigConstants.SEARCHGUARD_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "knuddel","nonexists")

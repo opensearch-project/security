@@ -71,11 +71,13 @@ import org.elasticsearch.http.HttpServerTransport.Dispatcher;
 import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IndexSearcherWrapper;
+import org.elasticsearch.index.shard.SearchOperationListener;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestHandler;
 import org.elasticsearch.script.ScriptService;
+import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.Transport;
@@ -355,6 +357,23 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
                 indexModule.setSearcherWrapper(indexService -> new SearchGuardIndexSearcherWrapper(indexService, settings, Objects
                         .requireNonNull(adminDns)));
             }
+        
+            //TODO SG6 check SearchOperationListener for read/scroll 
+            /*indexModule.addSearchOperationListener(new SearchOperationListener() {
+
+                @Override
+                public void onNewScrollContext(SearchContext context) {
+                    // TODO Auto-generated method stub
+                }
+
+                @Override
+                public void onFreeScrollContext(SearchContext context) {
+                    // TODO Auto-generated method stub
+                }
+                
+                
+                
+            });*/
         }
     }
     
