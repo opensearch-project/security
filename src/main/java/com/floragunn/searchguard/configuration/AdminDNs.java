@@ -30,6 +30,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.Settings;
 
 import com.floragunn.searchguard.support.ConfigConstants;
+import com.floragunn.searchguard.support.WildcardMatcher;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 
@@ -38,9 +39,10 @@ public class AdminDNs {
     protected final Logger log = LogManager.getLogger(AdminDNs.class);
     private final Set<LdapName> adminDn = new HashSet<LdapName>();
     private final ListMultimap<LdapName, String> allowedImpersonations = ArrayListMultimap.<LdapName, String> create();
+    private final ListMultimap<String, String> allowedRestImpersonations = ArrayListMultimap.<String, String> create();
     
-    public AdminDNs(Settings settings) 
-    {
+    public AdminDNs(final Settings settings) {
+
         final String[] adminDnsA = settings.getAsArray(ConfigConstants.SEARCHGUARD_AUTHCZ_ADMIN_DN, new String[0]);
 
         for (int i = 0; i < adminDnsA.length; i++) {
@@ -66,6 +68,14 @@ public class AdminDNs {
         }
         
         log.debug("Loaded {} impersonation DN's {}",allowedImpersonations.size(), allowedImpersonations);
+        
+        final Map<String, Settings> impersonationUsersRest = settings.getGroups(ConfigConstants.SEARCHGUARD_AUTHCZ_REST_IMPERSONATION_USERS);
+
+        for (String user:impersonationUsersRest.keySet()) {
+            allowedRestImpersonations.putAll(user, Arrays.asList(settings.getAsArray(ConfigConstants.SEARCHGUARD_AUTHCZ_REST_IMPERSONATION_USERS+"."+user)));
+        }
+        
+        log.debug("Loaded {} impersonation users for REST {}",allowedRestImpersonations.size(), allowedRestImpersonations);
     }
 
     public boolean isAdmin(String dn) {
@@ -91,13 +101,20 @@ public class AdminDNs {
         return isAdmin;
     }
     
-    public boolean isImpersonationAllowed(LdapName dn, String impersonated) {
+    public boolean isTransportImpersonationAllowed(LdapName dn, String impersonated) {
         if(dn == null) return false;
         
         if(isAdmin(dn)) {
             return true;
         }
-        
-        return this.allowedImpersonations.containsEntry(dn, "*") || this.allowedImpersonations.containsEntry(dn, impersonated);
+
+        return WildcardMatcher.matchAny(this.allowedImpersonations.get(dn), impersonated);
+    }
+    
+    public boolean isRestImpersonationAllowed(final String originalUser, final String impersonated) {
+        if(originalUser == null) {
+            return false;    
+        }
+        return WildcardMatcher.matchAny(this.allowedRestImpersonations.get(originalUser), impersonated);
     }
 }
