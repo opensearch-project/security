@@ -28,7 +28,10 @@ import com.google.common.collect.Lists;
 public class User implements Serializable {
 
     public static final User ANONYMOUS = new User("sg_anonymous", Lists.newArrayList("sg_anonymous_backendrole"));
+    
+    @Deprecated
     public static final User SG_INTERNAL = new User("_sg_internal");
+    
     private static final long serialVersionUID = -5500938501822658596L;
     private final String name;
     private final Set<String> roles = new HashSet<String>();

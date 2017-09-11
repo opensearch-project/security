@@ -55,9 +55,9 @@ public final class AuthCredentials {
         this(username, null, null, backendRoles);
     }
     
-    public AuthCredentials(final AuthCredentials creds) {
+    /*public AuthCredentials(final AuthCredentials creds) {
         this(creds.username, creds.password, creds.nativeCredentials);
-    }
+    }*/
 
     private AuthCredentials(final String username, byte[] password, Object nativeCredentials, String... backendRoles) {
         super();
