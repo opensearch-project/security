@@ -21,8 +21,8 @@ import java.nio.file.Path;
 
 import javax.net.ssl.SSLPeerUnverifiedException;
 
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.ExceptionsHelper;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
@@ -35,6 +35,7 @@ import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import com.floragunn.searchguard.auditlog.AuditLog;
+import com.floragunn.searchguard.auditlog.AuditLog.Origin;
 import com.floragunn.searchguard.auth.BackendRegistry;
 import com.floragunn.searchguard.ssl.transport.PrincipalExtractor;
 import com.floragunn.searchguard.ssl.util.ExceptionUtils;
@@ -45,6 +46,7 @@ import com.floragunn.searchguard.support.HTTPHelper;
 
 public class SearchGuardRestFilter {
 
+    protected final Logger log = LogManager.getLogger(this.getClass());
     private final BackendRegistry registry;
     private final AuditLog auditLog;
     private final ThreadContext threadContext;
@@ -69,8 +71,7 @@ public class SearchGuardRestFilter {
             
             @Override
             public void handleRequest(RestRequest request, RestChannel channel, NodeClient client) throws Exception {
-                if(!checkAndAuthenticateRequest(request, channel, client))
-                {
+                if(!checkAndAuthenticateRequest(request, channel, client)) {
                     original.handleRequest(request, channel, client);
                 }
             }
@@ -79,17 +80,19 @@ public class SearchGuardRestFilter {
 
     private boolean checkAndAuthenticateRequest(RestRequest request, RestChannel channel, NodeClient client) throws Exception {
 
+        threadContext.putTransient("_sg_origin", Origin.REST.toString());
+        
         if(HTTPHelper.containsBadHeader(request)) {
-            final ElasticsearchException exception = new ElasticsearchException("bad http header found");
+            log.error("bad http header found");
             auditLog.logBadHeaders(request);
-            channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, exception));
+            channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, ExceptionUtils.createBadHeaderException()));
             return true;
         }
         
         if(SSLRequestHelper.containsBadHeader(threadContext, ConfigConstants.SG_CONFIG_PREFIX)) {
-            final ElasticsearchException exception = ExceptionUtils.createBadHeaderException();
+            log.error("bad http header found");
             auditLog.logBadHeaders(request);
-            channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, exception));
+            channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, ExceptionUtils.createBadHeaderException()));
             return true;
         }
 
@@ -107,12 +110,14 @@ public class SearchGuardRestFilter {
                 threadContext.putTransient("_sg_ssl_cipher", sslInfo.getCipher());
             }
         } catch (SSLPeerUnverifiedException e) {
-            //logger.error("No client certificates found but such are needed (SG 8).");
-            //errorThrown(e, request);
-            throw ExceptionsHelper.convertToElastic(e);
+            log.error("No ssl info", e);
+            auditLog.logSSLException(request, e);
+            channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, e));
+            return true;
         }
 
-        if(request.method() != Method.OPTIONS) {
+        if(request.method() != Method.OPTIONS 
+                && !"/_searchguard/license".equals(request.path())) {
             if (!registry.authenticate(request, channel, threadContext)) {
                 // another roundtrip
                 return true;
