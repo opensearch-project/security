@@ -51,7 +51,7 @@ public class SearchGuardHttpServerTransport extends SearchGuardSSLNettyHttpServe
 
     @Override
     protected void errorThrown(Throwable t, RestRequest request) {
-        auditLog.logSSLException(request, t, null);
+        auditLog.logSSLException(request, t);
         super.errorThrown(t, request);
     }
     

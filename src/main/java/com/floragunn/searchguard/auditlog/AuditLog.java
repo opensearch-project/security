@@ -24,25 +24,26 @@ import org.elasticsearch.transport.TransportRequest;
 
 public interface AuditLog extends Closeable {
 
-    // TODO store action in request
-    
-    void logFailedLogin(String username, TransportRequest request);
-    
-    void logFailedLogin(String username, RestRequest request);
+    //login
+    void logFailedLogin(String effectiveUser, boolean sgadmin, String initiatingUser, TransportRequest request);
+    void logFailedLogin(String effectiveUser, boolean sgadmin, String initiatingUser, RestRequest request);
+    void logSucceededLogin(String effectiveUser, boolean sgadmin, String initiatingUser, TransportRequest request);
+    void logSucceededLogin(String effectiveUser, boolean sgadmin, String initiatingUser, RestRequest request);
 
-    void logMissingPrivileges(String privilege, TransportRequest request);
+    //privs
+    void logMissingPrivileges(String privilege, TransportRequest request);    
+    void logGrantedPrivileges(String privilege, TransportRequest request);
 
-    void logBadHeaders(TransportRequest request);
-
+    //spoof
+    void logBadHeaders(TransportRequest request, String action);
     void logBadHeaders(RestRequest request);
 
     void logSgIndexAttempt(TransportRequest request, String action);
     
     void logSSLException(TransportRequest request, Throwable t, String action);
+    void logSSLException(RestRequest request, Throwable t);
     
-    void logSSLException(RestRequest request, Throwable t, String action);
-
-    //void logBadCertificate(X509Certificate[] x509Certs, ContextAndHeaderHolder request);
-    
-    void logAuthenticatedRequest(TransportRequest request, final String action);
+    public enum Origin {
+        REST, TRANSPORT, LOCAL
+    }
 }

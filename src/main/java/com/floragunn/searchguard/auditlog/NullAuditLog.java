@@ -25,33 +25,41 @@ import org.elasticsearch.transport.TransportRequest;
 public class NullAuditLog implements AuditLog {
 
     @Override
-    public void logMissingPrivileges(final String privilege, final TransportRequest request) {
-
-    }
-
-    @Override
-    public void logFailedLogin(final String username, final TransportRequest request) {
-
-    }
-
-    @Override
-    public void logBadHeaders(final RestRequest request) {
-
-    }
-
-    @Override
-    public void logBadHeaders(final TransportRequest request) {
-
-    }
-
-    @Override
     public void close() throws IOException {
+    }
+
+    @Override
+    public void logFailedLogin(String effectiveUser, boolean sgadmin, String initiatingUser, TransportRequest request) {
+     }
+
+    @Override
+    public void logFailedLogin(String effectiveUser, boolean sgadmin, String initiatingUser, RestRequest request) {
+    }
+
+    @Override
+    public void logSucceededLogin(String effectiveUser, boolean sgadmin, String initiatingUser, TransportRequest request) {
+    }
+
+    @Override
+    public void logSucceededLogin(String effectiveUser, boolean sgadmin, String initiatingUser, RestRequest request) {
 
     }
 
     @Override
-    public void logFailedLogin(String username, RestRequest request) {
+    public void logMissingPrivileges(String privilege, TransportRequest request) {
+    }
 
+    @Override
+    public void logGrantedPrivileges(String privilege, TransportRequest request) {
+
+    }
+
+    @Override
+    public void logBadHeaders(TransportRequest request, String action) {
+    }
+
+    @Override
+    public void logBadHeaders(RestRequest request) {
     }
 
     @Override
@@ -65,15 +73,7 @@ public class NullAuditLog implements AuditLog {
     }
 
     @Override
-    public void logSSLException(RestRequest request, Throwable t, String action) {
+    public void logSSLException(RestRequest request, Throwable t) {
 
     }
-
-    @Override
-    public void logAuthenticatedRequest(TransportRequest request, final String action) {
-        
-    }
-    
-    
-
 }
