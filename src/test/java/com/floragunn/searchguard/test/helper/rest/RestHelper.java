@@ -18,6 +18,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
+import java.util.Arrays;
 
 import javax.net.ssl.SSLContext;
 
@@ -230,6 +231,13 @@ public class RestHelper {
 			return statusReason;
 		}
 
+        @Override
+        public String toString() {
+            return "HttpResponse [inner=" + inner + ", body=" + body + ", header=" + Arrays.toString(header) + ", statusCode=" + statusCode
+                    + ", statusReason=" + statusReason + "]";
+        }
+
 	}
 
+	
 }

@@ -610,6 +610,14 @@ public class SGTests extends AbstractUnitTest {
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         Assert.assertTrue(res.getBody().contains("\"total\" : 3"));
         Assert.assertTrue(res.getBody().contains("\"batches\" : 1"));
+        
+        //rest impersonation
+        HttpResponse resp;
+        resp = executeGetRequest("/_searchguard/authinfo", new BasicHeader("sg_impersonate_as","knuddel"), new BasicHeader("Authorization", "Basic "+encodeBasicHeader("worf", "worf")));
+        Assert.assertEquals(HttpStatus.SC_OK, resp.getStatusCode());
+        Assert.assertTrue(resp.getBody().contains("name=worf"));
+        Assert.assertFalse(resp.getBody().contains("knuddel"));
+
     }
     
     
@@ -2955,6 +2963,91 @@ public class SGTests extends AbstractUnitTest {
         Assert.assertEquals(HttpStatus.SC_OK, executeGetRequest("", new BasicHeader("Authorization", "Basic "+encodeBasicHeader("admin", "admin"))).getStatusCode());
 
     }
+    
+    @Test
+    public void testRestImpersonation() throws Exception {
+
+        enableHTTPClientSSL = true;
+        trustHTTPServerCertificate = true;
+        sendHTTPClientCertificate = true;
+        
+        //knuddel:
+        //    hash: _rest_impersonation_only_
+
+        Assert.fail("rewrite test");
+        
+        /*final Settings settings = Settings.settingsBuilder().put("searchguard.ssl.transport.enabled", true)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
+                .put("searchguard.ssl.transport.keystore_filepath", getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+                .put("searchguard.ssl.transport.truststore_filepath", getAbsoluteFilePathFromClassPath("truststore.jks"))
+                .put("searchguard.ssl.transport.enforce_hostname_verification", false)
+                .put("searchguard.ssl.transport.resolve_hostname", false)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLED, true)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_TRUSTSTORE_FILEPATH, getAbsoluteFilePathFromClassPath("truststore.jks"))
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_KEYSTORE_FILEPATH, getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+                .putArray("searchguard.authcz.admin_dn", "CN=kirk,OU=client,O=client,l=tEst, C=De")
+                .putArray("searchguard.authcz.impersonation_dn.CN=spock,OU=client,O=client,L=Test,C=DE", "knuddel","userwhonotexists").build();
+
+        startES(settings);
+
+        Settings tcSettings = Settings.builder().put("cluster.name", clustername).put(settings)
+                .put("searchguard.ssl.transport.keystore_filepath", getAbsoluteFilePathFromClassPath("kirk-keystore.jks"))
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "kirk").put("path.home", ".").build();
+
+        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardSSLPlugin.class)
+                .addPlugin(SearchGuardPlugin.class).build()) {
+
+            log.debug("Start transport client to init");
+
+            tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
+            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().length);
+
+            tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
+            tc.index(new IndexRequest("searchguard").type("config").id("0").refresh(true).source(readYamlContent("sg_config.yml")))
+                    .actionGet();
+            tc.index(
+                    new IndexRequest("searchguard").type("internalusers").refresh(true).id("0")
+                            .source(readYamlContent("sg_internal_users.yml"))).actionGet();
+            tc.index(new IndexRequest("searchguard").type("roles").id("0").refresh(true).source(readYamlContent("sg_roles.yml")))
+                    .actionGet();
+            tc.index(
+                    new IndexRequest("searchguard").type("rolesmapping").refresh(true).id("0")
+                            .source(readYamlContent("sg_roles_mapping.yml"))).actionGet();
+            tc.index(
+                    new IndexRequest("searchguard").type("actiongroups").refresh(true).id("0")
+                            .source(readYamlContent("sg_action_groups.yml"))).actionGet();
+
+            ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE,
+                    new ConfigUpdateRequest(new String[] { "config", "roles", "rolesmapping", "internalusers", "actiongroups" }))
+                    .actionGet();
+            Assert.assertEquals(3, cur.getNodes().length);
+        }
+
+        HttpResponse resp;
+        resp = executeGetRequest("/_searchguard/authinfo", new BasicHeader("sg_impersonate_as", "knuddel"), new BasicHeader(
+                "Authorization", "Basic " + encodeBasicHeader("worf", "worf")));
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resp.getStatusCode());
+        keystore = "spock-keystore.jks";
+        sendHTTPClientCertificate = true;
+
+        resp = executeGetRequest("/_searchguard/authinfo", new BasicHeader("sg_impersonate_as", "knuddel"), new BasicHeader(
+                "Authorization", "Basic " + encodeBasicHeader("worf", "worf")));
+        Assert.assertEquals(HttpStatus.SC_OK, resp.getStatusCode());
+        Assert.assertTrue(resp.getBody().contains("name=knuddel"));
+        Assert.assertFalse(resp.getBody().contains("worf"));
+        
+        resp = executeGetRequest("/_searchguard/authinfo", new BasicHeader("sg_impersonate_as", "userwhonotexists"), new BasicHeader(
+                "Authorization", "Basic " + encodeBasicHeader("worf", "worf")));
+        System.out.println(resp.getBody());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resp.getStatusCode());
+
+        resp = executeGetRequest("/_searchguard/authinfo", new BasicHeader("sg_impersonate_as", "invalid"), new BasicHeader(
+                "Authorization", "Basic " + encodeBasicHeader("worf", "worf")));
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resp.getStatusCode());*/
+    }
+
 
     private ThreadContext newThreadContext(String sslPrincipal) {
         ThreadContext threadContext = new ThreadContext(Settings.EMPTY);

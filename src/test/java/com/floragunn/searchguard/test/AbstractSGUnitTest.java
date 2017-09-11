@@ -49,6 +49,7 @@ import com.floragunn.searchguard.SearchGuardPlugin;
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateAction;
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateRequest;
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateResponse;
+import com.floragunn.searchguard.ssl.util.SSLConfigConstants;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.WildcardMatcher;
 import com.floragunn.searchguard.test.helper.cluster.ClusterInfo;
@@ -69,13 +70,17 @@ public abstract class AbstractSGUnitTest {
 		System.out.println("Open SSL available: " + OpenSsl.isAvailable());
 		System.out.println("Open SSL version: " + OpenSsl.versionString());
 		
-	    System.setProperty("jdk.tls.rejectClientInitiatedRenegotiation", "true");
 	    System.setProperty("sg.display_lic_none","true");
 	}
 	
 	protected final Logger log = LogManager.getLogger(this.getClass());
     public static final ThreadPool MOCK_POOL = new ThreadPool(Settings.builder().put("node.name",  "mock").build());
 	
+    //Matrix
+    private boolean allowOpenSSL = false;
+    //enable//disable enterprise modules
+    //1node and 3 node
+    
 	@Rule
 	public TestName name = new TestName();
 
@@ -102,6 +107,7 @@ public abstract class AbstractSGUnitTest {
     protected static Collection<Class<? extends Plugin>> asCollection(Class<? extends Plugin>... plugins) {
         return Arrays.asList(plugins);
     }
+    
     
     protected TransportClient getInternalTransportClient(ClusterInfo info, Settings initTransportClientSettings) {
         Settings tcSettings = Settings.builder()
@@ -155,17 +161,19 @@ public abstract class AbstractSGUnitTest {
     }
     
     protected Settings.Builder minimumSearchGuardSettingsBuilder(int node) {
-        return Settings.builder().put("searchguard.ssl.transport.enabled", true)
+        return Settings.builder()
+                //.put("searchguard.ssl.transport.enabled", true)
                  //.put("searchguard.no_default_init", true)
                 //.put("searchguard.ssl.http.enable_openssl_if_available", false)
                 //.put("searchguard.ssl.transport.enable_openssl_if_available", false)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put("searchguard.ssl.transport.keystore_alias", "node-0")
                 .put("searchguard.ssl.transport.keystore_filepath",
                         FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
                 .put("searchguard.ssl.transport.truststore_filepath",
                         FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
                 .put("searchguard.ssl.transport.enforce_hostname_verification", false)
-                .put("searchguard.ssl.transport.resolve_hostname", false)
                 .putArray("searchguard.authcz.admin_dn", "CN=kirk,OU=client,O=client,l=tEst, C=De");
                 //.put(other==null?Settings.EMPTY:other);
     }

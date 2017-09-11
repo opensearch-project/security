@@ -103,3 +103,6 @@ snapresuser:
 logstash:
   hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
   #password is: nagilum
+  
+knuddel:
+  hash: _imponly_

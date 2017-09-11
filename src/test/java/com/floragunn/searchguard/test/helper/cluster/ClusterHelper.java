@@ -32,13 +32,19 @@ import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.index.reindex.ReindexPlugin;
+import org.elasticsearch.join.ParentJoinPlugin;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.node.PluginAwareNode;
+import org.elasticsearch.percolator.PercolatorPlugin;
+import org.elasticsearch.script.mustache.MustachePlugin;
+import org.elasticsearch.search.aggregations.matrix.MatrixAggregationPlugin;
 import org.elasticsearch.transport.Netty4Plugin;
 
 import com.floragunn.searchguard.SearchGuardPlugin;
 import com.floragunn.searchguard.test.NodeSettingsSupplier;
 import com.floragunn.searchguard.test.helper.cluster.ClusterConfiguration.NodeSettings;
+import com.github.mustachejava.MustacheParser;
 
 public final class ClusterHelper {
 
@@ -87,7 +93,7 @@ public final class ClusterHelper {
 			Node node = new PluginAwareNode(
 					getMinimumNonSgNodeSettingsBuilder(i, setting.masterNode, setting.dataNode, setting.tribeNode, internalNodeSettings.size(), clusterConfiguration.getMasterNodes())
 							.put(nodeSettingsSupplier == null ? Settings.Builder.EMPTY_SETTINGS : nodeSettingsSupplier.get(i)).build(),
-					Netty4Plugin.class, SearchGuardPlugin.class);
+					Netty4Plugin.class, SearchGuardPlugin.class, MatrixAggregationPlugin.class, MustachePlugin.class, ParentJoinPlugin.class, PercolatorPlugin.class, ReindexPlugin.class);
 			System.out.println(node.settings().getAsMap());
 			node.start();
 			esNodes.add(node);

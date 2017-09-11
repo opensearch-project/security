@@ -16,6 +16,7 @@ import org.junit.Test;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.test.DynamicSgConfig;
 import com.floragunn.searchguard.test.SingleClusterTest;
+import com.floragunn.searchguard.test.helper.cluster.ClusterConfiguration;
 import com.floragunn.searchguard.test.helper.rest.RestHelper;
 import com.floragunn.searchguard.test.helper.rest.RestHelper.HttpResponse;
 
@@ -42,7 +43,7 @@ public class StandardIntegrationTests extends SingleClusterTest {
         
         RestHelper rh = nonSslRestHelper();
         HttpResponse res;
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_searchguard/license?pretty", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_searchguard/license?pretty")).getStatusCode());
         System.out.println(res.getBody());
         assertContains(res, "*TRIAL*");
         assertNotContains(res, "*FULL*");
@@ -177,6 +178,133 @@ public class StandardIntegrationTests extends SingleClusterTest {
 //all
         
         
+    }
+    
+    @Test
+    public void testHTTPTrace() throws Exception {
+        
+       new org.elasticsearch.action.support.replication.ReplicationTask.Status("a").toString(); 
+        
+       setup(Settings.EMPTY, new DynamicSgConfig(), Settings.EMPTY, true, ClusterConfiguration.DEFAULT);
+
+        try (TransportClient tc = getInternalTransportClient(this.clusterInfo, Settings.EMPTY)) {
+            
+            tc.admin().indices().create(new CreateIndexRequest("copysf")).actionGet();
+            
+            for(int i=0; i<50;i++) {
+                tc.index(new IndexRequest("a").type("b").id(i+"").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":"+i+"}", XContentType.JSON)).actionGet();
+            }
+        }
+        
+        RestHelper rh = nonSslRestHelper();
+        
+        System.out.println("############ _bulk");
+        String bulkBody = 
+                "{ \"index\" : { \"_index\" : \"test\", \"_type\" : \"type1\", \"_id\" : \"1\" } }"+System.lineSeparator()+
+                "{ \"field1\" : \"value1\" }" +System.lineSeparator()+
+                "{ \"index\" : { \"_index\" : \"test\", \"_type\" : \"type1\", \"_id\" : \"2\" } }"+System.lineSeparator()+
+                "{ \"field2\" : \"value2\" }"+System.lineSeparator()+
+                "{ \"delete\" : { \"_index\" : \"test\", \"_type\" : \"type1\", \"_id\" : \"2\" } }"+System.lineSeparator();
+        
+        rh.executePostRequest("_bulk?refresh=true", bulkBody, encodeBasicHeader("nagilum", "nagilum"));
+        
+        System.out.println("############ _bulk");
+        bulkBody = 
+                "{ \"index\" : { \"_index\" : \"test\", \"_type\" : \"type1\", \"_id\" : \"1\" } }"+System.lineSeparator()+
+                "{ \"field1\" : \"value1\" }" +System.lineSeparator()+
+                "{ \"index\" : { \"_index\" : \"test\", \"_type\" : \"type1\", \"_id\" : \"2\" } }"+System.lineSeparator()+
+                "{ \"field2\" : \"value2\" }"+System.lineSeparator()+
+                "{ \"delete\" : { \"_index\" : \"test\", \"_type\" : \"type1\", \"_id\" : \"2\" } }"+System.lineSeparator();
+        
+        rh.executePostRequest("_bulk?refresh=true", bulkBody, encodeBasicHeader("nagilum", "nagilum"));
+       
+        
+        System.out.println("############ cat indices");
+        //cluster:monitor/state
+        //cluster:monitor/health
+        //indices:monitor/stats
+        rh.executeGetRequest("_cat/indices", encodeBasicHeader("nagilum", "nagilum"));
+
+        
+        System.out.println("############ _search");
+        //indices:data/read/search
+        rh.executeGetRequest("_search?refresh=true", encodeBasicHeader("nagilum", "nagilum"));
+
+        System.out.println("############ get");
+        //indices:data/read/get
+        rh.executeGetRequest("a/b/1?refresh=true", encodeBasicHeader("nagilum", "nagilum"));
+
+        System.out.println("############ index (+create index)");
+        //indices:data/write/index
+        //indices:data/write/bulk
+        //indices:admin/create
+        //indices:data/write/bulk[s]
+        rh.executePostRequest("u/b/1?refresh=true", "{}",encodeBasicHeader("nagilum", "nagilum"));
+
+        System.out.println("############ index only");
+        //indices:data/write/index
+        //indices:data/write/bulk
+        //indices:admin/create
+        //indices:data/write/bulk[s]
+        rh.executePostRequest("u/b/2?refresh=true", "{}",encodeBasicHeader("nagilum", "nagilum"));
+        
+        System.out.println("############ update");
+        //indices:data/write/index
+        //indices:data/write/bulk
+        //indices:admin/create
+        //indices:data/write/bulk[s]
+        System.out.println(rh.executePostRequest("u/b/2/_update?refresh=true", "{\"doc\" : {\"a\":1}}",encodeBasicHeader("nagilum", "nagilum")));
+        
+        System.out.println("############ delete");
+        //indices:data/write/index
+        //indices:data/write/bulk
+        //indices:admin/create
+        //indices:data/write/bulk[s]
+        rh.executeDeleteRequest("u/b/2?refresh=true",encodeBasicHeader("nagilum", "nagilum"));
+       
+        System.out.println("############ msearch");
+        String msearchBody = 
+                "{\"index\":\"a\", \"type\":\"b\", \"ignore_unavailable\": true}"+System.lineSeparator()+
+                "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"+System.lineSeparator()+
+                "{\"index\":\"a\", \"type\":\"b\", \"ignore_unavailable\": true}"+System.lineSeparator()+
+                "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"+System.lineSeparator()+
+                "{\"index\":\"public\", \"ignore_unavailable\": true}"+System.lineSeparator()+
+                "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"+System.lineSeparator();
+                         
+            
+        System.out.println(rh.executePostRequest("_msearch", msearchBody, encodeBasicHeader("nagilum", "nagilum")));
+     
+        System.out.println("############ mget");
+        String mgetBody = "{"+
+                "\"docs\" : ["+
+                    "{"+
+                         "\"_index\" : \"a\","+
+                        "\"_type\" : \"b\","+
+                        "\"_id\" : \"11\""+
+                   " },"+
+                   " {"+
+                       "\"_index\" : \"a\","+
+                       " \"_type\" : \"b\","+
+                       " \"_id\" : \"12\""+
+                    "}"+
+                "]"+
+            "}";
+        
+        System.out.println(rh.executePostRequest("_mget?refresh=true", mgetBody, encodeBasicHeader("nagilum", "nagilum")));
+        
+        System.out.println("############ delete by query");
+        String dbqBody = "{"+
+        ""+
+        "  \"query\": { "+
+        "    \"match\": {"+
+        "      \"content\": 12"+
+        "    }"+
+        "  }"+
+        "}";
+        
+        System.out.println(rh.executePostRequest("a/b/_delete_by_query", dbqBody, encodeBasicHeader("nagilum", "nagilum")));
+        
+        Thread.sleep(50000);
     }
 
 }
