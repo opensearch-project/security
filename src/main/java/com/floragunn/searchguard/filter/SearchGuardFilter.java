@@ -17,8 +17,6 @@
 
 package com.floragunn.searchguard.filter;
 
-import java.util.Objects;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchSecurityException;
@@ -34,6 +32,7 @@ import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import com.floragunn.searchguard.auditlog.AuditLog;
+import com.floragunn.searchguard.auditlog.AuditLog.Origin;
 import com.floragunn.searchguard.configuration.AdminDNs;
 import com.floragunn.searchguard.configuration.DlsFlsRequestValve;
 import com.floragunn.searchguard.configuration.PrivilegesEvaluator;
@@ -66,92 +65,107 @@ public class SearchGuardFilter implements ActionFilter {
         return Integer.MIN_VALUE;
     }
 
-    
-    
     @Override
-    public <Request extends ActionRequest, Response extends ActionResponse> void apply(Task task, String action, Request request,
+    public <Request extends ActionRequest, Response extends ActionResponse> void apply(Task task, final String action, Request request,
             ActionListener<Response> listener, ActionFilterChain<Request, Response> chain) {
-        
-        final User user = threadContext.getTransient(ConfigConstants.SG_USER);
-        
-        if(user == null && HeaderHelper.isDirectRequest(threadContext)) {
-
-            if(!dlsFlsValve.invoke(request, listener, threadContext)) {
-                return;
+        try {
+            
+            if(threadContext.getTransient("_sg_origin") == null) {
+                threadContext.putTransient("_sg_origin", Origin.LOCAL.toString());
             }
             
-            chain.proceed(task, action, request, listener);
-            return;
-        }
-
-        final boolean userIsAdmin = isUserAdmin(Objects.requireNonNull(user), adminDns);
-        final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadContext);
-        final boolean conRequest = "true".equals(HeaderHelper.getSafeFromHeader(threadContext, ConfigConstants.SG_CONF_REQUEST_HEADER));
-
-        if(userIsAdmin
-                || interClusterRequest
-                || conRequest){
-
-            if(userIsAdmin && !interClusterRequest && !conRequest) {
-                auditLog.logAuthenticatedRequest(request, action);
-            }
-
-            if(!dlsFlsValve.invoke(request, listener, threadContext)) {
-                return;
-            }
-            
-            chain.proceed(task, action, request, listener);
-            return;
-        }
-        
-        if(action.startsWith("internal:gateway/local/started_shards")
-                || action.startsWith("internal:cluster/nodes/indices/shard/store")) {
-            if (log.isTraceEnabled()) {
-                log.trace("Allow "+action+" always");
-            }
-
-            chain.proceed(task, action, request, listener);
-            return;
-        }
-        
-        if(User.SG_INTERNAL.equals(user) && HeaderHelper.isTrustedClusterRequest(threadContext)) {
-            if (action.startsWith("cluster:monitor/")) {
-                if (log.isTraceEnabled()) {
-                    log.trace("No cross cluster search user, will allow only standard discovery and monitoring actions");
+            final User user = threadContext.getTransient(ConfigConstants.SG_USER);
+            final boolean userIsAdmin = isUserAdmin(user, adminDns);
+            final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadContext);
+            final boolean conRequest = "true".equals(HeaderHelper.getSafeFromHeader(threadContext, ConfigConstants.SG_CONF_REQUEST_HEADER));
+    
+            if(userIsAdmin
+                    || interClusterRequest
+                    || conRequest){
+    
+                if(userIsAdmin && !interClusterRequest && !conRequest) {
+                    auditLog.logGrantedPrivileges(action, request);
                 }
-
+    
+                if(!dlsFlsValve.invoke(request, listener, threadContext)) {
+                    return;
+                }
                 chain.proceed(task, action, request, listener);
                 return;
             }
-        }
-       
-        final PrivilegesEvaluator eval = evalp;
 
-        if (!eval.isInitialized()) {
-            log.error("Search Guard not initialized (SG11) for {}", action);
-            listener.onFailure(new ElasticsearchSecurityException("Search Guard not initialized (SG11) for " 
-            + action+". See https://github.com/floragunncom/search-guard-docs/blob/master/sgadmin.md", RestStatus.SERVICE_UNAVAILABLE));
-            return;
-        }
-
-        if (log.isTraceEnabled()) {
-            log.trace("Evaluate permissions for user: {}", user.getName());
-        }
-
-        if (eval.evaluate(user, action, request)) {
-            auditLog.logAuthenticatedRequest(request, action);
-            if(!dlsFlsValve.invoke(request, listener, threadContext)) {
+            if(Origin.LOCAL.toString().equals((String)threadContext.getTransient("_sg_origin")) 
+                    && HeaderHelper.isDirectRequest(threadContext)) {
+               
+                //TODO SG6 CONFIG OPTION TO DENY THIS
+   
+                //TODO check internal*
+                //"internal:*", 
+                //"indices:monitor/*", 
+                //"cluster:monitor/*", 
+                //"cluster:admin/reroute", 
+                //"indices:admin/mapping/put"), 
+                
+                //~"internal:transport/proxy/*"
+    
+                if(!dlsFlsValve.invoke(request, listener, threadContext)) {
+                    return;
+                }
+                chain.proceed(task, action, request, listener);
                 return;
             }
-            chain.proceed(task, action, request, listener);
-            return;
-        } else {
-            auditLog.logMissingPrivileges(action, request);
-            log.debug("no permissions for {}", action);
-            listener.onFailure(new ElasticsearchSecurityException("no permissions for " + action+" and "+user, RestStatus.FORBIDDEN));
+            
+            if(action.startsWith("internal:gateway/local/started_shards")
+                    || action.startsWith("internal:cluster/nodes/indices/shard/store")
+                    || action.equals("cluster:admin/searchguard/license/info")) {
+                if (log.isTraceEnabled()) {
+                    log.trace("Allow "+action+" always");
+                }
+                chain.proceed(task, action, request, listener);
+                return;
+            }
+            
+            if(User.SG_INTERNAL.equals(user) && HeaderHelper.isTrustedClusterRequest(threadContext)) {
+                if (action.startsWith("cluster:monitor/")) {
+                    if (log.isTraceEnabled()) {
+                        log.trace("No cross cluster search user, will allow only standard discovery and monitoring actions");
+                    }
+                    chain.proceed(task, action, request, listener);
+                    return;
+                }
+            }
+           
+            final PrivilegesEvaluator eval = evalp;
+    
+            if (!eval.isInitialized()) {
+                log.error("Search Guard not initialized (SG11) for {}", action);
+                listener.onFailure(new ElasticsearchSecurityException("Search Guard not initialized (SG11) for " 
+                + action+". See https://github.com/floragunncom/search-guard-docs/blob/master/sgadmin.md", RestStatus.SERVICE_UNAVAILABLE));
+                return;
+            }
+    
+            if (log.isTraceEnabled()) {
+                log.trace("Evaluate permissions for user: {}", user.getName());
+            }
+
+            if (eval.evaluate(user, action, request)) {
+                auditLog.logGrantedPrivileges(action, request);
+                if(!dlsFlsValve.invoke(request, listener, threadContext)) {
+                    return;
+                }
+                chain.proceed(task, action, request, listener);
+                return;
+            } else {
+                auditLog.logMissingPrivileges(action, request);
+                log.debug("no permissions for {}", action);
+                listener.onFailure(new ElasticsearchSecurityException("no permissions for " + action+" and "+user, RestStatus.FORBIDDEN));
+                return;
+            }
+        } catch (Throwable e) {
+            log.debug("Unexpected exception "+e, e);
+            listener.onFailure(new ElasticsearchSecurityException("Unexpected exception", RestStatus.INTERNAL_SERVER_ERROR));
             return;
         }
-        
     }
     
     private static boolean isUserAdmin(User user, final AdminDNs adminDns) {
