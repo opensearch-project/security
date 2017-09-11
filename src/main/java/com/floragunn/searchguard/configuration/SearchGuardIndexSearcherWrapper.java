@@ -65,7 +65,7 @@ public class SearchGuardIndexSearcherWrapper extends IndexSearcherWrapper {
     public final IndexSearcher wrap(final IndexSearcher searcher) throws EngineException {
 
         if (isSearchGuardIndexRequest() && !isAdminAuthenticatedOrInternalRequest()) {
-            return new IndexSearcher(new EmptyReader(searcher.getIndexReader()));
+            return new IndexSearcher(new EmptyReader());
         }
 
         if (!isAdminAuthenticatedOrInternalRequest()) {
@@ -85,11 +85,7 @@ public class SearchGuardIndexSearcherWrapper extends IndexSearcherWrapper {
 
     protected final boolean isAdminAuthenticatedOrInternalRequest() {
 
-        User user = (User) threadContext.getTransient(ConfigConstants.SG_USER);
-        
-        if(user == null) {
-            user = (User) threadContext.getTransient(ConfigConstants.SG_USER+"copy");
-        }
+        final User user = (User) threadContext.getTransient(ConfigConstants.SG_USER);
                 
         if (user != null && adminDns.isAdmin(user.getName())) {
             return true;

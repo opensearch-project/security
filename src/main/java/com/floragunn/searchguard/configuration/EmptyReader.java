@@ -36,11 +36,10 @@ import org.apache.lucene.util.Bits;
 
 class EmptyReader extends LeafReader {
     
-    //private final Object coreCacheKey;
+    private final static Bits liveDocs = new Bits.MatchNoBits(0);
     
-    public EmptyReader(final Object coreCacheKey) {
+    public EmptyReader() {
         super();
-        //this.coreCacheKey = coreCacheKey;
         tryIncRef();
     }
 
@@ -50,37 +49,31 @@ class EmptyReader extends LeafReader {
 
             @Override
             public long longValue() throws IOException {
-                // TODO Auto-generated method stub
                 return 0;
             }
 
             @Override
             public boolean advanceExact(int target) throws IOException {
-                // TODO Auto-generated method stub
                 return false;
             }
 
             @Override
             public int docID() {
-                // TODO Auto-generated method stub
                 return 0;
             }
 
             @Override
             public int nextDoc() throws IOException {
-                // TODO Auto-generated method stub
                 return 0;
             }
 
             @Override
             public int advance(int target) throws IOException {
-                // TODO Auto-generated method stub
                 return 0;
             }
 
             @Override
             public long cost() {
-                // TODO Auto-generated method stub
                 return 0;
             }
         };
@@ -115,8 +108,6 @@ class EmptyReader extends LeafReader {
     public FieldInfos getFieldInfos() {
         return new FieldInfos(new FieldInfo[0]);
     }
-
-    final Bits liveDocs = new Bits.MatchNoBits(0);
 
     @Override
     public Bits getLiveDocs() {
@@ -157,31 +148,26 @@ class EmptyReader extends LeafReader {
 
     @Override
     public CacheHelper getCoreCacheHelper() {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public Terms terms(String field) throws IOException {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public PointValues getPointValues(String field) throws IOException {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public LeafMetaData getMetaData() {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public CacheHelper getReaderCacheHelper() {
-        // TODO Auto-generated method stub
         return null;
     }
 }
