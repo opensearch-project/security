@@ -12,6 +12,12 @@
 # After authentication authorization (authz) will be applied. There can be zero or more authorizers which collect
 # the roles from a given backend for the authenticated user.
 #
+# Both, authc and auth can be enabled/disabled separately for REST and TRANSPORT layer. Default is true for both.
+#        http_enabled: true
+#        transport_enabled: true
+#
+# 5.x Migration: "enabled: true/false" will also be respected currently but only to provide backward compatibility.
+#
 # For HTTP is possible to allow anonymous authentication. If that is allowed then the http authenticators try to
 # find user credentials in the HTTP request and if such where found then the user gets regularly authenticated.
 # If none can be found the user will be authenticated as an "anonymous" user. This user has always the username "sg_anonymous"
@@ -77,7 +83,8 @@ searchguard:
         ###### and https://tomcat.apache.org/tomcat-8.0-doc/config/valve.html#Remote_IP_Valve
     authc:
       kerberos_auth_domain: 
-        enabled: false
+        http_enabled: false
+        transport_enabled: false
         order: 6
         http_authenticator:
           type: kerberos # NOT FREE FOR COMMERCIAL USE
@@ -90,7 +97,8 @@ searchguard:
         authentication_backend:
           type: noop
       basic_internal_auth_domain: 
-        enabled: true
+        http_enabled: true
+        transport_enabled: true
         order: 4
         http_authenticator:
           type: basic
@@ -98,7 +106,8 @@ searchguard:
         authentication_backend:
           type: intern
       proxy_auth_domain:
-        enabled: false
+        http_enabled: false
+        transport_enabled: false
         order: 3
         http_authenticator:
           type: proxy
@@ -108,22 +117,15 @@ searchguard:
             roles_header: "x-proxy-roles"
         authentication_backend:
           type: noop
-      host_auth_domain:
-        enabled: false
-        order: 1
-        http_authenticator:
-          type: host #DEPRECATED, will be removed in a future version
-          challenge: false
-        authentication_backend:
-          type: noop
       jwt_auth_domain:
-        enabled: false
+        http_enabled: false
+        transport_enabled: false
         order: 0
         http_authenticator:
           type: jwt
           challenge: false
           config:
-            signing_key: "base64 encoded key"
+            signing_key: "base64 encoded HMAC key or public RSA/ECDSA pem key"
             jwt_header: "Authorization"
             jwt_url_parameter: null
             roles_key: null
@@ -131,7 +133,8 @@ searchguard:
         authentication_backend:
           type: noop
       clientcert_auth_domain:
-        enabled: false
+        http_enabled: false
+        transport_enabled: false
         order: 2
         http_authenticator:
           type: clientcert
@@ -141,7 +144,8 @@ searchguard:
         authentication_backend:
           type: noop
       ldap:
-        enabled: false
+        http_enabled: false
+        transport_enabled: false
         order: 5
         http_authenticator:
           type: basic
@@ -170,7 +174,8 @@ searchguard:
             username_attribute: null
     authz:    
       roles_from_myldap:
-        enabled: false
+        http_enabled: false
+        transport_enabled: false
         authorization_backend:
           # LDAP authorization backend (gather roles from a LDAP or Active Directory, you have to configure the above LDAP authentication backend settings too)
           type: ldap # NOT FREE FOR COMMERCIAL USE
