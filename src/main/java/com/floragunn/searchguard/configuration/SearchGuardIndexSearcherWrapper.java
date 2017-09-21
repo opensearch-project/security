@@ -22,6 +22,7 @@ import java.io.IOException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.MultiReader;
 import org.apache.lucene.search.IndexSearcher;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
@@ -29,6 +30,7 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.EngineException;
 import org.elasticsearch.index.shard.IndexSearcherWrapper;
+import org.elasticsearch.index.shard.ShardId;
 
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.HeaderHelper;
@@ -65,7 +67,12 @@ public class SearchGuardIndexSearcherWrapper extends IndexSearcherWrapper {
     public final IndexSearcher wrap(final IndexSearcher searcher) throws EngineException {
 
         if (isSearchGuardIndexRequest() && !isAdminAuthenticatedOrInternalRequest()) {
-            return new IndexSearcher(new EmptyReader());
+            try {
+                return new IndexSearcher(new MultiReader());
+            } catch (IOException e) {
+                log.error(e.toString(),e);
+                throw new EngineException(new ShardId(index, 0), e.toString());
+            }
         }
 
         if (!isAdminAuthenticatedOrInternalRequest()) {
