@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -57,6 +58,9 @@ import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
+import org.elasticsearch.action.admin.indices.get.GetIndexRequest.Feature;
+import org.elasticsearch.action.admin.indices.get.GetIndexResponse;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsResponse;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
@@ -517,7 +521,14 @@ public class SearchGuardAdmin {
             System.out.println("Number of nodes: "+chr.getNumberOfNodes());
             System.out.println("Number of data nodes: "+chr.getNumberOfDataNodes());
             
-            final boolean indexExists = tc.admin().indices().exists(new IndicesExistsRequest(index)).actionGet().isExists();
+            GetIndexResponse sgIndex = null;
+            try {
+                sgIndex = tc.admin().indices().getIndex(new GetIndexRequest().indices(index).addFeatures(Feature.MAPPINGS)).actionGet();
+            } catch (IndexNotFoundException e1) {
+                //ignore
+            }
+            final boolean indexExists = sgIndex != null;
+            final boolean legacy = indexExists && sgIndex.getMappings().containsKey("config");
             
             final NodesInfoResponse nodesInfo = tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet();
 
@@ -583,11 +594,11 @@ public class SearchGuardAdmin {
             if(retrieve) {
                 String date = DATE_FORMAT.format(new Date());
                 
-                boolean success = retrieveFile(tc, cd+"sg_config_"+date+".yml", index, "config");
-                success = success & retrieveFile(tc, cd+"sg_roles_"+date+".yml", index, "roles");
-                success = success & retrieveFile(tc, cd+"sg_roles_mapping_"+date+".yml", index, "rolesmapping");
-                success = success & retrieveFile(tc, cd+"sg_internal_users_"+date+".yml", index, "internalusers");
-                success = success & retrieveFile(tc, cd+"sg_action_groups_"+date+".yml", index, "actiongroups");
+                boolean success = retrieveFile(tc, cd+"sg_config_"+date+".yml", index, "config", legacy);
+                success = success & retrieveFile(tc, cd+"sg_roles_"+date+".yml", index, "roles", legacy);
+                success = success & retrieveFile(tc, cd+"sg_roles_mapping_"+date+".yml", index, "rolesmapping", legacy);
+                success = success & retrieveFile(tc, cd+"sg_internal_users_"+date+".yml", index, "internalusers", legacy);
+                success = success & retrieveFile(tc, cd+"sg_action_groups_"+date+".yml", index, "actiongroups", legacy);
                 System.exit(success?0:-1);
             }
             
@@ -606,7 +617,7 @@ public class SearchGuardAdmin {
                     System.exit(-1);
                 }
                 
-                boolean success = uploadFile(tc, file, index, type);
+                boolean success = uploadFile(tc, file, index, type, legacy);
                 ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{type})).actionGet();
                 
                 success = success & checkConfigUpdateResponse(cur, nodesInfo, 1);
@@ -615,11 +626,11 @@ public class SearchGuardAdmin {
                 System.exit(success?0:-1);
             }
 
-            boolean success = uploadFile(tc, cd+"sg_config.yml", index, "config");
-            success = success & uploadFile(tc, cd+"sg_roles.yml", index, "roles");
-            success = success & uploadFile(tc, cd+"sg_roles_mapping.yml", index, "rolesmapping");
-            success = success & uploadFile(tc, cd+"sg_internal_users.yml", index, "internalusers");
-            success = success & uploadFile(tc, cd+"sg_action_groups.yml", index, "actiongroups");
+            boolean success = uploadFile(tc, cd+"sg_config.yml", index, "config", legacy);
+            success = success & uploadFile(tc, cd+"sg_roles.yml", index, "roles", legacy);
+            success = success & uploadFile(tc, cd+"sg_roles_mapping.yml", index, "rolesmapping", legacy);
+            success = success & uploadFile(tc, cd+"sg_internal_users.yml", index, "internalusers", legacy);
+            success = success & uploadFile(tc, cd+"sg_action_groups.yml", index, "actiongroups", legacy);
             
             if(failFast && !success) {
                 System.out.println("ERR: cannot upload configuration, see errors above");
@@ -668,8 +679,18 @@ public class SearchGuardAdmin {
         return success;
     }
     
-    private static boolean uploadFile(Client tc, String filepath, String index, String id) {
+    private static boolean uploadFile(Client tc, String filepath, String index, String _id, boolean legacy) {
+        
+        String type = "sg";
+        String id = _id;
+                
+        if(legacy) {
+            type = _id;
+            id = "0";
+        }
+        
         System.out.println("Will update '" + id + "' with " + filepath);
+        
         try (Reader reader = new FileReader(filepath)) {
 
             final String res = tc
@@ -690,7 +711,16 @@ public class SearchGuardAdmin {
         return false;
     }
     
-    private static boolean retrieveFile(Client tc, String filepath, String index, String id) {
+    private static boolean retrieveFile(Client tc, String filepath, String index, String _id, boolean legacy) {
+        
+        String type = "sg";
+        String id = _id;
+                
+        if(legacy) {
+            type = _id;
+            id = "0";
+        }
+        
         System.out.println("Will retrieve '"+id+"' into "+filepath);
         try (Writer writer = new FileWriter(filepath)) {
 
