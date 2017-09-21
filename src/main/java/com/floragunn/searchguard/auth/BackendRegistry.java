@@ -182,17 +182,22 @@ public class BackendRegistry implements ConfigurationChangeListener {
         
         for (final String ad : authzDyn.keySet()) {
             final Settings ads = authzDyn.get(ad);
-            if (ads.getAsBoolean("enabled", true)) {
+            final boolean enabled = ads.getAsBoolean("enabled", true);
+            final boolean httpEnabled = enabled && ads.getAsBoolean("http_enabled", true);
+            final boolean transportEnabled = enabled && ads.getAsBoolean("transport_enabled", true);
+            
+            
+            if (httpEnabled || transportEnabled) {
                 try {
                     final AuthorizationBackend authorizationBackend = newInstance(
                             ads.get("authorization_backend.type", "noop"),"z",
                             Settings.builder().put(esSettings).put(ads.getAsSettings("authorization_backend.config")).build(), configPath);
                     
-                    if (ads.getAsBoolean("http_enabled", true)) {
+                    if (httpEnabled) {
                         restAuthorizers.add(authorizationBackend);
                     }
                     
-                    if (ads.getAsBoolean("transport_enabled", true)) {
+                    if (transportEnabled) {
                         transportAuthorizers.add(authorizationBackend);
                     }
                 } catch (final Exception e) {
@@ -205,7 +210,11 @@ public class BackendRegistry implements ConfigurationChangeListener {
 
         for (final String ad : dyn.keySet()) {
             final Settings ads = dyn.get(ad);
-            if (ads.getAsBoolean("enabled", true)) {
+            final boolean enabled = ads.getAsBoolean("enabled", true);
+            final boolean httpEnabled = enabled && ads.getAsBoolean("http_enabled", true);
+            final boolean transportEnabled = enabled && ads.getAsBoolean("transport_enabled", true);
+            
+            if (httpEnabled || transportEnabled) {
                 try {
                     AuthenticationBackend authenticationBackend;
                     String authBackendClazz = ads.get("authentication_backend.type", InternalAuthenticationBackend.class.getName());
@@ -226,11 +235,11 @@ public class BackendRegistry implements ConfigurationChangeListener {
                     final AuthDomain _ad = new AuthDomain(authenticationBackend, httpAuthenticator,
                             ads.getAsBoolean("http_authenticator.challenge", true), ads.getAsInt("order", 0));
                     
-                    if (ads.getAsBoolean("http_enabled", true) && _ad.getHttpAuthenticator() != null) {
+                    if (httpEnabled && _ad.getHttpAuthenticator() != null) {
                         restAuthDomains.add(_ad);
                     }
                     
-                    if (ads.getAsBoolean("transport_enabled", true)) {
+                    if (transportEnabled) {
                         transportAuthDomains.add(_ad);
                     }
                 } catch (final Exception e) {
