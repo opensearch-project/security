@@ -39,6 +39,7 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.SpecialPermission;
 import org.elasticsearch.action.ActionRequest;
@@ -77,6 +78,7 @@ import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestHandler;
 import org.elasticsearch.script.ScriptService;
+import org.elasticsearch.search.internal.ScrollContext;
 import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -121,6 +123,7 @@ import com.floragunn.searchguard.support.ReflectionHelper;
 import com.floragunn.searchguard.transport.DefaultInterClusterRequestEvaluator;
 import com.floragunn.searchguard.transport.InterClusterRequestEvaluator;
 import com.floragunn.searchguard.transport.SearchGuardInterceptor;
+import com.floragunn.searchguard.user.User;
 import com.google.common.collect.Lists;
 
 public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
@@ -278,7 +281,6 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
             MessageDigest digester = MessageDigest.getInstance("SHA256");
             final String hash = org.bouncycastle.util.encoders.Hex.toHexString(digester.digest(Files.readAllBytes(p)));
             log.debug(hash +" :: "+p);
-            System.out.println(hash +" :: "+p);
             return hash;
         } catch (Exception e) {
             throw new ElasticsearchSecurityException("Unable to digest file", e);
@@ -359,21 +361,39 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
             }
         
             //TODO SG6 check SearchOperationListener for read/scroll 
-            /*indexModule.addSearchOperationListener(new SearchOperationListener() {
+            indexModule.addSearchOperationListener(new SearchOperationListener() {
 
                 @Override
                 public void onNewScrollContext(SearchContext context) {
-                    // TODO Auto-generated method stub
+                    
+                    final ScrollContext scrollContext = context.scrollContext();
+                    
+                    if(scrollContext != null) {
+                        scrollContext.putInContext("_sg_scroll_auth", threadPool.getThreadContext()
+                                .getTransient(ConfigConstants.SG_USER));
+                    }
                 }
 
                 @Override
-                public void onFreeScrollContext(SearchContext context) {
-                    // TODO Auto-generated method stub
+                public void validateSearchContext(SearchContext context, TransportRequest transportRequest) {
+                    
+                    final ScrollContext scrollContext = context.scrollContext();
+                    if(scrollContext != null) {
+                        final Object _user = scrollContext.getFromContext("_sg_scroll_auth");
+                        if(_user != null && (_user instanceof User)) {
+                            final User scrollUser = (User) _user;
+                            final User currentUser = threadPool.getThreadContext()
+                                    .getTransient(ConfigConstants.SG_USER);
+                            if(!scrollUser.equals(currentUser)) {
+                                log.error("Wrong user {} in scroll context, expected {}", scrollUser, currentUser);
+                                throw new ElasticsearchException("Wrong user in scroll context");
+                            }
+                        } else {
+                            throw new ElasticsearchException("No user in scroll context");
+                        }
+                    }
                 }
-                
-                
-                
-            });*/
+            });
         }
     }
     
