@@ -109,9 +109,13 @@ public class PrivilegesEvaluator {
     private final boolean enableSnapshotRestorePrivilege;
     private final boolean checkSnapshotRestoreWritePrivileges;
     private final boolean passBackendRoles;
+    
+    private final ClusterInfoHolder clusterInfoHolder;
+    private final boolean typeSecurityDisabled;
 
     public PrivilegesEvaluator(final ClusterService clusterService, final ThreadPool threadPool, final ConfigurationRepository configurationRepository, final ActionGroupHolder ah,
-            final IndexNameExpressionResolver resolver, AuditLog auditLog, final Settings settings, final PrivilegesInterceptor privilegesInterceptor) {
+            final IndexNameExpressionResolver resolver, AuditLog auditLog, final Settings settings, final PrivilegesInterceptor privilegesInterceptor,
+            final ClusterInfoHolder clusterInfoHolder) {
 
         super();
         this.configurationRepository = configurationRepository;
@@ -138,6 +142,8 @@ public class PrivilegesEvaluator {
         //deniedActionPatternsList.add("indices:admin/upgrade");
         
         sgDeniedActionPatterns = sgIndexdeniedActionPatternsList.toArray(new String[0]);
+        this.clusterInfoHolder = clusterInfoHolder;
+        this.typeSecurityDisabled = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_DISABLE_TYPE_SECURITY, false);
         
     }
     
@@ -1255,60 +1261,65 @@ public class PrivilegesEvaluator {
         if (log.isDebugEnabled()) {
             log.debug("Resolve {} from {}", request.indices(), request.getClass());
         }
+        
+        final Boolean has5xIndices = clusterInfoHolder.getHas5xIndices();
+        final boolean fiveXIndicesPresent = has5xIndices == null || has5xIndices == Boolean.TRUE;
 
         final Class<? extends IndicesRequest> requestClass = request.getClass();
         final Set<String> requestTypes = new HashSet<String>();
         
-        Method typeMethod = null;
-        if(typeCache.containsKey(requestClass)) {
-            typeMethod = typeCache.get(requestClass);
-        } else {
-            try {
-                typeMethod = requestClass.getMethod("type");
-                typeCache.put(requestClass, typeMethod);
-            } catch (NoSuchMethodException e) {
-                typeCache.put(requestClass, null);
-            } catch (SecurityException e) {
-                log.error("Cannot evaluate type() for {} due to {}", requestClass, e);
-            }
-            
-        }
-        
-        Method typesMethod = null;
-        if(typesCache.containsKey(requestClass)) {
-            typesMethod = typesCache.get(requestClass);
-        } else {
-            try {
-                typesMethod = requestClass.getMethod("types");
-                typesCache.put(requestClass, typesMethod);
-            } catch (NoSuchMethodException e) {
-                typesCache.put(requestClass, null);
-            } catch (SecurityException e) {
-                log.error("Cannot evaluate types() for {} due to {}", requestClass, e);
-            }
-            
-        }
-        
-        if(typeMethod != null) {
-            try {
-                String type = (String) typeMethod.invoke(request);
-                if(type != null) {
-                    requestTypes.add(type);
+        if(fiveXIndicesPresent && !typeSecurityDisabled) {
+            Method typeMethod = null;
+            if(typeCache.containsKey(requestClass)) {
+                typeMethod = typeCache.get(requestClass);
+            } else {
+                try {
+                    typeMethod = requestClass.getMethod("type");
+                    typeCache.put(requestClass, typeMethod);
+                } catch (NoSuchMethodException e) {
+                    typeCache.put(requestClass, null);
+                } catch (SecurityException e) {
+                    log.error("Cannot evaluate type() for {} due to {}", requestClass, e);
                 }
-            } catch (Exception e) {
-                log.error("Unable to invoke type() for {} due to {}", e, requestClass, e);
-            }
-        }
-        
-        if(typesMethod != null) {
-            try {
-                final String[] types = (String[]) typesMethod.invoke(request);
                 
-                if(types != null) {
-                    requestTypes.addAll(Arrays.asList(types));
+            }
+            
+            Method typesMethod = null;
+            if(typesCache.containsKey(requestClass)) {
+                typesMethod = typesCache.get(requestClass);
+            } else {
+                try {
+                    typesMethod = requestClass.getMethod("types");
+                    typesCache.put(requestClass, typesMethod);
+                } catch (NoSuchMethodException e) {
+                    typesCache.put(requestClass, null);
+                } catch (SecurityException e) {
+                    log.error("Cannot evaluate types() for {} due to {}", requestClass, e);
                 }
-            } catch (Exception e) {
-                log.error("Unable to invoke types() for {} due to {}", e, requestClass, e);
+                
+            }
+            
+            if(typeMethod != null) {
+                try {
+                    String type = (String) typeMethod.invoke(request);
+                    if(type != null) {
+                        requestTypes.add(type);
+                    }
+                } catch (Exception e) {
+                    log.error("Unable to invoke type() for {} due to {}", e, requestClass, e);
+                }
+            }
+            
+            if(typesMethod != null) {
+                try {
+                    final String[] types = (String[]) typesMethod.invoke(request);
+                    
+                    if(types != null) {
+                        requestTypes.addAll(Arrays.asList(types));
+                    }
+                } catch (Exception e) {
+                    log.error("Unable to invoke types() for {} due to {}", e, requestClass, e);
+                }
             }
         }
 

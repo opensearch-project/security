@@ -102,6 +102,7 @@ import com.floragunn.searchguard.auth.BackendRegistry;
 import com.floragunn.searchguard.auth.internal.InternalAuthenticationBackend;
 import com.floragunn.searchguard.configuration.ActionGroupHolder;
 import com.floragunn.searchguard.configuration.AdminDNs;
+import com.floragunn.searchguard.configuration.ClusterInfoHolder;
 import com.floragunn.searchguard.configuration.DlsFlsRequestValve;
 import com.floragunn.searchguard.configuration.IndexBaseConfigurationRepository;
 import com.floragunn.searchguard.configuration.PrivilegesEvaluator;
@@ -497,6 +498,9 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
             return components;
         }
         
+        final ClusterInfoHolder cih = new ClusterInfoHolder();
+        this.cs.addListener(cih);
+        
         DlsFlsRequestValve dlsFlsValve = ReflectionHelper.instantiateDlsFlsValve();
         
         final IndexNameExpressionResolver resolver = new IndexNameExpressionResolver(settings);
@@ -524,7 +528,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         final BackendRegistry backendRegistry = new BackendRegistry(settings, configPath, adminDns, xffResolver, iab, auditLog, threadPool);
         cr.subscribeOnChange(ConfigConstants.CONFIGNAME_CONFIG, backendRegistry);
         final ActionGroupHolder ah = new ActionGroupHolder(cr);      
-        evaluator = new PrivilegesEvaluator(clusterService, threadPool, cr, ah, resolver, auditLog, settings, privilegesInterceptor);    
+        evaluator = new PrivilegesEvaluator(clusterService, threadPool, cr, ah, resolver, auditLog, settings, privilegesInterceptor, cih);    
         final SearchGuardFilter sgf = new SearchGuardFilter(settings, evaluator, adminDns, dlsFlsValve, auditLog, threadPool);     
         
         
@@ -628,9 +632,13 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         settings.add(Setting.groupSetting(ConfigConstants.SEARCHGUARD_AUTHCZ_REST_IMPERSONATION_USERS+".", Property.NodeScope)); //not filtered here
         settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_PASS_BACKENDROLES, false, Property.NodeScope, Property.Filtered));
 
-        //TODO remove searchguard.tribe.clustername?
-        settings.add(Setting.simpleString("searchguard.tribe.clustername", Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_PASS_BACKENDROLES, false, Property.NodeScope, Property.Filtered));
 
+        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_DISABLE_TYPE_SECURITY, false, Property.NodeScope, Property.Filtered));
+
+        //TODO remove searchguard.tribe.clustername?
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_TRIBE_CLUSTERNAME, Property.NodeScope, Property.Filtered));
+        
         return settings;
     }
     

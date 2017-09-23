@@ -133,5 +133,7 @@ public class ConfigConstants {
     public static final String SEARCHGUARD_ALLOW_DEFAULT_INIT_SGINDEX = "searchguard.allow_default_init_sgindex";
 
     public static final String SEARCHGUARD_PASS_BACKENDROLES = "searchguard.pass_backendroles";
+    public static final String SEARCHGUARD_TRIBE_CLUSTERNAME = "searchguard.tribe.clustername";
+    public static final String SEARCHGUARD_DISABLE_TYPE_SECURITY = "searchguard.disable_type_security";
 
 }
