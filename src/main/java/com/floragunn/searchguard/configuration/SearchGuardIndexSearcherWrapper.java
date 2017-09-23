@@ -43,7 +43,16 @@ public class SearchGuardIndexSearcherWrapper extends IndexSearcherWrapper {
     protected final Index index;
     protected final String searchguardIndex;
     private final AdminDNs adminDns;
+    private static IndexSearcher EMPTY_SEARCHER;
 
+    //TODO SG6 check if we could can do this static
+    static {
+        try {
+            EMPTY_SEARCHER = new IndexSearcher(new MultiReader());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 	
     //constructor is called per index, so avoid costly operations here
 	public SearchGuardIndexSearcherWrapper(final IndexService indexService, final Settings settings, final AdminDNs adminDNs) {
@@ -67,12 +76,11 @@ public class SearchGuardIndexSearcherWrapper extends IndexSearcherWrapper {
     public final IndexSearcher wrap(final IndexSearcher searcher) throws EngineException {
 
         if (isSearchGuardIndexRequest() && !isAdminAuthenticatedOrInternalRequest()) {
-            try {
-                return new IndexSearcher(new MultiReader());
-            } catch (IOException e) {
-                log.error(e.toString(),e);
-                throw new EngineException(new ShardId(index, 0), e.toString());
+            if(EMPTY_SEARCHER == null) {
+                log.error("no empty searcher");
+                throw new EngineException(new ShardId(index, 0), "no empty searcher");
             }
+            return EMPTY_SEARCHER;
         }
 
         if (!isAdminAuthenticatedOrInternalRequest()) {
