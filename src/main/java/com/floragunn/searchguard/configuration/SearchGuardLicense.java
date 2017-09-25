@@ -228,7 +228,7 @@ public final class SearchGuardLicense implements Writeable {
         }
     }
     
-    private enum Type {
+    public enum Type {
         FULL,
         SME,
         ACADEMIC,

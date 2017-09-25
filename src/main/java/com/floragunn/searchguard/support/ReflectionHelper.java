@@ -46,6 +46,7 @@ import com.floragunn.searchguard.auditlog.NullAuditLog;
 import com.floragunn.searchguard.configuration.AdminDNs;
 import com.floragunn.searchguard.configuration.DlsFlsRequestValve;
 import com.floragunn.searchguard.configuration.IndexBaseConfigurationRepository;
+import com.floragunn.searchguard.configuration.PrivilegesEvaluator;
 import com.floragunn.searchguard.configuration.PrivilegesInterceptor;
 import com.floragunn.searchguard.ssl.transport.DefaultPrincipalExtractor;
 import com.floragunn.searchguard.ssl.transport.PrincipalExtractor;
@@ -86,7 +87,7 @@ public class ReflectionHelper {
     @SuppressWarnings("unchecked")
     public static Collection<RestHandler> instantiateMngtRestApiHandler(final Settings settings, final Path configPath, final RestController restController,
             final Client localClient, final AdminDNs adminDns, final IndexBaseConfigurationRepository cr, final ClusterService cs,
-            final PrincipalExtractor principalExtractor) {
+            final PrincipalExtractor principalExtractor, final PrivilegesEvaluator evaluator, ThreadPool threadPool) {
 
         if (enterpriseModulesDisabled()) {
             return Collections.emptyList();
@@ -96,7 +97,7 @@ public class ReflectionHelper {
             final Class<?> clazz = Class.forName("com.floragunn.searchguard.dlic.rest.api.SearchGuardRestApiActions");
             final Collection<RestHandler> ret = (Collection<RestHandler>) clazz.getDeclaredMethod("getHandler", Settings.class,
                     Path.class, RestController.class, Client.class, AdminDNs.class, IndexBaseConfigurationRepository.class, ClusterService.class,
-                    PrincipalExtractor.class).invoke(null, settings, configPath, restController, localClient, adminDns, cr, cs, principalExtractor);
+                    PrincipalExtractor.class, PrivilegesEvaluator.class, ThreadPool.class).invoke(null, settings, configPath, restController, localClient, adminDns, cr, cs, principalExtractor, evaluator,  threadPool);
             modulesLoaded.put("rest-mngt-api", getModuleInfo(clazz));
             return ret;
         } catch (final Throwable e) {

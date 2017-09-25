@@ -17,10 +17,7 @@
 
 package com.floragunn.searchguard.configuration;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
@@ -37,16 +34,6 @@ import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.bouncycastle.bcpg.ArmoredInputStream;
-import org.bouncycastle.openpgp.PGPException;
-import org.bouncycastle.openpgp.PGPObjectFactory;
-import org.bouncycastle.openpgp.PGPPublicKey;
-import org.bouncycastle.openpgp.PGPPublicKeyRingCollection;
-import org.bouncycastle.openpgp.PGPSignature;
-import org.bouncycastle.openpgp.PGPSignatureList;
-import org.bouncycastle.openpgp.operator.KeyFingerPrintCalculator;
-import org.bouncycastle.openpgp.operator.bc.BcKeyFingerprintCalculator;
-import org.bouncycastle.openpgp.operator.bc.BcPGPContentVerifierBuilderProvider;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
@@ -78,7 +65,6 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.io.BaseEncoding;
 
 public class IndexBaseConfigurationRepository implements ConfigurationRepository {
     private static final Logger LOGGER = LogManager.getLogger(IndexBaseConfigurationRepository.class);
@@ -469,12 +455,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
             return createOrGetTrial(null);
         } else {
             try {
-                licenseText = licenseText.trim().replaceAll("\\r|\\n", "");
-                licenseText = licenseText.replace("---- SCHNIPP (Armored PGP signed JSON as base64) ----","");
-                licenseText = licenseText.replace("---- SCHNAPP ----","");
-
                 licenseText = LicenseHelper.validateLicense(licenseText);
-                
                 return new SearchGuardLicense(XContentHelper.convertToMap(XContentType.JSON.xContent(), licenseText, true), clusterService);
             } catch (Exception e) {
                 LOGGER.error("Unable to verify license", e);

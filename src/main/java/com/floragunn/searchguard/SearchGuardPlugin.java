@@ -304,7 +304,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
             handlers.add(new SearchGuardLicenseAction(settings, restController));
 
             Collection<RestHandler> apiHandler = ReflectionHelper
-                    .instantiateMngtRestApiHandler(settings, configPath, restController, localClient, adminDns, cr, cs, Objects.requireNonNull(principalExtractor));
+                    .instantiateMngtRestApiHandler(settings, configPath, restController, localClient, adminDns, cr, cs, Objects.requireNonNull(principalExtractor),  evaluator, threadPool);
             handlers.addAll(apiHandler);
             log.debug("Added {} management rest handler(s)", apiHandler.size());
         }
@@ -638,6 +638,10 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         //TODO remove searchguard.tribe.clustername?
         settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_TRIBE_CLUSTERNAME, Property.NodeScope, Property.Filtered));
         
+        // SG6 - REST API
+        settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_RESTAPI_ROLES_ENABLED, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
+        settings.add(Setting.groupSetting(ConfigConstants.SEARCHGUARD_RESTAPI_ENDPOINTS_DISABLED, Property.NodeScope));
+
         return settings;
     }
     

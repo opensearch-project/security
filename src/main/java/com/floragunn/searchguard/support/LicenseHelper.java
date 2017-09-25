@@ -58,8 +58,12 @@ import com.google.common.io.BaseEncoding;
 
 public class LicenseHelper {
 
-    public static String validateLicense(final String licenseText) throws PGPException {
-
+    public static String validateLicense(String licenseText) throws PGPException {
+        
+    	licenseText = licenseText.trim().replaceAll("\\r|\\n", "");
+        licenseText = licenseText.replace("---- SCHNIPP (Armored PGP signed JSON as base64) ----","");
+        licenseText = licenseText.replace("---- SCHNAPP ----","");
+        
         try {
             final byte[] armoredPgp = BaseEncoding.base64().decode(licenseText);
 
