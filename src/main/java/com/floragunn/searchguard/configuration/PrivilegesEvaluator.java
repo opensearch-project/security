@@ -45,9 +45,11 @@ import org.elasticsearch.action.admin.indices.alias.IndicesAliasesAction;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.bulk.BulkAction;
 import org.elasticsearch.action.bulk.BulkRequest;
+import org.elasticsearch.action.delete.DeleteAction;
 import org.elasticsearch.action.get.MultiGetAction;
 import org.elasticsearch.action.get.MultiGetRequest;
 import org.elasticsearch.action.get.MultiGetRequest.Item;
+import org.elasticsearch.action.index.IndexAction;
 import org.elasticsearch.action.search.MultiSearchAction;
 import org.elasticsearch.action.search.MultiSearchRequest;
 import org.elasticsearch.action.search.SearchRequest;
@@ -55,6 +57,7 @@ import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.termvectors.MultiTermVectorsAction;
 import org.elasticsearch.action.termvectors.MultiTermVectorsRequest;
 import org.elasticsearch.action.termvectors.TermVectorsRequest;
+import org.elasticsearch.action.update.UpdateAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -296,14 +299,7 @@ public class PrivilegesEvaluator {
                 return false;
             }
         }
-        
-        //TODO SG6 skip indices:data/write/bulk[s] bulk shard requests
-        if(action.equals("indices:data/write/bulk[s]")) {
-            return true;
-        }
-        
-        assert !action.contains("["): "no '[' requests allowed like "+action;
-        
+
         if(action.startsWith("internal:indices/admin/upgrade")) {
             action = "indices:admin/upgrade";
         }
@@ -390,8 +386,8 @@ public class PrivilegesEvaluator {
 
         final Map<String, Set<IndexType>> leftovers = new HashMap<String, Set<IndexType>>();
         
-        //TODO SG6 check bulk requests
-        /*final Set<String> additionalPermissionsRequired = new HashSet<>();
+        //--- check inner bulk requests
+        final Set<String> additionalPermissionsRequired = new HashSet<>();
         
         if(request instanceof BulkRequest) {
             
@@ -409,7 +405,9 @@ public class PrivilegesEvaluator {
         
         if(log.isDebugEnabled()) {
             log.debug("Additional permissions required: "+additionalPermissionsRequired);
-        }*/
+        }
+        //TODO SG6 check additionalPermissionsRequired, not done yet
+        
 
         for (final Iterator<String> iterator = sgRoles.iterator(); iterator.hasNext();) {
             final String sgRole = (String) iterator.next();
