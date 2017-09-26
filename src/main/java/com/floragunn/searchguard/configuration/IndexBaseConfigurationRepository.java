@@ -120,20 +120,24 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                                     final String cd = lookupDir != null? (lookupDir+"/") : new Environment(settings, configPath).pluginsFile().toAbsolutePath().toString()+"/search-guard-6/sgconfig/";                                        
                                     File confFile = new File(cd+"sg_config.yml");
                                     if(confFile.exists()) {
-                                        LOGGER.info("Will create {} index so we can apply default config", searchguardIndex);
-                                        boolean ok = client.admin().indices().create(new CreateIndexRequest(searchguardIndex)
-                                        .settings(
-                                                "index.number_of_shards", 1, 
-                                                "index.auto_expand_replicas", "0-all"
-                                                ))
-                                                .actionGet().isAcknowledged();
-                                        if(ok) {
-                                            ConfigHelper.uploadFile(client, cd+"sg_config.yml", searchguardIndex, "config");
-                                            ConfigHelper.uploadFile(client, cd+"sg_roles.yml", searchguardIndex, "roles");
-                                            ConfigHelper.uploadFile(client, cd+"sg_roles_mapping.yml", searchguardIndex, "rolesmapping");
-                                            ConfigHelper.uploadFile(client, cd+"sg_internal_users.yml", searchguardIndex, "internalusers");
-                                            ConfigHelper.uploadFile(client, cd+"sg_action_groups.yml", searchguardIndex, "actiongroups");
-                                            LOGGER.info("Default config applied");
+                                        final ThreadContext threadContext = threadPool.getThreadContext();
+                                        try(StoredContext ctx = threadContext.stashContext()) {
+                                            threadContext.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true");
+                                            LOGGER.info("Will create {} index so we can apply default config", searchguardIndex);
+                                            boolean ok = client.admin().indices().create(new CreateIndexRequest(searchguardIndex)
+                                            .settings(
+                                                    "index.number_of_shards", 1, 
+                                                    "index.auto_expand_replicas", "0-all"
+                                                    ))
+                                                    .actionGet().isAcknowledged();
+                                            if(ok) {
+                                                ConfigHelper.uploadFile(client, cd+"sg_config.yml", searchguardIndex, "config");
+                                                ConfigHelper.uploadFile(client, cd+"sg_roles.yml", searchguardIndex, "roles");
+                                                ConfigHelper.uploadFile(client, cd+"sg_roles_mapping.yml", searchguardIndex, "rolesmapping");
+                                                ConfigHelper.uploadFile(client, cd+"sg_internal_users.yml", searchguardIndex, "internalusers");
+                                                ConfigHelper.uploadFile(client, cd+"sg_action_groups.yml", searchguardIndex, "actiongroups");
+                                                LOGGER.info("Default config applied");
+                                            }
                                         }
                                     } else {
                                         LOGGER.error("{} does not exist", confFile.getAbsolutePath());

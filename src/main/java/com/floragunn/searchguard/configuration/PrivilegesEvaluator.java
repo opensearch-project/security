@@ -1262,13 +1262,16 @@ public class PrivilegesEvaluator {
             log.debug("Resolve {} from {}", request.indices(), request.getClass());
         }
         
-        final Boolean has5xIndices = clusterInfoHolder.getHas5xIndices();
-        final boolean fiveXIndicesPresent = has5xIndices == null || has5xIndices == Boolean.TRUE;
+        
+        //TODO SG6 disable type security
+        //final Boolean has5xIndices = clusterInfoHolder.getHas5xIndices();
+        //final boolean fiveXIndicesPresent = has5xIndices == null || has5xIndices == Boolean.TRUE;
 
         final Class<? extends IndicesRequest> requestClass = request.getClass();
         final Set<String> requestTypes = new HashSet<String>();
         
-        if(fiveXIndicesPresent && !typeSecurityDisabled) {
+        //if(fiveXIndicesPresent && !typeSecurityDisabled) {
+        if(true) {
             Method typeMethod = null;
             if(typeCache.containsKey(requestClass)) {
                 typeMethod = typeCache.get(requestClass);

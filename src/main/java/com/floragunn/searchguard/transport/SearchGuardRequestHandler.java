@@ -91,19 +91,17 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
             
             //bypass non-netty requests
             if(transportChannel.getChannelType().equals("local") || transportChannel.getChannelType().equals("direct")) {
-                String userHeader = getThreadContext().getHeader(ConfigConstants.SG_USER_HEADER);
+                final String userHeader = getThreadContext().getHeader(ConfigConstants.SG_USER_HEADER);
                 
                 if(!Strings.isNullOrEmpty(userHeader)) {
                     getThreadContext().putTransient(ConfigConstants.SG_USER, Objects.requireNonNull((User) Base64Helper.deserializeObject(userHeader)));  
                 }
                 
-                /*String originalRemoteAddress = getThreadContext().getHeader(ConfigConstants.SG_REMOTE_ADDRESS_HEADER);
+                final String originalRemoteAddress = getThreadContext().getHeader(ConfigConstants.SG_REMOTE_ADDRESS_HEADER);          
                 
                 if(!Strings.isNullOrEmpty(originalRemoteAddress)) {
                     getThreadContext().putTransient(ConfigConstants.SG_REMOTE_ADDRESS, new TransportAddress((InetSocketAddress) Base64Helper.deserializeObject(originalRemoteAddress)));
-                } else {
-                    //getThreadContext().putTransient(ConfigConstants.SG_REMOTE_ADDRESS, (TransportAddress)request.remoteAddress());
-                }*/
+                }
                 
                 super.messageReceivedDecorate(request, handler, transportChannel, task);
                 return;
@@ -142,11 +140,11 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
                 if(HeaderHelper.isInterClusterRequest(getThreadContext()) 
                         || HeaderHelper.isTrustedClusterRequest(getThreadContext())) {
                     
-                    String userHeader = getThreadContext().getHeader(ConfigConstants.SG_USER_HEADER);
+                    final String userHeader = getThreadContext().getHeader(ConfigConstants.SG_USER_HEADER);
                     
                     if(Strings.isNullOrEmpty(userHeader)) {
                         //user can be null when a node client wants connect
-                        getThreadContext().putTransient(ConfigConstants.SG_USER, User.SG_INTERNAL);               
+                        //getThreadContext().putTransient(ConfigConstants.SG_USER, User.SG_INTERNAL);               
                     } else {
                         getThreadContext().putTransient(ConfigConstants.SG_USER, Objects.requireNonNull((User) Base64Helper.deserializeObject(userHeader)));
                     }

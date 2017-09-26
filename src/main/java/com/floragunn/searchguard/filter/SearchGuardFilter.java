@@ -77,13 +77,20 @@ public class SearchGuardFilter implements ActionFilter {
             final User user = threadContext.getTransient(ConfigConstants.SG_USER);
             final boolean userIsAdmin = isUserAdmin(user, adminDns);
             final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadContext);
+            //final boolean trustedClusterRequest = HeaderHelper.isTrustedClusterRequest(threadContext);
             final boolean conRequest = "true".equals(HeaderHelper.getSafeFromHeader(threadContext, ConfigConstants.SG_CONF_REQUEST_HEADER));
+            
+            final boolean internalRequest = 
+                    interClusterRequest 
+                    && action.startsWith("internal:") 
+                    && !action.startsWith("internal:transport/proxy");
+            
+            if(userIsAdmin 
+                    || conRequest 
+                    || internalRequest 
+                    || action.equals("cluster:admin/searchguard/license/info")){
     
-            if(userIsAdmin
-                    || interClusterRequest
-                    || conRequest){
-    
-                if(userIsAdmin && !interClusterRequest && !conRequest) {
+                if(userIsAdmin && !conRequest && !internalRequest) {
                     auditLog.logGrantedPrivileges(action, request);
                 }
     
@@ -94,15 +101,15 @@ public class SearchGuardFilter implements ActionFilter {
                 return;
             }
 
+
             if(Origin.LOCAL.toString().equals((String)threadContext.getTransient("_sg_origin")) 
-                    && HeaderHelper.isDirectRequest(threadContext)) {
+                    && HeaderHelper.isDirectRequest(threadContext)
+                    && request.remoteAddress() == null
+                    && !action.contains("[")) {
                
                 //TODO SG6 CONFIG OPTION TO DENY THIS
    
-                //TODO check internal*
-                //"internal:*", 
                 //"indices:monitor/*", 
-                //"cluster:monitor/*", 
                 //"cluster:admin/reroute", 
                 //"indices:admin/mapping/put"), 
                 
@@ -115,24 +122,19 @@ public class SearchGuardFilter implements ActionFilter {
                 return;
             }
             
-            if(action.startsWith("internal:gateway/local/started_shards")
-                    || action.startsWith("internal:cluster/nodes/indices/shard/store")
-                    || action.equals("cluster:admin/searchguard/license/info")) {
-                if (log.isTraceEnabled()) {
-                    log.trace("Allow "+action+" always");
-                }
-                chain.proceed(task, action, request, listener);
-                return;
-            }
-            
-            if(User.SG_INTERNAL.equals(user) && HeaderHelper.isTrustedClusterRequest(threadContext)) {
-                if (action.startsWith("cluster:monitor/")) {
-                    if (log.isTraceEnabled()) {
-                        log.trace("No cross cluster search user, will allow only standard discovery and monitoring actions");
+            if(user == null) {
+                
+                if(action.startsWith("cluster:monitor/")) {
+                    if(!dlsFlsValve.invoke(request, listener, threadContext)) {
+                        return;
                     }
                     chain.proceed(task, action, request, listener);
                     return;
                 }
+
+                log.error("No user found for "+ action+" from "+request.remoteAddress()+" "+threadContext.getTransient("_sg_origin")+" "+threadContext.getHeaders());
+                listener.onFailure(new ElasticsearchSecurityException("No user found for "+action, RestStatus.INTERNAL_SERVER_ERROR));
+                return;
             }
            
             final PrivilegesEvaluator eval = evalp;
@@ -162,8 +164,8 @@ public class SearchGuardFilter implements ActionFilter {
                 return;
             }
         } catch (Throwable e) {
-            log.debug("Unexpected exception "+e, e);
-            listener.onFailure(new ElasticsearchSecurityException("Unexpected exception", RestStatus.INTERNAL_SERVER_ERROR));
+            log.error("Unexpected exception "+e, e);
+            listener.onFailure(new ElasticsearchSecurityException("Unexpected exception " + action, RestStatus.INTERNAL_SERVER_ERROR));
             return;
         }
     }

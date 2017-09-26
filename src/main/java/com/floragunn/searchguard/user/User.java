@@ -17,26 +17,36 @@
 
 package com.floragunn.searchguard.user;
 
+import java.io.IOException;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
+
 import com.google.common.collect.Lists;
 
-public class User implements Serializable {
+public class User implements Serializable, Writeable {
 
     public static final User ANONYMOUS = new User("sg_anonymous", Lists.newArrayList("sg_anonymous_backendrole"));
-    
-    @Deprecated
-    public static final User SG_INTERNAL = new User("_sg_internal");
     
     private static final long serialVersionUID = -5500938501822658596L;
     private final String name;
     private final Set<String> roles = new HashSet<String>();
     private String requestedTenant;
 
+    public User(final StreamInput in) throws IOException {
+        super();
+        name = in.readString();
+        roles.addAll(in.readList(StreamInput::readString));
+        requestedTenant = in.readString();
+    }
+    
     public User(final String name, final Collection<String> toAdd) {
         super();
 
@@ -121,5 +131,12 @@ public class User implements Serializable {
 
     public void copyRolesFrom(final User user) {
         this.addRoles(user.getRoles());
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeString(name);
+        out.writeStringList(new ArrayList<String>(roles));
+        out.writeString(requestedTenant);
     }
 }
