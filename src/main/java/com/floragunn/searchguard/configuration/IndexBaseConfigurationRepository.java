@@ -22,7 +22,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -31,7 +30,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
@@ -479,12 +477,20 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
               return SearchGuardLicense.createTrialLicense(formatDate(created), clusterService);
         } else {
             try {
-                final byte[] armoredPgp = BaseEncoding.base64().decode(licenseText.trim());
+                licenseText = licenseText.trim().replaceAll("\\r|\\n", "");
+                licenseText = licenseText.replace("---- SCHNIPP (Armored PGP signed JSON as base64) ----","");
+                licenseText = licenseText.replace("---- SCHNAPP ----","");
+                
+                if(LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("License text: '{}'",licenseText);
+                }
+                
+                final byte[] armoredPgp = BaseEncoding.base64().decode(licenseText);
                 
                 final ArmoredInputStream in = new ArmoredInputStream(new ByteArrayInputStream(armoredPgp));
                 
                 //
-                // read the input, making sure we ingore the last newline.
+                // read the input, making sure we ignore the last newline.
                 //
                 //https://github.com/bcgit/bc-java/blob/master/pg/src/test/java/org/bouncycastle/openpgp/test/PGPClearSignedSignatureTest.java
 
