@@ -214,7 +214,7 @@ public final class SearchGuardLicense implements Writeable {
         
         if(numberOfNodes > allowedNodeCount) {
             valid = false;
-            msgs.add("Only "+allowedNodeCount+" nodes allowed but you run "+numberOfNodes+" of nodes");
+            msgs.add("Only "+allowedNodeCount+" node(s) allowed but you run "+numberOfNodes+" node(s)");
         }
         
         final String nodes = allowedNodeCount > 1500 ?"unlimited":String.valueOf(allowedNodeCount);
@@ -231,6 +231,7 @@ public final class SearchGuardLicense implements Writeable {
     public enum Type {
         FULL,
         SME,
+        SINGLE,
         ACADEMIC,
         OEM,
         TRIAL
