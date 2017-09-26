@@ -135,13 +135,6 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                                             ConfigHelper.uploadFile(client, cd+"sg_roles_mapping.yml", searchguardIndex, "rolesmapping");
                                             ConfigHelper.uploadFile(client, cd+"sg_internal_users.yml", searchguardIndex, "internalusers");
                                             ConfigHelper.uploadFile(client, cd+"sg_action_groups.yml", searchguardIndex, "actiongroups");
-                                            
-                                            /*client.index(new IndexRequest(searchguardIndex)
-                                                .type("trial")
-                                                .id("0")
-                                                .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                                                .source("{\"created\": "+System.currentTimeMillis()+"}", XContentType.JSON)).actionGet();
-                                            */
                                             LOGGER.info("Default config applied");
                                         }
                                     } else {
@@ -174,37 +167,6 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                                 }
                                 continue;
                             }
-
-                            /*Map<String, Settings> setn = null;
-                            
-                            while(setn == null || !setn.keySet().containsAll(Lists.newArrayList("config", "roles", "rolesmapping"))) {
-
-                                if (setn != null) {
-                                    try {
-                                        Thread.sleep(500);
-                                    } catch (InterruptedException e) {
-                                        Thread.currentThread().interrupt();
-                                        LOGGER.debug("Thread was interrupted so we cancel initialization");
-                                        return;
-                                    }
-                                }
-                                
-                                LOGGER.debug("Try to load config ...");
-                                
-                                try {
-                                    setn = cl.load(new String[] { "config", "roles", "rolesmapping", "internalusers",
-                                    "actiongroups" }, 5, TimeUnit.SECONDS);
-                                } catch (InterruptedException e) {
-                                    Thread.currentThread().interrupt();
-                                    LOGGER.debug("Thread was interrupted so we cancel initialization");
-                                    return;
-                                } catch (TimeoutException e) {
-                                    LOGGER.warn("Timeout, we just try again in a few seconds ... ");
-                                }
-                                
-                            }
-                            
-                            LOGGER.debug("Retrieved {} configs", setn.keySet());  */                       
                             
                             while(true) {
                                 try {
@@ -223,6 +185,21 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                             }
                             
                             LOGGER.info("Node '{}' initialized", clusterService.localNode().getName());
+                            
+                            if(!Boolean.getBoolean("sg.display_lic_none")) {
+                                
+                                final SearchGuardLicense sgLicense = getLicense();
+                                final String license = sgLicense==null?"No license needed because enterprise modules are not enabled"
+                                        :sgLicense.toString();
+                                
+                                if(!Boolean.getBoolean("sg.display_lic_only_stdout")) {
+                                    LOGGER.warn("License Info: "+license);
+                                    System.err.println("License Info: "+license);
+                                }
+                        
+                                System.out.println("License Info: "+license);
+
+                            }
                             
                         } catch (Exception e) {
                             LOGGER.error("Unexpected exception while initializing node "+e, e);
@@ -349,6 +326,21 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
         typeToConfig.clear();
         typeToConfig.putAll(loaded);
         notifyAboutChanges(loaded);
+        
+        if(!Boolean.getBoolean("sg.display_lic_none")) {
+            
+            final SearchGuardLicense sgLicense = getLicense();
+            final String license = sgLicense==null?"No license needed because enterprise modules are not enabled"
+                    :sgLicense.toString();
+            
+            if(!Boolean.getBoolean("sg.display_lic_only_stdout")) {
+                LOGGER.warn("License Info: "+license);
+                System.err.println("License Info: "+license);
+            }
+    
+            System.out.println("License Info: "+license);
+
+        }
 
         return loaded;
     }
@@ -409,47 +401,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                     LOGGER.debug("sg index not exists (yet)");
                     retVal.putAll(validate(cl.load(configTypes.toArray(new String[0]), 30, TimeUnit.SECONDS), configTypes.size()));
                 }
-
-/*
-
-               
-                client.prepareGet(searchguardIndex, "config", "0").execute(new ActionListener<GetResponse>() {
-
-                    @Override
-                    public void onResponse(GetResponse response) {
-                        try {
-                            if(response.isExists()) {
-                                retVal.putAll(validate(legacycl.loadLegacy(configTypes.toArray(new String[0]), 30, TimeUnit.SECONDS), configTypes.size()));
-                            } else {
-                                retVal.putAll(validate(cl.load(configTypes.toArray(new String[0]), 30, TimeUnit.SECONDS), configTypes.size()));
-                            }
-                            latch.countDown();
-                        } catch (Exception e) {
-                            exception.add(e);
-                            latch.countDown();
-                        }
-                    }
-
-                    @Override
-                    public void onFailure(Exception e) {
-                        exception.add(e);
-                        latch.countDown();
-                    }
-                });                
-            }
-            
-            try {
-                if(!latch.await(30, TimeUnit.SECONDS)) {
-                    //timeout
-                    throw new ElasticsearchException("Timeout while retrieving configuration");
-                }
-            } catch (InterruptedException e) {
-                //ignore
-            }
-            
-            if(!exception.isEmpty()) {
-                throw new ElasticsearchException(exception.get(0));
-            }*/
+                
             } catch (Exception e) {
                 throw new ElasticsearchException(e);
             }
