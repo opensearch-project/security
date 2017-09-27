@@ -97,7 +97,8 @@ public class ReflectionHelper {
             final Class<?> clazz = Class.forName("com.floragunn.searchguard.dlic.rest.api.SearchGuardRestApiActions");
             final Collection<RestHandler> ret = (Collection<RestHandler>) clazz.getDeclaredMethod("getHandler", Settings.class,
                     Path.class, RestController.class, Client.class, AdminDNs.class, IndexBaseConfigurationRepository.class, ClusterService.class,
-                    PrincipalExtractor.class, PrivilegesEvaluator.class, ThreadPool.class).invoke(null, settings, configPath, restController, localClient, adminDns, cr, cs, principalExtractor, evaluator,  threadPool);
+                    PrincipalExtractor.class, PrivilegesEvaluator.class, ThreadPool.class)
+            		.invoke(null, settings, configPath, restController, localClient, adminDns, cr, cs, principalExtractor, evaluator,  threadPool);
             modulesLoaded.put("rest-mngt-api", getModuleInfo(clazz));
             return ret;
         } catch (final Throwable e) {
