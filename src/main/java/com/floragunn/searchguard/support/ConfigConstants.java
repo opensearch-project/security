@@ -132,7 +132,15 @@ public class ConfigConstants {
     public static final String SEARCHGUARD_ALLOW_UNSAFE_DEMOCERTIFICATES = "searchguard.allow_unsafe_democertificates";
     public static final String SEARCHGUARD_ALLOW_DEFAULT_INIT_SGINDEX = "searchguard.allow_default_init_sgindex";
 
-    public static final String SEARCHGUARD_PASS_BACKENDROLES = "searchguard.pass_backendroles";
+    public static final String SEARCHGUARD_ROLES_MAPPING_RESOLUTION = "searchguard.roles_mapping_resolution";
+    
+    public enum RolesMappingResolution {
+        MAPPING_ONLY,
+        BACKENDROLES_ONLY,
+        BOTH
+    }
+    
+    
     public static final String SEARCHGUARD_TRIBE_CLUSTERNAME = "searchguard.tribe.clustername";
     public static final String SEARCHGUARD_DISABLE_TYPE_SECURITY = "searchguard.disable_type_security";
 

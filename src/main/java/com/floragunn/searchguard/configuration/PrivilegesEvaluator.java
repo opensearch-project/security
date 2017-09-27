@@ -111,7 +111,7 @@ public class PrivilegesEvaluator {
     
     private final boolean enableSnapshotRestorePrivilege;
     private final boolean checkSnapshotRestoreWritePrivileges;
-    private final boolean passBackendRoles;
+    private ConfigConstants.RolesMappingResolution rolesMappingResolution;
     
     private final ClusterInfoHolder clusterInfoHolder;
     private final boolean typeSecurityDisabled;
@@ -135,7 +135,12 @@ public class PrivilegesEvaluator {
         this.checkSnapshotRestoreWritePrivileges = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES,
                 ConfigConstants.SG_DEFAULT_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES);
         
-        passBackendRoles = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_PASS_BACKENDROLES, false);
+        try {
+            rolesMappingResolution = ConfigConstants.RolesMappingResolution.valueOf(settings.get(ConfigConstants.SEARCHGUARD_ROLES_MAPPING_RESOLUTION, ConfigConstants.RolesMappingResolution.MAPPING_ONLY.toString()).toUpperCase());
+        } catch (Exception e) {
+            log.error("Cannot apply roles mapping resolution",e);
+            rolesMappingResolution =  ConfigConstants.RolesMappingResolution.MAPPING_ONLY;
+        }
         
         final List<String> sgIndexdeniedActionPatternsList = new ArrayList<String>();
         sgIndexdeniedActionPatternsList.add("indices:data/write*");
@@ -877,14 +882,16 @@ public class PrivilegesEvaluator {
             return Collections.emptySet();
         }
         
-        if(passBackendRoles) {
+        if(rolesMappingResolution == ConfigConstants.RolesMappingResolution.BOTH
+                || rolesMappingResolution == ConfigConstants.RolesMappingResolution.BACKENDROLES_ONLY) {
             if(log.isDebugEnabled()) {
                 log.debug("Pass backendroles from {}", user);
             }
             sgRoles.addAll(user.getRoles());
         }
         
-        if(rolesMapping != null) {
+        if(rolesMapping != null && ((rolesMappingResolution == ConfigConstants.RolesMappingResolution.BOTH 
+                || rolesMappingResolution == ConfigConstants.RolesMappingResolution.MAPPING_ONLY))) {
             for (final String roleMap : rolesMapping.names()) {
                 final Settings roleMapSettings = rolesMapping.getByPrefix(roleMap);
                 
