@@ -78,6 +78,7 @@ import org.elasticsearch.rest.RestHandler;
 import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.RemoteClusterService;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.Transport.Connection;
 import org.elasticsearch.transport.TransportChannel;
@@ -87,6 +88,7 @@ import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportRequestOptions;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportResponseHandler;
+import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.watcher.ResourceWatcherService;
 
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateAction;
@@ -717,21 +719,28 @@ public final class SearchGuardPlugin extends Plugin implements ActionPlugin, Net
         }
         
         final List<Class<? extends LifecycleComponent>> services = new ArrayList<>(1);
-        services.add(RepositoriesServiceHolder.class);
+        services.add(GuiceHolder.class);
         return services;
     }
     
-    public static class RepositoriesServiceHolder implements LifecycleComponent {
+    public static class GuiceHolder implements LifecycleComponent {
 
         private static RepositoriesService repositoriesService;
+        private static RemoteClusterService remoteClusterService;
         
         @Inject
-        public RepositoriesServiceHolder(final RepositoriesService repositoriesService) {
-            RepositoriesServiceHolder.repositoriesService = repositoriesService;
+        public GuiceHolder(final RepositoriesService repositoriesService, 
+                final TransportService remoteClusterService) {
+            GuiceHolder.repositoriesService = repositoriesService;
+            GuiceHolder.remoteClusterService = remoteClusterService.getRemoteClusterService();
         }
 
         public static RepositoriesService getRepositoriesService() {
             return repositoriesService;
+        }
+        
+        public static RemoteClusterService getRemoteClusterService() {
+            return remoteClusterService;
         }
 
         @Override
