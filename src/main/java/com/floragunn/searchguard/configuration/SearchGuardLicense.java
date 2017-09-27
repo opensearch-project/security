@@ -51,11 +51,15 @@ public final class SearchGuardLicense implements Writeable {
     private boolean isExpired = true;
     private boolean valid = true;
     private String action;
-    private String prodUsage; 
+    private String prodUsage;
     private final ClusterService clusterService;
     
-    public static SearchGuardLicense createTrialLicense(String issueDate, ClusterService clusterService) {
-        return new SearchGuardLicense("00000000-0000-0000-0000-000000000000", Type.TRIAL, issueDate, addDays(issueDate, 92L), "the world", "floragunn GmbH", issueDate, 5, "*", Integer.MAX_VALUE, clusterService);
+    public static SearchGuardLicense createTrialLicense(String issueDate, ClusterService clusterService, String msg) {
+        final SearchGuardLicense trialLicense =  new SearchGuardLicense("00000000-0000-0000-0000-000000000000", Type.TRIAL, issueDate, addDays(issueDate, 92L), "the world", "floragunn GmbH", issueDate, 5, "*", Integer.MAX_VALUE, clusterService);
+        if(msg != null) {
+            trialLicense.msgs.add(msg);
+        }
+        return trialLicense;
     }
     
     @Override
@@ -231,9 +235,7 @@ public final class SearchGuardLicense implements Writeable {
         OEM,
         TRIAL
     }
-    
-    
-    
+   
     private static Date parseDate(String date) throws ParseException {
         return new SimpleDateFormat("yyyy-MM-dd").parse(date);
     }

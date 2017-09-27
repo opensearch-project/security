@@ -1,7 +1,10 @@
 floragunn GmbH
-Copyright 2015-2016 floragunn GmbH
+Copyright 2015-2017 floragunn GmbH
 
 This product includes software developed by The Apache Software
 Foundation (http://www.apache.org/).
+
+This product includes software developed by The Legion of the Bouncy Castle Inc.
+(http://www.bouncycastle.org)
 
 See THIRD-PARTY.txt for additional third party licenses used by this product.

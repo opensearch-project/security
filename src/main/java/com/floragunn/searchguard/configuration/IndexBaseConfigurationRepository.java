@@ -20,6 +20,7 @@ package com.floragunn.searchguard.configuration;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
@@ -37,8 +38,11 @@ import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.bouncycastle.bcpg.ArmoredInputStream;
+import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPObjectFactory;
+import org.bouncycastle.openpgp.PGPPublicKey;
 import org.bouncycastle.openpgp.PGPPublicKeyRingCollection;
+import org.bouncycastle.openpgp.PGPSignature;
 import org.bouncycastle.openpgp.PGPSignatureList;
 import org.bouncycastle.openpgp.operator.KeyFingerPrintCalculator;
 import org.bouncycastle.openpgp.operator.bc.BcKeyFingerprintCalculator;
@@ -66,8 +70,10 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import com.floragunn.searchguard.ssl.util.ExceptionUtils;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.ConfigHelper;
+import com.floragunn.searchguard.support.LicenseHelper;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -460,64 +466,42 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
         String licenseText = getConfiguration("config").get("searchguard.dynamic.license");
         
         if(licenseText == null || licenseText.isEmpty()) {
-            
-            long created = System.currentTimeMillis();
-            ThreadContext threadContext = threadPool.getThreadContext();
-            
-            try(StoredContext ctx = threadContext.stashContext()) {
-                threadContext.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true");
-                GetResponse get = client.prepareGet(searchguardIndex, "sg", "tattr").get();
-                if(get.isExists()) {
-                    created = (long) get.getSource().get("val");
-                } else {
-                    client.index(new IndexRequest(searchguardIndex)
-                    .type("sg")
-                    .id("tattr")
-                    .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                    .source("{\"val\": "+System.currentTimeMillis()+"}", XContentType.JSON)).actionGet();
-                }
-            }
-            
-              return SearchGuardLicense.createTrialLicense(formatDate(created), clusterService);
+            return createOrGetTrial(null);
         } else {
             try {
                 licenseText = licenseText.trim().replaceAll("\\r|\\n", "");
                 licenseText = licenseText.replace("---- SCHNIPP (Armored PGP signed JSON as base64) ----","");
                 licenseText = licenseText.replace("---- SCHNAPP ----","");
-                
-                if(LOGGER.isDebugEnabled()) {
-                    LOGGER.debug("License text: '{}'",licenseText);
-                }
-                
-                final byte[] armoredPgp = BaseEncoding.base64().decode(licenseText);
-                
-                final ArmoredInputStream in = new ArmoredInputStream(new ByteArrayInputStream(armoredPgp));
-                
-                //
-                // read the input, making sure we ignore the last newline.
-                //
-                //https://github.com/bcgit/bc-java/blob/master/pg/src/test/java/org/bouncycastle/openpgp/test/PGPClearSignedSignatureTest.java
 
-                final ByteArrayOutputStream bout = new ByteArrayOutputStream();
-                int ch;
-
-                while ((ch = in.read()) >= 0 && in.isClearText()) {
-                    bout.write((byte)ch);
-                }
+                licenseText = LicenseHelper.validateLicense(licenseText);
                 
-                KeyFingerPrintCalculator c = new BcKeyFingerprintCalculator();
-                
-                final PGPObjectFactory factory = new PGPObjectFactory(in, c);
-                final PGPSignatureList sigL = (PGPSignatureList) factory.nextObject();
-                final PGPPublicKeyRingCollection pgpRings = new PGPPublicKeyRingCollection(new ArmoredInputStream(this.getClass().getResourceAsStream("/KEYS")), c);
-                sigL.get(0).init(new BcPGPContentVerifierBuilderProvider(), pgpRings.getPublicKey(sigL.get(0).getKeyID()));
-                licenseText = bout.toString();
+                return new SearchGuardLicense(XContentHelper.convertToMap(XContentType.JSON.xContent(), licenseText, true), clusterService);
             } catch (Exception e) {
-                LOGGER.error("Unable to verify license",e);
-                licenseText = null;
+                LOGGER.error("Unable to verify license", e);
+                return createOrGetTrial("Unable to verify license due to "+ExceptionUtils.getRootCause(e));
             }
         }
         
-        return new SearchGuardLicense(XContentHelper.convertToMap(XContentType.JSON.xContent(), licenseText, true), clusterService);
+    }
+    
+    private SearchGuardLicense createOrGetTrial(String msg) {
+        long created = System.currentTimeMillis();
+        ThreadContext threadContext = threadPool.getThreadContext();
+        
+        try(StoredContext ctx = threadContext.stashContext()) {
+            threadContext.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true");
+            GetResponse get = client.prepareGet(searchguardIndex, "sg", "tattr").get();
+            if(get.isExists()) {
+                created = (long) get.getSource().get("val");
+            } else {
+                client.index(new IndexRequest(searchguardIndex)
+                .type("sg")
+                .id("tattr")
+                .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                .source("{\"val\": "+System.currentTimeMillis()+"}", XContentType.JSON)).actionGet();
+            }
+        }
+        
+        return SearchGuardLicense.createTrialLicense(formatDate(created), clusterService, msg);
     }
 }

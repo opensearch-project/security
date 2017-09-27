@@ -1,0 +1,76 @@
+#
+# HTTP
+#   basic (challenging) PREAUTH?
+#   proxy (not challenging, needs xff)
+#   kerberos (challenging) NOT FREE FOR COMMERCIAL USE PREAUTH?
+#   clientcert (not challenging, needs https)
+
+# Authc
+#   internal
+#   noop
+#   ldap  NOT FREE FOR COMMERCIAL USE
+
+# Authz
+#   ldap  NOT FREE FOR COMMERCIAL USE
+#   noop
+
+
+
+searchguard:
+  dynamic:
+    license: LS0tLS1CRUdJTiBQR1AgU0lHTkVEIE1FU1NBR0UtLS0tLQpIYXNoOiBTSEE1MTIKCnsKICAgICJ1aWQiOiAiRTg5NzE1RjUtMENGMS00ODlCLThEMUItNzA1OUM4RDRGOEYyIiwKICAgICJ0eXBlIjogIkZVTEwiLAogICAgIm5vZGVzIjogIjIxNDc0ODM2NDYiLAogICAgImlzc3VlZF9kYXRlIjogIjIwMTctMDktMDkiLAogICAgImV4cGlyeV9kYXRlIjogIjIwMjAtMDEtMDEiLAogICAgImlzc3VlZF90byI6ICJVbml0dGVzdCBHbWJIIiwKICAgICJpc3N1ZXIiOiAiZmxvcmFndW5uIEdtYkgiLAogICAgInN0YXJ0X2RhdGUiOiAiMjAxNy0wMS0wMSIsCiAgICAibWFqb3JfdmVyc2lvbiI6IDYsCiAgICAiY2x1c3Rlcl9uYW1lIjogIioiLAogICAgImFsbG93ZWRfbm9kZV9jb3VudF9wZXJfY2m4c3RlciI6IoIxNDc0ODM2NDYsCiAgICAibGljZW5zZV92ZXJzaW9uIjogMQp9Ci0tLS0tQkVHSU4gUEdQIFNJR05BVFKSRS0tLS0tCkNvbW1lbnQ6IEdQR1Rvb2xzIC0gaHR0cHM6Ly9ncGd0b29scy5vcmcKCmlRRWNCQUVCQ2dBR0JRSlp0QzRSQUFvSkVIVUNhTFpSN2JMK3FiRUlBSzlUM3JIcVFJZjI0ZFErNFcwaEpudmkKd1JDYUZaYUJyNXhkUHMwN1JTRkx1RGlkcm9uZk5DRHd0clJEUTRGbldldGd3ME4zWkc2MTJ6QWhLUGp5UzVvYwpsNE5wVkxjWkZFZ0N5WkdLQnZZUHNKK1pMY3ZBaXgwR0Vhc2paZnc5Ujd5MUdmcC9FZnREMFJEamZ4cDkxaEFxCkZFTEx2WE5rSFVRQUk0VFdpMzZhbU1YWnIzb3ZzZUdsbkFManZ2SWVuOEtzZi9ieUdENWVBMmcyUEFIWUc0b04KNFFpSDVnK1JnNnlKb3dtSm5KZTFMWUFWR3BHRlJkbnBaUXFKcWpBN1RqbnkvRld4S2VTYU1EWUo4NEVPUUgzMQpOSHAyR3ZZUXRNV1drYzFacUFVVjJBeGtUN3dlRDhCVm1QQ3REcjFtZHBFK2JnMFhZL2gxeUxTSVcwOFFGSkk9Cj1UT2NZCi0tLS0tRU5EIFBHUCBTSUdOQVRVUkUtLS0tLQo=
+    filtered_alias_mode: disallow
+    http:
+      anonymous_auth_enabled: false
+      xff:
+        enabled: false
+        internalProxies: 192\.168\.0\.10|192\.168\.0\.11
+        remoteIpHeader: "x-forwarded-for"
+        proxiesHeader: "x-forwarded-by"
+        trustedProxies: "proxy1|proxy2"
+    authc:
+      authentication_domain_basic_internal:
+        enabled: true
+        order: 0
+        http_authenticator:
+          type: basic
+        authentication_backend:
+          type: intern
+      authentication_domain_clientcert:
+        enabled: false
+        order: 1
+        http_authenticator:
+          type: clientcert
+        authentication_backend:
+          type: noop
+      authentication_domain_proxy:
+        enabled: false
+        order: 2
+        http_authenticator:
+          type: proxy
+          config:
+          user_header: "x-proxy-user"
+          roles_header: "x-proxy-roles"
+        authentication_backend:
+          type: noop
+      authentication_domain_kerb:
+        enabled: false
+        order: 3
+        http_authenticator:
+          type: kerberos
+        authentication_backend:
+          type: noop
+    authz:    
+      roles_from_myldap:
+        enabled: false
+        authorization_backend:
+          type: ldap
+          config:
+            rolesearch: "(uniqueMember={0})"
+            resolve_nested_roles: true
+            rolebase: "ou=groups,o=TEST"
+            rolename: cn
+      roles_from_xxx:
+        enabled: false
+        authorization_backend:
+          type: xxx
