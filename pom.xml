@@ -43,28 +43,16 @@
 
   <properties>
     <sgssl.version>6.x-HEAD-SNAPSHOT</sgssl.version>
-    <elasticsearch.version>6.0.0-beta2</elasticsearch.version>
+    <elasticsearch.version>6.0.0-rc1</elasticsearch.version>
     <netty-native.version>2.0.5.Final</netty-native.version>
     <bc.version>1.58</bc.version>
-    <log4j.version>2.8.2</log4j.version>
+    <log4j.version>2.9.1</log4j.version>
     <guava.version>23.0</guava.version>
     <commons.cli.version>1.3.1</commons.cli.version>
     <elasticsearch.assembly.descriptor>${basedir}/src/main/assemblies/plugin.xml</elasticsearch.assembly.descriptor>
     <sgstandalone.descriptor>${basedir}/src/main/assemblies/sgadmin-standalone.xml</sgstandalone.descriptor>
     <dependency.locations.enabled>false</dependency.locations.enabled>
   </properties>
-
-  <repositories>
-    <repository>
-      <id>lucene-repository</id>
-      <name>Lucene Maven</name>
-      <url>https://download.elasticsearch.org/lucenesnapshots/a128fcb</url>
-      <snapshots>
-        <enabled>true</enabled>
-        <updatePolicy>always</updatePolicy>
-      </snapshots>
-    </repository>
-  </repositories>
 
   <distributionManagement>
     <snapshotRepository>
