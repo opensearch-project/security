@@ -31,6 +31,7 @@ import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import com.floragunn.searchguard.action.licenseinfo.LicenseInfoAction;
 import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.auditlog.AuditLog.Origin;
 import com.floragunn.searchguard.configuration.AdminDNs;
@@ -79,18 +80,24 @@ public class SearchGuardFilter implements ActionFilter {
             final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadContext);
             //final boolean trustedClusterRequest = HeaderHelper.isTrustedClusterRequest(threadContext);
             final boolean conRequest = "true".equals(HeaderHelper.getSafeFromHeader(threadContext, ConfigConstants.SG_CONF_REQUEST_HEADER));
+            final boolean licenseInfoRequest = action.equals(LicenseInfoAction.NAME);
             
             final boolean internalRequest = 
                     interClusterRequest 
                     && action.startsWith("internal:") 
                     && !action.startsWith("internal:transport/proxy");
             
+            if(log.isTraceEnabled()) {
+                log.trace(action+": userIsAdmin="+userIsAdmin+"/conRequest="+conRequest+"/internalRequest="+internalRequest
+                        +"origin="+threadContext.getTransient("_sg_origin")+"/directRequest="+HeaderHelper.isDirectRequest(threadContext)+"/remoteAddress="+request.remoteAddress());
+            }
+            
             if(userIsAdmin 
                     || conRequest 
                     || internalRequest 
-                    || action.equals("cluster:admin/searchguard/license/info")){
+                    || licenseInfoRequest){
     
-                if(userIsAdmin && !conRequest && !internalRequest) {
+                if(userIsAdmin && !conRequest && !internalRequest && !licenseInfoRequest) {
                     auditLog.logGrantedPrivileges(action, request);
                 }
     
@@ -124,7 +131,7 @@ public class SearchGuardFilter implements ActionFilter {
             
             if(user == null) {
                 
-                if(action.startsWith("cluster:monitor/")) {
+                if(action.startsWith("cluster:monitor/") || action.startsWith("indices:monitor/stats")) {
                     if(!dlsFlsValve.invoke(request, listener, threadContext)) {
                         return;
                     }
