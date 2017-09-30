@@ -117,7 +117,7 @@ public final class ClusterHelper {
 	    return esNodes.get(0).client();
 	}
 	
-	protected ClusterInfo waitForCluster(final ClusterHealthStatus status, final TimeValue timeout, final int expectedNodeCount) throws IOException {
+	public ClusterInfo waitForCluster(final ClusterHealthStatus status, final TimeValue timeout, final int expectedNodeCount) throws IOException {
 		if (esNodes.isEmpty()) {
 			throw new RuntimeException("List of nodes was empty.");
 		}

@@ -42,6 +42,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.Netty4Plugin;
 import org.junit.Assert;
 import org.junit.Rule;
+import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 import org.junit.rules.TestWatcher;
 
@@ -77,12 +78,15 @@ public abstract class AbstractSGUnitTest {
     public static final ThreadPool MOCK_POOL = new ThreadPool(Settings.builder().put("node.name",  "mock").build());
 	
     //Matrix
-    private boolean allowOpenSSL = false;
+    protected boolean allowOpenSSL = false;
     //enable//disable enterprise modules
     //1node and 3 node
     
 	@Rule
 	public TestName name = new TestName();
+	
+	@Rule
+    public final TemporaryFolder repositoryPath = new TemporaryFolder();
 
 	@Rule
 	public final TestWatcher testWatcher = new SGTestWatcher();

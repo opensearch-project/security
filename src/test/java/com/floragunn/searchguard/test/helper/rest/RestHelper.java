@@ -27,6 +27,8 @@ import org.apache.http.Header;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpHead;
+import org.apache.http.client.methods.HttpOptions;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpUriRequest;
@@ -52,7 +54,7 @@ public class RestHelper {
 	public boolean enableHTTPClientSSLv3Only = false;
 	public boolean sendHTTPClientCertificate = false;
 	public boolean trustHTTPServerCertificate = true;
-	public String keystore = "kirk-keystore.jks";
+	public String keystore = "node-0-keystore.jks";
 	public String truststore = "truststore.jks";
 	private ClusterInfo clusterInfo;
 	
@@ -93,6 +95,14 @@ public class RestHelper {
 	public HttpResponse executeGetRequest(final String request, Header... header) throws Exception {
 	    return executeRequest(new HttpGet(getHttpServerUri() + "/" + request), header);
 	}
+	
+	public HttpResponse executeHeadRequest(final String request, Header... header) throws Exception {
+        return executeRequest(new HttpHead(getHttpServerUri() + "/" + request), header);
+    }
+	
+	public HttpResponse executeOptionsRequest(final String request) throws Exception {
+        return executeRequest(new HttpOptions(getHttpServerUri() + "/" + request));
+    }
 
 	public HttpResponse executePutRequest(final String request, String body, Header... header) throws Exception {
 		HttpPut uriRequest = new HttpPut(getHttpServerUri() + "/" + request);
@@ -115,7 +125,7 @@ public class RestHelper {
 		return executeRequest(uriRequest, header);
 	}
 	
-	protected HttpResponse executeRequest(HttpUriRequest uriRequest, Header... header) throws Exception {
+	public HttpResponse executeRequest(HttpUriRequest uriRequest, Header... header) throws Exception {
 
 		CloseableHttpClient httpClient = null;
 		try {
