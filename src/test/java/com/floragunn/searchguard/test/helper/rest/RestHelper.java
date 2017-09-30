@@ -24,6 +24,7 @@ import javax.net.ssl.SSLContext;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.http.Header;
+import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
@@ -214,7 +215,12 @@ public class RestHelper {
 		public HttpResponse(CloseableHttpResponse inner) throws IllegalStateException, IOException {
 			super();
 			this.inner = inner;
-			this.body = IOUtils.toString(inner.getEntity().getContent(), StandardCharsets.UTF_8);
+			final HttpEntity entity = inner.getEntity();
+			if(entity == null) { //head request does not have a entity
+			    this.body = "";
+			} else {
+			    this.body = IOUtils.toString(entity.getContent(), StandardCharsets.UTF_8);
+			}
 			this.header = inner.getAllHeaders();
 			this.statusCode = inner.getStatusLine().getStatusCode();
 			this.statusReason = inner.getStatusLine().getReasonPhrase();

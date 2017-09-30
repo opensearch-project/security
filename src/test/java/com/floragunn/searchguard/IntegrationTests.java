@@ -336,12 +336,12 @@ public class IntegrationTests extends SingleClusterTest {
                 Assert.assertEquals(1, actionGet.getHits().getHits().length);
                 System.out.println("------- 6 ---------");
                 
-                gr =tc.prepareGet("searchguard", "config", "0").setRealtime(false).get();
+                gr =tc.prepareGet("searchguard", "sg", "config").setRealtime(false).get();
                 Assert.assertFalse(gr.isExists());
                 
                 System.out.println("------- 7 ---------");
                 
-                gr =tc.prepareGet("searchguard", "config", "0").setRealtime(true).get();
+                gr =tc.prepareGet("searchguard", "sg", "config").setRealtime(true).get();
                 Assert.assertFalse(gr.isExists());
                 
                 System.out.println("------- 8 ---------");
@@ -352,7 +352,7 @@ public class IntegrationTests extends SingleClusterTest {
                 System.out.println("------- 9 ---------");
                 
                 try {
-                    tc.index(new IndexRequest("searchguard").type("config").id("0").source("config", FileHelper.readYamlContent("sg_config.yml"))).actionGet();
+                    tc.index(new IndexRequest("searchguard").type("sg").id("config").source("config", FileHelper.readYamlContent("sg_config.yml"))).actionGet();
                     Assert.fail();
                 } catch (Exception e) {
                     // TODO Auto-generated catch block
@@ -452,17 +452,17 @@ public class IntegrationTests extends SingleClusterTest {
                 
                 System.out.println("------- 15 ---------");
                 
-                gr = tc.prepareGet("searchguard", "config", "0").putHeader("sg_impersonate_as", "nagilum").setRealtime(Boolean.TRUE).get();
+                gr = tc.prepareGet("searchguard", "config", "0""-).putHeader("sg_impersonate_as", "nagilum").setRealtime(Boolean.TRUE).get();
                 Assert.assertFalse(gr.isExists());
                 Assert.assertTrue(gr.isSourceEmpty());
                 
-                gr = tc.prepareGet("searchguard", "config", "0").putHeader("Authorization", "basic "+encodeBasicHeader("nagilum", "nagilum")).setRealtime(Boolean.TRUE).get();
+                gr = tc.prepareGet("searchguard", "config", "0""-).putHeader("Authorization", "basic "+encodeBasicHeader("nagilum", "nagilum")).setRealtime(Boolean.TRUE).get();
                 Assert.assertFalse(gr.isExists());
                 Assert.assertTrue(gr.isSourceEmpty());
     
                 System.out.println("------- 16---------");
               
-                gr = tc.prepareGet("searchguard", "config", "0").putHeader("sg_impersonate_as", "nagilum").setRealtime(Boolean.FALSE).get();
+                gr = tc.prepareGet("searchguard", "config", "0""-).putHeader("sg_impersonate_as", "nagilum").setRealtime(Boolean.FALSE).get();
                 Assert.assertFalse(gr.isExists());
                 Assert.assertTrue(gr.isSourceEmpty());
                 
@@ -472,7 +472,7 @@ public class IntegrationTests extends SingleClusterTest {
                 ctx = tc.threadPool().getThreadContext().stashContext();
                 try {
                     tc.threadPool().getThreadContext().putHeader("sg_impersonate_as", "nagilum");
-                    gr = tc.prepareGet("searchguard", "config", "0").setRealtime(Boolean.TRUE).get();
+                    gr = tc.prepareGet("searchguard", "sg", "config").setRealtime(Boolean.TRUE).get();
                     Assert.assertFalse(gr.isExists());
                     Assert.assertTrue(gr.isSourceEmpty());
                 } finally {
@@ -539,7 +539,7 @@ public class IntegrationTests extends SingleClusterTest {
                 ctx = tc.threadPool().getThreadContext().stashContext();
                 try {
                     tc.threadPool().getThreadContext().putHeader("sg_impersonate_as", "nagilum");
-                    gr = tc.prepareGet("searchguard", "config", "0").setRealtime(Boolean.TRUE).get();
+                    gr = tc.prepareGet("searchguard", "sg", "config").setRealtime(Boolean.TRUE).get();
                     Assert.assertFalse(gr.isExists());
                     Assert.assertTrue(gr.isSourceEmpty());
                 } finally {
@@ -552,7 +552,7 @@ public class IntegrationTests extends SingleClusterTest {
                 try {
                     Header header = encodeBasicHeader("worf", "worf");
                     tc.threadPool().getThreadContext().putHeader(header.getName(), header.getValue());
-                    gr = tc.prepareGet("searchguard", "config", "0").setRealtime(Boolean.TRUE).get();
+                    gr = tc.prepareGet("searchguard", "sg", "config").setRealtime(Boolean.TRUE).get();
                     Assert.assertFalse(gr.isExists());
                     Assert.assertTrue(gr.isSourceEmpty());
                 } finally {
@@ -563,7 +563,7 @@ public class IntegrationTests extends SingleClusterTest {
                 ctx = tc.threadPool().getThreadContext().stashContext();
                 try {
                     tc.threadPool().getThreadContext().putHeader("sg_impersonate_as", "nagilum");
-                    gr = tc.prepareGet("searchguard", "config", "0").setRealtime(Boolean.FALSE).get();
+                    gr = tc.prepareGet("searchguard", "sg", "config").setRealtime(Boolean.FALSE).get();
                     Assert.assertFalse(gr.isExists());
                     Assert.assertTrue(gr.isSourceEmpty());
                 } finally {
@@ -892,34 +892,6 @@ public class IntegrationTests extends SingleClusterTest {
     public void testHTTPAnon() throws Exception {
     
             setup(Settings.EMPTY, new DynamicSgConfig().setSgConfig("sg_config_anon.yml"), Settings.EMPTY, true);
-            try (TransportClient tc = getInternalTransportClient()) {
-
-                tc.index(new IndexRequest("vulcangov").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-                //tc.index(new IndexRequest("vulcangov").type("secrets").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-                //tc.index(new IndexRequest("vulcangov").type("planet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-                
-                tc.index(new IndexRequest("starfleet").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-                //tc.index(new IndexRequest("starfleet").type("captains").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-                //tc.index(new IndexRequest("starfleet").type("public").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-                
-                tc.index(new IndexRequest("starfleet_academy").type("students").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-                //tc.index(new IndexRequest("starfleet_academy").type("alumni").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-                
-                tc.index(new IndexRequest("starfleet_library").type("public").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-                //tc.index(new IndexRequest("starfleet_library").type("administration").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-                
-                tc.index(new IndexRequest("klingonempire").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-                // tc.index(new IndexRequest("klingonempire").type("praxis").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-                
-                tc.index(new IndexRequest("public").type("legends").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-                //tc.index(new IndexRequest("public").type("hall_of_fame").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-                //tc.index(new IndexRequest("public").type("hall_of_fame").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":2}", XContentType.JSON)).actionGet();
-                
-                tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("starfleet","starfleet_academy","starfleet_library").alias("sf"))).actionGet();
-                tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("klingonempire","vulcangov").alias("nonsf"))).actionGet();
-                tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("public").alias("unrestricted"))).actionGet();
-
-            }
             
             RestHelper rh = nonSslRestHelper();
     
@@ -1317,18 +1289,18 @@ public class IntegrationTests extends SingleClusterTest {
             Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().length);
     
             tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
-            tc.index(new IndexRequest("searchguard").type("config").id("0").refresh(true).source(readYamlContent("sg_config.yml")))
+            tc.index(new IndexRequest("searchguard").type("config").id("0""-).refresh(true).source(readYamlContent("sg_config.yml")))
                     .actionGet();
             tc.index(
-                    new IndexRequest("searchguard").type("internalusers").refresh(true).id("0")
+                    new IndexRequest("searchguard").type("internalusers").refresh(true).id("0""-)
                             .source(readYamlContent("sg_internal_users.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("roles").id("0").refresh(true).source(readYamlContent("sg_roles.yml")))
+            tc.index(new IndexRequest("searchguard").type("roles").id("0""-).refresh(true).source(readYamlContent("sg_roles.yml")))
                     .actionGet();
             tc.index(
-                    new IndexRequest("searchguard").type("rolesmapping").refresh(true).id("0")
+                    new IndexRequest("searchguard").type("rolesmapping").refresh(true).id("0""-)
                             .source(readYamlContent("sg_roles_mapping.yml"))).actionGet();
             tc.index(
-                    new IndexRequest("searchguard").type("actiongroups").refresh(true).id("0")
+                    new IndexRequest("searchguard").type("actiongroups").refresh(true).id("0""-)
                             .source(readYamlContent("sg_action_groups.yml"))).actionGet();
     
             ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE,

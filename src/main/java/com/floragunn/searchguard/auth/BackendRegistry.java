@@ -250,7 +250,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
         }
         
         //SG6 no default authc
-        initialized = !restAuthDomains.isEmpty();
+        initialized = !restAuthDomains.isEmpty() || anonymousAuthEnabled;
     }
 
     public User authenticate(final TransportRequest request, final String sslPrincipal) {

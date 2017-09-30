@@ -18,10 +18,13 @@
 package com.floragunn.searchguard.configuration;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiReader;
 import org.apache.lucene.search.IndexSearcher;
 import org.elasticsearch.common.settings.Settings;
@@ -43,16 +46,6 @@ public class SearchGuardIndexSearcherWrapper extends IndexSearcherWrapper {
     protected final Index index;
     protected final String searchguardIndex;
     private final AdminDNs adminDns;
-    private static IndexSearcher EMPTY_SEARCHER;
-
-    //TODO SG6 check if we could can do this static
-    static {
-        try {
-            EMPTY_SEARCHER = new IndexSearcher(new MultiReader());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 	
     //constructor is called per index, so avoid costly operations here
 	public SearchGuardIndexSearcherWrapper(final IndexService indexService, final Settings settings, final AdminDNs adminDNs) {
@@ -76,11 +69,17 @@ public class SearchGuardIndexSearcherWrapper extends IndexSearcherWrapper {
     public final IndexSearcher wrap(final IndexSearcher searcher) throws EngineException {
 
         if (isSearchGuardIndexRequest() && !isAdminAuthenticatedOrInternalRequest()) {
-            if(EMPTY_SEARCHER == null) {
-                log.error("no empty searcher");
-                throw new EngineException(new ShardId(index, 0), "no empty searcher");
-            }
-            return EMPTY_SEARCHER;
+            try {
+                final List<LeafReaderContext> leaves = searcher.getIndexReader().leaves();
+                final EmptyLeafReader[] er = new EmptyLeafReader[leaves.size()];
+                for (int i = 0; i < er.length; i++) {
+                    er[i] = new EmptyLeafReader(leaves.get(i).reader());
+                }
+                return new IndexSearcher(new EmptyMultiReader(er, searcher));
+            } catch (IOException e) {
+                log.error("Exception wrapping index searcher",e);
+                throw new EngineException(new ShardId(index, 0), "xception wrapping index searcher "+e);
+            }           
         }
 
         if (!isAdminAuthenticatedOrInternalRequest()) {
@@ -115,5 +114,18 @@ public class SearchGuardIndexSearcherWrapper extends IndexSearcherWrapper {
 
     protected final boolean isSearchGuardIndexRequest() {
         return index.getName().equals(searchguardIndex);
+    } 
+    
+    private static class EmptyMultiReader extends MultiReader {
+        private final IndexSearcher searcher;
+        public EmptyMultiReader(final IndexReader[] subReaders, final IndexSearcher searcher) throws IOException {
+            super(subReaders);
+            this.searcher = searcher;
+        }
+        
+        @Override
+        public CacheHelper getReaderCacheHelper() {
+            return searcher.getIndexReader().getReaderCacheHelper();
+        }
     }
 }

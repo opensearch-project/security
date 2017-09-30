@@ -438,15 +438,15 @@ public class PrivilegesEvaluator {
                //TODO SG5 compat mode
 
                     
-                || action.startsWith("indices:data/read/scroll")
-                || (action.equals(BulkAction.NAME))
-                || (action.equals(IndicesAliasesAction.NAME))
-                || (action.equals(MultiGetAction.NAME))
-                || (action.equals(MultiSearchAction.NAME))
-                || (action.equals(MultiTermVectorsAction.NAME))
-                || (action.equals("indices:data/read/coordinate-msearch"))
-                || (action.equals("indices:data/write/reindex"))
-                || (action.equals("indices:data/read/mpercolate"))
+                //|| action.startsWith("indices:data/read/scroll")
+                //|| (action.equals(BulkAction.NAME))
+               // || (action.equals(IndicesAliasesAction.NAME))
+               // || (action.equals(MultiGetAction.NAME))
+               // || (action.equals(MultiSearchAction.NAME))
+               // || (action.equals(MultiTermVectorsAction.NAME))
+               // || (action.equals("indices:data/read/coordinate-msearch"))
+               // || (action.equals("indices:data/write/reindex"))
+               // || (action.equals("indices:data/read/mpercolate"))
 
                 ) {
                 
@@ -637,18 +637,18 @@ public class PrivilegesEvaluator {
                             }
                         }
 
-                        if(filteredAliases.size() > 1) {
+                        if(filteredAliases.size() > 1 && WildcardMatcher.match("indices:data/read/*search*", action)) {
                             //TODO add queries as dls queries (works only if dls module is installed)
                             final String faMode = config.get("searchguard.dynamic.filtered_alias_mode","warn");
                             
                             if(faMode.equals("warn")) {
-                                log.warn("More than one ({}) filtered alias found for same index ({}). This is currently not recommended. Aliases: {}", filteredAliases.size(), requestedResolvedIndices, toString(filteredAliases));
+                                log.warn("More than one ({}) filtered alias found for same index ({}). This is currently not recommended. Aliases: {}", filteredAliases.size(), requestAliasOrIndex, toString(filteredAliases));
                             } else if (faMode.equals("disallow")) {
-                                log.error("More than one ({}) filtered alias found for same index ({}). This is currently not supported. Aliases: {}", filteredAliases.size(), requestedResolvedIndices, toString(filteredAliases));
+                                log.error("More than one ({}) filtered alias found for same index ({}). This is currently not supported. Aliases: {}", filteredAliases.size(), requestAliasOrIndex, toString(filteredAliases));
                                 continue permittedAliasesIndices;
                             } else {
                                 if (log.isDebugEnabled()) {
-                                    log.debug("More than one ({}) filtered alias found for same index ({}). Aliases: {}", filteredAliases.size(), requestedResolvedIndices, toString(filteredAliases));
+                                    log.debug("More than one ({}) filtered alias found for same index ({}). Aliases: {}", filteredAliases.size(), requestAliasOrIndex, toString(filteredAliases));
                                 }
                             }
                         }

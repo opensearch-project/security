@@ -8,3 +8,11 @@ searchguard:
         remoteIpHeader: "x-forwarded-for"
         proxiesHeader: "x-forwarded-by"
         trustedProxies: "proxy1|proxy2"
+    authc:
+      authentication_domain_basic_internal:
+        enabled: true
+        order: 0
+        http_authenticator:
+          type: basic
+        authentication_backend:
+          type: intern

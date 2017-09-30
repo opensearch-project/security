@@ -9,6 +9,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.test.AbstractSGUnitTest;
 import com.floragunn.searchguard.test.helper.cluster.ClusterConfiguration;
 import com.floragunn.searchguard.test.helper.cluster.ClusterHelper;
@@ -41,7 +42,7 @@ public class CrossClusterSearchTest extends AbstractSGUnitTest{
     
     protected Settings defaultNodeSettings(Settings other) {
         Settings.Builder builder = Settings.builder()
-                .put("searchguard.no_default_init", true)
+                .put(ConfigConstants.SEARCHGUARD_ALLOW_DEFAULT_INIT_SGINDEX, false) //default
                 .put(other==null?Settings.EMPTY:other);
         return builder.build();
     }
