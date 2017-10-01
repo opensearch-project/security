@@ -11,7 +11,7 @@
 #        - '<field>'
 
 # When a user make a request to elasticsearch then the following roles will be evaluated to see if the user has
-# permissions for the request. A request is always associated with an action and is executed against and index (or alias)
+# permissions for the request. A request is always associated with an action and is executed against an index (or alias)
 # and a type. If a request is executed against all indices (or all types) then the asterix ('*') is needed.
 # Every role a user has will be examined if it allows the action against an index (or type). At least one role must match
 # for the request to be successful. If no role match then the request will be denied. Currently a match must happen within
