@@ -53,6 +53,7 @@ CLUSTER_COMPOSITE_OPS_RO:
 CLUSTER_COMPOSITE_OPS:
   - "indices:data/write/bulk"
   - "indices:admin/aliases*"
+  - "indices:data/write/reindex"
   - CLUSTER_COMPOSITE_OPS_RO
   
 # HEALTH_AND_STATS = n"cluster:monitor/health*", "cluster:monitor/stats*", "indices:monitor/stats*", "cluster:monitor/nodes/stats*"

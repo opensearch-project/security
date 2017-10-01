@@ -44,7 +44,9 @@ import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotR
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesAction;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.bulk.BulkAction;
+import org.elasticsearch.action.bulk.BulkItemRequest;
 import org.elasticsearch.action.bulk.BulkRequest;
+import org.elasticsearch.action.bulk.BulkShardRequest;
 import org.elasticsearch.action.delete.DeleteAction;
 import org.elasticsearch.action.get.MultiGetAction;
 import org.elasticsearch.action.get.MultiGetRequest;
@@ -70,6 +72,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.index.Index;
+import org.elasticsearch.index.reindex.ReindexRequest;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.snapshots.SnapshotId;
@@ -95,6 +98,7 @@ public class PrivilegesEvaluator {
     private static final Set<String> NULL_SET = Sets.newHashSet((String)null);
     private final Set<String> DLSFLS = ImmutableSet.of("_dls_", "_fls_");
     protected final Logger log = LogManager.getLogger(this.getClass());
+    protected final Logger actionTrace = LogManager.getLogger("sg_action_trace");
     private final ClusterService clusterService;
     private final ActionGroupHolder ah;
     private final IndexNameExpressionResolver resolver;
@@ -394,7 +398,27 @@ public class PrivilegesEvaluator {
         //--- check inner bulk requests
         final Set<String> additionalPermissionsRequired = new HashSet<>();
         
-        if(request instanceof BulkRequest) {
+        if (request instanceof BulkShardRequest) {
+            BulkShardRequest bsr = (BulkShardRequest) request;
+            for (BulkItemRequest bir : bsr.items()) {
+                switch (bir.request().opType()) {
+                case CREATE:
+                    additionalPermissionsRequired.add(IndexAction.NAME);
+                    break;
+                case INDEX:
+                    additionalPermissionsRequired.add(IndexAction.NAME);
+                    break;
+                case DELETE:
+                    additionalPermissionsRequired.add(DeleteAction.NAME);
+                    break;
+                case UPDATE:
+                    additionalPermissionsRequired.add(UpdateAction.NAME);
+                    break;
+                }
+            }
+        }
+        
+        /*if(request instanceof BulkRequest) {
             
             for(DocWriteRequest<?> ar: ((BulkRequest) request).requests()) {
                 //require also op type permissions
@@ -406,9 +430,13 @@ public class PrivilegesEvaluator {
                 }
                 
             }
+        }*/
+        
+        if(actionTrace.isTraceEnabled() && !additionalPermissionsRequired.isEmpty()) {
+            actionTrace.trace(("Additional permissions required: "+additionalPermissionsRequired));
         }
         
-        if(log.isDebugEnabled()) {
+        if(log.isDebugEnabled() && !additionalPermissionsRequired.isEmpty()) {
             log.debug("Additional permissions required: "+additionalPermissionsRequired);
         }
         //TODO SG6 check additionalPermissionsRequired, not done yet
@@ -438,15 +466,15 @@ public class PrivilegesEvaluator {
                //TODO SG5 compat mode
 
                     
-                //|| action.startsWith("indices:data/read/scroll")
-                //|| (action.equals(BulkAction.NAME))
-               // || (action.equals(IndicesAliasesAction.NAME))
-               // || (action.equals(MultiGetAction.NAME))
-               // || (action.equals(MultiSearchAction.NAME))
-               // || (action.equals(MultiTermVectorsAction.NAME))
-               // || (action.equals("indices:data/read/coordinate-msearch"))
-               // || (action.equals("indices:data/write/reindex"))
-               // || (action.equals("indices:data/read/mpercolate"))
+                || action.startsWith("indices:data/read/scroll")
+                || (action.equals(BulkAction.NAME))
+                || (action.equals(IndicesAliasesAction.NAME))
+                || (action.equals(MultiGetAction.NAME))
+                || (action.equals(MultiSearchAction.NAME))
+                || (action.equals(MultiTermVectorsAction.NAME))
+                || (action.equals("indices:data/read/coordinate-msearch"))
+                || (action.equals("indices:data/write/bulk"))
+                || (action.equals("indices:data/write/reindex"))
 
                 ) {
                 
@@ -1149,7 +1177,7 @@ public class PrivilegesEvaluator {
           
             if(request instanceof IndicesRequest) { //skip BulkShardRequest?
 
-                final Tuple<Set<String>, Set<String>> t = resolve(user, action, (IndicesRequest) request, metaData);
+                final Tuple<Set<String>, Set<String>> t = resolveIndicesRequest(user, action, (IndicesRequest) request, metaData);
                 indices.addAll(t.v1());
                 types.addAll(t.v2());
                 
@@ -1157,24 +1185,25 @@ public class PrivilegesEvaluator {
                 
                 for(DocWriteRequest<?> ar: ((BulkRequest) request).requests()) {
                     
+                    //TODO SG6 require also op type permissions
                     //require also op type permissions
                     //ar.opType()
                     
-                    final Tuple<Set<String>, Set<String>> t = resolve(user, action, (IndicesRequest) ar, metaData);
+                    final Tuple<Set<String>, Set<String>> t = resolveIndicesRequest(user, action, (IndicesRequest) ar, metaData);
                     indices.addAll(t.v1());
                     types.addAll(t.v2());
                 }
                 
             } else if(request instanceof IndicesRequest) {
 
-                final Tuple<Set<String>, Set<String>> t = resolve(user, action, (IndicesRequest) request, metaData);
+                final Tuple<Set<String>, Set<String>> t = resolveIndicesRequest(user, action, (IndicesRequest) request, metaData);
                 indices.addAll(t.v1());
                 types.addAll(t.v2());
                 
             } else if(request instanceof MultiGetRequest) {
                 
                 for(Item item: ((MultiGetRequest) request).getItems()) {
-                    final Tuple<Set<String>, Set<String>> t = resolve(user, action, item, metaData);
+                    final Tuple<Set<String>, Set<String>> t = resolveIndicesRequest(user, action, item, metaData);
                     indices.addAll(t.v1());
                     types.addAll(t.v2());
                 }
@@ -1196,46 +1225,23 @@ public class PrivilegesEvaluator {
                 }
                 
                 
-            } else if(request.getClass().getName().equals("org.elasticsearch.index.reindex.ReindexRequest")) {
-                                
-                try {
-                    Tuple<Set<String>, Set<String>> t = resolve(user, action, (IndicesRequest) request.getClass().getMethod("getDestination").invoke(request), metaData);
-                    indices.addAll(t.v1());
-                    types.addAll(t.v2());
-                    
-                    t = resolve(user, action, (IndicesRequest) request.getClass().getMethod("getSearchRequest").invoke(request), metaData);
-                    indices.addAll(t.v1());
-                    types.addAll(t.v2());
-                } catch (Exception e) {
-                    log.error("Unable to handle "+request.getClass()+" due to "+e);
-                    if(log.isDebugEnabled()) {
-                        log.debug(ExceptionsHelper.stackTrace(e));
-                    }
-                }
-
-            } else if(request.getClass().getName().equals("org.elasticsearch.percolator.MultiPercolateRequest")) {
+            } else if(request instanceof ReindexRequest) {
+                     
                 
-                try {
-                    final List<Object> requests = (List<Object>) request.getClass().getMethod("requests").invoke(request);
-                    
-                    for(final Object ar: requests) {
-                        final Tuple<Set<String>, Set<String>> t = resolve(user, action, (TransportRequest) ar, metaData);
-                        indices.addAll(t.v1());
-                        types.addAll(t.v2());
-                    }
-                } catch (Exception e) {
-                    log.error("Unable to handle "+request.getClass()+" due to "+e);
-                    if(log.isDebugEnabled()) {
-                        log.debug(ExceptionsHelper.stackTrace(e));
-                    }
-                }
-
+                ReindexRequest reindexRequest = (ReindexRequest) request;
+                Tuple<Set<String>, Set<String>> t = resolveIndicesRequest(user, action, reindexRequest.getDestination(), metaData);
+                indices.addAll(t.v1());
+                types.addAll(t.v2());
+                
+                t = resolveIndicesRequest(user, action, reindexRequest.getSearchRequest(), metaData);
+                indices.addAll(t.v1());
+                types.addAll(t.v2());
             } else {
-                log.warn("Can not handle composite request of type '"+request.getClass().getName()+"'for "+action+" here");
+                log.error("Can not handle composite request of type '"+request.getClass().getName()+"'for "+action+" here");
             }
 
         } else {
-            final Tuple<Set<String>, Set<String>> t = resolve(user, action, (IndicesRequest) request, metaData);
+            final Tuple<Set<String>, Set<String>> t = resolveIndicesRequest(user, action, (IndicesRequest) request, metaData);
             indices.addAll(t.v1());
             types.addAll(t.v2());
         }
@@ -1256,15 +1262,19 @@ public class PrivilegesEvaluator {
         if (types.isEmpty()) {
             types.add("_all");
         }
-
+        
+        if(log.isDebugEnabled()) {
+            log.debug("final indices: {}", indices);
+            log.debug("final types: {}", types);
+        }
         return new Tuple<Set<String>, Set<String>>(Collections.unmodifiableSet(indices), Collections.unmodifiableSet(types));
     }
 
-    private Tuple<Set<String>, Set<String>> resolve(final User user, final String action, final IndicesRequest request,
+    private Tuple<Set<String>, Set<String>> resolveIndicesRequest(final User user, final String action, final IndicesRequest request,
             final MetaData metaData) {
 
         if (log.isDebugEnabled()) {
-            log.debug("Resolve {} from {}", request.indices(), request.getClass());
+            log.debug("Resolve {} from {} for action {}", request.indices(), request.getClass(), action);
         }
         
         
@@ -1334,6 +1344,7 @@ public class PrivilegesEvaluator {
         if (log.isDebugEnabled()) {
             log.debug("indicesOptions {}", request.indicesOptions());
             log.debug("{} raw indices {}", request.indices().length, Arrays.toString(request.indices()));
+            log.debug("{} requestTypes {}", requestTypes.size(), requestTypes);
         }
 
         final Set<String> indices = new HashSet<String>();

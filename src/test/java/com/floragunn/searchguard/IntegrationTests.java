@@ -624,6 +624,7 @@ public class IntegrationTests extends SingleClusterTest {
         Assert.assertEquals(HttpStatus.SC_CREATED, rh.executePutRequest("searchguard/sg/config", "{}", encodeBasicHeader("___", "")).getStatusCode());
     }
 
+    //SG6 rewrite priv eval
     @Test
     public void testComposite() throws Exception {
     

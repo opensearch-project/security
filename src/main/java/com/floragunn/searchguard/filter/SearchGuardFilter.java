@@ -25,6 +25,7 @@ import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.support.ActionFilter;
 import org.elasticsearch.action.support.ActionFilterChain;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.rest.RestStatus;
@@ -44,21 +45,24 @@ import com.floragunn.searchguard.user.User;
 public class SearchGuardFilter implements ActionFilter {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
+    protected final Logger actionTrace = LogManager.getLogger("sg_action_trace");
     private final PrivilegesEvaluator evalp;
     private final Settings settings;
     private final AdminDNs adminDns;
     private DlsFlsRequestValve dlsFlsValve;
     private final AuditLog auditLog;
     private final ThreadContext threadContext;
+    private final ClusterService cs;
     
     public SearchGuardFilter(final Settings settings, final PrivilegesEvaluator evalp, final AdminDNs adminDns,
-            DlsFlsRequestValve dlsFlsValve, AuditLog auditLog, ThreadPool threadPool) {
+            DlsFlsRequestValve dlsFlsValve, AuditLog auditLog, ThreadPool threadPool, ClusterService cs) {
         this.settings = settings;
         this.evalp = evalp;
         this.adminDns = adminDns;
         this.dlsFlsValve = dlsFlsValve;
         this.auditLog = auditLog;
         this.threadContext = threadPool.getThreadContext();
+        this.cs = cs;
     }
 
     @Override
@@ -80,24 +84,29 @@ public class SearchGuardFilter implements ActionFilter {
             final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadContext);
             //final boolean trustedClusterRequest = HeaderHelper.isTrustedClusterRequest(threadContext);
             final boolean conRequest = "true".equals(HeaderHelper.getSafeFromHeader(threadContext, ConfigConstants.SG_CONF_REQUEST_HEADER));
-            final boolean licenseInfoRequest = action.equals(LicenseInfoAction.NAME);
+            final boolean passThroughRequest = action.equals(LicenseInfoAction.NAME) || action.startsWith("indices:admin/seq_no");
             
             final boolean internalRequest = 
                     interClusterRequest 
                     && action.startsWith("internal:") 
                     && !action.startsWith("internal:transport/proxy");
             
-            if(log.isTraceEnabled()) {
-                log.trace(action+": userIsAdmin="+userIsAdmin+"/conRequest="+conRequest+"/internalRequest="+internalRequest
+            if(actionTrace.isTraceEnabled()) {
+                actionTrace.trace("Node "+cs.localNode().getName()+" -> "+action+": userIsAdmin="+userIsAdmin+"/conRequest="+conRequest+"/internalRequest="+internalRequest
                         +"origin="+threadContext.getTransient("_sg_origin")+"/directRequest="+HeaderHelper.isDirectRequest(threadContext)+"/remoteAddress="+request.remoteAddress());
             }
+            
+            /*if(log.isTraceEnabled()) {
+                log.trace("Node "+cs.localNode().getName()+" -> "+action+": userIsAdmin="+userIsAdmin+"/conRequest="+conRequest+"/internalRequest="+internalRequest
+                        +"origin="+threadContext.getTransient("_sg_origin")+"/directRequest="+HeaderHelper.isDirectRequest(threadContext)+"/remoteAddress="+request.remoteAddress());
+            }*/
             
             if(userIsAdmin 
                     || conRequest 
                     || internalRequest 
-                    || licenseInfoRequest){
+                    || passThroughRequest){
     
-                if(userIsAdmin && !conRequest && !internalRequest && !licenseInfoRequest) {
+                if(userIsAdmin && !conRequest && !internalRequest && !passThroughRequest) {
                     auditLog.logGrantedPrivileges(action, request);
                 }
     
