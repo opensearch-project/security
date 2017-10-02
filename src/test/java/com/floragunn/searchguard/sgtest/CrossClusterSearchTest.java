@@ -1,5 +1,6 @@
 package com.floragunn.searchguard.sgtest;
 
+import org.apache.http.HttpStatus;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
 import org.elasticsearch.client.transport.TransportClient;
@@ -9,25 +10,29 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.test.AbstractSGUnitTest;
 import com.floragunn.searchguard.test.helper.cluster.ClusterConfiguration;
 import com.floragunn.searchguard.test.helper.cluster.ClusterHelper;
 import com.floragunn.searchguard.test.helper.cluster.ClusterInfo;
 import com.floragunn.searchguard.test.helper.rest.RestHelper;
+import com.floragunn.searchguard.test.helper.rest.RestHelper.HttpResponse;
 
 public class CrossClusterSearchTest extends AbstractSGUnitTest{
     
-    ClusterHelper cl1 = new ClusterHelper("crl1");
-    ClusterHelper cl2 = new ClusterHelper("crl2");
-    ClusterInfo cl1Info;
-    ClusterInfo cl2Info;
+    private final ClusterHelper cl1 = new ClusterHelper("crl1");
+    private final ClusterHelper cl2 = new ClusterHelper("crl2");
+    private ClusterInfo cl1Info;
+    private ClusterInfo cl2Info;
     
-    protected void setup() throws Exception {    
+    private void setupCcs() throws Exception {    
+        
+        System.setProperty("sg.display_lic_none","true");
+        
         cl2Info = cl2.startCluster(minimumSearchGuardSettings(defaultNodeSettings(first3())), ClusterConfiguration.DEFAULT);
         initialize(cl2Info);
         System.out.println("### cl2 complete ###");
-        //Thread.sleep(20000);
+        
+        //cl1 is coordintaing
         cl1Info = cl1.startCluster(minimumSearchGuardSettings(defaultNodeSettings(crossClusterNodeSettings(cl2Info))), ClusterConfiguration.DEFAULT);
         System.out.println("### cl1 start ###");
         initialize(cl1Info);
@@ -40,57 +45,104 @@ public class CrossClusterSearchTest extends AbstractSGUnitTest{
         cl2.stopCluster();
     }
     
-    protected Settings defaultNodeSettings(Settings other) {
+    private Settings defaultNodeSettings(Settings other) {
         Settings.Builder builder = Settings.builder()
-                .put(ConfigConstants.SEARCHGUARD_ALLOW_DEFAULT_INIT_SGINDEX, false) //default
-                .put(other==null?Settings.EMPTY:other);
+                                   .put(other);
         return builder.build();
     }
     
-    protected Settings crossClusterNodeSettings(ClusterInfo remote) {
+    private Settings crossClusterNodeSettings(ClusterInfo remote) {
         Settings.Builder builder = Settings.builder()
-                .putArray("search.remote.cross_cluster_one.seeds", remote.nodeHost+":"+remote.nodePort)
+                .putArray("search.remote.cross_cluster_two.seeds", remote.nodeHost+":"+remote.nodePort)
                 .putArray("discovery.zen.ping.unicast.hosts", "localhost:9303","localhost:9304","localhost:9305");
         return builder.build();
     }
     
-    protected Settings first3() {
+    private Settings first3() {
         Settings.Builder builder = Settings.builder()
                 .putArray("discovery.zen.ping.unicast.hosts", "localhost:9300","localhost:9301","localhost:9302");
         return builder.build();
     }
-
     
     @Test
-    public void test() throws Exception {
-        setup();
+    public void testCcs() throws Exception {
+        setupCcs();
         
         final String cl1BodyMain = new RestHelper(cl1Info, false, false).executeGetRequest("", encodeBasicHeader("nagilum","nagilum")).getBody();
         Assert.assertTrue(cl1BodyMain.contains("crl1"));
         
         try (TransportClient tc = getInternalTransportClient(cl1Info, Settings.EMPTY)) {
-            tc.index(
-                    new IndexRequest("twitter").type("tweet").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                            .source("{\"content\":1}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest("twitter").type("tweet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+                    .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest("twutter").type("tweet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+                    .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest("special:index").type("spec").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+                    .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest("cross_cluster_two:xx").type("xx").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+                    .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
         }
         
         final String cl2BodyMain = new RestHelper(cl2Info, false, false).executeGetRequest("", encodeBasicHeader("nagilum","nagilum")).getBody();
         Assert.assertTrue(cl2BodyMain.contains("crl2"));
         
         try (TransportClient tc = getInternalTransportClient(cl2Info, Settings.EMPTY)) {
-            tc.index(
-                    new IndexRequest("twitter").type("tweet").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                            .source("{\"content\":2}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest("twitter").type("tweet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+                    .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest("twutter").type("tweet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+                    .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest("special:index").type("spec").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+                    .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest("cross_cluster_two:xx").type("xx").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+                    .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
         }
-           
-        final String ccs = new RestHelper(cl1Info, false, false).executeGetRequest("cross_cluster_one:twitter,twitter/tweet/_search?pretty", encodeBasicHeader("nagilum","nagilum")).getBody();
-        System.out.println(ccs);
-        Assert.assertFalse(ccs.contains("security_exception"));
-        Assert.assertTrue(ccs.contains("\"timed_out\" : false"));
-        Assert.assertTrue(ccs.contains("\"successful\" : 10"));
-        Assert.assertTrue(ccs.contains("\"total\" : 2"));
-        Assert.assertTrue(ccs.contains("\"content\" : 1"));
-        Assert.assertTrue(ccs.contains("\"content\" : 2"));
-        Assert.assertTrue(ccs.contains("cross_cluster_one:twitter"));
+        
+        HttpResponse ccs = null;
+        
+        System.out.println("###################### query 0");
+        ccs = new RestHelper(cl1Info, false, false).executeGetRequest("cross_cluster_two:*/_search?pretty", encodeBasicHeader("nagilum","nagilum"));
+        System.out.println(ccs.getBody());
+        Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
+        Assert.assertFalse(ccs.getBody().contains("crl1"));
+        Assert.assertTrue(ccs.getBody().contains("crl2"));
+        Assert.assertTrue(ccs.getBody().contains("twitter"));
+        
+        
+        System.out.println("###################### query 1");
+        ccs = new RestHelper(cl1Info, false, false).executeGetRequest("special:index/spec/_search?pretty", encodeBasicHeader("nagilum","nagilum"));
+        System.out.println(ccs.getBody());
+        Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
+        Assert.assertTrue(ccs.getBody().contains("crl1"));
+        Assert.assertFalse(ccs.getBody().contains("crl2"));
+        
+        System.out.println("###################### query 2");
+        ccs = new RestHelper(cl1Info, false, false).executeGetRequest("cross_cluster_two:special:index,special:index/spec/_search?pretty", encodeBasicHeader("nagilum","nagilum"));
+        System.out.println(ccs.getBody());
+        Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
+        Assert.assertTrue(ccs.getBody().contains("crl1"));
+        Assert.assertTrue(ccs.getBody().contains("crl2"));
+        Assert.assertTrue(ccs.getBody().contains("cross_cluster"));
+        
+        System.out.println("###################### query 3");
+        ccs = new RestHelper(cl1Info, false, false).executeGetRequest("cross_cluster_two:xx,xx/xx/_search?pretty", encodeBasicHeader("nagilum","nagilum"));
+        System.out.println(ccs.getBody());
+        //TODO fix exception nesting
+        //Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, ccs.getStatusCode());
+        //Assert.assertTrue(ccs.getBody().contains("Can not filter indices; index cross_cluster_two:xx exists but there is also a remote cluster named: cross_cluster_two"));
+        
+        System.out.println("###################### query 4");
+        ccs = new RestHelper(cl1Info, false, false).executeGetRequest("cross_cluster_two:abcnonext/xx/_search?pretty", encodeBasicHeader("nagilum","nagilum"));
+        System.out.println(ccs.getBody());
+        Assert.assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, ccs.getStatusCode());
+        Assert.assertTrue(ccs.getBody().contains("index_not_found_exception"));
+        
+        System.out.println("###################### query 5");
+        ccs = new RestHelper(cl1Info, false, false).executeGetRequest("cross_cluster_two:twitter,twutter/tweet/_search?pretty", encodeBasicHeader("nagilum","nagilum"));
+        System.out.println(ccs.getBody());
+        Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
+        Assert.assertFalse(ccs.getBody().contains("security_exception"));
+        Assert.assertTrue(ccs.getBody().contains("\"timed_out\" : false"));
+        Assert.assertTrue(ccs.getBody().contains("crl1"));
+        Assert.assertTrue(ccs.getBody().contains("crl2"));
+        Assert.assertTrue(ccs.getBody().contains("cross_cluster"));
     }
 }

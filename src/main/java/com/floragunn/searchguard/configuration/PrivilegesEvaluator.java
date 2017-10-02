@@ -34,11 +34,11 @@ import java.util.TreeSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchSecurityException;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.CompositeIndicesRequest;
 import org.elasticsearch.action.DocWriteRequest;
 import org.elasticsearch.action.IndicesRequest;
+import org.elasticsearch.action.OriginalIndices;
 import org.elasticsearch.action.RealtimeRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesAction;
@@ -48,6 +48,7 @@ import org.elasticsearch.action.bulk.BulkItemRequest;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkShardRequest;
 import org.elasticsearch.action.delete.DeleteAction;
+import org.elasticsearch.action.fieldcaps.FieldCapabilitiesRequest;
 import org.elasticsearch.action.get.MultiGetAction;
 import org.elasticsearch.action.get.MultiGetRequest;
 import org.elasticsearch.action.get.MultiGetRequest.Item;
@@ -79,6 +80,7 @@ import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotUtils;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.RemoteClusterAware;
 import org.elasticsearch.transport.TransportRequest;
 
 import com.floragunn.searchguard.SearchGuardPlugin;
@@ -315,8 +317,9 @@ public class PrivilegesEvaluator {
 
         final ClusterState clusterState = clusterService.state();
         final MetaData metaData = clusterState.metaData();
-        final Tuple<Set<String>, Set<String>> requestedResolvedAliasesIndicesTypes = resolve(user, action, request, metaData);
 
+        final Tuple<Set<String>, Set<String>> requestedResolvedAliasesIndicesTypes = resolve(user, action, request, metaData);
+                
         final Set<String> requestedResolvedIndices = Collections.unmodifiableSet(requestedResolvedAliasesIndicesTypes.v1());        
         final Set<IndexType> requestedResolvedIndexTypes;
         
@@ -758,7 +761,7 @@ public class PrivilegesEvaluator {
         }
 
         // Start resolve for RestoreSnapshotRequest
-        final RepositoriesService repositoriesService = Objects.requireNonNull(SearchGuardPlugin.RepositoriesServiceHolder.getRepositoriesService(), "RepositoriesService not initialized");     
+        final RepositoriesService repositoriesService = Objects.requireNonNull(SearchGuardPlugin.GuiceHolder.getRepositoriesService(), "RepositoriesService not initialized");     
         //hack, because it seems not possible to access RepositoriesService from a non guice class
         final Repository repository = repositoriesService.repository(restoreRequest.repository());
         SnapshotInfo snapshotInfo = null;
@@ -1343,7 +1346,7 @@ public class PrivilegesEvaluator {
 
         if (log.isDebugEnabled()) {
             log.debug("indicesOptions {}", request.indicesOptions());
-            log.debug("{} raw indices {}", request.indices().length, Arrays.toString(request.indices()));
+            log.debug("{} raw indices {}", request.indices()==null?0:request.indices().length, Arrays.toString(request.indices()));
             log.debug("{} requestTypes {}", requestTypes.size(), requestTypes);
         }
 
@@ -1359,13 +1362,36 @@ public class PrivilegesEvaluator {
             
         } else {
             
+            String[] localIndices = request.indices();
+            
+            if(request instanceof FieldCapabilitiesRequest || request instanceof SearchRequest) {
+                IndicesRequest.Replaceable searchRequest = (IndicesRequest.Replaceable) request;
+                final Map<String, OriginalIndices> remoteClusterIndices = SearchGuardPlugin.GuiceHolder.getRemoteClusterService()
+                        .groupIndices(searchRequest.indicesOptions(),searchRequest.indices(), idx -> resolver.hasIndexOrAlias(idx, clusterService.state()));
+                
+                System.out.println(SearchGuardPlugin.GuiceHolder.getRemoteClusterService().isCrossClusterSearchEnabled());
+                System.out.println(remoteClusterIndices);
+                
+                if (remoteClusterIndices.size() > 1) {
+                    // check permissions?
+
+                    final OriginalIndices originalLocalIndices = remoteClusterIndices.get(RemoteClusterAware.LOCAL_CLUSTER_GROUP_KEY);
+                    localIndices = originalLocalIndices.indices();
+
+                    if (log.isTraceEnabled()) {
+                        log.trace("remoteClusterIndices keys" + remoteClusterIndices.keySet() + "//remoteClusterIndices "
+                                + remoteClusterIndices);
+                    }
+                }
+            }
+
             try { 
                 final String[] dateMathIndices;
-                if((dateMathIndices = WildcardMatcher.matches("<*>", request.indices(), false)).length > 0) {
+                if((dateMathIndices = WildcardMatcher.matches("<*>", localIndices, false)).length > 0) {
                     //date math
                     
                     if(log.isDebugEnabled()) {
-                        log.debug("Date math indices detected {} (all: {})", dateMathIndices, request.indices());
+                        log.debug("Date math indices detected {} (all: {})", dateMathIndices, localIndices);
                     }
                     
                     for(String dateMathIndex: dateMathIndices) {
@@ -1376,15 +1402,15 @@ public class PrivilegesEvaluator {
                         log.debug("Resolved date math indices {} to {}", dateMathIndices, indices);
                     }
                     
-                    if(request.indices().length > dateMathIndices.length) {
-                        for(String nonDateMath: request.indices()) {
+                    if(localIndices.length > dateMathIndices.length) {
+                        for(String nonDateMath: localIndices) {
                             if(!WildcardMatcher.match("<*>", nonDateMath)) {
                                 indices.addAll(Arrays.asList(resolver.concreteIndexNames(clusterService.state(), request.indicesOptions(), dateMathIndices)));
                             }
                         }
                         
                         if(log.isDebugEnabled()) {
-                            log.debug("Resolved additional non date math indices {} to {}", request.indices(), indices);
+                            log.debug("Resolved additional non date math indices {} to {}", localIndices, indices);
                         }
                     }
 
@@ -1394,14 +1420,14 @@ public class PrivilegesEvaluator {
                         log.debug("No date math indices found");
                     }
                     
-                    indices.addAll(Arrays.asList(resolver.concreteIndexNames(clusterService.state(), request)));
+                    indices.addAll(Arrays.asList(resolver.concreteIndexNames(clusterService.state(), request.indicesOptions(), localIndices)));
                     if(log.isDebugEnabled()) {
-                        log.debug("Resolved {} to {}", request.indices(), indices);
+                        log.debug("Resolved {} to {}", localIndices, indices);
                     }
                 }                
             } catch (final Exception e) {
-                log.debug("Cannot resolve {} (due to {}) so we use the raw values", Arrays.toString(request.indices()), e);
-                indices.addAll(Arrays.asList(request.indices()));
+                log.debug("Cannot resolve {} (due to {}) so we use the raw values", Arrays.toString(localIndices), e);
+                indices.addAll(Arrays.asList(localIndices));
             }
         }
         
