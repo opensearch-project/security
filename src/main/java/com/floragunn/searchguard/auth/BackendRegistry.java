@@ -635,7 +635,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
             
             if(impersonatedUser == null) {
                 log.debug("Unable to impersonate rest user from '{}' to '{}' because the impersonated user does not exists in {}", originalUser.getName(), impersonatedUserHeader, authDomain.getBackend().getType());
-                return null;
+                throw new ElasticsearchSecurityException("No such user:" + impersonatedUserHeader, RestStatus.FORBIDDEN);
             }
             
             if (log.isDebugEnabled()) {

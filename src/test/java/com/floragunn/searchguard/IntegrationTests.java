@@ -4,7 +4,6 @@ import io.netty.handler.ssl.OpenSsl;
 
 import java.io.File;
 import java.lang.Thread.UncaughtExceptionHandler;
-import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -23,10 +22,8 @@ import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequ
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
-import org.elasticsearch.action.admin.indices.alias.IndicesAliasesResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
-import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
@@ -56,6 +53,7 @@ import com.floragunn.searchguard.action.configupdate.ConfigUpdateRequest;
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateResponse;
 import com.floragunn.searchguard.configuration.PrivilegesInterceptorImpl;
 import com.floragunn.searchguard.http.HTTPClientCertAuthenticator;
+import com.floragunn.searchguard.ssl.util.ExceptionUtils;
 import com.floragunn.searchguard.ssl.util.SSLConfigConstants;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.test.DynamicSgConfig;
@@ -277,9 +275,7 @@ public class IntegrationTests extends SingleClusterTest {
             Assert.assertFalse(res.getBody().contains("worf"));
             
             res = rh.executeGetRequest("/_searchguard/authinfo", new BasicHeader("sg_impersonate_as","nonexists"), encodeBasicHeader("worf", "worf"));
-            Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
-            Assert.assertTrue(res.getBody().contains("name=worf"));
-            Assert.assertFalse(res.getBody().contains("nonexists"));
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
             
             res = rh.executeGetRequest("/_searchguard/authinfo", new BasicHeader("sg_impersonate_as","notallowed"), encodeBasicHeader("worf", "worf"));
             Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
@@ -355,7 +351,6 @@ public class IntegrationTests extends SingleClusterTest {
                     tc.index(new IndexRequest("searchguard").type("sg").id("config").source("config", FileHelper.readYamlContent("sg_config.yml"))).actionGet();
                     Assert.fail();
                 } catch (Exception e) {
-                    // TODO Auto-generated catch block
                     System.out.println(e.getMessage());
                 }
                 
@@ -390,14 +385,6 @@ public class IntegrationTests extends SingleClusterTest {
                     ctx.close();
                 }
                 
-                //TODO 5mg imp
-                /*try {
-                    gr = tc.prepareGet("vulcan", "secrets", "s1").putHeader("Authorization", "basic "+encodeBasicHeader("worf", "worf")).get();
-                    Assert.fail();
-                } catch (ElasticsearchSecurityException e) {
-                   Assert.assertEquals("no permissions for indices:data/read/get", e.getMessage());
-                }*/
-                
                 System.out.println("------- 12 ---------");
                 ctx = tc.threadPool().getThreadContext().stashContext();
                 try {
@@ -428,45 +415,7 @@ public class IntegrationTests extends SingleClusterTest {
                 } catch (ElasticsearchSecurityException e) {
                     Assert.assertEquals("'CN=spock,OU=client,O=client,L=Test,C=DE' is not allowed to impersonate as 'gkar'", e.getMessage());
                 }
-    
-    /*//impersonation
-                try {
-                    gr = tc.prepareGet("vulcan", "secrets", "s1").putHeader("sg_impersonate_as", "gkar").get();
-                    Assert.fail();
-                } catch (ElasticsearchSecurityException e) {
-                   Assert.assertEquals("'CN=spock,OU=client,O=client,L=Test,C=DE' is not allowed to impersonate as 'gkar'", e.getMessage());
-                }
-                       
-                System.out.println("------- 14 ---------");
-                
-                boolean ok=false;
-                try {
-                    gr = tc.prepareGet("vulcan", "secrets", "s1").putHeader("sg_impersonate_as", "nagilum").get();
-                    ok = true;
-                    gr = tc.prepareGet("vulcan", "secrets", "s1").putHeader("sg_impersonate_as", "nagilum").putHeader("Authorization", "basic "+encodeBasicHeader("worf", "worf")).get();
-                    Assert.fail();
-                } catch (ElasticsearchSecurityException e) {
-                   Assert.assertEquals("no permissions for indices:data/read/get", e.getMessage());
-                   Assert.assertTrue(ok);
-                }
-                
-                System.out.println("------- 15 ---------");
-                
-                gr = tc.prepareGet("searchguard", "config", "0""-).putHeader("sg_impersonate_as", "nagilum").setRealtime(Boolean.TRUE).get();
-                Assert.assertFalse(gr.isExists());
-                Assert.assertTrue(gr.isSourceEmpty());
-                
-                gr = tc.prepareGet("searchguard", "config", "0""-).putHeader("Authorization", "basic "+encodeBasicHeader("nagilum", "nagilum")).setRealtime(Boolean.TRUE).get();
-                Assert.assertFalse(gr.isExists());
-                Assert.assertTrue(gr.isSourceEmpty());
-    
-                System.out.println("------- 16---------");
-              
-                gr = tc.prepareGet("searchguard", "config", "0""-).putHeader("sg_impersonate_as", "nagilum").setRealtime(Boolean.FALSE).get();
-                Assert.assertFalse(gr.isExists());
-                Assert.assertTrue(gr.isSourceEmpty());
-                
-                */
+
                 System.out.println("------- 12 ---------");
     
                 ctx = tc.threadPool().getThreadContext().stashContext();
@@ -503,11 +452,10 @@ public class IntegrationTests extends SingleClusterTest {
                 
                 System.out.println("------- 13.2 ---------");
     
-                //TODO fails (but this could be ok?)
                 ctx = tc.threadPool().getThreadContext().stashContext();
                 try {
-                    tc.threadPool().getThreadContext().putHeader("sg_impersonate_as", "worf");
-                    //SearchResponse scrollRes = tc.prepareSearchScroll(scrollId).get();
+                    tc.threadPool().getThreadContext().putHeader("sg_impersonate_as", "nagilum");
+                    tc.prepareSearchScroll(scrollId).get();
                 } finally {
                     ctx.close();
                 }
@@ -546,11 +494,27 @@ public class IntegrationTests extends SingleClusterTest {
                     ctx.close();
                 }
                 
-                System.out.println("------- 15 1---------");
+                System.out.println("------- 15 0---------");
                 
                 ctx = tc.threadPool().getThreadContext().stashContext();
                 try {
                     Header header = encodeBasicHeader("worf", "worf");
+                    tc.threadPool().getThreadContext().putHeader(header.getName(), header.getValue());
+                    gr = tc.prepareGet("searchguard", "sg", "config").setRealtime(Boolean.TRUE).get();
+                    Assert.fail();
+                } catch (Exception e) {
+                    Assert.assertTrue(e.getMessage().contains("no permissions for indices:data/read/get and User [name=worf"));
+                }
+                finally {
+                    ctx.close();
+                }
+                
+                
+                System.out.println("------- 15 1---------");
+                
+                ctx = tc.threadPool().getThreadContext().stashContext();
+                try {
+                    Header header = encodeBasicHeader("nagilum", "nagilum");
                     tc.threadPool().getThreadContext().putHeader(header.getName(), header.getValue());
                     gr = tc.prepareGet("searchguard", "sg", "config").setRealtime(Boolean.TRUE).get();
                     Assert.assertFalse(gr.isExists());
@@ -558,6 +522,7 @@ public class IntegrationTests extends SingleClusterTest {
                 } finally {
                     ctx.close();
                 }
+                
                 System.out.println("------- 16---------");
               
                 ctx = tc.threadPool().getThreadContext().stashContext();
@@ -584,13 +549,25 @@ public class IntegrationTests extends SingleClusterTest {
                 ctx = tc.threadPool().getThreadContext().stashContext();
                 try {
                     tc.threadPool().getThreadContext().putHeader("sg_impersonate_as", "worf");
-                    SearchResponse scrollRes = tc.prepareSearchScroll(searchRes.getScrollId()).get(); 
-                    Assert.assertNotNull(scrollRes);
+                    tc.prepareSearchScroll(searchRes.getScrollId()).get(); 
+                    Assert.fail();
+                } catch (Exception e) {
+                    Throwable root = ExceptionUtils.getRootCause(e);
+                    e.printStackTrace();
+                    Assert.assertTrue(root.getMessage().contains("Wrong user in scroll context"));
+                }
+                finally {
+                    ctx.close();
+                }
+
+                
+                ctx = tc.threadPool().getThreadContext().stashContext();
+                searchRes = null;
+                try {
+                    tc.threadPool().getThreadContext().putHeader("sg_impersonate_as", "nagilum");
+                    searchRes = tc.prepareSearch("starfleet").setTypes("ships").setScroll(TimeValue.timeValueMinutes(5)).get();
+                    SearchResponse scrollRes = tc.prepareSearchScroll(searchRes.getScrollId()).get();
                     Assert.assertEquals(0, scrollRes.getFailedShards());
-                    Assert.assertEquals(1, scrollRes.getHits().getTotalHits());
-                    //System.out.println(scrollRes.getHits().getHits().length); //0 ??
-                    //TODO scrollRes.getScrollId() is null
-                    //Assert.assertNotNull(scrollRes.getScrollId());
                 } finally {
                     ctx.close();
                 }
@@ -715,12 +692,10 @@ public class IntegrationTests extends SingleClusterTest {
         Assert.assertEquals("Unable to create index 'nag'", HttpStatus.SC_OK, rh.executePutRequest("nag1", null, encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
         Assert.assertEquals("Unable to create index 'starfleet_library'", HttpStatus.SC_OK, rh.executePutRequest("starfleet_library", null, encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
         
-        //Thread.sleep(2000);
         clusterHelper.waitForCluster(ClusterHealthStatus.GREEN, TimeValue.timeValueSeconds(10), clusterInfo.numNodes);
         
         Assert.assertEquals("Unable to close index 'starfleet_library'", HttpStatus.SC_OK, rh.executePostRequest("starfleet_library/_close", null, encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
         
-        //TODO open fails with no permissions for internal:gateway/local/started_shards
         Assert.assertEquals("Unable to open index 'starfleet_library'", HttpStatus.SC_OK, (res = rh.executePostRequest("starfleet_library/_open", null, encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
         Assert.assertEquals("open index 'starfleet_library' not acknowledged", "{\"acknowledged\":true}", res.getBody());
         
@@ -1174,6 +1149,7 @@ public class IntegrationTests extends SingleClusterTest {
         
     }
 
+    @SuppressWarnings("resource")
     @Test
     public void testNodeClientAllowedWithServerCertificate() throws Exception {
         setup();
@@ -1198,6 +1174,7 @@ public class IntegrationTests extends SingleClusterTest {
         }
     }
     
+    @SuppressWarnings("resource")
     @Test
     public void testNodeClientDisallowedWithNonServerCertificate() throws Exception {
         setup();
@@ -1224,6 +1201,7 @@ public class IntegrationTests extends SingleClusterTest {
         }
     }
     
+    @SuppressWarnings("resource")
     @Test
     public void testNodeClientDisallowedWithNonServerCertificate2() throws Exception {
         setup();
@@ -1252,85 +1230,31 @@ public class IntegrationTests extends SingleClusterTest {
     @Test
     public void testRestImpersonation() throws Exception {
     
-        //enableHTTPClientSSL = true;
-        //trustHTTPServerCertificate = true;
-        //sendHTTPClientCertificate = true;
+        final Settings settings = Settings.builder()
+                 .putArray(ConfigConstants.SEARCHGUARD_AUTHCZ_REST_IMPERSONATION_USERS+".spock", "knuddel","userwhonotexists").build();
+ 
+        setup(settings);
+        
+        RestHelper rh = nonSslRestHelper();
         
         //knuddel:
         //    hash: _rest_impersonation_only_
     
-        Assert.fail("rewrite test");
-        
-        /*final Settings settings = Settings.settingsBuilder().put("searchguard.ssl.transport.enabled", true)
-                .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
-                .put("searchguard.ssl.transport.keystore_filepath", getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-                .put("searchguard.ssl.transport.truststore_filepath", getAbsoluteFilePathFromClassPath("truststore.jks"))
-                .put("searchguard.ssl.transport.enforce_hostname_verification", false)
-                .put("searchguard.ssl.transport.resolve_hostname", false)
-                .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLED, true)
-                .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_TRUSTSTORE_FILEPATH, getAbsoluteFilePathFromClassPath("truststore.jks"))
-                .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_KEYSTORE_FILEPATH, getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-                .putArray("searchguard.authcz.admin_dn", "CN=kirk,OU=client,O=client,l=tEst, C=De")
-                .putArray("searchguard.authcz.impersonation_dn.CN=spock,OU=client,O=client,L=Test,C=DE", "knuddel","userwhonotexists").build();
-    
-        startES(settings);
-    
-        Settings tcSettings = Settings.builder().put("cluster.name", clustername).put(settings)
-                .put("searchguard.ssl.transport.keystore_filepath", getAbsoluteFilePathFromClassPath("kirk-keystore.jks"))
-                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "kirk").put("path.home", ".").build();
-    
-        try (TransportClient tc = TransportClient.builder().settings(tcSettings).addPlugin(SearchGuardSSLPlugin.class)
-                .addPlugin(SearchGuardPlugin.class).build()) {
-    
-            log.debug("Start transport client to init");
-    
-            tc.addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(nodeHost, nodePort)));
-            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().length);
-    
-            tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
-            tc.index(new IndexRequest("searchguard").type("config").id("0""-).refresh(true).source(readYamlContent("sg_config.yml")))
-                    .actionGet();
-            tc.index(
-                    new IndexRequest("searchguard").type("internalusers").refresh(true).id("0""-)
-                            .source(readYamlContent("sg_internal_users.yml"))).actionGet();
-            tc.index(new IndexRequest("searchguard").type("roles").id("0""-).refresh(true).source(readYamlContent("sg_roles.yml")))
-                    .actionGet();
-            tc.index(
-                    new IndexRequest("searchguard").type("rolesmapping").refresh(true).id("0""-)
-                            .source(readYamlContent("sg_roles_mapping.yml"))).actionGet();
-            tc.index(
-                    new IndexRequest("searchguard").type("actiongroups").refresh(true).id("0""-)
-                            .source(readYamlContent("sg_action_groups.yml"))).actionGet();
-    
-            ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE,
-                    new ConfigUpdateRequest(new String[] { "config", "roles", "rolesmapping", "internalusers", "actiongroups" }))
-                    .actionGet();
-            Assert.assertEquals(3, cur.getNodes().length);
-        }
-    
         HttpResponse resp;
-        resp = executeGetRequest("/_searchguard/authinfo", new BasicHeader("sg_impersonate_as", "knuddel"), new BasicHeader(
-                "Authorization", "Basic " + encodeBasicHeader("worf", "worf")));
+        resp = rh.executeGetRequest("/_searchguard/authinfo", new BasicHeader("sg_impersonate_as", "knuddel"), encodeBasicHeader("worf", "worf"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resp.getStatusCode());
-        keystore = "spock-keystore.jks";
-        sendHTTPClientCertificate = true;
     
-        resp = executeGetRequest("/_searchguard/authinfo", new BasicHeader("sg_impersonate_as", "knuddel"), new BasicHeader(
-                "Authorization", "Basic " + encodeBasicHeader("worf", "worf")));
+        resp = rh.executeGetRequest("/_searchguard/authinfo", new BasicHeader("sg_impersonate_as", "knuddel"), encodeBasicHeader("spock", "spock"));
         Assert.assertEquals(HttpStatus.SC_OK, resp.getStatusCode());
         Assert.assertTrue(resp.getBody().contains("name=knuddel"));
-        Assert.assertFalse(resp.getBody().contains("worf"));
+        Assert.assertFalse(resp.getBody().contains("spock"));
         
-        resp = executeGetRequest("/_searchguard/authinfo", new BasicHeader("sg_impersonate_as", "userwhonotexists"), new BasicHeader(
-                "Authorization", "Basic " + encodeBasicHeader("worf", "worf")));
+        resp = rh.executeGetRequest("/_searchguard/authinfo", new BasicHeader("sg_impersonate_as", "userwhonotexists"), encodeBasicHeader("spock", "spock"));
         System.out.println(resp.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resp.getStatusCode());
     
-        resp = executeGetRequest("/_searchguard/authinfo", new BasicHeader("sg_impersonate_as", "invalid"), new BasicHeader(
-                "Authorization", "Basic " + encodeBasicHeader("worf", "worf")));
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resp.getStatusCode());*/
+        resp = rh.executeGetRequest("/_searchguard/authinfo", new BasicHeader("sg_impersonate_as", "invalid"), encodeBasicHeader("spock", "spock"));
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resp.getStatusCode());
     }
 
     @Test
@@ -1627,52 +1551,25 @@ public class IntegrationTests extends SingleClusterTest {
 
     @Test
         public void testHTTPBasic2() throws Exception {
-    
-            /*final Settings settings = Settings.builder().put("searchguard.ssl.transport.enabled", true)
-                    .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-                    .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-                    .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
-                    .put("searchguard.ssl.transport.keystore_filepath", getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-                    .put("searchguard.ssl.transport.truststore_filepath", getAbsoluteFilePathFromClassPath("truststore.jks"))
-                    .put("searchguard.ssl.transport.enforce_hostname_verification", false)
-                    .put("searchguard.ssl.transport.resolve_hostname", false)
-                    .putArray("searchguard.authcz.admin_dn", "CN=kirk,OU=client,O=client,l=tEst, C=De")
-                    .putArray("searchguard.authcz.impersonation_dn.CN=spock,OU=client,O=client,L=Test,C=DE", "worf")
-                    .build();*/
             
             setup(Settings.EMPTY, new DynamicSgConfig(), Settings.EMPTY);
-    
-            /*Settings tcSettings = Settings.builder().put("cluster.name", clustername)
-                    .put(settings)
-                    .put("searchguard.ssl.transport.keystore_filepath", getAbsoluteFilePathFromClassPath("kirk-keystore.jks"))
-                    .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS,"kirk")
-                    .put("path.home", ".").build();*/
     
             try (TransportClient tc = getInternalTransportClient(this.clusterInfo, Settings.EMPTY)) {
                 
                 tc.admin().indices().create(new CreateIndexRequest("copysf")).actionGet();
                 
                 tc.index(new IndexRequest("vulcangov").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-               // tc.index(new IndexRequest("vulcangov").type("secrets").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-               // tc.index(new IndexRequest("vulcangov").type("planet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-                
+                 
                 tc.index(new IndexRequest("starfleet").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-                // tc.index(new IndexRequest("starfleet").type("captains").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-                // tc.index(new IndexRequest("starfleet").type("public").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-                
+                 
                 tc.index(new IndexRequest("starfleet_academy").type("students").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-                // tc.index(new IndexRequest("starfleet_academy").type("alumni").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
                 
                 tc.index(new IndexRequest("starfleet_library").type("public").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-                // tc.index(new IndexRequest("starfleet_library").type("administration").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
                 
                 tc.index(new IndexRequest("klingonempire").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-                // tc.index(new IndexRequest("klingonempire").type("praxis").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
                 
                 tc.index(new IndexRequest("public").type("legends").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-                //tc.index(new IndexRequest("public").type("hall_of_fame").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-                // tc.index(new IndexRequest("public").type("hall_of_fame").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":2}", XContentType.JSON)).actionGet();
-    
+               
                 tc.index(new IndexRequest("spock").type("type01").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
                 tc.index(new IndexRequest("kirk").type("type01").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
                 tc.index(new IndexRequest("role01_role02").type("type01").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
