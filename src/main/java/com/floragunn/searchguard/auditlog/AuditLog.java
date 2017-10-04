@@ -20,27 +20,28 @@ package com.floragunn.searchguard.auditlog;
 import java.io.Closeable;
 
 import org.elasticsearch.rest.RestRequest;
+import org.elasticsearch.tasks.Task;
 import org.elasticsearch.transport.TransportRequest;
 
 public interface AuditLog extends Closeable {
 
     //login
-    void logFailedLogin(String effectiveUser, boolean sgadmin, String initiatingUser, TransportRequest request);
+    void logFailedLogin(String effectiveUser, boolean sgadmin, String initiatingUser, TransportRequest request, Task task);
     void logFailedLogin(String effectiveUser, boolean sgadmin, String initiatingUser, RestRequest request);
-    void logSucceededLogin(String effectiveUser, boolean sgadmin, String initiatingUser, TransportRequest request);
+    void logSucceededLogin(String effectiveUser, boolean sgadmin, String initiatingUser, TransportRequest request, Task task);
     void logSucceededLogin(String effectiveUser, boolean sgadmin, String initiatingUser, RestRequest request);
 
     //privs
-    void logMissingPrivileges(String privilege, TransportRequest request);    
-    void logGrantedPrivileges(String privilege, TransportRequest request);
+    void logMissingPrivileges(String privilege, TransportRequest request, Task task);    
+    void logGrantedPrivileges(String privilege, TransportRequest request, Task task);
 
     //spoof
-    void logBadHeaders(TransportRequest request, String action);
+    void logBadHeaders(TransportRequest request, String action, Task task);
     void logBadHeaders(RestRequest request);
 
-    void logSgIndexAttempt(TransportRequest request, String action);
+    void logSgIndexAttempt(TransportRequest request, String action, Task task);
     
-    void logSSLException(TransportRequest request, Throwable t, String action);
+    void logSSLException(TransportRequest request, Throwable t, String action, Task task);
     void logSSLException(RestRequest request, Throwable t);
     
     public enum Origin {

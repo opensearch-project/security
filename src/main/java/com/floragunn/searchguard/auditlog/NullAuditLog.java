@@ -20,6 +20,7 @@ package com.floragunn.searchguard.auditlog;
 import java.io.IOException;
 
 import org.elasticsearch.rest.RestRequest;
+import org.elasticsearch.tasks.Task;
 import org.elasticsearch.transport.TransportRequest;
 
 public class NullAuditLog implements AuditLog {
@@ -29,7 +30,7 @@ public class NullAuditLog implements AuditLog {
     }
 
     @Override
-    public void logFailedLogin(String effectiveUser, boolean sgadmin, String initiatingUser, TransportRequest request) {
+    public void logFailedLogin(String effectiveUser, boolean sgadmin, String initiatingUser, TransportRequest request, Task task) {
      }
 
     @Override
@@ -37,7 +38,7 @@ public class NullAuditLog implements AuditLog {
     }
 
     @Override
-    public void logSucceededLogin(String effectiveUser, boolean sgadmin, String initiatingUser, TransportRequest request) {
+    public void logSucceededLogin(String effectiveUser, boolean sgadmin, String initiatingUser, TransportRequest request, Task task) {
     }
 
     @Override
@@ -46,16 +47,16 @@ public class NullAuditLog implements AuditLog {
     }
 
     @Override
-    public void logMissingPrivileges(String privilege, TransportRequest request) {
+    public void logMissingPrivileges(String privilege, TransportRequest request, Task task) {
     }
 
     @Override
-    public void logGrantedPrivileges(String privilege, TransportRequest request) {
+    public void logGrantedPrivileges(String privilege, TransportRequest request, Task task) {
 
     }
 
     @Override
-    public void logBadHeaders(TransportRequest request, String action) {
+    public void logBadHeaders(TransportRequest request, String action, Task task) {
     }
 
     @Override
@@ -63,12 +64,12 @@ public class NullAuditLog implements AuditLog {
     }
 
     @Override
-    public void logSgIndexAttempt(TransportRequest request, String action) {
+    public void logSgIndexAttempt(TransportRequest request, String action, Task task) {
 
     }
 
     @Override
-    public void logSSLException(TransportRequest request, Throwable t, String action) {
+    public void logSSLException(TransportRequest request, Throwable t, String action, Task task) {
 
     }
 

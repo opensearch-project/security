@@ -39,6 +39,7 @@ import org.elasticsearch.rest.BytesRestResponse;
 import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.rest.RestStatus;
+import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportRequest;
 
@@ -253,11 +254,11 @@ public class BackendRegistry implements ConfigurationChangeListener {
         initialized = !restAuthDomains.isEmpty() || anonymousAuthEnabled;
     }
 
-    public User authenticate(final TransportRequest request, final String sslPrincipal) {
+    public User authenticate(final TransportRequest request, final String sslPrincipal, final Task task) {
         
         final User origPKIUser = new User(sslPrincipal);        
         if(adminDns.isAdmin(origPKIUser.getName())) {
-            auditLog.logSucceededLogin(origPKIUser.getName(), true, null, request);
+            auditLog.logSucceededLogin(origPKIUser.getName(), true, null, request, task);
             return origPKIUser;
         }
         
@@ -299,7 +300,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
             
             if(adminDns.isAdmin(authenticatedUser.getName())) {
                 log.error("Cannot authenticate user because admin user is not permitted to login");
-                auditLog.logFailedLogin(authenticatedUser.getName(), true, null, request);
+                auditLog.logFailedLogin(authenticatedUser.getName(), true, null, request, task);
                 return null;
             }
      
@@ -307,7 +308,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
                 log.debug("User '{}' is authenticated", authenticatedUser);
             }
             
-            auditLog.logSucceededLogin(authenticatedUser.getName(), false, impersonatedTransportUser==null?null:origPKIUser.getName(), request);
+            auditLog.logSucceededLogin(authenticatedUser.getName(), false, impersonatedTransportUser==null?null:origPKIUser.getName(), request, task);
             
             return authenticatedUser;            
         }//end looping auth domains
@@ -315,9 +316,9 @@ public class BackendRegistry implements ConfigurationChangeListener {
         
         //auditlog
         if(creds == null) {
-            auditLog.logFailedLogin(impersonatedTransportUser==null?origPKIUser.getName():impersonatedTransportUser.getName(), false, impersonatedTransportUser==null?null:origPKIUser.getName(), request);
+            auditLog.logFailedLogin(impersonatedTransportUser==null?origPKIUser.getName():impersonatedTransportUser.getName(), false, impersonatedTransportUser==null?null:origPKIUser.getName(), request, task);
         } else {
-            auditLog.logFailedLogin(creds.getUsername(), false, null, request);
+            auditLog.logFailedLogin(creds.getUsername(), false, null, request, task);
         }
         
         log.warn("Transport authentication finally failed for {}", creds == null ? impersonatedTransportUser==null?origPKIUser.getName():impersonatedTransportUser.getName():creds.getUsername());

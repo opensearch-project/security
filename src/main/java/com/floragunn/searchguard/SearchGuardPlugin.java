@@ -596,8 +596,8 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         settings.add(Setting.intSetting(ConfigConstants.SEARCHGUARD_AUDIT_THREADPOOL_SIZE, 10, Property.NodeScope, Property.Filtered));
         settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_ENABLE_REQUEST_DETAILS, false, Property.NodeScope, Property.Filtered));
         settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_SSL_VERIFY, true, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_URL2, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_FORMAT2, Property.NodeScope, Property.Filtered));
+        //settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_URL2, Property.NodeScope, Property.Filtered));
+        //settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_FORMAT2, Property.NodeScope, Property.Filtered));
         
         
         settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_KERBEROS_KRB5_FILEPATH, Property.NodeScope, Property.Filtered));
@@ -638,6 +638,11 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
 
         //TODO remove searchguard.tribe.clustername?
         settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_TRIBE_CLUSTERNAME, Property.NodeScope, Property.Filtered));
+        
+        // SG6 - Audit
+        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_RESOLVE_BULK_REQUESTS, true, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_LOG4J_LOGGER_NAME, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_LOG4J_LEVEL, Property.NodeScope, Property.Filtered));
         
         // SG6 - REST API
         settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_RESTAPI_ROLES_ENABLED, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here

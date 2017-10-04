@@ -111,8 +111,12 @@ public class ConfigConstants {
     public static final String SEARCHGUARD_AUDIT_THREADPOOL_SIZE = "searchguard.audit.threadpool.size";
     public static final String SEARCHGUARD_AUDIT_ENABLE_REQUEST_DETAILS = "searchguard.audit.enable_request_details";
     public static final String SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_SSL_VERIFY = "searchguard.audit.config.webhook.ssl.verify";
-    public static final String SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_URL2 = "searchguard.audit.config.webhook.url";
-    public static final String SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_FORMAT2 = "searchguard.audit.config.webhook.format";
+    //public static final String SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_URL2 = "searchguard.audit.config.webhook.url";
+    //public static final String SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_FORMAT2 = "searchguard.audit.config.webhook.format";
+    public static final String SEARCHGUARD_AUDIT_RESOLVE_BULK_REQUESTS = "searchguard.audit.resolve_bulk_requests";
+    public static final String SEARCHGUARD_AUDIT_CONFIG_LOG4J_LOGGER_NAME = "searchguard.audit.config.log4j.logger_name";
+    public static final String SEARCHGUARD_AUDIT_CONFIG_LOG4J_LEVEL = "searchguard.audit.config.log4j.level";
+    
     public static final String SEARCHGUARD_KERBEROS_KRB5_FILEPATH = "searchguard.kerberos.krb5_filepath";
     public static final String SEARCHGUARD_KERBEROS_ACCEPTOR_KEYTAB_FILEPATH = "searchguard.kerberos.acceptor_keytab_filepath";
     public static final String SEARCHGUARD_KERBEROS_ACCEPTOR_PRINCIPAL = "searchguard.kerberos.acceptor_principal";

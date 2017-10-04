@@ -79,6 +79,7 @@ import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotUtils;
+import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusterAware;
 import org.elasticsearch.transport.TransportRequest;
@@ -284,7 +285,7 @@ public class PrivilegesEvaluator {
         }
     }
 
-    public boolean evaluate(final User user, String action, final ActionRequest request) {
+    public boolean evaluate(final User user, String action, final ActionRequest request, Task task) {
            
         if (!isInitialized()) {
             throw new ElasticsearchSecurityException("Search Guard is not initialized.");
@@ -304,7 +305,7 @@ public class PrivilegesEvaluator {
         
         if(action.startsWith("cluster:admin/snapshot/restore")) {
             if (enableSnapshotRestorePrivilege) {
-                return evaluateSnapshotRestore(user, action, request, caller);
+                return evaluateSnapshotRestore(user, action, request, caller, task);
             } else {
                 log.warn(action + " is not allowed for a regular user");
                 return false;
@@ -342,14 +343,14 @@ public class PrivilegesEvaluator {
         
         if (requestedResolvedIndices.contains(searchguardIndex)
                 && WildcardMatcher.matchAny(sgDeniedActionPatterns, action)) {
-            auditLog.logSgIndexAttempt(request, action);
+            auditLog.logSgIndexAttempt(request, action, task);
             log.warn(action + " for '{}' index is not allowed for a regular user", searchguardIndex);
             return false;
         }
 
         if (requestedResolvedIndices.contains("_all")
                 && WildcardMatcher.matchAny(sgDeniedActionPatterns, action)) {
-            auditLog.logSgIndexAttempt(request, action);
+            auditLog.logSgIndexAttempt(request, action, task);
             log.warn(action + " for '_all' indices is not allowed for a regular user");
             return false;
         }
@@ -382,7 +383,7 @@ public class PrivilegesEvaluator {
             final Boolean replaceResult = privilegesInterceptor.replaceKibanaIndex(request, action, user, config, requestedResolvedIndices, mapTenants(user, caller));
     
             if (replaceResult == Boolean.TRUE) {
-                auditLog.logMissingPrivileges(action, request);
+                auditLog.logMissingPrivileges(action, request, task);
                 return false;
             }
             
@@ -746,7 +747,7 @@ public class PrivilegesEvaluator {
     
     //---- end evaluate()
     
-    private boolean evaluateSnapshotRestore(final User user, String action, final ActionRequest request, final TransportAddress caller) {
+    private boolean evaluateSnapshotRestore(final User user, String action, final ActionRequest request, final TransportAddress caller, final Task task) {
         if (!(request instanceof RestoreSnapshotRequest)) {
             return false;
         }
@@ -755,7 +756,7 @@ public class PrivilegesEvaluator {
 
         // Do not allow restore of global state
         if (restoreRequest.includeGlobalState()) {
-            auditLog.logSgIndexAttempt(request, action);
+            auditLog.logSgIndexAttempt(request, action, task);
             log.warn(action + " with 'include_global_state' enabled is not allowed");
             return false;
         }
@@ -792,7 +793,7 @@ public class PrivilegesEvaluator {
 
         // Check if the source indices contain the searchguard index
         if (requestedResolvedIndices.contains(searchguardIndex) || requestedResolvedIndices.contains("_all")) {
-            auditLog.logSgIndexAttempt(request, action);
+            auditLog.logSgIndexAttempt(request, action, task);
             log.warn(action + " for '{}' as source index is not allowed", searchguardIndex);
             return false;
         }
@@ -800,7 +801,7 @@ public class PrivilegesEvaluator {
         // Check if the renamed destination indices contain the searchguard index
         final List<String> renamedTargetIndices = renamedIndices(restoreRequest, requestedResolvedIndices);
         if (renamedTargetIndices.contains(searchguardIndex) || requestedResolvedIndices.contains("_all")) {
-            auditLog.logSgIndexAttempt(request, action);
+            auditLog.logSgIndexAttempt(request, action, task);
             log.warn(action + " for '{}' as target index is not allowed", searchguardIndex);
             return false;
         }
@@ -886,7 +887,7 @@ public class PrivilegesEvaluator {
         }
 
         if (!allowedActionSnapshotRestore) {
-            auditLog.logMissingPrivileges(action, request);
+            auditLog.logMissingPrivileges(action, request, task);
             log.info("No perm match for {} [Action [{}]] [RolesChecked {}]", user, action, sgRoles);
         }
         return allowedActionSnapshotRestore;
@@ -1368,9 +1369,6 @@ public class PrivilegesEvaluator {
                 IndicesRequest.Replaceable searchRequest = (IndicesRequest.Replaceable) request;
                 final Map<String, OriginalIndices> remoteClusterIndices = SearchGuardPlugin.GuiceHolder.getRemoteClusterService()
                         .groupIndices(searchRequest.indicesOptions(),searchRequest.indices(), idx -> resolver.hasIndexOrAlias(idx, clusterService.state()));
-                
-                System.out.println(SearchGuardPlugin.GuiceHolder.getRemoteClusterService().isCrossClusterSearchEnabled());
-                System.out.println(remoteClusterIndices);
                 
                 if (remoteClusterIndices.size() > 1) {
                     // check permissions?

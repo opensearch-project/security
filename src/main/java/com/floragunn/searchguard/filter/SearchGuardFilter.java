@@ -107,7 +107,7 @@ public class SearchGuardFilter implements ActionFilter {
                     || passThroughRequest){
     
                 if(userIsAdmin && !conRequest && !internalRequest && !passThroughRequest) {
-                    auditLog.logGrantedPrivileges(action, request);
+                    auditLog.logGrantedPrivileges(action, request, task);
                 }
     
                 if(!dlsFlsValve.invoke(request, listener, threadContext)) {
@@ -166,15 +166,15 @@ public class SearchGuardFilter implements ActionFilter {
                 log.trace("Evaluate permissions for user: {}", user.getName());
             }
 
-            if (eval.evaluate(user, action, request)) {
-                auditLog.logGrantedPrivileges(action, request);
+            if (eval.evaluate(user, action, request, task)) {
+                auditLog.logGrantedPrivileges(action, request, task);
                 if(!dlsFlsValve.invoke(request, listener, threadContext)) {
                     return;
                 }
                 chain.proceed(task, action, request, listener);
                 return;
             } else {
-                auditLog.logMissingPrivileges(action, request);
+                auditLog.logMissingPrivileges(action, request, task);
                 log.debug("no permissions for {}", action);
                 listener.onFailure(new ElasticsearchSecurityException("no permissions for " + action+" and "+user, RestStatus.FORBIDDEN));
                 return;
