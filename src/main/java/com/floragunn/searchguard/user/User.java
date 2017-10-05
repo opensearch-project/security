@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -31,7 +32,7 @@ import org.elasticsearch.common.io.stream.Writeable;
 
 import com.google.common.collect.Lists;
 
-public class User implements Serializable, Writeable {
+public class User implements Serializable, Writeable, CustomAttributesAware {
 
     public static final User ANONYMOUS = new User("sg_anonymous", Lists.newArrayList("sg_anonymous_backendrole"));
     
@@ -138,5 +139,9 @@ public class User implements Serializable, Writeable {
         out.writeString(name);
         out.writeStringList(new ArrayList<String>(roles));
         out.writeString(requestedTenant);
+    }
+
+    public Map<String, String> getCustomAttributesMap() {
+        return Collections.emptyMap();
     }
 }
