@@ -30,6 +30,9 @@ public class ConfigConstants {
     
     public static final String SG_CHANNEL_TYPE = SG_CONFIG_PREFIX+"channel_type";
     
+    public static final String SG_ORIGIN = SG_CONFIG_PREFIX+"_sg_origin";
+    public static final String SG_ORIGIN_HEADER = SG_CONFIG_PREFIX+"_sg_origin_header";
+    
     //rename to SG_DLS_QUERY_HEADER
     @Deprecated
     public static final String SG_DLS_QUERY = SG_CONFIG_PREFIX+"dls_query";

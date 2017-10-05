@@ -80,7 +80,7 @@ public class SearchGuardRestFilter {
 
     private boolean checkAndAuthenticateRequest(RestRequest request, RestChannel channel, NodeClient client) throws Exception {
 
-        threadContext.putTransient("_sg_origin", Origin.REST.toString());
+        threadContext.putTransient(ConfigConstants.SG_ORIGIN, Origin.REST.toString());
         
         if(HTTPHelper.containsBadHeader(request)) {
             log.error("bad http header found");

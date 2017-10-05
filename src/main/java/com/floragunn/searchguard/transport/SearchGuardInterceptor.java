@@ -35,6 +35,7 @@ import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportResponseHandler;
 
 import com.floragunn.searchguard.auditlog.AuditLog;
+import com.floragunn.searchguard.auditlog.AuditLog.Origin;
 import com.floragunn.searchguard.auth.BackendRegistry;
 import com.floragunn.searchguard.ssl.transport.PrincipalExtractor;
 import com.floragunn.searchguard.support.Base64Helper;
@@ -77,6 +78,7 @@ public class SearchGuardInterceptor {
  
         final Map<String, String> origHeaders0 = getThreadContext().getHeaders();  
         final User user0 = getThreadContext().getTransient(ConfigConstants.SG_USER);
+        final String origin = getThreadContext().getTransient(ConfigConstants.SG_ORIGIN);
         final Object remoteAdress0 = getThreadContext().getTransient(ConfigConstants.SG_REMOTE_ADDRESS);
         
         try (ThreadContext.StoredContext stashedContext = getThreadContext().stashContext()) {
@@ -92,19 +94,24 @@ public class SearchGuardInterceptor {
             getThreadContext().putHeader(
                     Maps.filterKeys(origHeaders0, k->k!=null && (
                             k.equals(ConfigConstants.SG_CONF_REQUEST_HEADER)
+                            || k.equals(ConfigConstants.SG_ORIGIN_HEADER)
                             || k.equals(ConfigConstants.SG_REMOTE_ADDRESS_HEADER)
                             || k.equals(ConfigConstants.SG_USER_HEADER)
                             || k.equals(ConfigConstants.SG_DLS_QUERY)
                             || k.equals(ConfigConstants.SG_FLS_FIELDS)
                             )));
-            ensureCorrectHeaders(action, remoteAdress0, user0);
+            ensureCorrectHeaders(action, remoteAdress0, user0, origin);
             sender.sendRequest(connection, action, request, options, restoringHandler);
         }
     }
 
-    private void ensureCorrectHeaders(final String action, final Object remoteAdr, final User origUser) { 
+    private void ensureCorrectHeaders(final String action, final Object remoteAdr, final User origUser, final String origin) { 
         // keep original address
 
+        if(origin != null && !origin.isEmpty() && !Origin.LOCAL.toString().equalsIgnoreCase(origin) && getThreadContext().getHeader(ConfigConstants.SG_ORIGIN_HEADER) == null) {
+            getThreadContext().putHeader(ConfigConstants.SG_ORIGIN_HEADER, origin);
+        }
+        
         if (remoteAdr != null && remoteAdr instanceof TransportAddress) {
             
             String remoteAddressHeader = getThreadContext().getHeader(ConfigConstants.SG_REMOTE_ADDRESS_HEADER);

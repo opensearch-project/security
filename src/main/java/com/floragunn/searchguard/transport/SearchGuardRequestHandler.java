@@ -73,6 +73,12 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
 
         final ThreadContext.StoredContext sgContext = getThreadContext().newStoredContext(false);
         
+        final String originHeader = getThreadContext().getHeader(ConfigConstants.SG_ORIGIN_HEADER);
+        
+        if(!Strings.isNullOrEmpty(originHeader)) {
+            getThreadContext().putTransient(ConfigConstants.SG_ORIGIN, originHeader);  
+        }
+        
         try {
 
            final String ct = (String) getThreadContext().getTransient(ConfigConstants.SG_CHANNEL_TYPE);
@@ -134,7 +140,9 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
                 return;
             } else {
                 
-                getThreadContext().putTransient("_sg_origin", Origin.TRANSPORT.toString());
+                if(getThreadContext().getTransient(ConfigConstants.SG_ORIGIN) == null) {
+                    getThreadContext().putTransient(ConfigConstants.SG_ORIGIN, Origin.TRANSPORT.toString());
+                }
                 
                 //network intercluster request or cross search cluster request
                 if(HeaderHelper.isInterClusterRequest(getThreadContext()) 

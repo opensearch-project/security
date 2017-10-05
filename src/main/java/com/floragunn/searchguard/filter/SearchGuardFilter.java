@@ -75,8 +75,8 @@ public class SearchGuardFilter implements ActionFilter {
             ActionListener<Response> listener, ActionFilterChain<Request, Response> chain) {
         try {
             
-            if(threadContext.getTransient("_sg_origin") == null) {
-                threadContext.putTransient("_sg_origin", Origin.LOCAL.toString());
+            if(threadContext.getTransient(ConfigConstants.SG_ORIGIN) == null) {
+                threadContext.putTransient(ConfigConstants.SG_ORIGIN, Origin.LOCAL.toString());
             }
             
             final User user = threadContext.getTransient(ConfigConstants.SG_USER);
@@ -93,12 +93,12 @@ public class SearchGuardFilter implements ActionFilter {
             
             if(actionTrace.isTraceEnabled()) {
                 actionTrace.trace("Node "+cs.localNode().getName()+" -> "+action+": userIsAdmin="+userIsAdmin+"/conRequest="+conRequest+"/internalRequest="+internalRequest
-                        +"origin="+threadContext.getTransient("_sg_origin")+"/directRequest="+HeaderHelper.isDirectRequest(threadContext)+"/remoteAddress="+request.remoteAddress());
+                        +"origin="+threadContext.getTransient(ConfigConstants.SG_ORIGIN)+"/directRequest="+HeaderHelper.isDirectRequest(threadContext)+"/remoteAddress="+request.remoteAddress());
             }
             
             /*if(log.isTraceEnabled()) {
                 log.trace("Node "+cs.localNode().getName()+" -> "+action+": userIsAdmin="+userIsAdmin+"/conRequest="+conRequest+"/internalRequest="+internalRequest
-                        +"origin="+threadContext.getTransient("_sg_origin")+"/directRequest="+HeaderHelper.isDirectRequest(threadContext)+"/remoteAddress="+request.remoteAddress());
+                        +"origin="+threadContext.getTransient(ConfigConstants.SG_ORIGIN)+"/directRequest="+HeaderHelper.isDirectRequest(threadContext)+"/remoteAddress="+request.remoteAddress());
             }*/
             
             if(userIsAdmin 
@@ -118,7 +118,7 @@ public class SearchGuardFilter implements ActionFilter {
             }
 
 
-            if(Origin.LOCAL.toString().equals((String)threadContext.getTransient("_sg_origin")) 
+            if(Origin.LOCAL.toString().equals((String)threadContext.getTransient(ConfigConstants.SG_ORIGIN)) 
                     && HeaderHelper.isDirectRequest(threadContext)
                     && request.remoteAddress() == null
                     && !action.contains("[")) {
@@ -148,7 +148,7 @@ public class SearchGuardFilter implements ActionFilter {
                     return;
                 }
 
-                log.error("No user found for "+ action+" from "+request.remoteAddress()+" "+threadContext.getTransient("_sg_origin")+" "+threadContext.getHeaders());
+                log.error("No user found for "+ action+" from "+request.remoteAddress()+" "+threadContext.getTransient(ConfigConstants.SG_ORIGIN)+" "+threadContext.getHeaders());
                 listener.onFailure(new ElasticsearchSecurityException("No user found for "+action, RestStatus.INTERNAL_SERVER_ERROR));
                 return;
             }
