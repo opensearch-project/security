@@ -17,15 +17,14 @@
 
 package com.floragunn.searchguard.support;
 
-import java.io.File;
 import java.io.InputStream;
 import java.lang.reflect.Constructor;
 import java.net.URL;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
@@ -74,10 +73,10 @@ public class ReflectionHelper {
         }
     }*/
 
-    private static Map<String, Object> modulesLoaded = new HashMap<>();
+    private static List<ModuleInfo> modulesLoaded = new LinkedList<>();
     
-    public static Map<String, Object> getModulesLoaded() {
-        return Collections.unmodifiableMap(modulesLoaded);
+    public static List<ModuleInfo> getModulesLoaded() {
+        return Collections.unmodifiableList(modulesLoaded);
     }
 
     private static boolean enterpriseModulesDisabled() {
@@ -99,7 +98,7 @@ public class ReflectionHelper {
                     Path.class, RestController.class, Client.class, AdminDNs.class, IndexBaseConfigurationRepository.class, ClusterService.class,
                     PrincipalExtractor.class, PrivilegesEvaluator.class, ThreadPool.class)
             		.invoke(null, settings, configPath, restController, localClient, adminDns, cr, cs, principalExtractor, evaluator,  threadPool);
-            modulesLoaded.put("rest-mngt-api", getModuleInfo(clazz));
+            addLoadedModule(clazz);
             return ret;
         } catch (final Throwable e) {
             log.warn("Unable to enable Rest Management Api Module due to {}", e.toString());
@@ -116,7 +115,7 @@ public class ReflectionHelper {
         try {
             final Class<?> clazz = Class.forName("com.floragunn.searchguard.configuration.SearchGuardFlsDlsIndexSearcherWrapper");
             final Constructor<?> ret = clazz.getConstructor(IndexService.class, Settings.class, AdminDNs.class);
-            modulesLoaded.put("dls-fls", getModuleInfo(clazz));
+            addLoadedModule(clazz);
             return ret;
         } catch (final Throwable e) {
             log.warn("Unable to enable DLS/FLS Module due to {}", e.toString());
@@ -133,7 +132,6 @@ public class ReflectionHelper {
         try {
             final Class<?> clazz = Class.forName("com.floragunn.searchguard.configuration.DlsFlsValveImpl");
             final DlsFlsRequestValve ret = (DlsFlsRequestValve) clazz.newInstance();
-            //modulesLoaded.put("dls-fls-valve", getModuleInfo(clazz));
             return ret;
         } catch (final Throwable e) {
             log.warn("Unable to enable DLS/FLS Valve Module due to {}", e.toString());
@@ -153,8 +151,7 @@ public class ReflectionHelper {
             final AuditLog impl = (AuditLog) clazz.getConstructor(Settings.class, Path.class, Client.class, ThreadPool.class,
                     IndexNameExpressionResolver.class, ClusterService.class).newInstance(settings, configPath, localClient, threadPool,
                             resolver, clusterService);
-
-            modulesLoaded.put("auditlog", getModuleInfo(clazz));
+            addLoadedModule(clazz);
             return impl;
         } catch (final Throwable e) {
             log.warn("Unable to enable Auditlog Module due to {}", e.toString());
@@ -175,7 +172,7 @@ public class ReflectionHelper {
             final Class<?> clazz = Class.forName("com.floragunn.searchguard.configuration.PrivilegesInterceptorImpl");
             final PrivilegesInterceptor ret = (PrivilegesInterceptor) clazz.getConstructor(IndexNameExpressionResolver.class,
                     ClusterService.class, Client.class, ThreadPool.class).newInstance(resolver, clusterService, localClient, threadPool);
-            modulesLoaded.put("multitenancy", getModuleInfo(clazz));
+            addLoadedModule(clazz);
             return ret;
         } catch (final Throwable e) {
             log.warn("Unable to enable Kibana Module due to {}", e.toString());
@@ -193,12 +190,10 @@ public class ReflectionHelper {
         try {
             final Class<?> clazz0 = Class.forName(clazz);
             final T ret = (T) clazz0.getConstructor(Settings.class, Path.class).newInstance(settings, configPath);
-
-            if (checkEnterprise) {
-                modulesLoaded.put(clazz, getModuleInfo(clazz0));
-            }
-
-            return ret;
+            
+            addLoadedModule(clazz0);
+                        
+			return ret;
 
         } catch (final Throwable e) {
             log.warn("Unable to enable '{}' due to {}", clazz, e.toString());
@@ -212,7 +207,7 @@ public class ReflectionHelper {
             final Class<?> clazz0 = Class.forName(clazz);
             final InterClusterRequestEvaluator ret = (InterClusterRequestEvaluator) clazz0.getConstructor(Settings.class).newInstance(
                     settings);
-            modulesLoaded.put("cluster-request-evaluator", getModuleInfo(clazz0));
+            addLoadedModule(clazz0);
             return ret;
         } catch (final Throwable e) {
             log.warn("Unable to load inter cluster request evaluator '{}' due to {}", clazz, e.toString());
@@ -225,7 +220,7 @@ public class ReflectionHelper {
         try {
             final Class<?> clazz0 = Class.forName(clazz);
             final PrincipalExtractor ret = (PrincipalExtractor) clazz0.newInstance();
-            modulesLoaded.put("principal-extractor", getModuleInfo(clazz0));
+            addLoadedModule(clazz0);
             return ret;
         } catch (final Throwable e) {
             log.warn("Unable to load pricipal extractor '{}' due to {}", clazz, e.toString());
@@ -254,7 +249,15 @@ public class ReflectionHelper {
 
         return enterpriseModuleInstalled;
     }
-
+    
+    public static boolean addLoadedModule(Class<?> clazz) {
+		ModuleInfo moduleInfo = getModuleInfo(clazz);
+		if (log.isDebugEnabled()) {
+			log.debug("Loaded module {}", moduleInfo);
+		}
+		return modulesLoaded.add(moduleInfo);
+    }
+    
     private static boolean enterpriseModulesEnabled;
 
     // TODO static hack
@@ -262,19 +265,17 @@ public class ReflectionHelper {
         ReflectionHelper.enterpriseModulesEnabled = enterpriseModulesEnabled;
     }
 
-    private static Map<String, String> getModuleInfo(final Class<?> impl) {
-        final Map<String, String> ret = new HashMap<String, String>();
-
+    private static ModuleInfo getModuleInfo(final Class<?> impl) {
+    	    	
+    	ModuleType moduleType = ModuleType.getByDefaultImplClass(impl);
+    	ModuleInfo moduleInfo = new ModuleInfo(moduleType, impl.getName());
+        
         try {
-            //final String jarPath = new File(impl.getProtectionDomain().getCodeSource().getLocation().toURI().getPath()).getParentFile().getAbsolutePath();
-
-            final String className = impl.getSimpleName() + ".class";
-            final String classPath = impl.getResource(className).toString();
-            //ret.put("class", className);
-            //ret.put("classpath", classPath);
-            //ret.put("jarPath", jarPath);
+        
+            final String classPath = impl.getResource(impl.getSimpleName() + ".class").toString();
+            
             if (!classPath.startsWith("jar")) {
-                return ret;
+                return moduleInfo;
             }
 
             final String manifestPath = classPath.substring(0, classPath.lastIndexOf("!") + 1) + "/META-INF/MANIFEST.MF";
@@ -282,14 +283,13 @@ public class ReflectionHelper {
             try (InputStream stream = new URL(manifestPath).openStream()) {
                 final Manifest manifest = new Manifest(stream);
                 final Attributes attr = manifest.getMainAttributes();
-                ret.put("version", attr.getValue("Implementation-Version"));
-                ret.put("Build-Time", attr.getValue("Build-Time"));                
+                moduleInfo.setVersion(attr.getValue("Implementation-Version"));
+                moduleInfo.setBuildTime(attr.getValue("Build-Time"));
             }
         } catch (final Throwable e) {
-            log.error("Unable to retrieve module info for " + impl, e);
-            ret.put("error", e.toString());
+            log.error("Unable to retrieve module info for " + impl, e);            
         }
 
-        return ret;
+        return moduleInfo;
     }
 }
