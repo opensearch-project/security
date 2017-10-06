@@ -30,8 +30,8 @@ public class ConfigConstants {
     
     public static final String SG_CHANNEL_TYPE = SG_CONFIG_PREFIX+"channel_type";
     
-    public static final String SG_ORIGIN = SG_CONFIG_PREFIX+"_sg_origin";
-    public static final String SG_ORIGIN_HEADER = SG_CONFIG_PREFIX+"_sg_origin_header";
+    public static final String SG_ORIGIN = SG_CONFIG_PREFIX+"origin";
+    public static final String SG_ORIGIN_HEADER = SG_CONFIG_PREFIX+"origin_header";
     
     //rename to SG_DLS_QUERY_HEADER
     @Deprecated
@@ -112,6 +112,7 @@ public class ConfigConstants {
     public static final String SEARCHGUARD_AUDIT_CONFIG_PASSWORD = "searchguard.audit.config.password";
     public static final String SEARCHGUARD_AUDIT_CONFIG_DISABLED_CATEGORIES = "searchguard.audit.config.disabled_categories";
     public static final String SEARCHGUARD_AUDIT_THREADPOOL_SIZE = "searchguard.audit.threadpool.size";
+    public static final String SEARCHGUARD_AUDIT_THREADPOOL_MAX_QUEUE_LEN = "searchguard.audit.threadpool.max_queue_len";
     public static final String SEARCHGUARD_AUDIT_ENABLE_REQUEST_DETAILS = "searchguard.audit.enable_request_details";
     public static final String SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_SSL_VERIFY = "searchguard.audit.config.webhook.ssl.verify";
     //public static final String SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_URL2 = "searchguard.audit.config.webhook.url";
@@ -134,6 +135,9 @@ public class ConfigConstants {
     public static final String SEARCHGUARD_ENTERPRISE_MODULES_ENABLED = "searchguard.enterprise_modules_enabled";
     public static final String SEARCHGUARD_NODES_DN = "searchguard.nodes_dn";
     public static final String SEARCHGUARD_AUDIT_IGNORE_USERS = "searchguard.audit.ignore_users";
+    public static final String SEARCHGUARD_AUDIT_IGNORE_REQUESTS = "searchguard.audit.ignore_requests";
+    public static final String SEARCHGUARD_AUDIT_ENABLE_REST = "searchguard.audit.enable_rest";
+    public static final String SEARCHGUARD_AUDIT_ENABLE_TRANSPORT = "searchguard.audit.enable_transport";
     public static final String SEARCHGUARD_DISABLED = "searchguard.disabled";
     public static final String SEARCHGUARD_CACHE_TTL_MINUTES = "searchguard.cache.ttl_minutes";
     public static final String SEARCHGUARD_ALLOW_UNSAFE_DEMOCERTIFICATES = "searchguard.allow_unsafe_democertificates";

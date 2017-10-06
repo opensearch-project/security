@@ -593,6 +593,9 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_USERNAME, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_PASSWORD, Property.NodeScope, Property.Filtered));
         settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DISABLED_CATEGORIES, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
+        settings.add(Setting.intSetting(ConfigConstants.SEARCHGUARD_AUDIT_THREADPOOL_MAX_QUEUE_LEN, 100*1000, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_ENABLE_REST, true, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_ENABLE_TRANSPORT, false, Property.NodeScope, Property.Filtered));
         settings.add(Setting.intSetting(ConfigConstants.SEARCHGUARD_AUDIT_THREADPOOL_SIZE, 10, Property.NodeScope, Property.Filtered));
         settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_ENABLE_REQUEST_DETAILS, false, Property.NodeScope, Property.Filtered));
         settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_SSL_VERIFY, true, Property.NodeScope, Property.Filtered));
