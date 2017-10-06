@@ -122,6 +122,7 @@ import com.floragunn.searchguard.ssl.SearchGuardSSLPlugin;
 import com.floragunn.searchguard.ssl.http.netty.ValidatingDispatcher;
 import com.floragunn.searchguard.ssl.util.SSLConfigConstants;
 import com.floragunn.searchguard.support.ConfigConstants;
+import com.floragunn.searchguard.support.ModuleInfo;
 import com.floragunn.searchguard.support.ReflectionHelper;
 import com.floragunn.searchguard.transport.DefaultInterClusterRequestEvaluator;
 import com.floragunn.searchguard.transport.InterClusterRequestEvaluator;
@@ -312,7 +313,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         }
         
         
-        final Set<String> sgModules = ReflectionHelper.getModulesLoaded().keySet();
+        final List<ModuleInfo> sgModules = ReflectionHelper.getModulesLoaded();
         
         log.info("{} Search Guard modules loaded so far: {}", sgModules.size(), sgModules);
         

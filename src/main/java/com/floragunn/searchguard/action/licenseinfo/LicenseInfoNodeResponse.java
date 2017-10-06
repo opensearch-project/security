@@ -18,6 +18,7 @@
 package com.floragunn.searchguard.action.licenseinfo;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.action.support.nodes.BaseNodeResponse;
@@ -26,16 +27,17 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import com.floragunn.searchguard.configuration.SearchGuardLicense;
+import com.floragunn.searchguard.support.ModuleInfo;
 
 public class LicenseInfoNodeResponse extends BaseNodeResponse {
     
     private SearchGuardLicense license;
-    private Map<String, Object> modules;
+    private List<ModuleInfo> modules;
     
     LicenseInfoNodeResponse() {
     }
 
-    public LicenseInfoNodeResponse(final DiscoveryNode node, SearchGuardLicense license, Map<String, Object> modules) {
+    public LicenseInfoNodeResponse(final DiscoveryNode node, SearchGuardLicense license, List<ModuleInfo> modules) {
         super(node);
         this.license = license;
         this.modules = modules;
@@ -51,7 +53,7 @@ public class LicenseInfoNodeResponse extends BaseNodeResponse {
         return license;
     }
     
-    public Map<String, Object> getModules() {
+    public List<ModuleInfo> getModules() {
         return modules;
     }
 
@@ -59,14 +61,14 @@ public class LicenseInfoNodeResponse extends BaseNodeResponse {
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         out.writeOptionalWriteable(license);
-        out.writeMap(modules);
+        out.writeList(modules);
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        license = in.readOptionalWriteable(SearchGuardLicense::new);
-        modules = in.readMap();
+        license = in.readOptionalWriteable(SearchGuardLicense::new);        
+        modules = in.readList(ModuleInfo::new);
     }
 
     @Override

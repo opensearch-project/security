@@ -223,6 +223,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
                             || authBackendClazz.equals("internal")
                             || authBackendClazz.equals("intern")) {
                         authenticationBackend = iab;
+                        ReflectionHelper.addLoadedModule(InternalAuthenticationBackend.class);
                     } else {
                         authenticationBackend = newInstance(
                                 authBackendClazz,"c",
