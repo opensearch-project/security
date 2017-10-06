@@ -10,5 +10,6 @@ deployment:
       - '/^([0-9]{1})\.([0-9]{1})\.([0-9]{1})$/'
       # es-5.0.1 etc
       - '/^es-([0-9]{1})\.([0-9]{1})\.([0-9]{1})$/'
+      - 6.x
     commands:
       - mvn deploy -DskipTests -s settings.xml
