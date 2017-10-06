@@ -87,7 +87,7 @@ public class SearchGuardFilter implements ActionFilter {
             final boolean passThroughRequest = action.equals(LicenseInfoAction.NAME) || action.startsWith("indices:admin/seq_no");
             
             final boolean internalRequest = 
-                    interClusterRequest 
+                    (interClusterRequest | HeaderHelper.isDirectRequest(threadContext))
                     && action.startsWith("internal:") 
                     && !action.startsWith("internal:transport/proxy");
             
