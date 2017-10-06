@@ -236,6 +236,8 @@
           <includes>
             <include>**/*Test*.java</include>
           </includes>
+          <forkCount>0</forkCount> <!-- needed for circleci build -->
+          <reuseForks>false</reuseForks> <!-- needed for circleci build -->
         </configuration>
       </plugin>
       <plugin>
