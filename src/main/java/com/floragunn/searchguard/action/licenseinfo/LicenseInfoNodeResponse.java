@@ -18,8 +18,9 @@
 package com.floragunn.searchguard.action.licenseinfo;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Map;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.Set;
 
 import org.elasticsearch.action.support.nodes.BaseNodeResponse;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -30,49 +31,49 @@ import com.floragunn.searchguard.configuration.SearchGuardLicense;
 import com.floragunn.searchguard.support.ModuleInfo;
 
 public class LicenseInfoNodeResponse extends BaseNodeResponse {
-    
-    private SearchGuardLicense license;
-    private List<ModuleInfo> modules;
-    
-    LicenseInfoNodeResponse() {
-    }
 
-    public LicenseInfoNodeResponse(final DiscoveryNode node, SearchGuardLicense license, List<ModuleInfo> modules) {
-        super(node);
-        this.license = license;
-        this.modules = modules;
-    }
-    
-    public static LicenseInfoNodeResponse readNodeResponse(StreamInput in) throws IOException {
-        LicenseInfoNodeResponse nodeResponse = new LicenseInfoNodeResponse();
-        nodeResponse.readFrom(in);
-        return nodeResponse;
-    }
+	private SearchGuardLicense license;
+	private Set<ModuleInfo> modules;
 
-    public SearchGuardLicense getLicense() {
-        return license;
-    }
-    
-    public List<ModuleInfo> getModules() {
-        return modules;
-    }
+	LicenseInfoNodeResponse() {
+	}
 
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        out.writeOptionalWriteable(license);
-        out.writeList(modules);
-    }
+	public LicenseInfoNodeResponse(final DiscoveryNode node, SearchGuardLicense license, Set<ModuleInfo> modules) {
+		super(node);
+		this.license = license;
+		this.modules = modules;
+	}
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
-        license = in.readOptionalWriteable(SearchGuardLicense::new);        
-        modules = in.readList(ModuleInfo::new);
-    }
+	public static LicenseInfoNodeResponse readNodeResponse(StreamInput in) throws IOException {
+		LicenseInfoNodeResponse nodeResponse = new LicenseInfoNodeResponse();
+		nodeResponse.readFrom(in);
+		return nodeResponse;
+	}
 
-    @Override
-    public String toString() {
-        return "LicenseInfoNodeResponse [license=" + license + "]";
-    }
+	public SearchGuardLicense getLicense() {
+		return license;
+	}
+
+	public Set<ModuleInfo> getModules() {
+		return modules;
+	}
+
+	@Override
+	public void writeTo(StreamOutput out) throws IOException {
+		super.writeTo(out);
+		out.writeOptionalWriteable(license);
+		out.writeList(new LinkedList<>(modules));
+	}
+
+	@Override
+	public void readFrom(StreamInput in) throws IOException {
+		super.readFrom(in);
+		license = in.readOptionalWriteable(SearchGuardLicense::new);
+		modules = new HashSet<>(in.readList(ModuleInfo::new));
+	}
+
+	@Override
+	public String toString() {
+		return "LicenseInfoNodeResponse [license=" + license + "]";
+	}
 }
