@@ -160,6 +160,7 @@ class LegacyConfigurationLoader {
 
     private Settings toSettings(final BytesReference ref, final String type) {
         if (ref == null || ref.length() == 0) {
+            log.error("Empty or null byte reference for {}", type);
             return null;
         }
         
@@ -171,6 +172,7 @@ class LegacyConfigurationLoader {
             parser.nextToken();
          
             if(!type.equals((parser.currentName()))) {
+                log.error("Cannot parse config for type {} because {}!={}", type, type, parser.currentName());
                 return null;
             }
             

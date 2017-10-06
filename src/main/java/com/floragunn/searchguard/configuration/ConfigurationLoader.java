@@ -160,6 +160,7 @@ class ConfigurationLoader {
 
     private Settings toSettings(final BytesReference ref, final String id) {
         if (ref == null || ref.length() == 0) {
+            log.error("Empty or null byte reference for {}", id);
             return null;
         }
         
@@ -171,6 +172,7 @@ class ConfigurationLoader {
             parser.nextToken();
          
             if(!id.equals((parser.currentName()))) {
+                log.error("Cannot parse config for type {} because {}!={}", id, id, parser.currentName());
                 return null;
             }
             
