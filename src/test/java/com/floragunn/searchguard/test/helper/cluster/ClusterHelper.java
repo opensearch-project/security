@@ -22,6 +22,8 @@ import java.util.List;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.config.Configurator;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
@@ -107,8 +109,14 @@ public final class ClusterHelper {
 
 	public final void stopCluster() throws Exception {
 		for (Node node : esNodes) {
-			node.close();
-			Thread.sleep(50);
+			try {
+                node.close();
+                LoggerContext context = (LoggerContext) LogManager.getContext(false);
+                Configurator.shutdown(context);
+                Thread.sleep(150);
+            } catch (Throwable e) {
+                e.printStackTrace();
+            }
 		}
 		esNodes.clear();
 	}
