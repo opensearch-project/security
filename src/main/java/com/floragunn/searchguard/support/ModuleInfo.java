@@ -20,6 +20,7 @@ public class ModuleInfo implements Serializable, Writeable{
 	private String buildTime;
 	
 	public ModuleInfo(ModuleType moduleType, String classname) {
+		assert(moduleType != null);
 		this.moduleType = moduleType;
 		this.classname = classname;
 	}
@@ -30,6 +31,7 @@ public class ModuleInfo implements Serializable, Writeable{
 		classpath = in.readString();
 		version = in.readString();
 		buildTime = in.readString();
+		assert(moduleType != null);
 	}
 
 	public void setClasspath(String classpath) {
@@ -70,7 +72,12 @@ public class ModuleInfo implements Serializable, Writeable{
         out.writeString(buildTime);
 	}
 	
-    @Override
+ 
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#hashCode()
+	 */
+	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
@@ -82,37 +89,52 @@ public class ModuleInfo implements Serializable, Writeable{
 		return result;
 	}
 
+	/* (non-Javadoc)
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
+		if (this == obj) {
 			return true;
-		if (obj == null)
+		}
+		if (obj == null) {
 			return false;
-		if (getClass() != obj.getClass())
+		}
+		if (!(obj instanceof ModuleInfo)) {
 			return false;
+		}
 		ModuleInfo other = (ModuleInfo) obj;
 		if (buildTime == null) {
-			if (other.buildTime != null)
+			if (other.buildTime != null) {
 				return false;
-		} else if (!buildTime.equals(other.buildTime))
+			}
+		} else if (!buildTime.equals(other.buildTime)) {
 			return false;
+		}
 		if (classname == null) {
-			if (other.classname != null)
+			if (other.classname != null) {
 				return false;
-		} else if (!classname.equals(other.classname))
+			}
+		} else if (!classname.equals(other.classname)) {
 			return false;
+		}
 		if (classpath == null) {
-			if (other.classpath != null)
+			if (other.classpath != null) {
 				return false;
-		} else if (!classpath.equals(other.classpath))
+			}
+		} else if (!classpath.equals(other.classpath)) {
 			return false;
-		if (moduleType != other.moduleType)
+		}
+		if (!moduleType.equals(other.moduleType)) {
 			return false;
+		}
 		if (version == null) {
-			if (other.version != null)
+			if (other.version != null) {
 				return false;
-		} else if (!version.equals(other.version))
+			}
+		} else if (!version.equals(other.version)) {
 			return false;
+		}
 		return true;
 	}
 

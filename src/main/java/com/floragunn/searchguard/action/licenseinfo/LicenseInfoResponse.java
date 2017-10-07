@@ -18,7 +18,9 @@
 package com.floragunn.searchguard.action.licenseinfo;
 
 import java.io.IOException;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.action.FailedNodeException;
@@ -32,6 +34,7 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 
 import com.floragunn.searchguard.configuration.SearchGuardLicense;
 import com.floragunn.searchguard.support.ModuleInfo;
+import com.floragunn.searchguard.support.ModuleType;
 
 public class LicenseInfoResponse extends BaseNodesResponse<LicenseInfoNodeResponse> implements ToXContent {
     
@@ -117,10 +120,12 @@ public class LicenseInfoResponse extends BaseNodesResponse<LicenseInfoNodeRespon
         
         builder.startObject("modules");
         
-        List<ModuleInfo> mod0 = allNodes.get(0).getModules();
+        List<ModuleInfo> mod0 = new LinkedList<>(allNodes.get(0).getModules());
         
         for(ModuleInfo moduleInfo: mod0) {
-            builder.field(moduleInfo.getModuleType().name(), moduleInfo.getAsMap());
+        	ModuleType type = moduleInfo.getModuleType();
+        	Map<String, String> infoAsMap = moduleInfo.getAsMap();
+            builder.field(type.name(), infoAsMap);
         }
         
         boolean mismatch = false;        

@@ -100,4 +100,6 @@ public enum ModuleType implements Serializable {
 	public Boolean isEnterprise() {
 		return isEnterprise;
 	}
+
+	
 }

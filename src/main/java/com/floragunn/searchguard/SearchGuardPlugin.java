@@ -313,7 +313,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         }
         
         
-        final List<ModuleInfo> sgModules = ReflectionHelper.getModulesLoaded();
+        final Set<ModuleInfo> sgModules = ReflectionHelper.getModulesLoaded();
         
         log.info("{} Search Guard modules loaded so far: {}", sgModules.size(), sgModules);
         
