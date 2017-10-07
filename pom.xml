@@ -21,9 +21,6 @@
     <version>9</version>
   </parent>
 
-  <!-- //TODO - Update THIRD-PARTY.txt - Rework LICENSE since we deliver 
-    enterprise modules alongside -->
-
   <groupId>com.floragunn</groupId>
   <artifactId>search-guard-6</artifactId>
   <packaging>jar</packaging>
@@ -268,41 +265,6 @@
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-assembly-plugin</artifactId>
-        <version>2.6</version>
-        <executions>
-          <execution>
-            <id>plugin</id>
-            <phase>package</phase>
-            <configuration>
-              <appendAssemblyId>false</appendAssemblyId>
-              <outputDirectory>${project.build.directory}/releases/</outputDirectory>
-              <descriptors>
-                <descriptor>${elasticsearch.assembly.descriptor}</descriptor>
-              </descriptors>
-            </configuration>
-            <goals>
-              <goal>single</goal>
-            </goals>
-          </execution>
-          <execution>
-            <id>sgadmin</id>
-            <phase>package</phase>
-            <configuration>
-              <appendAssemblyId>true</appendAssemblyId>
-              <outputDirectory>${project.build.directory}/releases/</outputDirectory>
-              <descriptors>
-                <descriptor>${sgstandalone.descriptor}</descriptor>
-              </descriptors>
-            </configuration>
-            <goals>
-              <goal>single</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-release-plugin</artifactId>
         <version>2.5.3</version>
         <configuration>
@@ -340,6 +302,45 @@
   <profiles>
     <profile>
       <id>enterprise</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-assembly-plugin</artifactId>
+            <version>2.6</version>
+            <executions>
+              <execution>
+                <id>plugin</id>
+                <phase>package</phase>
+                <configuration>
+                  <appendAssemblyId>false</appendAssemblyId>
+                  <outputDirectory>${project.build.directory}/releases/</outputDirectory>
+                  <descriptors>
+                    <descriptor>${elasticsearch.assembly.descriptor}</descriptor>
+                  </descriptors>
+                </configuration>
+                <goals>
+                  <goal>single</goal>
+                </goals>
+              </execution>
+              <execution>
+                <id>sgadmin</id>
+                <phase>package</phase>
+                <configuration>
+                  <appendAssemblyId>true</appendAssemblyId>
+                  <outputDirectory>${project.build.directory}/releases/</outputDirectory>
+                  <descriptors>
+                    <descriptor>${sgstandalone.descriptor}</descriptor>
+                  </descriptors>
+                </configuration>
+                <goals>
+                  <goal>single</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
       <dependencies>
         <dependency>
           <groupId>com.floragunn</groupId>
