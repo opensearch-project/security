@@ -18,6 +18,7 @@ public class ModuleInfo implements Serializable, Writeable{
 	private String classpath;
 	private String version;
 	private String buildTime;
+	private String gitsha1;
 	
 	public ModuleInfo(ModuleType moduleType, String classname) {
 		assert(moduleType != null);
@@ -31,6 +32,7 @@ public class ModuleInfo implements Serializable, Writeable{
 		classpath = in.readString();
 		version = in.readString();
 		buildTime = in.readString();
+		gitsha1 = in.readString();
 		assert(moduleType != null);
 	}
 
@@ -46,7 +48,15 @@ public class ModuleInfo implements Serializable, Writeable{
 		this.buildTime = buildTime;
 	}
 	
-	public ModuleType getModuleType() {
+	public String getGitsha1() {
+        return gitsha1;
+    }
+
+    public void setGitsha1(String gitsha1) {
+        this.gitsha1 = gitsha1;
+    }
+
+    public ModuleType getModuleType() {
 		return moduleType;
 	}
 	
@@ -60,6 +70,7 @@ public class ModuleInfo implements Serializable, Writeable{
 		infoMap.put("classpath", this.classpath);
 		infoMap.put("version", this.version);
 		infoMap.put("buildTime", this.buildTime);
+		infoMap.put("gitsha1", this.gitsha1);
 		return infoMap;
 	}
 	
@@ -70,6 +81,7 @@ public class ModuleInfo implements Serializable, Writeable{
         out.writeString(classpath);
         out.writeString(version);
         out.writeString(buildTime);
+        out.writeString(gitsha1);
 	}
 	
  
@@ -86,6 +98,7 @@ public class ModuleInfo implements Serializable, Writeable{
 		result = prime * result + ((classpath == null) ? 0 : classpath.hashCode());
 		result = prime * result + ((moduleType == null) ? 0 : moduleType.hashCode());
 		result = prime * result + ((version == null) ? 0 : version.hashCode());
+		result = prime * result + ((gitsha1 == null) ? 0 : gitsha1.hashCode());
 		return result;
 	}
 
@@ -135,6 +148,13 @@ public class ModuleInfo implements Serializable, Writeable{
 		} else if (!version.equals(other.version)) {
 			return false;
 		}
+		if (gitsha1 == null) {
+            if (other.gitsha1 != null) {
+                return false;
+            }
+        } else if (!gitsha1.equals(other.gitsha1)) {
+            return false;
+        }
 		return true;
 	}
 

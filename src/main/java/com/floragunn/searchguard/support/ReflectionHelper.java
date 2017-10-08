@@ -56,17 +56,6 @@ public class ReflectionHelper {
 
 	protected static final Logger log = LogManager.getLogger(ReflectionHelper.class);
 
-	/*
-	 * public static boolean canLoad0(String clazz) { try { return
-	 * Class.forName--(clazz) != null; } catch (ClassNotFoundException e) {
-	 * return false; } }
-	 * 
-	 * 
-	 * public static Class load0(String clazz) { try { return
-	 * Class.forName--(clazz); } catch (ClassNotFoundException e) { return null;
-	 * } }
-	 */
-
 	private static Set<ModuleInfo> modulesLoaded = new HashSet<>();
 
 	public static Set<ModuleInfo> getModulesLoaded() {
@@ -278,6 +267,7 @@ public class ReflectionHelper {
 				final Attributes attr = manifest.getMainAttributes();
 				moduleInfo.setVersion(attr.getValue("Implementation-Version"));
 				moduleInfo.setBuildTime(attr.getValue("Build-Time"));
+				moduleInfo.setGitsha1(attr.getValue("git-sha1"));
 			}
 		} catch (final Throwable e) {
 			log.error("Unable to retrieve module info for " + impl, e);
