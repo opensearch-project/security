@@ -15,6 +15,7 @@
 package com.floragunn.searchguard.test.helper.file;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
@@ -22,6 +23,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.security.KeyStore;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
@@ -39,6 +41,19 @@ public class FileHelper {
 
 	protected final static Logger log = LogManager.getLogger(FileHelper.class);
 
+	public static KeyStore getKeystoreFromClassPath(final String fileNameFromClasspath, String password) throws Exception {
+	    File file = getAbsoluteFilePathFromClassPath(fileNameFromClasspath);
+	    if(file==null) {
+	        return null;
+	    }
+	    
+	    KeyStore ks = KeyStore.getInstance("JKS");
+	    try (FileInputStream fin = new FileInputStream(file)) {
+	        ks.load(fin, password==null||password.isEmpty()?null:password.toCharArray());
+	    }
+	    return ks;
+	}
+	
 	public static File getAbsoluteFilePathFromClassPath(final String fileNameFromClasspath) {
 		File file = null;
 		final URL fileUrl = SearchGuardPlugin.class.getClassLoader().getResource(fileNameFromClasspath);
