@@ -220,7 +220,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                                 if(response != null && response.isExists()) {
                                    bgThread.start();
                                 } else {
-                                    if(settings.getAsBoolean("action.master.force_local", false) && settings.getByPrefix("tribe").getAsMap().size() > 0) {
+                                    if(settings.get("tribe.name", null) == null && settings.getByPrefix("tribe").getAsMap().size() > 0) {
                                         LOGGER.info("{} index does not exist yet, but we are a tribe node. So we will load the config anyhow until we got it ...", searchguardIndex);
                                         bgThread.start();
                                     } else {

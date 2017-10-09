@@ -228,7 +228,11 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
             throw new IllegalStateException(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLED+" must be set to 'true'");
         }
         
-        boolean tribeNode = this.settings.getAsBoolean("action.master.force_local", false) && this.settings.getByPrefix("tribe").getAsMap().size() > 0;
+        if(log.isDebugEnabled() && this.settings.getByPrefix("tribe").getAsMap().size() > 0) {
+            log.debug("Tribe configuration detected: {}", this.settings.getAsMap());
+        }
+        
+        boolean tribeNode = this.settings.get("tribe.name", null) == null && this.settings.getByPrefix("tribe").getAsMap().size() > 0;
         tribeNodeClient = this.settings.get("tribe.name", null) != null;
 
         log.debug("This node [{}] is a transportClient: {}/tribeNode: {}/tribeNodeClient: {}", settings.get("node.name"), client, tribeNode, tribeNodeClient);
