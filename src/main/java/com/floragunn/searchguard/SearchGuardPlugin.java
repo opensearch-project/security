@@ -99,6 +99,8 @@ import com.floragunn.searchguard.action.configupdate.ConfigUpdateAction;
 import com.floragunn.searchguard.action.configupdate.TransportConfigUpdateAction;
 import com.floragunn.searchguard.action.licenseinfo.LicenseInfoAction;
 import com.floragunn.searchguard.action.licenseinfo.TransportLicenseInfoAction;
+import com.floragunn.searchguard.action.whoami.TransportWhoAmIAction;
+import com.floragunn.searchguard.action.whoami.WhoAmIAction;
 import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.auth.BackendRegistry;
 import com.floragunn.searchguard.auth.internal.InternalAuthenticationBackend;
@@ -340,6 +342,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         if(!tribeNodeClient && !disabled) {
             actions.add(new ActionHandler<>(ConfigUpdateAction.INSTANCE, TransportConfigUpdateAction.class));
             actions.add(new ActionHandler<>(LicenseInfoAction.INSTANCE, TransportLicenseInfoAction.class));
+            actions.add(new ActionHandler<>(WhoAmIAction.INSTANCE, TransportWhoAmIAction.class));
         }
         return actions;
     }

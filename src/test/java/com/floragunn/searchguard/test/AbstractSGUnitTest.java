@@ -129,6 +129,22 @@ public abstract class AbstractSGUnitTest {
         return tc;
     }
     
+    protected TransportClient getUserTransportClient(ClusterInfo info, String keyStore, Settings initTransportClientSettings) {
+        Settings tcSettings = Settings.builder()
+                .put("cluster.name", info.clustername)
+                .put("searchguard.ssl.transport.truststore_filepath",
+                        FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+                .put("searchguard.ssl.transport.enforce_hostname_verification", false)
+                .put("searchguard.ssl.transport.keystore_filepath",
+                        FileHelper.getAbsoluteFilePathFromClassPath(keyStore))
+                .put(initTransportClientSettings)
+                .build();
+        
+        TransportClient tc = new TransportClientImpl(tcSettings, asCollection(Netty4Plugin.class, SearchGuardPlugin.class));
+        tc.addTransportAddress(new TransportAddress(new InetSocketAddress(info.nodeHost, info.nodePort)));
+        return tc;
+    }
+    
     protected void initialize(ClusterInfo info, Settings initTransportClientSettings, DynamicSgConfig sgconfig) {
 
         try (TransportClient tc = getInternalTransportClient(info, initTransportClientSettings)) {

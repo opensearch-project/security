@@ -39,7 +39,7 @@ import com.floragunn.searchguard.support.ReflectionHelper;
 
 public class TransportLicenseInfoAction
 extends
-TransportNodesAction<LicenseInfoRequest, LicenseInfoResponse, TransportLicenseInfoAction.NodeConfigUpdateRequest, LicenseInfoNodeResponse> {
+TransportNodesAction<LicenseInfoRequest, LicenseInfoResponse, TransportLicenseInfoAction.NodeLicenseRequest, LicenseInfoNodeResponse> {
 
     private final IndexBaseConfigurationRepository configurationRepository;
     
@@ -49,20 +49,20 @@ TransportNodesAction<LicenseInfoRequest, LicenseInfoResponse, TransportLicenseIn
             final IndexBaseConfigurationRepository configurationRepository, final ActionFilters actionFilters, final IndexNameExpressionResolver indexNameExpressionResolver) {
         
         super(settings, LicenseInfoAction.NAME, threadPool, clusterService, transportService, actionFilters,
-                indexNameExpressionResolver, LicenseInfoRequest::new, TransportLicenseInfoAction.NodeConfigUpdateRequest::new,
+                indexNameExpressionResolver, LicenseInfoRequest::new, TransportLicenseInfoAction.NodeLicenseRequest::new,
                 ThreadPool.Names.MANAGEMENT, LicenseInfoNodeResponse.class);
 
         this.configurationRepository = configurationRepository;
     }
 
-    public static class NodeConfigUpdateRequest extends BaseNodeRequest {
+    public static class NodeLicenseRequest extends BaseNodeRequest {
 
         LicenseInfoRequest request;
 
-        public NodeConfigUpdateRequest() {
+        public NodeLicenseRequest() {
         }
 
-        public NodeConfigUpdateRequest(final String nodeId, final LicenseInfoRequest request) {
+        public NodeLicenseRequest(final String nodeId, final LicenseInfoRequest request) {
             super(nodeId);
             this.request = request;
         }
@@ -81,8 +81,8 @@ TransportNodesAction<LicenseInfoRequest, LicenseInfoResponse, TransportLicenseIn
         }
     }
 
-    protected NodeConfigUpdateRequest newNodeRequest(final String nodeId, final LicenseInfoRequest request) {
-        return new NodeConfigUpdateRequest(nodeId, request);
+    protected NodeLicenseRequest newNodeRequest(final String nodeId, final LicenseInfoRequest request) {
+        return new NodeLicenseRequest(nodeId, request);
     }
 
     @Override
@@ -99,7 +99,7 @@ TransportNodesAction<LicenseInfoRequest, LicenseInfoResponse, TransportLicenseIn
     }
 	
     @Override
-    protected LicenseInfoNodeResponse nodeOperation(final NodeConfigUpdateRequest request) {
+    protected LicenseInfoNodeResponse nodeOperation(final NodeLicenseRequest request) {
         final SearchGuardLicense license = configurationRepository.getLicense();
         return new LicenseInfoNodeResponse(clusterService.localNode(), license, ReflectionHelper.getModulesLoaded()); 
     }

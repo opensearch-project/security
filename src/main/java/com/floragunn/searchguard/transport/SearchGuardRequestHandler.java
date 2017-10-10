@@ -32,6 +32,7 @@ import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportRequestHandler;
 
+import com.floragunn.searchguard.action.whoami.WhoAmIAction;
 import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.auditlog.AuditLog.Origin;
 import com.floragunn.searchguard.auth.BackendRegistry;
@@ -108,7 +109,7 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
                 if(!Strings.isNullOrEmpty(originalRemoteAddress)) {
                     getThreadContext().putTransient(ConfigConstants.SG_REMOTE_ADDRESS, new TransportAddress((InetSocketAddress) Base64Helper.deserializeObject(originalRemoteAddress)));
                 }
-                
+                                
                 super.messageReceivedDecorate(request, handler, transportChannel, task);
                 return;
             }
@@ -183,7 +184,20 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
                     User user;
                     //try {
                         if((user = backendRegistry.authenticate(request, principal, task)) == null) {
-                            log.error("Cannot authenticate {}", (User) getThreadContext().getTransient(ConfigConstants.SG_USER));
+                            
+                            if(transportChannel.action().equals(WhoAmIAction.NAME)) {
+                                super.messageReceivedDecorate(request, handler, transportChannel, task);
+                                return;
+                            }
+                            
+                            if(transportChannel.action().equals("cluster:monitor/nodes/liveness")
+                                    || transportChannel.action().equals("internal:transport/handshake")) {
+                                super.messageReceivedDecorate(request, handler, transportChannel, task);
+                                return;
+                            }
+                            
+                            
+                            log.error("Cannot authenticate {} for {}", (User) getThreadContext().getTransient(ConfigConstants.SG_USER), transportChannel.action());
                             transportChannel.sendResponse(new ElasticsearchSecurityException("Cannot authenticate "+getThreadContext().getTransient(ConfigConstants.SG_USER)));
                             return;
                         }

@@ -15,19 +15,28 @@
  * 
  */
 
-package com.floragunn.searchguard.action.licenseinfo;
+package com.floragunn.searchguard.action.whoami;
 
-import org.elasticsearch.action.support.nodes.NodesOperationRequestBuilder;
-import org.elasticsearch.client.ClusterAdminClient;
+import org.elasticsearch.action.Action;
 import org.elasticsearch.client.ElasticsearchClient;
 
-public class LicenseInfoRequestBuilder extends
-NodesOperationRequestBuilder<LicenseInfoRequest, LicenseInfoResponse, LicenseInfoRequestBuilder> {
-    public LicenseInfoRequestBuilder(final ClusterAdminClient client) {
-        this(client, LicenseInfoAction.INSTANCE);
+public class WhoAmIAction extends Action<WhoAmIRequest, WhoAmIResponse, WhoAmIRequestBuilder> {
+
+    public static final WhoAmIAction INSTANCE = new WhoAmIAction();
+    public static final String NAME = "cluster:admin/searchguard/whoami";
+
+    protected WhoAmIAction() {
+        super(NAME);
     }
 
-    public LicenseInfoRequestBuilder(final ElasticsearchClient client, final LicenseInfoAction action) {
-        super(client, action, new LicenseInfoRequest());
+    @Override
+    public WhoAmIRequestBuilder newRequestBuilder(final ElasticsearchClient client) {
+        return new WhoAmIRequestBuilder(client, this);
     }
+
+    @Override
+    public WhoAmIResponse newResponse() {
+        return new WhoAmIResponse(null, false, false, false);
+    }
+
 }

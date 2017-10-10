@@ -31,7 +31,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Locale;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -57,7 +56,6 @@ import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequest;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
 import org.elasticsearch.action.admin.indices.get.GetIndexRequest.Feature;
 import org.elasticsearch.action.admin.indices.get.GetIndexResponse;
@@ -73,6 +71,7 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.NoNodeAvailableException;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.settings.Settings;
@@ -98,6 +97,9 @@ import com.floragunn.searchguard.action.configupdate.ConfigUpdateResponse;
 import com.floragunn.searchguard.action.licenseinfo.LicenseInfoAction;
 import com.floragunn.searchguard.action.licenseinfo.LicenseInfoRequest;
 import com.floragunn.searchguard.action.licenseinfo.LicenseInfoResponse;
+import com.floragunn.searchguard.action.whoami.WhoAmIAction;
+import com.floragunn.searchguard.action.whoami.WhoAmIRequest;
+import com.floragunn.searchguard.action.whoami.WhoAmIResponse;
 import com.floragunn.searchguard.ssl.util.ExceptionUtils;
 import com.floragunn.searchguard.ssl.util.SSLConfigConstants;
 import com.floragunn.searchguard.support.ConfigConstants;
@@ -199,6 +201,8 @@ public class SearchGuardAdmin {
 
         options.addOption(Option.builder("si").longOpt("show-info").desc("show infos").build());
 
+        options.addOption(Option.builder("w").longOpt("whoami").desc("who am i").build());
+
         
         //when adding new options also adjust validate(CommandLine line)
         
@@ -240,6 +244,7 @@ public class SearchGuardAdmin {
         String cert = null;
         String key = null;
         boolean si;
+        boolean whoami;
         
         CommandLineParser parser = new DefaultParser();
         try {
@@ -311,15 +316,7 @@ public class SearchGuardAdmin {
             
             si = line.hasOption("si");
             
-            /*if (cert == null && ks == null) {
-                nhnv = true;
-                //simpleAuth = true;
-                final String jarPath = new File(SearchGuardAdmin.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath()).getParentFile().getAbsolutePath();
-                cd = ("."+File.separator).equals(cd) ? (jarPath+"/sgconfig/") : cd;
-                cacert = cacert == null ? jarPath+"/defaultcerts/root-ca.pem" : cacert;
-                cert = cert == null ? jarPath+"/defaultcerts/sgadmin.crtfull.pem" : cert;
-                key = key == null ? jarPath+"/defaultcerts/sgadmin.key.pem" : key;
-            }*/
+            whoami = line.hasOption("w");
             
         }
         catch( ParseException exp ) {
@@ -409,6 +406,26 @@ public class SearchGuardAdmin {
         TransportClient tc = new TransportClientImpl(settings, asCollection(Netty4Plugin.class, SearchGuardPlugin.class))
                 .addTransportAddress(new TransportAddress(new InetSocketAddress(hostname, port)))) {
 
+            final WhoAmIResponse whoAmIRes = tc.execute(WhoAmIAction.INSTANCE, new WhoAmIRequest()).actionGet();                
+            System.out.println("Connected as "+whoAmIRes.getDn());
+
+            if(!whoAmIRes.isAdmin()) {
+                System.out.println("ERR: "+whoAmIRes.getDn()+" is not an admin user");
+                System.out.println("Make sure the elasticsearch.yml on all nodes contain");
+                System.out.println("searchguard.authcz.admin_dn:"+System.lineSeparator()+
+                                   "  - \""+whoAmIRes.getDn()+"\"");
+                System.out.println();
+                if(whoAmIRes.isAuthenticated()) {
+                    System.out.println("    Seems you used a client certificate but this one is not registered as admin_dn");
+                }
+                
+                if(whoAmIRes.isNodeCertificateRequest()) {
+                    System.out.println("    Seems you used a node certificate");
+                }
+                
+                System.exit(-1);
+            }
+            
             if(updateSettings != null) { 
                 Settings indexSettings = Settings.builder().put("index.number_of_replicas", updateSettings).build();                
                 tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();                
@@ -429,6 +446,12 @@ public class SearchGuardAdmin {
                 System.out.println(res.toString());
                 System.exit(0);
             }
+            
+            if(whoami) { 
+                System.out.println(whoAmIRes.toString());
+                System.exit(0);
+            }
+            
             
             if(replicaAutoExpand != null) { 
                 Settings indexSettings = Settings.builder()
@@ -816,9 +839,26 @@ public class SearchGuardAdmin {
         sb.append(System.lineSeparator());
         
         try {
+            sb.append("Who am i:"+System.lineSeparator());
+            final WhoAmIResponse whoAmIRes = tc.execute(WhoAmIAction.INSTANCE, new WhoAmIRequest()).actionGet();
+            sb.append(Strings.toString(whoAmIRes));
+        } catch (Exception e1) {
+            sb.append(ExceptionsHelper.stackTrace(e1));
+        }
+        
+        try {
+            sb.append("License:"+System.lineSeparator());
+            LicenseInfoResponse res = tc.execute(LicenseInfoAction.INSTANCE, new LicenseInfoRequest()).actionGet();
+            sb.append(Strings.toString(res));
+        } catch (Exception e1) {
+            sb.append(ExceptionsHelper.stackTrace(e1));
+        }
+        
+        
+        try {
             sb.append("ClusterHealthRequest:"+System.lineSeparator());
             ClusterHealthResponse nir = tc.admin().cluster().health(new ClusterHealthRequest()).actionGet();
-            sb.append(XContentHelper.toString(nir));
+            sb.append(Strings.toString(nir));
         } catch (Exception e1) {
             sb.append(ExceptionsHelper.stackTrace(e1));
         }
@@ -826,7 +866,7 @@ public class SearchGuardAdmin {
         try {
             sb.append(System.lineSeparator()+"NodesInfoResponse:"+System.lineSeparator());
             NodesInfoResponse nir = tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet();
-            sb.append(XContentHelper.toString(nir));
+            sb.append(Strings.toString(nir));
         } catch (Exception e1) {
             sb.append(ExceptionsHelper.stackTrace(e1));
         }
@@ -834,7 +874,7 @@ public class SearchGuardAdmin {
         try {
             sb.append(System.lineSeparator()+"NodesStatsRequest:"+System.lineSeparator());
             NodesStatsResponse nir = tc.admin().cluster().nodesStats(new NodesStatsRequest()).actionGet();
-            sb.append(XContentHelper.toString(nir));
+            sb.append(Strings.toString(nir));
         } catch (Exception e1) {
             sb.append(ExceptionsHelper.stackTrace(e1));
         }
@@ -842,7 +882,7 @@ public class SearchGuardAdmin {
         try {
             sb.append(System.lineSeparator()+"PendingClusterTasksRequest:"+System.lineSeparator());
             PendingClusterTasksResponse nir = tc.admin().cluster().pendingClusterTasks(new PendingClusterTasksRequest()).actionGet();
-            sb.append(XContentHelper.toString(nir));
+            sb.append(Strings.toString(nir));
         } catch (Exception e1) {
             sb.append(ExceptionsHelper.stackTrace(e1));
         }
@@ -850,7 +890,7 @@ public class SearchGuardAdmin {
         try {
             sb.append(System.lineSeparator()+"ClusterStateRequest:"+System.lineSeparator());
             ClusterStateResponse nir = tc.admin().cluster().state(new ClusterStateRequest()).actionGet();
-            sb.append(XContentHelper.toString(nir.getState()));
+            sb.append(Strings.toString(nir.getState()));
         } catch (Exception e1) {
             sb.append(ExceptionsHelper.stackTrace(e1));
         }
@@ -858,14 +898,14 @@ public class SearchGuardAdmin {
         try {
             sb.append(System.lineSeparator()+"IndicesStatsRequest:"+System.lineSeparator());
             IndicesStatsResponse nir = tc.admin().indices().stats(new IndicesStatsRequest()).actionGet();
-            sb.append(XContentHelper.toString(nir));
+            sb.append(Strings.toString(nir));
         } catch (Exception e1) {
             sb.append(ExceptionsHelper.stackTrace(e1));
         }
         
         try {
             File dfile = new File("sgadmin_diag_trace_"+date+".txt");
-            Files.write(sb,dfile, StandardCharsets.UTF_8);
+            Files.asCharSink(dfile, StandardCharsets.UTF_8).write(sb);
             System.out.println("Diagnostic trace written to: "+dfile.getAbsolutePath());
         } catch (Exception e1) {
             System.out.println("ERR: cannot write diag trace file due to "+e1);
@@ -908,9 +948,4 @@ public class SearchGuardAdmin {
         
         //TODO add more validation rules
     }
-    
-    /*private static String encodeBasicHeader(final String username, final String password) {
-        return new String(DatatypeConverter.printBase64Binary((username + ":" + Objects.requireNonNull(password)).getBytes(StandardCharsets.UTF_8)));
-    }*/
-    
 }

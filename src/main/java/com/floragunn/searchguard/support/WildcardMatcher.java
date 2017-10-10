@@ -27,10 +27,24 @@ public class WildcardMatcher {
     
     private static final int NOT_FOUND = -1;
 
+    /**
+     * returns true if at least one candidate match at least one pattern (case sensitive)
+     * @param pattern
+     * @param candidate
+     * @return
+     */
     public static boolean matchAny(final String[] pattern, final String[] candidate) {
         return matchAny(pattern, candidate, false);
     }
     
+    /**
+     * returns true if at least one candidate match at least one pattern
+     * 
+     * @param pattern
+     * @param candidate
+     * @param ignoreCase
+     * @return
+     */
     public static boolean matchAny(final String[] pattern, final String[] candidate, boolean ignoreCase) {
 
         for (int i = 0; i < pattern.length; i++) {
@@ -43,6 +57,13 @@ public class WildcardMatcher {
         return false;
     }
 
+    /**
+     * return true if all candidates find a matching pattern
+     * 
+     * @param pattern
+     * @param candidate
+     * @return
+     */
     public static boolean matchAll(final String[] pattern, final String[] candidate) {
 
         for (int i = 0; i < candidate.length; i++) {
@@ -55,6 +76,12 @@ public class WildcardMatcher {
         return true;
     }
     
+    /**
+     * 
+     * @param pattern
+     * @param candidate
+     * @return
+     */
     public static boolean allPatternsMatched(final String[] pattern, final String[] candidate) {
 
         int matchedPatternNum = 0;
@@ -73,6 +100,14 @@ public class WildcardMatcher {
         return matchAny(pattern, candidate, false);
     }
     
+    /**
+     * return true if at least one candidate matches the given pattern
+     * 
+     * @param pattern
+     * @param candidate
+     * @param ignoreCase
+     * @return
+     */
     public static boolean matchAny(final String pattern, final String[] candidate, boolean ignoreCase) {
 
         for (int i = 0; i < candidate.length; i++) {
@@ -112,6 +147,13 @@ public class WildcardMatcher {
         return matches;
     }
 
+    /**
+     * returns true if the candidate matches at least one pattern
+     * 
+     * @param pattern
+     * @param candidate
+     * @return
+     */
     public static boolean matchAny(final String pattern[], final String candidate) {
 
         for (int i = 0; i < pattern.length; i++) {
@@ -124,6 +166,13 @@ public class WildcardMatcher {
         return false;
     }
     
+    /**
+     * returns true if the candidate matches at least one pattern
+     * 
+     * @param pattern
+     * @param candidate
+     * @return
+     */
     public static boolean matchAny(final Collection<String> pattern, final String candidate) {
 
         for (String string: pattern) {

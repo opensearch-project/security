@@ -17,14 +17,25 @@
 
 package com.floragunn.searchguard.filter;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionResponse;
+import org.elasticsearch.action.bulk.BulkItemRequest;
+import org.elasticsearch.action.bulk.BulkRequest;
+import org.elasticsearch.action.bulk.BulkShardRequest;
+import org.elasticsearch.action.delete.DeleteAction;
+import org.elasticsearch.action.get.MultiGetRequest;
+import org.elasticsearch.action.index.IndexAction;
+import org.elasticsearch.action.search.MultiSearchRequest;
 import org.elasticsearch.action.support.ActionFilter;
 import org.elasticsearch.action.support.ActionFilterChain;
+import org.elasticsearch.action.update.UpdateAction;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
@@ -33,6 +44,7 @@ import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import com.floragunn.searchguard.action.licenseinfo.LicenseInfoAction;
+import com.floragunn.searchguard.action.whoami.WhoAmIAction;
 import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.auditlog.AuditLog.Origin;
 import com.floragunn.searchguard.configuration.AdminDNs;
@@ -84,7 +96,9 @@ public class SearchGuardFilter implements ActionFilter {
             final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadContext);
             //final boolean trustedClusterRequest = HeaderHelper.isTrustedClusterRequest(threadContext);
             final boolean conRequest = "true".equals(HeaderHelper.getSafeFromHeader(threadContext, ConfigConstants.SG_CONF_REQUEST_HEADER));
-            final boolean passThroughRequest = action.equals(LicenseInfoAction.NAME) || action.startsWith("indices:admin/seq_no");
+            final boolean passThroughRequest = action.equals(LicenseInfoAction.NAME) 
+                    || action.startsWith("indices:admin/seq_no")
+                    || action.equals(WhoAmIAction.NAME);
             
             final boolean internalRequest = 
                     (interClusterRequest || HeaderHelper.isDirectRequest(threadContext))

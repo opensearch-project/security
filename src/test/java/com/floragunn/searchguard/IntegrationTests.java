@@ -19,11 +19,13 @@ import org.elasticsearch.action.DocWriteResponse.Result;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
+import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
+import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
@@ -51,6 +53,9 @@ import org.junit.Test;
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateAction;
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateRequest;
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateResponse;
+import com.floragunn.searchguard.action.whoami.WhoAmIAction;
+import com.floragunn.searchguard.action.whoami.WhoAmIResponse;
+import com.floragunn.searchguard.action.whoami.WhoAmIRequest;
 import com.floragunn.searchguard.configuration.PrivilegesInterceptorImpl;
 import com.floragunn.searchguard.http.HTTPClientCertAuthenticator;
 import com.floragunn.searchguard.ssl.util.ExceptionUtils;
@@ -628,6 +633,130 @@ public class IntegrationTests extends SingleClusterTest {
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("\"_index\":\"klingonempire\""));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("hits"));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("no permissions for indices:data/read/search"));
+        
+    }
+    
+    @Test
+    public void testWhoAmI() throws Exception {
+        setup(Settings.EMPTY, new DynamicSgConfig().setSgInternalUsers("sg_internal_empty.yml")
+                .setSgRoles("sg_roles_deny.yml"), Settings.EMPTY, true);
+        
+        try (TransportClient tc = getUserTransportClient(clusterInfo, "spock-keystore.jks", Settings.EMPTY)) {  
+            WhoAmIResponse wres = tc.execute(WhoAmIAction.INSTANCE, new WhoAmIRequest()).actionGet();  
+            System.out.println(wres);
+            Assert.assertEquals(wres.toString(), "CN=spock,OU=client,O=client,L=Test,C=DE", wres.getDn());
+            Assert.assertFalse(wres.toString(), wres.isAdmin());
+            Assert.assertFalse(wres.toString(), wres.isAuthenticated());
+            Assert.assertFalse(wres.toString(), wres.isNodeCertificateRequest());
+
+        }
+        
+        try (TransportClient tc = getUserTransportClient(clusterInfo, "node-0-keystore.jks", Settings.EMPTY)) {  
+            WhoAmIResponse wres = tc.execute(WhoAmIAction.INSTANCE, new WhoAmIRequest()).actionGet();    
+            System.out.println(wres);
+            Assert.assertEquals(wres.toString(), "CN=node-0.example.com,OU=SSL,O=Test,L=Test,C=DE", wres.getDn());
+            Assert.assertFalse(wres.toString(), wres.isAdmin());
+            Assert.assertFalse(wres.toString(), wres.isAuthenticated());
+            Assert.assertTrue(wres.toString(), wres.isNodeCertificateRequest());
+
+        }
+    }
+    
+    @Test
+    public void testNotInsecure() throws Exception {
+        setup(Settings.EMPTY, new DynamicSgConfig().setSgRoles("sg_roles_deny.yml"), Settings.EMPTY, true);
+        final RestHelper rh = nonSslRestHelper();
+        
+        try (TransportClient tc = getInternalTransportClient()) {               
+            //create indices and mapping upfront
+            tc.index(new IndexRequest("test").type("type1").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"field2\":\"init\"}", XContentType.JSON)).actionGet();           
+            tc.index(new IndexRequest("lorem").type("type1").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"field2\":\"init\"}", XContentType.JSON)).actionGet();      
+        
+            WhoAmIResponse wres = tc.execute(WhoAmIAction.INSTANCE, new WhoAmIRequest()).actionGet();   
+            System.out.println(wres);
+            Assert.assertEquals("CN=kirk,OU=client,O=client,L=Test,C=DE", wres.getDn());
+            Assert.assertTrue(wres.isAdmin());
+            Assert.assertTrue(wres.toString(), wres.isAuthenticated());
+            Assert.assertFalse(wres.toString(), wres.isNodeCertificateRequest());
+        }
+        
+        HttpResponse res = rh.executePutRequest("test/_mapping/type1?pretty", "{\"properties\": {\"name\":{\"type\":\"text\"}}}", encodeBasicHeader("writer", "writer"));
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());  
+        
+        res = rh.executePostRequest("_cluster/reroute", "{}", encodeBasicHeader("writer", "writer"));
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());  
+        
+        try (TransportClient tc = getUserTransportClient(clusterInfo, "spock-keystore.jks", Settings.EMPTY)) {               
+            //create indices and mapping upfront
+            try {
+                tc.admin().indices().putMapping(new PutMappingRequest("test").type("typex").source("fieldx","type=text")).actionGet();
+                Assert.fail();
+            } catch (ElasticsearchSecurityException e) {
+                Assert.assertTrue(e.toString(),e.getMessage().contains("no permissions for"));
+            }          
+            
+            try {
+                tc.admin().cluster().reroute(new ClusterRerouteRequest()).actionGet();
+                Assert.fail();
+            } catch (ElasticsearchSecurityException e) {
+                Assert.assertTrue(e.toString(),e.getMessage().contains("no permissions for cluster:admin/reroute"));
+            }
+            
+            WhoAmIResponse wres = tc.execute(WhoAmIAction.INSTANCE, new WhoAmIRequest()).actionGet();                
+            Assert.assertEquals("CN=spock,OU=client,O=client,L=Test,C=DE", wres.getDn());
+            Assert.assertFalse(wres.isAdmin());
+            Assert.assertTrue(wres.toString(), wres.isAuthenticated());
+            Assert.assertFalse(wres.toString(), wres.isNodeCertificateRequest());
+        }
+
+    }
+    
+    @Test
+    public void testBulkShards() throws Exception {
+    
+        setup(Settings.EMPTY, new DynamicSgConfig().setSgRoles("sg_roles_bs.yml"), Settings.EMPTY, true);
+        final RestHelper rh = nonSslRestHelper();
+        
+        try (TransportClient tc = getInternalTransportClient()) {               
+            //create indices and mapping upfront
+            tc.index(new IndexRequest("test").type("type1").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"field2\":\"init\"}", XContentType.JSON)).actionGet();           
+            tc.index(new IndexRequest("lorem").type("type1").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"field2\":\"init\"}", XContentType.JSON)).actionGet();      
+        }
+        
+        String bulkBody = 
+        "{ \"index\" : { \"_index\" : \"test\", \"_type\" : \"type1\", \"_id\" : \"1\" } }"+System.lineSeparator()+
+        "{ \"field2\" : \"value1\" }" +System.lineSeparator()+
+        "{ \"index\" : { \"_index\" : \"test\", \"_type\" : \"type1\", \"_id\" : \"2\" } }"+System.lineSeparator()+
+        "{ \"field2\" : \"value2\" }"+System.lineSeparator()+
+        "{ \"index\" : { \"_index\" : \"test\", \"_type\" : \"type1\", \"_id\" : \"3\" } }"+System.lineSeparator()+
+        "{ \"field2\" : \"value2\" }"+System.lineSeparator()+
+        "{ \"index\" : { \"_index\" : \"test\", \"_type\" : \"type1\", \"_id\" : \"4\" } }"+System.lineSeparator()+
+        "{ \"field2\" : \"value2\" }"+System.lineSeparator()+
+        "{ \"index\" : { \"_index\" : \"test\", \"_type\" : \"type1\", \"_id\" : \"5\" } }"+System.lineSeparator()+
+        "{ \"field2\" : \"value2\" }"+System.lineSeparator()+
+        "{ \"index\" : { \"_index\" : \"lorem\", \"_type\" : \"type1\", \"_id\" : \"1\" } }"+System.lineSeparator()+
+        "{ \"field2\" : \"value2\" }"+System.lineSeparator()+
+        "{ \"index\" : { \"_index\" : \"lorem\", \"_type\" : \"type1\", \"_id\" : \"2\" } }"+System.lineSeparator()+
+        "{ \"field2\" : \"value2\" }"+System.lineSeparator()+
+        "{ \"index\" : { \"_index\" : \"lorem\", \"_type\" : \"type1\", \"_id\" : \"3\" } }"+System.lineSeparator()+
+        "{ \"field2\" : \"value2\" }"+System.lineSeparator()+
+        "{ \"index\" : { \"_index\" : \"lorem\", \"_type\" : \"type1\", \"_id\" : \"4\" } }"+System.lineSeparator()+
+        "{ \"field2\" : \"value2\" }"+System.lineSeparator()+
+        "{ \"index\" : { \"_index\" : \"lorem\", \"_type\" : \"type1\", \"_id\" : \"5\" } }"+System.lineSeparator()+
+        "{ \"field2\" : \"value2\" }"+System.lineSeparator()+
+        "{ \"delete\" : { \"_index\" : \"lorem\", \"_type\" : \"type1\", \"_id\" : \"5\" } }"+System.lineSeparator();
+       
+        System.out.println("############ _bulk");
+        HttpResponse res = rh.executePostRequest("_bulk?refresh=true&pretty=true", bulkBody, encodeBasicHeader("worf", "worf"));
+        System.out.println(res.getBody());
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());  
+        Assert.assertTrue(res.getBody().contains("\"errors\" : true"));
+        Assert.assertTrue(res.getBody().contains("\"status\" : 201"));
+        Assert.assertTrue(res.getBody().contains("no permissions for"));
+        
+        System.out.println("############ check shards");
+        System.out.println(rh.executeGetRequest("_cat/shards?v", encodeBasicHeader("nagilum", "nagilum")));
+
         
     }
 
