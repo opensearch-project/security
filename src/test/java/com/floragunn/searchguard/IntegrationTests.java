@@ -373,7 +373,7 @@ public class IntegrationTests extends SingleClusterTest {
                     }
                     Assert.fail();
                 } catch (ElasticsearchSecurityException e) {
-                   Assert.assertTrue(e.getMessage().startsWith("no permissions for indices:data/read/get"));
+                   Assert.assertTrue(e.getMessage(), e.getMessage().startsWith("no permissions for [indices:data/read/get]"));
                 }
                 
                 System.out.println("------- 11 ---------");
@@ -385,7 +385,7 @@ public class IntegrationTests extends SingleClusterTest {
                     gr = tc.prepareGet("vulcan", "secrets", "s1").get();
                     Assert.fail();
                 } catch (ElasticsearchSecurityException e) {
-                    Assert.assertTrue(e.getMessage().startsWith("no permissions for indices:data/read/get"));
+                    Assert.assertTrue(e.getMessage().startsWith("no permissions for [indices:data/read/get]"));
                 } finally {
                     ctx.close();
                 }
@@ -482,7 +482,7 @@ public class IntegrationTests extends SingleClusterTest {
                     gr = tc.prepareGet("vulcan", "secrets", "s1").get();
                     Assert.fail();
                 } catch (ElasticsearchSecurityException e) {
-                    Assert.assertTrue(e.getMessage().startsWith("no permissions for indices:data/read/get"));
+                    Assert.assertTrue(e.getMessage().startsWith("no permissions for [indices:data/read/get]"));
                    Assert.assertTrue(ok);
                 } finally {
                     ctx.close();
@@ -508,7 +508,7 @@ public class IntegrationTests extends SingleClusterTest {
                     gr = tc.prepareGet("searchguard", "sg", "config").setRealtime(Boolean.TRUE).get();
                     Assert.fail();
                 } catch (Exception e) {
-                    Assert.assertTrue(e.getMessage().contains("no permissions for indices:data/read/get and User [name=worf"));
+                    Assert.assertTrue(e.getMessage().contains("no permissions for [indices:data/read/get] and User [name=worf"));
                 }
                 finally {
                     ctx.close();
@@ -632,7 +632,7 @@ public class IntegrationTests extends SingleClusterTest {
         Assert.assertEquals(200, resc.getStatusCode());
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("\"_index\":\"klingonempire\""));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("hits"));
-        Assert.assertTrue(resc.getBody(), resc.getBody().contains("no permissions for indices:data/read/search"));
+        Assert.assertTrue(resc.getBody(), resc.getBody().contains("no permissions for [indices:data/read/search]"));
         
     }
     
@@ -699,7 +699,7 @@ public class IntegrationTests extends SingleClusterTest {
                 tc.admin().cluster().reroute(new ClusterRerouteRequest()).actionGet();
                 Assert.fail();
             } catch (ElasticsearchSecurityException e) {
-                Assert.assertTrue(e.toString(),e.getMessage().contains("no permissions for cluster:admin/reroute"));
+                Assert.assertTrue(e.toString(),e.getMessage().contains("no permissions for [cluster:admin/reroute]"));
             }
             
             WhoAmIResponse wres = tc.execute(WhoAmIAction.INSTANCE, new WhoAmIRequest()).actionGet();                

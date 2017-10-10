@@ -50,6 +50,7 @@ import com.floragunn.searchguard.auditlog.AuditLog.Origin;
 import com.floragunn.searchguard.configuration.AdminDNs;
 import com.floragunn.searchguard.configuration.DlsFlsRequestValve;
 import com.floragunn.searchguard.configuration.PrivilegesEvaluator;
+import com.floragunn.searchguard.configuration.PrivilegesEvaluator.PrivEvalResponse;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.HeaderHelper;
 import com.floragunn.searchguard.user.User;
@@ -106,7 +107,21 @@ public class SearchGuardFilter implements ActionFilter {
                     && !action.startsWith("internal:transport/proxy");
             
             if(actionTrace.isTraceEnabled()) {
-                actionTrace.trace("Node "+cs.localNode().getName()+" -> "+action+": userIsAdmin="+userIsAdmin+"/conRequest="+conRequest+"/internalRequest="+internalRequest
+                
+                String count = "";
+                if(request instanceof BulkRequest) {
+                    count = ""+((BulkRequest) request).requests().size();
+                }
+                
+                if(request instanceof MultiGetRequest) {
+                    count = ""+((MultiGetRequest) request).getItems().size();
+                }
+                
+                if(request instanceof MultiSearchRequest) {
+                    count = ""+((MultiSearchRequest) request).requests().size();
+                }
+                
+                actionTrace.trace("Node "+cs.localNode().getName()+" -> "+action+" ("+count+"): userIsAdmin="+userIsAdmin+"/conRequest="+conRequest+"/internalRequest="+internalRequest
                         +"origin="+threadContext.getTransient(ConfigConstants.SG_ORIGIN)+"/directRequest="+HeaderHelper.isDirectRequest(threadContext)+"/remoteAddress="+request.remoteAddress());
             }
             
@@ -180,7 +195,9 @@ public class SearchGuardFilter implements ActionFilter {
                 log.trace("Evaluate permissions for user: {}", user.getName());
             }
 
-            if (eval.evaluate(user, action, request, task)) {
+            final PrivEvalResponse pres = eval.evaluate(user, action, request, task);
+            
+            if (pres.isAllowed()) {
                 auditLog.logGrantedPrivileges(action, request, task);
                 if(!dlsFlsValve.invoke(request, listener, threadContext)) {
                     return;
@@ -189,8 +206,8 @@ public class SearchGuardFilter implements ActionFilter {
                 return;
             } else {
                 auditLog.logMissingPrivileges(action, request, task);
-                log.debug("no permissions for {}", action);
-                listener.onFailure(new ElasticsearchSecurityException("no permissions for " + action+" and "+user, RestStatus.FORBIDDEN));
+                log.debug("no permissions for {}", pres.getMissingPrivileges());
+                listener.onFailure(new ElasticsearchSecurityException("no permissions for " + pres.getMissingPrivileges()+" and "+user, RestStatus.FORBIDDEN));
                 return;
             }
         } catch (Throwable e) {
