@@ -398,12 +398,17 @@ public class PrivilegesEvaluator {
         
             final Boolean replaceResult = privilegesInterceptor.replaceKibanaIndex(request, action, user, config, requestedResolvedIndices, mapTenants(user, caller));
     
+            if(log.isDebugEnabled()) {
+                log.debug("Result from privileges interceptor: {}", replaceResult);
+            }
+            
             if (replaceResult == Boolean.TRUE) {
                 auditLog.logMissingPrivileges(action, request, task);
                 return presponse;
             }
             
             if (replaceResult == Boolean.FALSE) {
+                presponse.allowed = true;
                 return presponse;
             }
         }
