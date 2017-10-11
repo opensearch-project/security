@@ -115,11 +115,30 @@ public class ConfigConstants {
     public static final String SEARCHGUARD_AUDIT_THREADPOOL_MAX_QUEUE_LEN = "searchguard.audit.threadpool.max_queue_len";
     public static final String SEARCHGUARD_AUDIT_ENABLE_REQUEST_DETAILS = "searchguard.audit.enable_request_details";
     public static final String SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_SSL_VERIFY = "searchguard.audit.config.webhook.ssl.verify";
-    //public static final String SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_URL2 = "searchguard.audit.config.webhook.url";
-    //public static final String SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_FORMAT2 = "searchguard.audit.config.webhook.format";
+    public static final String SEARCHGUARD_AUDIT_WEBHOOK_PEMTRUSTEDCAS_FILEPATH = "searchguard.audit.config.webhook.ssl.pemtrustedcas_filepath";
+    public static final String SEARCHGUARD_AUDIT_WEBHOOK_PEMTRUSTEDCAS_CONTENT = "searchguard.audit.config.webhook.ssl.pemtrustedcas_content";
     public static final String SEARCHGUARD_AUDIT_RESOLVE_BULK_REQUESTS = "searchguard.audit.resolve_bulk_requests";
     public static final String SEARCHGUARD_AUDIT_CONFIG_LOG4J_LOGGER_NAME = "searchguard.audit.config.log4j.logger_name";
     public static final String SEARCHGUARD_AUDIT_CONFIG_LOG4J_LEVEL = "searchguard.audit.config.log4j.level";
+
+    public static final String SEARCHGUARD_AUDIT_SSL_VERIFY_HOSTNAMES = "searchguard.audit.config.verify_hostnames";
+    public static final boolean SEARCHGUARD_AUDIT_SSL_VERIFY_HOSTNAMES_DEFAULT = true;
+    public static final String SEARCHGUARD_AUDIT_SSL_ENABLE_SSL = "searchguard.audit.config.enable_ssl";
+    public static final String SEARCHGUARD_AUDIT_SSL_ENABLE_SSL_CLIENT_AUTH = "searchguard.audit.config.enable_ssl_client_auth";
+    public static final boolean SEARCHGUARD_AUDIT_SSL_ENABLE_SSL_CLIENT_AUTH_DEFAULT = false;
+    
+    public static final String SEARCHGUARD_AUDIT_SSL_JKS_CERT_ALIAS = "searchguard.audit.config.cert_alias";
+    
+    public static final String SEARCHGUARD_AUDIT_SSL_PEMKEY_FILEPATH = "searchguard.audit.config.pemkey_filepath";
+    public static final String SEARCHGUARD_AUDIT_SSL_PEMKEY_CONTENT = "searchguard.audit.config.pemkey_content";
+    public static final String SEARCHGUARD_AUDIT_SSL_PEMKEY_PASSWORD = "searchguard.audit.config.pemkey_password";
+    public static final String SEARCHGUARD_AUDIT_SSL_PEMCERT_FILEPATH = "searchguard.audit.config.pemcert_filepath";
+    public static final String SEARCHGUARD_AUDIT_SSL_PEMCERT_CONTENT = "searchguard.audit.config.pemcert_content";
+    public static final String SEARCHGUARD_AUDIT_SSL_PEMTRUSTEDCAS_FILEPATH = "searchguard.audit.config.pemtrustedcas_filepath";
+    public static final String SEARCHGUARD_AUDIT_SSL_PEMTRUSTEDCAS_CONTENT = "searchguard.audit.config.pemtrustedcas_content";
+
+    public static final String SEARCHGUARD_AUDIT_SSL_ENABLED_SSL_CIPHERS = "searchguard.audit.config.enabled_ssl_ciphers";
+    public static final String SEARCHGUARD_AUDIT_SSL_ENABLED_SSL_PROTOCOLS = "searchguard.audit.config.enabled_ssl_protocols";
     
     public static final String SEARCHGUARD_KERBEROS_KRB5_FILEPATH = "searchguard.kerberos.krb5_filepath";
     public static final String SEARCHGUARD_KERBEROS_ACCEPTOR_KEYTAB_FILEPATH = "searchguard.kerberos.acceptor_keytab_filepath";
@@ -128,8 +147,8 @@ public class ConfigConstants {
     public static final String SEARCHGUARD_AUDIT_CONFIG_ENABLE_SSL = "searchguard.audit.config.enable_ssl";
     public static final String SEARCHGUARD_AUDIT_CONFIG_VERIFY_HOSTNAMES = "searchguard.audit.config.verify_hostnames";
     public static final String SEARCHGUARD_AUDIT_CONFIG_ENABLE_SSL_CLIENT_AUTH = "searchguard.audit.config.enable_ssl_client_auth";
-    public static final String SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_URL = "searchguard.audit.config.webhook_url";
-    public static final String SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_FORMAT = "searchguard.audit.config.webhook_format";
+    public static final String SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_URL = "searchguard.audit.config.webhook.url";
+    public static final String SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_FORMAT = "searchguard.audit.config.webhook.format";
     public static final String SEARCHGUARD_CERT_OID = "searchguard.cert.oid";
     public static final String SEARCHGUARD_CERT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = "searchguard.cert.intercluster_request_evaluator_class";
     public static final String SEARCHGUARD_ENTERPRISE_MODULES_ENABLED = "searchguard.enterprise_modules_enabled";
@@ -158,5 +177,7 @@ public class ConfigConstants {
     // REST API
     public static final String SEARCHGUARD_RESTAPI_ROLES_ENABLED = "searchguard.restapi.roles_enabled";
     public static final String SEARCHGUARD_RESTAPI_ENDPOINTS_DISABLED = "searchguard.restapi.endpoints_disabled";
+
+    
    
 }
