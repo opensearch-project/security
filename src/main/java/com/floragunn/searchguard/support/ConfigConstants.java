@@ -91,10 +91,15 @@ public class ConfigConstants {
 
     public final static String CONFIGNAME_ROLES = "roles";
     public final static String CONFIGNAME_ROLES_MAPPING = "rolesmapping";
-    public final static String CONFIGNAME_ACTION_GROUPS = "actiongroups";
+    public final static String CONFIGNAME_ACTION_GROUPS = "actiongroups";    
     public final static String CONFIGNAME_INTERNAL_USERS = "internalusers";
     public final static String CONFIGNAME_CONFIG = "config";
+    public final static String CONFIGKEY_ACTION_GROUPS_PERMISSIONS = "permissions";
+    public final static String CONFIGKEY_READONLY = "readonly";
     
+    /**
+     * @deprecated Used in deprecated configuration endpoint of REST API. Endpoint is deprecated in SG6 and will be removed in SG7
+     */
     public final static List<String> CONFIG_NAMES = Collections.unmodifiableList(Arrays.asList(new String[] {CONFIGNAME_ROLES, CONFIGNAME_ROLES_MAPPING, 
             CONFIGNAME_ACTION_GROUPS, CONFIGNAME_INTERNAL_USERS, CONFIGNAME_CONFIG}));
     public static final String SG_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = "searchguard.cert.intercluster_request_evaluator_class";

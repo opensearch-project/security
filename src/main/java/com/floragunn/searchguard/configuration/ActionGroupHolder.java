@@ -47,7 +47,12 @@ public class ActionGroupHolder {
     private Set<String> resolve(final Settings actionGroups, final String entry) {
 
         final Set<String> ret = new HashSet<String>();
-        final String[] en = actionGroups.getAsArray(entry);
+        // SG5 format, plain array
+        String[] en = actionGroups.getAsArray(entry);
+        if (en.length == 0) {
+        	// try SG6 format including readonly and permissions key
+        	en = actionGroups.getAsArray(entry +"." + ConfigConstants.CONFIGKEY_ACTION_GROUPS_PERMISSIONS);
+        }
         for (int i = 0; i < en.length; i++) {
             final String string = en[i];
             if (actionGroups.names().contains(string)) {
