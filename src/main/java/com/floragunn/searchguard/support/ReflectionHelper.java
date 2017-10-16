@@ -255,7 +255,8 @@ public class ReflectionHelper {
 		try {
 
 			final String classPath = impl.getResource(impl.getSimpleName() + ".class").toString();
-
+			moduleInfo.setClasspath(classPath);			
+			
 			if (!classPath.startsWith("jar")) {
 				return moduleInfo;
 			}
