@@ -992,6 +992,49 @@ public class IntegrationTests extends SingleClusterTest {
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
         
     }
+    
+    @Test
+    public void testHTTPSCompressionEnabled() throws Exception {
+        final Settings settings = Settings.builder()
+                .put("searchguard.ssl.http.enabled",true)
+                .put("searchguard.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+                .put("searchguard.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+                .put("http.compression",true)
+                .build();
+        setup(Settings.EMPTY, new DynamicSgConfig(), settings, true);
+        final RestHelper rh = restHelper(); //ssl resthelper
+
+        HttpResponse res = rh.executeGetRequest("_searchguard/sslinfo", encodeBasicHeader("nagilum", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        System.out.println(res);
+        assertContains(res, "*ssl_protocol\":\"TLSv1.2*");
+        res = rh.executeGetRequest("_nodes", encodeBasicHeader("nagilum", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        System.out.println(res);
+        assertNotContains(res, "*\"compression\":\"false\"*");
+        assertContains(res, "*\"compression\":\"true\"*");
+    }
+    
+    @Test
+    public void testHTTPSCompression() throws Exception {
+        final Settings settings = Settings.builder()
+                .put("searchguard.ssl.http.enabled",true)
+                .put("searchguard.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+                .put("searchguard.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+                .build();
+        setup(Settings.EMPTY, new DynamicSgConfig(), settings, true);
+        final RestHelper rh = restHelper(); //ssl resthelper
+
+        HttpResponse res = rh.executeGetRequest("_searchguard/sslinfo", encodeBasicHeader("nagilum", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        System.out.println(res);
+        assertContains(res, "*ssl_protocol\":\"TLSv1.2*");
+        res = rh.executeGetRequest("_nodes", encodeBasicHeader("nagilum", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        System.out.println(res);
+        assertContains(res, "*\"compression\":\"false\"*");
+        assertNotContains(res, "*\"compression\":\"true\"*");
+    }
 
     @Test
     public void testHTTPAnon() throws Exception {
