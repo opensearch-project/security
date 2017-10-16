@@ -44,6 +44,7 @@ import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.SpecialPermission;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionResponse;
+import org.elasticsearch.action.search.SearchScrollAction;
 import org.elasticsearch.action.support.ActionFilter;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -77,6 +78,7 @@ import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestHandler;
+import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.search.internal.ScrollContext;
 import org.elasticsearch.search.internal.SearchContext;
@@ -396,11 +398,13 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
                             final User currentUser = threadPool.getThreadContext()
                                     .getTransient(ConfigConstants.SG_USER);
                             if(!scrollUser.equals(currentUser)) {
+                                //auditLog.logMissingPrivileges(SearchScrollAction.NAME, transportRequest, null);
                                 log.error("Wrong user {} in scroll context, expected {}", scrollUser, currentUser);
-                                throw new ElasticsearchException("Wrong user in scroll context");
+                                throw new ElasticsearchSecurityException("Wrong user in scroll context", RestStatus.FORBIDDEN);
                             }
                         } else {
-                            throw new ElasticsearchException("No user in scroll context");
+                            //auditLog.logMissingPrivileges(SearchScrollAction.NAME, transportRequest, null);
+                            throw new ElasticsearchSecurityException("No user in scroll context", RestStatus.FORBIDDEN);
                         }
                     }
                 }
@@ -579,9 +583,12 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         }
         
         final Settings.Builder builder = Settings.builder();
+        
+        builder.put(super.additionalSettings());
+        
         builder.put(NetworkModule.TRANSPORT_TYPE_KEY, "com.floragunn.searchguard.ssl.http.netty.SearchGuardSSLNettyTransport");
         builder.put(NetworkModule.HTTP_TYPE_KEY, "com.floragunn.searchguard.http.SearchGuardHttpServerTransport");
-        return builder.build();
+        return builder.build();  
     }
     
     @Override
@@ -654,6 +661,16 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_RESOLVE_BULK_REQUESTS, true, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_LOG4J_LOGGER_NAME, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_LOG4J_LEVEL, Property.NodeScope, Property.Filtered));
+        
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_SSL_PEMCERT_CONTENT, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_SSL_PEMCERT_FILEPATH, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_SSL_PEMKEY_CONTENT, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_SSL_PEMKEY_FILEPATH, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_SSL_PEMKEY_PASSWORD, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_SSL_PEMTRUSTEDCAS_CONTENT, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_SSL_PEMTRUSTEDCAS_FILEPATH, Property.NodeScope, Property.Filtered));
+
+        
         
         // SG6 - REST API
         settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_RESTAPI_ROLES_ENABLED, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here

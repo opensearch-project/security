@@ -259,6 +259,10 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
     
     @Override
     protected void errorThrown(Throwable t, final TransportRequest request, String action, Task task) {
-        auditLog.logSSLException(request, t, action, task);
+        if(t instanceof ElasticsearchException) {
+            auditLog.logMissingPrivileges(action, request, task);
+        } else {
+            auditLog.logSSLException(request, t, action, task);
+        }
     }
 }

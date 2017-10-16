@@ -37,6 +37,8 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.SecureRandom;
+import java.security.KeyStore.ProtectionParameter;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
@@ -327,6 +329,11 @@ public final class PemKeyReader {
     }
     
     public static KeyStore toTruststore(final String trustCertificatesAliasPrefix, final X509Certificate[] trustCertificates) throws Exception {
+        
+        if(trustCertificates == null) {
+            return null;
+        }
+        
         KeyStore ks = KeyStore.getInstance(JKS);
         ks.load(null);
         
@@ -339,16 +346,26 @@ public final class PemKeyReader {
         return ks;
     }
     
-    public static KeyStore toKeystore(final String authenticationCertificateAlias, final X509Certificate authenticationCertificate, final PrivateKey authenticationKey) throws Exception {
-        KeyStore ks = KeyStore.getInstance(JKS);
-        ks.load(null);
+    public static KeyStore toKeystore(final String authenticationCertificateAlias, final char[] password, final X509Certificate authenticationCertificate[], final PrivateKey authenticationKey) throws Exception {
 
-        if(authenticationCertificateAlias != null && authenticationCertificate != null && authenticationKey != null) {
-            ks.setKeyEntry(authenticationCertificateAlias, authenticationKey, null, new Certificate[]{authenticationCertificate});
+        if(authenticationCertificateAlias != null && authenticationCertificate != null && authenticationKey != null) {          
+            KeyStore ks = KeyStore.getInstance(JKS);
+            ks.load(null, null);
+            ks.setKeyEntry(authenticationCertificateAlias, authenticationKey, password, authenticationCertificate);
+            return ks;
+        } else {
+            return null;
         }
-        
-        
-        return ks;
+
+    }
+    
+    public static char[] randomChars(int len) {
+        final SecureRandom r = new SecureRandom();
+        final char[] ret = new char[len];
+        for(int i=0; i<len;i++) {
+            ret[i] = (char)(r.nextInt(26) + 'a');
+        }
+        return ret;
     }
 
     private PemKeyReader() { }
