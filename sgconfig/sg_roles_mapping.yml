@@ -9,6 +9,10 @@ sg_logstash:
   users:
     - logstash
     
+sg_auditlog:
+  users:
+    - auditlog
+    
 sg_kibana_server:
   users:
     - kibanaserver

@@ -7,6 +7,9 @@ admin:
 logstash:
   hash: $2a$12$u1ShR4l4uBS3Uv59Pa2y5.1uQuZBrZtmNfqB3iM/.jL0XoV9sghS2
   #password is: logstash
+auditlog:
+  hash: $2y$12$mH26TI34W5lZj/9CIcLElu0Z5lZdZQvrP5kBl8yeSg6Eyv9kJ8kyG
+  #password is: auditlog
 kibanaserver:
   hash: $2a$12$4AcgAt3xwOWadA5s5blL6ev39OXDNhmOesEoo33eZtrq2N0YrU3H.
   #password is: kibanaserver

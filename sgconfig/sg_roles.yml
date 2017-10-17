@@ -124,6 +124,17 @@ sg_logstash:
       '*':
         - CRUD
         - CREATE_INDEX
+        
+# For auditlog via http/s
+sg_auditlog:
+  cluster:
+    - CLUSTER_MONITOR
+    - CLUSTER_COMPOSITE_OPS
+  indices:
+    'auditlog*':
+      '*':
+        - CRUD
+        - CREATE_INDEX
 
 # Allows each user to access own named index
 sg_own_index:
