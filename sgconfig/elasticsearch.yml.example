@@ -131,3 +131,33 @@ searchguard.audit.type: internal_elasticsearch
 # If you set wrong values here this this could be a security risk
 # or make Search Guard stop working.
 #searchguard.disabled: false
+
+
+#undocumented
+searchguard.restapi.roles_enabled
+searchguard.restapi.endpoints_disabled
+
+searchguard.audit.ignore_requests
+searchguard.audit.enable_rest
+searchguard.audit.enable_transport
+searchguard.audit.resolve_bulk_requests
+searchguard.audit.config.log4j.logger_name
+searchguard.audit.config.log4j.level
+searchguard.audit.config.cert_alias
+searchguard.audit.config.pemkey_filepath
+searchguard.audit.config.pemkey_content
+searchguard.audit.config.pemkey_password
+searchguard.audit.config.pemcert_filepath
+searchguard.audit.config.pemcert_content
+searchguard.audit.config.pemtrustedcas_filepath
+searchguard.audit.config.pemtrustedcas_content
+searchguard.audit.threadpool.max_queue_len
+searchguard.audit.config.webhook.ssl.pemtrustedcas_filepath
+searchguard.audit.config.webhook.ssl.pemtrustedcas_content
+
+searchguard.enterprise_modules_enabled
+searchguard.authcz.rest_impersonation_user
+searchguard.roles_mapping_resolution
+searchguard.allow_default_init_sgindex
+searchguard.allow_unsafe_democertificates
+

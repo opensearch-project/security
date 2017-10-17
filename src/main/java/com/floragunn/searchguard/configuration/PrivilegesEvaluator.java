@@ -121,7 +121,7 @@ public class PrivilegesEvaluator {
     private ConfigConstants.RolesMappingResolution rolesMappingResolution;
     
     private final ClusterInfoHolder clusterInfoHolder;
-    private final boolean typeSecurityDisabled;
+    //private final boolean typeSecurityDisabled = false;
 
     public PrivilegesEvaluator(final ClusterService clusterService, final ThreadPool threadPool, final ConfigurationRepository configurationRepository, final ActionGroupHolder ah,
             final IndexNameExpressionResolver resolver, AuditLog auditLog, final Settings settings, final PrivilegesInterceptor privilegesInterceptor,
@@ -158,7 +158,7 @@ public class PrivilegesEvaluator {
         
         sgDeniedActionPatterns = sgIndexdeniedActionPatternsList.toArray(new String[0]);
         this.clusterInfoHolder = clusterInfoHolder;
-        this.typeSecurityDisabled = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_DISABLE_TYPE_SECURITY, false);
+        //this.typeSecurityDisabled = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_DISABLE_TYPE_SECURITY, false);
         
     }
     

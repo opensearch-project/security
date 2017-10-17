@@ -608,16 +608,12 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_USERNAME, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_PASSWORD, Property.NodeScope, Property.Filtered));
         settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DISABLED_CATEGORIES, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
-        settings.add(Setting.intSetting(ConfigConstants.SEARCHGUARD_AUDIT_THREADPOOL_MAX_QUEUE_LEN, 100*1000, Property.NodeScope, Property.Filtered));
         settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_ENABLE_REST, true, Property.NodeScope, Property.Filtered));
         settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_ENABLE_TRANSPORT, false, Property.NodeScope, Property.Filtered));
         settings.add(Setting.intSetting(ConfigConstants.SEARCHGUARD_AUDIT_THREADPOOL_SIZE, 10, Property.NodeScope, Property.Filtered));
         settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_ENABLE_REQUEST_DETAILS, false, Property.NodeScope, Property.Filtered));
         settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_SSL_VERIFY, true, Property.NodeScope, Property.Filtered));
-        //settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_URL2, Property.NodeScope, Property.Filtered));
-        //settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_FORMAT2, Property.NodeScope, Property.Filtered));
-        
-        
+                
         settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_KERBEROS_KRB5_FILEPATH, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_KERBEROS_ACCEPTOR_KEYTAB_FILEPATH, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_KERBEROS_ACCEPTOR_PRINCIPAL, Property.NodeScope, Property.Filtered));
@@ -652,10 +648,10 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         settings.add(Setting.groupSetting(ConfigConstants.SEARCHGUARD_AUTHCZ_REST_IMPERSONATION_USERS+".", Property.NodeScope)); //not filtered here
 
         settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_ROLES_MAPPING_RESOLUTION, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_DISABLE_TYPE_SECURITY, false, Property.NodeScope, Property.Filtered));
+        //settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_DISABLE_TYPE_SECURITY, false, Property.NodeScope, Property.Filtered));
 
         //TODO remove searchguard.tribe.clustername?
-        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_TRIBE_CLUSTERNAME, Property.NodeScope, Property.Filtered));
+        //settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_TRIBE_CLUSTERNAME, Property.NodeScope, Property.Filtered));
         
         // SG6 - Audit
         settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_RESOLVE_BULK_REQUESTS, true, Property.NodeScope, Property.Filtered));
@@ -669,8 +665,10 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_SSL_PEMKEY_PASSWORD, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_SSL_PEMTRUSTEDCAS_CONTENT, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_SSL_PEMTRUSTEDCAS_FILEPATH, Property.NodeScope, Property.Filtered));
-
-        
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_WEBHOOK_PEMTRUSTEDCAS_CONTENT, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_WEBHOOK_PEMTRUSTEDCAS_FILEPATH, Property.NodeScope, Property.Filtered));
+       
+        settings.add(Setting.intSetting(ConfigConstants.SEARCHGUARD_AUDIT_THREADPOOL_MAX_QUEUE_LEN, 100*1000, Property.NodeScope, Property.Filtered));        
         
         // SG6 - REST API
         settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_RESTAPI_ROLES_ENABLED, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
