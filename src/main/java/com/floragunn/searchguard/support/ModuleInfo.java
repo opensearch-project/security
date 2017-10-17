@@ -15,10 +15,10 @@ public class ModuleInfo implements Serializable, Writeable{
 	
 	private ModuleType moduleType;
 	private String classname;
-	private String classpath;
-	private String version;
-	private String buildTime;
-	private String gitsha1;
+	private String classpath = "";
+	private String version = "";
+	private String buildTime = "";
+	private String gitsha1 = "";
 	
 	public ModuleInfo(ModuleType moduleType, String classname) {
 		assert(moduleType != null);
