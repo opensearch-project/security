@@ -39,14 +39,18 @@ public class ClusterInfoHolder implements ClusterStateListener {
     public void clusterChanged(ClusterChangedEvent event) {
         if(has5xNodes == null || event.nodesChanged()) {
             has5xNodes = Boolean.valueOf(clusterHas5xNodes(event.state()));
-            log.debug("has5xNodes: {}", has5xNodes);
+            if(log.isTraceEnabled()) {
+                log.trace("has5xNodes: {}", has5xNodes);
+            }
         }
         
         final List<String> indicesCreated = event.indicesCreated();
         final List<Index> indicesDeleted = event.indicesDeleted();
         if(has5xIndices == null || !indicesCreated.isEmpty() || !indicesDeleted.isEmpty()) {
-            has5xIndices = Boolean.valueOf(clusterHas5xIndices(event.state())); 
-            log.debug("has5xIndices: {}", has5xIndices);
+            has5xIndices = Boolean.valueOf(clusterHas5xIndices(event.state()));
+            if(log.isTraceEnabled()) {
+                log.trace("has5xIndices: {}", has5xIndices);
+            }
         }
     }
 
