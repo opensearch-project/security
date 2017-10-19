@@ -398,12 +398,12 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
                             final User currentUser = threadPool.getThreadContext()
                                     .getTransient(ConfigConstants.SG_USER);
                             if(!scrollUser.equals(currentUser)) {
-                                //auditLog.logMissingPrivileges(SearchScrollAction.NAME, transportRequest, null);
+                                auditLog.logMissingPrivileges(SearchScrollAction.NAME, transportRequest, context.getTask());
                                 log.error("Wrong user {} in scroll context, expected {}", scrollUser, currentUser);
                                 throw new ElasticsearchSecurityException("Wrong user in scroll context", RestStatus.FORBIDDEN);
                             }
                         } else {
-                            //auditLog.logMissingPrivileges(SearchScrollAction.NAME, transportRequest, null);
+                            auditLog.logMissingPrivileges(SearchScrollAction.NAME, transportRequest, context.getTask());
                             throw new ElasticsearchSecurityException("No user in scroll context", RestStatus.FORBIDDEN);
                         }
                     }
