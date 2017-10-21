@@ -14,7 +14,7 @@
   <parent>
     <groupId>com.floragunn</groupId>
     <artifactId>search-guard-parent</artifactId>
-    <version>6.1-beta3</version>
+    <version>6.1-beta4</version>
   </parent>
 
   <groupId>com.floragunn</groupId>
@@ -134,12 +134,6 @@
       <artifactId>junit</artifactId>
       <scope>test</scope>
     </dependency>
-
-    <!--<dependency>
-      <groupId>org.apache.httpcomponents</groupId>
-      <artifactId>fluent-hc</artifactId>
-      <scope>test</scope>
-    </dependency>-->
 
     <dependency>
       <groupId>io.netty</groupId>
