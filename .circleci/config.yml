@@ -2,6 +2,7 @@ version: 2
 jobs:
   build:
     working_directory: ~/circleci-sg
+    resource_class: large
     docker:
       - image: circleci/openjdk:8-jdk-browsers
     steps:
