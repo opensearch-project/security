@@ -11,14 +11,10 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <prerequisites>
-    <maven>3.1.0</maven>
-  </prerequisites>
-
   <parent>
-    <groupId>org.sonatype.oss</groupId>
-    <artifactId>oss-parent</artifactId>
-    <version>9</version>
+    <groupId>com.floragunn</groupId>
+    <artifactId>search-guard-parent</artifactId>
+    <version>6.1-beta3</version>
   </parent>
 
   <groupId>com.floragunn</groupId>
@@ -48,19 +44,7 @@
     <commons.cli.version>1.3.1</commons.cli.version>
     <elasticsearch.assembly.descriptor>${basedir}/src/main/assemblies/plugin.xml</elasticsearch.assembly.descriptor>
     <sgstandalone.descriptor>${basedir}/src/main/assemblies/sgadmin-standalone.xml</sgstandalone.descriptor>
-    <dependency.locations.enabled>false</dependency.locations.enabled>
   </properties>
-
-  <distributionManagement>
-    <snapshotRepository>
-      <id>ossrh-fg</id>
-      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-    </snapshotRepository>
-    <repository>
-      <id>ossrh-fg</id>
-      <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-    </repository>
-  </distributionManagement>
 
   <scm>
     <url>https://github.com/floragunncom/search-guard</url>
@@ -73,15 +57,6 @@
     <system>GitHub</system>
     <url>https://github.com/floragunncom/search-guard/issues</url>
   </issueManagement>
-
-  <developers>
-    <developer>
-      <email>info (at) search-guard (dot) com</email>
-      <name>floragunn GmbH</name>
-      <url>http://www.floragunn.com</url>
-      <id>floragunncom</id>
-    </developer>
-  </developers>
 
   <dependencies>
     <!-- Search Guard SSL -->
@@ -143,25 +118,28 @@
 
     <!-- Only test scoped dependencies hereafter -->
     <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>4.12</version>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
-      <version>2.5</version>
       <scope>test</scope>
     </dependency>
 
     <dependency>
-      <groupId>org.apache.httpcomponents</groupId>
-      <artifactId>fluent-hc</artifactId>
-      <version>4.3.4</version>
+      <groupId>org.hamcrest</groupId>
+      <artifactId>hamcrest-all</artifactId>
       <scope>test</scope>
     </dependency>
+
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <!--<dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>fluent-hc</artifactId>
+      <scope>test</scope>
+    </dependency>-->
 
     <dependency>
       <groupId>io.netty</groupId>
@@ -170,10 +148,6 @@
       <classifier>${os.detected.classifier}</classifier>
       <scope>test</scope>
     </dependency>
-
-    <!-- Modules: aggs-matrix-stats analysis-common ingest-common lang-expression 
-      lang-mustache lang-painless parent-join percolator reindex repository-url 
-      transport-netty4 tribe -->
 
     <dependency>
       <groupId>org.elasticsearch.plugin</groupId>
@@ -212,124 +186,21 @@
   </dependencies>
 
   <build>
-    <testResources>
-      <testResource>
-        <directory>${basedir}/src/test/resources</directory>
-        <filtering>false</filtering>
-        <includes>
-          <include>**/*.json</include>
-          <include>**/*.yml</include>
-          <include>**/*.properties</include>
-          <include>**/*.jks</include>
-        </includes>
-      </testResource>
-    </testResources>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.19.1</version>
-        <configuration>
-          <includes>
-            <include>**/*Test*.java</include>
-          </includes>
-          <forkCount>0</forkCount> <!-- needed for circleci build -->
-          <reuseForks>false</reuseForks> <!-- needed for circleci build -->
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
-        <version>3.0.2</version>
-        <configuration>
-          <excludes>
-            <exclude>**/*cobertura*</exclude>
-          </excludes>
-          <archive>
-            <manifest>
-              <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
-            </manifest>
-            <manifestEntries>
-              <Built-By>floragunn GmbH</Built-By>
-              <Build-Time>${maven.build.timestamp}</Build-Time>
-              <git-sha1>${git.commit.id}</git-sha1>
-            </manifestEntries>
-          </archive>
-        </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>test-jar</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-release-plugin</artifactId>
-        <version>2.5.3</version>
-        <configuration>
-          <tagNameFormat>v@{project.version}</tagNameFormat>
-          <pushChanges>false</pushChanges>
-          <localCheckout>true</localCheckout>
-          <autoVersionSubmodules>true</autoVersionSubmodules>
-          <useReleaseProfile>false</useReleaseProfile>
-          <arguments>-Prelease,enterprise</arguments>
-        </configuration>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.6.0</version>
-        <configuration>
-          <source>1.8</source>
-          <target>1.8</target>
-          <encoding>UTF-8</encoding>
-          <showDeprecation>true</showDeprecation>
-          <showWarnings>true</showWarnings>
-          <compilerArgument>-Xlint:unchecked</compilerArgument>
-        </configuration>
       </plugin>
       <plugin>
-        <groupId>pl.project13.maven</groupId>
-        <artifactId>git-commit-id-plugin</artifactId>
-        <version>2.2.3</version>
-        <executions>
-          <execution>
-            <id>get-the-git-infos</id>
-            <goals>
-              <goal>revision</goal>
-            </goals>
-          </execution>
-          <execution>
-            <id>validate-the-git-infos</id>
-            <goals>
-              <goal>validateRevision</goal>
-            </goals>
-            <!-- *NOTE*: The default phase of validateRevision is verify, but 
-              in case you want to change it, you can do so by adding the phase here -->
-            <phase>package</phase>
-          </execution>
-        </executions>
-        <configuration>
-            <generateGitPropertiesFile>true</generateGitPropertiesFile>
-            <excludeProperties>
-                 <excludeProperty>git.build.host</excludeProperty>
-                 <excludeProperty>git.commit.user.*</excludeProperty>
-                 <excludeProperty>git.build.user.*</excludeProperty>
-            </excludeProperties>
-        </configuration>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
       </plugin>
     </plugins>
-    <extensions>
-      <extension>
-        <groupId>kr.motd.maven</groupId>
-        <artifactId>os-maven-plugin</artifactId>
-        <version>1.4.0.Final</version>
-      </extension>
-    </extensions>
   </build>
-
   <profiles>
     <profile>
       <id>enterprise</id>
@@ -338,7 +209,6 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-assembly-plugin</artifactId>
-            <version>2.6</version>
             <executions>
               <execution>
                 <id>plugin</id>
@@ -409,64 +279,6 @@
           <version>6.x-HEAD-SNAPSHOT</version>
         </dependency>
       </dependencies>
-    </profile>
-    <profile>
-      <id>release</id>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-javadoc-plugin</artifactId>
-            <version>2.10.4</version>
-            <configuration>
-              <encoding>${project.build.sourceEncoding}</encoding>
-              <locale>en</locale>
-              <additionalparam>-Xdoclint:none</additionalparam>
-            </configuration>
-            <executions>
-              <execution>
-                <id>attach-javadocs</id>
-                <goals>
-                  <goal>jar</goal>
-                </goals>
-                <configuration>
-                  <additionalparam>-Xdoclint:none</additionalparam>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-source-plugin</artifactId>
-            <version>3.0.1</version>
-            <executions>
-              <execution>
-                <id>attach-sources</id>
-                <goals>
-                  <goal>jar</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-gpg-plugin</artifactId>
-            <version>1.6</version>
-            <configuration>
-              <keyname>51EDB2FE</keyname>
-            </configuration>
-            <executions>
-              <execution>
-                <id>sign-artifacts</id>
-                <phase>verify</phase>
-                <goals>
-                  <goal>sign</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
     </profile>
   </profiles>
 </project>

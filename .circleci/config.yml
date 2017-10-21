@@ -1,0 +1,32 @@
+version: 2
+jobs:
+  build:
+    working_directory: ~/circleci-sg
+    docker:
+      - image: circleci/openjdk:8-jdk-browsers
+    steps:
+      - run:
+          name: Versions
+          command: 'uname -a;java -version;openssl version'
+      - checkout
+      - restore_cache:
+          key: circleci-sg-{{ checksum "pom.xml" }}
+      - run: mvn dependency:go-offline
+      - save_cache:
+          paths:
+            - ~/.m2
+          key: circleci-sg-{{ checksum "pom.xml" }}
+      - run: mvn -Pcoverage verify
+      - run: mvn -Pcoverage sonar:sonar -Dsonar.organization=floragunncom-github -Dsonar.login=$SONAR_LOGIN -Dsonar.host.url=https://sonarcloud.io
+      - store_test_results:
+          path: target/surefire-reports
+      #- store_artifacts:
+      #    path: target/demo-java-spring-0.0.1-SNAPSHOT.jar
+      - deploy:
+          name: Maybe Deploy
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+              mvn deploy -DskipTests -s settings.xml
+            fi
+
+#logging
