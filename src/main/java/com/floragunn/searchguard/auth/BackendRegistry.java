@@ -53,6 +53,7 @@ import com.floragunn.searchguard.http.HTTPBasicAuthenticator;
 import com.floragunn.searchguard.http.HTTPClientCertAuthenticator;
 import com.floragunn.searchguard.http.HTTPProxyAuthenticator;
 import com.floragunn.searchguard.http.XFFResolver;
+import com.floragunn.searchguard.ssl.util.Utils;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.HTTPHelper;
 import com.floragunn.searchguard.support.ReflectionHelper;
@@ -428,11 +429,11 @@ public class BackendRegistry implements ConfigurationChangeListener {
                 return false;
             }
             
-            final String tenant = request.header("sg_tenant");
+            final String tenant = Utils.coalesce(request.header("sgtenant"), request.header("sg_tenant"));
             
             if(log.isDebugEnabled()) {
                 log.debug("User '{}' is authenticated", authenticatedUser);
-                log.debug("sg_tenant '{}'", tenant);
+                log.debug("sgtenant '{}'", tenant);
             }
 
             authenticatedUser.setRequestedTenant(tenant);

@@ -583,7 +583,7 @@ public class SGTests extends AbstractUnitTest {
         Assert.assertTrue(res.getBody().contains("\"errors\":false"));
         Assert.assertTrue(res.getBody().contains("\"status\":201"));  
         
-        res = executeGetRequest("_searchguard/authinfo", new BasicHeader("sg_tenant", "unittesttenant"), new BasicHeader("Authorization", "Basic "+encodeBasicHeader("worf", "worf")));
+        res = executeGetRequest("_searchguard/authinfo", new BasicHeader("sgtenant", "unittesttenant"), new BasicHeader("Authorization", "Basic "+encodeBasicHeader("worf", "worf")));
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         Assert.assertTrue(res.getBody().contains("sg_tenants"));
         Assert.assertTrue(res.getBody().contains("unittesttenant"));
