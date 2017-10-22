@@ -14,13 +14,10 @@ sg_kibana_server:
     - kibanaserver
     
 sg_kibana_user:
-  users:
-    - kibanaro
+  backendroles:
+    - kibanauser
 
 sg_readall:
-  users:
-    - readall
-    - kibanaro
   backendroles:
     - readall
 

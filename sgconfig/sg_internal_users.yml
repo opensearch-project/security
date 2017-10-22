@@ -24,6 +24,9 @@ kibanaserver:
 kibanaro:
   readonly: true
   hash: $2a$12$JJSXNfTowz7Uu5ttXfeYpeYE0arACvcwlPBStB1F.MI7f0U9Z4DGC
+  roles:
+    - kibanauser
+    - readall
 
 #password is: readall
 readall:
