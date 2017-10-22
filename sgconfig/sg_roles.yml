@@ -47,15 +47,9 @@
 # Per role you can define on ore more tenants
 # https://github.com/floragunncom/search-guard-docs/blob/master/multitenancy.md
 
-# Default role for all users (including anonymous)
-sg_public:
-  cluster:
-    - cluster:monitor/main
-    - CLUSTER_COMPOSITE_OPS_RO
-
-# Allows everything
-# but not changes to searchguard config/index
+# Allows everything, but no changes to searchguard configuration index
 sg_all_access:
+  readonly: true
   cluster:
     - UNLIMITED
   indices:
@@ -63,18 +57,7 @@ sg_all_access:
       '*':
         - UNLIMITED
   tenants:
-    adm_tenant: RW
-    test_tenant_ro: RW
-
-# Read all and monitor, but no write permissions 
-sg_readonly_and_monitor:
-  cluster:
-    - CLUSTER_MONITOR
-    - CLUSTER_COMPOSITE_OPS_RO
-  indices:
-    '*':
-      '*':
-        - INDICES_ALL
+    admin_tenant: RW
 
 # Read all, but no write permissions
 sg_readall:
@@ -85,20 +68,36 @@ sg_readall:
       '*':
         - READ
 
-# For users which use kibana
-sg_kibana:
+# Read all and monitor, but no write permissions 
+sg_readall_and_monitor:
   cluster:
+    - CLUSTER_MONITOR
     - CLUSTER_COMPOSITE_OPS_RO
   indices:
     '*':
       '*':
         - READ
+
+# For users which use kibana, access to indices must be granted separately
+sg_kibana_user:
+  readonly: true
+  cluster:
+    - MONITOR
+    - CLUSTER_COMPOSITE_OPS_RO
+  indices:
     '?kibana':
       '*':
-        - INDICES_ALL
+        - MANAGE
+        - INDEX
+        - READ
+        - DELETE
+    '*':
+      '*':
+        - indices:data/read/field_caps
 
 # For the kibana server
 sg_kibana_server:
+  readonly: true
   cluster:
       - CLUSTER_MONITOR
       - CLUSTER_COMPOSITE_OPS
@@ -107,14 +106,21 @@ sg_kibana_server:
     '?kibana':
       '*':
         - INDICES_ALL
+    '?reporting*':
+      '*':
+        - INDICES_ALL
+    '?monitoring*':
+      '*':
+        - READ
 
 # For logstash and beats
 sg_logstash:
+  readonly: true
   cluster:
-    - indices:admin/template/get
-    - indices:admin/template/put
     - CLUSTER_MONITOR
     - CLUSTER_COMPOSITE_OPS
+    - indices:admin/template/get
+    - indices:admin/template/put
   indices:
     'logstash-*':
       '*':
@@ -124,17 +130,17 @@ sg_logstash:
       '*':
         - CRUD
         - CREATE_INDEX
-        
-# For auditlog via http/s
-sg_auditlog:
+
+# Allows adding and modifying repositories and creating and restoring snapshots
+sg_manage_snapshots:
+  readonly: true
   cluster:
-    - CLUSTER_MONITOR
-    - CLUSTER_COMPOSITE_OPS
+    - MANAGE_SNAPSHOTS
   indices:
-    'auditlog*':
+    '*':
       '*':
-        - CRUD
-        - CREATE_INDEX
+        - "indices:data/write/index"
+        - "indices:admin/create"
 
 # Allows each user to access own named index
 sg_own_index:
@@ -145,16 +151,62 @@ sg_own_index:
       '*':
         - INDICES_ALL
 
-# Allows adding and modifying repositories
-# and creating and restoring snapshots
-sg_manage_snapshots:
+### X-Pack COMPATIBILITY
+sg_xp_monitoring:
+  readonly: true
+  indices:
+    '?monitor*':
+      '*':
+        - INDICES_ALL
+
+sg_xp_alerting:
+  readonly: true
   cluster:
-    - MANAGE_SNAPSHOTS
+    - indices:data/read/scroll
+    - cluster:admin/xpack/watcher*
+  indices:
+    '?watches*':
+      '*':
+        - INDICES_ALL
+    '?watcher-history-*':
+      '*':
+        - INDICES_ALL
+    '?triggered_watches':
+      '*':
+        - INDICES_ALL
+    '*':
+      '*':
+        - READ
+        - indices:admin/aliases/get
+
+sg_xp_machine_learning:
+  readonly: true
+  cluster:
+    - cluster:admin/persistent*
+    - cluster:internal/xpack/ml*
+    - indices:data/read/scroll*
+    - cluster:admin/xpack/ml*
   indices:
     '*':
       '*':
-        - "indices:data/write/index"
-        - "indices:admin/create"
+        - READ
+        - indices:admin/get*
+    '?ml-*':
+      '*':
+        - "*"
+
+
+### LEGACY ROLES, FOR COMPATIBILITY ONLY
+### WILL BE REMOVED IN SG7, DO NOT USE ANYMORE
+
+sg_readonly_and_monitor:
+  cluster:
+    - CLUSTER_MONITOR
+    - CLUSTER_COMPOSITE_OPS_RO
+  indices:
+    '*':
+      '*':
+        - READ
 
 # Make xpack monitoring work
 sg_monitor:
@@ -204,65 +256,3 @@ sg_alerting:
     '*':
       '*':
         - READ
-    
-# Examples
-sg_role_starfleet:
-  cluster:
-    - CLUSTER_COMPOSITE_OPS
-  indices:
-    sf:
-       ships:  
-         - READ
-       public:  
-         - INDICES_ALL
-       students:  
-         - READ
-       alumni:  
-         - READ
-    'pub*':
-       '*':  
-         - READ
-  tenants:
-    enterprise_tenant: RW
-    test_tenant_ro: RW
-
-sg_role_starfleet_captains:
-  indices:
-    sf:
-       '*':  
-         - CRUD
-    pub*:
-       '*':  
-         - CRUD 
-  cluster:
-    - 'cluster:monitor*'
-    - CLUSTER_COMPOSITE_OPS
-  tenants:
-    command_tenant: RW
-    
-sg_readonly_dlsfls:
-  cluster:
-    - CLUSTER_COMPOSITE_OPS_RO
-  indices:
-    '/\S*/':
-      '*':
-        - READ    
-      _dls_: '{"term" : {"_type" : "legends"}}'
-      _fls_:
-        - 'aaa'
-        - 'bbb'
-
-sg_kibana_testindex:
-  cluster:
-    - CLUSTER_COMPOSITE_OPS_RO
-  indices:
-    'test*':
-      '*':
-        - READ
-        - indices:admin/mappings/fields/get*
-    '?kibana':
-      '*':
-        - INDICES_ALL
-  tenants:
-    test_tenant_rw: RW
-    test_tenant_ro: RO

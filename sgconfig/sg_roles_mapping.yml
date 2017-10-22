@@ -2,75 +2,32 @@
 # What a role is allowed to do you specify in sg_roles.yml
 
 sg_all_access:
-  users:
+  backendroles:
     - admin
 
 sg_logstash:
-  users:
+  backendroles:
     - logstash
-    
-sg_auditlog:
-  users:
-    - auditlog
     
 sg_kibana_server:
   users:
     - kibanaserver
     
-sg_kibana:
-  backendroles:
-    - kibanarole
-
-sg_monitor:
-  backendroles:
-    - kibanarole
-   
-sg_alerting:
-  backendroles:
-    - kibanarole
-
-sg_public:
+sg_kibana_user:
   users:
-    - '*'
-    
+    - kibanaro
+
 sg_readall:
   users:
     - readall
-    
+    - kibanaro
+  backendroles:
+    - readall
+
+sg_manage_snapshots:
+  backendroles:
+    - snapshotrestore
+
 sg_own_index:
   users:
     - '*'
-    
-# Examples
-sg_role_starfleet:
-  backendroles:
-    - starfleet
-    - captains
-    - defectors
-    - 'cn=ldaprole,ou=groups,dc=example,dc=com'
-  hosts:
-    - "*.starfleetintranet.com"
-  users:
-    - worf
-    - riker
-    - troid
-
-sg_role_starfleet_captains:
-  backendroles:
-    - captains
-
-sg_role_klingons1:
-  backendroles:
-    - klingon
-  hosts:
-    - "*.klingongov.kli"
-  users:
-    - worf
-    
-sg_kibana_testindex:
-  users:
-    - test
-    
-sg_readonly_dlsfls:
-  users:
-    - dlsflsuser
