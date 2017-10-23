@@ -2,26 +2,32 @@
 # What a role is allowed to do you specify in sg_roles.yml
 
 sg_all_access:
+  readonly: true
   backendroles:
     - admin
 
 sg_logstash:
+  readonly: true
   backendroles:
     - logstash
     
 sg_kibana_server:
+  readonly: true
   users:
     - kibanaserver
     
 sg_kibana_user:
+  readonly: true
   backendroles:
     - kibanauser
 
 sg_readall:
+  readonly: true
   backendroles:
     - readall
 
 sg_manage_snapshots:
+  readonly: true
   backendroles:
     - snapshotrestore
 

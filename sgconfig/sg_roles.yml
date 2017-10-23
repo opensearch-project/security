@@ -61,6 +61,7 @@ sg_all_access:
 
 # Read all, but no write permissions
 sg_readall:
+  readonly: true
   cluster:
     - CLUSTER_COMPOSITE_OPS_RO
   indices:
