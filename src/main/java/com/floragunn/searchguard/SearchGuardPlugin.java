@@ -21,6 +21,7 @@ import java.lang.reflect.Constructor;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermission;
 import java.security.AccessController;
 import java.security.MessageDigest;
 import java.security.PrivilegedAction;
@@ -39,7 +40,6 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.SpecialPermission;
 import org.elasticsearch.action.ActionRequest;
@@ -248,6 +248,38 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
             dlsFlsAvailable = false;
             dlsFlsConstructor = null;
         }
+        
+        if(!client && !tribeNodeClient) {
+            final List<Path> filesWithWrongPermissions = AccessController.doPrivileged(new PrivilegedAction<List<Path>>() {
+                @Override
+                public List<Path> run() {
+                  final Path confPath = new Environment(settings, configPath).configFile().toAbsolutePath();
+                    if(Files.isDirectory(confPath, LinkOption.NOFOLLOW_LINKS)) {
+                        try {
+                            return Files.walk(confPath)
+                            .distinct()
+                            .filter(p->checkFilePermissions(p))
+                            .collect(Collectors.toList());
+                        } catch (Exception e) {
+                            log.error(e);
+                            return null;
+                        }
+                    }
+                    
+                    return Collections.emptyList();
+                }
+            });
+            
+            if(filesWithWrongPermissions != null && filesWithWrongPermissions.size() > 0) {
+                for(final Path p: filesWithWrongPermissions) {
+                    if(Files.isDirectory(p, LinkOption.NOFOLLOW_LINKS)) {
+                        log.warn("Directory "+p+" has insecure file permissions (should be 0700)");
+                    } else {
+                        log.warn("File "+p+" has insecure file permissions (should be 0600)");
+                    }
+                }
+            }
+        }
 
         if(!client && !tribeNodeClient && !settings.getAsBoolean(ConfigConstants.SEARCHGUARD_ALLOW_UNSAFE_DEMOCERTIFICATES, false)) {
             //check for demo certificates
@@ -298,6 +330,54 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
             throw new ElasticsearchSecurityException("Unable to digest file", e);
         }
     }
+    
+    private boolean checkFilePermissions(final Path p) {
+        
+        if (p == null) {
+            return false;
+        }
+        
+
+        Set<PosixFilePermission> perms;
+
+        try {
+            perms = Files.getPosixFilePermissions(p, LinkOption.NOFOLLOW_LINKS);
+        } catch (Exception e) {
+            if(log.isDebugEnabled()) {
+                log.debug("Cannot determine posix file permissions for {} due to {}", p, e);
+            }
+            //ignore, can happen on windows
+            return false;
+        }
+        
+        if(Files.isDirectory(p, LinkOption.NOFOLLOW_LINKS)) {
+            if (perms.contains(PosixFilePermission.OTHERS_EXECUTE)) {
+                // no x for others must be set
+                return true;
+            }
+        } else {
+            if (perms.contains(PosixFilePermission.OWNER_EXECUTE) 
+                    || perms.contains(PosixFilePermission.GROUP_EXECUTE)
+                    || perms.contains(PosixFilePermission.OTHERS_EXECUTE)) {
+                // no x must be set
+                return true;
+            }
+        }
+
+        
+        if (perms.contains(PosixFilePermission.OTHERS_READ) || perms.contains(PosixFilePermission.OTHERS_WRITE)) {
+            // no permissions for "others" allowed
+            return true;
+        }
+
+        //if (perms.contains(PosixFilePermission.GROUP_READ) || perms.contains(PosixFilePermission.GROUP_WRITE)) {
+        //    // no permissions for "group" allowed
+        //    return true;
+        //}
+        
+        return false;
+    }
+    
     
     @Override
     public List<RestHandler> getRestHandlers(Settings settings, RestController restController, ClusterSettings clusterSettings,

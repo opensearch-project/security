@@ -54,4 +54,6 @@ grant {
   
   permission java.security.SecurityPermission "putProviderProperty.BC";
   permission java.security.SecurityPermission "insertProvider.BC";
+  
+  permission java.lang.RuntimePermission "accessUserInformation";
 };
