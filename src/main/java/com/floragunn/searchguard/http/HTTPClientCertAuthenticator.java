@@ -59,7 +59,7 @@ public class HTTPClientCertAuthenticator implements HTTPAuthenticator {
             }
             
             
-            return new AuthCredentials(principal.trim()).markComplete();
+            return new AuthCredentials(principal.trim()).markComplete(); //NOSONAR
         } else {
             log.trace("No CLIENT CERT, send 401");
             return null;

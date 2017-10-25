@@ -219,8 +219,8 @@ public class BackendRegistry implements ConfigurationChangeListener {
             if (httpEnabled || transportEnabled) {
                 try {
                     AuthenticationBackend authenticationBackend;
-                    String authBackendClazz = ads.get("authentication_backend.type", InternalAuthenticationBackend.class.getName());
-                    if(authBackendClazz.equals(InternalAuthenticationBackend.class.getName())
+                    final String authBackendClazz = ads.get("authentication_backend.type", InternalAuthenticationBackend.class.getName());
+                    if(authBackendClazz.equals(InternalAuthenticationBackend.class.getName()) //NOSONAR
                             || authBackendClazz.equals("internal")
                             || authBackendClazz.equals("intern")) {
                         authenticationBackend = iab;

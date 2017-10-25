@@ -17,7 +17,6 @@
     <version>6.1-beta4</version>
   </parent>
 
-  <groupId>com.floragunn</groupId>
   <artifactId>search-guard-6</artifactId>
   <packaging>jar</packaging>
   <version>6.x-HEAD-SNAPSHOT</version>

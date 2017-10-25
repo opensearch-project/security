@@ -153,6 +153,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                                     Thread.sleep(500);
                                 } catch (InterruptedException e1) {
                                     //ignore
+                                    Thread.currentThread().interrupt();
                                 }
                                 try {
                                     response = client.admin().cluster().health(new ClusterHealthRequest(searchguardIndex).waitForYellowStatus()).actionGet();

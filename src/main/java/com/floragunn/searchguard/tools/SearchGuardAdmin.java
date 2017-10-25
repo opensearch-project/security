@@ -111,7 +111,7 @@ public class SearchGuardAdmin {
     private static final String SG_KS_PASS = "SG_KS_PASS";
     private static final String SG_KEYPASS = "SG_KEYPASS";
     //not used in multithreaded fashion
-    private static SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MMM-dd_HH-mm-ss", Locale.ENGLISH);
+    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MMM-dd_HH-mm-ss", Locale.ENGLISH);
     private static final Settings ENABLE_ALL_ALLOCATIONS_SETTINGS = Settings.builder()
             .put("cluster.routing.allocation.enable", "all")
             .build();
