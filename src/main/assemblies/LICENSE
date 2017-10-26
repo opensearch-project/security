@@ -1,0 +1,16 @@
+All jar files matching the pattern “dlic-search-guard*.jar” (including their content) are NOT under Open-Source license.
+For any of these files the following statement applies:
+
+------------------------------------------------------------------------
+Copyright-2015-2017 by floragunn GmbH - All rights reserved
+
+Unless required by applicable law or agreed to in writing, software
+distributed here is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
+This software is free of charge for non-commercial and academic use. 
+For commercial use in a production environment you have to obtain a license 
+from https://floragunn.com
+------------------------------------------------------------------------
+
+For the license of every other jar file see the LICENSE file inside the jar.
