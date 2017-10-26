@@ -618,10 +618,10 @@ public class SearchGuardAdmin {
                 String date = DATE_FORMAT.format(new Date());
                 
                 boolean success = retrieveFile(tc, cd+"sg_config_"+date+".yml", index, "config", legacy);
-                success = success & retrieveFile(tc, cd+"sg_roles_"+date+".yml", index, "roles", legacy);
-                success = success & retrieveFile(tc, cd+"sg_roles_mapping_"+date+".yml", index, "rolesmapping", legacy);
-                success = success & retrieveFile(tc, cd+"sg_internal_users_"+date+".yml", index, "internalusers", legacy);
-                success = success & retrieveFile(tc, cd+"sg_action_groups_"+date+".yml", index, "actiongroups", legacy);
+                success = retrieveFile(tc, cd+"sg_roles_"+date+".yml", index, "roles", legacy) && success;
+                success = retrieveFile(tc, cd+"sg_roles_mapping_"+date+".yml", index, "rolesmapping", legacy) && success;
+                success = retrieveFile(tc, cd+"sg_internal_users_"+date+".yml", index, "internalusers", legacy) && success;
+                success = retrieveFile(tc, cd+"sg_action_groups_"+date+".yml", index, "actiongroups", legacy) && success;
                 System.exit(success?0:-1);
             }
             
@@ -643,17 +643,17 @@ public class SearchGuardAdmin {
                 boolean success = uploadFile(tc, file, index, type, legacy);
                 ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{type})).actionGet();
                 
-                success = success & checkConfigUpdateResponse(cur, nodesInfo, 1);
+                success = checkConfigUpdateResponse(cur, nodesInfo, 1) && success;
                 
                 System.out.println("Done with "+(success?"success":"failures"));
                 System.exit(success?0:-1);
             }
 
             boolean success = uploadFile(tc, cd+"sg_config.yml", index, "config", legacy);
-            success = success & uploadFile(tc, cd+"sg_roles.yml", index, "roles", legacy);
-            success = success & uploadFile(tc, cd+"sg_roles_mapping.yml", index, "rolesmapping", legacy);
-            success = success & uploadFile(tc, cd+"sg_internal_users.yml", index, "internalusers", legacy);
-            success = success & uploadFile(tc, cd+"sg_action_groups.yml", index, "actiongroups", legacy);
+            success = uploadFile(tc, cd+"sg_roles.yml", index, "roles", legacy) && success;
+            success = uploadFile(tc, cd+"sg_roles_mapping.yml", index, "rolesmapping", legacy) && success;
+            success = uploadFile(tc, cd+"sg_internal_users.yml", index, "internalusers", legacy) && success;
+            success = uploadFile(tc, cd+"sg_action_groups.yml", index, "actiongroups", legacy) && success;
             
             if(failFast && !success) {
                 System.out.println("ERR: cannot upload configuration, see errors above");
@@ -662,7 +662,7 @@ public class SearchGuardAdmin {
             
             ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
             
-            success = success & checkConfigUpdateResponse(cur, nodesInfo, 5);
+            success = checkConfigUpdateResponse(cur, nodesInfo, 5) && success;
             
             System.out.println("Done with "+(success?"success":"failures"));
             System.exit(success?0:-1);
@@ -696,7 +696,7 @@ public class SearchGuardAdmin {
                 System.out.println("FAIL: Expected "+expectedConfigCount+" config types for node "+nodeId+" but got only "+Arrays.toString(node.getUpdatedConfigTypes()) + " due to: "+node.getMessage()==null?"unknown reason":node.getMessage());
             }
             
-            success = success & successNode;
+            success = success && successNode;
         }
         
         return success;

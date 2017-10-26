@@ -1482,7 +1482,7 @@ public class PrivilegesEvaluator {
             
             for(IndexType it: copy) {
                 if(WildcardMatcher.match(stringContainingWc.getCombinedString(), it.getCombinedString())) {
-                    modified = set.remove(it) | modified;
+                    modified = set.remove(it) || modified;
                 }
             }
             return modified;
