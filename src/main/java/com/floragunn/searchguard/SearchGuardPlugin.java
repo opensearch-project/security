@@ -257,7 +257,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
                   final Path confPath = new Environment(settings, configPath).configFile().toAbsolutePath();
                     if(Files.isDirectory(confPath, LinkOption.NOFOLLOW_LINKS)) {
                         try (Stream<Path> s = Files.walk(confPath)) {
-                            return Files.walk(confPath)
+                            return s
                             .distinct()
                             .filter(p->checkFilePermissions(p))
                             .collect(Collectors.toList());
