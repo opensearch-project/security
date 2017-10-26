@@ -14,11 +14,12 @@
   <parent>
     <groupId>com.floragunn</groupId>
     <artifactId>search-guard-parent</artifactId>
-    <version>6.1-beta4</version>
+    <version>6.1-beta5</version>
   </parent>
 
   <artifactId>search-guard-6</artifactId>
   <packaging>jar</packaging>
+  <!-- 6.x.y-a.b-->
   <version>6.x-HEAD-SNAPSHOT</version>
   <name>Search Guard</name>
   <description>Provide access control related features for Elasticsearch 6</description>
