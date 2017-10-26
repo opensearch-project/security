@@ -120,6 +120,7 @@ CLUSTER_COMPOSITE_OPS_RO:
     - "indices:data/read/coordinate-msearch*"
     - "indices:admin/aliases/exists*"
     - "indices:admin/aliases/get*"
+    - "indices:data/read/scroll"
 
 CLUSTER_COMPOSITE_OPS:
   readonly: true
