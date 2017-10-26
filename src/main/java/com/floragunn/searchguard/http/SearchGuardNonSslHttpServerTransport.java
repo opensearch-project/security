@@ -41,12 +41,12 @@ public class SearchGuardNonSslHttpServerTransport extends Netty4HttpServerTransp
 
     @Override
     public ChannelHandler configureServerChannelHandler() {
-        return new HttpChannelHandler(this);
+        return new NonSslHttpChannelHandler(this);
     }
 
-    protected class HttpChannelHandler extends Netty4HttpServerTransport.HttpChannelHandler {
+    protected class NonSslHttpChannelHandler extends Netty4HttpServerTransport.HttpChannelHandler {
         
-        protected HttpChannelHandler(Netty4HttpServerTransport transport) {
+        protected NonSslHttpChannelHandler(Netty4HttpServerTransport transport) {
             super(transport, SearchGuardNonSslHttpServerTransport.this.detailedErrorsEnabled, SearchGuardNonSslHttpServerTransport.this.threadContext);
         }
 
