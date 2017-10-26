@@ -753,7 +753,8 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         // SG6 - REST API
         settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_RESTAPI_ROLES_ENABLED, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
         settings.add(Setting.groupSetting(ConfigConstants.SEARCHGUARD_RESTAPI_ENDPOINTS_DISABLED + ".", Property.NodeScope));
-
+        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_UNSUPPORTED_RESTAPI_ACCEPT_INVALID_LICENSE, false, Property.NodeScope, Property.Filtered)); 
+        
         return settings;
     }
     

@@ -175,7 +175,9 @@ public class ConfigConstants {
     // REST API
     public static final String SEARCHGUARD_RESTAPI_ROLES_ENABLED = "searchguard.restapi.roles_enabled";
     public static final String SEARCHGUARD_RESTAPI_ENDPOINTS_DISABLED = "searchguard.restapi.endpoints_disabled";
-
+    
+    // Illegal Opcodes from here on
+    public static final String SEARCHGUARD_UNSUPPORTED_RESTAPI_ACCEPT_INVALID_LICENSE = "searchguard.unsupported.restapi.accept_invalid_license";
     
    
 }
