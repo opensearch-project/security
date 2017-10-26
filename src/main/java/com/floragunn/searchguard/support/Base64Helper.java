@@ -68,8 +68,8 @@ public class Base64Helper {
 
         try {
             final byte[] userr = BaseEncoding.base64().decode(string);
-            final ByteArrayInputStream bis = new ByteArrayInputStream(userr);
-            in = new SafeObjectInputStream(bis);
+            final ByteArrayInputStream bis = new ByteArrayInputStream(userr); //NOSONAR
+            in = new SafeObjectInputStream(bis); //NOSONAR
             return (Serializable) in.readObject();
         } catch (final Exception e) {
             throw new ElasticsearchException(e);

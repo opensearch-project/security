@@ -27,54 +27,61 @@ public class NullAuditLog implements AuditLog {
 
     @Override
     public void close() throws IOException {
+        //noop, intentionally left empty
     }
 
     @Override
     public void logFailedLogin(String effectiveUser, boolean sgadmin, String initiatingUser, TransportRequest request, Task task) {
-     }
+        //noop, intentionally left empty
+    }
 
     @Override
     public void logFailedLogin(String effectiveUser, boolean sgadmin, String initiatingUser, RestRequest request) {
+        //noop, intentionally left empty
     }
 
     @Override
     public void logSucceededLogin(String effectiveUser, boolean sgadmin, String initiatingUser, TransportRequest request, Task task) {
+        //noop, intentionally left empty
     }
 
     @Override
     public void logSucceededLogin(String effectiveUser, boolean sgadmin, String initiatingUser, RestRequest request) {
-
+        //noop, intentionally left empty
     }
 
     @Override
     public void logMissingPrivileges(String privilege, TransportRequest request, Task task) {
+        //noop, intentionally left empty
     }
 
     @Override
     public void logGrantedPrivileges(String privilege, TransportRequest request, Task task) {
-
+        //noop, intentionally left empty
     }
 
     @Override
     public void logBadHeaders(TransportRequest request, String action, Task task) {
+        //noop, intentionally left empty
     }
 
     @Override
     public void logBadHeaders(RestRequest request) {
+        //noop, intentionally left empty
     }
 
     @Override
     public void logSgIndexAttempt(TransportRequest request, String action, Task task) {
-
+        //noop, intentionally left empty
     }
 
     @Override
     public void logSSLException(TransportRequest request, Throwable t, String action, Task task) {
-
+        //noop, intentionally left empty
     }
 
     @Override
     public void logSSLException(RestRequest request, Throwable t) {
-
+        //noop, intentionally left empty
     }
 }

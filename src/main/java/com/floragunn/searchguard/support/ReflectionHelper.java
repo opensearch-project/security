@@ -89,7 +89,8 @@ public class ReflectionHelper {
 		}
 	}
 
-	public static Constructor<?> instantiateDlsFlsConstructor() {
+	@SuppressWarnings("rawtypes")
+    public static Constructor instantiateDlsFlsConstructor() {
 
 		if (enterpriseModulesDisabled()) {
 			return null;
