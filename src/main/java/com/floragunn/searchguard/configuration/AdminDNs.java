@@ -51,7 +51,7 @@ public class AdminDNs {
                 log.debug("{} is registered as an admin dn", dn);
                 adminDn.add(new LdapName(dn));
             } catch (final InvalidNameException e) {
-                log.error("Unable to parse admin dn {} {}",e, dn, e);
+                log.error("Unable to parse admin dn {}",dn, e);
             }
         }
        
@@ -63,7 +63,7 @@ public class AdminDNs {
             try {
                 allowedImpersonations.putAll(new LdapName(dnString), Arrays.asList(settings.getAsArray(ConfigConstants.SEARCHGUARD_AUTHCZ_IMPERSONATION_DN+"."+dnString)));
             } catch (final InvalidNameException e) {
-                log.error("Unable to parse allowedImpersonations dn {} {}",e, dnString, e);
+                log.error("Unable to parse allowedImpersonations dn {}",dnString, e);
             }
         }
         

@@ -203,7 +203,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
                         transportAuthorizers.add(authorizationBackend);
                     }
                 } catch (final Exception e) {
-                    log.error("Unable to initialize AuthorizationBackend {} due to {}", ad, e.toString());
+                    log.error("Unable to initialize AuthorizationBackend {} due to {}", ad, e.toString(),e);
                 }
             }
         }
@@ -246,7 +246,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
                         transportAuthDomains.add(_ad);
                     }
                 } catch (final Exception e) {
-                    log.error("Unable to initialize auth domain {} due to {}", ad, e.toString());
+                    log.error("Unable to initialize auth domain {} due to {}", ad, e.toString(), e);
                 }
 
             }
@@ -511,7 +511,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
                             try {
                                 ab.fillRoles(user, new AuthCredentials(user.getName()));
                             } catch (Exception e) {
-                                log.error("Cannot retrieve roles for {} from {} due to {}", user.getName(), ab.getType(), e.toString());
+                                log.error("Cannot retrieve roles for {} from {} due to {}", user.getName(), ab.getType(), e.toString(), e);
                             }
                         }
                         
@@ -557,7 +557,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
                         try {
                             ab.fillRoles(authenticatedUser, new AuthCredentials(authenticatedUser.getName()));
                         } catch (Exception e) {
-                            log.error("Cannot retrieve roles for {} from {} due to {}", authenticatedUser, ab.getType(), e.toString());
+                            log.error("Cannot retrieve roles for {} from {} due to {}", authenticatedUser, ab.getType(), e.toString(), e);
                         }
                     }
 

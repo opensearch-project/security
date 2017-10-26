@@ -1327,7 +1327,7 @@ public class PrivilegesEvaluator {
                 } catch (NoSuchMethodException e) {
                     typeCache.put(requestClass, null);
                 } catch (SecurityException e) {
-                    log.error("Cannot evaluate type() for {} due to {}", requestClass, e);
+                    log.error("Cannot evaluate type() for {} due to {}", requestClass, e, e);
                 }
                 
             }
@@ -1342,7 +1342,7 @@ public class PrivilegesEvaluator {
                 } catch (NoSuchMethodException e) {
                     typesCache.put(requestClass, null);
                 } catch (SecurityException e) {
-                    log.error("Cannot evaluate types() for {} due to {}", requestClass, e);
+                    log.error("Cannot evaluate types() for {} due to {}", requestClass, e, e);
                 }
                 
             }
@@ -1354,7 +1354,7 @@ public class PrivilegesEvaluator {
                         requestTypes.add(type);
                     }
                 } catch (Exception e) {
-                    log.error("Unable to invoke type() for {} due to {}", e, requestClass, e);
+                    log.error("Unable to invoke type() for {} due to", requestClass, e);
                 }
             }
             
@@ -1366,7 +1366,7 @@ public class PrivilegesEvaluator {
                         requestTypes.addAll(Arrays.asList(types));
                     }
                 } catch (Exception e) {
-                    log.error("Unable to invoke types() for {} due to {}", e, requestClass, e);
+                    log.error("Unable to invoke types() for {} due to", requestClass, e);
                 }
             }
         }
