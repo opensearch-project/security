@@ -80,7 +80,7 @@ public class SearchGuardInfoAction extends BaseRestHandler {
 
                     response = new BytesRestResponse(RestStatus.OK, builder);
                 } catch (final Exception e1) {
-                    builder = channel.newBuilder();
+                    builder = channel.newBuilder(); //NOSONAR
                     builder.startObject();
                     builder.field("error", e1.toString());
                     builder.endObject();
