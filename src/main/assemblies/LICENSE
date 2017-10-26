@@ -1,16 +1,79 @@
-All jar files matching the pattern “dlic-search-guard*.jar” (including their content) are NOT under Open-Source license.
-For any of these files the following statement applies:
+#Search Guard license
 
+Search Guard is an Open Source project, which means that the source code is freely available for you to download and inspect.
+
+## Community Edition
+
+The Community Edition of Search Guard is licensed under the Apache2 license. 
+It can be used for commercial and non-commercial projects free of charge. For the Community Edition, the following license terms apply:
+
+```
+Copyright 2015-2017 by floragunn GmbH
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+```
+
+The Community Edition consists of the following modules:
+
+* search-guard-ssl
+ * see also: https://github.com/floragunncom/search-guard-ssl
+* search-guard
+ * https://github.com/floragunncom/search-guard 
+
+## Enterprise Edition
+
+The Enterprise Edition of Search Guard is distributed under a commercial license. 
+If you run any parts of the Enterprise Edition in production, which means in a non-local installation, you need to obtain a license.
+
+The Enterprise Edition consists of the following modules:
+
+* search-guard-auth-http-kerberos
+ * see also: https://github.com/floragunncom/search-guard-auth-http-kerberos
+* search-guard-authbackend-jwt
+ * see: https://github.com/floragunncom/search-guard-authbackend-jwt
+* search-guard-authbackend-ldap
+ * https://github.com/floragunncom/search-guard-authbackend-ldap
+* see also: search-guard-module-auditlog
+ * https://github.com/floragunncom/search-guard-module-auditlog
+* see also: search-guard-module-dlsfls
+ * https://github.com/floragunncom/search-guard-module-dlsfls
+* see also: search-guard-module-kibana-multitenancy
+ * https://github.com/floragunncom/search-guard-module-kibana-multitenancy
+* see also: search-guard-rest-api
+ * https://github.com/floragunncom/search-guard-rest-api
+* search-guard-module-compliance
+* search-guard-auth-http-proxy
+
+All binaries of the Enterprise Modules in this distribution match the pattern “dlic-search-guard*.jar” and are not under Apache2 license.
+
+For any of these files and the corresponding code the following statement applies:
+
+```
 ------------------------------------------------------------------------
 Copyright-2015-2017 by floragunn GmbH - All rights reserved
 
 Unless required by applicable law or agreed to in writing, software
 distributed here is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-
-This software is free of charge for non-commercial and academic use. 
-For commercial use in a production environment you have to obtain a license 
-from https://floragunn.com
 ------------------------------------------------------------------------
+```
 
-For the license of every other jar file see the LICENSE file inside the jar.
+## Third-party libraries
+
+For the license of every other third-party jar file in this discribution see the LICENSE file inside the each jar.
+
+## Contact
+
+If you are not sure whether your usage of Search Guard is compliant with the license conditions, please contact floragunn GmbH via:
+
+info@search-guard.com
