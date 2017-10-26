@@ -737,23 +737,23 @@ public class PrivilegesEvaluator {
 
         if(!dlsQueries.isEmpty()) {
             
-            if(this.threadContext.getHeader(ConfigConstants.SG_DLS_QUERY) != null) {
-                if(!dlsQueries.equals((Map<String,Set<String>>) Base64Helper.deserializeObject(this.threadContext.getHeader(ConfigConstants.SG_DLS_QUERY)))) {
-                    throw new ElasticsearchSecurityException(ConfigConstants.SG_DLS_QUERY+" does not match (SG 900D)");
+            if(this.threadContext.getHeader(ConfigConstants.SG_DLS_QUERY_HEADER) != null) {
+                if(!dlsQueries.equals((Map<String,Set<String>>) Base64Helper.deserializeObject(this.threadContext.getHeader(ConfigConstants.SG_DLS_QUERY_HEADER)))) {
+                    throw new ElasticsearchSecurityException(ConfigConstants.SG_DLS_QUERY_HEADER+" does not match (SG 900D)");
                 }
             } else {
-                this.threadContext.putHeader(ConfigConstants.SG_DLS_QUERY, Base64Helper.serializeObject((Serializable) dlsQueries));
+                this.threadContext.putHeader(ConfigConstants.SG_DLS_QUERY_HEADER, Base64Helper.serializeObject((Serializable) dlsQueries));
             }
         }
         
         if(!flsFields.isEmpty()) {
             
-            if(this.threadContext.getHeader(ConfigConstants.SG_FLS_FIELDS) != null) {
-                if(!flsFields.equals((Map<String,Set<String>>) Base64Helper.deserializeObject(this.threadContext.getHeader(ConfigConstants.SG_FLS_FIELDS)))) {
-                    throw new ElasticsearchSecurityException(ConfigConstants.SG_FLS_FIELDS+" does not match (SG 901D)");
+            if(this.threadContext.getHeader(ConfigConstants.SG_FLS_FIELDS_HEADER) != null) {
+                if(!flsFields.equals((Map<String,Set<String>>) Base64Helper.deserializeObject(this.threadContext.getHeader(ConfigConstants.SG_FLS_FIELDS_HEADER)))) {
+                    throw new ElasticsearchSecurityException(ConfigConstants.SG_FLS_FIELDS_HEADER+" does not match (SG 901D)");
                 }
             } else {
-                this.threadContext.putHeader(ConfigConstants.SG_FLS_FIELDS, Base64Helper.serializeObject((Serializable)flsFields));
+                this.threadContext.putHeader(ConfigConstants.SG_FLS_FIELDS_HEADER, Base64Helper.serializeObject((Serializable)flsFields));
             }
         }
         
@@ -1150,6 +1150,7 @@ public class PrivilegesEvaluator {
                 log.debug("  matches for {}, will check now wildcard type '*'", permittedAliasesIndex);
             }
 
+            //TODO check wa var
             List<String> wa = null;
             for (String at : resolvedActions) {
                 if (!(wa = WildcardMatcher.getMatchAny(at, actions.toArray(new String[0]))).isEmpty()) {
@@ -1228,12 +1229,6 @@ public class PrivilegesEvaluator {
                     indices.addAll(t.v1());
                     types.addAll(t.v2());
                 }
-                
-            } else if(request instanceof IndicesRequest) {
-
-                final Tuple<Set<String>, Set<String>> t = resolveIndicesRequest(user, action, (IndicesRequest) request, metaData);
-                indices.addAll(t.v1());
-                types.addAll(t.v2());
                 
             } else if(request instanceof MultiGetRequest) {
                 

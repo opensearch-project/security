@@ -97,8 +97,8 @@ public class SearchGuardInterceptor {
                             || k.equals(ConfigConstants.SG_ORIGIN_HEADER)
                             || k.equals(ConfigConstants.SG_REMOTE_ADDRESS_HEADER)
                             || k.equals(ConfigConstants.SG_USER_HEADER)
-                            || k.equals(ConfigConstants.SG_DLS_QUERY)
-                            || k.equals(ConfigConstants.SG_FLS_FIELDS)
+                            || k.equals(ConfigConstants.SG_DLS_QUERY_HEADER)
+                            || k.equals(ConfigConstants.SG_FLS_FIELDS_HEADER)
                             )));
             ensureCorrectHeaders(action, remoteAdress0, user0, origin);
             sender.sendRequest(connection, action, request, options, restoringHandler);

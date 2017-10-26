@@ -17,27 +17,18 @@
 
 package com.floragunn.searchguard.filter;
 
-import java.util.HashSet;
-import java.util.Set;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionResponse;
-import org.elasticsearch.action.bulk.BulkItemRequest;
 import org.elasticsearch.action.bulk.BulkRequest;
-import org.elasticsearch.action.bulk.BulkShardRequest;
-import org.elasticsearch.action.delete.DeleteAction;
 import org.elasticsearch.action.get.MultiGetRequest;
-import org.elasticsearch.action.index.IndexAction;
 import org.elasticsearch.action.search.MultiSearchRequest;
 import org.elasticsearch.action.support.ActionFilter;
 import org.elasticsearch.action.support.ActionFilterChain;
-import org.elasticsearch.action.update.UpdateAction;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.tasks.Task;
@@ -60,16 +51,14 @@ public class SearchGuardFilter implements ActionFilter {
     protected final Logger log = LogManager.getLogger(this.getClass());
     protected final Logger actionTrace = LogManager.getLogger("sg_action_trace");
     private final PrivilegesEvaluator evalp;
-    private final Settings settings;
     private final AdminDNs adminDns;
     private DlsFlsRequestValve dlsFlsValve;
     private final AuditLog auditLog;
     private final ThreadContext threadContext;
     private final ClusterService cs;
     
-    public SearchGuardFilter(final Settings settings, final PrivilegesEvaluator evalp, final AdminDNs adminDns,
+    public SearchGuardFilter(final PrivilegesEvaluator evalp, final AdminDNs adminDns,
             DlsFlsRequestValve dlsFlsValve, AuditLog auditLog, ThreadPool threadPool, ClusterService cs) {
-        this.settings = settings;
         this.evalp = evalp;
         this.adminDns = adminDns;
         this.dlsFlsValve = dlsFlsValve;

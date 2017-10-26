@@ -37,7 +37,6 @@ extends
 HandledTransportAction<WhoAmIRequest, WhoAmIResponse> {
 
     private final AdminDNs adminDNs;
-    private final ThreadPool threadPool;
 
     @Inject
     public TransportWhoAmIAction(final Settings settings,
@@ -47,7 +46,6 @@ HandledTransportAction<WhoAmIRequest, WhoAmIResponse> {
         super(settings, WhoAmIAction.NAME, threadPool, transportService, actionFilters, indexNameExpressionResolver, WhoAmIRequest::new);
 
         this.adminDNs = adminDNs;
-        this.threadPool = threadPool;
     }
 
 

@@ -110,8 +110,8 @@ public class SearchGuardAdmin {
     private static final String SG_TS_PASS = "SG_TS_PASS";
     private static final String SG_KS_PASS = "SG_KS_PASS";
     private static final String SG_KEYPASS = "SG_KEYPASS";
-    //not used in multithreaded fashion
-    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MMM-dd_HH-mm-ss", Locale.ENGLISH);
+    //not used in multithreaded fashion, so it's okay to define it as a constant here
+    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MMM-dd_HH-mm-ss", Locale.ENGLISH); //NOSONAR
     private static final Settings ENABLE_ALL_ALLOCATIONS_SETTINGS = Settings.builder()
             .put("cluster.routing.allocation.enable", "all")
             .build();
@@ -717,7 +717,7 @@ public class SearchGuardAdmin {
         try (Reader reader = new FileReader(filepath)) {
 
             final String res = tc
-                    .index(new IndexRequest(index).type("sg").id(id).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .index(new IndexRequest(index).type(type).id(id).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                             .source(id, readXContent(reader, XContentType.YAML))).actionGet().getId();
 
             if (id.equals(res)) {
@@ -747,7 +747,7 @@ public class SearchGuardAdmin {
         System.out.println("Will retrieve '"+id+"' into "+filepath);
         try (Writer writer = new FileWriter(filepath)) {
 
-            final GetResponse response = tc.get(new GetRequest(index).type("sg").id(id).refresh(true).realtime(false)).actionGet();
+            final GetResponse response = tc.get(new GetRequest(index).type(type).id(id).refresh(true).realtime(false)).actionGet();
 
             if (response.isExists()) {
                 if(response.isSourceEmpty()) {

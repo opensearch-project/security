@@ -57,7 +57,7 @@ public class KibanaInfoAction extends BaseRestHandler {
 
             @Override
             public void accept(RestChannel channel) throws Exception {
-                XContentBuilder builder = channel.newBuilder();
+                XContentBuilder builder = channel.newBuilder(); //NOSONAR
                 BytesRestResponse response = null;
                 
                 try {
@@ -76,11 +76,15 @@ public class KibanaInfoAction extends BaseRestHandler {
 
                     response = new BytesRestResponse(RestStatus.OK, builder);
                 } catch (final Exception e1) {
-                    builder = channel.newBuilder();
+                    builder = channel.newBuilder(); //NOSONAR
                     builder.startObject();
                     builder.field("error", e1.toString());
                     builder.endObject();
                     response = new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, builder);
+                } finally {
+                    if(builder != null) {
+                        builder.close();
+                    }
                 }
 
                 channel.sendResponse(response);

@@ -9,7 +9,7 @@ import com.floragunn.searchguard.test.helper.cluster.ClusterHelper;
 import com.floragunn.searchguard.test.helper.cluster.ClusterInfo;
 import com.floragunn.searchguard.test.helper.rest.RestHelper;
 
-public class SingleClusterTest extends AbstractSGUnitTest {
+public abstract class SingleClusterTest extends AbstractSGUnitTest {
     
     protected ClusterHelper clusterHelper = new ClusterHelper("unittest_cluster_1");
     protected ClusterInfo clusterInfo;

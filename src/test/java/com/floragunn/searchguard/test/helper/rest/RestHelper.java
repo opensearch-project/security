@@ -34,13 +34,14 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.config.SocketConfig;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.conn.ssl.SSLContextBuilder;
-import org.apache.http.conn.ssl.SSLContexts;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.ssl.SSLContextBuilder;
+import org.apache.http.ssl.SSLContexts;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -173,10 +174,10 @@ public class RestHelper {
 			final KeyStore keyStore = KeyStore.getInstance("JKS");
 			keyStore.load(new FileInputStream(FileHelper.getAbsoluteFilePathFromClassPath(keystore)), "changeit".toCharArray());
 
-			final SSLContextBuilder sslContextbBuilder = SSLContexts.custom().useTLS();
+			final SSLContextBuilder sslContextbBuilder = SSLContexts.custom();
 
 			if (trustHTTPServerCertificate) {
-				sslContextbBuilder.loadTrustMaterial(myTrustStore);
+				sslContextbBuilder.loadTrustMaterial(myTrustStore, null);
 			}
 
 			if (sendHTTPClientCertificate) {
@@ -193,8 +194,11 @@ public class RestHelper {
 				protocols = new String[] { "TLSv1", "TLSv1.1", "TLSv1.2" };
 			}
 
-			final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext, protocols, null,
-					SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+			final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
+			        sslContext, 
+			        protocols, 
+			        null,
+					NoopHostnameVerifier.INSTANCE);
 
 			hcb.setSSLSocketFactory(sslsf);
 		}

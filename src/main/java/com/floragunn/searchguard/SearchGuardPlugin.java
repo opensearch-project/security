@@ -38,6 +38,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.elasticsearch.ElasticsearchSecurityException;
@@ -255,7 +256,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
                 public List<Path> run() {
                   final Path confPath = new Environment(settings, configPath).configFile().toAbsolutePath();
                     if(Files.isDirectory(confPath, LinkOption.NOFOLLOW_LINKS)) {
-                        try {
+                        try (Stream<Path> s = Files.walk(confPath)) {
                             return Files.walk(confPath)
                             .distinct()
                             .filter(p->checkFilePermissions(p))
@@ -288,8 +289,8 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
                 public List<String> run() {
                   final Path confPath = new Environment(settings, configPath).configFile().toAbsolutePath();
                     if(Files.isDirectory(confPath, LinkOption.NOFOLLOW_LINKS)) {
-                        try {
-                            return Files.walk(confPath)
+                        try (Stream<Path> s = Files.walk(confPath)) {
+                            return s
                             .distinct()
                             .map(p->sha256(p))
                             .collect(Collectors.toList());
@@ -453,7 +454,6 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
                         .requireNonNull(adminDns)));
             }
         
-            //TODO SG6 check SearchOperationListener for read/scroll 
             indexModule.addSearchOperationListener(new SearchOperationListener() {
 
                 @Override
@@ -623,7 +623,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         cr.subscribeOnChange(ConfigConstants.CONFIGNAME_CONFIG, backendRegistry);
         final ActionGroupHolder ah = new ActionGroupHolder(cr);      
         evaluator = new PrivilegesEvaluator(clusterService, threadPool, cr, ah, resolver, auditLog, settings, privilegesInterceptor, cih);    
-        final SearchGuardFilter sgf = new SearchGuardFilter(settings, evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs);     
+        final SearchGuardFilter sgf = new SearchGuardFilter(evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs);     
         
         
         final String principalExtractorClass = settings.get(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, null);

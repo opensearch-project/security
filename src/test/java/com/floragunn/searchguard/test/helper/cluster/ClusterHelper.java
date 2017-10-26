@@ -46,7 +46,6 @@ import org.elasticsearch.transport.Netty4Plugin;
 import com.floragunn.searchguard.SearchGuardPlugin;
 import com.floragunn.searchguard.test.NodeSettingsSupplier;
 import com.floragunn.searchguard.test.helper.cluster.ClusterConfiguration.NodeSettings;
-import com.github.mustachejava.MustacheParser;
 
 public final class ClusterHelper {
 
@@ -187,6 +186,7 @@ public final class ClusterHelper {
 				.put("path.data", "data/"+clustername+"/data")
 				.put("path.logs", "data/"+clustername+"/logs")
 				.put("node.max_local_storage_nodes", nodeCount)
+				//TODO check minMasterNodes
 				//.put("discovery.zen.minimum_master_nodes", minMasterNodes(masterCount))
 				//.put("discovery.zen.no_master_block", "all")
 				//.put("discovery.zen.fd.ping_timeout", "2s")

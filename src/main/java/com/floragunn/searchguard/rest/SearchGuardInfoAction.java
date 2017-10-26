@@ -58,7 +58,7 @@ public class SearchGuardInfoAction extends BaseRestHandler {
 
             @Override
             public void accept(RestChannel channel) throws Exception {
-                XContentBuilder builder = channel.newBuilder();
+                XContentBuilder builder = channel.newBuilder(); //NOSONAR
                 BytesRestResponse response = null;
                 
                 try {
@@ -85,6 +85,10 @@ public class SearchGuardInfoAction extends BaseRestHandler {
                     builder.field("error", e1.toString());
                     builder.endObject();
                     response = new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, builder);
+                } finally {
+                    if(builder != null) {
+                        builder.close();
+                    }
                 }
 
                 channel.sendResponse(response);

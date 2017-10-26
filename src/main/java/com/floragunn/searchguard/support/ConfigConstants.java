@@ -32,14 +32,10 @@ public class ConfigConstants {
     
     public static final String SG_ORIGIN = SG_CONFIG_PREFIX+"origin";
     public static final String SG_ORIGIN_HEADER = SG_CONFIG_PREFIX+"origin_header";
-    
-    //rename to SG_DLS_QUERY_HEADER
-    @Deprecated
-    public static final String SG_DLS_QUERY = SG_CONFIG_PREFIX+"dls_query";
-    
-  //rename to SG_FLS_FIELDS_HEADER
-    @Deprecated
-    public static final String SG_FLS_FIELDS = SG_CONFIG_PREFIX+"fls_fields";
+
+    public static final String SG_DLS_QUERY_HEADER = SG_CONFIG_PREFIX+"dls_query";
+
+    public static final String SG_FLS_FIELDS_HEADER = SG_CONFIG_PREFIX+"fls_fields";
     
     public static final String SG_CONF_REQUEST_HEADER = SG_CONFIG_PREFIX+"conf_request";
     

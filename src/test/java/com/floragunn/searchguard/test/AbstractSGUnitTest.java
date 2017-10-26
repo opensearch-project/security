@@ -77,8 +77,8 @@ public abstract class AbstractSGUnitTest {
 	protected final Logger log = LogManager.getLogger(this.getClass());
     public static final ThreadPool MOCK_POOL = new ThreadPool(Settings.builder().put("node.name",  "mock").build());
 	
-    //Matrix
-    protected boolean allowOpenSSL = false;
+    //TODO Test Matrix
+    protected boolean allowOpenSSL = false; //disabled, we test this already in SSL Plugin
     //enable//disable enterprise modules
     //1node and 3 node
     

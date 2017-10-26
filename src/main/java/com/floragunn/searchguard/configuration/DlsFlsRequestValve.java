@@ -34,7 +34,7 @@ public interface DlsFlsRequestValve {
     public static class NoopDlsFlsRequestValve implements DlsFlsRequestValve {
 
         @Override
-        public boolean invoke(ActionRequest request, ActionListener listener, ThreadContext threadContext) {
+        public boolean invoke(ActionRequest request, ActionListener<?> listener, ThreadContext threadContext) {
             return true;
         }
         
