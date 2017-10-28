@@ -117,7 +117,7 @@ public class InternalAuthenticationBackend implements AuthenticationBackend {
         try {
             if (OpenBSDBCrypt.checkPassword(hashed, array)) {
                 final String[] roles = cfg.getAsArray(credentials.getUsername() + ".roles", new String[0]);
-                return new User(credentials.getUsername(), Arrays.asList(roles));
+                return new User(credentials.getUsername(), Arrays.asList(roles), credentials);
             } else {
                 throw new ElasticsearchSecurityException("password does not match");
             }

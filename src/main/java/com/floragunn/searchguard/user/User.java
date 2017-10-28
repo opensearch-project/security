@@ -22,6 +22,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -32,23 +33,39 @@ import org.elasticsearch.common.io.stream.Writeable;
 
 import com.google.common.collect.Lists;
 
+/**
+ * A authenticated user and attributes associated to them (like roles, tenant, custom attributes)
+ * <p/>
+ * <b>Do not subclass from this class!</b>
+ *
+ */
 public class User implements Serializable, Writeable, CustomAttributesAware {
 
-    public static final User ANONYMOUS = new User("sg_anonymous", Lists.newArrayList("sg_anonymous_backendrole"));
+    public static final User ANONYMOUS = new User("sg_anonymous", Lists.newArrayList("sg_anonymous_backendrole"), null);
     
     private static final long serialVersionUID = -5500938501822658596L;
     private final String name;
     private final Set<String> roles = new HashSet<String>();
     private String requestedTenant;
+    private Map<String, String> attributes = new HashMap<>();
 
     public User(final StreamInput in) throws IOException {
         super();
         name = in.readString();
         roles.addAll(in.readList(StreamInput::readString));
         requestedTenant = in.readString();
+        attributes = in.readMap(StreamInput::readString, StreamInput::readString);
     }
     
-    public User(final String name, final Collection<String> toAdd) {
+    /**
+     * Create a new authenticated user
+     * 
+     * @param name The username (must not be null or empty)
+     * @param roles Roles of which the user is a member off (maybe null)
+     * @param customAttributes Custom attributes associated with this (maybe null)
+     * @throws IllegalArgumentException if name is null or empty
+     */
+    public User(final String name, final Collection<String> roles, final AuthCredentials customAttributes) {
         super();
 
         if (name == null || name.isEmpty()) {
@@ -57,51 +74,83 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
 
         this.name = name;
 
-        if (toAdd != null) {
-            this.addRoles(toAdd);
+        if (roles != null) {
+            this.addRoles(roles);
+        }
+        
+        if(customAttributes != null) {
+            this.attributes.putAll(customAttributes.getAttributes());
         }
 
     }
 
+    /**
+     * Create a new authenticated user without roles and attributes
+     * 
+     * @param name The username (must not be null or empty)
+     * @throws IllegalArgumentException if name is null or empty
+     */
     public User(final String name) {
-        this(name, null);
+        this(name, null, null);
     }
 
-    public String getName() {
+    public final String getName() {
         return name;
     }
 
-    public Set<String> getRoles() {
+    /**
+     * 
+     * @return A unmodifiable set of the roles this user is a member of
+     */
+    public final Set<String> getRoles() {
         return Collections.unmodifiableSet(roles);
     }
 
-    public void addRole(final String role) {
-        roles.add(role);
+    /**
+     * Associate this user with a role
+     * 
+     * @param role The role
+     */
+    public final void addRole(final String role) {
+        this.roles.add(role);
     }
 
-    public void addRoles(final Collection<String> toAdd) {
-        roles.addAll(toAdd);
+    /**
+     * Associate this user with a set of roles
+     * 
+     * @param roles The roles
+     */
+    public final void addRoles(final Collection<String> roles) {
+        if(roles != null) {
+            this.roles.addAll(roles);
+        }
     }
 
-    public boolean isUserInRole(final String role) {
-        return roles.contains(role);
+    /**
+     * Check if this user is a member of a role
+     * 
+     * @param role The role
+     * @return true if this user is a member of the role, false otherwise
+     */
+    public final boolean isUserInRole(final String role) {
+        return this.roles.contains(role);
     }
     
-    public String getRequestedTenant() {
+    public final String getRequestedTenant() {
         return requestedTenant;
     }
 
-    public void setRequestedTenant(String requestedTenant) {
+    public final void setRequestedTenant(String requestedTenant) {
         this.requestedTenant = requestedTenant;
     }
 
     @Override
-    public String toString() {
-        return "User [name=" + name + ", roles=" + roles + "]";
+    public final String toString() {
+        return "User [name=" + name + ", roles=" + roles + ", requestedTenant=" + requestedTenant + ", attributes=" + attributes + "]";
     }
 
     @Override
-    public int hashCode() {
+    public final int hashCode() {
         final int prime = 31;
         int result = 1;
         result = prime * result + (name == null ? 0 : name.hashCode());
@@ -109,7 +158,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
     }
 
     @Override
-    public boolean equals(final Object obj) {
+    public final boolean equals(final Object obj) {
         if (this == obj) {
             return true;
         }
@@ -130,18 +179,34 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
         return true;
     }
 
-    public void copyRolesFrom(final User user) {
-        this.addRoles(user.getRoles());
+    /**
+     * Copy all roles from another user
+     * 
+     * @param user The user from which the roles should be copied over
+     */
+    public final void copyRolesFrom(final User user) {
+        if(user != null) {
+            this.addRoles(user.getRoles());
+        }
     }
 
     @Override
-    public void writeTo(StreamOutput out) throws IOException {
+    public final void writeTo(StreamOutput out) throws IOException {
         out.writeString(name);
         out.writeStringList(new ArrayList<String>(roles));
         out.writeString(requestedTenant);
+        out.writeMap(attributes, StreamOutput::writeString, StreamOutput::writeString);
     }
 
-    public Map<String, String> getCustomAttributesMap() {
-        return Collections.emptyMap();
+    /**
+     * Get the custom attributes associated with this user
+     * 
+     * @return A modifiable map with all the current custom attributes associated with this user
+     */
+    public synchronized final Map<String, String> getCustomAttributesMap() {
+        if(attributes == null) {
+            attributes = new HashMap<>();
+        }
+        return attributes;
     }
 }

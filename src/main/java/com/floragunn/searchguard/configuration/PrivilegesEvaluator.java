@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
@@ -561,10 +562,13 @@ public class PrivilegesEvaluator {
                 }
                 
                 if(dls != null && dls.length() > 0) {
-                    
-                    //TODO use UserPropertyReplacer, make it registerable for ldap user
+
                     dls = dls.replace("${user.name}", user.getName()).replace("${user_name}", user.getName());
-                   
+                    for(Entry<String, String> entry: user.getCustomAttributesMap().entrySet()) {
+                        dls = dls.replace(entry.getKey(), entry.getValue());
+                        dls = dls.replace(entry.getKey().replace('.', '_'), entry.getValue());
+                    }
+
                     if(dlsQueries.containsKey(indexPattern)) {
                         dlsQueries.get(indexPattern).add(dls);
                     } else {

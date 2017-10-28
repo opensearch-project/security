@@ -20,11 +20,19 @@ package com.floragunn.searchguard.user;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.elasticsearch.ElasticsearchSecurityException;
 
+/**
+ * AuthCredentials are an abstraction to encapsulate credentials like passwords or generic 
+ * native credentials like GSS tokens.
+ *
+ */
 public final class AuthCredentials {
 
     private static final String DIGEST_ALGORITHM = "SHA-256";
@@ -34,7 +42,15 @@ public final class AuthCredentials {
     private final Set<String> backendRoles = new HashSet<String>();
     private boolean complete;
     private final byte[] internalPasswordHash;
+    private final Map<String, String> attributes = new HashMap<>();
 
+    /**
+     * Create new credentials with a username and native credentials
+     * 
+     * @param username The username, must not be null or empty
+     * @param nativeCredentials Arbitrary credentials (like GSS tokens), must not be null
+     * @throws IllegalArgumentException if username or nativeCredentials are null or empty
+     */
     public AuthCredentials(final String username, final Object nativeCredentials) {
         this(username, null, nativeCredentials);
         
@@ -43,6 +59,13 @@ public final class AuthCredentials {
         }
     }
 
+    /**
+     * Create new credentials with a username and password
+     *
+     * @param username The username, must not be null or empty
+     * @param password The password, must not be null or empty
+     * @throws IllegalArgumentException if username or password is null or empty
+     */
     public AuthCredentials(final String username, final byte[] password) {
         this(username, password, null);
         
@@ -51,13 +74,16 @@ public final class AuthCredentials {
         }
     }
 
+    /**
+     * Create new credentials with a username, a initial optional set of roles and empty password/native credentials
+
+     * @param username The username, must not be null or empty
+     * @param backendRoles set of roles this user is a member of
+     * @throws IllegalArgumentException if username is null or empty
+     */
     public AuthCredentials(final String username, String... backendRoles) {
         this(username, null, null, backendRoles);
     }
-    
-    /*public AuthCredentials(final AuthCredentials creds) {
-        this(creds.username, creds.password, creds.nativeCredentials);
-    }*/
 
     private AuthCredentials(final String username, byte[] password, Object nativeCredentials, String... backendRoles) {
         super();
@@ -94,6 +120,9 @@ public final class AuthCredentials {
         }
     }
 
+    /**
+     * Wipe password and native credentials
+     */
     public void clearSecrets() {
         if (password != null) {
             Arrays.fill(password, (byte) '\0');
@@ -107,6 +136,10 @@ public final class AuthCredentials {
         return username;
     }
 
+    /**
+     * 
+     * @return Defensive copy of the password
+     */
     public byte[] getPassword() {
         // make defensive copy
         return password == null ? null : Arrays.copyOf(password, password.length);
@@ -150,6 +183,10 @@ public final class AuthCredentials {
                 + (nativeCredentials == null) + ",backendRoles="+backendRoles+"]";
     }
 
+    /**
+     * 
+     * @return Defensive copy of the roles this user is member of.
+     */
     public Set<String> getBackendRoles() {
         return new HashSet<String>(backendRoles);
     }
@@ -158,8 +195,26 @@ public final class AuthCredentials {
         return complete;
     }
 
+    /**
+     * If the credentials are complete and no further roundtrips with the originator are due 
+     * then this method <b>must</b> be called so that the authentication flow can proceed. 
+     * <p/>
+     * If this credentials are already marked a complete then a call to this method does nothing.
+     * 
+     * @return this
+     */
     public AuthCredentials markComplete() {
         this.complete = true;
         return this;
+    }
+    
+    public void addAttribute(String name, String value) {
+        if(name != null && !name.isEmpty()) {
+            this.attributes.put(name, value);
+        }
+    }
+    
+    public Map<String, String> getAttributes() {
+        return Collections.unmodifiableMap(this.attributes);
     }
 }
