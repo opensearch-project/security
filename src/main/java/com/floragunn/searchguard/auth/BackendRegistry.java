@@ -380,7 +380,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
                 ac = httpAuthenticator.extractCredentials(request, threadContext);
             } catch (Exception e1) {
                 if(log.isDebugEnabled()) {
-                    log.debug("'{}' extracting credentials from {} http authenticator", e1, httpAuthenticator.getType());    
+                    log.debug("'{}' extracting credentials from {} http authenticator", e1.toString(), httpAuthenticator.getType(), e1);    
                 }
                 continue;
             }
@@ -527,7 +527,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
             });
         } catch (Exception e) {
             if(log.isDebugEnabled()) {
-                log.debug("Can not check and authorize "+user.getName()+" due to "+e.toString());
+                log.debug("Can not check and authorize "+user.getName()+" due to "+e.toString(), e);
             }
             return null;
         }
@@ -566,7 +566,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
             });
         } catch (Exception e) {
             if(log.isDebugEnabled()) {
-                log.debug("Can not authenticate "+ac.getUsername()+" due to "+e.toString());
+                log.debug("Can not authenticate "+ac.getUsername()+" due to "+e.toString(), e);
             }
             return null;
         } finally {
