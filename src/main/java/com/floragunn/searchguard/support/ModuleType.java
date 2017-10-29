@@ -8,6 +8,7 @@ import com.floragunn.searchguard.auth.AuthenticationBackend;
 import com.floragunn.searchguard.auth.AuthorizationBackend;
 import com.floragunn.searchguard.auth.HTTPAuthenticator;
 import com.floragunn.searchguard.auth.internal.InternalAuthenticationBackend;
+import com.floragunn.searchguard.auth.internal.NoOpAuthenticationBackend;
 import com.floragunn.searchguard.auth.internal.NoOpAuthorizationBackend;
 import com.floragunn.searchguard.http.HTTPBasicAuthenticator;
 import com.floragunn.searchguard.http.HTTPClientCertAuthenticator;
@@ -26,7 +27,8 @@ public enum ModuleType implements Serializable {
 	KERBEROS_AUTHENTICATION_BACKEND("LDAP authorization backend", "com.floragunn.dlic.auth.http.kerberos.HTTPSpnegoAuthenticator", Boolean.TRUE),
 	JWT_AUTHENTICATION_BACKEND("LDAP authorization backend", "com.floragunn.dlic.auth.http.jwt.HTTPJwtAuthenticator", Boolean.TRUE),
 	INTERNAL_USERS_AUTHENTICATION_BACKEND("Internal users authorization backend", InternalAuthenticationBackend.class.getName(), Boolean.FALSE),
-	NOOP_AUTHENTICATION_BACKEND("Noop authorization backend", NoOpAuthorizationBackend.class.getName(), Boolean.FALSE),
+	NOOP_AUTHENTICATION_BACKEND("Noop authorization backend", NoOpAuthenticationBackend.class.getName(), Boolean.FALSE),
+	NOOP_AUTHORIZATION_BACKEND("Noop authorization backend", NoOpAuthorizationBackend.class.getName(), Boolean.FALSE),
 	HTTP_BASIC_AUTHENTICATOR("HTTP Basic Authenticator", HTTPBasicAuthenticator.class.getName(), Boolean.FALSE),
 	HTTP_PROXY_AUTHENTICATOR("HTTP Proxy Authenticator", HTTPProxyAuthenticator.class.getName(), Boolean.FALSE),
 	HTTP_CLIENTCERT_AUTHENTICATOR("HTTP Client Certificate Authenticator", HTTPClientCertAuthenticator.class.getName(), Boolean.FALSE),
@@ -68,7 +70,7 @@ public enum ModuleType implements Serializable {
     		}
 
     		if(AuthorizationBackend.class.isAssignableFrom(clazz)) {
-    			moduleType = ModuleType.CUSTOM_AUTHENTICATION_BACKEND;
+    			moduleType = ModuleType.CUSTOM_AUTHORIZATION_BACKEND;
     		}
 
     		if(AuthorizationBackend.class.isAssignableFrom(clazz)) {
