@@ -107,7 +107,6 @@ public class LicenseHelper {
 
             processLine(sig, lineOut.toByteArray());
 
-            System.out.println(lookAhead);
             if (lookAhead != -1) {
                 do {
                     lookAhead = readInputLine(lineOut, lookAhead, sigIn);
