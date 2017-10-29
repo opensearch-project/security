@@ -27,7 +27,7 @@ public enum ModuleType implements Serializable {
 	KERBEROS_AUTHENTICATION_BACKEND("LDAP authorization backend", "com.floragunn.dlic.auth.http.kerberos.HTTPSpnegoAuthenticator", Boolean.TRUE),
 	JWT_AUTHENTICATION_BACKEND("LDAP authorization backend", "com.floragunn.dlic.auth.http.jwt.HTTPJwtAuthenticator", Boolean.TRUE),
 	INTERNAL_USERS_AUTHENTICATION_BACKEND("Internal users authorization backend", InternalAuthenticationBackend.class.getName(), Boolean.FALSE),
-	NOOP_AUTHENTICATION_BACKEND("Noop authorization backend", NoOpAuthenticationBackend.class.getName(), Boolean.FALSE),
+	NOOP_AUTHENTICATION_BACKEND("Noop authentication backend", NoOpAuthenticationBackend.class.getName(), Boolean.FALSE),
 	NOOP_AUTHORIZATION_BACKEND("Noop authorization backend", NoOpAuthorizationBackend.class.getName(), Boolean.FALSE),
 	HTTP_BASIC_AUTHENTICATOR("HTTP Basic Authenticator", HTTPBasicAuthenticator.class.getName(), Boolean.FALSE),
 	HTTP_PROXY_AUTHENTICATOR("HTTP Proxy Authenticator", HTTPProxyAuthenticator.class.getName(), Boolean.FALSE),
