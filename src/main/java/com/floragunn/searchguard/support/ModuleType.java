@@ -74,7 +74,7 @@ public enum ModuleType implements Serializable {
     		}
 
     		if(AuthorizationBackend.class.isAssignableFrom(clazz)) {
-    			moduleType = ModuleType.CUSTOM_AUTHENTICATION_BACKEND;
+    			moduleType = ModuleType.CUSTOM_AUTHORIZATION_BACKEND;
     		}
 
     		if(InterClusterRequestEvaluator.class.isAssignableFrom(clazz)) {
