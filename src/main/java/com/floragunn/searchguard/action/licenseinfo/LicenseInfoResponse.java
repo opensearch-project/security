@@ -128,17 +128,25 @@ public class LicenseInfoResponse extends BaseNodesResponse<LicenseInfoNodeRespon
             builder.field(type.name(), infoAsMap);
         }
         
-        boolean mismatch = false;        
+        boolean mismatch = false;
+        List<String> mismatchedNodes = new LinkedList<>();
         for(LicenseInfoNodeResponse node: allNodes) {
-            if(!node.getModules().equals(mod0)) {
-                mismatch = true;
-            }
+        	for(ModuleInfo nodeModuleInfo : node.getModules()) {
+        		if (!mod0.contains(nodeModuleInfo)) {
+        			mismatch = true;
+        			mismatchedNodes.add(node.getNode().getName());
+        			break;
+        		}
+        	}
         }
 
         builder.endObject();
         
         builder.startObject("compatibility");
         builder.field("modules_mismatch", mismatch);
+        if (mismatch) {
+        	builder.field("mismatched_nodes", mismatchedNodes);
+        }
         builder.endObject();
 
         return builder;
