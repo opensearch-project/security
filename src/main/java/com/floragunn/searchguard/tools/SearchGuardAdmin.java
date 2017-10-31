@@ -411,16 +411,20 @@ public class SearchGuardAdmin {
 
             if(!whoAmIRes.isAdmin()) {
                 System.out.println("ERR: "+whoAmIRes.getDn()+" is not an admin user");
-                System.out.println("Make sure the elasticsearch.yml on all nodes contain");
-                System.out.println("searchguard.authcz.admin_dn:"+System.lineSeparator()+
-                                   "  - \""+whoAmIRes.getDn()+"\"");
+                
+                if(!whoAmIRes.isNodeCertificateRequest()) {
+                    System.out.println("Make sure the elasticsearch.yml on all nodes contain");
+                    System.out.println("searchguard.authcz.admin_dn:"+System.lineSeparator()+
+                                       "  - \""+whoAmIRes.getDn()+"\"");
+                }
+
                 System.out.println();
                 if(whoAmIRes.isAuthenticated()) {
                     System.out.println("    Seems you used a client certificate but this one is not registered as admin_dn");
                 }
                 
                 if(whoAmIRes.isNodeCertificateRequest()) {
-                    System.out.println("    Seems you used a node certificate");
+                    System.out.println("    Seems you used a node certificate. This is not permitted, you have to use a client certificate and register it as admin_dn");
                 }
                 
                 System.exit(-1);
