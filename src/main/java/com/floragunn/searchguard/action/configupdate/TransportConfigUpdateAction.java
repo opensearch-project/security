@@ -33,12 +33,16 @@ import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import com.floragunn.searchguard.auth.BackendRegistry;
 import com.floragunn.searchguard.configuration.ConfigurationRepository;
 import com.floragunn.searchguard.configuration.IndexBaseConfigurationRepository;
+import com.floragunn.searchguard.configuration.SearchGuardLicense;
+import com.floragunn.searchguard.support.LicenseHelper;
 
 public class TransportConfigUpdateAction
 extends
@@ -107,6 +111,26 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
     @Override
     protected ConfigUpdateNodeResponse nodeOperation(final NodeConfigUpdateRequest request) {
         final Map<String, Settings> setn = configurationRepository.reloadConfiguration(Arrays.asList(request.request.getConfigTypes()));
+        String licenseText = null;
+        
+        if(setn.get("config") != null) {
+            licenseText = setn.get("config").get("searchguard.dynamic.license");
+        }
+        
+        if(licenseText != null && !licenseText.isEmpty()) {
+            try {
+                final SearchGuardLicense license = new SearchGuardLicense(XContentHelper.convertToMap(XContentType.JSON.xContent(), LicenseHelper.validateLicense(licenseText), true), clusterService);
+                
+                if(!license.isValid()) {
+                    logger.warn("License "+license.getUid()+" is invalid due to "+license.getMsgs());
+                    //throw an exception here if loading of invalid license should be denied
+                }
+            } catch (Exception e) {
+                logger.error("Invalid license",e);
+                return new ConfigUpdateNodeResponse(clusterService.localNode(), new String[0], "Invalid license"); 
+            }
+        }
+
         backendRegistry.get().invalidateCache();
         return new ConfigUpdateNodeResponse(clusterService.localNode(), setn.keySet().toArray(new String[0]), null); 
     }

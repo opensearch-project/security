@@ -58,6 +58,13 @@ import com.google.common.io.BaseEncoding;
 
 public class LicenseHelper {
 
+    /**
+     * Validate pgp signature of license
+     * 
+     * @param licenseText base64 encoded pgp signed license
+     * @return The plain license in json (if validation is successful)
+     * @throws PGPException if validation fails
+     */
     public static String validateLicense(String licenseText) throws PGPException {
         
     	licenseText = licenseText.trim().replaceAll("\\r|\\n", "");
