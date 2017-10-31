@@ -32,7 +32,8 @@ public interface AuditLog extends Closeable {
     void logSucceededLogin(String effectiveUser, boolean sgadmin, String initiatingUser, RestRequest request);
 
     //privs
-    void logMissingPrivileges(String privilege, TransportRequest request, Task task);    
+    void logMissingPrivileges(String privilege, String initiatingUser, RestRequest request);
+    void logMissingPrivileges(String privilege, TransportRequest request, Task task);
     void logGrantedPrivileges(String privilege, TransportRequest request, Task task);
 
     //spoof

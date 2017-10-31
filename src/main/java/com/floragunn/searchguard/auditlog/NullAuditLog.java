@@ -84,4 +84,9 @@ public class NullAuditLog implements AuditLog {
     public void logSSLException(RestRequest request, Throwable t) {
         //noop, intentionally left empty
     }
+    
+    @Override
+    public void logMissingPrivileges(String privilege, String effectiveUser, RestRequest request) {
+        //noop, intentionally left empty
+    }
 }
