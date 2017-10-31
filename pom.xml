@@ -36,7 +36,7 @@
 
   <properties>
     <sgssl.version>6.x-HEAD-SNAPSHOT</sgssl.version>
-    <elasticsearch.version>6.0.0-rc1</elasticsearch.version>
+    <elasticsearch.version>6.0.0-rc2</elasticsearch.version>
     <netty-native.version>2.0.5.Final</netty-native.version>
     <bc.version>1.58</bc.version>
     <log4j.version>2.9.1</log4j.version>
