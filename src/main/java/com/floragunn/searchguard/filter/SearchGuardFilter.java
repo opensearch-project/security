@@ -17,6 +17,9 @@
 
 package com.floragunn.searchguard.filter;
 
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchSecurityException;
@@ -85,7 +88,7 @@ public class SearchGuardFilter implements ActionFilter {
             final boolean userIsAdmin = isUserAdmin(user, adminDns);
             final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadContext);
             //final boolean trustedClusterRequest = HeaderHelper.isTrustedClusterRequest(threadContext);
-            final boolean conRequest = "true".equals(HeaderHelper.getSafeFromHeader(threadContext, ConfigConstants.SG_CONF_REQUEST_HEADER));
+            final boolean confRequest = "true".equals(HeaderHelper.getSafeFromHeader(threadContext, ConfigConstants.SG_CONF_REQUEST_HEADER));
             final boolean passThroughRequest = action.equals(LicenseInfoAction.NAME) 
                     || action.startsWith("indices:admin/seq_no")
                     || action.equals(WhoAmIAction.NAME);
@@ -110,21 +113,23 @@ public class SearchGuardFilter implements ActionFilter {
                     count = ""+((MultiSearchRequest) request).requests().size();
                 }
                 
-                actionTrace.trace("Node "+cs.localNode().getName()+" -> "+action+" ("+count+"): userIsAdmin="+userIsAdmin+"/conRequest="+conRequest+"/internalRequest="+internalRequest
+                actionTrace.trace("Node "+cs.localNode().getName()+" -> "+action+" ("+count+"): userIsAdmin="+userIsAdmin+"/conRequest="+confRequest+"/internalRequest="+internalRequest
                         +"origin="+threadContext.getTransient(ConfigConstants.SG_ORIGIN)+"/directRequest="+HeaderHelper.isDirectRequest(threadContext)+"/remoteAddress="+request.remoteAddress());
-            }
             
-            /*if(log.isTraceEnabled()) {
-                log.trace("Node "+cs.localNode().getName()+" -> "+action+": userIsAdmin="+userIsAdmin+"/conRequest="+conRequest+"/internalRequest="+internalRequest
-                        +"origin="+threadContext.getTransient(ConfigConstants.SG_ORIGIN)+"/directRequest="+HeaderHelper.isDirectRequest(threadContext)+"/remoteAddress="+request.remoteAddress());
-            }*/
+            
+                threadContext.putHeader("_sg_trace"+System.currentTimeMillis()+"#"+UUID.randomUUID().toString(), Thread.currentThread().getName()+" FILTER -> "+"Node "+cs.localNode().getName()+" -> "+action+" userIsAdmin="+userIsAdmin+"/conRequest="+confRequest+"/internalRequest="+internalRequest
+                        +"origin="+threadContext.getTransient(ConfigConstants.SG_ORIGIN)+"/directRequest="+HeaderHelper.isDirectRequest(threadContext)+"/remoteAddress="+request.remoteAddress()+" "+threadContext.getHeaders().entrySet().stream().filter(p->!p.getKey().startsWith("_sg_trace")).collect(Collectors.toMap(p -> p.getKey(), p -> p.getValue())));
+
+            
+            }
+
             
             if(userIsAdmin 
-                    || conRequest 
+                    || confRequest 
                     || internalRequest 
                     || passThroughRequest){
     
-                if(userIsAdmin && !conRequest && !internalRequest && !passThroughRequest) {
+                if(userIsAdmin && !confRequest && !internalRequest && !passThroughRequest) {
                     auditLog.logGrantedPrivileges(action, request, task);
                 }
     
@@ -137,11 +142,9 @@ public class SearchGuardFilter implements ActionFilter {
 
 
             if(Origin.LOCAL.toString().equals((String)threadContext.getTransient(ConfigConstants.SG_ORIGIN)) 
-                    && HeaderHelper.isDirectRequest(threadContext)
-                    && request.remoteAddress() == null
-                    && !action.contains("[")) {
-               
-                //TODO SG6 CONFIG OPTION TO DENY THIS
+                    && (interClusterRequest || HeaderHelper.isDirectRequest(threadContext))
+                    //&& request.remoteAddress() == null
+                    && !action.contains("[")) {                
    
                 //"indices:monitor/*", 
                 //"cluster:admin/reroute", 
@@ -158,15 +161,27 @@ public class SearchGuardFilter implements ActionFilter {
             
             if(user == null) {
                 
-                if(action.startsWith("cluster:monitor/") || action.startsWith("indices:monitor/stats")) {
+                //"cluster:monitor/"
+                //"indices:monitor/stats"
+                
+                if(action.startsWith("cluster:monitor/state")) {
                     if(!dlsFlsValve.invoke(request, listener, threadContext)) {
                         return;
                     }
                     chain.proceed(task, action, request, listener);
                     return;
                 }
+                
+                /*
+                if(action.startsWith("cluster:monitor/") || action.startsWith("indices:monitor/stats")) {
+                    if(!dlsFlsValve.invoke(request, listener, threadContext)) {
+                        return;
+                    }
+                    chain.proceed(task, action, request, listener);
+                    return;
+                }*/
 
-                log.error("No user found for "+ action+" from "+request.remoteAddress()+" "+threadContext.getTransient(ConfigConstants.SG_ORIGIN)+" "+threadContext.getHeaders());
+                log.error("No user found for "+ action+" from "+request.remoteAddress()+" "+threadContext.getTransient(ConfigConstants.SG_ORIGIN)+" via "+threadContext.getTransient(ConfigConstants.SG_CHANNEL_TYPE)+" "+threadContext.getHeaders());
                 listener.onFailure(new ElasticsearchSecurityException("No user found for "+action, RestStatus.INTERNAL_SERVER_ERROR));
                 return;
             }

@@ -20,7 +20,11 @@ package com.floragunn.searchguard.transport;
 import java.net.InetSocketAddress;
 import java.security.cert.X509Certificate;
 import java.util.Objects;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -48,6 +52,7 @@ import com.google.common.base.Strings;
 
 public class SearchGuardRequestHandler<T extends TransportRequest> extends SearchGuardSSLRequestHandler<T> {
 
+    protected final Logger actionTrace = LogManager.getLogger("sg_action_trace");
     private final BackendRegistry backendRegistry;
     private final AuditLog auditLog;
     private final InterClusterRequestEvaluator requestEvalProvider;
@@ -81,23 +86,20 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
         }
         
         try {
-
-           final String ct = (String) getThreadContext().getTransient(ConfigConstants.SG_CHANNEL_TYPE);
            
-           if(transportChannel.getChannelType()==null) {
+           if(transportChannel.getChannelType() == null) {
                throw new RuntimeException("Can not determine channel type (null)");
            }
-                       
-           getThreadContext().putTransient(ConfigConstants.SG_ACTION_NAME, transportChannel.action());
            
-            if(ct == null) {
-                 getThreadContext().putTransient(ConfigConstants.SG_CHANNEL_TYPE, transportChannel.getChannelType());
-            } else if(!ct.equals(transportChannel.getChannelType())) {
-                 throw new RuntimeException("channel type mismtach "+ct+"!="+transportChannel.getChannelType());
-            }
-            
+           if(!transportChannel.getChannelType().equals("direct") && !transportChannel.getChannelType().equals("netty")) {
+               throw new RuntimeException("Unknown channel type "+transportChannel.getChannelType());
+           }
+                       
+           getThreadContext().putTransient(ConfigConstants.SG_CHANNEL_TYPE, transportChannel.getChannelType());
+           getThreadContext().putTransient(ConfigConstants.SG_ACTION_NAME, transportChannel.action());
+
             //bypass non-netty requests
-            if(transportChannel.getChannelType().equals("local") || transportChannel.getChannelType().equals("direct")) {
+            if(transportChannel.getChannelType().equals("direct")) {
                 final String userHeader = getThreadContext().getHeader(ConfigConstants.SG_USER_HEADER);
                 
                 if(!Strings.isNullOrEmpty(userHeader)) {
@@ -109,7 +111,11 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
                 if(!Strings.isNullOrEmpty(originalRemoteAddress)) {
                     getThreadContext().putTransient(ConfigConstants.SG_REMOTE_ADDRESS, new TransportAddress((InetSocketAddress) Base64Helper.deserializeObject(originalRemoteAddress)));
                 }
-                                
+                       
+                if(actionTrace.isTraceEnabled()) {
+                    getThreadContext().putHeader("_sg_trace"+System.currentTimeMillis()+"#"+UUID.randomUUID().toString(), Thread.currentThread().getName()+" DIR -> "+transportChannel.getChannelType()+" "+getThreadContext().getHeaders());
+                }
+                
                 super.messageReceivedDecorate(request, handler, transportChannel, task);
                 return;
             }
@@ -220,9 +226,18 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
                     }
                 }
                 
+                if(actionTrace.isTraceEnabled()) {
+                    getThreadContext().putHeader("_sg_trace"+System.currentTimeMillis()+"#"+UUID.randomUUID().toString(), Thread.currentThread().getName()+" NETTI -> "+transportChannel.getChannelType()+" "+getThreadContext().getHeaders().entrySet().stream().filter(p->!p.getKey().startsWith("_sg_trace")).collect(Collectors.toMap(p -> p.getKey(), p -> p.getValue())));
+                }
+                
                 super.messageReceivedDecorate(request, handler, transportChannel, task);
             }
         } finally {
+            
+            if(actionTrace.isTraceEnabled()) {
+                getThreadContext().putHeader("_sg_trace"+System.currentTimeMillis()+"#"+UUID.randomUUID().toString(), Thread.currentThread().getName()+" FIN -> "+transportChannel.getChannelType()+" "+getThreadContext().getHeaders());
+            }
+            
             if(sgContext != null) {
                 sgContext.close();
             } 

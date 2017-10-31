@@ -19,7 +19,11 @@ package com.floragunn.searchguard.transport;
 
 import java.net.InetSocketAddress;
 import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
@@ -45,6 +49,7 @@ import com.google.common.collect.Maps;
 
 public class SearchGuardInterceptor {
     
+    protected final Logger actionTrace = LogManager.getLogger("sg_action_trace");
     private BackendRegistry backendRegistry;
     private AuditLog auditLog;
     private final ThreadPool threadPool;
@@ -78,7 +83,7 @@ public class SearchGuardInterceptor {
  
         final Map<String, String> origHeaders0 = getThreadContext().getHeaders();  
         final User user0 = getThreadContext().getTransient(ConfigConstants.SG_USER);
-        final String origin = getThreadContext().getTransient(ConfigConstants.SG_ORIGIN);
+        final String origin0 = getThreadContext().getTransient(ConfigConstants.SG_ORIGIN);
         final Object remoteAdress0 = getThreadContext().getTransient(ConfigConstants.SG_REMOTE_ADDRESS);
         
         try (ThreadContext.StoredContext stashedContext = getThreadContext().stashContext()) {
@@ -90,7 +95,6 @@ public class SearchGuardInterceptor {
                 getThreadContext().putHeader("_sg_header_tn", "true");
             }
             
-            //add conf request header if any
             getThreadContext().putHeader(
                     Maps.filterKeys(origHeaders0, k->k!=null && (
                             k.equals(ConfigConstants.SG_CONF_REQUEST_HEADER)
@@ -99,17 +103,28 @@ public class SearchGuardInterceptor {
                             || k.equals(ConfigConstants.SG_USER_HEADER)
                             || k.equals(ConfigConstants.SG_DLS_QUERY_HEADER)
                             || k.equals(ConfigConstants.SG_FLS_FIELDS_HEADER)
+                            || k.startsWith("_sg_trace")
                             )));
-            ensureCorrectHeaders(action, remoteAdress0, user0, origin);
+            ensureCorrectHeaders(remoteAdress0, user0, origin0);
+            
+            if(actionTrace.isTraceEnabled()) {
+                getThreadContext().putHeader("_sg_trace"+System.currentTimeMillis()+"#"+UUID.randomUUID().toString(), Thread.currentThread().getName()+" IC -> "+action+" "+getThreadContext().getHeaders().entrySet().stream().filter(p->!p.getKey().startsWith("_sg_trace")).collect(Collectors.toMap(p -> p.getKey(), p -> p.getValue())));
+            }
+            
+            
             sender.sendRequest(connection, action, request, options, restoringHandler);
         }
     }
 
-    private void ensureCorrectHeaders(final String action, final Object remoteAdr, final User origUser, final String origin) { 
+    private void ensureCorrectHeaders(final Object remoteAdr, final User origUser, final String origin) { 
         // keep original address
 
-        if(origin != null && !origin.isEmpty() && !Origin.LOCAL.toString().equalsIgnoreCase(origin) && getThreadContext().getHeader(ConfigConstants.SG_ORIGIN_HEADER) == null) {
+        if(origin != null && !origin.isEmpty() /*&& !Origin.LOCAL.toString().equalsIgnoreCase(origin)*/ && getThreadContext().getHeader(ConfigConstants.SG_ORIGIN_HEADER) == null) {
             getThreadContext().putHeader(ConfigConstants.SG_ORIGIN_HEADER, origin);
+        }
+        
+        if(origin == null && getThreadContext().getHeader(ConfigConstants.SG_ORIGIN_HEADER) == null) {
+            getThreadContext().putHeader(ConfigConstants.SG_ORIGIN_HEADER, Origin.LOCAL.toString());
         }
         
         if (remoteAdr != null && remoteAdr instanceof TransportAddress) {
@@ -118,11 +133,11 @@ public class SearchGuardInterceptor {
            
             if(remoteAddressHeader == null) {
                 getThreadContext().putHeader(ConfigConstants.SG_REMOTE_ADDRESS_HEADER, Base64Helper.serializeObject(((TransportAddress) remoteAdr).address()));
-            } else {
+            } /*else {
                 if(!((InetSocketAddress)Base64Helper.deserializeObject(remoteAddressHeader)).equals(((TransportAddress) remoteAdr).address())) {
                     throw new RuntimeException("remote address mismatch "+Base64Helper.deserializeObject(remoteAddressHeader)+"!="+((TransportAddress) remoteAdr).address());
                 }   
-            }
+            }*/
         }
         
         if(origUser != null) {            
@@ -130,11 +145,11 @@ public class SearchGuardInterceptor {
             
             if(userHeader == null) {
                 getThreadContext().putHeader(ConfigConstants.SG_USER_HEADER, Base64Helper.serializeObject(origUser));
-            } else {
+            } /*else {
                 if(!((User)Base64Helper.deserializeObject(userHeader)).getName().equals(origUser.getName())) {
                     throw new RuntimeException("user mismatch "+Base64Helper.deserializeObject(userHeader)+"!="+origUser);
                 }
-            }
+            }*/
         }
     }
 
