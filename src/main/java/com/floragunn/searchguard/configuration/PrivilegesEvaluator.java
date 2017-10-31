@@ -513,8 +513,7 @@ public class PrivilegesEvaluator {
             final Map<String, Settings> permittedAliasesIndices = new HashMap<String, Settings>(permittedAliasesIndices0.size());
             
             for (String origKey : permittedAliasesIndices0.keySet()) {
-                permittedAliasesIndices.put(origKey.replace("${user.name}", user.getName()).replace("${user_name}", user.getName()),
-                        permittedAliasesIndices0.get(origKey));
+                permittedAliasesIndices.put(replaceProperties(origKey, user), permittedAliasesIndices0.get(origKey));
             }
 
             /*
@@ -563,11 +562,7 @@ public class PrivilegesEvaluator {
                 
                 if(dls != null && dls.length() > 0) {
 
-                    dls = dls.replace("${user.name}", user.getName()).replace("${user_name}", user.getName());
-                    for(Entry<String, String> entry: user.getCustomAttributesMap().entrySet()) {
-                        dls = dls.replace(entry.getKey(), entry.getValue());
-                        dls = dls.replace(entry.getKey().replace('.', '_'), entry.getValue());
-                    }
+                    dls = replaceProperties(dls, user);
 
                     if(dlsQueries.containsKey(indexPattern)) {
                         dlsQueries.get(indexPattern).add(dls);
@@ -896,8 +891,7 @@ public class PrivilegesEvaluator {
                 final Map<String, Settings> permittedAliasesIndices = new HashMap<String, Settings>(permittedAliasesIndices0.size());
 
                 for (final String origKey : permittedAliasesIndices0.keySet()) {
-                    permittedAliasesIndices.put(origKey.replace("${user.name}", user.getName()).replace("${user_name}", user.getName()),
-                            permittedAliasesIndices0.get(origKey));
+                    permittedAliasesIndices.put(replaceProperties(origKey, user), permittedAliasesIndices0.get(origKey));
                 }
 
                 for (final String permittedAliasesIndex : permittedAliasesIndices.keySet()) {
@@ -1544,8 +1538,7 @@ public class PrivilegesEvaluator {
             final Map<String, Settings> permittedAliasesIndices = new HashMap<String, Settings>(permittedAliasesIndices0.size());
 
             for (String origKey : permittedAliasesIndices0.keySet()) {
-                permittedAliasesIndices.put(origKey.replace("${user.name}", user.getName()).replace("${user_name}", user.getName()),
-                        permittedAliasesIndices0.get(origKey));
+               permittedAliasesIndices.put(replaceProperties(origKey, user), permittedAliasesIndices0.get(origKey));
             }
             
             for(String indexPattern: permittedAliasesIndices.keySet()) {                
@@ -1562,5 +1555,14 @@ public class PrivilegesEvaluator {
         }
 
         return true;
+    }
+    
+    private static String replaceProperties(String orig, User user) {
+        orig = orig.replace("${user.name}", user.getName()).replace("${user_name}", user.getName());
+        for(Entry<String, String> entry: user.getCustomAttributesMap().entrySet()) {
+            orig = orig.replace("${"+entry.getKey()+"}", entry.getValue());
+            orig = orig.replace("${"+entry.getKey().replace('.', '_')+"}", entry.getValue());
+        }
+        return orig;
     }
 }
