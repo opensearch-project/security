@@ -169,6 +169,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                                     reloadConfiguration(Arrays.asList(new String[] { "config", "roles", "rolesmapping", "internalusers", "actiongroups"} ));
                                     break;
                                 } catch (Exception e) {
+                                    LOGGER.debug("Unable to load configuration due to {}", String.valueOf(ExceptionUtils.getRootCause(e)));
                                     try {
                                         Thread.sleep(3000);
                                     } catch (InterruptedException e1) {
