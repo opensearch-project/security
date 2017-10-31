@@ -17,7 +17,6 @@
 
 package com.floragunn.searchguard.transport;
 
-import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
