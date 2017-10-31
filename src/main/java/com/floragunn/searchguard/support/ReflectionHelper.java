@@ -168,7 +168,7 @@ public class ReflectionHelper {
 	public static <T> T instantiateAAA(final String clazz, final Settings settings, final Path configPath, final boolean checkEnterprise) {
 
 		if (checkEnterprise && enterpriseModulesDisabled()) {
-			throw new ElasticsearchException("Can not load '{}' because enterprise modules are disabled");
+			throw new ElasticsearchException("Can not load '{}' because enterprise modules are disabled", clazz);
 		}
 
 		try {
