@@ -95,7 +95,6 @@ public class ModuleInfo implements Serializable, Writeable{
 		int result = 1;
 		result = prime * result + ((buildTime == null) ? 0 : buildTime.hashCode());
 		result = prime * result + ((classname == null) ? 0 : classname.hashCode());
-		result = prime * result + ((classpath == null) ? 0 : classpath.hashCode());
 		result = prime * result + ((moduleType == null) ? 0 : moduleType.hashCode());
 		result = prime * result + ((version == null) ? 0 : version.hashCode());
 		result = prime * result + ((gitsha1 == null) ? 0 : gitsha1.hashCode());
@@ -129,13 +128,6 @@ public class ModuleInfo implements Serializable, Writeable{
 				return false;
 			}
 		} else if (!classname.equals(other.classname)) {
-			return false;
-		}
-		if (classpath == null) {
-			if (other.classpath != null) {
-				return false;
-			}
-		} else if (!classpath.equals(other.classpath)) {
 			return false;
 		}
 		if (!moduleType.equals(other.moduleType)) {
