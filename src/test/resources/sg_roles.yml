@@ -351,3 +351,12 @@ sg_twitter:
     'twitter':
       '*':
         - '*'
+        
+sg_aliasmngt:
+  indices:
+    'logstash-*':
+      '*':
+        - indices:data/write/*
+        - indices:data/read/*
+        - CREATE_INDEX
+        - indices:admin/aliases*

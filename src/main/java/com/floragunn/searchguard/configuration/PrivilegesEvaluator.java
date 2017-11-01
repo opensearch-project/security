@@ -42,7 +42,9 @@ import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.OriginalIndices;
 import org.elasticsearch.action.RealtimeRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
-import org.elasticsearch.action.admin.indices.alias.IndicesAliasesAction;
+import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
+import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexAction;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.bulk.BulkAction;
 import org.elasticsearch.action.bulk.BulkItemRequest;
@@ -445,6 +447,19 @@ public class PrivilegesEvaluator {
             }
         }
         
+        if (request instanceof IndicesAliasesRequest) {
+            IndicesAliasesRequest bsr = (IndicesAliasesRequest) request;
+            for (AliasActions bir : bsr.getAliasActions()) {
+                switch (bir.actionType()) {
+                case REMOVE_INDEX:
+                    additionalPermissionsRequired.add(DeleteIndexAction.NAME);
+                    break;
+                default:
+                    break;
+                }
+            }
+        }
+        
         presponse.missingPrivileges.addAll(additionalPermissionsRequired);
         
         if(actionTrace.isTraceEnabled() && !additionalPermissionsRequired.isEmpty()) {
@@ -478,7 +493,7 @@ public class PrivilegesEvaluator {
 
                 || action.startsWith("indices:data/read/scroll")
                 || (action.equals(BulkAction.NAME))
-                || (action.equals(IndicesAliasesAction.NAME))
+                //|| (action.equals(IndicesAliasesAction.NAME))
                 || (action.equals(MultiGetAction.NAME))
                 || (action.equals(MultiSearchAction.NAME))
                 || (action.equals(MultiTermVectorsAction.NAME))
@@ -1196,7 +1211,9 @@ public class PrivilegesEvaluator {
         }
 
 
-        if (!(request instanceof CompositeIndicesRequest) && !(request instanceof IndicesRequest)) {
+        if (!(request instanceof CompositeIndicesRequest) 
+                && !(request instanceof IndicesRequest)
+                && !(request instanceof IndicesAliasesRequest)) {
 
             if (log.isDebugEnabled()) {
                 log.debug("{} is not an IndicesRequest", request.getClass());
@@ -1208,7 +1225,15 @@ public class PrivilegesEvaluator {
         Set<String> indices = new HashSet<String>();
         Set<String> types = new HashSet<String>();
         
-        if (request instanceof CompositeIndicesRequest) {
+        if (request instanceof IndicesAliasesRequest) {
+            
+            for(AliasActions ar: ((IndicesAliasesRequest) request).getAliasActions()) {
+                final Tuple<Set<String>, Set<String>> t = resolveIndicesRequest(user, action, ar, metaData);
+                indices.addAll(t.v1());
+                types.addAll(t.v2());
+            }
+            
+        } else if (request instanceof CompositeIndicesRequest) {
 
             if(request instanceof IndicesRequest) { //skip BulkShardRequest?
 
