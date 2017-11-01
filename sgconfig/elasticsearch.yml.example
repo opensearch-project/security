@@ -135,7 +135,8 @@ searchguard.audit.type: internal_elasticsearch
 
 #undocumented
 searchguard.restapi.roles_enabled
-searchguard.restapi.endpoints_disabled
+searchguard.restapi.endpoints_disabled.xxx
+searchguard.unsupported.restapi.accept_invalid_license
 
 searchguard.audit.ignore_requests
 searchguard.audit.enable_rest
