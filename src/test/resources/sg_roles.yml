@@ -343,3 +343,11 @@ sg_snapres:
       '*':
         - "indices:data/write/index"
         - "indices:admin/create"
+        
+sg_twitter:
+  cluster:
+    - CLUSTER_COMPOSITE_OPS_RO
+  indices:
+    'twitter':
+      '*':
+        - '*'
