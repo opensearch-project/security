@@ -40,6 +40,7 @@ import org.elasticsearch.transport.TransportResponseHandler;
 import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.auditlog.AuditLog.Origin;
 import com.floragunn.searchguard.auth.BackendRegistry;
+import com.floragunn.searchguard.ssl.SslExceptionHandler;
 import com.floragunn.searchguard.ssl.transport.PrincipalExtractor;
 import com.floragunn.searchguard.support.Base64Helper;
 import com.floragunn.searchguard.support.ConfigConstants;
@@ -56,12 +57,14 @@ public class SearchGuardInterceptor {
     private final InterClusterRequestEvaluator requestEvalProvider;
     private final ClusterService cs;
     private final Settings settings;
+    private final SslExceptionHandler sslExceptionHandler;
 
     public SearchGuardInterceptor(final Settings settings, 
             final ThreadPool threadPool, final BackendRegistry backendRegistry, 
             final AuditLog auditLog, final PrincipalExtractor principalExtractor,
             final InterClusterRequestEvaluator requestEvalProvider,
-            final ClusterService cs) {
+            final ClusterService cs,
+            final SslExceptionHandler sslExceptionHandler) {
         this.backendRegistry = backendRegistry;
         this.auditLog = auditLog;
         this.threadPool = threadPool;
@@ -69,11 +72,13 @@ public class SearchGuardInterceptor {
         this.requestEvalProvider = requestEvalProvider;
         this.cs = cs;
         this.settings = settings;
+        this.sslExceptionHandler = sslExceptionHandler;
     }
 
     public <T extends TransportRequest> SearchGuardRequestHandler<T> getHandler(String action, 
             TransportRequestHandler<T> actualHandler) {
-        return new SearchGuardRequestHandler<T>(action, actualHandler, threadPool, backendRegistry, auditLog, principalExtractor, requestEvalProvider, cs);
+        return new SearchGuardRequestHandler<T>(action, actualHandler, threadPool, backendRegistry, auditLog, 
+                principalExtractor, requestEvalProvider, cs, sslExceptionHandler);
     }
 
     

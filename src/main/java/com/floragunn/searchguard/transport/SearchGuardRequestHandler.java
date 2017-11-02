@@ -40,6 +40,7 @@ import com.floragunn.searchguard.action.whoami.WhoAmIAction;
 import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.auditlog.AuditLog.Origin;
 import com.floragunn.searchguard.auth.BackendRegistry;
+import com.floragunn.searchguard.ssl.SslExceptionHandler;
 import com.floragunn.searchguard.ssl.transport.PrincipalExtractor;
 import com.floragunn.searchguard.ssl.transport.SearchGuardSSLRequestHandler;
 import com.floragunn.searchguard.ssl.util.ExceptionUtils;
@@ -59,14 +60,15 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
     private final ClusterService cs;
     
     SearchGuardRequestHandler(String action, 
-            TransportRequestHandler<T> actualHandler, 
-            ThreadPool threadPool,
-            BackendRegistry backendRegistry,
-            AuditLog auditLog,
+            final TransportRequestHandler<T> actualHandler, 
+            final ThreadPool threadPool,
+            final BackendRegistry backendRegistry,
+            final AuditLog auditLog,
             final PrincipalExtractor principalExtractor,
-            InterClusterRequestEvaluator requestEvalProvider,
-            final ClusterService cs) {
-        super(action, actualHandler, threadPool, principalExtractor);
+            final InterClusterRequestEvaluator requestEvalProvider,
+            final ClusterService cs,
+            final SslExceptionHandler sslExceptionHandler) {
+        super(action, actualHandler, threadPool, principalExtractor, sslExceptionHandler);
         this.backendRegistry = backendRegistry;
         this.auditLog = auditLog;
         this.requestEvalProvider = requestEvalProvider;
@@ -270,14 +272,5 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
         }
 
         super.addAdditionalContextValues(action, request, localCerts, peerCerts, principal);
-    }
-    
-    @Override
-    protected void errorThrown(Throwable t, final TransportRequest request, String action, Task task) {
-        if(t instanceof ElasticsearchException) {
-            auditLog.logMissingPrivileges(action, request, task);
-        } else {
-            auditLog.logSSLException(request, t, action, task);
-        }
     }
 }

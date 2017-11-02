@@ -17,6 +17,7 @@
 
 package com.floragunn.searchguard;
 
+import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
@@ -105,6 +106,7 @@ import com.floragunn.searchguard.action.licenseinfo.TransportLicenseInfoAction;
 import com.floragunn.searchguard.action.whoami.TransportWhoAmIAction;
 import com.floragunn.searchguard.action.whoami.WhoAmIAction;
 import com.floragunn.searchguard.auditlog.AuditLog;
+import com.floragunn.searchguard.auditlog.AuditLogSslExceptionHandler;
 import com.floragunn.searchguard.auth.BackendRegistry;
 import com.floragunn.searchguard.auth.internal.InternalAuthenticationBackend;
 import com.floragunn.searchguard.configuration.ActionGroupHolder;
@@ -124,7 +126,9 @@ import com.floragunn.searchguard.rest.KibanaInfoAction;
 import com.floragunn.searchguard.rest.SearchGuardInfoAction;
 import com.floragunn.searchguard.rest.SearchGuardLicenseAction;
 import com.floragunn.searchguard.ssl.SearchGuardSSLPlugin;
+import com.floragunn.searchguard.ssl.SslExceptionHandler;
 import com.floragunn.searchguard.ssl.http.netty.ValidatingDispatcher;
+import com.floragunn.searchguard.ssl.transport.SearchGuardSSLNettyTransport;
 import com.floragunn.searchguard.ssl.util.SSLConfigConstants;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.ModuleInfo;
@@ -148,12 +152,27 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
     private AdminDNs adminDns;
     private ClusterService cs;
     private AuditLog auditLog;
+    private SslExceptionHandler sslExceptionHandler;
     private Client localClient;
     private final boolean disabled;
     private final boolean enterpriseModulesEnabled;
     private static final String LB = System.lineSeparator();
     private final List<String> demoCertHashes = new ArrayList<String>(3); 
+    
 
+    @Override
+    public void close() throws IOException {
+        super.close();
+    }
+
+    private final SslExceptionHandler evaluateSslExceptionHandler() {
+        if (client || tribeNodeClient || disabled) {
+            return new SslExceptionHandler(){};
+        }
+        
+        return Objects.requireNonNull(sslExceptionHandler);
+    }
+    
     public SearchGuardPlugin(final Settings settings, final Path configPath) {
         super(settings, configPath, settings.getAsBoolean(ConfigConstants.SEARCHGUARD_DISABLED, false));
         
@@ -548,7 +567,14 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
     @Override
     public Map<String, Supplier<Transport>> getTransports(Settings settings, ThreadPool threadPool, BigArrays bigArrays,
             CircuitBreakerService circuitBreakerService, NamedWriteableRegistry namedWriteableRegistry, NetworkService networkService) {        
-        return super.getTransports(settings, threadPool, bigArrays, circuitBreakerService, namedWriteableRegistry, networkService);
+
+        Map<String, Supplier<Transport>> transports = new HashMap<String, Supplier<Transport>>();
+        if (transportSSLEnabled) {
+            transports.put("com.floragunn.searchguard.ssl.http.netty.SearchGuardSSLNettyTransport", 
+                    () -> new SearchGuardSSLNettyTransport(settings, threadPool, networkService, bigArrays, namedWriteableRegistry, 
+                            circuitBreakerService, sgks, evaluateSslExceptionHandler()));
+        }
+        return transports;
     }
 
     @Override
@@ -561,9 +587,10 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         if(!disabled) {
             if (!client && httpSSLEnabled && !tribeNodeClient) {
                 
-                final ValidatingDispatcher validatingDispatcher = new ValidatingDispatcher(threadPool.getThreadContext(), dispatcher, settings, configPath);
-                final SearchGuardHttpServerTransport sghst = new SearchGuardHttpServerTransport(settings, networkService, bigArrays, threadPool, sgks, auditLog, xContentRegistry, validatingDispatcher);
-                validatingDispatcher.setAuditErrorHandler(sghst);
+                final ValidatingDispatcher validatingDispatcher = new ValidatingDispatcher(threadPool.getThreadContext(), dispatcher, 
+                        settings, configPath, evaluateSslExceptionHandler());
+                final SearchGuardHttpServerTransport sghst = new SearchGuardHttpServerTransport(settings, networkService, bigArrays, 
+                        threadPool, sgks, evaluateSslExceptionHandler(), xContentRegistry, validatingDispatcher);
                 
                 httpTransports.put("com.floragunn.searchguard.http.SearchGuardHttpServerTransport", 
                         () -> sghst);
@@ -581,7 +608,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
     public Collection<Object> createComponents(Client localClient, ClusterService clusterService, ThreadPool threadPool,
             ResourceWatcherService resourceWatcherService, ScriptService scriptService, NamedXContentRegistry xContentRegistry,
             Environment environment, NodeEnvironment nodeEnvironment, NamedWriteableRegistry namedWriteableRegistry) {
-        
+
         this.threadPool = threadPool;
         this.cs = clusterService;
         this.localClient = localClient;
@@ -599,6 +626,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         
         final IndexNameExpressionResolver resolver = new IndexNameExpressionResolver(settings);
         auditLog = ReflectionHelper.instantiateAuditLog(settings, configPath, localClient, threadPool, resolver, clusterService);
+        sslExceptionHandler = new AuditLogSslExceptionHandler(auditLog);
         
         final String DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = DefaultInterClusterRequestEvaluator.class.getName();
         InterClusterRequestEvaluator interClusterRequestEvaluator = new DefaultInterClusterRequestEvaluator(settings);
@@ -634,7 +662,8 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
             principalExtractor = ReflectionHelper.instantiatePrincipalExtractor(principalExtractorClass);
         }
         
-        sgi = new SearchGuardInterceptor(settings, threadPool, backendRegistry, auditLog, principalExtractor, interClusterRequestEvaluator, cs);
+        sgi = new SearchGuardInterceptor(settings, threadPool, backendRegistry, auditLog, principalExtractor, 
+                interClusterRequestEvaluator, cs, Objects.requireNonNull(sslExceptionHandler));
         components.add(principalExtractor);
         
         

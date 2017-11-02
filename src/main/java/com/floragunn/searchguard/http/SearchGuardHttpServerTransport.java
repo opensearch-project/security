@@ -17,68 +17,22 @@
 
 package com.floragunn.searchguard.http;
 
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.DecoderException;
-import io.netty.handler.ssl.NotSslRecordException;
-
-import java.util.Objects;
-
-import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLHandshakeException;
-
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.ssl.SearchGuardKeyStore;
+import com.floragunn.searchguard.ssl.SslExceptionHandler;
 import com.floragunn.searchguard.ssl.http.netty.SearchGuardSSLNettyHttpServerTransport;
 import com.floragunn.searchguard.ssl.http.netty.ValidatingDispatcher;
 
 public class SearchGuardHttpServerTransport extends SearchGuardSSLNettyHttpServerTransport {
-
-    private final AuditLog auditLog;
     
     public SearchGuardHttpServerTransport(final Settings settings, final NetworkService networkService, 
             final BigArrays bigArrays, final ThreadPool threadPool, final SearchGuardKeyStore sgks, 
-            final AuditLog auditLog, final NamedXContentRegistry namedXContentRegistry, final ValidatingDispatcher dispatcher) {
-        super(settings, networkService, bigArrays, threadPool, sgks, namedXContentRegistry, dispatcher);
-        this.auditLog = Objects.requireNonNull(auditLog);
-    }
-
-    @Override
-    protected void errorThrown(Throwable t, RestRequest request) {
-        auditLog.logSSLException(request, t);
-        super.errorThrown(t, request);
-    }
-    
-    @Override
-    protected void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        
-        if(this.lifecycle.started()) {
-
-            if(cause instanceof DecoderException && cause != null) {
-                cause = cause.getCause();
-            }
-
-            if(cause instanceof NotSslRecordException) {
-                logger.warn("Someone ({}) speaks http plaintext instead of ssl, will close the channel", ctx.channel().remoteAddress());
-                ctx.channel().close();
-                return;
-            } else if (cause instanceof SSLException) {
-                logger.error("SSL Problem "+cause.getMessage(),cause);
-                ctx.channel().close();
-                return;
-            } else if (cause instanceof SSLHandshakeException) {
-                logger.error("Problem during handshake "+cause.getMessage());
-                ctx.channel().close();
-                return;
-            }
-        }
-        
-        super.exceptionCaught(ctx, cause);
+            final SslExceptionHandler sslExceptionHandler, final NamedXContentRegistry namedXContentRegistry, final ValidatingDispatcher dispatcher) {
+        super(settings, networkService, bigArrays, threadPool, sgks, namedXContentRegistry, dispatcher, sslExceptionHandler);
     }
 }
