@@ -7,7 +7,6 @@ sg_all_access:
     - admin
 
 sg_logstash:
-  readonly: true
   backendroles:
     - logstash
     
@@ -17,7 +16,6 @@ sg_kibana_server:
     - kibanaserver
     
 sg_kibana_user:
-  readonly: true
   backendroles:
     - kibanauser
 
