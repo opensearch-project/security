@@ -58,15 +58,18 @@ public class RemoteReindexTest extends AbstractSGUnitTest{
     
     private Settings first3() {
         Settings.Builder builder = Settings.builder()
-                .put("searchguard.ssl.http.enabled",true)
-                .put("searchguard.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-                .put("searchguard.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+                //.put("searchguard.ssl.http.enabled",true)
+                //.put("searchguard.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+                //.put("searchguard.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
                 .putArray("discovery.zen.ping.unicast.hosts", "localhost:9300","localhost:9301","localhost:9302");
         return builder.build();
     }
     
+    //TODO add ssl tests
+    //https://github.com/elastic/elasticsearch/issues/27267
+    
     @Test
-    public void testReindex() throws Exception {
+    public void testNonSSLReindex() throws Exception {
         setupReindex();
         
         final String cl1BodyMain = new RestHelper(cl1Info, false, false).executeGetRequest("", encodeBasicHeader("nagilum","nagilum")).getBody();
@@ -76,7 +79,7 @@ public class RemoteReindexTest extends AbstractSGUnitTest{
             tc.admin().indices().create(new CreateIndexRequest("twutter")).actionGet();
         }
         
-        final String cl2BodyMain = new RestHelper(cl2Info, true, true).executeGetRequest("", encodeBasicHeader("nagilum","nagilum")).getBody();
+        final String cl2BodyMain = new RestHelper(cl2Info, false, false).executeGetRequest("", encodeBasicHeader("nagilum","nagilum")).getBody();
         Assert.assertTrue(cl2BodyMain.contains("crl2"));
         
         try (TransportClient tc = getInternalTransportClient(cl2Info, Settings.EMPTY)) {
@@ -87,7 +90,7 @@ public class RemoteReindexTest extends AbstractSGUnitTest{
         String reindex = "{"+
             "\"source\": {"+
                 "\"remote\": {"+
-                "\"host\": \"https://"+cl2Info.httpHost+":"+cl2Info.httpPort+"\","+
+                "\"host\": \"http://"+cl2Info.httpHost+":"+cl2Info.httpPort+"\","+
                 "\"username\": \"nagilum\","+
                 "\"password\": \"nagilum\""+
                   "},"+
@@ -111,6 +114,7 @@ public class RemoteReindexTest extends AbstractSGUnitTest{
         System.out.println("###################### reindex");
         ccs = new RestHelper(cl1Info, false, false).executePostRequest("_reindex?pretty", reindex, encodeBasicHeader("nagilum","nagilum"));
         System.out.println(ccs.getBody());
-        Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());        
+        Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
+        Assert.assertTrue(ccs.getBody().contains("created\" : 1"));
     }
 }
