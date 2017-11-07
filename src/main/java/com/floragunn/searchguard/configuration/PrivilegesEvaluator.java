@@ -319,7 +319,8 @@ public class PrivilegesEvaluator {
         final TransportAddress caller = Objects.requireNonNull((TransportAddress) this.threadContext.getTransient(ConfigConstants.SG_REMOTE_ADDRESS));
         
         if (log.isDebugEnabled()) {
-            log.debug("evaluate permissions for {} on {}", user, clusterService.localNode().getName());
+            log.debug("### evaluate permissions for {} on {}", user, clusterService.localNode().getName());
+            //log.debug("evaluate permissions for {} on {}", user, clusterService.localNode().getName());
             log.debug("requested {} from {}", action, caller);
         }
         
@@ -514,6 +515,13 @@ public class PrivilegesEvaluator {
                     if (log.isDebugEnabled()) {
                         log.debug("  found a match for '{}' and {}, skip other roles", sgRole, action);
                     }
+                    
+                    //TODO modify aliases SG-813
+                    //if(request instanceof MultiGetRequest) {
+                    //    ((MultiGetRequest) request).getItems().clear();
+                    //}
+                    
+                    
                     presponse.allowed = true;
                     return presponse;
                 } else {

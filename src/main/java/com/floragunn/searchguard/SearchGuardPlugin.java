@@ -162,6 +162,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
 
     @Override
     public void close() throws IOException {
+        //TODO implement close 
         super.close();
     }
 
