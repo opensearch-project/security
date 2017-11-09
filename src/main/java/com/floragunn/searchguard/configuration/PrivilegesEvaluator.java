@@ -59,6 +59,7 @@ import org.elasticsearch.action.index.IndexAction;
 import org.elasticsearch.action.search.MultiSearchAction;
 import org.elasticsearch.action.search.MultiSearchRequest;
 import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchScrollAction;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.termvectors.MultiTermVectorsAction;
 import org.elasticsearch.action.termvectors.MultiTermVectorsRequest;
@@ -76,6 +77,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.index.Index;
+import org.elasticsearch.index.reindex.ReindexAction;
 import org.elasticsearch.index.reindex.ReindexRequest;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.Repository;
@@ -492,15 +494,13 @@ public class PrivilegesEvaluator {
             if (    action.startsWith("cluster:") 
                     || action.startsWith("indices:admin/template/")
 
-                || action.startsWith("indices:data/read/scroll")
+                || action.startsWith(SearchScrollAction.NAME)
                 || (action.equals(BulkAction.NAME))
-                //|| (action.equals(IndicesAliasesAction.NAME))
                 || (action.equals(MultiGetAction.NAME))
                 || (action.equals(MultiSearchAction.NAME))
                 || (action.equals(MultiTermVectorsAction.NAME))
                 || (action.equals("indices:data/read/coordinate-msearch"))
-                || (action.equals("indices:data/write/bulk"))
-                || (action.equals("indices:data/write/reindex"))
+                || (action.equals(ReindexAction.NAME))
 
                 ) {
                 
