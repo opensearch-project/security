@@ -218,7 +218,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
 
         log.info("Clustername: {}", settings.get("cluster.name","elasticsearch"));
 
-        final String licenseText =
+        /*final String licenseText =
         
         LB+"### LICENSE NOTICE Search Guard ###"+LB+LB+
 
@@ -247,7 +247,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
     
             System.out.println(licenseText);
 
-        }
+        }*/
 
         if(!transportSSLEnabled) {
             throw new IllegalStateException(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLED+" must be set to 'true'");
