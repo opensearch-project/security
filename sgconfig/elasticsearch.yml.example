@@ -1,35 +1,78 @@
-# Add the following properties to your standard elasticsearch.yml 
+############## Search Guard 6 configuration ###############
+###########################################################
+# Add the following settings to your standard elasticsearch.yml 
 # (alongside with the SG SSL settings)
 # This settings must always be the same on all nodes in the cluster
 
-# Name of the index where searchguard stores its configuration.
-# WARNING: Expert setting, do only use if you know what you are doing
-# If you set wrong values here this this could be a security risk
-# or make Search Guard stop working
-#searchguard.config_index_name: searchguard
-
+############## Common configuration settings ##############
 # This defines the DNs (distinguished names) of certificates
-# to which admin privileges should be assigned
+# to which admin privileges should be assigned (mandatory)
 searchguard.authcz.admin_dn:
   - "CN=kirk,OU=client,O=client,l=tEst, C=De"
 
-# This is optional
-# Only needed when impersonation is used
-# Allow DNs (distinguished names) to impersonate as other users
-#searchguard.authcz.impersonation_dn:
-#  "CN=spock,OU=client,O=client,L=Test,C=DE":
-#    - worf
-#  "cn=webuser,ou=IT,ou=IT,dc=company,dc=com":
-#    - user2
-#    - user1
+# Define how roles should be mapped
+# MAPPING_ONLY - only roles mapped in sg_roles_ammping.yml (default)
+# BOTH - both of the above
+searchguard.roles_mapping_resolution: MAPPING_ONLY
 
-# Auditlog configuration:
+# Enable or disable Search Guard enterprise modules
+# By default they are enabled and if you use them in production you need
+# to obtain a license or switch them off here by setting the value to false.
+searchguard.enterprise_modules_enabled: true
 
+# Specify a list of DNs which denote the other nodes in the cluster.
+# This is only necessary if one cannot use the OID mechanism and has a major drawback:
+# Every time a new node want to join the cluster this setting must be updated a full cluster restart must be performed.
+# This settings support wildcards and regular expressions
+# WARNING: Be careful with wildcards and regular expressions
+# This setting does only have an effect if 'searchguard.cert.intercluster_request_evaluator_class' is not set.
+# If 'searchguard.ssl.transport.principal_extractor_class' is set use the outcome of this as DN
+#searchguard.nodes_dn:
+#  - "CN=*.example.com, OU=SSL, O=Test, L=Test, C=DE"
+#  - "CN=node.other.com, OU=SSL, O=Test, L=Test, C=DE"
+
+############## REST Management API configuration settings ##############
+# Enable or disable role based access to the REST management API
+# Default is that no role is allowed to access the REST management API.
+#searchguard.restapi.roles_enabled: ["sg_all_access","sg_xyz_role"]
+
+# Disable particular endpoints and their HTTP methods for roles. 
+# By default all endpoints/methods are allowed.
+#searchguard.restapi.endpoints_disabled.<role>.<endpoint>: <array of http methods>
+# Example:
+#searchguard.restapi.endpoints_disabled.sg_all_access.ACTIONGROUPS: ["PUT","POST","DELETE"]
+#searchguard.restapi.endpoints_disabled.sg_xyz_role.LICENSE: ["DELETE"]
+
+# The following endpoints exist:
+# ACTIONGROUPS
+# CACHE
+# SGCONFIG
+# LICENSE
+# ROLES
+# ROLESMAPPING
+# INTERNALUSERS
+# SYSTEMINFO
+# PERMISSIONSINFO
+
+############## Auditlog configuration settings ##############
 # General settings
+
+# Enable/disable rest request logging (default: true)
+#searchguard.audit.enable_rest: true
+# Enable/disable transport request logging (default: false)
+#searchguard.audit.enable_transport: false
+# Enable/disable bulk request logging (default: false)
+# If enabled all subrequests in bulk requests will be logged too
+#searchguard.audit.resolve_bulk_requests: false
 # Disable some categories
-#searchguard.audit.config.disabled_categories: ["AUTHENTICATED"]
+#searchguard.audit.config.disabled_categories: ["AUTHENTICATED","GRANTED_PRIVILEGES"]
+# Disable some requests (wildcard or regex of actions or rest request paths)
+#searchguard.audit.ignore_requests: ["indices:data/read/*","*_bulk"]
 # Tune threadpool size, default is 10 and 0 means disabled
 #searchguard.audit.threadpool.size: 0
+# Tune threadpool max size queue length, default is 100000
+#searchguard.audit.threadpool.max_queue_len: 100000
+
 # If enable_request_details is true then the audit log event will also contain
 # details like the search query. Default is false. 
 #searchguard.audit.enable_request_details: true
@@ -53,13 +96,28 @@ searchguard.audit.type: internal_elasticsearch
 #searchguard.audit.config.enable_ssl: false
 #searchguard.audit.config.verify_hostnames: false
 #searchguard.audit.config.enable_ssl_client_auth: false
+#searchguard.audit.config.cert_alias: mycert
+#searchguard.audit.config.pemkey_filepath: key.pem
+#searchguard.audit.config.pemkey_content: <...pem base 64 content>
+#searchguard.audit.config.pemkey_password: secret
+#searchguard.audit.config.pemcert_filepath: cert.pem
+#searchguard.audit.config.pemcert_content: <...pem base 64 content>
+#searchguard.audit.config.pemtrustedcas_filepath: ca.pem
+#searchguard.audit.config.pemtrustedcas_content: <...pem base 64 content>
 
 # webhook settings
 #searchguard.audit.config.webhook.url: "http://mywebhook/endpoint"
 # One of URL_PARAMETER_GET,URL_PARAMETER_POST,TEXT,JSON,SLACK
 #searchguard.audit.config.webhook.format: JSON
 #searchguard.audit.config.webhook.ssl.verify: false
+#searchguard.audit.config.webhook.ssl.pemtrustedcas_filepath: ca.pem
+#searchguard.audit.config.webhook.ssl.pemtrustedcas_content: <...pem base 64 content>
 
+# log4j settings
+#searchguard.audit.config.log4j.logger_name: auditlogger
+#searchguard.audit.config.log4j.level: INFO
+
+############## Kerberos configuration settings ##############
 # If Kerberos authentication should be used you have to configure this:
 
 # The absolute path or relative path to config/ directory
@@ -73,11 +131,47 @@ searchguard.audit.type: internal_elasticsearch
 # Acceptor (Server) Principal name, must be present in acceptor_keytab_path file
 #searchguard.kerberos.acceptor_principal: 'HTTP/localhost'
 
-# This defines the OID of server node certificates
-# See https://github.com/floragunncom/search-guard-docs/blob/master/architecture.md
-# WARNING: Expert setting, do only use if you know what you are doing
+############## Advanced configuration settings ##############
+# Enable transport layer impersonation
+# Allow DNs (distinguished names) to impersonate as other users
+#searchguard.authcz.impersonation_dn:
+#  "CN=spock,OU=client,O=client,L=Test,C=DE":
+#    - worf
+#  "cn=webuser,ou=IT,ou=IT,dc=company,dc=com":
+#    - user2
+#    - user1
+
+# Enable rest layer impersonation
+# Allow users to impersonate as other users
+#searchguard.authcz.rest_impersonation_user:
+#  "picard":
+#    - worf
+#  "john":
+#    - steve
+#    - martin
+
+# If this is set to true then, if Search Guard is not already initialized,
+# initialize them automatically on startup with the default configs in sgconfig/
+# WARNING: This will use wellknown default passwords.
+#          Use only in a private network/environment.
+#searchguard.allow_default_init_sgindex: false
+
+# If this is set to true then allow to startup with demo certificates.
+# These are certificates issued by floragunn GmbH for demo purposes.
+# WARNING: This certificates are well known and therefore unsafe
+#          Use only in a private network/environment.
+#searchguard.allow_unsafe_democertificates: false
+
+############## Expert settings ##############
+# WARNING: Expert settings, do only use if you know what you are doing
 # If you set wrong values here this this could be a security risk
 # or make Search Guard stop working
+
+# Name of the index where searchguard stores its configuration.
+#searchguard.config_index_name: searchguard
+
+# This defines the OID of server node certificates
+# See https://github.com/floragunncom/search-guard-docs/blob/master/architecture.md
 #searchguard.cert.oid: '1.2.3.4.5.5'
 
 # This specifies the implementation of com.floragunn.searchguard.transport.InterClusterRequestEvaluator
@@ -85,23 +179,7 @@ searchguard.audit.type: internal_elasticsearch
 # as described: https://github.com/floragunncom/search-guard-docs/blob/master/architecture.md
 # Instance of com.floragunn.searchguard.transport.InterClusterRequestEvaluator must implement a single arg
 # constructor that takes a org.elasticsearch.common.settings.Settings
-# WARNING: Expert setting, do only use if you know what you are doing
-# If you set wrong values here this this could be a security risk
-# or make Search Guard stop working
 #searchguard.cert.intercluster_request_evaluator_class: com.floragunn.searchguard.transport.DefaultInterClusterRequestEvaluator
-
-# Specify a list of DNs which denote the other nodes in the cluster.
-# This is only necessary if one cannot use the OID mechanism and has a major drawback:
-# Every time a new node want to join the cluster this setting must be updated a full cluster restart must be performed.
-# This settings support wildcards and regular expressions
-# WARNING: Expert setting, do only use if you know what you are doing
-# If you set wrong values here this this could be a security risk
-# or make Search Guard stop working
-# This setting does only have an effect if 'searchguard.cert.intercluster_request_evaluator_class' is not set.
-# If 'searchguard.ssl.transport.principal_extractor_class' is set use the outcome of this as DN
-#searchguard.nodes_dn:
-#  - "CN=*.example.com, OU=SSL, O=Test, L=Test, C=DE"
-#  - "CN=node.other.com, OU=SSL, O=Test, L=Test, C=DE"
 
 # Allow snapshot restore for normal users
 # By default only requests signed by an admin ssl certificate can do this
@@ -109,56 +187,14 @@ searchguard.audit.type: internal_elasticsearch
 # The user who wants to restore a snapshot must have the 'cluster:admin/snapshot/restore' privilege and must also have
 # "indices:admin/create" and "indices:data/write/index" for the indices to be restores.
 # A snapshot can only be restored when it does not contain global state and does not restore the 'searchguard' index
-
 # If 'searchguard.check_snapshot_restore_write_privileges: false' is set then the additional indices checks are omitted.
 # This makes it less secure.
-
-# WARNING: Expert settings, do only use if you know what you are doing
-# If you set wrong values here this this could be a security risk
-# or make Search Guard stop working
 #searchguard.enable_snapshot_restore_privilege: true
 #searchguard.check_snapshot_restore_write_privileges: false
 
 # Authentication cache timeout in minutes (A value of 0 disables caching, default is 60)
-# WARNING: Expert settings, do only use if you know what you are doing
-# If you set wrong values here this this could be a security risk
-# or make Search Guard stop working
 #searchguard.cache.ttl_minutes: 60
 
 # Disable Search Guard
 # WARNING: This can expose your configuration (including passwords) to the public.
-# WARNING: Expert settings, do only use if you know what you are doing
-# If you set wrong values here this this could be a security risk
-# or make Search Guard stop working.
 #searchguard.disabled: false
-
-
-#undocumented
-searchguard.restapi.roles_enabled
-searchguard.restapi.endpoints_disabled.xxx
-searchguard.unsupported.restapi.accept_invalid_license
-
-searchguard.audit.ignore_requests
-searchguard.audit.enable_rest
-searchguard.audit.enable_transport
-searchguard.audit.resolve_bulk_requests
-searchguard.audit.config.log4j.logger_name
-searchguard.audit.config.log4j.level
-searchguard.audit.config.cert_alias
-searchguard.audit.config.pemkey_filepath
-searchguard.audit.config.pemkey_content
-searchguard.audit.config.pemkey_password
-searchguard.audit.config.pemcert_filepath
-searchguard.audit.config.pemcert_content
-searchguard.audit.config.pemtrustedcas_filepath
-searchguard.audit.config.pemtrustedcas_content
-searchguard.audit.threadpool.max_queue_len
-searchguard.audit.config.webhook.ssl.pemtrustedcas_filepath
-searchguard.audit.config.webhook.ssl.pemtrustedcas_content
-
-searchguard.enterprise_modules_enabled
-searchguard.authcz.rest_impersonation_user
-searchguard.roles_mapping_resolution
-searchguard.allow_default_init_sgindex
-searchguard.allow_unsafe_democertificates
-
