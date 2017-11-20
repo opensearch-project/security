@@ -112,7 +112,7 @@ sg_kibana_server:
         - INDICES_ALL
     '?monitoring*':
       '*':
-        - READ
+        - INDICES_ALL
 
 # For logstash and beats
 sg_logstash:
