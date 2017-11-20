@@ -144,7 +144,8 @@ public class SearchGuardFilter implements ActionFilter {
             if(Origin.LOCAL.toString().equals((String)threadContext.getTransient(ConfigConstants.SG_ORIGIN)) 
                     && (interClusterRequest || HeaderHelper.isDirectRequest(threadContext))
                     //&& request.remoteAddress() == null
-                    && !action.contains("[")) {                
+                    //&& !action.contains("[")
+                    ) {                
    
                 //"indices:monitor/*", 
                 //"cluster:admin/reroute", 
