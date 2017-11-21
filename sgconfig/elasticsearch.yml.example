@@ -12,6 +12,7 @@ searchguard.authcz.admin_dn:
 
 # Define how roles should be mapped
 # MAPPING_ONLY - only roles mapped in sg_roles_ammping.yml (default)
+# BACKENDROLES_ONLY - only the backendroles of the user
 # BOTH - both of the above
 searchguard.roles_mapping_resolution: MAPPING_ONLY
 
