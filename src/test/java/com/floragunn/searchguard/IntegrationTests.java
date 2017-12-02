@@ -112,7 +112,7 @@ public class IntegrationTests extends SingleClusterTest {
     }
     
     @Test
-        public void testHTTPBasic() throws Exception {
+    public void testHTTPBasic() throws Exception {
         final Settings settings = Settings.builder()
                 .putArray(ConfigConstants.SEARCHGUARD_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "knuddel","nonexists")
                 .build();
@@ -255,6 +255,7 @@ public class IntegrationTests extends SingleClusterTest {
             Assert.assertTrue(res.getBody().contains("\"user_requested_tenant\":null"));
             Assert.assertTrue(res.getBody().contains("\"kltentrw\":true"));
             Assert.assertTrue(res.getBody().contains("\"user_name\":\"worf\""));
+            Assert.assertTrue(res.getBody().contains("\"custom_attribute_names\":[]"));
             
             Assert.assertTrue(PrivilegesInterceptorImpl.count > 0);
             
