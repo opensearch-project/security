@@ -123,6 +123,7 @@ import com.floragunn.searchguard.http.SearchGuardHttpServerTransport;
 import com.floragunn.searchguard.http.SearchGuardNonSslHttpServerTransport;
 import com.floragunn.searchguard.http.XFFResolver;
 import com.floragunn.searchguard.rest.KibanaInfoAction;
+import com.floragunn.searchguard.rest.SearchGuardHealthAction;
 import com.floragunn.searchguard.rest.SearchGuardInfoAction;
 import com.floragunn.searchguard.rest.SearchGuardLicenseAction;
 import com.floragunn.searchguard.ssl.SearchGuardSSLPlugin;
@@ -152,6 +153,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
     private AdminDNs adminDns;
     private ClusterService cs;
     private AuditLog auditLog;
+    private BackendRegistry backendRegistry;
     private SslExceptionHandler sslExceptionHandler;
     private Client localClient;
     private final boolean disabled;
@@ -414,6 +416,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
             handlers.add(new SearchGuardInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool)));
             handlers.add(new KibanaInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool)));
             handlers.add(new SearchGuardLicenseAction(settings, restController));
+            handlers.add(new SearchGuardHealthAction(settings, restController, Objects.requireNonNull(backendRegistry)));
 
             Collection<RestHandler> apiHandler = ReflectionHelper
                     .instantiateMngtRestApiHandler(settings, configPath, restController, localClient, adminDns, cr, cs, Objects.requireNonNull(principalExtractor),  evaluator, threadPool, Objects.requireNonNull(auditLog));
@@ -648,7 +651,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         final InternalAuthenticationBackend iab = new InternalAuthenticationBackend(cr);     
         final XFFResolver xffResolver = new XFFResolver(threadPool);
         cr.subscribeOnChange(ConfigConstants.CONFIGNAME_CONFIG, xffResolver);   
-        final BackendRegistry backendRegistry = new BackendRegistry(settings, configPath, adminDns, xffResolver, iab, auditLog, threadPool);
+        backendRegistry = new BackendRegistry(settings, configPath, adminDns, xffResolver, iab, auditLog, threadPool);
         cr.subscribeOnChange(ConfigConstants.CONFIGNAME_CONFIG, backendRegistry);
         final ActionGroupHolder ah = new ActionGroupHolder(cr);      
         evaluator = new PrivilegesEvaluator(clusterService, threadPool, cr, ah, resolver, auditLog, settings, privilegesInterceptor, cih);    
