@@ -73,7 +73,7 @@ public class SearchGuardInfoAction extends BaseRestHandler {
                     builder.field("user_requested_tenant", user==null?null:user.getRequestedTenant());
                     builder.field("remote_address", remoteAddress);
                     builder.field("backend_roles", user==null?null:user.getRoles());
-                    builder.field("custom_attributes", user==null?null:user.getCustomAttributesMap());
+                    builder.field("custom_attribute_names", user==null?null:user.getCustomAttributesMap().keySet());
                     builder.field("sg_roles", evaluator.mapSgRoles(user, remoteAddress));
                     builder.field("sg_tenants", evaluator.mapTenants(user, remoteAddress));
                     builder.field("principal", (String)threadContext.getTransient(ConfigConstants.SG_SSL_PRINCIPAL));
