@@ -7,15 +7,17 @@ echo " ** Warning: Do not use on production or public reachable systems **"
 OPTIND=1
 assumeyes=0
 initsg=0
+cluster_mode=0
 
 function show_help() {
     echo "install_demo_configuration.sh [-y] [-i]"
     echo "  -h show help"
     echo "  -y do not ask no confirmation for installation"
-    echo "  -i initialize Search Guard with default configuration (default is to ask)"
+    echo "  -i initialize Search Guard with default configuration (default is to ask if -y is not given)"
+    echo "  -c enable cluster mode by binding to all network interfaces (default is to ask if -y is not given)"
 }
 
-while getopts "h?yi" opt; do
+while getopts "h?yic" opt; do
     case "$opt" in
     h|\?)
         show_help
@@ -24,6 +26,8 @@ while getopts "h?yi" opt; do
     y)  assumeyes=1
         ;;
     i)  initsg=1
+        ;;
+    c)  cluster_mode=1
     esac
 done
 
@@ -42,7 +46,7 @@ if [ "$assumeyes" == 0 ]; then
 	esac
 fi
 
-if [ "$initsg" == 0 ]; then
+if [ "$initsg" == 0 ] && [ "$assumeyes" == 0 ]; then
 	read -r -p "Initialize Search Guard? [y/N] " response
 	case "$response" in
 	    [yY][eE][sS]|[yY]) 
@@ -50,6 +54,22 @@ if [ "$initsg" == 0 ]; then
 	        ;;
 	    *)
 	        initsg=0
+	        ;;
+	esac
+fi
+
+if [ "$cluster_mode" == 0 ] && [ "$assumeyes" == 0 ]; then
+    echo "Cluster mode requires maybe additional setup of:"
+    echo "  - Virtual memory (vm.max_map_count)"
+    echo "    See https://www.elastic.co/guide/en/elasticsearch/reference/current/vm-max-map-count.html"
+    echo ""
+	read -r -p "Enable cluster mode? [y/N] " response
+	case "$response" in
+	    [yY][eE][sS]|[yY]) 
+	        cluster_mode=1
+	        ;;
+	    *)
+	        cluster_mode=0
 	        ;;
 	esac
 fi
@@ -365,7 +385,9 @@ fi
 if $SUDO_CMD grep --quiet -i "^network.host" $ES_CONF_FILE; then
 	: #already present
 else
-    echo "network.host: 0.0.0.0" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null
+	if [ "$cluster_mode" == 1 ]; then
+        echo "network.host: 0.0.0.0" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null
+    fi
 fi
 
 if $SUDO_CMD grep --quiet -i "^discovery.zen.minimum_master_nodes" $ES_CONF_FILE; then
