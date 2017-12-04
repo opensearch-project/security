@@ -149,6 +149,10 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
         return "User [name=" + name + ", roles=" + roles + ", requestedTenant=" + requestedTenant + ", attributes=" + attributes + "]";
     }
 
+    public final String toStringWithoutAttributes() {
+        return "User [name=" + name + ", roles=" + roles + ", requestedTenant=" + requestedTenant + "]";
+    }
+
     @Override
     public final int hashCode() {
         final int prime = 31;

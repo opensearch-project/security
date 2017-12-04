@@ -256,7 +256,8 @@ public class IntegrationTests extends SingleClusterTest {
             Assert.assertTrue(res.getBody().contains("\"kltentrw\":true"));
             Assert.assertTrue(res.getBody().contains("\"user_name\":\"worf\""));
             Assert.assertTrue(res.getBody().contains("\"custom_attribute_names\":[]"));
-            
+            Assert.assertFalse(res.getBody().contains("attributes="));
+
             Assert.assertTrue(PrivilegesInterceptorImpl.count > 0);
             
             final String reindex = "{"+
