@@ -18,6 +18,13 @@
 package com.floragunn.searchguard.http;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import javax.naming.InvalidNameException;
+import javax.naming.ldap.LdapName;
+import javax.naming.ldap.Rdn;
 
 import org.elasticsearch.common.Strings;
 import org.apache.logging.log4j.LogManager;
@@ -34,32 +41,47 @@ import com.floragunn.searchguard.user.AuthCredentials;
 public class HTTPClientCertAuthenticator implements HTTPAuthenticator {
     
     protected final Logger log = LogManager.getLogger(this.getClass());
-    private volatile Settings settings;
+    protected final Settings settings;
 
     public HTTPClientCertAuthenticator(final Settings settings, final Path configPath) {
         this.settings = settings;
     }
 
     @Override
-    public AuthCredentials extractCredentials(final RestRequest request, ThreadContext threadContext) {
+    public AuthCredentials extractCredentials(final RestRequest request, final ThreadContext threadContext) {
 
-        String principal = threadContext.getTransient(ConfigConstants.SG_SSL_PRINCIPAL);
+        final String principal = threadContext.getTransient(ConfigConstants.SG_SSL_PRINCIPAL);
 
         if (!Strings.isNullOrEmpty(principal)) {
             
             final String usernameAttribute = settings.get("username_attribute");
+            final String rolesAttribute = settings.get("roles_attribute");
             
-            if(principal != null && usernameAttribute != null && usernameAttribute.length() > 0) {
-                final int start = principal.toLowerCase().indexOf(usernameAttribute.toLowerCase()+"=");
+            try {
+                final LdapName rfc2253dn = new LdapName(principal);
+                String username = principal.trim();
+                String[] backendRoles = null;
                 
-                if(start > -1) {
-                    final int commaIndex = principal.indexOf(",", start);
-                    principal = principal.substring(start+3, commaIndex==-1?principal.length():commaIndex);
+                if(usernameAttribute != null && usernameAttribute.length() > 0) {
+                    final List<String> usernames = getDnAttribute(rfc2253dn, usernameAttribute);
+                    if(usernames.isEmpty() == false) {
+                        username = usernames.get(0);
+                    }
                 }
+                
+                if(rolesAttribute != null && rolesAttribute.length() > 0) {
+                    final List<String> roles = getDnAttribute(rfc2253dn, rolesAttribute);
+                    if(roles.isEmpty() == false) {
+                        backendRoles = roles.toArray(new String[0]);
+                    }
+                }
+                
+                return new AuthCredentials(username, backendRoles).markComplete();
+            } catch (InvalidNameException e) {
+                log.error("Client cert had no properly formed DN (was: {})", principal);
+                return null;
             }
-            
-            
-            return new AuthCredentials(principal.trim()).markComplete(); //NOSONAR
+
         } else {
             log.trace("No CLIENT CERT, send 401");
             return null;
@@ -74,5 +96,19 @@ public class HTTPClientCertAuthenticator implements HTTPAuthenticator {
     @Override
     public String getType() {
         return "clientcert";
+    }
+    
+    private List<String> getDnAttribute(LdapName rfc2253dn, String attribute) {        
+        final List<String> attrValues = new ArrayList<>(rfc2253dn.size());
+        final List<Rdn> reverseRdn = new ArrayList<>(rfc2253dn.getRdns());
+        Collections.reverse(reverseRdn);
+
+        for (Rdn rdn : reverseRdn) {
+            if (rdn.getType().equalsIgnoreCase(attribute)) {
+                attrValues.add(rdn.getValue().toString());
+            }
+        }
+        
+        return Collections.unmodifiableList(attrValues);
     }
 }
