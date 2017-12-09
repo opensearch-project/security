@@ -766,17 +766,30 @@ public class PrivilegesEvaluator {
                 }
             } else {
                 this.threadContext.putHeader(ConfigConstants.SG_DLS_QUERY_HEADER, Base64Helper.serializeObject((Serializable) dlsQueries));
+                if(log.isDebugEnabled()) {
+                    log.debug("attach DLS info: {}", dlsQueries);
+                }
             }
         }
         
         if(!flsFields.isEmpty()) {
+            
+            for (Iterator<Entry<String, Set<String>>> it = flsFields.entrySet().iterator(); it.hasNext();) {
+                Entry<String, Set<String>> entry = it.next();
+                if (!WildcardMatcher.matchAny(entry.getKey(), requestedResolvedIndices, false)) {
+                    it.remove();
+                }
+            }
             
             if(this.threadContext.getHeader(ConfigConstants.SG_FLS_FIELDS_HEADER) != null) {
                 if(!flsFields.equals((Map<String,Set<String>>) Base64Helper.deserializeObject(this.threadContext.getHeader(ConfigConstants.SG_FLS_FIELDS_HEADER)))) {
                     throw new ElasticsearchSecurityException(ConfigConstants.SG_FLS_FIELDS_HEADER+" does not match (SG 901D)");
                 }
             } else {
-                this.threadContext.putHeader(ConfigConstants.SG_FLS_FIELDS_HEADER, Base64Helper.serializeObject((Serializable)flsFields));
+                this.threadContext.putHeader(ConfigConstants.SG_FLS_FIELDS_HEADER, Base64Helper.serializeObject((Serializable) flsFields));
+                if(log.isDebugEnabled()) {
+                    log.debug("attach DLS info: {}", flsFields);
+                }
             }
         }
         

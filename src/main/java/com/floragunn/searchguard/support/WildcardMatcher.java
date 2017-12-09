@@ -120,6 +120,17 @@ public class WildcardMatcher {
         return false;
     }
     
+    public static boolean matchAny(final String pattern, final Collection<String> candidates, boolean ignoreCase) {
+
+        for (String candidate: candidates) {
+            if (match(pattern, candidate, ignoreCase)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+    
     public static String[] matches(final String pattern, final String[] candidate, boolean ignoreCase) {
 
         final List<String> ret = new ArrayList<String>(candidate.length);
