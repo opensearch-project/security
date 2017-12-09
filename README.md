@@ -61,7 +61,7 @@ As an alternative, you can also download the [Search Guard Bundle](https://githu
 
 ## Documentation
 
-The [Official Search Guard documentation](http://floragunncom.github.io/search-guard-docs/) is available on GitHub.
+Please refer to the [Official documentation](http://docs.search-guard.com) for detailed information on installing and configuring Search Guard.
 
 ## Commercial use
 
