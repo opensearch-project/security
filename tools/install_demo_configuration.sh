@@ -418,12 +418,18 @@ ES_PLUGINS_DIR=`cd "$ES_PLUGINS_DIR" ; pwd`
 
 echo "### Success"
 echo "### Execute this script now on all your nodes and then start all nodes"
+#Generate sgadmin_demo.sh
+echo "#!/bin/bash" | $SUDO_CMD tee sgadmin_demo.sh > /dev/null 
+echo $SUDO_CMD "$ES_PLUGINS_DIR/search-guard-6/tools/sgadmin.sh" -cd "$ES_PLUGINS_DIR/search-guard-6/sgconfig" -icl -key "$ES_CONF_DIR/kirk-key.pem" -cert "$ES_CONF_DIR/kirk.pem" -cacert "$ES_CONF_DIR/root-ca.pem" -nhnv | $SUDO_CMD tee -a sgadmin_demo.sh > /dev/null
+$SUDO_CMD chmod +x sgadmin_demo.sh
 
 if [ "$initsg" == 0 ]; then
-	echo "#!/bin/bash" | $SUDO_CMD tee sgadmin_demo.sh > /dev/null 
-	echo $SUDO_CMD "$ES_PLUGINS_DIR/search-guard-6/tools/sgadmin.sh" -cd "$ES_PLUGINS_DIR/search-guard-6/sgconfig" -icl -key "$ES_CONF_DIR/kirk-key.pem" -cert "$ES_CONF_DIR/kirk.pem" -cacert "$ES_CONF_DIR/root-ca.pem" -nhnv | $SUDO_CMD tee -a sgadmin_demo.sh > /dev/null
-	$SUDO_CMD chmod +x sgadmin_demo.sh
 	echo "### After the whole cluster is up execute: "
+	$SUDO_CMD cat sgadmin_demo.sh | tail -1
+	echo "### or run ./sgadmin_demo.sh"
+else
+    echo "### Search Guard will be automatically initialized (because of -i)"
+    echo "### If you like to change the runtime configuration execute: "
 	$SUDO_CMD cat sgadmin_demo.sh | tail -1
 	echo "### or run ./sgadmin_demo.sh"
 fi
