@@ -40,6 +40,7 @@ import org.elasticsearch.transport.TransportResponseHandler;
 import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.auditlog.AuditLog.Origin;
 import com.floragunn.searchguard.auth.BackendRegistry;
+import com.floragunn.searchguard.configuration.ClusterInfoHolder;
 import com.floragunn.searchguard.ssl.SslExceptionHandler;
 import com.floragunn.searchguard.ssl.transport.PrincipalExtractor;
 import com.floragunn.searchguard.support.Base64Helper;
@@ -58,13 +59,15 @@ public class SearchGuardInterceptor {
     private final ClusterService cs;
     private final Settings settings;
     private final SslExceptionHandler sslExceptionHandler;
+    private final ClusterInfoHolder clusterInfoHolder;
 
     public SearchGuardInterceptor(final Settings settings, 
             final ThreadPool threadPool, final BackendRegistry backendRegistry, 
             final AuditLog auditLog, final PrincipalExtractor principalExtractor,
             final InterClusterRequestEvaluator requestEvalProvider,
             final ClusterService cs,
-            final SslExceptionHandler sslExceptionHandler) {
+            final SslExceptionHandler sslExceptionHandler,
+            final ClusterInfoHolder clusterInfoHolder) {
         this.backendRegistry = backendRegistry;
         this.auditLog = auditLog;
         this.threadPool = threadPool;
@@ -73,6 +76,7 @@ public class SearchGuardInterceptor {
         this.cs = cs;
         this.settings = settings;
         this.sslExceptionHandler = sslExceptionHandler;
+        this.clusterInfoHolder = clusterInfoHolder;
     }
 
     public <T extends TransportRequest> SearchGuardRequestHandler<T> getHandler(String action, 
@@ -98,17 +102,35 @@ public class SearchGuardInterceptor {
                     && settings.getByPrefix("tribe").getAsMap().size() > 0) {
                 getThreadContext().putHeader("_sg_header_tn", "true");
             }
+
+            if(clusterInfoHolder.hasNode(connection.getNode()) == Boolean.FALSE) {
+                //send to node of a remote cluster
+                getThreadContext().putHeader(
+                        Maps.filterKeys(origHeaders0, k->k!=null && (
+                                k.equals(ConfigConstants.SG_CONF_REQUEST_HEADER)
+                                || k.equals(ConfigConstants.SG_ORIGIN_HEADER)
+                                || k.equals(ConfigConstants.SG_REMOTE_ADDRESS_HEADER)
+                                || k.equals(ConfigConstants.SG_USER_HEADER)
+                                //|| k.equals(ConfigConstants.SG_DLS_QUERY_HEADER)
+                                //|| k.equals(ConfigConstants.SG_FLS_FIELDS_HEADER)
+                                || k.startsWith("_sg_trace")
+                                )));
+            } else {
+
+              //send to node of the same cluster
+                getThreadContext().putHeader(
+                        Maps.filterKeys(origHeaders0, k->k!=null && (
+                                k.equals(ConfigConstants.SG_CONF_REQUEST_HEADER)
+                                || k.equals(ConfigConstants.SG_ORIGIN_HEADER)
+                                || k.equals(ConfigConstants.SG_REMOTE_ADDRESS_HEADER)
+                                || k.equals(ConfigConstants.SG_USER_HEADER)
+                                || k.equals(ConfigConstants.SG_DLS_QUERY_HEADER)
+                                || k.equals(ConfigConstants.SG_FLS_FIELDS_HEADER)
+                                || k.startsWith("_sg_trace")
+                                )));
+            }
             
-            getThreadContext().putHeader(
-                    Maps.filterKeys(origHeaders0, k->k!=null && (
-                            k.equals(ConfigConstants.SG_CONF_REQUEST_HEADER)
-                            || k.equals(ConfigConstants.SG_ORIGIN_HEADER)
-                            || k.equals(ConfigConstants.SG_REMOTE_ADDRESS_HEADER)
-                            || k.equals(ConfigConstants.SG_USER_HEADER)
-                            || k.equals(ConfigConstants.SG_DLS_QUERY_HEADER)
-                            || k.equals(ConfigConstants.SG_FLS_FIELDS_HEADER)
-                            || k.startsWith("_sg_trace")
-                            )));
+            
             ensureCorrectHeaders(remoteAdress0, user0, origin0);
             
             if(actionTrace.isTraceEnabled()) {

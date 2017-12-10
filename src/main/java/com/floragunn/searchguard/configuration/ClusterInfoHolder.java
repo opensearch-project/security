@@ -27,6 +27,8 @@ import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.index.Index;
 
 public class ClusterInfoHolder implements ClusterStateListener {
@@ -34,6 +36,7 @@ public class ClusterInfoHolder implements ClusterStateListener {
     protected final Logger log = LogManager.getLogger(this.getClass());
     private volatile Boolean has5xNodes = null;
     private volatile Boolean has5xIndices = null;
+    private volatile DiscoveryNodes nodes = null;
     
     @Override
     public void clusterChanged(ClusterChangedEvent event) {
@@ -52,6 +55,13 @@ public class ClusterInfoHolder implements ClusterStateListener {
                 log.trace("has5xIndices: {}", has5xIndices);
             }
         }
+        
+        if(nodes == null || event.nodesChanged()) {
+            nodes = event.state().nodes();
+            if(log.isDebugEnabled()) {
+                log.debug("Cluster Info Holder now initialized for 'nodes'");
+            }
+        }
     }
 
     public Boolean getHas5xNodes() {
@@ -60,6 +70,17 @@ public class ClusterInfoHolder implements ClusterStateListener {
 
     public Boolean getHas5xIndices() {
         return has5xIndices;
+    }
+    
+    public Boolean hasNode(DiscoveryNode node) {
+        if(nodes == null) {
+            if(log.isDebugEnabled()) {
+                log.debug("Cluster Info Holder not initialized yet for 'nodes'");
+            }
+            return null;
+        }
+        
+        return nodes.nodeExists(node)?Boolean.TRUE:Boolean.FALSE;
     }
 
     private static boolean clusterHas5xNodes(ClusterState state) {

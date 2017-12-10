@@ -667,7 +667,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         }
         
         sgi = new SearchGuardInterceptor(settings, threadPool, backendRegistry, auditLog, principalExtractor, 
-                interClusterRequestEvaluator, cs, Objects.requireNonNull(sslExceptionHandler));
+                interClusterRequestEvaluator, cs, Objects.requireNonNull(sslExceptionHandler), Objects.requireNonNull(cih));
         components.add(principalExtractor);
         
         
