@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.logging.log4j.LogManager;
@@ -95,6 +96,7 @@ import com.floragunn.searchguard.support.Base64Helper;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.WildcardMatcher;
 import com.floragunn.searchguard.user.User;
+import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
@@ -344,7 +346,7 @@ public class PrivilegesEvaluator {
 
         final Tuple<Set<String>, Set<String>> requestedResolvedAliasesIndicesTypes = resolve(user, action, request, metaData);
                 
-        final Set<String> requestedResolvedIndices = Collections.unmodifiableSet(requestedResolvedAliasesIndicesTypes.v1());        
+        final SortedSet<String> requestedResolvedIndices = Collections.unmodifiableSortedSet(new TreeSet<>(requestedResolvedAliasesIndicesTypes.v1()));        
         final Set<IndexType> requestedResolvedIndexTypes;
         
         {
@@ -774,10 +776,13 @@ public class PrivilegesEvaluator {
         
         if(!flsFields.isEmpty()) {
             
-            for (Iterator<Entry<String, Set<String>>> it = flsFields.entrySet().iterator(); it.hasNext();) {
-                Entry<String, Set<String>> entry = it.next();
-                if (!WildcardMatcher.matchAny(entry.getKey(), requestedResolvedIndices, false)) {
-                    it.remove();
+            final String joined = Joiner.on(",").join(requestedResolvedIndices);
+            
+            if (this.threadContext.getHeader("_sg_fls_resolved_indices_cur") == null) { 
+                this.threadContext.putHeader("_sg_fls_resolved_indices_cur", joined);
+            } else { //can happen with mget
+                if(!joined.equals(this.threadContext.getHeader("_sg_fls_resolved_indices_cur"))) {
+                    throw new ElasticsearchSecurityException("resolved indices does not match (SG 902K)");
                 }
             }
             

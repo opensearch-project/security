@@ -17,6 +17,7 @@
 
 package com.floragunn.searchguard.transport;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -46,6 +47,7 @@ import com.floragunn.searchguard.ssl.transport.PrincipalExtractor;
 import com.floragunn.searchguard.support.Base64Helper;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.user.User;
+import com.google.common.base.Joiner;
 import com.google.common.collect.Maps;
 
 public class SearchGuardInterceptor {
@@ -102,35 +104,28 @@ public class SearchGuardInterceptor {
                     && settings.getByPrefix("tribe").getAsMap().size() > 0) {
                 getThreadContext().putHeader("_sg_header_tn", "true");
             }
-
-            if(clusterInfoHolder.hasNode(connection.getNode()) == Boolean.FALSE) {
-                //send to node of a remote cluster
-                getThreadContext().putHeader(
-                        Maps.filterKeys(origHeaders0, k->k!=null && (
-                                k.equals(ConfigConstants.SG_CONF_REQUEST_HEADER)
-                                || k.equals(ConfigConstants.SG_ORIGIN_HEADER)
-                                || k.equals(ConfigConstants.SG_REMOTE_ADDRESS_HEADER)
-                                || k.equals(ConfigConstants.SG_USER_HEADER)
-                                //|| k.equals(ConfigConstants.SG_DLS_QUERY_HEADER)
-                                //|| k.equals(ConfigConstants.SG_FLS_FIELDS_HEADER)
-                                || k.startsWith("_sg_trace")
-                                )));
-            } else {
-
-              //send to node of the same cluster
-                getThreadContext().putHeader(
-                        Maps.filterKeys(origHeaders0, k->k!=null && (
-                                k.equals(ConfigConstants.SG_CONF_REQUEST_HEADER)
-                                || k.equals(ConfigConstants.SG_ORIGIN_HEADER)
-                                || k.equals(ConfigConstants.SG_REMOTE_ADDRESS_HEADER)
-                                || k.equals(ConfigConstants.SG_USER_HEADER)
-                                || k.equals(ConfigConstants.SG_DLS_QUERY_HEADER)
-                                || k.equals(ConfigConstants.SG_FLS_FIELDS_HEADER)
-                                || k.startsWith("_sg_trace")
-                                )));
+            
+            final Map<String, String> origHeadersMutated = new HashMap<String, String>(origHeaders0);
+            if(origHeadersMutated.containsKey("_sg_fls_resolved_indices_cur")) {
+                if(origHeadersMutated.containsKey("_sg_fls_resolved_indices")) {
+                    origHeadersMutated.replace("_sg_fls_resolved_indices", origHeadersMutated.get("_sg_fls_resolved_indices_cur"));
+                } else {
+                    origHeadersMutated.put("_sg_fls_resolved_indices", origHeadersMutated.get("_sg_fls_resolved_indices_cur"));
+                }
             }
-            
-            
+
+            getThreadContext().putHeader(
+                    Maps.filterKeys(origHeadersMutated, k->k!=null && (
+                            k.equals(ConfigConstants.SG_CONF_REQUEST_HEADER)
+                            || k.equals(ConfigConstants.SG_ORIGIN_HEADER)
+                            || k.equals(ConfigConstants.SG_REMOTE_ADDRESS_HEADER)
+                            || k.equals(ConfigConstants.SG_USER_HEADER)
+                            || k.equals(ConfigConstants.SG_DLS_QUERY_HEADER)
+                            || k.equals(ConfigConstants.SG_FLS_FIELDS_HEADER)
+                            || k.equals("_sg_fls_resolved_indices")
+                            || k.startsWith("_sg_trace")
+                            )));
+ 
             ensureCorrectHeaders(remoteAdress0, user0, origin0);
             
             if(actionTrace.isTraceEnabled()) {
