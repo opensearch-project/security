@@ -2,28 +2,9 @@
 
 ![Logo](https://raw.githubusercontent.com/floragunncom/sg-assets/master/logo/sg_dlic_small.png) 
 
-Search Guard(®) is an Elasticsearch plugin that offers encryption, authentication, and authorization. It builds on Search Guard SSL and provides pluggable authentication and authorization modules in addition. Search Guard is fully compatible with the Elastic stack.
-
-As an alternative to other security solutions for Elasticsearch, Search Guard offers the following main features:
-
-* TLS on transport- and REST-layer
-* Fine-grained role- and index-based access control
-* HTTP Basic Authentication
-* LDAP / Active Directory
-* Kerberos / SPNEGO
-* JSON web token
-* Document- and Field-level security
-* Audit logging
-* Kibana multi-tenancy
-* REST management API
-* Proxy support
-* User impersonation
+Search Guard(®) is an Elasticsearch plugin that offers encryption, authentication, and authorization. It supports authentication via Active Directory, LDAP, Kerberos, JSON web tokens and many more, and includes fine grained role-based access control to clusters, indices, documents and fields. Enjoy true multi tenancy in Kibana, and stay compliant with GDPR, HIPAA, PCI, SOX and ISO by using audit logging. 
 
 Search Guard supports **OpenSSL** for maximum performance and security. The complete code is **Open Source**.
-
-## Documentation
-
-Please refer to the [Official documentation](http://docs.search-guard.com) for detailed information on installing and configuring Search Guard.
 
 ## Community Edition
 
@@ -32,7 +13,7 @@ Search Guard offers all basic security features for free. The Community Edition 
 * Full data in transit encryption
 * Node-to-node encryption
 * Index level access control
-* Document type level access control
+* Document type based access control
 * User-, role- and permission management
 * HTTP basic authentication
 * User Impersonation
@@ -60,6 +41,10 @@ If you want to use our enterprise features in production, you need to obtain a l
 ## Trial license
 
 You can test all enterprise modules for 60 days. A trial license is automatically created when you first install Search Guard. You do not have to install the trial license manually. Just install Search Guard and you're good to go! 
+
+## Documentation
+
+Please refer to the [Official documentation](http://docs.search-guard.com) for detailed information on installing and configuring Search Guard.
 
 ## Quick Start
 
