@@ -788,7 +788,7 @@ public class PrivilegesEvaluator {
                     this.threadContext.putHeader("_sg_fls_resolved_indices_cur", joined);
                 } else { //can happen with mget
                     if(!joined.equals(this.threadContext.getHeader("_sg_fls_resolved_indices_cur"))) {
-                        throw new ElasticsearchSecurityException("resolved indices does not match (SG 902K)");
+                        throw new ElasticsearchSecurityException("resolved indices does not match (SG 902K) -> "+joined+" != "+this.threadContext.getHeader("_sg_fls_resolved_indices_cur"));
                     } else {
                         if(log.isDebugEnabled()) {
                             log.debug("_sg_fls_resolved_indices_cur already set");
