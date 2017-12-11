@@ -133,9 +133,9 @@ public class SearchGuardFilter implements ActionFilter {
                     auditLog.logGrantedPrivileges(action, request, task);
                 }
     
-                if(!dlsFlsValve.invoke(request, listener, threadContext)) {
-                    return;
-                }
+                //if(!dlsFlsValve.invoke(request, listener, threadContext)) {
+                //    return;
+                //}
                 chain.proceed(task, action, request, listener);
                 return;
             }
@@ -153,9 +153,9 @@ public class SearchGuardFilter implements ActionFilter {
                 
                 //~"internal:transport/proxy/*"
     
-                if(!dlsFlsValve.invoke(request, listener, threadContext)) {
-                    return;
-                }
+                //if(!dlsFlsValve.invoke(request, listener, threadContext)) {
+                //     return;
+                //}
                 chain.proceed(task, action, request, listener);
                 return;
             }
@@ -166,9 +166,9 @@ public class SearchGuardFilter implements ActionFilter {
                 //"indices:monitor/stats"
                 
                 if(action.startsWith("cluster:monitor/state")) {
-                    if(!dlsFlsValve.invoke(request, listener, threadContext)) {
-                        return;
-                    }
+                    //if(!dlsFlsValve.invoke(request, listener, threadContext)) {
+                    //    return;
+                    //}
                     chain.proceed(task, action, request, listener);
                     return;
                 }
@@ -204,7 +204,7 @@ public class SearchGuardFilter implements ActionFilter {
             
             if (pres.isAllowed()) {
                 auditLog.logGrantedPrivileges(action, request, task);
-                if(!dlsFlsValve.invoke(request, listener, threadContext)) {
+                if(!dlsFlsValve.invoke(request, listener, pres.getAllowedFlsFields(), pres.getQueries())) {
                     return;
                 }
                 chain.proceed(task, action, request, listener);

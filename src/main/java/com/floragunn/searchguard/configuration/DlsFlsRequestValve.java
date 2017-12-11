@@ -17,9 +17,11 @@
 
 package com.floragunn.searchguard.configuration;
 
+import java.util.Map;
+import java.util.Set;
+
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
 
 public interface DlsFlsRequestValve {
     
@@ -29,12 +31,12 @@ public interface DlsFlsRequestValve {
      * @param listener
      * @return false to stop
      */
-    boolean invoke(final ActionRequest request, final ActionListener<?> listener, ThreadContext threadContext);
+    boolean invoke(ActionRequest request, ActionListener<?> listener, Map<String,Set<String>> allowedFlsFields, Map<String,Set<String>> queries);
 
     public static class NoopDlsFlsRequestValve implements DlsFlsRequestValve {
 
         @Override
-        public boolean invoke(ActionRequest request, ActionListener<?> listener, ThreadContext threadContext) {
+        public boolean invoke(ActionRequest request, ActionListener<?> listener, Map<String,Set<String>> allowedFlsFields, Map<String,Set<String>> queries) {
             return true;
         }
         

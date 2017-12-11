@@ -96,7 +96,6 @@ import com.floragunn.searchguard.support.Base64Helper;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.WildcardMatcher;
 import com.floragunn.searchguard.user.User;
-import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
@@ -296,6 +295,8 @@ public class PrivilegesEvaluator {
     public static class PrivEvalResponse {
         boolean allowed = false;
         Set<String> missingPrivileges = new HashSet<String>();
+        Map<String,Set<String>> allowedFlsFields;
+        Map<String,Set<String>> queries; 
         
         public boolean isAllowed() {
             return allowed;
@@ -304,6 +305,13 @@ public class PrivilegesEvaluator {
             return new HashSet<String>(missingPrivileges);
         }
         
+        public Map<String,Set<String>> getAllowedFlsFields() {
+            return allowedFlsFields;
+        }
+        
+        public Map<String,Set<String>> getQueries() {
+            return queries;
+        }
     }
     
     public PrivEvalResponse evaluate(final User user, String action, final ActionRequest request, Task task) {
@@ -772,30 +780,21 @@ public class PrivilegesEvaluator {
                     log.debug("attach DLS info: {}", dlsQueries);
                 }
             }
-        }
-        
-        if(!flsFields.isEmpty()) {
             
-            if(!requestedResolvedIndices.isEmpty()) {   
-                
-                final String joined = Joiner.on(",").join(requestedResolvedIndices);
-                
-                if(log.isDebugEnabled()) {
-                    log.debug("FLS resolved indices: {}", joined);
-                }
-                
-                if (this.threadContext.getHeader("_sg_fls_resolved_indices_cur") == null) { 
-                    this.threadContext.putHeader("_sg_fls_resolved_indices_cur", joined);
-                } else { //can happen with mget
-                    if(!joined.equals(this.threadContext.getHeader("_sg_fls_resolved_indices_cur"))) {
-                        throw new ElasticsearchSecurityException("resolved indices does not match (SG 902K) -> "+joined+" != "+this.threadContext.getHeader("_sg_fls_resolved_indices_cur"));
-                    } else {
-                        if(log.isDebugEnabled()) {
-                            log.debug("_sg_fls_resolved_indices_cur already set");
-                        }
+            presponse.queries = new HashMap<>(dlsQueries);
+            
+            if (!requestedResolvedIndices.isEmpty()) {
+                for (Iterator<Entry<String, Set<String>>> it = presponse.queries.entrySet().iterator(); it.hasNext();) {
+                    Entry<String, Set<String>> entry = it.next();
+                    if (!WildcardMatcher.matchAny(entry.getKey(), requestedResolvedIndices, false)) {
+                        it.remove();
                     }
                 }
             }
+
+        }
+        
+        if(!flsFields.isEmpty()) {
             
             if(this.threadContext.getHeader(ConfigConstants.SG_FLS_FIELDS_HEADER) != null) {
                 if(!flsFields.equals((Map<String,Set<String>>) Base64Helper.deserializeObject(this.threadContext.getHeader(ConfigConstants.SG_FLS_FIELDS_HEADER)))) {
@@ -809,6 +808,16 @@ public class PrivilegesEvaluator {
                 this.threadContext.putHeader(ConfigConstants.SG_FLS_FIELDS_HEADER, Base64Helper.serializeObject((Serializable) flsFields));
                 if(log.isDebugEnabled()) {
                     log.debug("attach FLS info: {}", flsFields);
+                }
+            }
+            
+            presponse.allowedFlsFields = new HashMap<>(flsFields);
+            if (!requestedResolvedIndices.isEmpty()) {
+                for (Iterator<Entry<String, Set<String>>> it = presponse.allowedFlsFields.entrySet().iterator(); it.hasNext();) {
+                    Entry<String, Set<String>> entry = it.next();
+                    if (!WildcardMatcher.matchAny(entry.getKey(), requestedResolvedIndices, false)) {
+                        it.remove();
+                    }
                 }
             }
         }
