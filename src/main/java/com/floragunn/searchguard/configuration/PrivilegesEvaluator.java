@@ -776,24 +776,39 @@ public class PrivilegesEvaluator {
         
         if(!flsFields.isEmpty()) {
             
-            final String joined = Joiner.on(",").join(requestedResolvedIndices);
-            
-            if (this.threadContext.getHeader("_sg_fls_resolved_indices_cur") == null) { 
-                this.threadContext.putHeader("_sg_fls_resolved_indices_cur", joined);
-            } else { //can happen with mget
-                if(!joined.equals(this.threadContext.getHeader("_sg_fls_resolved_indices_cur"))) {
-                    throw new ElasticsearchSecurityException("resolved indices does not match (SG 902K)");
+            if(!requestedResolvedIndices.isEmpty()) {   
+                
+                final String joined = Joiner.on(",").join(requestedResolvedIndices);
+                
+                if(log.isDebugEnabled()) {
+                    log.debug("FLS resolved indices: {}", joined);
+                }
+                
+                if (this.threadContext.getHeader("_sg_fls_resolved_indices_cur") == null) { 
+                    this.threadContext.putHeader("_sg_fls_resolved_indices_cur", joined);
+                } else { //can happen with mget
+                    if(!joined.equals(this.threadContext.getHeader("_sg_fls_resolved_indices_cur"))) {
+                        throw new ElasticsearchSecurityException("resolved indices does not match (SG 902K)");
+                    } else {
+                        if(log.isDebugEnabled()) {
+                            log.debug("_sg_fls_resolved_indices_cur already set");
+                        }
+                    }
                 }
             }
             
             if(this.threadContext.getHeader(ConfigConstants.SG_FLS_FIELDS_HEADER) != null) {
                 if(!flsFields.equals((Map<String,Set<String>>) Base64Helper.deserializeObject(this.threadContext.getHeader(ConfigConstants.SG_FLS_FIELDS_HEADER)))) {
                     throw new ElasticsearchSecurityException(ConfigConstants.SG_FLS_FIELDS_HEADER+" does not match (SG 901D)");
+                } else {
+                    if(log.isDebugEnabled()) {
+                        log.debug(ConfigConstants.SG_FLS_FIELDS_HEADER+" already set");
+                    }
                 }
             } else {
                 this.threadContext.putHeader(ConfigConstants.SG_FLS_FIELDS_HEADER, Base64Helper.serializeObject((Serializable) flsFields));
                 if(log.isDebugEnabled()) {
-                    log.debug("attach DLS info: {}", flsFields);
+                    log.debug("attach FLS info: {}", flsFields);
                 }
             }
         }
