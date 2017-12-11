@@ -256,11 +256,11 @@ public class BackendRegistry implements ConfigurationChangeListener {
         initialized = !restAuthDomains.isEmpty() || anonymousAuthEnabled;
     }
 
-    public User authenticate(final TransportRequest request, final String sslPrincipal, final Task task) {
+    public User authenticate(final TransportRequest request, final String sslPrincipal, final Task task, final String action) {
         
         final User origPKIUser = new User(sslPrincipal);        
         if(adminDns.isAdmin(origPKIUser.getName())) {
-            auditLog.logSucceededLogin(origPKIUser.getName(), true, null, request, task);
+            auditLog.logSucceededLogin(origPKIUser.getName(), true, null, request, action, task);
             return origPKIUser;
         }
         
@@ -310,7 +310,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
                 log.debug("User '{}' is authenticated", authenticatedUser);
             }
             
-            auditLog.logSucceededLogin(authenticatedUser.getName(), false, impersonatedTransportUser==null?null:origPKIUser.getName(), request, task);
+            auditLog.logSucceededLogin(authenticatedUser.getName(), false, impersonatedTransportUser==null?null:origPKIUser.getName(), request, action, task);
             
             return authenticatedUser;            
         }//end looping auth domains

@@ -41,7 +41,7 @@ public class NullAuditLog implements AuditLog {
     }
 
     @Override
-    public void logSucceededLogin(String effectiveUser, boolean sgadmin, String initiatingUser, TransportRequest request, Task task) {
+    public void logSucceededLogin(String effectiveUser, boolean sgadmin, String initiatingUser, TransportRequest request, String action, Task task) {
         //noop, intentionally left empty
     }
 

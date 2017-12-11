@@ -191,7 +191,7 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
                     
                     User user;
                     //try {
-                        if((user = backendRegistry.authenticate(request, principal, task)) == null) {
+                        if((user = backendRegistry.authenticate(request, principal, task, transportChannel.action())) == null) {
                             
                             if(transportChannel.action().equals(WhoAmIAction.NAME)) {
                                 super.messageReceivedDecorate(request, handler, transportChannel, task);

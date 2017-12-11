@@ -28,7 +28,7 @@ public interface AuditLog extends Closeable {
     //login
     void logFailedLogin(String effectiveUser, boolean sgadmin, String initiatingUser, TransportRequest request, Task task);
     void logFailedLogin(String effectiveUser, boolean sgadmin, String initiatingUser, RestRequest request);
-    void logSucceededLogin(String effectiveUser, boolean sgadmin, String initiatingUser, TransportRequest request, Task task);
+    void logSucceededLogin(String effectiveUser, boolean sgadmin, String initiatingUser, TransportRequest request, String action, Task task);
     void logSucceededLogin(String effectiveUser, boolean sgadmin, String initiatingUser, RestRequest request);
 
     //privs
