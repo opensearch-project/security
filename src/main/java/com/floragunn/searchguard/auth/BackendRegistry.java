@@ -393,7 +393,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
                 }
                         
                 if(authDomain.isChallenge() && httpAuthenticator.reRequestAuthentication(channel, null)) {
-                    auditLog.logFailedLogin(null, false, null, request);
+                    auditLog.logFailedLogin("<NONE>", false, null, request);
                     return false;
                 } else {
                     //no reRequest possible
