@@ -152,7 +152,7 @@ public final class SearchGuardLicense implements Writeable {
             
             if(isd.after(now)) {
                 valid = false;
-                msgs.add("License not issued as of today");
+                msgs.add("License not valid yet.");
             }
             
         } catch (Exception e) {
@@ -203,13 +203,8 @@ public final class SearchGuardLicense implements Writeable {
         if(clusterName == null || clusterName.isEmpty()) {
             valid = false;
             msgs.add("'cluster_name' must not be empty or null");
-        } /*else {
-            if(!WildcardMatcher.match(clusterName.toLowerCase(), clusterService.getClusterName().value().toLowerCase())) {
-                valid = false;
-                msgs.add("Your cluster name '"+clusterService.getClusterName().value().toLowerCase()+"' does not match '"+clusterName+"'");
-            }  
-        }*/
-
+        } 
+        
         final int numberOfNodes = clusterService.state().getNodes().getSize();
         
         if(numberOfNodes > allowedNodeCount) {
@@ -220,10 +215,23 @@ public final class SearchGuardLicense implements Writeable {
         final String nodes = allowedNodeCount > 1500 ?"unlimited":String.valueOf(allowedNodeCount);
 
         if(!valid) {
-            prodUsage = "No, because you have no valid license!";
-            action = "Purchase a license. Visit https://floragunn.com/searchguard-validate-license or write to <sales@floragunn.com>";
+            prodUsage = "No, because the license is not valid.";
+            action = "Purchase a license. Visit docs.search-guard.com/v6/search-guard-enterprise-edition or write to <sales@floragunn.com>";
         } else {
-            prodUsage = "Yes, one cluster with all commercial features on "+nodes+" nodes";
+        	switch (type) {
+        		case ACADEMIC:
+        			prodUsage = "Yes, unlimited clusters with all commercial features and "+nodes+" nodes per cluster for non-commercial academic and scientific use.";
+        			break;
+        		case OEM:
+        			prodUsage = "Yes, for usage with bundled OEM products. Standalone usage is not permitted.";
+        			break;
+        		case COMPANY:
+        			prodUsage = "Yes, unlimited clusters with all commercial features and "+nodes+" nodes per cluster for usage by '"+issuedTo+"'";
+        			break;
+        		default:
+        			prodUsage = "Yes, one cluster with all commercial features and "+nodes+" nodes per cluster.";
+        			break;
+        	}            
             action = "";
         }
     }
@@ -234,7 +242,8 @@ public final class SearchGuardLicense implements Writeable {
         SINGLE,
         ACADEMIC,
         OEM,
-        TRIAL
+        TRIAL,
+        COMPANY
     }
    
     private static Date parseDate(String date) throws ParseException {

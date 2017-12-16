@@ -1,13 +1,13 @@
-# This is the main configuration file where the authentication and authorization
-# backends as well as the http authenticators and other settings will be defined.
-#
-# The authentication works like that:
+# This is the main Search Guard configuration file where authentication 
+# and authorization is defined.
 # 
-# If there are no authenticators (authc) defined a implicit one will be created.
-# This will authenticate against the internal user database and use HTTP Basic.
+# You need to configure at least one authentication domain in the authc of this file.
+# An authentication domain is responsible for extracting the user credentials from 
+# the request and for validating them against an authentication backend like Active Directory for example. 
 #
-# If more than one is configured the first one which succeeds wins. If all fail then the request will be unauthenticated
-# and a respective exception is thrown and/or the HTTP status is set to 401.
+# If more than one authentication domain is configured the first one which succeeds wins. 
+# If all authentication domains fail then the request is unauthenticated.
+# In this case an exception is thrown and/or the HTTP status is set to 401.
 # 
 # After authentication authorization (authz) will be applied. There can be zero or more authorizers which collect
 # the roles from a given backend for the authenticated user.
@@ -18,21 +18,20 @@
 #
 # 5.x Migration: "enabled: true/false" will also be respected currently but only to provide backward compatibility.
 #
-# For HTTP is possible to allow anonymous authentication. If that is allowed then the http authenticators try to
-# find user credentials in the HTTP request and if such where found then the user gets regularly authenticated.
+# For HTTP it is possible to allow anonymous authentication. If that is the case then the HTTP authenticators try to
+# find user credentials in the HTTP request. If credentials are found then the user gets regularly authenticated.
 # If none can be found the user will be authenticated as an "anonymous" user. This user has always the username "sg_anonymous"
-# and one role named "sg_anonymous_backendrole". If you enable anonymous authentication for all http authenticators will not challenge.
+# and one role named "sg_anonymous_backendrole". 
+# If you enable anonymous authentication all HTTP authenticators will not challenge.
 # 
 #
-# Notice: If you define more than one authenticator make sure to put non-challenging authenticators like "proxy" or "clientcert"
-# at the beginning and the challenging one at the end. If you configure more than one challenging authenticator you have to deal with
-# the "challenge" flag. Because its not possible to challenge a client with two different authentication methods (for example
-# Kerberos and Basic) only one can have challenge: true. All others need to have challenge: false and that means
-# they look into the request and if they found no credentials they will not challenge. You can cope with this situation
-# with pre-authentication. That is submitting credentials for non-challenging authenticators within the first request
-# (Thats especially easy for Basic authentication). 
-# Default value of the challenge flag is true.
+# Note: If you define more than one HTTP authenticators make sure to put non-challenging authenticators like "proxy" or "clientcert"
+# first and the challenging one last. 
+# Because it's not possible to challenge a client with two different authentication methods (for example
+# Kerberos and Basic) only one can have the challenge flag set to true. You can cope with this situation
+# by using pre-authentication, e.g. sending a HTTP Basic authentication header in the request.
 #
+# Default value of the challenge flag is true.
 # 
 #
 # HTTP
@@ -42,8 +41,7 @@
 #   clientcert (not challenging, needs https)
 #   jwt (not challenging) NOT FREE FOR COMMERCIAL
 #   host (not challenging) #DEPRECATED, will be removed in a future version.
-#                           host based authentication is configurable in sg_roles_mapping,
-#                           so no need for a "host http authenticator"
+#                           host based authentication is configurable in sg_roles_mapping
 
 # Authc
 #   internal

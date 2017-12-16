@@ -1,36 +1,35 @@
 ############## Search Guard 6 configuration ###############
+
 ###########################################################
 # Add the following settings to your standard elasticsearch.yml 
-# (alongside with the SG SSL settings)
-# This settings must always be the same on all nodes in the cluster
+# alongside with the Search Guard TLS settings.
+# Settings must always be the same on all nodes in the cluster.
 
 ############## Common configuration settings ##############
-# This defines the DNs (distinguished names) of certificates
+
+# Enable or disable the Search Guard enterprise modules
+# By default enterprise modules are enabled. If you use any of the modules in production you need
+# to obtain a license. If you want to use the free Community Edition, you can switch
+# all enterprise features off by setting the following key to false
+searchguard.enterprise_modules_enabled: true
+
+# Specify a list of DNs which denote the other nodes in the cluster.
+# This settings support wildcards and regular expressions
+# This setting only has effect if 'searchguard.cert.intercluster_request_evaluator_class' is not set.
+searchguard.nodes_dn:
+  - "CN=*.example.com, OU=SSL, O=Test, L=Test, C=DE"
+  - "CN=node.other.com, OU=SSL, O=Test, L=Test, C=DE"
+
+# Defines the DNs (distinguished names) of certificates
 # to which admin privileges should be assigned (mandatory)
 searchguard.authcz.admin_dn:
   - "CN=kirk,OU=client,O=client,l=tEst, C=De"
 
-# Define how roles should be mapped
-# MAPPING_ONLY - only roles mapped in sg_roles_ammping.yml (default)
-# BACKENDROLES_ONLY - only the backendroles of the user
-# BOTH - both of the above
+# Define how backend roles should be mapped to Search Guard roles
+# MAPPING_ONLY - mappings must be configured explicitely in sg_roles_mapping.yml (default)
+# BACKENDROLES_ONLY - backend roles are mapped to Search Guard rules directly. Settings in sg_roles_mapping.yml have no effect.
+# BOTH - backend roles are mapped to Search Guard roles mapped directly and via sg_roles_mapping.yml in addition
 searchguard.roles_mapping_resolution: MAPPING_ONLY
-
-# Enable or disable Search Guard enterprise modules
-# By default they are enabled and if you use them in production you need
-# to obtain a license or switch them off here by setting the value to false.
-searchguard.enterprise_modules_enabled: true
-
-# Specify a list of DNs which denote the other nodes in the cluster.
-# This is only necessary if one cannot use the OID mechanism and has a major drawback:
-# Every time a new node want to join the cluster this setting must be updated a full cluster restart must be performed.
-# This settings support wildcards and regular expressions
-# WARNING: Be careful with wildcards and regular expressions
-# This setting does only have an effect if 'searchguard.cert.intercluster_request_evaluator_class' is not set.
-# If 'searchguard.ssl.transport.principal_extractor_class' is set use the outcome of this as DN
-#searchguard.nodes_dn:
-#  - "CN=*.example.com, OU=SSL, O=Test, L=Test, C=DE"
-#  - "CN=node.other.com, OU=SSL, O=Test, L=Test, C=DE"
 
 ############## REST Management API configuration settings ##############
 # Enable or disable role based access to the REST management API
@@ -119,14 +118,14 @@ searchguard.audit.type: internal_elasticsearch
 #searchguard.audit.config.log4j.level: INFO
 
 ############## Kerberos configuration settings ##############
-# If Kerberos authentication should be used you have to configure this:
+# If Kerberos authentication should be used you have to configure:
 
-# The absolute path or relative path to config/ directory
-# to krb5.conf file
+# The Path to the krb5.conf file
+# Can be absolute or relative to the Elasticsearch config directory
 #searchguard.kerberos.krb5_filepath: '/etc/krb5.conf'
             
-# The relative path to config/ directory
-# to the keytab where the acceptor_principal credentials are stored.
+# The Path to the keytab where the acceptor_principal credentials are stored.           
+# Must be relative to the Elasticsearch config directory
 #searchguard.kerberos.acceptor_keytab_filepath: 'eskeytab.tab'
 
 # Acceptor (Server) Principal name, must be present in acceptor_keytab_path file
@@ -151,9 +150,9 @@ searchguard.audit.type: internal_elasticsearch
 #    - steve
 #    - martin
 
-# If this is set to true then, if Search Guard is not already initialized,
-# initialize them automatically on startup with the default configs in sgconfig/
-# WARNING: This will use wellknown default passwords.
+# If this is set to true Search Guard will automatically initialize the configuration index
+# with the files in the sgconfig directory if the index does not exist.
+# WARNING: This will use well-known default passwords.
 #          Use only in a private network/environment.
 #searchguard.allow_default_init_sgindex: false
 
@@ -172,18 +171,17 @@ searchguard.audit.type: internal_elasticsearch
 #searchguard.config_index_name: searchguard
 
 # This defines the OID of server node certificates
-# See https://github.com/floragunncom/search-guard-docs/blob/master/architecture.md
+# See http://docs.search-guard.com/v6/tls-in-production
 #searchguard.cert.oid: '1.2.3.4.5.5'
 
 # This specifies the implementation of com.floragunn.searchguard.transport.InterClusterRequestEvaluator
-# that is used to determine inter cluster message.  The default is to use the oid value of 'searchguard.cert.oid'
-# as described: https://github.com/floragunncom/search-guard-docs/blob/master/architecture.md
-# Instance of com.floragunn.searchguard.transport.InterClusterRequestEvaluator must implement a single arg
-# constructor that takes a org.elasticsearch.common.settings.Settings
+# that is used to determine inter-cluster request.
+# Instances of com.floragunn.searchguard.transport.InterClusterRequestEvaluator must implement a single argument
+# constructor that takes an org.elasticsearch.common.settings.Settings
 #searchguard.cert.intercluster_request_evaluator_class: com.floragunn.searchguard.transport.DefaultInterClusterRequestEvaluator
 
 # Allow snapshot restore for normal users
-# By default only requests signed by an admin ssl certificate can do this
+# By default only requests signed by an admin TLS certificate can do this
 # To enable snapshot restore for normal users set 'searchguard.enable_snapshot_restore_privilege: true'
 # The user who wants to restore a snapshot must have the 'cluster:admin/snapshot/restore' privilege and must also have
 # "indices:admin/create" and "indices:data/write/index" for the indices to be restores.

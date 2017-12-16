@@ -181,22 +181,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                             }
                             
                             LOGGER.info("Node '{}' initialized", clusterService.localNode().getName());
-                            
-                            if(!Boolean.getBoolean("sg.display_lic_none")) {
-                                
-                                final SearchGuardLicense sgLicense = getLicense();
-                                final String license = sgLicense==null?"No license needed because enterprise modules are not enabled"
-                                        :sgLicense.toString();
-                                
-                                if(!Boolean.getBoolean("sg.display_lic_only_stdout")) {
-                                    LOGGER.warn("License Info: "+license);
-                                    System.err.println("License Info: "+license);
-                                }
-                        
-                                System.out.println("License Info: "+license);
 
-                            }
-                            
                         } catch (Exception e) {
                             LOGGER.error("Unexpected exception while initializing node "+e, e);
                         }                       
@@ -323,19 +308,24 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
         typeToConfig.putAll(loaded);
         notifyAboutChanges(loaded);
         
-        if(!Boolean.getBoolean("sg.display_lic_none")) {
-            
-            final SearchGuardLicense sgLicense = getLicense();
-            final String license = sgLicense==null?"No license needed because enterprise modules are not enabled"
-                    :sgLicense.toString();
-            
-            if(!Boolean.getBoolean("sg.display_lic_only_stdout")) {
-                LOGGER.warn("License Info: "+license);
-                System.err.println("License Info: "+license);
+        final SearchGuardLicense sgLicense = getLicense();                                
+        final String license = sgLicense==null?"No license needed because enterprise modules are not enabled" :sgLicense.toString();
+        LOGGER.info("Search Guard License Info: "+license);
+        
+        if (sgLicense != null) {
+        	LOGGER.info("Search Guard License Type: "+sgLicense.getType()+", " + (sgLicense.isValid() ? "valid" : "invalid"));
+        	
+        	if (sgLicense.getExpiresInDays() <= 30 && sgLicense.isValid()) {
+            	LOGGER.warn("Your Search Guard license expires in " + sgLicense.getExpiresInDays() + " days.");
+            	System.out.println("Your Search Guard license expires in " + sgLicense.getExpiresInDays() + " days.");
             }
-    
-            System.out.println("License Info: "+license);
-
+            
+        	if (!sgLicense.isValid()) {
+            	final String reasons = String.join("; ", sgLicense.getMsgs());
+            	LOGGER.error("You are running an unlicensed version of Search Guard. Reason(s): " + reasons);
+            	System.out.println("You are running an unlicensed version of Search Guard. Reason(s): " + reasons);
+            	System.err.println("You are running an unlicensed version of Search Guard. Reason(s): " + reasons);
+            }        	
         }
 
         return loaded;
