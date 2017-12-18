@@ -108,10 +108,12 @@ public class ConfigConstants {
     public static final String SEARCHGUARD_AUDIT_CONFIG_TYPE = "searchguard.audit.config.type";
     public static final String SEARCHGUARD_AUDIT_CONFIG_USERNAME = "searchguard.audit.config.username";
     public static final String SEARCHGUARD_AUDIT_CONFIG_PASSWORD = "searchguard.audit.config.password";
-    public static final String SEARCHGUARD_AUDIT_CONFIG_DISABLED_CATEGORIES = "searchguard.audit.config.disabled_categories";
+    public static final String SEARCHGUARD_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES = "searchguard.audit.config.disabled_transport_categories";
+    public static final String SEARCHGUARD_AUDIT_CONFIG_DISABLED_REST_CATEGORIES = "searchguard.audit.config.disabled_rest_categories";
     public static final String SEARCHGUARD_AUDIT_THREADPOOL_SIZE = "searchguard.audit.threadpool.size";
     public static final String SEARCHGUARD_AUDIT_THREADPOOL_MAX_QUEUE_LEN = "searchguard.audit.threadpool.max_queue_len";
-    public static final String SEARCHGUARD_AUDIT_ENABLE_REQUEST_DETAILS = "searchguard.audit.enable_request_details";
+    public static final String SEARCHGUARD_AUDIT_LOG_REQUEST_BODY = "searchguard.audit.log_request_body";
+    public static final String SEARCHGUARD_AUDIT_RESOLVE_INDICES = "searchguard.audit.resolve_indices";
     public static final String SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_SSL_VERIFY = "searchguard.audit.config.webhook.ssl.verify";
     public static final String SEARCHGUARD_AUDIT_WEBHOOK_PEMTRUSTEDCAS_FILEPATH = "searchguard.audit.config.webhook.ssl.pemtrustedcas_filepath";
     public static final String SEARCHGUARD_AUDIT_WEBHOOK_PEMTRUSTEDCAS_CONTENT = "searchguard.audit.config.webhook.ssl.pemtrustedcas_content";
