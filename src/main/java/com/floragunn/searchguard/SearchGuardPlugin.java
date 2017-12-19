@@ -743,6 +743,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         //settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_TRIBE_CLUSTERNAME, Property.NodeScope, Property.Filtered));
         
         // SG6 - Audit
+        settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_AUDIT_IGNORE_REQUESTS, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
         settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_RESOLVE_BULK_REQUESTS, false, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_LOG4J_LOGGER_NAME, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_LOG4J_LEVEL, Property.NodeScope, Property.Filtered));
