@@ -23,6 +23,8 @@ import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.KeyStore;
 
 import org.apache.commons.io.IOUtils;
@@ -42,19 +44,19 @@ public class FileHelper {
 	protected final static Logger log = LogManager.getLogger(FileHelper.class);
 
 	public static KeyStore getKeystoreFromClassPath(final String fileNameFromClasspath, String password) throws Exception {
-	    File file = getAbsoluteFilePathFromClassPath(fileNameFromClasspath);
-	    if(file==null) {
+	    Path path = getAbsoluteFilePathFromClassPath(fileNameFromClasspath);
+	    if(path==null) {
 	        return null;
 	    }
 	    
 	    KeyStore ks = KeyStore.getInstance("JKS");
-	    try (FileInputStream fin = new FileInputStream(file)) {
+	    try (FileInputStream fin = new FileInputStream(path.toFile())) {
 	        ks.load(fin, password==null||password.isEmpty()?null:password.toCharArray());
 	    }
 	    return ks;
 	}
 	
-	public static File getAbsoluteFilePathFromClassPath(final String fileNameFromClasspath) {
+	public static Path getAbsoluteFilePathFromClassPath(final String fileNameFromClasspath) {
 		File file = null;
 		final URL fileUrl = SearchGuardPlugin.class.getClassLoader().getResource(fileNameFromClasspath);
 		if (fileUrl != null) {
@@ -65,7 +67,7 @@ public class FileHelper {
 			}
 
 			if (file.exists() && file.canRead()) {
-				return file;
+				return Paths.get(file.getAbsolutePath());
 			} else {
 				log.error("Cannot read from {}, maybe the file does not exists? ", file.getAbsolutePath());
 			}

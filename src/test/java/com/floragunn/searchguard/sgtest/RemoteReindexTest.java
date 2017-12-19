@@ -15,7 +15,6 @@ import com.floragunn.searchguard.test.AbstractSGUnitTest;
 import com.floragunn.searchguard.test.helper.cluster.ClusterConfiguration;
 import com.floragunn.searchguard.test.helper.cluster.ClusterHelper;
 import com.floragunn.searchguard.test.helper.cluster.ClusterInfo;
-import com.floragunn.searchguard.test.helper.file.FileHelper;
 import com.floragunn.searchguard.test.helper.rest.RestHelper;
 import com.floragunn.searchguard.test.helper.rest.RestHelper.HttpResponse;
 
@@ -51,8 +50,8 @@ public class RemoteReindexTest extends AbstractSGUnitTest{
     
     private Settings crossClusterNodeSettings(ClusterInfo remote) {
         Settings.Builder builder = Settings.builder()
-                .putArray("reindex.remote.whitelist", remote.httpHost+":"+remote.httpPort)
-                .putArray("discovery.zen.ping.unicast.hosts", "localhost:9303","localhost:9304","localhost:9305");
+                .putList("reindex.remote.whitelist", remote.httpHost+":"+remote.httpPort)
+                .putList("discovery.zen.ping.unicast.hosts", "localhost:9303","localhost:9304","localhost:9305");
         return builder.build();
     }
     
@@ -61,7 +60,7 @@ public class RemoteReindexTest extends AbstractSGUnitTest{
                 //.put("searchguard.ssl.http.enabled",true)
                 //.put("searchguard.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
                 //.put("searchguard.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
-                .putArray("discovery.zen.ping.unicast.hosts", "localhost:9300","localhost:9301","localhost:9302");
+                .putList("discovery.zen.ping.unicast.hosts", "localhost:9300","localhost:9301","localhost:9302");
         return builder.build();
     }
     

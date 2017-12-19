@@ -84,7 +84,7 @@ public class IntegrationTests extends SingleClusterTest {
         });
         
     final Settings settings = Settings.builder()
-            .putArray(ConfigConstants.SEARCHGUARD_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "knuddel","nonexists")
+            .putList(ConfigConstants.SEARCHGUARD_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "knuddel","nonexists")
             .build();
     setup(settings);
     final RestHelper rh = nonSslRestHelper();
@@ -115,7 +115,7 @@ public class IntegrationTests extends SingleClusterTest {
     @Test
     public void testHTTPBasic() throws Exception {
         final Settings settings = Settings.builder()
-                .putArray(ConfigConstants.SEARCHGUARD_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "knuddel","nonexists")
+                .putList(ConfigConstants.SEARCHGUARD_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "knuddel","nonexists")
                 .build();
         setup(settings);
         final RestHelper rh = nonSslRestHelper();
@@ -293,7 +293,7 @@ public class IntegrationTests extends SingleClusterTest {
         public void testTransportClient() throws Exception {
         
         final Settings settings = Settings.builder()
-                .putArray(ConfigConstants.SEARCHGUARD_AUTHCZ_IMPERSONATION_DN+".CN=spock,OU=client,O=client,L=Test,C=DE", "worf", "nagilum")
+                .putList(ConfigConstants.SEARCHGUARD_AUTHCZ_IMPERSONATION_DN+".CN=spock,OU=client,O=client,L=Test,C=DE", "worf", "nagilum")
                 .build();
         setup(settings);
     
@@ -834,7 +834,8 @@ public class IntegrationTests extends SingleClusterTest {
         Assert.assertEquals("Unable to close index 'starfleet_library'", HttpStatus.SC_OK, rh.executePostRequest("starfleet_library/_close", null, encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
         
         Assert.assertEquals("Unable to open index 'starfleet_library'", HttpStatus.SC_OK, (res = rh.executePostRequest("starfleet_library/_open", null, encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
-        Assert.assertEquals("open index 'starfleet_library' not acknowledged", "{\"acknowledged\":true}", res.getBody());
+        Assert.assertTrue("open index 'starfleet_library' not acknowledged", res.getBody().contains("acknowledged"));
+        Assert.assertFalse("open index 'starfleet_library' not acknowledged", res.getBody().contains("false"));
         
         clusterHelper.waitForCluster(ClusterHealthStatus.GREEN, TimeValue.timeValueSeconds(10), clusterInfo.numNodes);
         
@@ -924,8 +925,8 @@ public class IntegrationTests extends SingleClusterTest {
         final Settings settings = Settings.builder()
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("node-untspec5-keystore.jks"))
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-untspec5")
-                .putArray("searchguard.nodes_dn", "EMAILADDRESS=unt@tst.com,CN=node-untspec5.example.com,OU=SSL,O=Te\\, st,L=Test,C=DE")
-                .putArray("searchguard.authcz.admin_dn", "EMAILADDRESS=abc@xyz.com,CN=unittestspecial1, OU=client, O=cli\\, ent, L=Test, C=DE")
+                .putList("searchguard.nodes_dn", "EMAILADDRESS=unt@tst.com,CN=node-untspec5.example.com,OU=SSL,O=Te\\, st,L=Test,C=DE")
+                .putList("searchguard.authcz.admin_dn", "EMAILADDRESS=abc@xyz.com,CN=unittestspecial1, OU=client, O=cli\\, ent, L=Test, C=DE")
                 .put("searchguard.cert.oid","1.2.3.4.5.6")
                 .build();
         
@@ -948,8 +949,8 @@ public class IntegrationTests extends SingleClusterTest {
         final Settings settings = Settings.builder()
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("node-untspec6-keystore.jks"))
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-untspec6")
-                .putArray("searchguard.nodes_dn", "EMAILADDRESS=unt@tst.com,CN=node-untspec6.example.com,OU=SSL,O=Te\\, st,L=Test,C=DE")
-                .putArray("searchguard.authcz.admin_dn", "EMAILADDREss=abc@xyz.com,CN=unittestspecial2, oU=Client, O=cli\\, ent, L=Test, C=DE")
+                .putList("searchguard.nodes_dn", "EMAILADDRESS=unt@tst.com,CN=node-untspec6.example.com,OU=SSL,O=Te\\, st,L=Test,C=DE")
+                .putList("searchguard.authcz.admin_dn", "EMAILADDREss=abc@xyz.com,CN=unittestspecial2, oU=Client, O=cli\\, ent, L=Test, C=DE")
                 .put("searchguard.cert.oid","1.2.3.4.5.6")
                 .build();
         
@@ -1096,10 +1097,10 @@ public class IntegrationTests extends SingleClusterTest {
                 .put("searchguard.ssl.http.enabled",true)
                 .put("searchguard.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
                 .put("searchguard.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
-                .putArray(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLED_PROTOCOLS, "TLSv1.1","TLSv1.2")
-                .putArray(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLED_CIPHERS, "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256")
-                .putArray(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLED_PROTOCOLS, "TLSv1.1","TLSv1.2")
-                .putArray(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLED_CIPHERS, "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256")
+                .putList(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLED_PROTOCOLS, "TLSv1.1","TLSv1.2")
+                .putList(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLED_CIPHERS, "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256")
+                .putList(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLED_PROTOCOLS, "TLSv1.1","TLSv1.2")
+                .putList(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLED_CIPHERS, "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256")
                 .build();
         
         setup(Settings.EMPTY, new DynamicSgConfig().setSgConfig("sg_config_clientcert.yml"), settings, true);
@@ -1494,7 +1495,7 @@ public class IntegrationTests extends SingleClusterTest {
     public void testRestImpersonation() throws Exception {
     
         final Settings settings = Settings.builder()
-                 .putArray(ConfigConstants.SEARCHGUARD_AUTHCZ_REST_IMPERSONATION_USERS+".spock", "knuddel","userwhonotexists").build();
+                 .putList(ConfigConstants.SEARCHGUARD_AUTHCZ_REST_IMPERSONATION_USERS+".spock", "knuddel","userwhonotexists").build();
  
         setup(settings);
         
@@ -1549,7 +1550,7 @@ public class IntegrationTests extends SingleClusterTest {
     public void testSnapshot() throws Exception {
     
         final Settings settings = Settings.builder()
-                .putArray("path.repo", repositoryPath.getRoot().getAbsolutePath())
+                .putList("path.repo", repositoryPath.getRoot().getAbsolutePath())
                 .put("searchguard.enable_snapshot_restore_privilege", true)
                 .put("searchguard.check_snapshot_restore_write_privileges", false)
                 .build();
@@ -1603,7 +1604,7 @@ public class IntegrationTests extends SingleClusterTest {
     public void testSnapshotCheckWritePrivileges() throws Exception {
     
         final Settings settings = Settings.builder()
-                .putArray("path.repo", repositoryPath.getRoot().getAbsolutePath())
+                .putList("path.repo", repositoryPath.getRoot().getAbsolutePath())
                 .put("searchguard.enable_snapshot_restore_privilege", true)
                 .put("searchguard.check_snapshot_restore_write_privileges", true)
                 .build();
@@ -1670,7 +1671,7 @@ public class IntegrationTests extends SingleClusterTest {
     public void testSnapshotRestore() throws Exception {
     
         final Settings settings = Settings.builder()
-                .putArray("path.repo", repositoryPath.getRoot().getAbsolutePath())
+                .putList("path.repo", repositoryPath.getRoot().getAbsolutePath())
                 .put("searchguard.enable_snapshot_restore_privilege", true)
                 .put("searchguard.check_snapshot_restore_write_privileges", true)
                 .build();
@@ -1737,7 +1738,7 @@ public class IntegrationTests extends SingleClusterTest {
     public void testTransportClientImpersonation() throws Exception {
     
         final Settings settings = Settings.builder()
-                .putArray("searchguard.authcz.impersonation_dn.CN=spock,OU=client,O=client,L=Test,C=DE", "worf", "nagilum")
+                .putList("searchguard.authcz.impersonation_dn.CN=spock,OU=client,O=client,L=Test,C=DE", "worf", "nagilum")
                 .build();
 
         
@@ -1768,7 +1769,7 @@ public class IntegrationTests extends SingleClusterTest {
     public void testTransportClientImpersonationWildcard() throws Exception {
     
         final Settings settings = Settings.builder()
-                .putArray("searchguard.authcz.impersonation_dn.CN=spock,OU=client,O=client,L=Test,C=DE", "*")
+                .putList("searchguard.authcz.impersonation_dn.CN=spock,OU=client,O=client,L=Test,C=DE", "*")
                 .build();
 
         

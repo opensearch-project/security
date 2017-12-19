@@ -98,7 +98,7 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
            }
                        
            getThreadContext().putTransient(ConfigConstants.SG_CHANNEL_TYPE, transportChannel.getChannelType());
-           getThreadContext().putTransient(ConfigConstants.SG_ACTION_NAME, transportChannel.action());
+           getThreadContext().putTransient(ConfigConstants.SG_ACTION_NAME, task.getAction());
 
             //bypass non-netty requests
             if(transportChannel.getChannelType().equals("direct")) {
@@ -127,11 +127,11 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
             //also allow when issued from a remote cluster for cross cluster search
             if ( !HeaderHelper.isInterClusterRequest(getThreadContext()) 
                     && !HeaderHelper.isTrustedClusterRequest(getThreadContext()) 
-                    && !transportChannel.action().equals("internal:transport/handshake") 
-                    && (transportChannel.action().startsWith("internal:") || transportChannel.action().contains("["))) {
+                    && !task.getAction().equals("internal:transport/handshake") 
+                    && (task.getAction().startsWith("internal:") || task.getAction().contains("["))) {
 
-                auditLog.logMissingPrivileges(transportChannel.action(), request, task);
-                log.error("Internal or shard requests ("+transportChannel.action()+") not allowed from a non-server node for transport type "+transportChannel.getChannelType());
+                auditLog.logMissingPrivileges(task.getAction(), request, task);
+                log.error("Internal or shard requests ("+task.getAction()+") not allowed from a non-server node for transport type "+transportChannel.getChannelType());
                 transportChannel.sendResponse(new ElasticsearchSecurityException(
                         "Internal or shard requests not allowed from a non-server node for transport type "+transportChannel.getChannelType()));
                 return;
@@ -143,7 +143,7 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
             if ((principal = getThreadContext().getTransient(ConfigConstants.SG_SSL_TRANSPORT_PRINCIPAL)) == null) {
                 Exception ex = new ElasticsearchSecurityException(
                         "No SSL client certificates found for transport type "+transportChannel.getChannelType()+". Search Guard needs the Search Guard SSL plugin to be installed");
-                auditLog.logSSLException(request, ex, transportChannel.action(), task);
+                auditLog.logSSLException(request, ex, task.getAction(), task);
                 log.error("No SSL client certificates found for transport type "+transportChannel.getChannelType()+". Search Guard needs the Search Guard SSL plugin to be installed");
                 transportChannel.sendResponse(ex);
                 return;
@@ -181,7 +181,7 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
                     
                     if(SSLRequestHelper.containsBadHeader(getThreadContext(), ConfigConstants.SG_CONFIG_PREFIX)) {
                         final ElasticsearchException exception = ExceptionUtils.createBadHeaderException();
-                        auditLog.logBadHeaders(request, transportChannel.action(), task);
+                        auditLog.logBadHeaders(request, task.getAction(), task);
                         log.error("Error validating headers");
                         transportChannel.sendResponse(exception);
                         return;
@@ -191,21 +191,21 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
                     
                     User user;
                     //try {
-                        if((user = backendRegistry.authenticate(request, principal, task, transportChannel.action())) == null) {
+                        if((user = backendRegistry.authenticate(request, principal, task, task.getAction())) == null) {
                             
-                            if(transportChannel.action().equals(WhoAmIAction.NAME)) {
+                            if(task.getAction().equals(WhoAmIAction.NAME)) {
                                 super.messageReceivedDecorate(request, handler, transportChannel, task);
                                 return;
                             }
                             
-                            if(transportChannel.action().equals("cluster:monitor/nodes/liveness")
-                                    || transportChannel.action().equals("internal:transport/handshake")) {
+                            if(task.getAction().equals("cluster:monitor/nodes/liveness")
+                                    || task.getAction().equals("internal:transport/handshake")) {
                                 super.messageReceivedDecorate(request, handler, transportChannel, task);
                                 return;
                             }
                             
                             
-                            log.error("Cannot authenticate {} for {}", (User) getThreadContext().getTransient(ConfigConstants.SG_USER), transportChannel.action());
+                            log.error("Cannot authenticate {} for {}", (User) getThreadContext().getTransient(ConfigConstants.SG_USER), task.getAction());
                             transportChannel.sendResponse(new ElasticsearchSecurityException("Cannot authenticate "+getThreadContext().getTransient(ConfigConstants.SG_USER)));
                             return;
                         }

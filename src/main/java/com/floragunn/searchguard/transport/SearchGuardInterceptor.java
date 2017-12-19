@@ -97,7 +97,7 @@ public class SearchGuardInterceptor {
             getThreadContext().putHeader("_sg_remotecn", cs.getClusterName().value());
             
             if(this.settings.get("tribe.name", null) == null
-                    && settings.getByPrefix("tribe").getAsMap().size() > 0) {
+                    && settings.getByPrefix("tribe").size() > 0) {
                 getThreadContext().putHeader("_sg_header_tn", "true");
             }
 

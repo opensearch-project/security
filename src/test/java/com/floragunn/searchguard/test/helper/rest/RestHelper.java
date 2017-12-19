@@ -168,11 +168,11 @@ public class RestHelper {
 			log.debug("Configure HTTP client with SSL");
 
 			final KeyStore myTrustStore = KeyStore.getInstance("JKS");
-			myTrustStore.load(new FileInputStream(FileHelper.getAbsoluteFilePathFromClassPath(truststore)),
+			myTrustStore.load(new FileInputStream(FileHelper.getAbsoluteFilePathFromClassPath(truststore).toFile()),
 					"changeit".toCharArray());
 
 			final KeyStore keyStore = KeyStore.getInstance("JKS");
-			keyStore.load(new FileInputStream(FileHelper.getAbsoluteFilePathFromClassPath(keystore)), "changeit".toCharArray());
+			keyStore.load(new FileInputStream(FileHelper.getAbsoluteFilePathFromClassPath(keystore).toFile()), "changeit".toCharArray());
 
 			final SSLContextBuilder sslContextbBuilder = SSLContexts.custom();
 

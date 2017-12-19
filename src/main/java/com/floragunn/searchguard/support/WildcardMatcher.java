@@ -56,6 +56,25 @@ public class WildcardMatcher {
 
         return false;
     }
+    
+    /**
+     * returns true if at least one candidate match at least one pattern
+     * 
+     * @param pattern
+     * @param candidate
+     * @param ignoreCase
+     * @return
+     */
+    public static boolean matchAny(final Collection<String> pattern, final String[] candidate, boolean ignoreCase) {
+
+        for (String string: pattern) {
+            if (matchAny(string, candidate, ignoreCase)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     /**
      * return true if all candidates find a matching pattern

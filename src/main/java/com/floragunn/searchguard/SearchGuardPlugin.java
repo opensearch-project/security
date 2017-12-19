@@ -159,7 +159,8 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
     private final boolean disabled;
     private final boolean enterpriseModulesEnabled;
     private static final String LB = System.lineSeparator();
-    private final List<String> demoCertHashes = new ArrayList<String>(3); 
+    private final List<String> demoCertHashes = new ArrayList<String>(3);
+    private SearchGuardFilter sgf;
     
 
     @Override
@@ -224,11 +225,11 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
             throw new IllegalStateException(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLED+" must be set to 'true'");
         }
         
-        if(log.isDebugEnabled() && this.settings.getByPrefix("tribe").getAsMap().size() > 0) {
-            log.debug("Tribe configuration detected: {}", this.settings.getAsMap());
+        if(log.isDebugEnabled() && this.settings.getByPrefix("tribe").size() > 0) {
+            log.debug("Tribe configuration detected: {}", this.settings);
         }
         
-        boolean tribeNode = this.settings.get("tribe.name", null) == null && this.settings.getByPrefix("tribe").getAsMap().size() > 0;
+        boolean tribeNode = this.settings.get("tribe.name", null) == null && this.settings.getByPrefix("tribe").size() > 0;
         tribeNodeClient = this.settings.get("tribe.name", null) != null;
 
         log.debug("This node [{}] is a transportClient: {}/tribeNode: {}/tribeNodeClient: {}", settings.get("node.name"), client, tribeNode, tribeNodeClient);
@@ -485,10 +486,10 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
     }
     
     @Override
-    public List<Class<? extends ActionFilter>> getActionFilters() {
-        List<Class<? extends ActionFilter>> filters = new ArrayList<>(1);
+    public List<ActionFilter> getActionFilters() {
+        List<ActionFilter> filters = new ArrayList<>(1);
         if (!tribeNodeClient && !client && !disabled) {
-            filters.add(SearchGuardFilter.class);
+            filters.add(Objects.requireNonNull(sgf));
         }
         return filters;
     }
@@ -624,7 +625,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         cr.subscribeOnChange(ConfigConstants.CONFIGNAME_CONFIG, backendRegistry);
         final ActionGroupHolder ah = new ActionGroupHolder(cr);      
         evaluator = new PrivilegesEvaluator(clusterService, threadPool, cr, ah, resolver, auditLog, settings, privilegesInterceptor, cih);    
-        final SearchGuardFilter sgf = new SearchGuardFilter(evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs);     
+        sgf = new SearchGuardFilter(evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs);     
         
         
         final String principalExtractorClass = settings.get(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, null);
@@ -648,7 +649,6 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         components.add(backendRegistry);
         components.add(ah);
         components.add(evaluator);
-        components.add(sgf);
         components.add(sgi);
 
         sgRestHandler = new SearchGuardRestFilter(backendRegistry, auditLog, threadPool, principalExtractor, settings, configPath);

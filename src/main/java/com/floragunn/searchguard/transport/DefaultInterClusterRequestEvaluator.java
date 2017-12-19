@@ -20,6 +20,7 @@ import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -36,11 +37,11 @@ public final class DefaultInterClusterRequestEvaluator implements InterClusterRe
 
     private final Logger log = LogManager.getLogger(this.getClass());
     private final String certOid;
-    private final String[] nodesDn;
+    private final List<String> nodesDn;
 
     public DefaultInterClusterRequestEvaluator(final Settings settings) {
         this.certOid = settings.get(ConfigConstants.SEARCHGUARD_CERT_OID, "1.2.3.4.5.5");
-        this.nodesDn = settings.getAsArray(ConfigConstants.SEARCHGUARD_NODES_DN, new String[0]);
+        this.nodesDn = settings.getAsList(ConfigConstants.SEARCHGUARD_NODES_DN, Collections.emptyList());
     }
 
     @Override
@@ -58,7 +59,7 @@ public final class DefaultInterClusterRequestEvaluator implements InterClusterRe
             
             if (log.isTraceEnabled()) {
                 log.trace("Treat certificate with principal {} as other node because of it matches one of {}", Arrays.toString(principals),
-                        Arrays.toString(nodesDn));
+                        nodesDn);
             }
             
             return true;
@@ -66,7 +67,7 @@ public final class DefaultInterClusterRequestEvaluator implements InterClusterRe
         } else {
             if (log.isTraceEnabled()) {
                 log.trace("Treat certificate with principal {} NOT as other node because we it does not matches one of {}", Arrays.toString(principals),
-                        Arrays.toString(nodesDn));
+                        nodesDn);
             }
         }
 

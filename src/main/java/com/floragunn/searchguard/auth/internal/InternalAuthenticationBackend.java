@@ -21,6 +21,8 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
 import org.elasticsearch.ElasticsearchSecurityException;
@@ -66,10 +68,10 @@ public class InternalAuthenticationBackend implements AuthenticationBackend {
             }
         }
         
-        final String[] roles = cfg.getAsArray(user.getName() + ".roles", new String[0]);
+        final List<String> roles = cfg.getAsList(user.getName() + ".roles", Collections.emptyList());
         
         if(roles != null) {
-            user.addRoles(Arrays.asList(roles));
+            user.addRoles(roles);
         }
         
         return true;
@@ -116,8 +118,8 @@ public class InternalAuthenticationBackend implements AuthenticationBackend {
        
         try {
             if (OpenBSDBCrypt.checkPassword(hashed, array)) {
-                final String[] roles = cfg.getAsArray(credentials.getUsername() + ".roles", new String[0]);
-                return new User(credentials.getUsername(), Arrays.asList(roles), credentials);
+                final List<String> roles = cfg.getAsList(credentials.getUsername() + ".roles", Collections.emptyList());
+                return new User(credentials.getUsername(), roles, credentials);
             } else {
                 throw new ElasticsearchSecurityException("password does not match");
             }

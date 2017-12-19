@@ -17,9 +17,9 @@
 
 package com.floragunn.searchguard.configuration;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
-import java.util.Map;
+import java.util.List;
 import java.util.Set;
 
 import javax.naming.InvalidNameException;
@@ -43,10 +43,9 @@ public class AdminDNs {
     
     public AdminDNs(final Settings settings) {
 
-        final String[] adminDnsA = settings.getAsArray(ConfigConstants.SEARCHGUARD_AUTHCZ_ADMIN_DN, new String[0]);
+        final List<String> adminDnsA = settings.getAsList(ConfigConstants.SEARCHGUARD_AUTHCZ_ADMIN_DN, Collections.emptyList());
 
-        for (int i = 0; i < adminDnsA.length; i++) {
-            final String dn = adminDnsA[i];
+        for (String dn:adminDnsA) {
             try {
                 log.debug("{} is registered as an admin dn", dn);
                 adminDn.add(new LdapName(dn));
@@ -57,11 +56,11 @@ public class AdminDNs {
        
         log.debug("Loaded {} admin DN's {}",adminDn.size(),  adminDn);
         
-        final Map<String, Settings> impersonationDns = settings.getGroups(ConfigConstants.SEARCHGUARD_AUTHCZ_IMPERSONATION_DN);
-
+        final Settings impersonationDns = settings.getByPrefix(ConfigConstants.SEARCHGUARD_AUTHCZ_IMPERSONATION_DN+".");
+        
         for (String dnString:impersonationDns.keySet()) {
             try {
-                allowedImpersonations.putAll(new LdapName(dnString), Arrays.asList(settings.getAsArray(ConfigConstants.SEARCHGUARD_AUTHCZ_IMPERSONATION_DN+"."+dnString)));
+                allowedImpersonations.putAll(new LdapName(dnString), settings.getAsList(ConfigConstants.SEARCHGUARD_AUTHCZ_IMPERSONATION_DN+"."+dnString));
             } catch (final InvalidNameException e) {
                 log.error("Unable to parse allowedImpersonations dn {}",dnString, e);
             }
@@ -69,10 +68,10 @@ public class AdminDNs {
         
         log.debug("Loaded {} impersonation DN's {}",allowedImpersonations.size(), allowedImpersonations);
         
-        final Map<String, Settings> impersonationUsersRest = settings.getGroups(ConfigConstants.SEARCHGUARD_AUTHCZ_REST_IMPERSONATION_USERS);
+        final Settings impersonationUsersRest = settings.getByPrefix(ConfigConstants.SEARCHGUARD_AUTHCZ_REST_IMPERSONATION_USERS+".");
 
         for (String user:impersonationUsersRest.keySet()) {
-            allowedRestImpersonations.putAll(user, Arrays.asList(settings.getAsArray(ConfigConstants.SEARCHGUARD_AUTHCZ_REST_IMPERSONATION_USERS+"."+user)));
+            allowedRestImpersonations.putAll(user, settings.getAsList(ConfigConstants.SEARCHGUARD_AUTHCZ_REST_IMPERSONATION_USERS+"."+user));
         }
         
         log.debug("Loaded {} impersonation users for REST {}",allowedRestImpersonations.size(), allowedRestImpersonations);

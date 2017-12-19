@@ -116,12 +116,14 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                                         try(StoredContext ctx = threadContext.stashContext()) {
                                             threadContext.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true");
                                             LOGGER.info("Will create {} index so we can apply default config", searchguardIndex);
+                                            
+                                            Map<String, Object> indexSettings = new HashMap<>();
+                                            indexSettings.put("index.number_of_shards", 1);
+                                            indexSettings.put("index.auto_expand_replicas", "0-all");
+
                                             boolean ok = client.admin().indices().create(new CreateIndexRequest(searchguardIndex)
-                                            .settings(
-                                                    "index.number_of_shards", 1, 
-                                                    "index.auto_expand_replicas", "0-all"
-                                                    ))
-                                                    .actionGet().isAcknowledged();
+                                            .settings(indexSettings))
+                                            .actionGet().isAcknowledged();
                                             if(ok) {
                                                 ConfigHelper.uploadFile(client, cd+"sg_config.yml", searchguardIndex, "config");
                                                 ConfigHelper.uploadFile(client, cd+"sg_roles.yml", searchguardIndex, "roles");
@@ -207,7 +209,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                                 if(response != null && response.isExists()) {
                                    bgThread.start();
                                 } else {
-                                    if(settings.get("tribe.name", null) == null && settings.getByPrefix("tribe").getAsMap().size() > 0) {
+                                    if(settings.get("tribe.name", null) == null && settings.getByPrefix("tribe").size() > 0) {
                                         LOGGER.info("{} index does not exist yet, but we are a tribe node. So we will load the config anyhow until we got it ...", searchguardIndex);
                                         bgThread.start();
                                     } else {

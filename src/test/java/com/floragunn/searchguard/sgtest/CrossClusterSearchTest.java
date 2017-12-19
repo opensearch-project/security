@@ -53,14 +53,14 @@ public class CrossClusterSearchTest extends AbstractSGUnitTest{
     
     private Settings crossClusterNodeSettings(ClusterInfo remote) {
         Settings.Builder builder = Settings.builder()
-                .putArray("search.remote.cross_cluster_two.seeds", remote.nodeHost+":"+remote.nodePort)
-                .putArray("discovery.zen.ping.unicast.hosts", "localhost:9303","localhost:9304","localhost:9305");
+                .putList("search.remote.cross_cluster_two.seeds", remote.nodeHost+":"+remote.nodePort)
+                .putList("discovery.zen.ping.unicast.hosts", "localhost:9303","localhost:9304","localhost:9305");
         return builder.build();
     }
     
     private Settings first3() {
         Settings.Builder builder = Settings.builder()
-                .putArray("discovery.zen.ping.unicast.hosts", "localhost:9300","localhost:9301","localhost:9302");
+                .putList("discovery.zen.ping.unicast.hosts", "localhost:9300","localhost:9301","localhost:9302");
         return builder.build();
     }
     
