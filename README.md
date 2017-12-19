@@ -71,7 +71,7 @@ Please refer to the [Official documentation](http://docs.search-guard.com) for d
 
 ## Config hot reloading
 
-The Search Guard configuration is stored in a dedicated index in Elasticsearch itself. Changes to the configuration are pushed to this index via the [sgadmin command line tool](http://docs.search-guard.com/latest/sgadmin). This will trigger a reload of the configuration on all nodes automatically. This has several advantages over configuration via elasticsearch.yml:
+The Search Guard configuration is stored in a dedicated index in Elasticsearch itself. Changes to the configuration are pushed to this index via the [sgadmin command line tool](http://docs.search-guard.com/v6/sgadmin). This will trigger a reload of the configuration on all nodes automatically. This has several advantages over configuration via elasticsearch.yml:
 
 * Configuration is stored in a central place
 * No configuration files on the nodes necessary

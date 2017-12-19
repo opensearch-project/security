@@ -5,12 +5,12 @@
 #    '<indexname or alias>':
 #      '<type>':  
 #        - '<permission>'
-#      _dls_: '<querydsl query>'
+#      _dls_: '<dls query>'
 #      _fls_:
 #        - '<field>'
 #        - '<field>'
 
-# When a user make a request to elasticsearch then the following roles will be evaluated to see if the user has
+# When a user make a request to Elasticsearch then the following roles will be evaluated to see if the user has
 # permissions for the request. A request is always associated with an action and is executed against and index (or alias)
 # and a type. If a request is executed against all indices (or all types) then the asterix ('*') is needed.
 # Every role a user has will be examined if it allows the action against an index (or type). At least one role must match
@@ -34,18 +34,13 @@
 # This limitation will likely removed with Search Guard 6
 
 # DLS (Document level security) - NOT FREE FOR COMMERCIAL
-# Install https://github.com/floragunncom/search-guard-module-dlsfls
-# Per Index you can define a DLS query
-# If more than one DLS query match they will be OR'ed
+# http://docs.search-guard.com/v6/document-level-security
 
 # FLS (Field level security) - NOT FREE FOR COMMERCIAL
-# Per Index you can define a FLS fields
-# If more than one FLS config match the field will be appended
-# Install https://github.com/floragunncom/search-guard-module-dlsfls
+# http://docs.search-guard.com/v6/field-level-security
 
 # Kibana multitenancy - NOT FREE FOR COMMERCIAL
-# Per role you can define on ore more tenants
-# https://github.com/floragunncom/search-guard-docs/blob/master/multitenancy.md
+# http://docs.search-guard.com/v6/kibana-multi-tenancy
 
 # Allows everything, but no changes to searchguard configuration index
 sg_all_access:

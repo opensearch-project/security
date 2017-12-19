@@ -10,9 +10,9 @@ initsg=0
 cluster_mode=0
 
 function show_help() {
-    echo "install_demo_configuration.sh [-y] [-i]"
+    echo "install_demo_configuration.sh [-y] [-i] [-c]"
     echo "  -h show help"
-    echo "  -y do not ask no confirmation for installation"
+    echo "  -y confirm all installation dialogues automatically"
     echo "  -i initialize Search Guard with default configuration (default is to ask if -y is not given)"
     echo "  -c enable cluster mode by binding to all network interfaces (default is to ask if -y is not given)"
 }
@@ -123,22 +123,22 @@ fi
 if $SUDO_CMD test -f "$ES_CONF_FILE"; then
     :
 else
-    echo "Unable to determine elasticsearch config directory. Quit."
+    echo "Unable to determine Elasticsearch config directory. Quit."
     exit -1
 fi
 
 if [ ! -d $ES_BIN_DIR ]; then
-	echo "Unable to determine elasticsearch bin directory. Quit."
+	echo "Unable to determine Elasticsearch bin directory. Quit."
 	exit -1
 fi
 
 if [ ! -d $ES_PLUGINS_DIR ]; then
-	echo "Unable to determine elasticsearch plugins directory. Quit."
+	echo "Unable to determine Elasticsearch plugins directory. Quit."
 	exit -1
 fi
 
 if [ ! -d $ES_LIB_PATH ]; then
-	echo "Unable to determine elasticsearch lib directory. Quit."
+	echo "Unable to determine Elasticsearch lib directory. Quit."
 	exit -1
 fi
 
@@ -404,10 +404,6 @@ fi
 
 if [ -d "$ES_PLUGINS_DIR/x-pack" ];then
 	echo "xpack.security.enabled: false" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null
-	echo "xpack.monitoring.enabled: true" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null
-	echo "xpack.ml.enabled: false" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null
-	echo "xpack.graph.enabled: false" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null
-	echo "xpack.watcher.enabled: false" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null
 fi
 
 echo "######## End Search Guard Demo Configuration ########" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null 
@@ -427,12 +423,15 @@ if [ "$initsg" == 0 ]; then
 	echo "### After the whole cluster is up execute: "
 	$SUDO_CMD cat sgadmin_demo.sh | tail -1
 	echo "### or run ./sgadmin_demo.sh"
+    echo "### After that you can also use the Search Guard Configuration GUI, see http://docs.search-guard.com/v6/configuration-gui"	
 else
-    echo "### Search Guard will be automatically initialized (because of -i)"
-    echo "### If you like to change the runtime configuration execute: "
+    echo "### Search Guard will be automatically initialized."
+    echo "### If you like to change the runtime configuration "
+    echo "### change the files in ../sgconfig and execute: "
 	$SUDO_CMD cat sgadmin_demo.sh | tail -1
 	echo "### or run ./sgadmin_demo.sh"
+	echo "### To use the Search Guard Configuration GUI see http://docs.search-guard.com/v6/configuration-gui"
 fi
 
-echo "### Then open https://localhost:9200 an login with admin/admin"
-echo "### (Just ignore the ssl certificate warning because we installed a self signed demo certificate)"
+echo "### To access your Search Guard secured cluster open https://<hostname>:<HTTP port> and log in with admin/admin."
+echo "### (Ignore the SSL certificate warning because we installed self-signed demo certificates)"

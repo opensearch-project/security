@@ -120,15 +120,15 @@ public class SearchGuardAdmin {
         try {
             main0(args);
         } catch (NoNodeAvailableException e) {
-            System.out.println("ERR: Cannot connect to elasticsearch. Please refer to elasticsearch logfile for more information");
+            System.out.println("ERR: Cannot connect to Elasticsearch. Please refer to elasticsearch logfile for more information");
             System.out.println("Trace:");
             e.printStackTrace();
             System.exit(-1);
         } 
         catch (IndexNotFoundException e) {
-            System.out.println("ERR: No searchguard configuartion index found. Pls. execute sgadmin with different command line parameters");
+            System.out.println("ERR: No Search Guard configuartion index found. Please execute sgadmin with different command line parameters");
             System.out.println("When you run it for the first time do not specify -us, -era, -dra or -rl");
-            System.out.println("For more informations look here: https://github.com/floragunncom/search-guard/issues/228");
+            System.out.println("For more information please look here: http://docs.search-guard.com/v6/troubleshooting-sgadmin");
             System.exit(-1);
         }
         catch (Exception e) {
@@ -137,9 +137,8 @@ public class SearchGuardAdmin {
                     && e.getMessage() != null 
                     && e.getMessage().contains("no permissions")) {
 
-                System.out.println("ERR: You try to connect with a ssl node certificate instead of an admin client certificate");
-                System.out.println("This may have worked in previous versions of Search Guard but is now forbidden");
-                System.out.println("For more informations look here: https://github.com/floragunncom/search-guard-docs/blob/master/sgadmin.md#configuring-the-admin-certificate");
+                System.out.println("ERR: You try to connect with a TLS node certificate instead of an admin client certificate");                
+                System.out.println("For more information please look here: http://docs.search-guard.com/v6/troubleshooting-sgadmin");
                 System.exit(-1);
             }
             
@@ -154,17 +153,16 @@ public class SearchGuardAdmin {
         
         System.out.println("Search Guard Admin v6");
         System.setProperty("sg.nowarn.client","true");
-        System.setProperty("sg.display_lic_only_stdout","true");
         System.setProperty("jdk.tls.rejectClientInitiatedRenegotiation","true");
 
         final HelpFormatter formatter = new HelpFormatter();
         Options options = new Options();
         options.addOption( "nhnv", "disable-host-name-verification", false, "Disable hostname verification" );
-        options.addOption( "nrhn", "disable-resolve-hostname", false, "Disable hostname beeing resolved" );
+        options.addOption( "nrhn", "disable-resolve-hostname", false, "Disable DNS lookup of hostnames" );
         options.addOption(Option.builder("ts").longOpt("truststore").hasArg().argName("file").desc("Path to truststore (JKS/PKCS12 format)").build());
         options.addOption(Option.builder("ks").longOpt("keystore").hasArg().argName("file").desc("Path to keystore (JKS/PKCS12 format").build());
-        options.addOption(Option.builder("tst").longOpt("truststore-type").hasArg().argName("type").desc("JKS or PKCS12, if not given use file ext. to dectect type").build());
-        options.addOption(Option.builder("kst").longOpt("keystore-type").hasArg().argName("type").desc("JKS or PKCS12, if not given use file ext. to dectect type").build());
+        options.addOption(Option.builder("tst").longOpt("truststore-type").hasArg().argName("type").desc("JKS or PKCS12, if not given we use the file extension to dectect the type").build());
+        options.addOption(Option.builder("kst").longOpt("keystore-type").hasArg().argName("type").desc("JKS or PKCS12, if not given we use the file extension to dectect the type").build());
         options.addOption(Option.builder("tspass").longOpt("truststore-password").hasArg().argName("password").desc("Truststore password").build());
         options.addOption(Option.builder("kspass").longOpt("keystore-password").hasArg().argName("password").desc("Keystore password").build());
         options.addOption(Option.builder("cd").longOpt("configdir").hasArg().argName("directory").desc("Directory for config files").build());
@@ -178,30 +176,30 @@ public class SearchGuardAdmin {
         options.addOption(Option.builder("t").longOpt("type").hasArg().argName("file-type").desc("file-type").build());
         options.addOption(Option.builder("tsalias").longOpt("truststore-alias").hasArg().argName("alias").desc("Truststore alias").build());
         options.addOption(Option.builder("ksalias").longOpt("keystore-alias").hasArg().argName("alias").desc("Keystore alias").build());
-        options.addOption(Option.builder("ec").longOpt("enabled-ciphers").hasArg().argName("cipers").desc("Comma separated list of TLS ciphers").build());
-        options.addOption(Option.builder("ep").longOpt("enabled-protocols").hasArg().argName("protocols").desc("Comma separated list of TLS protocols").build());
+        options.addOption(Option.builder("ec").longOpt("enabled-ciphers").hasArg().argName("cipers").desc("Comma separated list of enabled TLS ciphers").build());
+        options.addOption(Option.builder("ep").longOpt("enabled-protocols").hasArg().argName("protocols").desc("Comma separated list of enabled TLS protocols").build());
         //TODO mark as deprecated and replace it with "era" if "era" is mature enough
-        options.addOption(Option.builder("us").longOpt("update_settings").hasArg().argName("number of replicas").desc("update the number of replicas and reload configuration on all nodes and exit").build());
-        options.addOption(Option.builder("i").longOpt("index").hasArg().argName("indexname").desc("The index Searchguard uses to store its configs in").build());
-        options.addOption(Option.builder("era").longOpt("enable-replica-autoexpand").desc("enable replica auto expand and exit").build());
-        options.addOption(Option.builder("dra").longOpt("disable-replica-autoexpand").desc("disable replica auto expand and exit").build());
-        options.addOption(Option.builder("rl").longOpt("reload").desc("reload configuration on all nodes and exit").build());
+        options.addOption(Option.builder("us").longOpt("update_settings").hasArg().argName("number of replicas").desc("Update the number of Search Guard index replicas, reload configuration on all nodes and exit").build());
+        options.addOption(Option.builder("i").longOpt("index").hasArg().argName("indexname").desc("The index Search Guard uses to store the configuration").build());
+        options.addOption(Option.builder("era").longOpt("enable-replica-autoexpand").desc("Enable replica auto expand and exit").build());
+        options.addOption(Option.builder("dra").longOpt("disable-replica-autoexpand").desc("Disable replica auto expand and exit").build());
+        options.addOption(Option.builder("rl").longOpt("reload").desc("Reload the configuration on all nodes, flush all Search Guard caches and exit").build());
         options.addOption(Option.builder("ff").longOpt("fail-fast").desc("fail-fast if something goes wrong").build());
         options.addOption(Option.builder("dg").longOpt("diagnose").desc("Log diagnostic trace into a file").build());
         options.addOption(Option.builder("dci").longOpt("delete-config-index").desc("Delete 'searchguard' config index and exit.").build());
         options.addOption(Option.builder("esa").longOpt("enable-shard-allocation").desc("Enable all shard allocation and exit.").build());
-        options.addOption(Option.builder("arc").longOpt("accept-red-cluster").desc("Also operate on a red cluster. Normally we wait for yellow state.").build());
+        options.addOption(Option.builder("arc").longOpt("accept-red-cluster").desc("Also operate on a red cluster. If not specified the cluster state has to be at least yellow.").build());
 
         options.addOption(Option.builder("cacert").hasArg().argName("file").desc("Path to trusted cacert (PEM format)").build());
         options.addOption(Option.builder("cert").hasArg().argName("file").desc("Path to admin certificate in PEM format").build());
         options.addOption(Option.builder("key").hasArg().argName("file").desc("Path to the key of admin certificate").build());
         options.addOption(Option.builder("keypass").hasArg().argName("password").desc("Password of the key of admin certificate (optional)").build());
 
-        options.addOption(Option.builder("noopenssl").longOpt("no-openssl").desc("Do not use openssl even if available (default: use it if available)").build());
+        options.addOption(Option.builder("noopenssl").longOpt("no-openssl").desc("Do not use OpenSSL even if available (default: use it if available)").build());
 
-        options.addOption(Option.builder("si").longOpt("show-info").desc("show infos").build());
+        options.addOption(Option.builder("si").longOpt("show-info").desc("Show system and license info").build());
 
-        options.addOption(Option.builder("w").longOpt("whoami").desc("who am i").build());
+        options.addOption(Option.builder("w").longOpt("whoami").desc("Show information about the used admin certificate").build());
 
         
         //when adding new options also adjust validate(CommandLine line)
@@ -326,8 +324,8 @@ public class SearchGuardAdmin {
         }
         
         if(port < 9300) {
-            System.out.println("WARNING: Seems you want connect to the a HTTP port."+System.lineSeparator()
-                             + "         sgadmin connect through the transport port which is normally 9300.");
+            System.out.println("WARNING: Seems you want connect to the Elasticsearch HTTP port."+System.lineSeparator()
+                             + "         sgadmin connects on the transport port which is normally 9300.");
         }
         
         System.out.print("Will connect to "+hostname+":"+port);
@@ -339,7 +337,7 @@ public class SearchGuardAdmin {
             
           } catch (java.net.ConnectException ex) {
             System.out.println();
-            System.out.println("ERR: Seems there is no elasticsearch running on "+hostname+":"+port+" - Will exit");
+            System.out.println("ERR: Seems there is no Elasticsearch running on "+hostname+":"+port+" - Will exit");
             System.exit(-1);
           } finally {
               try {
@@ -410,23 +408,17 @@ public class SearchGuardAdmin {
             System.out.println("Connected as "+whoAmIRes.getDn());
 
             if(!whoAmIRes.isAdmin()) {
-                System.out.println("ERR: "+whoAmIRes.getDn()+" is not an admin user");
+                
+            	System.out.println("ERR: "+whoAmIRes.getDn()+" is not an admin user");
                 
                 if(!whoAmIRes.isNodeCertificateRequest()) {
-                    System.out.println("Make sure the elasticsearch.yml on all nodes contain");
+                	System.out.println("Seems you use a client certificate but this one is not registered as admin_dn");
+                	System.out.println("Make sure elasticsearch.yml on all nodes contains:");
                     System.out.println("searchguard.authcz.admin_dn:"+System.lineSeparator()+
                                        "  - \""+whoAmIRes.getDn()+"\"");
+                } else {
+                	System.out.println("Seems you use a node certificate. This is not permitted, you have to use a client certificate and register it as admin_dn in elasticsearch.yml");
                 }
-
-                System.out.println();
-                if(whoAmIRes.isAuthenticated()) {
-                    System.out.println("    Seems you used a client certificate but this one is not registered as admin_dn");
-                }
-                
-                if(whoAmIRes.isNodeCertificateRequest()) {
-                    System.out.println("    Seems you used a node certificate. This is not permitted, you have to use a client certificate and register it as admin_dn");
-                }
-                
                 System.exit(-1);
             }
             
@@ -486,7 +478,7 @@ public class SearchGuardAdmin {
             }   
             
             if(failFast) {
-                System.out.println("Failfast is activated");
+                System.out.println("Fail-fast is activated");
             }
             
             if(diagnose) {
@@ -511,16 +503,16 @@ public class SearchGuardAdmin {
                     if(!failFast) {
                         System.out.println("Cannot retrieve cluster state due to: "+e.getMessage()+". This is not an error, will keep on trying ...");
                         System.out.println("  Root cause: "+rootCause+" ("+e.getClass().getName()+"/"+rootCause.getClass().getName()+")");
-                        System.out.println("   * Try running sgadmin.sh with -icl (but no -cl) and -nhnv (If thats works you need to check your clustername as well as hostnames in your SSL certificates)");   
-                        System.out.println("   * Make also sure that your keystore or cert is a client certificate (not a node certificate) and configured properly in elasticsearch.yml"); 
+                        System.out.println("   * Try running sgadmin.sh with -icl (but no -cl) and -nhnv (If that works you need to check your clustername as well as hostnames in your TLS certificates)");   
+                        System.out.println("   * Make sure that your keystore or PEM certificate is a client certificate (not a node certificate) and configured properly in elasticsearch.yml"); 
                         System.out.println("   * If this is not working, try running sgadmin.sh with --diagnose and see diagnose trace log file)");
                         System.out.println("   * Add --accept-red-cluster to allow sgadmin to operate on a red cluster.");
 
                     } else {
                         System.out.println("ERR: Cannot retrieve cluster state due to: "+e.getMessage()+".");
                         System.out.println("  Root cause: "+rootCause+" ("+e.getClass().getName()+"/"+rootCause.getClass().getName()+")");
-                        System.out.println("   * Try running sgadmin.sh with -icl (but no -cl) and -nhnv (If thats works you need to check your clustername as well as hostnames in your SSL certificates)");
-                        System.out.println("   * Make also sure that your keystore or cert is a client certificate (not a node certificate) and configured properly in elasticsearch.yml"); 
+                        System.out.println("   * Try running sgadmin.sh with -icl (but no -cl) and -nhnv (If that works you need to check your clustername as well as hostnames in your TLS certificates)");
+                        System.out.println("   * Make also sure that your keystore or PEM certificate is a client certificate (not a node certificate) and configured properly in elasticsearch.yml"); 
                         System.out.println("   * If this is not working, try running sgadmin.sh with --diagnose and see diagnose trace log file)"); 
                         System.out.println("   * Add --accept-red-cluster to allow sgadmin to operate on a red cluster.");
 
@@ -536,8 +528,8 @@ public class SearchGuardAdmin {
             
             if (!acceptRedCluster && timedOut) {
                 System.out.println("ERR: Timed out while waiting for a green or yellow cluster state.");
-                System.out.println("   * Try running sgadmin.sh with -icl (but no -cl) and -nhnv (If thats works you need to check your clustername as well as hostnames in your SSL certificates)");
-                System.out.println("   * Make also sure that your keystore or cert is a client certificate (not a node certificate) and configured properly in elasticsearch.yml"); 
+                System.out.println("   * Try running sgadmin.sh with -icl (but no -cl) and -nhnv (If that works you need to check your clustername as well as hostnames in your TLS certificates)");
+                System.out.println("   * Make also sure that your keystore or PEM certificate is a client certificate (not a node certificate) and configured properly in elasticsearch.yml"); 
                 System.out.println("   * If this is not working, try running sgadmin.sh with --diagnose and see diagnose trace log file)"); 
                 System.out.println("   * Add --accept-red-cluster to allow sgadmin to operate on a red cluster.");
                 System.exit(-1);
@@ -729,7 +721,7 @@ public class SearchGuardAdmin {
                 return true;
             } else {
                 System.out.println("   FAIL: Configuration for '" + id
-                        + "' failed for unknown reasons. Pls. consult logfile of elasticsearch");
+                        + "' failed for unknown reasons. Please consult the Elasticsearch logfile.");
             }
         } catch (Exception e) {
             System.out.println("   FAIL: Configuration for '" + id + "' failed because of " + e.toString());

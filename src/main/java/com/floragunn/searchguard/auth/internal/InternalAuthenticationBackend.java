@@ -80,7 +80,7 @@ public class InternalAuthenticationBackend implements AuthenticationBackend {
         
         final Settings cfg = getConfigSettings();
         if (cfg == null) {
-            throw new ElasticsearchSecurityException("Internal authentication backend not configured. May be Search Guard is not initialized. See https://github.com/floragunncom/search-guard-docs/blob/master/sgadmin.md");
+            throw new ElasticsearchSecurityException("Internal authentication backend not configured. May be Search Guard is not initialized. See http://docs.search-guard.com/v6/sgadmin");
 
         }
 

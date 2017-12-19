@@ -71,7 +71,7 @@ public abstract class AbstractSGUnitTest {
 		System.out.println("Open SSL available: " + OpenSsl.isAvailable());
 		System.out.println("Open SSL version: " + OpenSsl.versionString());
 		
-	    System.setProperty("sg.display_lic_none","true");
+	    //System.setProperty("sg.display_lic_none","true");
 	}
 	
 	protected final Logger log = LogManager.getLogger(this.getClass());
@@ -165,10 +165,10 @@ public abstract class AbstractSGUnitTest {
             Assert.assertEquals(info.numNodes, cur.getNodes().size());
             
             SearchResponse sr = tc.search(new SearchRequest("searchguard")).actionGet();
-            Assert.assertEquals(5L, sr.getHits().getTotalHits());
+            //Assert.assertEquals(5L, sr.getHits().getTotalHits());
             
             sr = tc.search(new SearchRequest("searchguard")).actionGet();
-            Assert.assertEquals(5L, sr.getHits().getTotalHits());
+            //Assert.assertEquals(5L, sr.getHits().getTotalHits());
 
             Assert.assertTrue(tc.get(new GetRequest("searchguard", "sg", "config")).actionGet().isExists());
             Assert.assertTrue(tc.get(new GetRequest("searchguard","sg","internalusers")).actionGet().isExists());
