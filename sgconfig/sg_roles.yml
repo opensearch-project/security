@@ -98,6 +98,7 @@ sg_kibana_server:
       - CLUSTER_MONITOR
       - CLUSTER_COMPOSITE_OPS
       - cluster:admin/xpack/monitoring*
+      - indices:admin/template*
   indices:
     '?kibana':
       '*':
