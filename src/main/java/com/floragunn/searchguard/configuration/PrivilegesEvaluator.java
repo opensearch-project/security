@@ -82,6 +82,8 @@ import org.elasticsearch.index.reindex.ReindexAction;
 import org.elasticsearch.index.reindex.ReindexRequest;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.Repository;
+import org.elasticsearch.search.aggregations.AggregationBuilder;
+import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotUtils;
@@ -322,6 +324,31 @@ public class PrivilegesEvaluator {
         
         final PrivEvalResponse presponse = new PrivEvalResponse();
         presponse.missingPrivileges.add(action);
+
+        try {
+            if(request instanceof SearchRequest) {
+                SearchRequest sr = (SearchRequest) request;
+                if(sr.indices().length == 0 
+                        && sr.source() != null 
+                        && sr.source().query() == null
+                        && sr.source().aggregations() != null
+                        && sr.source().aggregations().getAggregatorFactories() != null
+                        && sr.source().aggregations().getAggregatorFactories().size() == 1 
+                        && sr.source().size() == 0) {
+                   AggregationBuilder ab = sr.source().aggregations().getAggregatorFactories().get(0);
+                   if(ab instanceof TermsAggregationBuilder && "terms".equals(ab.getType()) && "indices".equals(ab.getName())) {
+                       if("_index".equals(((TermsAggregationBuilder) ab).field()) 
+                               && ab.getPipelineAggregations().isEmpty() 
+                               && ab.getSubAggregations().isEmpty()) {
+                           presponse.allowed = true;
+                           return presponse;
+                       }
+                   }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Unable to evaluate terms aggregation",e);
+        }
         
         final Settings config = getConfigSettings();
         final Settings roles = getRolesSettings();

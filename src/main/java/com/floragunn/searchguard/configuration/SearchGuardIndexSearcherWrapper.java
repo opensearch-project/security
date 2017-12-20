@@ -58,6 +58,10 @@ public class SearchGuardIndexSearcherWrapper extends IndexSearcherWrapper {
     @Override
     public final DirectoryReader wrap(final DirectoryReader reader) throws IOException {
 
+        if (isSearchGuardIndexRequest() && !isAdminAuthenticatedOrInternalRequest()) {          
+            return new EmptyDirectoryReader(reader, index);
+        }
+
         if (!isAdminAuthenticatedOrInternalRequest()) {
             return dlsFlsWrap(reader);
         }
@@ -68,18 +72,23 @@ public class SearchGuardIndexSearcherWrapper extends IndexSearcherWrapper {
     @Override
     public final IndexSearcher wrap(final IndexSearcher searcher) throws EngineException {
 
-        if (isSearchGuardIndexRequest() && !isAdminAuthenticatedOrInternalRequest()) {
-            try {
-                final List<LeafReaderContext> leaves = searcher.getIndexReader().leaves();
-                final EmptyLeafReader[] er = new EmptyLeafReader[leaves.size()];
-                for (int i = 0; i < er.length; i++) {
-                    er[i] = new EmptyLeafReader(leaves.get(i).reader());
-                }
-                return new IndexSearcher(new EmptyMultiReader(er, searcher));
-            } catch (IOException e) {
-                log.error("Exception wrapping index searcher",e);
-                throw new EngineException(new ShardId(index, 0), "xception wrapping index searcher "+e);
-            }           
+        
+        
+        if (isSearchGuardIndexRequest() && !isAdminAuthenticatedOrInternalRequest()) {        
+            
+            if(searcher.getIndexReader().getClass() != EmptyDirectoryReader.class) {      
+                try {
+                    final List<LeafReaderContext> leaves = searcher.getIndexReader().leaves();
+                    final EmptyLeafReader[] er = new EmptyLeafReader[leaves.size()];
+                    for (int i = 0; i < er.length; i++) {
+                        er[i] = new EmptyLeafReader(leaves.get(i).reader());
+                    }
+                    return new IndexSearcher(new EmptyMultiReader(er, searcher));
+                } catch (IOException e) {
+                    log.error("Exception wrapping index searcher",e);
+                    throw new EngineException(new ShardId(index, 0), "Exception wrapping index searcher "+e);
+                }      
+            }
         }
 
         if (!isAdminAuthenticatedOrInternalRequest()) {

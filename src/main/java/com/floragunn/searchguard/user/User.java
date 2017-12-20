@@ -144,12 +144,12 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
         this.requestedTenant = requestedTenant;
     }
 
-    @Override
-    public final String toString() {
+    public final String toStringWithAttributes() {
         return "User [name=" + name + ", roles=" + roles + ", requestedTenant=" + requestedTenant + ", attributes=" + attributes + "]";
     }
 
-    public final String toStringWithoutAttributes() {
+    @Override
+    public final String toString() {
         return "User [name=" + name + ", roles=" + roles + ", requestedTenant=" + requestedTenant + "]";
     }
 

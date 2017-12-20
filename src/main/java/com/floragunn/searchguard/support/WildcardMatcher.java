@@ -176,6 +176,32 @@ public class WildcardMatcher {
 
         return matches;
     }
+    
+    public static List<String> getMatchAny(final String pattern, final Collection<String> candidate) {
+
+        final List<String> matches = new ArrayList<String>(candidate.size());
+
+        for (final String string: candidate) {
+            if (match(pattern, string)) {
+                matches.add(string);
+            }
+        }
+
+        return matches;
+    }
+    
+    public static List<String> getMatchAny(final String[] patterns, final Collection<String> candidate) {
+
+        final List<String> matches = new ArrayList<String>(candidate.size());
+
+        for (final String string: candidate) {
+            if (matchAny(patterns, string)) {
+                matches.add(string);
+            }
+        }
+
+        return matches;
+    }
 
     /**
      * returns true if the candidate matches at least one pattern
