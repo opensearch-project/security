@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 floragunn UG (haftungsbeschränkt)
+ * Copyright 2015-2017 floragunn GmbH
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -158,7 +158,6 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
     private Client localClient;
     private final boolean disabled;
     private final boolean enterpriseModulesEnabled;
-    private static final String LB = System.lineSeparator();
     private final List<String> demoCertHashes = new ArrayList<String>(3);
     private SearchGuardFilter sgf;
     
@@ -299,6 +298,8 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
             if(files != null) {
                 demoCertHashes.retainAll(files);
                 if(!demoCertHashes.isEmpty()) {
+                    log.error("Demo certificates found but "+ConfigConstants.SEARCHGUARD_ALLOW_UNSAFE_DEMOCERTIFICATES+" is set to false."
+                            + "See http://docs.search-guard.com/latest/demo-installer-generated-artefacts#allow-demo-certificates-and-auto-initialization");
                     throw new RuntimeException("Demo certificates found "+demoCertHashes);
                 }
             } else {

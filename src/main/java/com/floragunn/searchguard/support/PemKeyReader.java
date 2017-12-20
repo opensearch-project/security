@@ -1,5 +1,3 @@
-package com.floragunn.searchguard.support;
-
 /*
  * Copyright 2014 The Netty Project
  *
@@ -15,6 +13,8 @@ package com.floragunn.searchguard.support;
  * License for the specific language governing permissions and limitations
  * under the License.
  */
+
+package com.floragunn.searchguard.support;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

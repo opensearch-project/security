@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2017 floragunn Gmbh
+ * Copyright 2015-2017 floragunn GmbH
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
