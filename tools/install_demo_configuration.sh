@@ -371,7 +371,6 @@ echo "searchguard.authcz.admin_dn:" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null
 echo "  - CN=kirk,OU=client,O=client,L=test, C=de" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null 
 echo "" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null 
 echo "searchguard.audit.type: internal_elasticsearch" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null
-#echo "searchguard.audit.config.disabled_categories: ["AUTHENTICATED"]" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null
 echo "searchguard.enable_snapshot_restore_privilege: true" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null
 echo "searchguard.check_snapshot_restore_write_privileges: true" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null
 echo 'searchguard.restapi.roles_enabled: ["sg_all_access"]' | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null
