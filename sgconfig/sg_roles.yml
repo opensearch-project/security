@@ -161,6 +161,7 @@ sg_xp_alerting:
   cluster:
     - indices:data/read/scroll
     - cluster:admin/xpack/watcher*
+    - cluster:monitor/xpack/watcher*
   indices:
     '?watches*':
       '*':
@@ -183,6 +184,7 @@ sg_xp_machine_learning:
     - cluster:internal/xpack/ml*
     - indices:data/read/scroll*
     - cluster:admin/xpack/ml*
+    - cluster:monitor/xpack/ml*
   indices:
     '*':
       '*':
