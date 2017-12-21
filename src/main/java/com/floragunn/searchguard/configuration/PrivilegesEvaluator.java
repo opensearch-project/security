@@ -327,19 +327,22 @@ public class PrivilegesEvaluator {
 
         try {
             if(request instanceof SearchRequest) {
-                SearchRequest sr = (SearchRequest) request;
-                if(sr.indices().length == 0 
-                        && sr.source() != null 
-                        && sr.source().query() == null
+                SearchRequest sr = (SearchRequest) request;                
+                if( 
+                        /*(sr.indices().length == 0 || (sr.indices().length == 1 && "*".equals(sr.indices()[0])))
+                        && sr.source() != null
+                        && */ sr.source().query() == null
                         && sr.source().aggregations() != null
                         && sr.source().aggregations().getAggregatorFactories() != null
                         && sr.source().aggregations().getAggregatorFactories().size() == 1 
                         && sr.source().size() == 0) {
-                   AggregationBuilder ab = sr.source().aggregations().getAggregatorFactories().get(0);
-                   if(ab instanceof TermsAggregationBuilder && "terms".equals(ab.getType()) && "indices".equals(ab.getName())) {
+                   AggregationBuilder ab = sr.source().aggregations().getAggregatorFactories().get(0);                   
+                   if(     ab instanceof TermsAggregationBuilder 
+                           && "terms".equals(ab.getType()) 
+                           && "indices".equals(ab.getName())) {                       
                        if("_index".equals(((TermsAggregationBuilder) ab).field()) 
                                && ab.getPipelineAggregations().isEmpty() 
-                               && ab.getSubAggregations().isEmpty()) {
+                               && ab.getSubAggregations().isEmpty()) {                  
                            presponse.allowed = true;
                            return presponse;
                        }

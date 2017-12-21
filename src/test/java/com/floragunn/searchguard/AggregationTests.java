@@ -72,6 +72,15 @@ public class AggregationTests extends SingleClusterTest {
         assertContains(res, "*vulcangov*");
         assertContains(res, "*\"failed\" : 0*");
         
+        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("*/_search?pretty", "{\"size\":0,\"aggs\":{\"indices\":{\"terms\":{\"field\":\"_index\",\"size\":40}}}}",encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
+        System.out.println(res.getBody());
+        assertNotContains(res, "*xception*");
+        assertNotContains(res, "*erial*");
+        assertNotContains(res, "*mpty*");
+        assertNotContains(res, "*earchguard*");
+        assertContains(res, "*vulcangov*");
+        assertContains(res, "*\"failed\" : 0*");
+        
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("_search?pretty", "{\"size\":0,\"aggs\":{\"indices\":{\"terms\":{\"field\":\"_index\",\"size\":40}}}}",encodeBasicHeader("worf", "worf"))).getStatusCode());
         System.out.println(res.getBody());
         assertNotContains(res, "*xception*");
