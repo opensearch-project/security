@@ -107,6 +107,7 @@ import com.floragunn.searchguard.action.whoami.TransportWhoAmIAction;
 import com.floragunn.searchguard.action.whoami.WhoAmIAction;
 import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.auditlog.AuditLogSslExceptionHandler;
+import com.floragunn.searchguard.auditlog.AuditLog.Origin;
 import com.floragunn.searchguard.auth.BackendRegistry;
 import com.floragunn.searchguard.auth.internal.InternalAuthenticationBackend;
 import com.floragunn.searchguard.configuration.ActionGroupHolder;
@@ -132,6 +133,7 @@ import com.floragunn.searchguard.ssl.http.netty.ValidatingDispatcher;
 import com.floragunn.searchguard.ssl.transport.SearchGuardSSLNettyTransport;
 import com.floragunn.searchguard.ssl.util.SSLConfigConstants;
 import com.floragunn.searchguard.support.ConfigConstants;
+import com.floragunn.searchguard.support.HeaderHelper;
 import com.floragunn.searchguard.support.ModuleInfo;
 import com.floragunn.searchguard.support.ReflectionHelper;
 import com.floragunn.searchguard.transport.DefaultInterClusterRequestEvaluator;
@@ -456,9 +458,18 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
                     final ScrollContext scrollContext = context.scrollContext();
                     
                     if(scrollContext != null) {
-                        scrollContext.putInContext("_sg_scroll_auth", threadPool.getThreadContext()
-                                .getTransient(ConfigConstants.SG_USER));
-                    }
+                        
+                        final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadPool.getThreadContext());
+                        if(Origin.LOCAL.toString().equals((String)threadPool.getThreadContext().getTransient(ConfigConstants.SG_ORIGIN)) 
+                                && (interClusterRequest || HeaderHelper.isDirectRequest(threadPool.getThreadContext()))
+  
+                        ){
+                            scrollContext.putInContext("_sg_scroll_auth_local", Boolean.TRUE);
+                            
+                        } else {                            }
+                            scrollContext.putInContext("_sg_scroll_auth", threadPool.getThreadContext()
+                                    .getTransient(ConfigConstants.SG_USER));
+                        }
                 }
 
                 @Override
@@ -466,6 +477,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
                     
                     final ScrollContext scrollContext = context.scrollContext();
                     if(scrollContext != null) {
+                        final Object _isLocal = scrollContext.getFromContext("_sg_scroll_auth_local");
                         final Object _user = scrollContext.getFromContext("_sg_scroll_auth");
                         if(_user != null && (_user instanceof User)) {
                             final User scrollUser = (User) _user;
@@ -476,7 +488,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
                                 log.error("Wrong user {} in scroll context, expected {}", scrollUser, currentUser);
                                 throw new ElasticsearchSecurityException("Wrong user in scroll context", RestStatus.FORBIDDEN);
                             }
-                        } else {
+                        } else if(_isLocal != Boolean.TRUE) {
                             auditLog.logMissingPrivileges(SearchScrollAction.NAME, transportRequest, context.getTask());
                             throw new ElasticsearchSecurityException("No user in scroll context", RestStatus.FORBIDDEN);
                         }
