@@ -53,8 +53,6 @@ import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
 import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsRequest;
 import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsResponse;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
-import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
-import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequest;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
@@ -83,7 +81,6 @@ import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -841,7 +838,7 @@ public class SearchGuardAdmin {
         try {
             sb.append("Who am i:"+System.lineSeparator());
             final WhoAmIResponse whoAmIRes = tc.execute(WhoAmIAction.INSTANCE, new WhoAmIRequest()).actionGet();
-            sb.append(Strings.toString(whoAmIRes));
+            sb.append(Strings.toString(whoAmIRes,true, true));
         } catch (Exception e1) {
             sb.append(ExceptionsHelper.stackTrace(e1));
         }
@@ -849,7 +846,7 @@ public class SearchGuardAdmin {
         try {
             sb.append("License:"+System.lineSeparator());
             LicenseInfoResponse res = tc.execute(LicenseInfoAction.INSTANCE, new LicenseInfoRequest()).actionGet();
-            sb.append(Strings.toString(res));
+            sb.append(Strings.toString(res,true, true));
         } catch (Exception e1) {
             sb.append(ExceptionsHelper.stackTrace(e1));
         }
@@ -858,7 +855,7 @@ public class SearchGuardAdmin {
         try {
             sb.append("ClusterHealthRequest:"+System.lineSeparator());
             ClusterHealthResponse nir = tc.admin().cluster().health(new ClusterHealthRequest()).actionGet();
-            sb.append(Strings.toString(nir));
+            sb.append(Strings.toString(nir,true, true));
         } catch (Exception e1) {
             sb.append(ExceptionsHelper.stackTrace(e1));
         }
@@ -866,7 +863,7 @@ public class SearchGuardAdmin {
         try {
             sb.append(System.lineSeparator()+"NodesInfoResponse:"+System.lineSeparator());
             NodesInfoResponse nir = tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet();
-            sb.append(Strings.toString(nir));
+            sb.append(Strings.toString(nir,true, true));
         } catch (Exception e1) {
             sb.append(ExceptionsHelper.stackTrace(e1));
         }
@@ -874,7 +871,7 @@ public class SearchGuardAdmin {
         try {
             sb.append(System.lineSeparator()+"NodesStatsRequest:"+System.lineSeparator());
             NodesStatsResponse nir = tc.admin().cluster().nodesStats(new NodesStatsRequest()).actionGet();
-            sb.append(Strings.toString(nir));
+            sb.append(Strings.toString(nir,true, true));
         } catch (Exception e1) {
             sb.append(ExceptionsHelper.stackTrace(e1));
         }
@@ -882,15 +879,7 @@ public class SearchGuardAdmin {
         try {
             sb.append(System.lineSeparator()+"PendingClusterTasksRequest:"+System.lineSeparator());
             PendingClusterTasksResponse nir = tc.admin().cluster().pendingClusterTasks(new PendingClusterTasksRequest()).actionGet();
-            sb.append(Strings.toString(nir));
-        } catch (Exception e1) {
-            sb.append(ExceptionsHelper.stackTrace(e1));
-        }
-        
-        try {
-            sb.append(System.lineSeparator()+"ClusterStateRequest:"+System.lineSeparator());
-            ClusterStateResponse nir = tc.admin().cluster().state(new ClusterStateRequest()).actionGet();
-            sb.append(Strings.toString(nir.getState()));
+            sb.append(Strings.toString(nir,true, true));
         } catch (Exception e1) {
             sb.append(ExceptionsHelper.stackTrace(e1));
         }
@@ -898,7 +887,7 @@ public class SearchGuardAdmin {
         try {
             sb.append(System.lineSeparator()+"IndicesStatsRequest:"+System.lineSeparator());
             IndicesStatsResponse nir = tc.admin().indices().stats(new IndicesStatsRequest()).actionGet();
-            sb.append(Strings.toString(nir));
+            sb.append(Strings.toString(nir, true, true));
         } catch (Exception e1) {
             sb.append(ExceptionsHelper.stackTrace(e1));
         }
