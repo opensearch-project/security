@@ -243,6 +243,7 @@
                       <goals>
                           <goal>files</goal>
                       </goals>
+                      <phase>package</phase>
                   </execution>
               </executions>
             <configuration>
