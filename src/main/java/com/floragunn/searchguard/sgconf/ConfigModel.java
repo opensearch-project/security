@@ -1,0 +1,518 @@
+package com.floragunn.searchguard.sgconf;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.elasticsearch.common.settings.Settings;
+
+import com.floragunn.searchguard.configuration.ActionGroupHolder;
+import com.floragunn.searchguard.configuration.ConfigurationRepository;
+import com.floragunn.searchguard.support.WildcardMatcher;
+import com.floragunn.searchguard.user.User;
+
+public class ConfigModel {
+    
+    private final ActionGroupHolder ah;
+    private final ConfigurationRepository configurationRepository;
+
+    public ConfigModel(final ActionGroupHolder ah,
+            final ConfigurationRepository configurationRepository) {
+        super();
+        this.ah = ah;
+        this.configurationRepository = configurationRepository;
+    }
+
+    public SgRoles load() {
+        final Settings settings = configurationRepository.getConfiguration("roles");
+        SgRoles _sgRoles = new SgRoles();
+        Set<String> sgRoles = settings.names();
+        for(String sgRole: sgRoles) {
+            
+            SgRole _sgRole = new SgRole(sgRole);
+            
+            final Settings sgRoleSettings = settings.getByPrefix(sgRole);
+            if (sgRoleSettings.names().isEmpty()) {
+                continue;
+            }
+            
+            final Set<String> permittedClusterActions = ah.resolvedActions(sgRoleSettings.getAsList(".cluster", Collections.emptyList()));
+            _sgRole.addClusterPerms(permittedClusterActions);
+            
+            Settings tenants = settings.getByPrefix(sgRole+".tenants.");
+            
+            if(tenants != null) {
+                for(String tenant: tenants.names()) {
+                    
+                    //if(tenant.equals(user.getName())) {
+                    //    continue;
+                    //}
+                    
+                    if("RW".equalsIgnoreCase(tenants.get(tenant, "RO"))) {
+                        _sgRole.addTenant(new Tenant(tenant, true));
+                    } else {
+                        _sgRole.addTenant(new Tenant(tenant, false));
+                        //if(_sgRole.tenants.stream().filter(t->t.tenant.equals(tenant)).count() > 0) { //RW outperforms RO
+                        //    _sgRole.addTenant(new Tenant(tenant, false));
+                        //}
+                    }
+                }
+            }
+            
+
+            final Map<String, Settings> permittedAliasesIndices = sgRoleSettings.getGroups(".indices");
+            
+            for (final String permittedAliasesIndex : permittedAliasesIndices.keySet()) {
+                
+                final String resolvedRole = sgRole;
+                final String indexPattern = permittedAliasesIndex;
+                
+                final String dls = settings.get(resolvedRole+".indices."+indexPattern+"._dls_");
+                final List<String> fls = settings.getAsList(resolvedRole+".indices."+indexPattern+"._fls_");
+                
+                IndexPattern _indexPattern = new IndexPattern(indexPattern);
+                _indexPattern.setDlsQuery(dls);
+                _indexPattern.addFlsFields(fls);
+                
+                
+                for(String type: permittedAliasesIndices.get(indexPattern).names()) {
+                    
+                    if(type.equals("_fls_") || type.equals("_dls_")) {
+                        continue;
+                    }
+                    
+                    TypePerm typePerm = new TypePerm(type);
+                    final List<String> perms = settings.getAsList(resolvedRole+".indices."+indexPattern+"."+type);
+                    typePerm.addPerms(ah.resolvedActions(perms));
+                    _indexPattern.addTypePerms(typePerm);
+                }
+                
+                _sgRole.addIndexPattern(_indexPattern);
+               
+            }
+            _sgRoles.addSgRole(_sgRole);
+        }
+
+        return _sgRoles;
+    }
+
+    //beans
+    
+    public static class SgRoles {
+
+        final Set<SgRole> roles = new HashSet<>(100);
+        
+        public SgRoles() {
+        }
+        
+        public SgRoles addSgRole(SgRole sgRole) {
+            if(sgRole != null) {
+                this.roles.add(sgRole);
+            }
+            return this;
+        }
+
+        @Override
+        public int hashCode() {
+            final int prime = 31;
+            int result = 1;
+            result = prime * result + ((roles == null) ? 0 : roles.hashCode());
+            return result;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj)
+                return true;
+            if (obj == null)
+                return false;
+            if (getClass() != obj.getClass())
+                return false;
+            SgRoles other = (SgRoles) obj;
+            if (roles == null) {
+                if (other.roles != null)
+                    return false;
+            } else if (!roles.equals(other.roles))
+                return false;
+            return true;
+        }
+
+        @Override
+        public String toString() {
+            return "roles=" + roles;
+        }
+
+        public Set<SgRole> getRoles() {
+            return Collections.unmodifiableSet(roles);
+        }
+
+        public Set<IndexPattern> get(String[] types, String action) {
+            Set<IndexPattern> retval = new HashSet<ConfigModel.IndexPattern>();
+            roles.stream()
+                    .filter(r->r.impliesTypePerm(types, action)).map(r->retval.addAll(r.getIpatterns())).count();
+            return retval;
+        }
+        
+        public boolean impliesClusterPermissionPermission(String action) {
+            System.out.println("check "+action+" for cluster perms: "+roles.stream()
+                    .filter(r->r.impliesClusterPermission(action)).map(r->r.getName()).collect(Collectors.toList()));
+            return roles.stream()
+                    .filter(r->r.impliesClusterPermission(action)).count() > 0;
+        }
+    }
+    
+    public static class SgRole {
+        
+        private final String name;
+        private final Set<Tenant> tenants = new HashSet<>(); 
+        private final Set<IndexPattern> ipatterns = new HashSet<>(); 
+        private final Set<String> clusterPerms = new HashSet<>();
+
+        public SgRole(String name) {
+            super();
+            this.name = Objects.requireNonNull(name);
+        }
+
+        public boolean impliesClusterPermission(String action) {
+            return WildcardMatcher.matchAny(clusterPerms, action);
+        }
+        
+        public boolean impliesTypePerm(String[] types, String action) {
+            return ipatterns.stream().filter(i->i.impliesPermission(types, action)).count() > 0;
+        }
+        
+        public SgRole addTenant(Tenant tenant) {
+            if(tenant != null) {
+                this.tenants.add(tenant);
+            }
+            return this;
+        }
+        
+        public SgRole addIndexPattern(IndexPattern indexPattern) {
+            if(indexPattern != null) {
+                this.ipatterns.add(indexPattern);
+            }
+            return this;
+        }
+        
+        public SgRole addClusterPerms(Collection<String> clusterPerms) {
+            if(clusterPerms != null) {
+                this.clusterPerms.addAll(clusterPerms);
+            }
+            return this;
+        }
+
+        
+        @Override
+        public int hashCode() {
+            final int prime = 31;
+            int result = 1;
+            result = prime * result + ((clusterPerms == null) ? 0 : clusterPerms.hashCode());
+            result = prime * result + ((ipatterns == null) ? 0 : ipatterns.hashCode());
+            result = prime * result + ((name == null) ? 0 : name.hashCode());
+            result = prime * result + ((tenants == null) ? 0 : tenants.hashCode());
+            return result;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj)
+                return true;
+            if (obj == null)
+                return false;
+            if (getClass() != obj.getClass())
+                return false;
+            SgRole other = (SgRole) obj;
+            if (clusterPerms == null) {
+                if (other.clusterPerms != null)
+                    return false;
+            } else if (!clusterPerms.equals(other.clusterPerms))
+                return false;
+            if (ipatterns == null) {
+                if (other.ipatterns != null)
+                    return false;
+            } else if (!ipatterns.equals(other.ipatterns))
+                return false;
+            if (name == null) {
+                if (other.name != null)
+                    return false;
+            } else if (!name.equals(other.name))
+                return false;
+            if (tenants == null) {
+                if (other.tenants != null)
+                    return false;
+            } else if (!tenants.equals(other.tenants))
+                return false;
+            return true;
+        }
+
+        @Override
+        public String toString() {
+            return System.lineSeparator()+"  "+name+System.lineSeparator()+"    tenants=" + tenants + System.lineSeparator()+ "    ipatterns=" + ipatterns + System.lineSeparator()+ "    clusterPerms=" + clusterPerms;
+        }
+
+        public Set<Tenant> getTenants(User user) {
+            //TODO filter out user tenants
+            return Collections.unmodifiableSet(tenants);
+        }
+
+        public Set<IndexPattern> getIpatterns() {
+            return Collections.unmodifiableSet(ipatterns);
+        }
+
+        public Set<String> getClusterPerms() {
+            return Collections.unmodifiableSet(clusterPerms);
+        }
+
+        public String getName() {
+            return name;
+        } 
+
+    }
+    
+    //sg roles
+    public static class IndexPattern {
+        private final String indexPattern;
+        private String dlsQuery;
+        private final Set<String> fls = new HashSet<>();
+        private final Set<TypePerm> typePerms = new HashSet<>();
+        
+        public IndexPattern(String indexPattern) {
+            super();
+            this.indexPattern = Objects.requireNonNull(indexPattern);
+        }
+        
+        public boolean impliesPermission(String[] types, String action) {
+            boolean retVal = true;
+            for (int i = 0; i < types.length; i++) {
+                String type = types[i];
+                boolean match = typePerms.stream().filter(tp->WildcardMatcher.match(tp.typePattern, type)
+                        && tp.impliesPermission(action)).count() > 0;
+                retVal = match && retVal;
+            }
+            return retVal;
+        }
+        
+        public IndexPattern addFlsFields(List<String> flsFields) {
+            if(flsFields != null) {
+                this.fls.addAll(flsFields);
+            }
+            return this;
+        }
+        
+        public IndexPattern addTypePerms(TypePerm typePerm) {
+            if(typePerm != null) {
+                this.typePerms.add(typePerm);
+            }
+            return this;
+        }
+
+        public IndexPattern setDlsQuery(String dlsQuery) {
+            if(dlsQuery != null) {
+                this.dlsQuery = dlsQuery;
+            }
+            return this;
+        }
+
+        @Override
+        public int hashCode() {
+            final int prime = 31;
+            int result = 1;
+            result = prime * result + ((dlsQuery == null) ? 0 : dlsQuery.hashCode());
+            result = prime * result + ((fls == null) ? 0 : fls.hashCode());
+            result = prime * result + ((indexPattern == null) ? 0 : indexPattern.hashCode());
+            result = prime * result + ((typePerms == null) ? 0 : typePerms.hashCode());
+            return result;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj)
+                return true;
+            if (obj == null)
+                return false;
+            if (getClass() != obj.getClass())
+                return false;
+            IndexPattern other = (IndexPattern) obj;
+            if (dlsQuery == null) {
+                if (other.dlsQuery != null)
+                    return false;
+            } else if (!dlsQuery.equals(other.dlsQuery))
+                return false;
+            if (fls == null) {
+                if (other.fls != null)
+                    return false;
+            } else if (!fls.equals(other.fls))
+                return false;
+            if (indexPattern == null) {
+                if (other.indexPattern != null)
+                    return false;
+            } else if (!indexPattern.equals(other.indexPattern))
+                return false;
+            if (typePerms == null) {
+                if (other.typePerms != null)
+                    return false;
+            } else if (!typePerms.equals(other.typePerms))
+                return false;
+            return true;
+        }
+
+        @Override
+        public String toString() {
+            return System.lineSeparator()+"        indexPattern=" + indexPattern + System.lineSeparator()+"          dlsQuery=" + dlsQuery + System.lineSeparator()+ "          fls=" + fls + System.lineSeparator()+ "          typePerms=" + typePerms;
+        }
+
+        public String getIndexPattern(User user) {
+            return replaceProperties(indexPattern, user);
+        }
+
+        public String getDlsQuery(User user) {
+            return replaceProperties(dlsQuery, user);
+        }
+
+        public Set<String> getFls() {
+            return Collections.unmodifiableSet(fls);
+        }
+
+        public Set<TypePerm> getTypePerms() {
+            return Collections.unmodifiableSet(typePerms);
+        }
+
+        
+        
+    }
+    
+    public static class TypePerm {
+        private final String typePattern;
+        private final Set<String> perms = new HashSet<>();
+        
+        public TypePerm(String typePattern) {
+            super();
+            this.typePattern = Objects.requireNonNull(typePattern);
+        }
+
+        public boolean impliesPermission(String action) {
+            return WildcardMatcher.matchAny(perms, action);
+        }
+        
+        public TypePerm addPerms(Collection<String> perms) {
+            if(perms != null) {
+                this.perms.addAll(perms);
+            }
+            return this;
+        }
+
+        @Override
+        public int hashCode() {
+            final int prime = 31;
+            int result = 1;
+            result = prime * result + ((perms == null) ? 0 : perms.hashCode());
+            result = prime * result + ((typePattern == null) ? 0 : typePattern.hashCode());
+            return result;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj)
+                return true;
+            if (obj == null)
+                return false;
+            if (getClass() != obj.getClass())
+                return false;
+            TypePerm other = (TypePerm) obj;
+            if (perms == null) {
+                if (other.perms != null)
+                    return false;
+            } else if (!perms.equals(other.perms))
+                return false;
+            if (typePattern == null) {
+                if (other.typePattern != null)
+                    return false;
+            } else if (!typePattern.equals(other.typePattern))
+                return false;
+            return true;
+        }
+
+        @Override
+        public String toString() {
+            return System.lineSeparator()+"             typePattern=" + typePattern + System.lineSeparator()+ "             perms=" + perms;
+        }
+
+        public String getTypePattern() { 
+            return typePattern;
+        }
+
+        public Set<String> getPerms() {
+            return Collections.unmodifiableSet(perms);
+        } 
+
+    }
+    
+    public static class Tenant {
+        private final String tenant;
+        private final boolean readWrite;
+        public Tenant(String tenant, boolean readWrite) {
+            super();
+            this.tenant = tenant;
+            this.readWrite = readWrite;
+        }
+        public String getTenant() {
+            return tenant;
+        }
+        public boolean isReadWrite() {
+            return readWrite;
+        }
+        
+        @Override
+        public int hashCode() {
+            final int prime = 31;
+            int result = 1;
+            result = prime * result + (readWrite ? 1231 : 1237);
+            result = prime * result + ((tenant == null) ? 0 : tenant.hashCode());
+            return result;
+        }
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj)
+                return true;
+            if (obj == null)
+                return false;
+            if (getClass() != obj.getClass())
+                return false;
+            Tenant other = (Tenant) obj;
+            if (readWrite != other.readWrite)
+                return false;
+            if (tenant == null) {
+                if (other.tenant != null)
+                    return false;
+            } else if (!tenant.equals(other.tenant))
+                return false;
+            return true;
+        }
+        @Override
+        public String toString() {
+            return System.lineSeparator()+"                tenant=" + tenant + System.lineSeparator() +"                readWrite=" + readWrite;
+        }
+    }
+
+    private static String replaceProperties(String orig, User user) {
+        
+        if(user == null || orig == null) {
+            return orig;
+        }
+        
+        orig = orig.replace("${user.name}", user.getName()).replace("${user_name}", user.getName());
+        for(Entry<String, String> entry: user.getCustomAttributesMap().entrySet()) {
+            orig = orig.replace("${"+entry.getKey()+"}", entry.getValue());
+            orig = orig.replace("${"+entry.getKey().replace('.', '_')+"}", entry.getValue());
+        }
+        return orig;
+    }
+
+}

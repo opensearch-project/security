@@ -1318,8 +1318,9 @@ public class IntegrationTests extends SingleClusterTest {
     
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePutRequest("/%3Clogstash-cnew-%7Bnow%2Fd%7D%3E", "{}",encodeBasicHeader("logstash", "nagilum"))).getStatusCode());
         
+        System.out.println("#####1");
         Assert.assertEquals(HttpStatus.SC_CREATED, (res = rh.executePutRequest("/%3Clogstash-new-%7Bnow%2Fd%7D%3E/logs/1", "{}",encodeBasicHeader("logstash", "nagilum"))).getStatusCode());
-    
+        System.out.println("#####2");
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/_cat/indices?v" ,encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
     
         System.out.println(res.getBody());

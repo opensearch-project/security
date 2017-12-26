@@ -123,6 +123,7 @@ import com.floragunn.searchguard.filter.SearchGuardRestFilter;
 import com.floragunn.searchguard.http.SearchGuardHttpServerTransport;
 import com.floragunn.searchguard.http.SearchGuardNonSslHttpServerTransport;
 import com.floragunn.searchguard.http.XFFResolver;
+import com.floragunn.searchguard.resolver.IndexResolverReplacer;
 import com.floragunn.searchguard.rest.KibanaInfoAction;
 import com.floragunn.searchguard.rest.SearchGuardHealthAction;
 import com.floragunn.searchguard.rest.SearchGuardInfoAction;
@@ -162,6 +163,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
     private final boolean enterpriseModulesEnabled;
     private final List<String> demoCertHashes = new ArrayList<String>(3);
     private SearchGuardFilter sgf;
+    private IndexResolverReplacer irr;
     
 
     @Override
@@ -606,12 +608,14 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
             return components;
         }
         
+        
         final ClusterInfoHolder cih = new ClusterInfoHolder();
         this.cs.addListener(cih);
         
         DlsFlsRequestValve dlsFlsValve = ReflectionHelper.instantiateDlsFlsValve();
         
         final IndexNameExpressionResolver resolver = new IndexNameExpressionResolver(settings);
+        irr = new IndexResolverReplacer(resolver, clusterService);
         auditLog = ReflectionHelper.instantiateAuditLog(settings, configPath, localClient, threadPool, resolver, clusterService);
         sslExceptionHandler = new AuditLogSslExceptionHandler(auditLog);
         
@@ -638,7 +642,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         cr.subscribeOnChange(ConfigConstants.CONFIGNAME_CONFIG, backendRegistry);
         final ActionGroupHolder ah = new ActionGroupHolder(cr);      
         evaluator = new PrivilegesEvaluator(clusterService, threadPool, cr, ah, resolver, auditLog, settings, privilegesInterceptor, cih);    
-        sgf = new SearchGuardFilter(evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs);     
+        sgf = new SearchGuardFilter(evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs, irr, cr, ah);     
         
         
         final String principalExtractorClass = settings.get(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, null);

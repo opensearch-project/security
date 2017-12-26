@@ -548,6 +548,10 @@ public class SearchGuardAdmin {
             final boolean indexExists = sgIndex != null;
             final boolean legacy = indexExists && sgIndex.getMappings().containsKey("config");
             
+            if(legacy) {
+                System.out.print(index +" has an outdated legacy format.");
+            }
+            
             final NodesInfoResponse nodesInfo = tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet();
 
             if(deleteConfigIndex) {

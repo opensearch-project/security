@@ -110,6 +110,7 @@ public class SearchGuardInterceptor {
                             || k.equals(ConfigConstants.SG_DLS_QUERY_HEADER)
                             || k.equals(ConfigConstants.SG_FLS_FIELDS_HEADER)
                             || k.startsWith("_sg_trace")
+                            || k.equals("_sg_resolved")
                             )));
  
             ensureCorrectHeaders(remoteAdress0, user0, origin0);
