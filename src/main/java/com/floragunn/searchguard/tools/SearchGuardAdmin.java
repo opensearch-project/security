@@ -546,7 +546,6 @@ public class SearchGuardAdmin {
                 //ignore
             }
             final boolean indexExists = sgIndex != null;
-            final boolean legacy = indexExists && sgIndex.getMappings().containsKey("config");
             
             final NodesInfoResponse nodesInfo = tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet();
 
@@ -609,6 +608,16 @@ public class SearchGuardAdmin {
                         System.exit(-1);
                     }
                 }
+            }
+            
+            final boolean legacy = indexExists 
+                    && sgIndex.getMappings() != null
+                    && sgIndex.getMappings().get(index) != null
+                    && sgIndex.getMappings().get(index).containsKey("config");
+            
+            if(legacy) {
+                System.out.println("Legacy index '"+index+"' detected.");
+                System.out.println("See http://docs.search-guard.com/v6/upgrading-5-6 for more details.");
             }
             
             if(retrieve) {
@@ -699,7 +708,7 @@ public class SearchGuardAdmin {
         return success;
     }
     
-    private static boolean uploadFile(Client tc, String filepath, String index, String _id, boolean legacy) {
+    private static boolean uploadFile(final Client tc, final String filepath, final String index, final String _id, final boolean legacy) {
         
         String type = "sg";
         String id = _id;
@@ -709,29 +718,29 @@ public class SearchGuardAdmin {
             id = "0";
         }
         
-        System.out.println("Will update '" + id + "' with " + filepath);
+        System.out.println("Will update '"+type+"/" + id + "' with " + filepath+" "+(legacy?"(legacy mode)":""));
         
         try (Reader reader = new FileReader(filepath)) {
 
             final String res = tc
                     .index(new IndexRequest(index).type(type).id(id).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                            .source(id, readXContent(reader, XContentType.YAML))).actionGet().getId();
+                            .source(_id, readXContent(reader, XContentType.YAML))).actionGet().getId();
 
             if (id.equals(res)) {
-                System.out.println("   SUCC: Configuration for '" + id + "' created or updated");
+                System.out.println("   SUCC: Configuration for '" + _id + "' created or updated");
                 return true;
             } else {
-                System.out.println("   FAIL: Configuration for '" + id
+                System.out.println("   FAIL: Configuration for '" + _id
                         + "' failed for unknown reasons. Please consult the Elasticsearch logfile.");
             }
         } catch (Exception e) {
-            System.out.println("   FAIL: Configuration for '" + id + "' failed because of " + e.toString());
+            System.out.println("   FAIL: Configuration for '" + _id + "' failed because of " + e.toString());
         }
 
         return false;
     }
     
-    private static boolean retrieveFile(Client tc, String filepath, String index, String _id, boolean legacy) {
+    private static boolean retrieveFile(final Client tc, final String filepath, final String index, final String _id, final boolean legacy) {
         
         String type = "sg";
         String id = _id;
@@ -741,26 +750,26 @@ public class SearchGuardAdmin {
             id = "0";
         }
         
-        System.out.println("Will retrieve '"+id+"' into "+filepath);
+        System.out.println("Will retrieve '"+type+"/" +id+"' into "+filepath+" "+(legacy?"(legacy mode)":""));
         try (Writer writer = new FileWriter(filepath)) {
 
             final GetResponse response = tc.get(new GetRequest(index).type(type).id(id).refresh(true).realtime(false)).actionGet();
 
             if (response.isExists()) {
                 if(response.isSourceEmpty()) {
-                    System.out.println("   FAIL: Configuration for '"+id+"' failed because of empty source");
+                    System.out.println("   FAIL: Configuration for '"+_id+"' failed because of empty source");
                     return false;
                 }
                 
-                String yaml = convertToYaml(id, response.getSourceAsBytesRef(), true);
+                String yaml = convertToYaml(_id, response.getSourceAsBytesRef(), true);
                 writer.write(yaml);
-                System.out.println("   SUCC: Configuration for '"+id+"' stored in "+filepath);
+                System.out.println("   SUCC: Configuration for '"+_id+"' stored in "+filepath);
                 return true;
             } else {
-                System.out.println("   FAIL: Get configuration for '"+id+"' because it does not exist");
+                System.out.println("   FAIL: Get configuration for '"+_id+"' because it does not exist");
             }
         } catch (Exception e) {
-            System.out.println("   FAIL: Get configuration for '"+id+"' failed because of "+e.toString());
+            System.out.println("   FAIL: Get configuration for '"+_id+"' failed because of "+e.toString());
         }
         
         return false;
