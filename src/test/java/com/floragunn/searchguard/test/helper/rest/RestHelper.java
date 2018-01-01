@@ -60,7 +60,7 @@ public class RestHelper {
 	public boolean sendHTTPClientCertificate = false;
 	public boolean trustHTTPServerCertificate = true;
 	public String keystore = "node-0-keystore.jks";
-	public String truststore = "truststore.jks";
+	//public String truststore = "truststore.jks";
 	private ClusterInfo clusterInfo;
 	
 	public RestHelper(ClusterInfo clusterInfo) {
@@ -169,9 +169,11 @@ public class RestHelper {
 		if (enableHTTPClientSSL) {
 
 			log.debug("Configure HTTP client with SSL");
-
+			
+            final String keyStorePath = FileHelper.getAbsoluteFilePathFromClassPath(keystore).toFile().getParent();
+			
 			final KeyStore myTrustStore = KeyStore.getInstance("JKS");
-			myTrustStore.load(new FileInputStream(FileHelper.getAbsoluteFilePathFromClassPath(truststore).toFile()),
+			myTrustStore.load(new FileInputStream(keyStorePath+"/truststore.jks"),
 					"changeit".toCharArray());
 
 			final KeyStore keyStore = KeyStore.getInstance("JKS");
