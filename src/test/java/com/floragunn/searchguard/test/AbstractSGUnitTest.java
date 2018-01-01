@@ -158,7 +158,7 @@ public abstract class AbstractSGUnitTest {
 
             tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
 
-            for(IndexRequest ir: sgconfig.getDynamicConfig()) {
+            for(IndexRequest ir: sgconfig.getDynamicConfig(getResourceFolder())) {
                 tc.index(ir).actionGet();
             }
 
@@ -220,5 +220,9 @@ public abstract class AbstractSGUnitTest {
     
     protected final void assertNotContains(HttpResponse res, String pattern) {
         Assert.assertFalse(WildcardMatcher.match(pattern, res.getBody()));
+    }
+    
+    protected String getResourceFolder() {
+        return null;
     }
 }
