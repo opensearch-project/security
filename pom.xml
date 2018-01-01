@@ -272,37 +272,7 @@
       <dependencies>
         <dependency>
           <groupId>com.floragunn</groupId>
-          <artifactId>dlic-search-guard-rest-api</artifactId>
-          <version>6.x-HEAD-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-          <groupId>com.floragunn</groupId>
-          <artifactId>dlic-search-guard-module-dlsfls</artifactId>
-          <version>6.x-HEAD-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-          <groupId>com.floragunn</groupId>
-          <artifactId>dlic-search-guard-authbackend-ldap</artifactId>
-          <version>6.x-HEAD-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-          <groupId>com.floragunn</groupId>
-          <artifactId>dlic-search-guard-auth-http-kerberos</artifactId>
-          <version>6.x-HEAD-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-          <groupId>com.floragunn</groupId>
-          <artifactId>dlic-search-guard-module-auditlog</artifactId>
-          <version>6.x-HEAD-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-          <groupId>com.floragunn</groupId>
-          <artifactId>dlic-search-guard-module-kibana-multitenancy</artifactId>
-          <version>6.x-HEAD-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-          <groupId>com.floragunn</groupId>
-          <artifactId>dlic-search-guard-auth-http-jwt</artifactId>
+          <artifactId>dlic-search-guard-enterprise</artifactId>
           <version>6.x-HEAD-SNAPSHOT</version>
         </dependency>
       </dependencies>
