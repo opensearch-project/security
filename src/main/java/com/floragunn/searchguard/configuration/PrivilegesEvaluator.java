@@ -328,10 +328,8 @@ public class PrivilegesEvaluator {
         try {
             if(request instanceof SearchRequest) {
                 SearchRequest sr = (SearchRequest) request;                
-                if( 
-                        /*(sr.indices().length == 0 || (sr.indices().length == 1 && "*".equals(sr.indices()[0])))
-                        && sr.source() != null
-                        && */ sr.source().query() == null
+                if(     sr.source() != null
+                        && sr.source().query() == null
                         && sr.source().aggregations() != null
                         && sr.source().aggregations().getAggregatorFactories() != null
                         && sr.source().aggregations().getAggregatorFactories().size() == 1 
