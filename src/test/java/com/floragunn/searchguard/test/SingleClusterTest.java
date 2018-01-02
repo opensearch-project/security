@@ -63,11 +63,11 @@ public abstract class SingleClusterTest extends AbstractSGUnitTest {
     }
     
     protected RestHelper restHelper() {
-        return new RestHelper(clusterInfo);
+        return new RestHelper(clusterInfo, getResourceFolder());
     }
     
     protected RestHelper nonSslRestHelper() {
-        return new RestHelper(clusterInfo, false, false);
+        return new RestHelper(clusterInfo, false, false, getResourceFolder());
     }
     
     protected TransportClient getInternalTransportClient() {

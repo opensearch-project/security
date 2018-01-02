@@ -8,7 +8,7 @@ The Community Edition of Search Guard is licensed under the Apache2 license.
 It can be used for commercial and non-commercial projects free of charge. For the Community Edition, the following license terms apply:
 
 ```
-Copyright 2015-2017 by floragunn GmbH
+Copyright 2015-2018 by floragunn GmbH
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -53,6 +53,7 @@ The Enterprise Edition consists of the following modules:
  * https://github.com/floragunncom/search-guard-rest-api
 * search-guard-module-compliance
 * search-guard-auth-http-proxy
+* search-guard-enterprise-modules
 
 All binaries of the Enterprise Modules in this distribution match the pattern “dlic-search-guard*.jar” and are not under Apache2 license.
 
