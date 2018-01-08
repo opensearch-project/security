@@ -486,10 +486,6 @@ public class PrivilegesEvaluator {
                 }
                 
             }
-            
-            for(String a: requestedResolved.getAllIndices()) {
-                
-            }
 
             permGiven = permGiven || ipat.impliesPermission(requestedResolved.getTypes().toArray(new String[0]), allPermsRequiredA);
             System.out.println("check ip: "+indexPattern+" -> "+permGiven+" for "+allPermsRequired);
@@ -562,6 +558,11 @@ public class PrivilegesEvaluator {
             presponse.allowed=interceptorAllow;
             return presponse;
         }*/
+        
+        
+        if(!permGiven) {
+            presponse.getMissingPrivileges().add(e);
+        }
         
         presponse.allowed=permGiven;
         return presponse;
