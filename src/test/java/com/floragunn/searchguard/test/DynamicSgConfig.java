@@ -78,7 +78,9 @@ public class DynamicSgConfig {
         return this;
     }
     
-    public List<IndexRequest> getDynamicConfig() {
+    public List<IndexRequest> getDynamicConfig(String folder) {
+        
+        final String prefix = folder == null?"":folder+"/";
         
         List<IndexRequest> ret = new ArrayList<IndexRequest>();
         
@@ -86,31 +88,31 @@ public class DynamicSgConfig {
                .type("sg")
                .id(ConfigConstants.CONFIGNAME_CONFIG)
                .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-               .source(ConfigConstants.CONFIGNAME_CONFIG, FileHelper.readYamlContent(sgConfig)));
+               .source(ConfigConstants.CONFIGNAME_CONFIG, FileHelper.readYamlContent(prefix+sgConfig)));
         
         ret.add(new IndexRequest(searchGuardIndexName)
         .type("sg")
         .id(ConfigConstants.CONFIGNAME_ACTION_GROUPS)
         .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-        .source(ConfigConstants.CONFIGNAME_ACTION_GROUPS, FileHelper.readYamlContent(sgActionGroups)));
+        .source(ConfigConstants.CONFIGNAME_ACTION_GROUPS, FileHelper.readYamlContent(prefix+sgActionGroups)));
  
         ret.add(new IndexRequest(searchGuardIndexName)
         .type("sg")
         .id(ConfigConstants.CONFIGNAME_INTERNAL_USERS)
         .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-        .source(ConfigConstants.CONFIGNAME_INTERNAL_USERS, FileHelper.readYamlContent(sgInternalUsers)));
+        .source(ConfigConstants.CONFIGNAME_INTERNAL_USERS, FileHelper.readYamlContent(prefix+sgInternalUsers)));
  
         ret.add(new IndexRequest(searchGuardIndexName)
         .type("sg")
         .id(ConfigConstants.CONFIGNAME_ROLES)
         .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-        .source(ConfigConstants.CONFIGNAME_ROLES, FileHelper.readYamlContent(sgRoles)));
+        .source(ConfigConstants.CONFIGNAME_ROLES, FileHelper.readYamlContent(prefix+sgRoles)));
  
         ret.add(new IndexRequest(searchGuardIndexName)
         .type("sg")
         .id(ConfigConstants.CONFIGNAME_ROLES_MAPPING)
         .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-        .source(ConfigConstants.CONFIGNAME_ROLES_MAPPING, FileHelper.readYamlContent(sgRolesMapping)));
+        .source(ConfigConstants.CONFIGNAME_ROLES_MAPPING, FileHelper.readYamlContent(prefix+sgRolesMapping)));
  
         
         return Collections.unmodifiableList(ret);

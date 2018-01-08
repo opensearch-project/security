@@ -60,17 +60,20 @@ public class RestHelper {
 	public boolean sendHTTPClientCertificate = false;
 	public boolean trustHTTPServerCertificate = true;
 	public String keystore = "node-0-keystore.jks";
-	public String truststore = "truststore.jks";
+	public final String prefix;
+	//public String truststore = "truststore.jks";
 	private ClusterInfo clusterInfo;
 	
-	public RestHelper(ClusterInfo clusterInfo) {
+	public RestHelper(ClusterInfo clusterInfo, String prefix) {
 		this.clusterInfo = clusterInfo;
+		this.prefix = prefix;
 	}
 	
-	public RestHelper(ClusterInfo clusterInfo, boolean enableHTTPClientSSL, boolean trustHTTPServerCertificate) {
+	public RestHelper(ClusterInfo clusterInfo, boolean enableHTTPClientSSL, boolean trustHTTPServerCertificate, String prefix) {
 		this.clusterInfo = clusterInfo;
 		this.enableHTTPClientSSL = enableHTTPClientSSL;
 		this.trustHTTPServerCertificate = trustHTTPServerCertificate;
+		this.prefix = prefix;
 	}
 	public String executeSimpleRequest(final String request) throws Exception {
 
@@ -169,9 +172,15 @@ public class RestHelper {
 		if (enableHTTPClientSSL) {
 
 			log.debug("Configure HTTP client with SSL");
-
+			
+			if(prefix != null && !keystore.contains("/")) {
+			    keystore = prefix+"/"+keystore;
+			}
+			
+            final String keyStorePath = FileHelper.getAbsoluteFilePathFromClassPath(keystore).toFile().getParent();
+                        
 			final KeyStore myTrustStore = KeyStore.getInstance("JKS");
-			myTrustStore.load(new FileInputStream(FileHelper.getAbsoluteFilePathFromClassPath(truststore).toFile()),
+			myTrustStore.load(new FileInputStream(keyStorePath+"/truststore.jks"),
 					"changeit".toCharArray());
 
 			final KeyStore keyStore = KeyStore.getInstance("JKS");

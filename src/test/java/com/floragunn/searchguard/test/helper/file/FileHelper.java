@@ -61,7 +61,7 @@ public class FileHelper {
 	
 	public static Path getAbsoluteFilePathFromClassPath(final String fileNameFromClasspath) {
 		File file = null;
-		final URL fileUrl = SearchGuardPlugin.class.getClassLoader().getResource(fileNameFromClasspath);
+		final URL fileUrl = FileHelper.class.getClassLoader().getResource(fileNameFromClasspath);
 		if (fileUrl != null) {
 			try {
 				file = new File(URLDecoder.decode(fileUrl.getFile(), "UTF-8"));

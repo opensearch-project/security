@@ -239,8 +239,8 @@ public class PrivilegesEvaluator {
         try {
             if(request instanceof SearchRequest) {
                 SearchRequest sr = (SearchRequest) request;                
-                if( 
-                        sr.source() != null
+
+                if(     sr.source() != null
                         && sr.source().query() == null
                         && sr.source().aggregations() != null
                         && sr.source().aggregations().getAggregatorFactories() != null
@@ -561,7 +561,7 @@ public class PrivilegesEvaluator {
         
         
         if(!permGiven) {
-            presponse.getMissingPrivileges().add(e);
+            //presponse.getMissingPrivileges().add(e);
         }
         
         presponse.allowed=permGiven;

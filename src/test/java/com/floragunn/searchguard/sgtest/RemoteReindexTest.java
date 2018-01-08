@@ -88,14 +88,14 @@ public class RemoteReindexTest extends AbstractSGUnitTest{
     public void testNonSSLReindex() throws Exception {
         setupReindex();
         
-        final String cl1BodyMain = new RestHelper(cl1Info, false, false).executeGetRequest("", encodeBasicHeader("nagilum","nagilum")).getBody();
+        final String cl1BodyMain = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("", encodeBasicHeader("nagilum","nagilum")).getBody();
         Assert.assertTrue(cl1BodyMain.contains("crl1"));
         
         try (TransportClient tc = getInternalTransportClient(cl1Info, Settings.EMPTY)) {
             tc.admin().indices().create(new CreateIndexRequest("twutter")).actionGet();
         }
         
-        final String cl2BodyMain = new RestHelper(cl2Info, false, false).executeGetRequest("", encodeBasicHeader("nagilum","nagilum")).getBody();
+        final String cl2BodyMain = new RestHelper(cl2Info, false, false, getResourceFolder()).executeGetRequest("", encodeBasicHeader("nagilum","nagilum")).getBody();
         Assert.assertTrue(cl2BodyMain.contains("crl2"));
         
         try (TransportClient tc = getInternalTransportClient(cl2Info, Settings.EMPTY)) {
@@ -128,7 +128,7 @@ public class RemoteReindexTest extends AbstractSGUnitTest{
         HttpResponse ccs = null;
         
         System.out.println("###################### reindex");
-        ccs = new RestHelper(cl1Info, false, false).executePostRequest("_reindex?pretty", reindex, encodeBasicHeader("nagilum","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("_reindex?pretty", reindex, encodeBasicHeader("nagilum","nagilum"));
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertTrue(ccs.getBody().contains("created\" : 1"));
