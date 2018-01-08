@@ -139,7 +139,7 @@ public final class IndexResolverReplacer {
 
             List<String> _indices;
             try {
-                _indices = new ArrayList<>(Arrays.asList(resolver.concreteIndexNames(state, IndicesOptions.strictExpandOpen(), requestedPatterns)));
+                _indices = new ArrayList<>(Arrays.asList(resolver.concreteIndexNames(state, IndicesOptions.fromOptions(false, false, true, false), requestedPatterns)));
                 if (log.isDebugEnabled()) {
                     log.debug("Resolved pattern {} to {}", requestedPatterns, _indices);
                 }

@@ -245,9 +245,9 @@ public class SearchGuardFilter implements ActionFilter {
             }
             
             
-            ConfigModel cm = new ConfigModel();
-            Set<String>  ipatternsfromconf =  cm.load(configurationRepository.getConfiguration("roles"), ah).get(resolved.getTypes().toArray(new String[0]), action).stream().map(i->i.getIndexPattern(user)).collect(Collectors.toSet());
-            System.out.println("permitted ipatternsfromconf "+ipatternsfromconf);
+            //ConfigModel cm = new ConfigModel();
+            //Set<String>  ipatternsfromconf =  cm.load(configurationRepository.getConfiguration("roles"), ah).get(resolved.getTypes().toArray(new String[0]), action).stream().map(i->i.getIndexPattern(user)).collect(Collectors.toSet());
+            //System.out.println("permitted ipatternsfromconf "+ipatternsfromconf);
 
             final PrivEvalResponse pres = eval.evaluate(user, action, request, task);
             

@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 public class MapUtils {
-    
+ /*   
     //Map<String, Object>
     //               Map
     //               Collection
@@ -80,5 +80,5 @@ public class MapUtils {
         STRING,
         BOOL,
         NULL
-    }
+    }*/
 }

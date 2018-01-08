@@ -18,6 +18,7 @@
 package com.floragunn.searchguard.support;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Stack;
@@ -85,6 +86,8 @@ public class WildcardMatcher {
      */
     public static boolean matchAll(final String[] pattern, final String[] candidate) {
 
+        System.out.println("Check "+Arrays.toString(pattern)+" <-> "+Arrays.toString(candidate));
+        
         for (int i = 0; i < candidate.length; i++) {
             final String string = candidate[i];
             if (!matchAny(pattern, string)) {

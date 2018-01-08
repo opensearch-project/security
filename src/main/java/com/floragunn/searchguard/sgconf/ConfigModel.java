@@ -1,5 +1,6 @@
 package com.floragunn.searchguard.sgconf;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -10,10 +11,14 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.elasticsearch.action.support.IndicesOptions;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 
 import com.floragunn.searchguard.configuration.ActionGroupHolder;
 import com.floragunn.searchguard.configuration.ConfigurationRepository;
+import com.floragunn.searchguard.resolver.IndexResolverReplacer.Resolved;
 import com.floragunn.searchguard.support.WildcardMatcher;
 import com.floragunn.searchguard.user.User;
 
@@ -151,17 +156,26 @@ public class ConfigModel {
         public Set<SgRole> getRoles() {
             return Collections.unmodifiableSet(roles);
         }
+        
+        public SgRoles filter(Set<String> keep) {
+            final SgRoles retVal = new SgRoles();
+            for(SgRole sgr: roles) {
+                if(keep.contains(sgr.getName())) {
+                    retVal.addSgRole(sgr);
+                }
+            }
+            return retVal;
+        }
 
-        public Set<IndexPattern> get(String[] types, String action) {
+        public Set<IndexPattern> get(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
             Set<IndexPattern> retval = new HashSet<ConfigModel.IndexPattern>();
             roles.stream()
-                    .filter(r->r.impliesTypePerm(types, action)).map(r->retval.addAll(r.getIpatterns())).count();
+                    .filter(r->r.impliesTypePerm(resolved, user, actions, resolver, cs))
+                    .map(r->retval.addAll(r.getIpatterns())).count();
             return retval;
         }
         
         public boolean impliesClusterPermissionPermission(String action) {
-            System.out.println("check "+action+" for cluster perms: "+roles.stream()
-                    .filter(r->r.impliesClusterPermission(action)).map(r->r.getName()).collect(Collectors.toList()));
             return roles.stream()
                     .filter(r->r.impliesClusterPermission(action)).count() > 0;
         }
@@ -183,8 +197,13 @@ public class ConfigModel {
             return WildcardMatcher.matchAny(clusterPerms, action);
         }
         
-        public boolean impliesTypePerm(String[] types, String action) {
-            return ipatterns.stream().filter(i->i.impliesPermission(types, action)).count() > 0;
+        public boolean impliesTypePerm(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
+            //getIndexPattern -> alias??
+            return ipatterns.stream()
+                    .filter(i->WildcardMatcher.matchAll(i.getResolvedIndexPattern(user, resolver, cs), resolved.getAllIndices().toArray(new String[0]))) //TODO ???
+                    .filter(i->i.impliesPermission(resolved.getTypes()
+                            .toArray(new String[0]), actions))
+                    .count() > 0;
         }
         
         public SgRole addTenant(Tenant tenant) {
@@ -288,12 +307,12 @@ public class ConfigModel {
             this.indexPattern = Objects.requireNonNull(indexPattern);
         }
         
-        public boolean impliesPermission(String[] types, String action) {
+        public boolean impliesPermission(String[] types, String[] actions) {
             boolean retVal = true;
             for (int i = 0; i < types.length; i++) {
                 String type = types[i];
                 boolean match = typePerms.stream().filter(tp->WildcardMatcher.match(tp.typePattern, type)
-                        && tp.impliesPermission(action)).count() > 0;
+                        && tp.impliesAllPermissions(actions)).count() > 0;
                 retVal = match && retVal;
             }
             return retVal;
@@ -368,8 +387,21 @@ public class ConfigModel {
             return System.lineSeparator()+"        indexPattern=" + indexPattern + System.lineSeparator()+"          dlsQuery=" + dlsQuery + System.lineSeparator()+ "          fls=" + fls + System.lineSeparator()+ "          typePerms=" + typePerms;
         }
 
-        public String getIndexPattern(User user) {
+        public String getUnresolvedIndexPattern(User user) {
             return replaceProperties(indexPattern, user);
+        }
+        
+        public String[] getResolvedIndexPattern(User user, IndexNameExpressionResolver resolver, ClusterService cs) {
+            String unresolved = getUnresolvedIndexPattern(user);         
+            String[] resolved = resolver.concreteIndexNames(cs.state(), IndicesOptions.lenientExpandOpen(), unresolved);
+            if(resolved == null || resolved.length == 0) {
+                return new String[]{unresolved};
+            } else {
+                //append unresolved value for pattern matching
+                String[] retval = Arrays.copyOf(resolved, resolved.length +1);
+                retval[retval.length-1] = unresolved;
+                return retval;
+            }
         }
 
         public String getDlsQuery(User user) {
@@ -397,8 +429,8 @@ public class ConfigModel {
             this.typePattern = Objects.requireNonNull(typePattern);
         }
 
-        public boolean impliesPermission(String action) {
-            return WildcardMatcher.matchAny(perms, action);
+        public boolean impliesAllPermissions(String[] actions) {
+            return WildcardMatcher.matchAll(perms.toArray(new String[0]), actions);
         }
         
         public TypePerm addPerms(Collection<String> perms) {
