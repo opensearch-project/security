@@ -295,14 +295,22 @@ public class PrivilegesEvaluator {
         boolean dnfof = false;
 
         final Resolved requestedResolved = irr.resolve(request);
-        final SgRoles sgr = getSgRoles(user, caller);
-        final Set<IndexPattern> ip = sgr.get(requestedResolved, user, allPermsRequiredA, resolver, clusterService);
         
         if (log.isDebugEnabled()) {
             log.debug("requested resolved indextypes: {}", requestedResolved);
         }
         
-        System.out.println(sgr);
+        final SgRoles sgr = getSgRoles(user, caller);
+        
+        if (log.isDebugEnabled()) {
+            log.debug("sgr: {}", sgr.getRoles().stream().map(d->d.getName()).toArray());
+        }
+        
+        final Set<IndexPattern> ip = sgr.get(requestedResolved, user, allPermsRequiredA, resolver, clusterService);
+        
+        if(ip.isEmpty()) {
+            presponse.getMissingPrivileges().addAll(allPermsRequired);
+        }
         
         if (log.isDebugEnabled()) {
             log.debug("Set<IndexPattern> ip: {}", ip);
@@ -486,10 +494,12 @@ public class PrivilegesEvaluator {
                 }
                 
             }
-
-            permGiven = permGiven || ipat.impliesPermission(requestedResolved.getTypes().toArray(new String[0]), allPermsRequiredA);
+            
             System.out.println("check ip: "+indexPattern+" -> "+permGiven+" for "+allPermsRequired);
             System.out.println("ipat: "+ipat);
+
+            permGiven = permGiven || ipat.impliesPermission(requestedResolved.getTypes().toArray(new String[0]), allPermsRequiredA);
+            
         }
         
         

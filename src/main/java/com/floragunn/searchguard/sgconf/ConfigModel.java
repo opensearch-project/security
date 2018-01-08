@@ -1,9 +1,11 @@
 package com.floragunn.searchguard.sgconf;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -169,9 +171,15 @@ public class ConfigModel {
 
         public Set<IndexPattern> get(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
             Set<IndexPattern> retval = new HashSet<ConfigModel.IndexPattern>();
-            roles.stream()
-                    .filter(r->r.impliesTypePerm(resolved, user, actions, resolver, cs))
-                    .map(r->retval.addAll(r.getIpatterns())).count();
+            for(SgRole sgr: roles) {
+                System.out.println("1 - get() "+sgr.getName());
+                if(sgr.impliesTypePerm(resolved, user, actions, resolver, cs)) {
+                    retval.addAll(sgr.getIpatterns());
+                    System.out.println("1 - matched "+sgr.getName());
+                } else {
+                    System.out.println("1 - not matched "+sgr.getName());
+                }
+            }
             return retval;
         }
         
@@ -199,11 +207,26 @@ public class ConfigModel {
         
         public boolean impliesTypePerm(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
             //getIndexPattern -> alias??
-            return ipatterns.stream()
-                    .filter(i->WildcardMatcher.matchAll(i.getResolvedIndexPattern(user, resolver, cs), resolved.getAllIndices().toArray(new String[0]))) //TODO ???
-                    .filter(i->i.impliesPermission(resolved.getTypes()
-                            .toArray(new String[0]), actions))
-                    .count() > 0;
+            Set<String> matchingIndex = new HashSet<>(resolved.getAllIndices());
+            for (IndexPattern p: ipatterns) {
+                System.out.println("  2 - impliesTypePerm():: "+p.getUnresolvedIndexPattern(user));
+                System.out.println("      resoip:: "+Arrays.toString(p.getResolvedIndexPattern(user, resolver, cs)));
+                System.out.println("      reqall:: "+resolved.getAllIndices());
+                if (p.impliesPermission(resolved.getTypes().toArray(new String[0]), actions)) {
+                    
+                    for(String r: p.getResolvedIndexPattern(user, resolver, cs)) {
+                        WildcardMatcher.wildcardRemoveFromSet(matchingIndex, r);
+                    }
+                    //&& WildcardMatcher.matchAny(p.getResolvedIndexPattern(user, resolver, cs), resolved.getAllIndices().toArray(new String[0]))) {
+                    
+                    System.out.println("  2 - interm matched:: "+p.getUnresolvedIndexPattern(user));
+                } else {
+                    System.out.println("  2 - interm not matched:: "+p.getUnresolvedIndexPattern(user));
+                }
+                
+            }
+            System.out.println("  2 - final matched:: "+matchingIndex.isEmpty()+" ("+matchingIndex+")");
+            return matchingIndex.isEmpty();
         }
         
         public SgRole addTenant(Tenant tenant) {
@@ -311,10 +334,12 @@ public class ConfigModel {
             boolean retVal = true;
             for (int i = 0; i < types.length; i++) {
                 String type = types[i];
+                System.out.println("    3 - impliesPermission():: "+type);
                 boolean match = typePerms.stream().filter(tp->WildcardMatcher.match(tp.typePattern, type)
                         && tp.impliesAllPermissions(actions)).count() > 0;
                 retVal = match && retVal;
             }
+            System.out.println("    3 - matched: "+retVal);
             return retVal;
         }
         
