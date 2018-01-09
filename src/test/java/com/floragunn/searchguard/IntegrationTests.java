@@ -775,7 +775,7 @@ public class IntegrationTests extends SingleClusterTest {
         HttpResponse res = rh.executePostRequest("_bulk?refresh=true&pretty=true", bulkBody, encodeBasicHeader("worf", "worf"));
         System.out.println(res.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());  
-        Assert.assertTrue(res.getBody().contains("\"errors\" : true"));
+        Assert.assertTrue(res.getBody().contains("\"errors\" : true")); //lorem index only has indices:data/write/index perms
         Assert.assertTrue(res.getBody().contains("\"status\" : 201"));
         Assert.assertTrue(res.getBody().contains("no permissions for"));
         

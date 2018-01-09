@@ -52,6 +52,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.AliasOrIndex;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -307,11 +308,18 @@ public final class IndexResolverReplacer {
                 String[] retVal = IndicesProvider.NOOP;
                 
                 //CCS
-                //if(request instanceof FieldCapabilitiesRequest || request instanceof SearchRequest) {
-                //    assert supportsReplace: request.getClass().getName()+" does not support replace";
-                //   original = handleCcs((IndicesRequest) request);
-                //    retVal = original; //replace !!!!!
-                //}
+                if(localRequest instanceof FieldCapabilitiesRequest || localRequest instanceof SearchRequest) {
+                    assert supportsReplace: localRequest.getClass().getName()+" does not support replace";
+                    final Tuple<Boolean, String[]> ccsResult = handleCcs((Replaceable) localRequest);
+                    if(ccsResult.v1() == Boolean.TRUE) {
+                        if(original == null || original.length == 0) {
+                            //TODO disallow
+                        }
+                        original = ccsResult.v2();
+                        retVal = original; //replace !!!!!
+                    }
+                   
+                }
                 
                 final Resolved iResolved = resolve(original);
 
@@ -332,8 +340,9 @@ public final class IndexResolverReplacer {
     }
 
 
-    private String[] handleCcs(final IndicesRequest request) {
+    private Tuple<Boolean, String[]> handleCcs(final IndicesRequest.Replaceable request) {
 
+        Boolean modified = Boolean.FALSE;
         String[] localIndices = request.indices();
 
         // handle CCS
@@ -348,15 +357,17 @@ public final class IndexResolverReplacer {
 
                 final OriginalIndices originalLocalIndices = remoteClusterIndices.get(RemoteClusterAware.LOCAL_CLUSTER_GROUP_KEY);
                 localIndices = originalLocalIndices.indices();
+                modified = Boolean.TRUE;
 
                 if (log.isDebugEnabled()) {
                     log.debug("remoteClusterIndices keys" + remoteClusterIndices.keySet() + "//remoteClusterIndices "
                             + remoteClusterIndices);
+                    log.debug("modified local indices: {}", (Object[]) localIndices);
                 }
             }
         }
 
-        return localIndices;
+        return new Tuple<Boolean, String[]>(modified, localIndices);
 
     }
 

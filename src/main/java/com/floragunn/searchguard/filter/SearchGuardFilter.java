@@ -17,14 +17,11 @@
 
 package com.floragunn.searchguard.filter;
 
-import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.bouncycastle.math.ec.ECCurve.Config;
 import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
@@ -44,16 +41,10 @@ import com.floragunn.searchguard.action.licenseinfo.LicenseInfoAction;
 import com.floragunn.searchguard.action.whoami.WhoAmIAction;
 import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.auditlog.AuditLog.Origin;
-import com.floragunn.searchguard.configuration.ActionGroupHolder;
 import com.floragunn.searchguard.configuration.AdminDNs;
-import com.floragunn.searchguard.configuration.ConfigurationRepository;
 import com.floragunn.searchguard.configuration.DlsFlsRequestValve;
 import com.floragunn.searchguard.configuration.PrivilegesEvaluator;
 import com.floragunn.searchguard.configuration.PrivilegesEvaluator.PrivEvalResponse;
-import com.floragunn.searchguard.resolver.IndexResolverReplacer;
-import com.floragunn.searchguard.resolver.IndexResolverReplacer.Resolved;
-import com.floragunn.searchguard.sgconf.ConfigModel;
-import com.floragunn.searchguard.support.Base64Helper;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.HeaderHelper;
 import com.floragunn.searchguard.user.User;
@@ -68,23 +59,15 @@ public class SearchGuardFilter implements ActionFilter {
     private final AuditLog auditLog;
     private final ThreadContext threadContext;
     private final ClusterService cs;
-    private final IndexResolverReplacer irr;
-    private final ConfigurationRepository configurationRepository;
-    private final ActionGroupHolder ah;
     
     public SearchGuardFilter(final PrivilegesEvaluator evalp, final AdminDNs adminDns,
-            DlsFlsRequestValve dlsFlsValve, AuditLog auditLog, ThreadPool threadPool, ClusterService cs,
-            IndexResolverReplacer irr, final ConfigurationRepository configurationRepository, final ActionGroupHolder ah) {
+            DlsFlsRequestValve dlsFlsValve, AuditLog auditLog, ThreadPool threadPool, ClusterService cs) {
         this.evalp = evalp;
         this.adminDns = adminDns;
         this.dlsFlsValve = dlsFlsValve;
         this.auditLog = auditLog;
         this.threadContext = threadPool.getThreadContext();
         this.cs = cs;
-        this.irr = irr;
-        this.configurationRepository = configurationRepository;
-        this.ah = ah;
-        
     }
 
     @Override
@@ -95,9 +78,6 @@ public class SearchGuardFilter implements ActionFilter {
     @Override
     public <Request extends ActionRequest, Response extends ActionResponse> void apply(Task task, final String action, Request request,
             ActionListener<Response> listener, ActionFilterChain<Request, Response> chain) {
-        
-        
-        
         try {
             
             if(threadContext.getTransient(ConfigConstants.SG_ORIGIN) == null) {
@@ -219,35 +199,6 @@ public class SearchGuardFilter implements ActionFilter {
             if (log.isTraceEnabled()) {
                 log.trace("Evaluate permissions for user: {}", user.getName());
             }
-            
-            
-          //Resolved resolved = (Resolved) HeaderHelper.deserializeSafeFromHeader(threadContext, "_sg_resolved");
-            //above did not work :-(
-            System.out.println(Thread.currentThread().getName()+"->"+action+" "+task.getId()+" ("+task.getParentTaskId()+")");
-            String h=threadContext.getHeader("_sg_resolved");
-            Resolved resolved = (h==null)?null:(Resolved) Base64Helper.deserializeObject(threadContext.getHeader("_sg_resolved"));
-            
-            if(!action.startsWith("internal:") && !action.startsWith("indices:admin/seq_no") && resolved == null) {
-                
-                //if(action.contains("cluster:monitor/state"))
-                //irr.exclude(request, "searchguard");
-                
-                                
-                Resolved newReso = irr.resolve(request);
-                System.out.println("In SGF: "+newReso);
-                
-                if(threadContext.getHeader("_sg_resolved") != null) {
-                    System.out.println("FATAL, already there: "+Base64Helper.deserializeObject(threadContext.getHeader("_sg_resolved")));
-                }
-                
-                resolved = newReso;
-                threadContext.putHeader("_sg_resolved", Base64Helper.serializeObject(newReso));
-            }
-            
-            
-            //ConfigModel cm = new ConfigModel();
-            //Set<String>  ipatternsfromconf =  cm.load(configurationRepository.getConfiguration("roles"), ah).get(resolved.getTypes().toArray(new String[0]), action).stream().map(i->i.getIndexPattern(user)).collect(Collectors.toSet());
-            //System.out.println("permitted ipatternsfromconf "+ipatternsfromconf);
 
             final PrivEvalResponse pres = eval.evaluate(user, action, request, task);
             
