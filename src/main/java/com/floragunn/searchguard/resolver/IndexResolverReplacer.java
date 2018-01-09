@@ -318,7 +318,6 @@ public final class IndexResolverReplacer {
                             returnEmpty.set(true);
                         }
                         original = ccsResult.v2();
-                        //retVal = original;
                     }
                    
                 }
