@@ -217,6 +217,11 @@ public class PrivilegesEvaluator {
             
         }
         
+        if(requestedResolved == Resolved._EMPTY) {
+            presponse.allowed = true;
+            return presponse;
+        }
+        
         //attach dls/fls map if not already done
         //TODO do this only if enterprise module are loaded
         final Tuple<Map<String, Set<String>>, Map<String, Set<String>>> dlsFls = sgRoles.getDlsFls(user, resolver, clusterService);

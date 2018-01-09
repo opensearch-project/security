@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -74,6 +75,7 @@ import com.google.common.collect.Sets;
 public final class IndexResolverReplacer {
     
     //private final static IndicesOptions DEFAULT_INDICES_OPTIONS = IndicesOptions.lenientExpandOpen();
+    //private static final String[] NO_INDICES_SET = Sets.newHashSet("\\",";",",","/","|").toArray(new String[0]);
     private static final Set<String> NULL_SET = Sets.newHashSet((String)null);
     private final Map<Class<?>, Method> typeCache = Collections.synchronizedMap(new HashMap<Class<?>, Method>(100));
     private final Map<Class<?>, Method> typesCache = Collections.synchronizedMap(new HashMap<Class<?>, Method>(100));
@@ -107,15 +109,13 @@ public final class IndexResolverReplacer {
     }
     
     private Resolved resolve(final String... requestedPatterns) {
-
+        
        if(isAll(requestedPatterns)) {
            return Resolved._ALL;
        }
        
        ClusterState state = clusterService.state();
        
-       
-        
        final SortedMap<String, AliasOrIndex> lookup = state.metaData().getAliasAndIndexLookup(); 
        final Set<String> aliases = lookup.entrySet().stream().filter(e->e.getValue().isAlias()).map(e->e.getKey()).collect(Collectors.toSet());
              
@@ -299,36 +299,47 @@ public final class IndexResolverReplacer {
         if(log.isDebugEnabled()) {
             log.debug("Resolve aliases, indices and types from {}", request.getClass().getSimpleName());
         }
-        Resolved.Builder resolvedBuilder = new Resolved.Builder();   
+        Resolved.Builder resolvedBuilder = new Resolved.Builder();
+        final AtomicBoolean returnEmpty = new AtomicBoolean();
         getOrReplaceAllIndices(request, new IndicesProvider() {
             
             @Override
             public String[] provide(String[] original, Object localRequest, boolean supportsReplace) {
                 
-                String[] retVal = IndicesProvider.NOOP;
+                final String[] retVal = IndicesProvider.NOOP;
                 
                 //CCS
-                if(localRequest instanceof FieldCapabilitiesRequest || localRequest instanceof SearchRequest) {
+                if((localRequest instanceof FieldCapabilitiesRequest || localRequest instanceof SearchRequest)
+                        && (request instanceof FieldCapabilitiesRequest || request instanceof SearchRequest)) {
                     assert supportsReplace: localRequest.getClass().getName()+" does not support replace";
                     final Tuple<Boolean, String[]> ccsResult = handleCcs((Replaceable) localRequest);
                     if(ccsResult.v1() == Boolean.TRUE) {
-                        if(original == null || original.length == 0) {
-                            //TODO disallow
+                        if(ccsResult.v2() == null || ccsResult.v2().length == 0) {
+                            returnEmpty.set(true);
                         }
                         original = ccsResult.v2();
-                        retVal = original; //replace !!!!!
+                        //retVal = original;
                     }
                    
                 }
-                
-                final Resolved iResolved = resolve(original);
-
-                if(log.isTraceEnabled()) {
-                    log.trace("Resolved patterns {} for {} ({}) to {}", original, localRequest.getClass().getSimpleName(), request.getClass().getSimpleName(), iResolved);
+                if(returnEmpty.get()) {
+                    
+                    if(log.isTraceEnabled()) {
+                        log.trace("CCS return empty indices for local node");
+                    }
+                    
+                } else {
+                    final Resolved iResolved = resolve(original);
+    
+                    if(log.isTraceEnabled()) {
+                        log.trace("Resolved patterns {} for {} ({}) to {}", original, localRequest.getClass().getSimpleName(), request.getClass().getSimpleName(), iResolved);
+                    }
+                     
+                    resolvedBuilder.add(iResolved);
+                    resolvedBuilder.addTypes(resolveTypes(localRequest));
+                    
                 }
-                 
-                resolvedBuilder.add(iResolved);
-                resolvedBuilder.addTypes(resolveTypes(localRequest));
+                
                 return retVal;
             }
         });
@@ -336,6 +347,11 @@ public final class IndexResolverReplacer {
         if(log.isTraceEnabled()) {
             log.trace("Finally resolved for {}: {}", request.getClass().getSimpleName(), resolvedBuilder.build());
         }
+        
+        if(returnEmpty.get()) {
+            return Resolved._EMPTY;
+        }
+        
         return resolvedBuilder.build();
     }
 
@@ -354,6 +370,9 @@ public final class IndexResolverReplacer {
 
             if (remoteClusterIndices.size() > 1) {
                 // check permissions?
+                if (log.isDebugEnabled()) {
+                    log.debug("CCS case, original indices: " + Arrays.toString(localIndices));
+                }
 
                 final OriginalIndices originalLocalIndices = remoteClusterIndices.get(RemoteClusterAware.LOCAL_CLUSTER_GROUP_KEY);
                 localIndices = originalLocalIndices.indices();
@@ -362,7 +381,7 @@ public final class IndexResolverReplacer {
                 if (log.isDebugEnabled()) {
                     log.debug("remoteClusterIndices keys" + remoteClusterIndices.keySet() + "//remoteClusterIndices "
                             + remoteClusterIndices);
-                    log.debug("modified local indices: {}", (Object[]) localIndices);
+                    log.debug("modified local indices: " + Arrays.toString(localIndices));
                 }
             }
         }
