@@ -679,12 +679,12 @@ public final class IndexResolverReplacer {
                 } else {
                     final List<String> requestedResolvedIndices = SnapshotUtils.filterIndices(snapshotInfo.indices(), restoreRequest.indices(), restoreRequest.indicesOptions());
                     final List<String> renamedTargetIndices = renamedIndices(restoreRequest, requestedResolvedIndices);
-                    final Set<String> indices = new HashSet<>(requestedResolvedIndices);
-                    indices.addAll(renamedTargetIndices);
+                    //final Set<String> indices = new HashSet<>(requestedResolvedIndices);
+                    //indices.addAll(renamedTargetIndices);
                     if(log.isDebugEnabled()) {
-                        log.debug("snapshot: {} contains this indices: {}", snapshotInfo.snapshotId().getName(), indices);    
+                        log.debug("snapshot: {} contains this indices: {}", snapshotInfo.snapshotId().getName(), renamedTargetIndices);    
                     }
-                    provider.provide(indices.toArray(new String[0]), request, false);
+                    provider.provide(renamedTargetIndices.toArray(new String[0]), request, false);
                 }    
 
         } else if (request instanceof IndicesAliasesRequest) {

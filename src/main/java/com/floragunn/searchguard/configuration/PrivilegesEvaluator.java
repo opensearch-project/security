@@ -102,6 +102,7 @@ import com.floragunn.searchguard.sgconf.ConfigModel.SgRoles;
 import com.floragunn.searchguard.sgconf.ConfigModel.TypePerm;
 import com.floragunn.searchguard.support.Base64Helper;
 import com.floragunn.searchguard.support.ConfigConstants;
+import com.floragunn.searchguard.support.SnapshotRestoreHelper;
 import com.floragunn.searchguard.support.WildcardMatcher;
 import com.floragunn.searchguard.user.User;
 import com.google.common.collect.ArrayListMultimap;
@@ -114,7 +115,7 @@ public class PrivilegesEvaluator {
 
     private static final Set<String> NO_INDICES_SET = Sets.newHashSet("\\",";",",","/","|");
     private static final Set<String> NULL_SET = Sets.newHashSet((String)null);
-    private final Set<String> DLSFLS = ImmutableSet.of("_dls_", "_fls_"); //TODO check that types does not contain them
+    
     protected final Logger log = LogManager.getLogger(this.getClass());
     protected final Logger actionTrace = LogManager.getLogger("sg_action_trace");
     private final ClusterService clusterService;
@@ -170,6 +171,7 @@ public class PrivilegesEvaluator {
         sgIndexdeniedActionPatternsList.add("indices:data/write*");
         sgIndexdeniedActionPatternsList.add("indices:admin/close");
         sgIndexdeniedActionPatternsList.add("indices:admin/delete");
+        sgIndexdeniedActionPatternsList.add("cluster:admin/snapshot/restore");
         //deniedActionPatternsList.add("indices:admin/settings/update");
         //deniedActionPatternsList.add("indices:admin/upgrade");
         
@@ -230,11 +232,17 @@ public class PrivilegesEvaluator {
             throw new ElasticsearchSecurityException("Search Guard is not initialized.");
         }
         
-        final Set<String> allPermsRequired = evaluateAdditionalPermissions(request, action0);
-        final String[] allPermsRequiredA = allPermsRequired.toArray(new String[0]);
+        if(action0.startsWith("internal:indices/admin/upgrade")) {
+            action0 = "indices:admin/upgrade";
+        }
+        
+        boolean clusterLevelPermissionRequired = false;
+        
+        final Set<String> allIndexPermsRequired = evaluateAdditionalIndexPermissions(request, action0);
+        final String[] allIndexPermsRequiredA = allIndexPermsRequired.toArray(new String[0]);
         
         final PrivEvalResponse presponse = new PrivEvalResponse();
-        presponse.getMissingPrivileges().addAll(allPermsRequired);
+        presponse.missingPrivileges.add(action0);
 
         try {
             if(request instanceof SearchRequest) {
@@ -273,21 +281,38 @@ public class PrivilegesEvaluator {
         if (log.isDebugEnabled()) {
             log.debug("### evaluate permissions for {} on {}", user, clusterService.localNode().getName());
             //log.debug("evaluate permissions for {} on {}", user, clusterService.localNode().getName());
-            log.debug("requested {} from {}", allPermsRequired, caller);
+            log.debug("requested {} from {}", allIndexPermsRequired, caller);
         }
         
-        if(action0.startsWith("cluster:admin/snapshot/restore")) {
+        if(request instanceof RestoreSnapshotRequest) {
             if (enableSnapshotRestorePrivilege) {
-                return presponse; //evaluateSnapshotRestore(user, action0, request, caller, task);
+                final RestoreSnapshotRequest restoreRequest = (RestoreSnapshotRequest) request;
+
+                // Do not allow restore of global state
+                if (restoreRequest.includeGlobalState()) {
+                    auditLog.logSgIndexAttempt(request, action0, task);
+                    log.warn(action0 + " with 'include_global_state' enabled is not allowed");
+                    presponse.allowed = false;
+                    return presponse;
+                }
+                
+                final List<String> rs = SnapshotRestoreHelper.resolveOriginalIndices(restoreRequest);
+                
+                if (rs != null && (rs.contains(searchguardIndex) || rs.contains("_all"))) {
+                    auditLog.logSgIndexAttempt(request, action0, task);
+                    log.warn(action0 + " for '{}' as source index is not allowed", searchguardIndex);
+                    presponse.allowed = false;
+                    return presponse;
+                }
+                
+                
             } else {
                 log.warn(action0 + " is not allowed for a regular user");
                 return presponse;
             }
         }
 
-        if(action0.startsWith("internal:indices/admin/upgrade")) {
-            action0 = "indices:admin/upgrade";
-        }
+       
 
         //final ClusterState clusterState = clusterService.state();
         //final MetaData metaData = clusterState.metaData();
@@ -306,11 +331,7 @@ public class PrivilegesEvaluator {
             log.debug("sgr: {}", sgr.getRoles().stream().map(d->d.getName()).toArray());
         }
         
-        final Set<IndexPattern> ip = sgr.get(requestedResolved, user, allPermsRequiredA, resolver, clusterService);
-        
-        if(ip.isEmpty()) {
-            presponse.getMissingPrivileges().addAll(allPermsRequired);
-        }
+        final Set<IndexPattern> ip = sgr.get(requestedResolved, user, allIndexPermsRequiredA, resolver, clusterService);
         
         if (log.isDebugEnabled()) {
             log.debug("Set<IndexPattern> ip: {}", ip);
@@ -393,25 +414,22 @@ public class PrivilegesEvaluator {
         final Map<String,Set<String>> dlsQueries = new HashMap<String, Set<String>>();
         final Map<String,Set<String>> flsFields = new HashMap<String, Set<String>>();
         
+        //optimize, do first
+        if (isClusterPerm(action0)) {
         
-        
-        
-        
-        
-        
-        if (    action0.startsWith("cluster:") 
-                || action0.startsWith("indices:admin/template/")
-
-            || action0.startsWith(SearchScrollAction.NAME)
-            || (action0.equals(BulkAction.NAME))
-            || (action0.equals(MultiGetAction.NAME))
-            || (action0.equals(MultiSearchAction.NAME))
-            || (action0.equals(MultiTermVectorsAction.NAME))
-            || (action0.equals("indices:data/read/coordinate-msearch"))
-            || (action0.equals(ReindexAction.NAME))
-
-            ) {
-        
+            if(allIndexPermsRequired.size() > 0) {
+            
+                if(!sgr.impliesClusterPermissionPermission(action0)) {
+                    log.info("No {}-level perm match for {} {} [Action [{}]] [RolesChecked {}]", "cluster" , user, requestedResolved, action0, sgr.getRoles().stream().map(r->r.getName()).toArray());
+                    log.info("No permissions for {}", action0);
+                    presponse.allowed = false;
+                    return presponse;
+                }
+            
+            } else {
+                
+                clusterLevelPermissionRequired = true;
+                
                 //check cluster perms
                 if(sgr.impliesClusterPermissionPermission(action0)) {
                 
@@ -424,8 +442,12 @@ public class PrivilegesEvaluator {
                     presponse.allowed = true;
                     return presponse;
                 }
+            }   
         
         }
+        
+        presponse.missingPrivileges.clear();
+        presponse.missingPrivileges.addAll(allIndexPermsRequired);
         
         boolean permGiven = false;
         
@@ -495,10 +517,19 @@ public class PrivilegesEvaluator {
                 
             }
             
-            System.out.println("check ip: "+indexPattern+" -> "+permGiven+" for "+allPermsRequired);
-            System.out.println("ipat: "+ipat);
+            //System.out.println("check ip: "+indexPattern+" -> "+permGiven+" for "+allIndexPermsRequired);
+            //System.out.println("ipat: "+ipat);
+            
+            permGiven = true;
+            
+            //if(!permGiven) {
+            //    permGiven = ipat.impliedPermissions(requestedResolved.getTypes().toArray(new String[0]), allIndexPermsRequiredA).isEmpty();
+            //    if(permGiven) {
+            //        presponse.missingPrivileges.removeAll(allIndexPermsRequired);
+            //    }
+            //}
 
-            permGiven = permGiven || ipat.impliesPermission(requestedResolved.getTypes().toArray(new String[0]), allPermsRequiredA);
+            //permGiven = permGiven || ipat.impliesPermission(requestedResolved.getTypes().toArray(new String[0]), allPermsRequiredA);
             
         }
         
@@ -570,8 +601,9 @@ public class PrivilegesEvaluator {
         }*/
         
         
-        if(!permGiven) {
-            //presponse.getMissingPrivileges().add(e);
+         if (!permGiven) {            
+            log.info("No {}-level perm match for {} {} [Action [{}]] [RolesChecked {}]", clusterLevelPermissionRequired?"cluster":"index" , user, requestedResolved, action0, sgr.getRoles().stream().map(r->r.getName()).toArray());
+            log.info("No permissions for {}", presponse.missingPrivileges);
         }
         
         presponse.allowed=permGiven;
@@ -1205,10 +1237,13 @@ public class PrivilegesEvaluator {
         return true;
     }*/
     
-    private Set<String> evaluateAdditionalPermissions(final ActionRequest request, final String originalAction) {
+    private Set<String> evaluateAdditionalIndexPermissions(final ActionRequest request, final String originalAction) {
       //--- check inner bulk requests
         final Set<String> additionalPermissionsRequired = new HashSet<>();
-        additionalPermissionsRequired.add(originalAction);
+        
+        if(!isClusterPerm(originalAction)) {
+            additionalPermissionsRequired.add(originalAction);
+        }
         
         if (request instanceof BulkShardRequest) {
             BulkShardRequest bsr = (BulkShardRequest) request;
@@ -1243,6 +1278,10 @@ public class PrivilegesEvaluator {
             }
         }
         
+        if(request instanceof RestoreSnapshotRequest && checkSnapshotRestoreWritePrivileges) {
+            additionalPermissionsRequired.addAll(ConfigConstants.SG_SNAPSHOT_RESTORE_NEEDED_WRITE_PRIVILEGES);
+        }
+        
         if(actionTrace.isTraceEnabled() && additionalPermissionsRequired.size() > 1) {
             actionTrace.trace(("Additional permissions required: "+additionalPermissionsRequired));
         }
@@ -1252,5 +1291,20 @@ public class PrivilegesEvaluator {
         }
         
         return Collections.unmodifiableSet(additionalPermissionsRequired);
+    }
+    
+    private static boolean isClusterPerm(String action0) {
+        return  (    action0.startsWith("cluster:") 
+                || action0.startsWith("indices:admin/template/")
+
+            || action0.startsWith(SearchScrollAction.NAME)
+            || (action0.equals(BulkAction.NAME))
+            || (action0.equals(MultiGetAction.NAME))
+            || (action0.equals(MultiSearchAction.NAME))
+            || (action0.equals(MultiTermVectorsAction.NAME))
+            || (action0.equals("indices:data/read/coordinate-msearch"))
+            || (action0.equals(ReindexAction.NAME))
+
+            ) ;
     }
 }

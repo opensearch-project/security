@@ -23,9 +23,11 @@ import com.floragunn.searchguard.configuration.ConfigurationRepository;
 import com.floragunn.searchguard.resolver.IndexResolverReplacer.Resolved;
 import com.floragunn.searchguard.support.WildcardMatcher;
 import com.floragunn.searchguard.user.User;
+import com.google.common.collect.ImmutableSet;
 
 public class ConfigModel {
     
+    private final static Set<String> DLSFLS = ImmutableSet.of("_dls_", "_fls_");
     private final ActionGroupHolder ah;
     private final ConfigurationRepository configurationRepository;
 
@@ -90,7 +92,7 @@ public class ConfigModel {
                 
                 for(String type: permittedAliasesIndices.get(indexPattern).names()) {
                     
-                    if(type.equals("_fls_") || type.equals("_dls_")) {
+                    if(DLSFLS.contains(type)) {
                         continue;
                     }
                     
@@ -208,25 +210,25 @@ public class ConfigModel {
         public boolean impliesTypePerm(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
             //getIndexPattern -> alias??
             Set<String> matchingIndex = new HashSet<>(resolved.getAllIndices());
+            Set<String> matchingActions = new HashSet<>(Arrays.asList(actions));
             for (IndexPattern p: ipatterns) {
                 System.out.println("  2 - impliesTypePerm():: "+p.getUnresolvedIndexPattern(user));
                 System.out.println("      resoip:: "+Arrays.toString(p.getResolvedIndexPattern(user, resolver, cs)));
                 System.out.println("      reqall:: "+resolved.getAllIndices());
-                if (p.impliesPermission(resolved.getTypes().toArray(new String[0]), actions)) {
-                    
-                    for(String r: p.getResolvedIndexPattern(user, resolver, cs)) {
-                        WildcardMatcher.wildcardRemoveFromSet(matchingIndex, r);
-                    }
-                    //&& WildcardMatcher.matchAny(p.getResolvedIndexPattern(user, resolver, cs), resolved.getAllIndices().toArray(new String[0]))) {
-                    
-                    System.out.println("  2 - interm matched:: "+p.getUnresolvedIndexPattern(user));
-                } else {
-                    System.out.println("  2 - interm not matched:: "+p.getUnresolvedIndexPattern(user));
+                
+                //evil
+                for(String r: p.impliedPermissions(resolved.getTypes().toArray(new String[0]), actions)) {
+                    WildcardMatcher.wildcardRemoveFromSet(matchingActions, r);
+                }
+                
+                for(String r: p.getResolvedIndexPattern(user, resolver, cs)) {
+                    WildcardMatcher.wildcardRemoveFromSet(matchingIndex, r);
                 }
                 
             }
-            System.out.println("  2 - final matched:: "+matchingIndex.isEmpty()+" ("+matchingIndex+")");
-            return matchingIndex.isEmpty();
+            boolean retVal = matchingIndex.isEmpty() && matchingActions.isEmpty();
+            System.out.println("  2 - final matched:: "+retVal+" ("+matchingIndex+") ("+matchingActions+")");
+            return retVal;
         }
         
         public SgRole addTenant(Tenant tenant) {
@@ -330,17 +332,32 @@ public class ConfigModel {
             this.indexPattern = Objects.requireNonNull(indexPattern);
         }
         
-        public boolean impliesPermission(String[] types, String[] actions) {
-            boolean retVal = true;
+        public Set<String> impliedPermissions(String[] types, String[] actions) {
+            Set<String> allPerms0 = new HashSet<String>();
             for (int i = 0; i < types.length; i++) {
                 String type = types[i];
                 System.out.println("    3 - impliesPermission():: "+type);
-                boolean match = typePerms.stream().filter(tp->WildcardMatcher.match(tp.typePattern, type)
-                        && tp.impliesAllPermissions(actions)).count() > 0;
-                retVal = match && retVal;
+                for(TypePerm tp: typePerms) {
+                    boolean wcMatch = WildcardMatcher.match(tp.typePattern, type);
+                    
+                    if(!wcMatch) {
+                        continue;
+                    }
+                    
+                    List<String> impliedPerms = tp.impliedPermissions(actions);
+                    allPerms0.addAll(impliedPerms);
+                    
+                    //for(String ipp:impliedPerms) {
+                    //    WildcardMatcher.wildcardRemoveFromSet(allPerms, ipp);
+                    //}
+                    
+                    System.out.println("        wcMatch:: "+ wcMatch);
+                    System.out.println("        actionMatch:: "+impliedPerms);
+                    System.out.println("        actionMatchAllCur:: "+allPerms0);
+                }
             }
-            System.out.println("    3 - matched: "+retVal);
-            return retVal;
+            System.out.println("    3 - ir: "+allPerms0);
+            return Collections.unmodifiableSet(allPerms0);
         }
         
         public IndexPattern addFlsFields(List<String> flsFields) {
@@ -452,10 +469,16 @@ public class ConfigModel {
         public TypePerm(String typePattern) {
             super();
             this.typePattern = Objects.requireNonNull(typePattern);
+            if(DLSFLS.contains(typePattern)) {
+                throw new RuntimeException("typepattern '"+typePattern+"' not allowed");
+            }
         }
 
-        public boolean impliesAllPermissions(String[] actions) {
-            return WildcardMatcher.matchAll(perms.toArray(new String[0]), actions);
+        public List<String> impliedPermissions(String[] actions) {
+            System.out.println("      4 - impliesAllPermissions():: "+typePattern);
+            System.out.println("              actions:: "+Arrays.toString(actions));
+            System.out.println("              perms:: "+perms);
+            return WildcardMatcher.getMatchAny(perms.toArray(new String[0]), actions);
         }
         
         public TypePerm addPerms(Collection<String> perms) {
