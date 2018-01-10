@@ -198,18 +198,28 @@ public class PrivilegesEvaluator {
             action0 = "indices:admin/upgrade";
         }
         
+        final TransportAddress caller = Objects.requireNonNull((TransportAddress) this.threadContext.getTransient(ConfigConstants.SG_REMOTE_ADDRESS));
+        final SgRoles sgRoles = getSgRoles(user, caller);
         
+        //read
+        //write
+        //cluster admin
+        //index admin
+        //cluster monitor
+        //index monitor
+        
+        //irr.exclude(request, exclude)
+        //irr.replace(request, sgRoles.get(resolved, user, actions, resolver, cs));
         
         final PrivEvalResponse presponse = new PrivEvalResponse();
         
-        final TransportAddress caller = Objects.requireNonNull((TransportAddress) this.threadContext.getTransient(ConfigConstants.SG_REMOTE_ADDRESS));
         
         if (log.isDebugEnabled()) {
             log.debug("### evaluate permissions for {} on {}", user, clusterService.localNode().getName());
             log.debug("action: "+action0+" ("+request.getClass().getSimpleName()+")");
         }
 
-        final SgRoles sgRoles = getSgRoles(user, caller);
+        
         final Resolved requestedResolved = irr.resolve(request);
         
         if (log.isDebugEnabled()) {

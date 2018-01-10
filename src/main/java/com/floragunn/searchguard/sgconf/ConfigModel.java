@@ -281,6 +281,18 @@ public class ConfigModel {
             return WildcardMatcher.matchAny(clusterPerms, action);
         }
         
+        /*public Set<IndexPattern> matching(User user, String[] types, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
+            Set<IndexPattern> retVal = new HashSet<>();
+            for(IndexPattern p: ipatterns) {
+               //String[] indices = p.getResolvedIndexPattern(user, resolver, cs);
+               //Set<TypePerm> tperms = p.getTypePerms();
+               //for(TypePerm tp: tperms) {
+               //    tp.
+               //}
+            }
+            return retVal;
+        }*/
+        
         public boolean impliesTypePerm(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
             Set<String> matchingIndex = new HashSet<>(resolved.getAllIndices());
             Set<String> matchingActions = new HashSet<>(Arrays.asList(actions));
