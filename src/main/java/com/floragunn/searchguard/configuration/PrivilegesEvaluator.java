@@ -200,7 +200,7 @@ public class PrivilegesEvaluator {
         
         final TransportAddress caller = Objects.requireNonNull((TransportAddress) this.threadContext.getTransient(ConfigConstants.SG_REMOTE_ADDRESS));
         final SgRoles sgRoles = getSgRoles(user, caller);
-        
+
         //read
         //write
         //cluster admin
@@ -415,6 +415,8 @@ public class PrivilegesEvaluator {
         
         final Set<String> allIndexPermsRequired = evaluateAdditionalIndexPermissions(request, action0);
         final String[] allIndexPermsRequiredA = allIndexPermsRequired.toArray(new String[0]);
+        
+        System.out.println("###permittedIndices: "+sgRoles.get(user, requestedResolved.getTypes().toArray(new String[0]), allIndexPermsRequiredA, resolver, clusterService));
         
         if(log.isDebugEnabled()) {
             log.debug("requested {} from {}", allIndexPermsRequired, caller);

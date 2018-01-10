@@ -246,6 +246,14 @@ public class ConfigModel {
         }
         
         
+        public Set<String> get(User user, String[] types, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
+            Set<String> retVal = new HashSet<>();
+            for(SgRole sgr: roles) {
+                retVal.addAll(sgr.getAllResolvedPermittedIndices(user, types, actions, resolver, cs));
+            }
+            return Collections.unmodifiableSet(retVal);
+        }
+        
         public Set<IndexPattern> get(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
             for(SgRole sgr: roles) {
                 System.out.println("1 - get() "+sgr.getName());
@@ -281,17 +289,31 @@ public class ConfigModel {
             return WildcardMatcher.matchAny(clusterPerms, action);
         }
         
-        /*public Set<IndexPattern> matching(User user, String[] types, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
-            Set<IndexPattern> retVal = new HashSet<>();
+        //get indices which are permitted for the given types and actions
+        public Set<String> getAllResolvedPermittedIndices(User user, String[] types, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
+            Set<String> retVal = new HashSet<>();
             for(IndexPattern p: ipatterns) {
-               //String[] indices = p.getResolvedIndexPattern(user, resolver, cs);
-               //Set<TypePerm> tperms = p.getTypePerms();
-               //for(TypePerm tp: tperms) {
-               //    tp.
-               //}
+               System.out.println("#pat: "+p.getUnresolvedIndexPattern(user)+" for "+this.name);
+               //what if we cannot resolve one (for create purposes)
+               boolean patternMatch = false;
+               Set<TypePerm> tperms = p.getTypePerms();
+               for(TypePerm tp: tperms) {
+                   System.out.println("   tp: "+tp.getTypePattern());
+                   System.out.println("     1: "+tp.perms);
+                   System.out.println("     2: "+Arrays.toString(actions));
+                   if(WildcardMatcher.matchAny(tp.typePattern, types)) {
+                       patternMatch = WildcardMatcher.matchAll(tp.perms.toArray(new String[0]), actions);
+                   }
+               }
+               System.out.println("match: "+patternMatch);
+               if(patternMatch) {
+                   String[] indices = p.getResolvedIndexPattern(user, resolver, cs);
+                   retVal.addAll(Arrays.asList(indices));
+               }
+               
             }
-            return retVal;
-        }*/
+            return Collections.unmodifiableSet(retVal);
+        }
         
         public boolean impliesTypePerm(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
             Set<String> matchingIndex = new HashSet<>(resolved.getAllIndices());
