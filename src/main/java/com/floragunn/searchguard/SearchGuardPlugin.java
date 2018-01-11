@@ -428,7 +428,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
 
     private IndexSearcherWrapper loadFlsDlsIndexSearcherWrapper(final IndexService indexService) {
         try {
-            IndexSearcherWrapper flsdlsWrapper = (IndexSearcherWrapper) dlsFlsConstructor.newInstance(indexService, settings, Objects.requireNonNull(adminDns));
+            IndexSearcherWrapper flsdlsWrapper = (IndexSearcherWrapper) dlsFlsConstructor.newInstance(indexService, settings, Objects.requireNonNull(adminDns), Objects.requireNonNull(cs));
             if(log.isDebugEnabled()) {
                 log.debug("FLS/DLS enabled for index {}", indexService.index().getName());
             }
