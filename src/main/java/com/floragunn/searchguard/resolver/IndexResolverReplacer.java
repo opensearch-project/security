@@ -394,7 +394,7 @@ public final class IndexResolverReplacer {
         /**
          * 
          */
-        private static final Set<String> All_SET = Sets.newHashSet("_all");
+        private static final Set<String> All_SET = Sets.newHashSet("*");
         private static final long serialVersionUID = 1L;
         public final static Resolved _ALL = new Resolved(All_SET, All_SET, All_SET, All_SET);
         public final static Resolved _EMPTY = new Builder().build();
@@ -419,7 +419,7 @@ public final class IndexResolverReplacer {
         }
         
         public boolean isAll() {
-            return aliases.contains("_all") && indices.contains("_all") && allIndices.contains("_all") && types.contains("_all");
+            return aliases.contains("*") && indices.contains("*") && allIndices.contains("*") && types.contains("*");
         }
         
         public boolean isEmpty() {

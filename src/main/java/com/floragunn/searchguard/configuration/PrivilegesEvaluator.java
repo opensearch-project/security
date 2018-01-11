@@ -310,7 +310,7 @@ public class PrivilegesEvaluator {
                 
                 final List<String> rs = SnapshotRestoreHelper.resolveOriginalIndices(restoreRequest);
                 
-                if (rs != null && (rs.contains(searchguardIndex) || rs.contains("_all"))) {
+                if (rs != null && (rs.contains(searchguardIndex) || rs.contains("_all") || rs.contains("*"))) {
                     auditLog.logSgIndexAttempt(request, action0, task);
                     log.warn(action0 + " for '{}' as source index is not allowed", searchguardIndex);
                     presponse.allowed = false;
@@ -416,7 +416,11 @@ public class PrivilegesEvaluator {
         final Set<String> allIndexPermsRequired = evaluateAdditionalIndexPermissions(request, action0);
         final String[] allIndexPermsRequiredA = allIndexPermsRequired.toArray(new String[0]);
         
-        System.out.println("###permittedIndices: "+sgRoles.get(user, requestedResolved.getTypes().toArray(new String[0]), allIndexPermsRequiredA, resolver, clusterService));
+        final boolean dnfofEnabled = 
+                getConfigSettings().getAsBoolean("searchguard.dynamic.kibana.do_not_fail_on_forbidden", false)
+                || getConfigSettings().getAsBoolean("searchguard.dynamic.do_not_fail_on_forbidden", false);
+
+        
         
         if(log.isDebugEnabled()) {
             log.debug("requested {} from {}", allIndexPermsRequired, caller);
@@ -427,8 +431,6 @@ public class PrivilegesEvaluator {
         
         final Settings config = getConfigSettings();
 
-        boolean dnfof = false;
-        
         if (log.isDebugEnabled()) {
             log.debug("requested resolved indextypes: {}", requestedResolved);
         }
@@ -439,14 +441,6 @@ public class PrivilegesEvaluator {
 
         
         //TODO exclude sg index
-        //irr.exclude(request, searchguardIndex);
-        
-        if(dnfof) {
-            //boolean success = irr.replace(request, ip.stream().map(i->i.getIndexPattern(user)).toArray(String[]::new));
-            //if(success) {
-            //    throw new RuntimeException("Unable to replace indices");
-            //}
-        }
         
         if(privilegesInterceptor.getClass() != PrivilegesInterceptor.class) {
         
@@ -462,6 +456,27 @@ public class PrivilegesEvaluator {
             }
             
             if (replaceResult == Boolean.FALSE) {
+                presponse.allowed = true;
+                return presponse;
+            }
+        }
+        
+        if (dnfofEnabled 
+                && (action0.startsWith("indices:data/read/") 
+                || action0.startsWith("indices:admin/mappings/fields/get"))) {
+            Set<String> reduced = sgRoles.reduce(requestedResolved, user, allIndexPermsRequiredA, resolver, clusterService);
+            System.out.println("###permittedIndices: "+reduced);
+            
+            if(reduced.isEmpty()) {
+                presponse.missingPrivileges.clear();
+                presponse.allowed = true;
+                return presponse;
+            }
+            
+            
+            if(irr.replace(request, reduced.toArray(new String[0]))) {
+                System.out.println("###permittedIndices replace: successfull");
+                presponse.missingPrivileges.clear();
                 presponse.allowed = true;
                 return presponse;
             }

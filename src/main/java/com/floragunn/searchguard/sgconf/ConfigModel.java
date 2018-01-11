@@ -1,5 +1,6 @@
 package com.floragunn.searchguard.sgconf;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -117,10 +118,10 @@ public class ConfigModel {
 
         final Set<SgRole> roles = new HashSet<>(100);
         
-        public SgRoles() {
+        private SgRoles() {
         }
         
-        public SgRoles addSgRole(SgRole sgRole) {
+        private SgRoles addSgRole(SgRole sgRole) {
             if(sgRole != null) {
                 this.roles.add(sgRole);
             }
@@ -246,10 +247,10 @@ public class ConfigModel {
         }
         
         
-        public Set<String> get(User user, String[] types, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
+        public Set<String> reduce(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
             Set<String> retVal = new HashSet<>();
             for(SgRole sgr: roles) {
-                retVal.addAll(sgr.getAllResolvedPermittedIndices(user, types, actions, resolver, cs));
+                retVal.addAll(sgr.getAllResolvedPermittedIndices(resolved, user, actions, resolver, cs));
             }
             return Collections.unmodifiableSet(retVal);
         }
@@ -280,17 +281,17 @@ public class ConfigModel {
         private final Set<IndexPattern> ipatterns = new HashSet<>(); 
         private final Set<String> clusterPerms = new HashSet<>();
 
-        public SgRole(String name) {
+        private SgRole(String name) {
             super();
             this.name = Objects.requireNonNull(name);
         }
 
-        public boolean impliesClusterPermission(String action) {
+        private boolean impliesClusterPermission(String action) {
             return WildcardMatcher.matchAny(clusterPerms, action);
         }
         
         //get indices which are permitted for the given types and actions
-        public Set<String> getAllResolvedPermittedIndices(User user, String[] types, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
+        private Set<String> getAllResolvedPermittedIndices(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
             Set<String> retVal = new HashSet<>();
             for(IndexPattern p: ipatterns) {
                System.out.println("#pat: "+p.getUnresolvedIndexPattern(user)+" for "+this.name);
@@ -301,21 +302,27 @@ public class ConfigModel {
                    System.out.println("   tp: "+tp.getTypePattern());
                    System.out.println("     1: "+tp.perms);
                    System.out.println("     2: "+Arrays.toString(actions));
-                   if(WildcardMatcher.matchAny(tp.typePattern, types)) {
+                   if(WildcardMatcher.matchAny(tp.typePattern, resolved.getTypes().toArray(new String[0]))) {
                        patternMatch = WildcardMatcher.matchAll(tp.perms.toArray(new String[0]), actions);
                    }
                }
                System.out.println("match: "+patternMatch);
                if(patternMatch) {
-                   String[] indices = p.getResolvedIndexPattern(user, resolver, cs);
-                   retVal.addAll(Arrays.asList(indices));
+                   String[] indices = p.getResolvedIndexPattern(user, resolver, cs); //maybe they do not exists
+                   System.out.println("permitted "+Arrays.toString(indices));
+                   List<String> tmp = new ArrayList<>(Arrays.asList(indices));
+                   if(!resolved.isAll() && !resolved.getAllIndices().contains("*")  && !resolved.getAllIndices().contains("_all")) {
+                       tmp.retainAll(resolved.getAllIndices());
+                   } else {
+                       tmp.retainAll(Arrays.asList(resolver.concreteIndexNames(cs.state(), IndicesOptions.strictExpandOpen(), "*")));
+                   }
+                   retVal.addAll(tmp);
                }
-               
             }
             return Collections.unmodifiableSet(retVal);
         }
         
-        public boolean impliesTypePerm(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
+        private boolean impliesTypePerm(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
             Set<String> matchingIndex = new HashSet<>(resolved.getAllIndices());
             Set<String> matchingActions = new HashSet<>(Arrays.asList(actions));
             Set<String> matchingTypes = new HashSet<>(resolved.getTypes());
@@ -353,21 +360,21 @@ public class ConfigModel {
             return retVal;
         }
         
-        public SgRole addTenant(Tenant tenant) {
+        private SgRole addTenant(Tenant tenant) {
             if(tenant != null) {
                 this.tenants.add(tenant);
             }
             return this;
         }
         
-        public SgRole addIndexPattern(IndexPattern indexPattern) {
+        private SgRole addIndexPattern(IndexPattern indexPattern) {
             if(indexPattern != null) {
                 this.ipatterns.add(indexPattern);
             }
             return this;
         }
         
-        public SgRole addClusterPerms(Collection<String> clusterPerms) {
+        private SgRole addClusterPerms(Collection<String> clusterPerms) {
             if(clusterPerms != null) {
                 this.clusterPerms.addAll(clusterPerms);
             }
@@ -588,7 +595,7 @@ public class ConfigModel {
         private final String typePattern;
         private final Set<String> perms = new HashSet<>();
         
-        public TypePerm(String typePattern) {
+        private TypePerm(String typePattern) {
             super();
             this.typePattern = Objects.requireNonNull(typePattern);
             if(DLSFLS.contains(typePattern)) {
@@ -603,7 +610,7 @@ public class ConfigModel {
             return WildcardMatcher.getMatchAny(perms.toArray(new String[0]), actions);
         }*/
         
-        public TypePerm addPerms(Collection<String> perms) {
+        private TypePerm addPerms(Collection<String> perms) {
             if(perms != null) {
                 this.perms.addAll(perms);
             }
@@ -659,7 +666,7 @@ public class ConfigModel {
     public static class Tenant {
         private final String tenant;
         private final boolean readWrite;
-        public Tenant(String tenant, boolean readWrite) {
+        private Tenant(String tenant, boolean readWrite) {
             super();
             this.tenant = tenant;
             this.readWrite = readWrite;
