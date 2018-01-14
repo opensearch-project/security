@@ -657,10 +657,11 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
                         ){
                             scrollContext.putInContext("_sg_scroll_auth_local", Boolean.TRUE);
                             
-                        } else {                            }
+                        } else {
                             scrollContext.putInContext("_sg_scroll_auth", threadPool.getThreadContext()
                                     .getTransient(ConfigConstants.SG_USER));
                         }
+                    }
                 }
 
                 @Override
