@@ -18,7 +18,13 @@
 package com.floragunn.searchguard.auditlog;
 
 import java.io.IOException;
+import java.util.Map;
 
+import org.elasticsearch.index.engine.Engine.Delete;
+import org.elasticsearch.index.engine.Engine.DeleteResult;
+import org.elasticsearch.index.engine.Engine.Index;
+import org.elasticsearch.index.engine.Engine.IndexResult;
+import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.transport.TransportRequest;
@@ -87,6 +93,21 @@ public class NullAuditLog implements AuditLog {
     
     @Override
     public void logMissingPrivileges(String privilege, String effectiveUser, RestRequest request) {
+        //noop, intentionally left empty
+    }
+
+    @Override
+    public void logDocumentRead(String index, String id, Map<String, String> fieldNameValues) {
+        //noop, intentionally left empty
+    }
+
+    @Override
+    public void logDocumentWritten(ShardId shardId, Index index, IndexResult result) {
+        //noop, intentionally left empty
+    }
+
+    @Override
+    public void logDocumentDeleted(ShardId shardId, Delete delete, DeleteResult result) {
         //noop, intentionally left empty
     }
 }

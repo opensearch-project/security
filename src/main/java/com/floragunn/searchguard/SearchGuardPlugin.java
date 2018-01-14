@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -41,17 +42,23 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.lucene.document.Document;
+import org.apache.lucene.index.IndexableField;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.SpecialPermission;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionResponse;
+import org.elasticsearch.action.admin.indices.settings.get.GetSettingsAction;
+import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.search.SearchScrollAction;
 import org.elasticsearch.action.support.ActionFilter;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.component.Lifecycle.State;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.component.LifecycleListener;
@@ -68,20 +75,38 @@ import org.elasticsearch.common.settings.SettingsFilter;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.http.HttpServerTransport.Dispatcher;
 import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.index.IndexService;
+import org.elasticsearch.index.engine.Engine;
+import org.elasticsearch.index.engine.Engine.Delete;
+import org.elasticsearch.index.engine.Engine.DeleteResult;
+import org.elasticsearch.index.engine.Engine.Index;
+import org.elasticsearch.index.engine.Engine.IndexResult;
+import org.elasticsearch.index.get.GetResult;
+import org.elasticsearch.index.mapper.FieldMapper;
+import org.elasticsearch.index.mapper.Mapper;
+import org.elasticsearch.index.mapper.MapperService;
+import org.elasticsearch.index.mapper.ParentFieldMapper;
+import org.elasticsearch.index.mapper.RoutingFieldMapper;
+import org.elasticsearch.index.shard.IndexEventListener;
 import org.elasticsearch.index.shard.IndexSearcherWrapper;
+import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.index.shard.IndexingOperationListener;
 import org.elasticsearch.index.shard.SearchOperationListener;
+import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestHandler;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.script.ScriptService;
+import org.elasticsearch.search.fetch.subphase.FetchSourceContext;
 import org.elasticsearch.search.internal.ScrollContext;
 import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.tasks.Task;
@@ -140,7 +165,9 @@ import com.floragunn.searchguard.transport.DefaultInterClusterRequestEvaluator;
 import com.floragunn.searchguard.transport.InterClusterRequestEvaluator;
 import com.floragunn.searchguard.transport.SearchGuardInterceptor;
 import com.floragunn.searchguard.user.User;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
     
@@ -428,7 +455,10 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
 
     private IndexSearcherWrapper loadFlsDlsIndexSearcherWrapper(final IndexService indexService) {
         try {
-            IndexSearcherWrapper flsdlsWrapper = (IndexSearcherWrapper) dlsFlsConstructor.newInstance(indexService, settings, Objects.requireNonNull(adminDns), Objects.requireNonNull(cs));
+            IndexSearcherWrapper flsdlsWrapper = (IndexSearcherWrapper) dlsFlsConstructor
+                    .newInstance(indexService, settings, Objects.requireNonNull(adminDns), 
+                            Objects.requireNonNull(cs),
+                            Objects.requireNonNull(auditLog));
             if(log.isDebugEnabled()) {
                 log.debug("FLS/DLS enabled for index {}", indexService.index().getName());
             }
@@ -438,18 +468,179 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         }
     }
     
+   /* @FunctionalInterface
+    public interface IndexServiceSupplier {
+        
+        IndexService get();
+    }*/
+    
+    public static final class ComplianceIndexingOperationListener implements IndexingOperationListener {
+        
+        private IndexService is;
+        
+        public void setIs(IndexService is) {
+            this.is = is;
+        }
+
+        @Override
+        public void postDelete(ShardId shardId, Delete delete, DeleteResult result) {
+            Objects.requireNonNull(is);
+            if(!result.hasFailure() && result.isFound() && delete.origin() == org.elasticsearch.index.engine.Engine.Operation.Origin.PRIMARY) {
+                //auditLog.logDocumentDeleted(shardId, delete, result);
+                //System.out.println(threadPool.getThreadContext().getHeaders());
+                //System.out.println("deleted document: "+shardId.getIndexName()+"#"+delete.type()+"#"+delete.id());
+                //System.out.println("version: "+result.getVersion());
+            }
+        }
+        
+        Map<String, String> pendig = new HashMap<>();
+
+        @Override
+        public org.elasticsearch.index.engine.Engine.Index preIndex(ShardId shardId, org.elasticsearch.index.engine.Engine.Index index) {
+            Objects.requireNonNull(is);
+            
+            final IndexShard shard;
+
+            if (index.origin() != org.elasticsearch.index.engine.Engine.Operation.Origin.PRIMARY) {
+                return index;
+            }
+            
+            if((shard = is.getShardOrNull(shardId.getId())) == null) {
+                return index;
+            }
+
+            //System.out.println("added/upd document: " + shardId.getIndexName() + "#" + index.type() + "#" + index.id());
+            //System.out.println("current source: " + index.source().utf8ToString());
+
+            //TODO stored fields???
+            
+            if (shard.isReadAllowed()) {
+
+                //ClusterService cs;
+                //cs.state().metaData().index(shardId.getIndex()).mapping(index.type())
+                
+                MapperService mapperService = shard.mapperService();
+                //System.out.println(mapperService.documentMapper(index.type()).meta());
+                
+                Iterator<FieldMapper> fm = mapperService.documentMapper(index.type()).mappers().iterator();
+                while(fm.hasNext()) {
+                    FieldMapper fma = fm.next();
+                    if(fma.fieldType().stored() && !fma.name().startsWith("_")) {
+                        System.out.println(fma.name());
+
+                    }
+                   
+                }
+                
+                System.out.println(Iterators.toString(mapperService.documentMapper(index.type()).mappers().iterator()));
+                
+                final GetResult getResult = shard
+                        .getService()
+                        .get(index.type(), index.id(), new String[] { "field*" }, true,
+                                index.version(), index.versionType(), FetchSourceContext.FETCH_SOURCE);
+
+                if (getResult.isExists()) {
+                    
+                    System.out.println(""+getResult.getFields());
+                    System.out.println(""+getResult.internalSourceRef());
+                    System.out.println(""+getResult.sourceAsString());
+                    
+                    if(getResult.internalSourceRef() == null && getResult.getFields().size() == 0) {
+                        return index;
+                    }
+
+                    final Tuple<XContentType, Map<String, Object>> original = XContentHelper.convertToMap(
+                            getResult.internalSourceRef(), true);
+                    final Map<String, Object> originalSourceAsMap = original.v2();
+
+                    final Tuple<XContentType, Map<String, Object>> current = XContentHelper.convertToMap(index.source(), true);
+                    final Map<String, Object> currentSourceAsMap =  current.v2();
+
+                    //final boolean noop = !XContentHelper.update(updatedSourceAsMap, originalSourceAsMap, true);
+                    
+                    System.out.println("originalSourceAsMap (left) "+originalSourceAsMap);
+                    System.out.println("currentSourceAsMap (right) "+currentSourceAsMap);
+                    //System.out.println("noop "+noop);
+                    System.out.println("diff: "+Maps.difference(originalSourceAsMap, currentSourceAsMap));
+                    final boolean noop = !XContentHelper.update(originalSourceAsMap, currentSourceAsMap, true);
+                    System.out.println("noop: "+noop);
+                    System.out.println("res "+originalSourceAsMap);
+                    //System.out.println("diff2: "+Maps.difference(originalSourceAsMap, updatedSourceAsMap));
+                    //if(!noop) {
+                        //System.out.println("diff: "+Maps.difference(originalSourceAsMap, updatedSourceAsMap));
+                    //}
+                    
+                    //System.out.println("old source " + updatedSourceAsMap);
+                }
+            }
+            //System.out.println("current source: " + index.source().utf8ToString());
+            // pendig.put(shardId.getIndexName()+"#"+index.id(), index)
+
+            // retrieve other stored fields than _source
+            // localClient.prepareGet(new GetRequest(shardId.getIndexName(),
+            // index.type(), index.id())).
+            return index;
+
+        }
+
+
+
+        @Override
+        public void postIndex(ShardId shardId, org.elasticsearch.index.engine.Engine.Index index, IndexResult result) {
+            Objects.requireNonNull(is);
+            if(!result.hasFailure() && index.origin() == org.elasticsearch.index.engine.Engine.Operation.Origin.PRIMARY) {
+                //auditLog.logDocumentWritten(shardId, index, result);
+                //System.out.println(threadPool.getThreadContext().getHeaders());
+                //System.out.println("added/upd document: "+shardId.getIndexName()+"#"+index.type()+"#"+index.id());
+                //System.out.println("current source: "+index.source().utf8ToString());
+                //System.out.println("created: "+result.isCreated());
+                //System.out.println("version: "+result.getVersion());
+            }
+            
+            /*if(index.origin() == org.elasticsearch.index.engine.Engine.Operation.Origin.PRIMARY) {
+                System.out.println(threadPool.getThreadContext().getHeaders());
+                System.out.println(shardId.getIndexName()+"-"+index.type()+"#"+index.id());
+                System.out.println(index.source().utf8ToString());
+                System.out.println(result.isCreated()+"/"+result.getOperationType());
+                
+                for(org.elasticsearch.index.mapper.ParseContext.Document d: index.parsedDoc().docs()) {
+                    System.out.println("--doc---");
+                    for(IndexableField iff: d.getFields()) {
+                        if(!iff.name().startsWith("_") && iff.fieldType().stored()) {
+                            System.out.println("        "+iff.getClass().getSimpleName());
+                            System.out.println("        "+iff.name()+"="+iff.stringValue()+"-"+iff.fieldType().stored());
+                            System.out.println("        "+iff.name()+"="+iff.binaryValue());
+                            System.out.println("        "+iff.name()+"="+iff.numericValue());
+                            System.out.println();
+                        }
+                    }
+                    
+                }
+            
+            
+            
+            }*/
+        }
+        
+    }
+    
+    
     @Override
     public void onIndexModule(IndexModule indexModule) {
         //called for every index!
         
+        final ComplianceIndexingOperationListener ciol = new ComplianceIndexingOperationListener();
+        
+        indexModule.addIndexOperationListener(ciol);
+     
         if (!disabled && !client) {
             if (dlsFlsAvailable) {
                 indexModule.setSearcherWrapper(indexService -> loadFlsDlsIndexSearcherWrapper(indexService));
             } else {
                 indexModule.setSearcherWrapper(indexService -> new SearchGuardIndexSearcherWrapper(indexService, settings, Objects
-                        .requireNonNull(adminDns)));
+                        .requireNonNull(adminDns), ciol));
             }
-        
+
             indexModule.addSearchOperationListener(new SearchOperationListener() {
 
                 @Override

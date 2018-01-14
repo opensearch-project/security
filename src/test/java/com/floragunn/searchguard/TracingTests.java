@@ -18,11 +18,15 @@
 package com.floragunn.searchguard;
 
 import java.lang.Thread.UncaughtExceptionHandler;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.http.HttpStatus;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
+import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
+import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
 import org.elasticsearch.client.transport.TransportClient;
@@ -41,11 +45,31 @@ import com.floragunn.searchguard.test.helper.rest.RestHelper.HttpResponse;
 public class TracingTests extends SingleClusterTest {
 
     @Test
-    public void testHTTPTrace() throws Exception {
+    public void testHTTPTraceNoSource() throws Exception {
                 
         setup(Settings.EMPTY, new DynamicSgConfig(), Settings.EMPTY, true, ClusterConfiguration.DEFAULT);
 
         try (TransportClient tc = getInternalTransportClient(this.clusterInfo, Settings.EMPTY)) {
+            tc.admin().indices().create(new CreateIndexRequest("a")).actionGet();
+            tc.admin().indices().create(new CreateIndexRequest("c")).actionGet();
+            tc.admin().indices().create(new CreateIndexRequest("test")).actionGet();
+            tc.admin().indices().create(new CreateIndexRequest("u")).actionGet();
+            
+            tc.admin().indices().putMapping(new PutMappingRequest("a").type("b")
+                                              .source("_source","enabled=false","content","store=true,type=text","field1","store=true,type=text", "field2","store=true,type=text", "a","store=true,type=text", "b","store=true,type=text", "my.nested.field","store=true,type=text")
+                                              ).actionGet();
+            
+            tc.admin().indices().putMapping(new PutMappingRequest("c").type("d")
+            .source("_source","enabled=false","content","store=true,type=text","field1","store=true,type=text", "field2","store=true,type=text", "a","store=true,type=text", "b","store=true,type=text", "my.nested.field","store=true,type=text")
+            ).actionGet();
+            
+            tc.admin().indices().putMapping(new PutMappingRequest("test").type("type1")
+            .source("_source","enabled=false","content","store=true,type=text","field1","store=true,type=text", "field2","store=true,type=text", "a","store=true,type=text", "b","store=true,type=text", "my.nested.field","store=true,type=text")
+            ).actionGet();
+            
+            tc.admin().indices().putMapping(new PutMappingRequest("u").type("b")
+            .source("_source","enabled=false","content","store=true,type=text","field1","store=true,type=text", "field2","store=true,type=text", "a","store=true,type=text", "b","store=true,type=text", "my.nested.field","store=true,type=text")
+            ).actionGet();
             
             for(int i=0; i<50;i++) {
                 tc.index(new IndexRequest("a").type("b").id(i+"").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":"+i+"}", XContentType.JSON)).actionGet();
@@ -53,7 +77,7 @@ public class TracingTests extends SingleClusterTest {
             }
         }
         
-        
+        //setup complex mapping with parent child and nested fields 
         
         
         RestHelper rh = nonSslRestHelper();
@@ -114,33 +138,13 @@ public class TracingTests extends SingleClusterTest {
         //indices:data/write/bulk[s]
         System.out.println(rh.executePostRequest("u/b/2?refresh=true", "{}",encodeBasicHeader("nagilum", "nagilum")));
         
-        System.out.println("############ update");
-        //indices:data/write/index
-        //indices:data/write/bulk
-        //indices:admin/create
-        //indices:data/write/bulk[s]
-        System.out.println(rh.executePostRequest("u/b/2/_update?refresh=true", "{\"doc\" : {\"a\":1}}",encodeBasicHeader("nagilum", "nagilum")));
         
         System.out.println("############ delete");
         //indices:data/write/index
         //indices:data/write/bulk
         //indices:admin/create
         //indices:data/write/bulk[s]
-        System.out.println(rh.executeDeleteRequest("u/b/2?refresh=true",encodeBasicHeader("nagilum", "nagilum")));
-        
-        System.out.println("############ reindex");
-        String reindex =
-        "{"+
-        "  \"source\": {"+
-        "    \"index\": \"a\""+
-        "  },"+
-        "  \"dest\": {"+
-        "    \"index\": \"new_a\""+
-        "  }"+
-        "}";
-        
-        System.out.println(rh.executePostRequest("_reindex", reindex, encodeBasicHeader("nagilum", "nagilum")));
-        
+        System.out.println(rh.executeDeleteRequest("u/b/2?refresh=true",encodeBasicHeader("nagilum", "nagilum")));        
        
         System.out.println("############ msearch");
         String msearchBody = 
@@ -301,6 +305,177 @@ public class TracingTests extends SingleClusterTest {
         System.out.println("########search done");
         
         
+    }
+
+    @Test
+    public void testHTTPTrace() throws Exception {
+                
+        setup(Settings.EMPTY, new DynamicSgConfig(), Settings.EMPTY, true, ClusterConfiguration.DEFAULT);
+    
+        try (TransportClient tc = getInternalTransportClient(this.clusterInfo, Settings.EMPTY)) {
+            
+            for(int i=0; i<50;i++) {
+                tc.index(new IndexRequest("a").type("b").id(i+"").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":"+i+"}", XContentType.JSON)).actionGet();
+                tc.index(new IndexRequest("c").type("d").id(i+"").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":"+i+"}", XContentType.JSON)).actionGet();
+            }
+        }
+        
+        
+        
+        
+        RestHelper rh = nonSslRestHelper();
+        System.out.println("############ check shards");
+        System.out.println(rh.executeGetRequest("_cat/shards?v", encodeBasicHeader("nagilum", "nagilum")));
+    
+        System.out.println("############ _bulk");
+        String bulkBody = 
+                "{ \"index\" : { \"_index\" : \"test\", \"_type\" : \"type1\", \"_id\" : \"1\" } }"+System.lineSeparator()+
+                "{ \"field1\" : \"value1\" }" +System.lineSeparator()+
+                "{ \"index\" : { \"_index\" : \"test\", \"_type\" : \"type1\", \"_id\" : \"2\" } }"+System.lineSeparator()+
+                "{ \"field2\" : \"value2\" }"+System.lineSeparator()+
+                "{ \"delete\" : { \"_index\" : \"test\", \"_type\" : \"type1\", \"_id\" : \"2\" } }"+System.lineSeparator();
+        
+        System.out.println(rh.executePostRequest("_bulk?refresh=true", bulkBody, encodeBasicHeader("nagilum", "nagilum")));
+        
+        System.out.println("############ _bulk");
+        bulkBody = 
+                "{ \"index\" : { \"_index\" : \"test\", \"_type\" : \"type1\", \"_id\" : \"1\" } }"+System.lineSeparator()+
+                "{ \"field1\" : \"value1\" }" +System.lineSeparator()+
+                "{ \"index\" : { \"_index\" : \"test\", \"_type\" : \"type1\", \"_id\" : \"2\" } }"+System.lineSeparator()+
+                "{ \"field2\" : \"value2\" }"+System.lineSeparator()+
+                "{ \"delete\" : { \"_index\" : \"test\", \"_type\" : \"type1\", \"_id\" : \"2\" } }"+System.lineSeparator();
+        
+        System.out.println(rh.executePostRequest("_bulk?refresh=true", bulkBody, encodeBasicHeader("nagilum", "nagilum")));
+    
+        
+        System.out.println("############ cat indices");
+        //cluster:monitor/state
+        //cluster:monitor/health
+        //indices:monitor/stats
+        System.out.println(rh.executeGetRequest("_cat/indices", encodeBasicHeader("nagilum", "nagilum")));
+    
+        
+        System.out.println("############ _search");
+        //indices:data/read/search
+        System.out.println(rh.executeGetRequest("_search", encodeBasicHeader("nagilum", "nagilum")));
+    
+        System.out.println("############ get 1");
+        //indices:data/read/get
+        System.out.println(rh.executeGetRequest("a/b/1", encodeBasicHeader("nagilum", "nagilum")));
+        System.out.println("############ get 5");
+        System.out.println(rh.executeGetRequest("a/b/5", encodeBasicHeader("nagilum", "nagilum")));
+        System.out.println("############ get 17");
+        System.out.println(rh.executeGetRequest("a/b/17", encodeBasicHeader("nagilum", "nagilum")));
+    
+        System.out.println("############ index (+create index)");
+        //indices:data/write/index
+        //indices:data/write/bulk
+        //indices:admin/create
+        //indices:data/write/bulk[s]
+        System.out.println(rh.executePostRequest("u/b/1?refresh=true", "{}",encodeBasicHeader("nagilum", "nagilum")));
+    
+        System.out.println("############ index only");
+        //indices:data/write/index
+        //indices:data/write/bulk
+        //indices:admin/create
+        //indices:data/write/bulk[s]
+        System.out.println(rh.executePostRequest("u/b/2?refresh=true", "{}",encodeBasicHeader("nagilum", "nagilum")));
+        
+        System.out.println("############ update");
+        //indices:data/write/index
+        //indices:data/write/bulk
+        //indices:admin/create
+        //indices:data/write/bulk[s]
+        System.out.println(rh.executePostRequest("u/b/2/_update?refresh=true", "{\"doc\" : {\"a\":1}}",encodeBasicHeader("nagilum", "nagilum")));
+        
+        System.out.println("############ update2");
+        //indices:data/write/index
+        //indices:data/write/bulk
+        //indices:admin/create
+        //indices:data/write/bulk[s]
+        System.out.println(rh.executePostRequest("u/b/2/_update?refresh=true", "{\"doc\" : {\"a\":44, \"b\":55}}",encodeBasicHeader("nagilum", "nagilum")));
+        
+        System.out.println("############ update3");
+        //indices:data/write/index
+        //indices:data/write/bulk
+        //indices:admin/create
+        //indices:data/write/bulk[s]
+        System.out.println(rh.executePostRequest("u/b/2/_update?refresh=true", "{\"doc\" : {\"b\":66}}",encodeBasicHeader("nagilum", "nagilum")));
+    
+        
+        System.out.println("############ delete");
+        //indices:data/write/index
+        //indices:data/write/bulk
+        //indices:admin/create
+        //indices:data/write/bulk[s]
+        System.out.println(rh.executeDeleteRequest("u/b/2?refresh=true",encodeBasicHeader("nagilum", "nagilum")));
+        
+        System.out.println("############ reindex");
+        String reindex =
+        "{"+
+        "  \"source\": {"+
+        "    \"index\": \"a\""+
+        "  },"+
+        "  \"dest\": {"+
+        "    \"index\": \"new_a\""+
+        "  }"+
+        "}";
+        
+        System.out.println(rh.executePostRequest("_reindex", reindex, encodeBasicHeader("nagilum", "nagilum")));
+        
+    
+        System.out.println("############ msearch");
+        String msearchBody = 
+                "{\"index\":\"a\", \"type\":\"b\", \"ignore_unavailable\": true}"+System.lineSeparator()+
+                "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"+System.lineSeparator()+
+                "{\"index\":\"a\", \"type\":\"b\", \"ignore_unavailable\": true}"+System.lineSeparator()+
+                "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"+System.lineSeparator()+
+                "{\"index\":\"public\", \"ignore_unavailable\": true}"+System.lineSeparator()+
+                "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"+System.lineSeparator();
+                         
+            
+        System.out.println(rh.executePostRequest("_msearch", msearchBody, encodeBasicHeader("nagilum", "nagilum")));
+    
+        System.out.println("############ mget");
+        String mgetBody = "{"+
+                "\"docs\" : ["+
+                    "{"+
+                         "\"_index\" : \"a\","+
+                        "\"_type\" : \"b\","+
+                        "\"_id\" : \"1\""+
+                   " },"+
+                   " {"+
+                       "\"_index\" : \"a\","+
+                       " \"_type\" : \"b\","+
+                       " \"_id\" : \"12\""+
+                    "},"+
+                    " {"+
+                    "\"_index\" : \"a\","+
+                    " \"_type\" : \"b\","+
+                    " \"_id\" : \"13\""+
+                 "},"+" {"+
+                 "\"_index\" : \"a\","+
+                 " \"_type\" : \"b\","+
+                 " \"_id\" : \"14\""+
+              "}"+
+                "]"+
+            "}";
+        
+        System.out.println(rh.executePostRequest("_mget?refresh=true", mgetBody, encodeBasicHeader("nagilum", "nagilum")));
+        
+        System.out.println("############ delete by query");
+        String dbqBody = "{"+
+        ""+
+        "  \"query\": { "+
+        "    \"match\": {"+
+        "      \"content\": 12"+
+        "    }"+
+        "  }"+
+        "}";
+        
+        System.out.println(rh.executePostRequest("a/b/_delete_by_query", dbqBody, encodeBasicHeader("nagilum", "nagilum")));
+        
+        Thread.sleep(5000);
     }
 
 }

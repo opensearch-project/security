@@ -18,18 +18,34 @@
 package com.floragunn.searchguard.configuration;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.search.IndexSearcher;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
+import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.Index;
+import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.EngineException;
+import org.elasticsearch.index.engine.Engine.Delete;
+import org.elasticsearch.index.engine.Engine.DeleteResult;
+import org.elasticsearch.index.engine.Engine.IndexResult;
+import org.elasticsearch.index.get.GetResult;
+import org.elasticsearch.index.mapper.ParentFieldMapper;
+import org.elasticsearch.index.mapper.RoutingFieldMapper;
 import org.elasticsearch.index.shard.IndexSearcherWrapper;
+import org.elasticsearch.index.shard.IndexingOperationListener;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.search.fetch.subphase.FetchSourceContext;
 
+import com.floragunn.searchguard.SearchGuardPlugin.ComplianceIndexingOperationListener;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.HeaderHelper;
 import com.floragunn.searchguard.user.User;
@@ -43,42 +59,35 @@ public class SearchGuardIndexSearcherWrapper extends IndexSearcherWrapper {
     private final AdminDNs adminDns;
 	
     //constructor is called per index, so avoid costly operations here
-	public SearchGuardIndexSearcherWrapper(final IndexService indexService, final Settings settings, final AdminDNs adminDNs) {
+	public SearchGuardIndexSearcherWrapper(final IndexService indexService, final Settings settings, final AdminDNs adminDNs, ComplianceIndexingOperationListener ciol) {
 	    index = indexService.index();
 	    threadContext = indexService.getThreadPool().getThreadContext();
         this.searchguardIndex = settings.get(ConfigConstants.SEARCHGUARD_CONFIG_INDEX_NAME, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
         this.adminDns = adminDNs;
+        ciol.setIs(indexService);
 	}
 
     @Override
     public final DirectoryReader wrap(final DirectoryReader reader) throws IOException {
 
-        if (isSearchGuardIndexRequest() && !isAdminAuthenticatedOrInternalRequest()) {          
+        if (isSearchGuardIndexRequest() && !isAdminAuthenticatedOrInternalRequest()) {
             return new EmptyFilterLeafReader.EmptyDirectoryReader(reader);
         }
 
-        if (!isAdminAuthenticatedOrInternalRequest()) {
-            return dlsFlsWrap(reader);
-        }
 
-        return reader;
+        return dlsFlsWrap(reader, isAdminAuthenticatedOrInternalRequest());
     }
 
     @Override
     public final IndexSearcher wrap(final IndexSearcher searcher) throws EngineException {
+        return dlsFlsWrap(searcher, isAdminAuthenticatedOrInternalRequest());
+    }
 
-        if (!isAdminAuthenticatedOrInternalRequest()) {
-            return dlsFlsWrap(searcher);
-        }
-
+    protected IndexSearcher dlsFlsWrap(final IndexSearcher searcher, boolean isAdmin) throws EngineException {
         return searcher;
     }
 
-    protected IndexSearcher dlsFlsWrap(final IndexSearcher searcher) throws EngineException {
-        return searcher;
-    }
-
-    protected DirectoryReader dlsFlsWrap(final DirectoryReader reader) throws IOException {
+    protected DirectoryReader dlsFlsWrap(final DirectoryReader reader, boolean isAdmin) throws IOException {
         return reader;
     }
 

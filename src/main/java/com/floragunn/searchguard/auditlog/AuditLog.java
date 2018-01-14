@@ -18,7 +18,13 @@
 package com.floragunn.searchguard.auditlog;
 
 import java.io.Closeable;
+import java.util.Map;
 
+import org.elasticsearch.index.engine.Engine.Delete;
+import org.elasticsearch.index.engine.Engine.DeleteResult;
+import org.elasticsearch.index.engine.Engine.Index;
+import org.elasticsearch.index.engine.Engine.IndexResult;
+import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.transport.TransportRequest;
@@ -45,7 +51,15 @@ public interface AuditLog extends Closeable {
     void logSSLException(TransportRequest request, Throwable t, String action, Task task);
     void logSSLException(RestRequest request, Throwable t);
     
+    void logDocumentRead(String index, String id, Map<String, String> fieldNameValues);
+    void logDocumentWritten(ShardId shardId, Index index, IndexResult result);
+    void logDocumentDeleted(ShardId shardId, Delete delete, DeleteResult result);
+    
     public enum Origin {
         REST, TRANSPORT, LOCAL
+    }
+    
+    public enum Operation {
+        CREATE, UPDATE, DELETE
     }
 }
