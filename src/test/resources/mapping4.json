@@ -1,0 +1,19 @@
+{
+   "_source":{
+      "enabled":false
+   },
+   "dynamic":"strict",
+   "properties":{
+      "joinfield":{
+         "type":"join",
+         "relations":{
+            "question":"answer"
+         }
+      },
+      "text":{
+         "type":"text",
+         "term_vector":"with_positions_offsets",
+         "store":true
+      }
+   }
+}

@@ -1,10 +1,10 @@
 /*
  * Copyright 2015-2017 floragunn GmbH
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  */
 
 package com.floragunn.searchguard;
@@ -31,7 +31,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -42,23 +41,17 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.lucene.document.Document;
-import org.apache.lucene.index.IndexableField;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.SpecialPermission;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionResponse;
-import org.elasticsearch.action.admin.indices.settings.get.GetSettingsAction;
-import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.search.SearchScrollAction;
 import org.elasticsearch.action.support.ActionFilter;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.component.Lifecycle.State;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.component.LifecycleListener;
@@ -75,38 +68,20 @@ import org.elasticsearch.common.settings.SettingsFilter;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.http.HttpServerTransport.Dispatcher;
 import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.engine.Engine;
-import org.elasticsearch.index.engine.Engine.Delete;
-import org.elasticsearch.index.engine.Engine.DeleteResult;
-import org.elasticsearch.index.engine.Engine.Index;
-import org.elasticsearch.index.engine.Engine.IndexResult;
-import org.elasticsearch.index.get.GetResult;
-import org.elasticsearch.index.mapper.FieldMapper;
-import org.elasticsearch.index.mapper.Mapper;
-import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.mapper.ParentFieldMapper;
-import org.elasticsearch.index.mapper.RoutingFieldMapper;
-import org.elasticsearch.index.shard.IndexEventListener;
 import org.elasticsearch.index.shard.IndexSearcherWrapper;
-import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.IndexingOperationListener;
 import org.elasticsearch.index.shard.SearchOperationListener;
-import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestHandler;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.script.ScriptService;
-import org.elasticsearch.search.fetch.subphase.FetchSourceContext;
 import org.elasticsearch.search.internal.ScrollContext;
 import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.tasks.Task;
@@ -131,10 +106,12 @@ import com.floragunn.searchguard.action.licenseinfo.TransportLicenseInfoAction;
 import com.floragunn.searchguard.action.whoami.TransportWhoAmIAction;
 import com.floragunn.searchguard.action.whoami.WhoAmIAction;
 import com.floragunn.searchguard.auditlog.AuditLog;
-import com.floragunn.searchguard.auditlog.AuditLogSslExceptionHandler;
 import com.floragunn.searchguard.auditlog.AuditLog.Origin;
+import com.floragunn.searchguard.auditlog.AuditLogSslExceptionHandler;
 import com.floragunn.searchguard.auth.BackendRegistry;
 import com.floragunn.searchguard.auth.internal.InternalAuthenticationBackend;
+import com.floragunn.searchguard.compliance.ComplianceConfig;
+import com.floragunn.searchguard.compliance.ComplianceIndexingOperationListener;
 import com.floragunn.searchguard.configuration.ActionGroupHolder;
 import com.floragunn.searchguard.configuration.AdminDNs;
 import com.floragunn.searchguard.configuration.ClusterInfoHolder;
@@ -165,12 +142,10 @@ import com.floragunn.searchguard.transport.DefaultInterClusterRequestEvaluator;
 import com.floragunn.searchguard.transport.InterClusterRequestEvaluator;
 import com.floragunn.searchguard.transport.SearchGuardInterceptor;
 import com.floragunn.searchguard.user.User;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
-    
+
     private final boolean tribeNodeClient;
     private final boolean dlsFlsAvailable;
     private final Constructor<?> dlsFlsConstructor;
@@ -189,11 +164,11 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
     private final boolean enterpriseModulesEnabled;
     private final List<String> demoCertHashes = new ArrayList<String>(3);
     private SearchGuardFilter sgf;
-    
+    private final ComplianceConfig complianceConfig;
 
     @Override
     public void close() throws IOException {
-        //TODO implement close 
+        //TODO implement close
         super.close();
     }
 
@@ -201,24 +176,25 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         if (client || tribeNodeClient || disabled) {
             return new SslExceptionHandler(){};
         }
-        
+
         return Objects.requireNonNull(sslExceptionHandler);
     }
-    
+
     public SearchGuardPlugin(final Settings settings, final Path configPath) {
         super(settings, configPath, settings.getAsBoolean(ConfigConstants.SEARCHGUARD_DISABLED, false));
-        
+
         disabled = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_DISABLED, false);
-        
+
         if(disabled) {
             this.tribeNodeClient = false;
             this.dlsFlsAvailable = false;
             this.dlsFlsConstructor = null;
             enterpriseModulesEnabled = false;
+            complianceConfig = null;
             log.warn("Search Guard plugin installed but disabled. This can expose your configuration (including passwords) to the public.");
             return;
         }
-        
+
         demoCertHashes.add("54a92508de7a39d06242a0ffbf59414d7eb478633c719e6af03938daf6de8a1a");
         demoCertHashes.add("742e4659c79d7cad89ea86aab70aea490f23bbfc7e72abd5f0a5d3fb4c84d212");
         demoCertHashes.add("db1264612891406639ecd25c894f256b7c5a6b7e1d9054cbe37b77acd2ddd913");
@@ -227,13 +203,13 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         demoCertHashes.add("c4af0297cc75546e1905bdfe3934a950161eee11173d979ce929f086fdf9794d");
         demoCertHashes.add("7a355f42c90e7543a267fbe3976c02f619036f5a34ce712995a22b342d83c3ce");
         demoCertHashes.add("a9b5eca1399ec8518081c0d4a21a34eec4589087ce64c04fb01a488f9ad8edc9");
-        
+
         final SecurityManager sm = System.getSecurityManager();
 
         if (sm != null) {
             sm.checkPermission(new SpecialPermission());
         }
-        
+
         AccessController.doPrivileged(new PrivilegedAction<Object>() {
             @Override
             public Object run() {
@@ -243,7 +219,9 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
                 return null;
             }
         });
-        
+
+        complianceConfig = new ComplianceConfig(settings);
+
         enterpriseModulesEnabled = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_ENTERPRISE_MODULES_ENABLED, true);
         ReflectionHelper.init(enterpriseModulesEnabled);
 
@@ -252,11 +230,11 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         if(!transportSSLEnabled) {
             throw new IllegalStateException(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLED+" must be set to 'true'");
         }
-        
+
         if(log.isDebugEnabled() && this.settings.getByPrefix("tribe").size() > 0) {
             log.debug("Tribe configuration detected: {}", this.settings);
         }
-        
+
         boolean tribeNode = this.settings.get("tribe.name", null) == null && this.settings.getByPrefix("tribe").size() > 0;
         tribeNodeClient = this.settings.get("tribe.name", null) != null;
 
@@ -269,7 +247,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
             dlsFlsAvailable = false;
             dlsFlsConstructor = null;
         }
-        
+
         if(!client && !tribeNodeClient) {
             final List<Path> filesWithWrongPermissions = AccessController.doPrivileged(new PrivilegedAction<List<Path>>() {
                 @Override
@@ -286,11 +264,11 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
                             return null;
                         }
                     }
-                    
+
                     return Collections.emptyList();
                 }
             });
-            
+
             if(filesWithWrongPermissions != null && filesWithWrongPermissions.size() > 0) {
                 for(final Path p: filesWithWrongPermissions) {
                     if(Files.isDirectory(p, LinkOption.NOFOLLOW_LINKS)) {
@@ -319,11 +297,11 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
                             return null;
                         }
                     }
-                    
+
                     return Collections.emptyList();
                 }
             });
-            
+
             if(files != null) {
                 demoCertHashes.retainAll(files);
                 if(!demoCertHashes.isEmpty()) {
@@ -334,12 +312,12 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
             } else {
                 throw new RuntimeException("Unable to look for demo certificates");
             }
-            
+
         }
     }
-    
+
     private String sha256(Path p) {
-        
+
         if(!Files.isRegularFile(p, LinkOption.NOFOLLOW_LINKS)) {
             return "";
         }
@@ -353,13 +331,13 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
             throw new ElasticsearchSecurityException("Unable to digest file", e);
         }
     }
-    
+
     private boolean checkFilePermissions(final Path p) {
-        
+
         if (p == null) {
             return false;
         }
-        
+
 
         Set<PosixFilePermission> perms;
 
@@ -372,14 +350,14 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
             //ignore, can happen on windows
             return false;
         }
-        
+
         if(Files.isDirectory(p, LinkOption.NOFOLLOW_LINKS)) {
             if (perms.contains(PosixFilePermission.OTHERS_EXECUTE)) {
                 // no x for others must be set
                 return true;
             }
         } else {
-            if (perms.contains(PosixFilePermission.OWNER_EXECUTE) 
+            if (perms.contains(PosixFilePermission.OWNER_EXECUTE)
                     || perms.contains(PosixFilePermission.GROUP_EXECUTE)
                     || perms.contains(PosixFilePermission.OTHERS_EXECUTE)) {
                 // no x must be set
@@ -387,7 +365,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
             }
         }
 
-        
+
         if (perms.contains(PosixFilePermission.OTHERS_READ) || perms.contains(PosixFilePermission.OTHERS_WRITE)) {
             // no permissions for "others" allowed
             return true;
@@ -397,20 +375,20 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         //    // no permissions for "group" allowed
         //    return true;
         //}
-        
+
         return false;
     }
-    
-    
+
+
     @Override
     public List<RestHandler> getRestHandlers(Settings settings, RestController restController, ClusterSettings clusterSettings,
             IndexScopedSettings indexScopedSettings, SettingsFilter settingsFilter,
             IndexNameExpressionResolver indexNameExpressionResolver, Supplier<DiscoveryNodes> nodesInCluster) {
-        
+
         final List<RestHandler> handlers = new ArrayList<RestHandler>(1);
-        
+
         if (!client && !tribeNodeClient && !disabled) {
-            
+
             handlers.addAll(super.getRestHandlers(settings, restController, clusterSettings, indexScopedSettings, settingsFilter, indexNameExpressionResolver, nodesInCluster));
 
             handlers.add(new SearchGuardInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool)));
@@ -423,22 +401,22 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
             handlers.addAll(apiHandler);
             log.debug("Added {} management rest handler(s)", apiHandler.size());
         }
-        
-        
+
+
         final Set<ModuleInfo> sgModules = ReflectionHelper.getModulesLoaded();
-        
+
         log.info("{} Search Guard modules loaded so far: {}", sgModules.size(), sgModules);
-        
+
         return handlers;
     }
-    
+
     @Override
     public UnaryOperator<RestHandler> getRestHandlerWrapper(final ThreadContext threadContext) {
-        
+
         if(client || disabled) {
             return (rh) -> rh;
         }
-        
+
         return (rh) -> sgRestHandler.wrap(rh);
     }
 
@@ -453,12 +431,13 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         return actions;
     }
 
-    private IndexSearcherWrapper loadFlsDlsIndexSearcherWrapper(final IndexService indexService) {
+    private IndexSearcherWrapper loadFlsDlsIndexSearcherWrapper(final IndexService indexService, final ComplianceIndexingOperationListener ciol) {
         try {
             IndexSearcherWrapper flsdlsWrapper = (IndexSearcherWrapper) dlsFlsConstructor
-                    .newInstance(indexService, settings, Objects.requireNonNull(adminDns), 
+                    .newInstance(indexService, settings, Objects.requireNonNull(adminDns),
                             Objects.requireNonNull(cs),
-                            Objects.requireNonNull(auditLog));
+                            Objects.requireNonNull(auditLog),
+                            Objects.requireNonNull(ciol));
             if(log.isDebugEnabled()) {
                 log.debug("FLS/DLS enabled for index {}", indexService.index().getName());
             }
@@ -467,196 +446,45 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
             throw new RuntimeException("Failed to enable FLS/DLS", ex);
         }
     }
-    
-   /* @FunctionalInterface
-    public interface IndexServiceSupplier {
-        
-        IndexService get();
-    }*/
-    
-    public static final class ComplianceIndexingOperationListener implements IndexingOperationListener {
-        
-        private IndexService is;
-        
-        public void setIs(IndexService is) {
-            this.is = is;
-        }
 
-        @Override
-        public void postDelete(ShardId shardId, Delete delete, DeleteResult result) {
-            Objects.requireNonNull(is);
-            if(!result.hasFailure() && result.isFound() && delete.origin() == org.elasticsearch.index.engine.Engine.Operation.Origin.PRIMARY) {
-                //auditLog.logDocumentDeleted(shardId, delete, result);
-                //System.out.println(threadPool.getThreadContext().getHeaders());
-                //System.out.println("deleted document: "+shardId.getIndexName()+"#"+delete.type()+"#"+delete.id());
-                //System.out.println("version: "+result.getVersion());
-            }
-        }
-        
-        Map<String, String> pendig = new HashMap<>();
-
-        @Override
-        public org.elasticsearch.index.engine.Engine.Index preIndex(ShardId shardId, org.elasticsearch.index.engine.Engine.Index index) {
-            Objects.requireNonNull(is);
-            
-            final IndexShard shard;
-
-            if (index.origin() != org.elasticsearch.index.engine.Engine.Operation.Origin.PRIMARY) {
-                return index;
-            }
-            
-            if((shard = is.getShardOrNull(shardId.getId())) == null) {
-                return index;
-            }
-
-            //System.out.println("added/upd document: " + shardId.getIndexName() + "#" + index.type() + "#" + index.id());
-            //System.out.println("current source: " + index.source().utf8ToString());
-
-            //TODO stored fields???
-            
-            if (shard.isReadAllowed()) {
-
-                //ClusterService cs;
-                //cs.state().metaData().index(shardId.getIndex()).mapping(index.type())
-                
-                MapperService mapperService = shard.mapperService();
-                //System.out.println(mapperService.documentMapper(index.type()).meta());
-                
-                Iterator<FieldMapper> fm = mapperService.documentMapper(index.type()).mappers().iterator();
-                while(fm.hasNext()) {
-                    FieldMapper fma = fm.next();
-                    if(fma.fieldType().stored() && !fma.name().startsWith("_")) {
-                        System.out.println(fma.name());
-
-                    }
-                   
-                }
-                
-                System.out.println(Iterators.toString(mapperService.documentMapper(index.type()).mappers().iterator()));
-                
-                final GetResult getResult = shard
-                        .getService()
-                        .get(index.type(), index.id(), new String[] { "field*" }, true,
-                                index.version(), index.versionType(), FetchSourceContext.FETCH_SOURCE);
-
-                if (getResult.isExists()) {
-                    
-                    System.out.println(""+getResult.getFields());
-                    System.out.println(""+getResult.internalSourceRef());
-                    System.out.println(""+getResult.sourceAsString());
-                    
-                    if(getResult.internalSourceRef() == null && getResult.getFields().size() == 0) {
-                        return index;
-                    }
-
-                    final Tuple<XContentType, Map<String, Object>> original = XContentHelper.convertToMap(
-                            getResult.internalSourceRef(), true);
-                    final Map<String, Object> originalSourceAsMap = original.v2();
-
-                    final Tuple<XContentType, Map<String, Object>> current = XContentHelper.convertToMap(index.source(), true);
-                    final Map<String, Object> currentSourceAsMap =  current.v2();
-
-                    //final boolean noop = !XContentHelper.update(updatedSourceAsMap, originalSourceAsMap, true);
-                    
-                    System.out.println("originalSourceAsMap (left) "+originalSourceAsMap);
-                    System.out.println("currentSourceAsMap (right) "+currentSourceAsMap);
-                    //System.out.println("noop "+noop);
-                    System.out.println("diff: "+Maps.difference(originalSourceAsMap, currentSourceAsMap));
-                    final boolean noop = !XContentHelper.update(originalSourceAsMap, currentSourceAsMap, true);
-                    System.out.println("noop: "+noop);
-                    System.out.println("res "+originalSourceAsMap);
-                    //System.out.println("diff2: "+Maps.difference(originalSourceAsMap, updatedSourceAsMap));
-                    //if(!noop) {
-                        //System.out.println("diff: "+Maps.difference(originalSourceAsMap, updatedSourceAsMap));
-                    //}
-                    
-                    //System.out.println("old source " + updatedSourceAsMap);
-                }
-            }
-            //System.out.println("current source: " + index.source().utf8ToString());
-            // pendig.put(shardId.getIndexName()+"#"+index.id(), index)
-
-            // retrieve other stored fields than _source
-            // localClient.prepareGet(new GetRequest(shardId.getIndexName(),
-            // index.type(), index.id())).
-            return index;
-
-        }
-
-
-
-        @Override
-        public void postIndex(ShardId shardId, org.elasticsearch.index.engine.Engine.Index index, IndexResult result) {
-            Objects.requireNonNull(is);
-            if(!result.hasFailure() && index.origin() == org.elasticsearch.index.engine.Engine.Operation.Origin.PRIMARY) {
-                //auditLog.logDocumentWritten(shardId, index, result);
-                //System.out.println(threadPool.getThreadContext().getHeaders());
-                //System.out.println("added/upd document: "+shardId.getIndexName()+"#"+index.type()+"#"+index.id());
-                //System.out.println("current source: "+index.source().utf8ToString());
-                //System.out.println("created: "+result.isCreated());
-                //System.out.println("version: "+result.getVersion());
-            }
-            
-            /*if(index.origin() == org.elasticsearch.index.engine.Engine.Operation.Origin.PRIMARY) {
-                System.out.println(threadPool.getThreadContext().getHeaders());
-                System.out.println(shardId.getIndexName()+"-"+index.type()+"#"+index.id());
-                System.out.println(index.source().utf8ToString());
-                System.out.println(result.isCreated()+"/"+result.getOperationType());
-                
-                for(org.elasticsearch.index.mapper.ParseContext.Document d: index.parsedDoc().docs()) {
-                    System.out.println("--doc---");
-                    for(IndexableField iff: d.getFields()) {
-                        if(!iff.name().startsWith("_") && iff.fieldType().stored()) {
-                            System.out.println("        "+iff.getClass().getSimpleName());
-                            System.out.println("        "+iff.name()+"="+iff.stringValue()+"-"+iff.fieldType().stored());
-                            System.out.println("        "+iff.name()+"="+iff.binaryValue());
-                            System.out.println("        "+iff.name()+"="+iff.numericValue());
-                            System.out.println();
-                        }
-                    }
-                    
-                }
-            
-            
-            
-            }*/
-        }
-        
-    }
-    
-    
     @Override
     public void onIndexModule(IndexModule indexModule) {
         //called for every index!
-        
-        final ComplianceIndexingOperationListener ciol = new ComplianceIndexingOperationListener();
-        
-        indexModule.addIndexOperationListener(ciol);
-     
+
         if (!disabled && !client) {
             if (dlsFlsAvailable) {
-                indexModule.setSearcherWrapper(indexService -> loadFlsDlsIndexSearcherWrapper(indexService));
+
+                final ComplianceIndexingOperationListener ciol;
+
+                if(complianceConfig.enabledForIndex(indexModule.getIndex().getName())) {
+                    ciol = ReflectionHelper.instantiateComplianceListener(complianceConfig, Objects.requireNonNull(auditLog));
+                    indexModule.addIndexOperationListener(ciol);
+                } else {
+                    ciol = new ComplianceIndexingOperationListener();
+                }
+
+                indexModule.setSearcherWrapper(indexService -> loadFlsDlsIndexSearcherWrapper(indexService, ciol));
             } else {
                 indexModule.setSearcherWrapper(indexService -> new SearchGuardIndexSearcherWrapper(indexService, settings, Objects
-                        .requireNonNull(adminDns), ciol));
+                        .requireNonNull(adminDns)));
             }
 
             indexModule.addSearchOperationListener(new SearchOperationListener() {
 
                 @Override
                 public void onNewScrollContext(SearchContext context) {
-                    
+
                     final ScrollContext scrollContext = context.scrollContext();
-                    
+
                     if(scrollContext != null) {
-                        
+
                         final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadPool.getThreadContext());
-                        if(Origin.LOCAL.toString().equals((String)threadPool.getThreadContext().getTransient(ConfigConstants.SG_ORIGIN)) 
+                        if(Origin.LOCAL.toString().equals(threadPool.getThreadContext().getTransient(ConfigConstants.SG_ORIGIN))
                                 && (interClusterRequest || HeaderHelper.isDirectRequest(threadPool.getThreadContext()))
-  
+
                         ){
                             scrollContext.putInContext("_sg_scroll_auth_local", Boolean.TRUE);
-                            
+
                         } else {
                             scrollContext.putInContext("_sg_scroll_auth", threadPool.getThreadContext()
                                     .getTransient(ConfigConstants.SG_USER));
@@ -666,7 +494,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
 
                 @Override
                 public void validateSearchContext(SearchContext context, TransportRequest transportRequest) {
-                    
+
                     final ScrollContext scrollContext = context.scrollContext();
                     if(scrollContext != null) {
                         final Object _isLocal = scrollContext.getFromContext("_sg_scroll_auth_local");
@@ -689,7 +517,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
             });
         }
     }
-    
+
     @Override
     public List<ActionFilter> getActionFilters() {
         List<ActionFilter> filters = new ArrayList<>(1);
@@ -702,14 +530,14 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
     @Override
     public List<TransportInterceptor> getTransportInterceptors(NamedWriteableRegistry namedWriteableRegistry, ThreadContext threadContext) {
         List<TransportInterceptor> interceptors = new ArrayList<TransportInterceptor>(1);
-        
-        if (!client && !tribeNodeClient && !disabled) {            
+
+        if (!client && !tribeNodeClient && !disabled) {
             interceptors.add(new TransportInterceptor() {
 
                 @Override
                 public <T extends TransportRequest> TransportRequestHandler<T> interceptHandler(String action, String executor,
                         boolean forceExecution, TransportRequestHandler<T> actualHandler) {
-                    
+
                     return new TransportRequestHandler<T>() {
 
                         @Override
@@ -722,12 +550,12 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
                             sgi.getHandler(action, actualHandler).messageReceived(request, channel);
                         }
                     };
-                    
+
                 }
 
                 @Override
                 public AsyncSender interceptSender(AsyncSender sender) {
-                    
+
                     return new AsyncSender() {
 
                         @Override
@@ -739,18 +567,18 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
                 }
             });
         }
-        
+
         return interceptors;
     }
-    
+
     @Override
     public Map<String, Supplier<Transport>> getTransports(Settings settings, ThreadPool threadPool, BigArrays bigArrays,
-            CircuitBreakerService circuitBreakerService, NamedWriteableRegistry namedWriteableRegistry, NetworkService networkService) {        
+            CircuitBreakerService circuitBreakerService, NamedWriteableRegistry namedWriteableRegistry, NetworkService networkService) {
 
         Map<String, Supplier<Transport>> transports = new HashMap<String, Supplier<Transport>>();
         if (transportSSLEnabled) {
-            transports.put("com.floragunn.searchguard.ssl.http.netty.SearchGuardSSLNettyTransport", 
-                    () -> new SearchGuardSSLNettyTransport(settings, threadPool, networkService, bigArrays, namedWriteableRegistry, 
+            transports.put("com.floragunn.searchguard.ssl.http.netty.SearchGuardSSLNettyTransport",
+                    () -> new SearchGuardSSLNettyTransport(settings, threadPool, networkService, bigArrays, namedWriteableRegistry,
                             circuitBreakerService, sgks, evaluateSslExceptionHandler()));
         }
         return transports;
@@ -760,29 +588,29 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
     public Map<String, Supplier<HttpServerTransport>> getHttpTransports(Settings settings, ThreadPool threadPool, BigArrays bigArrays,
             CircuitBreakerService circuitBreakerService, NamedWriteableRegistry namedWriteableRegistry,
             NamedXContentRegistry xContentRegistry, NetworkService networkService, Dispatcher dispatcher) {
-        
+
         Map<String, Supplier<HttpServerTransport>> httpTransports = new HashMap<String, Supplier<HttpServerTransport>>(1);
 
         if(!disabled) {
             if (!client && httpSSLEnabled && !tribeNodeClient) {
-                
-                final ValidatingDispatcher validatingDispatcher = new ValidatingDispatcher(threadPool.getThreadContext(), dispatcher, 
+
+                final ValidatingDispatcher validatingDispatcher = new ValidatingDispatcher(threadPool.getThreadContext(), dispatcher,
                         settings, configPath, evaluateSslExceptionHandler());
-                final SearchGuardHttpServerTransport sghst = new SearchGuardHttpServerTransport(settings, networkService, bigArrays, 
+                final SearchGuardHttpServerTransport sghst = new SearchGuardHttpServerTransport(settings, networkService, bigArrays,
                         threadPool, sgks, evaluateSslExceptionHandler(), xContentRegistry, validatingDispatcher);
-                
-                httpTransports.put("com.floragunn.searchguard.http.SearchGuardHttpServerTransport", 
+
+                httpTransports.put("com.floragunn.searchguard.http.SearchGuardHttpServerTransport",
                         () -> sghst);
             } else if (!client && !tribeNodeClient) {
-                httpTransports.put("com.floragunn.searchguard.http.SearchGuardHttpServerTransport", 
+                httpTransports.put("com.floragunn.searchguard.http.SearchGuardHttpServerTransport",
                         () -> new SearchGuardNonSslHttpServerTransport(settings, networkService, bigArrays, threadPool, xContentRegistry, dispatcher));
             }
         }
         return httpTransports;
     }
-    
-    
-        
+
+
+
     @Override
     public Collection<Object> createComponents(Client localClient, ClusterService clusterService, ThreadPool threadPool,
             ResourceWatcherService resourceWatcherService, ScriptService scriptService, NamedXContentRegistry xContentRegistry,
@@ -791,48 +619,48 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         this.threadPool = threadPool;
         this.cs = clusterService;
         this.localClient = localClient;
-        
+
         final List<Object> components = new ArrayList<Object>();
-        
+
         if (client || tribeNodeClient || disabled) {
             return components;
         }
-        
+
         final ClusterInfoHolder cih = new ClusterInfoHolder();
         this.cs.addListener(cih);
-        
+
         DlsFlsRequestValve dlsFlsValve = ReflectionHelper.instantiateDlsFlsValve();
-        
+
         final IndexNameExpressionResolver resolver = new IndexNameExpressionResolver(settings);
         auditLog = ReflectionHelper.instantiateAuditLog(settings, configPath, localClient, threadPool, resolver, clusterService);
         sslExceptionHandler = new AuditLogSslExceptionHandler(auditLog);
-        
+
         final String DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = DefaultInterClusterRequestEvaluator.class.getName();
         InterClusterRequestEvaluator interClusterRequestEvaluator = new DefaultInterClusterRequestEvaluator(settings);
 
-     
+
         final String className = settings.get(ConfigConstants.SG_INTERCLUSTER_REQUEST_EVALUATOR_CLASS,
                 DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS);
         log.debug("Using {} as intercluster request evaluator class", className);
         if (!DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS.equals(className)) {
             interClusterRequestEvaluator = ReflectionHelper.instantiateInterClusterRequestEvaluator(className, settings);
         }
-        
+
         final PrivilegesInterceptor privilegesInterceptor = ReflectionHelper.instantiatePrivilegesInterceptorImpl(resolver, clusterService, localClient, threadPool);
 
-        adminDns = new AdminDNs(settings);      
-        //final PrincipalExtractor pe = new DefaultPrincipalExtractor();        
-        cr = (IndexBaseConfigurationRepository) IndexBaseConfigurationRepository.create(settings, this.configPath, threadPool, localClient, clusterService);        
-        final InternalAuthenticationBackend iab = new InternalAuthenticationBackend(cr);     
+        adminDns = new AdminDNs(settings);
+        //final PrincipalExtractor pe = new DefaultPrincipalExtractor();
+        cr = (IndexBaseConfigurationRepository) IndexBaseConfigurationRepository.create(settings, this.configPath, threadPool, localClient, clusterService);
+        final InternalAuthenticationBackend iab = new InternalAuthenticationBackend(cr);
         final XFFResolver xffResolver = new XFFResolver(threadPool);
-        cr.subscribeOnChange(ConfigConstants.CONFIGNAME_CONFIG, xffResolver);   
+        cr.subscribeOnChange(ConfigConstants.CONFIGNAME_CONFIG, xffResolver);
         backendRegistry = new BackendRegistry(settings, configPath, adminDns, xffResolver, iab, auditLog, threadPool);
         cr.subscribeOnChange(ConfigConstants.CONFIGNAME_CONFIG, backendRegistry);
-        final ActionGroupHolder ah = new ActionGroupHolder(cr);      
-        evaluator = new PrivilegesEvaluator(clusterService, threadPool, cr, ah, resolver, auditLog, settings, privilegesInterceptor, cih);    
-        sgf = new SearchGuardFilter(evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs);     
-        
-        
+        final ActionGroupHolder ah = new ActionGroupHolder(cr);
+        evaluator = new PrivilegesEvaluator(clusterService, threadPool, cr, ah, resolver, auditLog, settings, privilegesInterceptor, cih);
+        sgf = new SearchGuardFilter(evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs);
+
+
         final String principalExtractorClass = settings.get(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, null);
 
         if(principalExtractorClass == null) {
@@ -840,12 +668,12 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         } else {
             principalExtractor = ReflectionHelper.instantiatePrincipalExtractor(principalExtractorClass);
         }
-        
-        sgi = new SearchGuardInterceptor(settings, threadPool, backendRegistry, auditLog, principalExtractor, 
+
+        sgi = new SearchGuardInterceptor(settings, threadPool, backendRegistry, auditLog, principalExtractor,
                 interClusterRequestEvaluator, cs, Objects.requireNonNull(sslExceptionHandler), Objects.requireNonNull(cih));
         components.add(principalExtractor);
-        
-        
+
+
         components.add(adminDns);
         //components.add(auditLog);
         components.add(cr);
@@ -857,33 +685,33 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         components.add(sgi);
 
         sgRestHandler = new SearchGuardRestFilter(backendRegistry, auditLog, threadPool, principalExtractor, settings, configPath);
-        
+
         return components;
-        
+
     }
 
     @Override
     public Settings additionalSettings() {
-        
+
         if(disabled) {
             return Settings.EMPTY;
         }
-        
+
         final Settings.Builder builder = Settings.builder();
-        
+
         builder.put(super.additionalSettings());
-        
+
         builder.put(NetworkModule.TRANSPORT_TYPE_KEY, "com.floragunn.searchguard.ssl.http.netty.SearchGuardSSLNettyTransport");
         builder.put(NetworkModule.HTTP_TYPE_KEY, "com.floragunn.searchguard.http.SearchGuardHttpServerTransport");
-        return builder.build();  
+        return builder.build();
     }
-    
+
     @Override
     public List<Setting<?>> getSettings() {
         List<Setting<?>> settings = new ArrayList<Setting<?>>();
-        
+
         settings.addAll(super.getSettings());
-        
+
         settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_AUTHCZ_ADMIN_DN, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
 
         settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_CONFIG_INDEX_NAME, Property.NodeScope, Property.Filtered));
@@ -905,11 +733,11 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_LOG_REQUEST_BODY, true, Property.NodeScope, Property.Filtered));
         settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_RESOLVE_INDICES, true, Property.NodeScope, Property.Filtered));
         settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_SSL_VERIFY, true, Property.NodeScope, Property.Filtered));
-                
+
         settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_KERBEROS_KRB5_FILEPATH, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_KERBEROS_ACCEPTOR_KEYTAB_FILEPATH, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_KERBEROS_ACCEPTOR_PRINCIPAL, Property.NodeScope, Property.Filtered));
-        
+
         settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_HTTP_ENDPOINTS, Lists.newArrayList("localhost:9200"), Function.identity(), Property.NodeScope)); //not filtered here
         settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_ENABLE_SSL, false, Property.NodeScope, Property.Filtered));
         settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_VERIFY_HOSTNAMES, true, Property.NodeScope, Property.Filtered));
@@ -930,15 +758,15 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         final List<String> ignoredUsers = new ArrayList<String>(2);
         ignoredUsers.add("kibanaserver");
         settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_AUDIT_IGNORE_USERS, ignoredUsers, Function.identity(), Property.NodeScope)); //not filtered here
-        
+
         settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_DISABLED, false, Property.NodeScope, Property.Filtered));
         settings.add(Setting.intSetting(ConfigConstants.SEARCHGUARD_CACHE_TTL_MINUTES, 60, 0, Property.NodeScope, Property.Filtered));
 
         //SG6
-        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_ENTERPRISE_MODULES_ENABLED, true, Property.NodeScope, Property.Filtered));    
+        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_ENTERPRISE_MODULES_ENABLED, true, Property.NodeScope, Property.Filtered));
         settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_ALLOW_UNSAFE_DEMOCERTIFICATES, false, Property.NodeScope, Property.Filtered));
         settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_ALLOW_DEFAULT_INIT_SGINDEX, false, Property.NodeScope, Property.Filtered));
-        
+
         settings.add(Setting.groupSetting(ConfigConstants.SEARCHGUARD_AUTHCZ_REST_IMPERSONATION_USERS+".", Property.NodeScope)); //not filtered here
 
         settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_ROLES_MAPPING_RESOLUTION, Property.NodeScope, Property.Filtered));
@@ -946,13 +774,13 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
 
         //TODO remove searchguard.tribe.clustername?
         //settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_TRIBE_CLUSTERNAME, Property.NodeScope, Property.Filtered));
-        
+
         // SG6 - Audit
         settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_AUDIT_IGNORE_REQUESTS, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
         settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_RESOLVE_BULK_REQUESTS, false, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_LOG4J_LOGGER_NAME, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_LOG4J_LEVEL, Property.NodeScope, Property.Filtered));
-        
+
         settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_SSL_PEMCERT_CONTENT, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_SSL_PEMCERT_FILEPATH, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_SSL_PEMKEY_CONTENT, Property.NodeScope, Property.Filtered));
@@ -962,25 +790,25 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_SSL_PEMTRUSTEDCAS_FILEPATH, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_WEBHOOK_PEMTRUSTEDCAS_CONTENT, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_WEBHOOK_PEMTRUSTEDCAS_FILEPATH, Property.NodeScope, Property.Filtered));
-       
-        settings.add(Setting.intSetting(ConfigConstants.SEARCHGUARD_AUDIT_THREADPOOL_MAX_QUEUE_LEN, 100*1000, Property.NodeScope, Property.Filtered));        
-        
+
+        settings.add(Setting.intSetting(ConfigConstants.SEARCHGUARD_AUDIT_THREADPOOL_MAX_QUEUE_LEN, 100*1000, Property.NodeScope, Property.Filtered));
+
         // SG6 - REST API
         settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_RESTAPI_ROLES_ENABLED, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
         settings.add(Setting.groupSetting(ConfigConstants.SEARCHGUARD_RESTAPI_ENDPOINTS_DISABLED + ".", Property.NodeScope));
-        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_UNSUPPORTED_RESTAPI_ACCEPT_INVALID_LICENSE, false, Property.NodeScope, Property.Filtered)); 
-        
+        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_UNSUPPORTED_RESTAPI_ACCEPT_INVALID_LICENSE, false, Property.NodeScope, Property.Filtered));
+
         return settings;
     }
-    
+
     @Override
     public List<String> getSettingsFilter() {
         List<String> settingsFilter = new ArrayList<>();
-        
+
         if(disabled) {
             return settingsFilter;
         }
-        
+
         settingsFilter.add("searchguard.*");
         return settingsFilter;
     }
@@ -988,26 +816,26 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
     //below is a hack because it seems not possible to access RepositoriesService from a non guice class
     //the way of how deguice is organized is really a mess - hope this can be fixed in later versions
     //TODO check if this could be removed
-    
+
     @Override
     public Collection<Class<? extends LifecycleComponent>> getGuiceServiceClasses() {
 
         if (client || tribeNodeClient || disabled) {
             return Collections.emptyList();
         }
-        
+
         final List<Class<? extends LifecycleComponent>> services = new ArrayList<>(1);
         services.add(GuiceHolder.class);
         return services;
     }
-    
+
     public static class GuiceHolder implements LifecycleComponent {
 
         private static RepositoriesService repositoriesService;
         private static RemoteClusterService remoteClusterService;
-        
+
         @Inject
-        public GuiceHolder(final RepositoriesService repositoriesService, 
+        public GuiceHolder(final RepositoriesService repositoriesService,
                 final TransportService remoteClusterService) {
             GuiceHolder.repositoriesService = repositoriesService;
             GuiceHolder.remoteClusterService = remoteClusterService.getRemoteClusterService();
@@ -1016,13 +844,13 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         public static RepositoriesService getRepositoriesService() {
             return repositoriesService;
         }
-        
+
         public static RemoteClusterService getRemoteClusterService() {
             return remoteClusterService;
         }
 
         @Override
-        public void close() {            
+        public void close() {
         }
 
         @Override
@@ -1031,20 +859,20 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         }
 
         @Override
-        public void addLifecycleListener(LifecycleListener listener) {            
+        public void addLifecycleListener(LifecycleListener listener) {
         }
 
         @Override
-        public void removeLifecycleListener(LifecycleListener listener) {            
+        public void removeLifecycleListener(LifecycleListener listener) {
         }
 
         @Override
-        public void start() {            
+        public void start() {
         }
 
         @Override
-        public void stop() {            
+        public void stop() {
         }
-        
+
     }
 }

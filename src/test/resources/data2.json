@@ -1,0 +1,6 @@
+{
+  "text": "text question value",
+  "joinfield": {
+    "name": "question" 
+  }
+}

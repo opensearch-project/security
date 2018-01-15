@@ -20,7 +20,7 @@
   <artifactId>search-guard-6</artifactId>
   <packaging>jar</packaging>
   <!-- 6.x.y-a.b-->
-  <version>6.x-HEAD-SNAPSHOT</version>
+  <version>6.x-HEAD-comp-SNAPSHOT</version>
   <name>Search Guard</name>
   <description>Provide access control related features for Elasticsearch 6</description>
   <url>https://github.com/floragunncom/search-guard</url>
@@ -273,7 +273,7 @@
         <dependency>
           <groupId>com.floragunn</groupId>
           <artifactId>dlic-search-guard-enterprise-modules</artifactId>
-          <version>6.x-HEAD-SNAPSHOT</version>
+          <version>6.x-HEAD-comp-SNAPSHOT</version>
         </dependency>
       </dependencies>
     </profile>
