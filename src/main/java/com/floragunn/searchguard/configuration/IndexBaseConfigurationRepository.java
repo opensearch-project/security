@@ -1,10 +1,10 @@
 /*
  * Copyright 2015-2017 floragunn GmbH
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  */
 
 package com.floragunn.searchguard.configuration;
@@ -55,6 +55,7 @@ import org.elasticsearch.common.util.concurrent.ThreadContext.StoredContext;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.env.Environment;
+import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import com.floragunn.searchguard.ssl.util.ExceptionUtils;
@@ -72,7 +73,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
     private static final Pattern FLS_PATTERN = Pattern.compile(".+\\.indices\\..+\\._fls_\\.[0-9]+=.+", Pattern.DOTALL);
 
     private final String searchguardIndex;
-    private final Client client; 
+    private final Client client;
     private final ConcurrentMap<String, Settings> typeToConfig;
     private final Multimap<String, ConfigurationChangeListener> configTypeToChancheListener;
     private final ConfigurationLoader cl;
@@ -91,11 +92,11 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
         this.configTypeToChancheListener = ArrayListMultimap.create();
         cl = new ConfigurationLoader(client, threadPool, settings);
         legacycl = new LegacyConfigurationLoader(client, threadPool, settings);
-        
+
         final AtomicBoolean installDefaultConfig = new AtomicBoolean();
-        
+
         clusterService.addLifecycleListener(new LifecycleListener() {
-            
+
             @Override
             public void afterStart() {
 
@@ -104,19 +105,19 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                     @Override
                     public void run() {
                         try {
-              
+
                             if(installDefaultConfig.get()) {
-                                
+
                                 try {
                                     String lookupDir = System.getProperty("sg.default_init.dir");
-                                    final String cd = lookupDir != null? (lookupDir+"/") : new Environment(settings, configPath).pluginsFile().toAbsolutePath().toString()+"/search-guard-6/sgconfig/";                                        
+                                    final String cd = lookupDir != null? (lookupDir+"/") : new Environment(settings, configPath).pluginsFile().toAbsolutePath().toString()+"/search-guard-6/sgconfig/";
                                     File confFile = new File(cd+"sg_config.yml");
                                     if(confFile.exists()) {
                                         final ThreadContext threadContext = threadPool.getThreadContext();
                                         try(StoredContext ctx = threadContext.stashContext()) {
                                             threadContext.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true");
                                             LOGGER.info("Will create {} index so we can apply default config", searchguardIndex);
-                                            
+
                                             Map<String, Object> indexSettings = new HashMap<>();
                                             indexSettings.put("index.number_of_shards", 1);
                                             indexSettings.put("index.auto_expand_replicas", "0-all");
@@ -140,7 +141,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                                     LOGGER.debug("Cannot apply default config (this is not an error!) due to {}", e.getMessage());
                                 }
                             }
-                            
+
                             LOGGER.debug("Node started, try to initialize it. Wait for at least yellow cluster state....");
                             ClusterHealthResponse response = null;
                             try {
@@ -148,7 +149,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                             } catch (Exception e1) {
                                 LOGGER.debug("Catched a {} but we just try again ...", e1.toString());
                             }
-                            
+
                             while(response == null || response.isTimedOut() || response.getStatus() == ClusterHealthStatus.RED) {
                                 LOGGER.debug("index '{}' not healthy yet, we try again ... (Reason: {})", searchguardIndex, response==null?"no response":(response.isTimedOut()?"timeout":"other, maybe red cluster"));
                                 try {
@@ -164,7 +165,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                                 }
                                 continue;
                             }
-                            
+
                             while(true) {
                                 try {
                                     LOGGER.debug("Try to load config ...");
@@ -179,31 +180,31 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                                         LOGGER.debug("Thread was interrupted so we cancel initialization");
                                         break;
                                     }
-                                }                           
+                                }
                             }
-                            
+
                             LOGGER.info("Node '{}' initialized", clusterService.localNode().getName());
 
                         } catch (Exception e) {
                             LOGGER.error("Unexpected exception while initializing node "+e, e);
-                        }                       
+                        }
                     }
                 });
-                
+
                 LOGGER.info("Check if "+searchguardIndex+" index exists ...");
-                
+
                 try {
-                    
+
                     IndicesExistsRequest ier = new IndicesExistsRequest(searchguardIndex)
                     .masterNodeTimeout(TimeValue.timeValueMinutes(1));
-                    
+
                     final ThreadContext threadContext = threadPool.getThreadContext();
-                    
+
                     try(StoredContext ctx = threadContext.stashContext()) {
                         threadContext.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true");
 
                         client.admin().indices().exists(ier, new ActionListener<IndicesExistsResponse>() {
-    
+
                             @Override
                             public void onResponse(IndicesExistsResponse response) {
                                 if(response != null && response.isExists()) {
@@ -222,25 +223,25 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                                             LOGGER.info("{} index does not exist yet, so no need to load config on node startup. Use sgadmin to initialize cluster", searchguardIndex);
                                         }
                                     }
-                                }               
+                                }
                             }
-    
+
                             @Override
                             public void onFailure(Exception e) {
                                 LOGGER.error("Failure while checking {} index {}",e, searchguardIndex, e);
                                 bgThread.start();
-                            }               
+                            }
                         });
                     }
                 } catch (Throwable e2) {
                     LOGGER.error("Failure while executing IndicesExistsRequest {}",e2, e2);
                     bgThread.start();
-                } 
+                }
             }
         });
     }
 
-    
+
     public static ConfigurationRepository create(Settings settings, final Path configPath, final ThreadPool threadPool, Client client,  ClusterService clusterService) {
         final IndexBaseConfigurationRepository repository = new IndexBaseConfigurationRepository(settings, configPath, threadPool, client, clusterService);
         return repository;
@@ -250,7 +251,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
     public Settings getConfiguration(String configurationType) {
 
         Settings result = typeToConfig.get(configurationType);
-        
+
         if (result != null) {
             return result;
         }
@@ -270,7 +271,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
         return typeToConfig.get(configurationType);
     }
 
-    
+
     @Override
     public Map<String, Settings> getConfiguration(Collection<String> configTypes) {
         List<String> typesToLoad = Lists.newArrayList();
@@ -302,32 +303,32 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
         return result;
     }
 
-    
+
     @Override
     public Map<String, Settings> reloadConfiguration(Collection<String> configTypes) {
         Map<String, Settings> loaded = loadConfigurations(configTypes);
         typeToConfig.clear();
         typeToConfig.putAll(loaded);
         notifyAboutChanges(loaded);
-        
-        final SearchGuardLicense sgLicense = getLicense();                                
+
+        final SearchGuardLicense sgLicense = getLicense();
         final String license = sgLicense==null?"No license needed because enterprise modules are not enabled" :sgLicense.toString();
         LOGGER.info("Search Guard License Info: "+license);
-        
+
         if (sgLicense != null) {
         	LOGGER.info("Search Guard License Type: "+sgLicense.getType()+", " + (sgLicense.isValid() ? "valid" : "invalid"));
-        	
+
         	if (sgLicense.getExpiresInDays() <= 30 && sgLicense.isValid()) {
             	LOGGER.warn("Your Search Guard license expires in " + sgLicense.getExpiresInDays() + " days.");
             	System.out.println("Your Search Guard license expires in " + sgLicense.getExpiresInDays() + " days.");
             }
-            
+
         	if (!sgLicense.isValid()) {
             	final String reasons = String.join("; ", sgLicense.getMsgs());
             	LOGGER.error("You are running an unlicensed version of Search Guard. Reason(s): " + reasons);
             	System.out.println("You are running an unlicensed version of Search Guard. Reason(s): " + reasons);
             	System.err.println("You are running an unlicensed version of Search Guard. Reason(s): " + reasons);
-            }        	
+            }
         }
 
         return loaded;
@@ -362,19 +363,19 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
         }
     }
 
-    
+
     private Map<String, Settings> loadConfigurations(Collection<String> configTypes) {
-            
+
             final ThreadContext threadContext = threadPool.getThreadContext();
             final Map<String, Settings> retVal = new HashMap<String, Settings>();
             //final List<Exception> exception = new ArrayList<Exception>(1);
            // final CountDownLatch latch = new CountDownLatch(1);
-            
+
             try(StoredContext ctx = threadContext.stashContext()) {
                 threadContext.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true");
-                
+
                 boolean searchGuardIndexExists = clusterService.state().metaData().hasConcreteIndex(this.searchguardIndex);
-                
+
                 if(searchGuardIndexExists) {
                     if(clusterService.state().metaData().index(this.searchguardIndex).mapping("config") != null) {
                         //legacy layout
@@ -389,19 +390,19 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                     LOGGER.debug("sg index not exists (yet)");
                     retVal.putAll(validate(cl.load(configTypes.toArray(new String[0]), 30, TimeUnit.SECONDS), configTypes.size()));
                 }
-                
+
             } catch (Exception e) {
                 throw new ElasticsearchException(e);
             }
             return retVal;
     }
-    
+
     private Map<String, Settings> validate(Map<String, Settings> conf, int expectedSize) throws InvalidConfigException {
 
         if(conf == null || conf.size() != expectedSize) {
             throw new InvalidConfigException("Retrieved only partial configuration");
         }
-        
+
         final Settings roles = conf.get("roles");
         final String rolesDelimited;
 
@@ -425,26 +426,26 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
 
         return conf;
     }
-    
+
     private static String formatDate(long date) {
         return new SimpleDateFormat("yyyy-MM-dd").format(new Date(date));
     }
-    
+
     /**
-     * 
+     *
      * @return null if no license is needed
      */
     public SearchGuardLicense getLicense() {
 
         //TODO check spoof with cluster settings and elasticsearch.yml without node restart
         boolean enterpriseModulesEnabled = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_ENTERPRISE_MODULES_ENABLED, true);
-        
+
         if(!enterpriseModulesEnabled) {
             return null;
         }
-        
+
         String licenseText = getConfiguration("config").get("searchguard.dynamic.license");
-        
+
         if(licenseText == null || licenseText.isEmpty()) {
             return createOrGetTrial(null);
         } else {
@@ -456,27 +457,34 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                 return createOrGetTrial("Unable to verify license due to "+ExceptionUtils.getRootCause(e));
             }
         }
-        
+
     }
-    
+
     private SearchGuardLicense createOrGetTrial(String msg) {
         long created = System.currentTimeMillis();
         ThreadContext threadContext = threadPool.getThreadContext();
-        
+
         try(StoredContext ctx = threadContext.stashContext()) {
             threadContext.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true");
             GetResponse get = client.prepareGet(searchguardIndex, "sg", "tattr").get();
             if(get.isExists()) {
                 created = (long) get.getSource().get("val");
             } else {
-                client.index(new IndexRequest(searchguardIndex)
-                .type("sg")
-                .id("tattr")
-                .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                .source("{\"val\": "+System.currentTimeMillis()+"}", XContentType.JSON)).actionGet();
+                try {
+                    client.index(new IndexRequest(searchguardIndex)
+                    .type("sg")
+                    .id("tattr")
+                    .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .create(true)
+                    .source("{\"val\": "+System.currentTimeMillis()+"}", XContentType.JSON)).actionGet();
+                } catch (VersionConflictEngineException e) {
+                    System.out.println(e.getMessage());
+                } catch (Exception e) {
+                    LOGGER.error("Unable to index tattr", e);
+                }
             }
         }
-        
+
         return SearchGuardLicense.createTrialLicense(formatDate(created), clusterService, msg);
     }
 }
