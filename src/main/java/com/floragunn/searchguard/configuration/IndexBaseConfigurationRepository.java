@@ -478,7 +478,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                     .create(true)
                     .source("{\"val\": "+System.currentTimeMillis()+"}", XContentType.JSON)).actionGet();
                 } catch (VersionConflictEngineException e) {
-                    System.out.println(e.getMessage());
+                    //ignore
                 } catch (Exception e) {
                     LOGGER.error("Unable to index tattr", e);
                 }
