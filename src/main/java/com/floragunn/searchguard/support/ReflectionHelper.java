@@ -100,7 +100,9 @@ public class ReflectionHelper {
 
         try {
             final Class<?> clazz = Class.forName("com.floragunn.searchguard.configuration.SearchGuardFlsDlsIndexSearcherWrapper");
-            final Constructor<?> ret = clazz.getConstructor(IndexService.class, Settings.class, AdminDNs.class, ClusterService.class, AuditLog.class, ComplianceIndexingOperationListener.class);
+            final Constructor<?> ret = clazz.getConstructor(IndexService.class,
+                    Settings.class, AdminDNs.class, ClusterService.class, AuditLog.class,
+                    ComplianceIndexingOperationListener.class, ComplianceConfig.class);
             addLoadedModule(clazz);
             return ret;
         } catch (final Throwable e) {

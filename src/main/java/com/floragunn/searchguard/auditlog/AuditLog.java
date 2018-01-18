@@ -20,6 +20,8 @@ package com.floragunn.searchguard.auditlog;
 import java.io.Closeable;
 import java.util.Map;
 
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.engine.Engine.Delete;
 import org.elasticsearch.index.engine.Engine.DeleteResult;
 import org.elasticsearch.index.engine.Engine.Index;
@@ -29,6 +31,8 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.transport.TransportRequest;
+
+import com.floragunn.searchguard.compliance.ComplianceConfig;
 
 public interface AuditLog extends Closeable {
 
@@ -52,9 +56,10 @@ public interface AuditLog extends Closeable {
     void logSSLException(TransportRequest request, Throwable t, String action, Task task);
     void logSSLException(RestRequest request, Throwable t);
 
-    void logDocumentRead(String index, String id, Map<String, String> fieldNameValues);
-    void logDocumentWritten(ShardId shardId, GetResult originalIndex, Index currentIndex, IndexResult result);
+    void logDocumentRead(String index, String id, Map<String, String> fieldNameValues, ComplianceConfig complianceConfig);
+    void logDocumentWritten(ShardId shardId, GetResult originalIndex, GetResult currentGet, Index currentIndex, IndexResult result, ComplianceConfig complianceConfig);
     void logDocumentDeleted(ShardId shardId, Delete delete, DeleteResult result);
+    void logExternalConfig(Settings settings, Environment environment);
 
     public enum Origin {
         REST, TRANSPORT, LOCAL

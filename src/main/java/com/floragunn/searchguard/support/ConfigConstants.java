@@ -1,10 +1,10 @@
 /*
  * Copyright 2015-2017 floragunn GmbH
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  */
 
 package com.floragunn.searchguard.support;
@@ -24,51 +24,51 @@ import java.util.List;
 import java.util.Set;
 
 public class ConfigConstants {
-    
-     
+
+
     public static final String SG_CONFIG_PREFIX = "_sg_";
-    
+
     public static final String SG_CHANNEL_TYPE = SG_CONFIG_PREFIX+"channel_type";
-    
+
     public static final String SG_ORIGIN = SG_CONFIG_PREFIX+"origin";
     public static final String SG_ORIGIN_HEADER = SG_CONFIG_PREFIX+"origin_header";
 
     public static final String SG_DLS_QUERY_HEADER = SG_CONFIG_PREFIX+"dls_query";
 
     public static final String SG_FLS_FIELDS_HEADER = SG_CONFIG_PREFIX+"fls_fields";
-    
+
     public static final String SG_CONF_REQUEST_HEADER = SG_CONFIG_PREFIX+"conf_request";
-    
+
     public static final String SG_REMOTE_ADDRESS = SG_CONFIG_PREFIX+"remote_address";
     public static final String SG_REMOTE_ADDRESS_HEADER = SG_CONFIG_PREFIX+"remote_address_header";
-    
+
     /**
      * Set by SSL plugin for https requests only
      */
     public static final String SG_SSL_PEER_CERTIFICATES = SG_CONFIG_PREFIX+"ssl_peer_certificates";
-    
+
     /**
      * Set by SSL plugin for https requests only
      */
     public static final String SG_SSL_PRINCIPAL = SG_CONFIG_PREFIX+"ssl_principal";
-    
+
     /**
      * If this is set to TRUE then the request comes from a Server Node (fully trust)
      * Its expected that there is a _sg_user attached as header
      */
     public static final String SG_SSL_TRANSPORT_INTERCLUSTER_REQUEST = SG_CONFIG_PREFIX+"ssl_transport_intercluster_request";
-    
+
     public static final String SG_SSL_TRANSPORT_TRUSTED_CLUSTER_REQUEST = SG_CONFIG_PREFIX+"ssl_transport_trustedcluster_request";
-    
-    
+
+
     /**
      * Set by the SSL plugin, this is the peer node certificate on the transport layer
      */
     public static final String SG_SSL_TRANSPORT_PRINCIPAL = SG_CONFIG_PREFIX+"ssl_transport_principal";
-    
+
     public static final String SG_USER = SG_CONFIG_PREFIX+"user";
     public static final String SG_USER_HEADER = SG_CONFIG_PREFIX+"user_header";
-    
+
     public static final String SG_XFF_DONE = SG_CONFIG_PREFIX+"xff_done";
 
     public static final String SG_DEFAULT_CONFIG_INDEX = "searchguard";
@@ -87,18 +87,18 @@ public class ConfigConstants {
 
     public final static String CONFIGNAME_ROLES = "roles";
     public final static String CONFIGNAME_ROLES_MAPPING = "rolesmapping";
-    public final static String CONFIGNAME_ACTION_GROUPS = "actiongroups";    
+    public final static String CONFIGNAME_ACTION_GROUPS = "actiongroups";
     public final static String CONFIGNAME_INTERNAL_USERS = "internalusers";
     public final static String CONFIGNAME_CONFIG = "config";
     public final static String CONFIGKEY_ACTION_GROUPS_PERMISSIONS = "permissions";
     public final static String CONFIGKEY_READONLY = "readonly";
-    
-    public final static List<String> CONFIG_NAMES = Collections.unmodifiableList(Arrays.asList(new String[] {CONFIGNAME_ROLES, CONFIGNAME_ROLES_MAPPING, 
+
+    public final static List<String> CONFIG_NAMES = Collections.unmodifiableList(Arrays.asList(new String[] {CONFIGNAME_ROLES, CONFIGNAME_ROLES_MAPPING,
             CONFIGNAME_ACTION_GROUPS, CONFIGNAME_INTERNAL_USERS, CONFIGNAME_CONFIG}));
     public static final String SG_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = "searchguard.cert.intercluster_request_evaluator_class";
     public static final String SG_ACTION_NAME = SG_CONFIG_PREFIX+"action_name";
-    
-    
+
+
     public static final String SEARCHGUARD_AUTHCZ_ADMIN_DN = "searchguard.authcz.admin_dn";
     public static final String SEARCHGUARD_CONFIG_INDEX_NAME = "searchguard.config_index_name";
     public static final String SEARCHGUARD_AUTHCZ_IMPERSONATION_DN = "searchguard.authcz.impersonation_dn";
@@ -126,9 +126,9 @@ public class ConfigConstants {
     public static final String SEARCHGUARD_AUDIT_SSL_ENABLE_SSL = "searchguard.audit.config.enable_ssl";
     public static final String SEARCHGUARD_AUDIT_SSL_ENABLE_SSL_CLIENT_AUTH = "searchguard.audit.config.enable_ssl_client_auth";
     public static final boolean SEARCHGUARD_AUDIT_SSL_ENABLE_SSL_CLIENT_AUTH_DEFAULT = false;
-    
+
     public static final String SEARCHGUARD_AUDIT_SSL_JKS_CERT_ALIAS = "searchguard.audit.config.cert_alias";
-    
+
     public static final String SEARCHGUARD_AUDIT_SSL_PEMKEY_FILEPATH = "searchguard.audit.config.pemkey_filepath";
     public static final String SEARCHGUARD_AUDIT_SSL_PEMKEY_CONTENT = "searchguard.audit.config.pemkey_content";
     public static final String SEARCHGUARD_AUDIT_SSL_PEMKEY_PASSWORD = "searchguard.audit.config.pemkey_password";
@@ -139,7 +139,7 @@ public class ConfigConstants {
 
     public static final String SEARCHGUARD_AUDIT_SSL_ENABLED_SSL_CIPHERS = "searchguard.audit.config.enabled_ssl_ciphers";
     public static final String SEARCHGUARD_AUDIT_SSL_ENABLED_SSL_PROTOCOLS = "searchguard.audit.config.enabled_ssl_protocols";
-    
+
     public static final String SEARCHGUARD_KERBEROS_KRB5_FILEPATH = "searchguard.kerberos.krb5_filepath";
     public static final String SEARCHGUARD_KERBEROS_ACCEPTOR_KEYTAB_FILEPATH = "searchguard.kerberos.acceptor_keytab_filepath";
     public static final String SEARCHGUARD_KERBEROS_ACCEPTOR_PRINCIPAL = "searchguard.kerberos.acceptor_principal";
@@ -163,23 +163,25 @@ public class ConfigConstants {
     public static final String SEARCHGUARD_ALLOW_DEFAULT_INIT_SGINDEX = "searchguard.allow_default_init_sgindex";
 
     public static final String SEARCHGUARD_ROLES_MAPPING_RESOLUTION = "searchguard.roles_mapping_resolution";
-    
+
+    public static final String SEARCHGUARD_COMPLIANCE_PII_FIELDS = "searchguard.compliance.pii_fields";
+
     public enum RolesMappingResolution {
         MAPPING_ONLY,
         BACKENDROLES_ONLY,
         BOTH
     }
-    
-    
+
+
     //public static final String SEARCHGUARD_TRIBE_CLUSTERNAME = "searchguard.tribe.clustername";
     //public static final String SEARCHGUARD_DISABLE_TYPE_SECURITY = "searchguard.disable_type_security";
-    
+
     // REST API
     public static final String SEARCHGUARD_RESTAPI_ROLES_ENABLED = "searchguard.restapi.roles_enabled";
     public static final String SEARCHGUARD_RESTAPI_ENDPOINTS_DISABLED = "searchguard.restapi.endpoints_disabled";
-    
+
     // Illegal Opcodes from here on
     public static final String SEARCHGUARD_UNSUPPORTED_RESTAPI_ACCEPT_INVALID_LICENSE = "searchguard.unsupported.restapi.accept_invalid_license";
-    
-   
+
+
 }

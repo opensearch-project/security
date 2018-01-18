@@ -20,6 +20,8 @@ package com.floragunn.searchguard.auditlog;
 import java.io.IOException;
 import java.util.Map;
 
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.engine.Engine.Delete;
 import org.elasticsearch.index.engine.Engine.DeleteResult;
 import org.elasticsearch.index.engine.Engine.Index;
@@ -29,6 +31,8 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.transport.TransportRequest;
+
+import com.floragunn.searchguard.compliance.ComplianceConfig;
 
 public class NullAuditLog implements AuditLog {
 
@@ -98,17 +102,22 @@ public class NullAuditLog implements AuditLog {
     }
 
     @Override
-    public void logDocumentRead(String index, String id, Map<String, String> fieldNameValues) {
+    public void logDocumentRead(String index, String id, Map<String, String> fieldNameValues, ComplianceConfig complianceConfig) {
         //noop, intentionally left empty
     }
 
     @Override
-    public void logDocumentWritten(ShardId shardId, GetResult originalIndex, Index currentIndex, IndexResult result) {
+    public void logDocumentWritten(ShardId shardId, GetResult originalIndex, GetResult currentGet, Index currentIndex, IndexResult result, ComplianceConfig complianceConfig) {
         //noop, intentionally left empty
     }
 
     @Override
     public void logDocumentDeleted(ShardId shardId, Delete delete, DeleteResult result) {
+        //noop, intentionally left empty
+    }
+
+    @Override
+    public void logExternalConfig(Settings settings, Environment environment) {
         //noop, intentionally left empty
     }
 }

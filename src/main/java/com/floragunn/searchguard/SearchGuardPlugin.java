@@ -77,6 +77,7 @@ import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IndexSearcherWrapper;
 import org.elasticsearch.index.shard.SearchOperationListener;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.elasticsearch.plugins.ClusterPlugin;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestHandler;
@@ -115,6 +116,7 @@ import com.floragunn.searchguard.compliance.ComplianceIndexingOperationListener;
 import com.floragunn.searchguard.configuration.ActionGroupHolder;
 import com.floragunn.searchguard.configuration.AdminDNs;
 import com.floragunn.searchguard.configuration.ClusterInfoHolder;
+import com.floragunn.searchguard.configuration.ConfigurationChangeListener;
 import com.floragunn.searchguard.configuration.DlsFlsRequestValve;
 import com.floragunn.searchguard.configuration.IndexBaseConfigurationRepository;
 import com.floragunn.searchguard.configuration.PrivilegesEvaluator;
@@ -144,7 +146,7 @@ import com.floragunn.searchguard.transport.SearchGuardInterceptor;
 import com.floragunn.searchguard.user.User;
 import com.google.common.collect.Lists;
 
-public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
+public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements ClusterPlugin {
 
     private final boolean tribeNodeClient;
     private final boolean dlsFlsAvailable;
@@ -431,13 +433,15 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         return actions;
     }
 
-    private IndexSearcherWrapper loadFlsDlsIndexSearcherWrapper(final IndexService indexService, final ComplianceIndexingOperationListener ciol) {
+    private IndexSearcherWrapper loadFlsDlsIndexSearcherWrapper(final IndexService indexService,
+            final ComplianceIndexingOperationListener ciol, final ComplianceConfig complianceConfig) {
         try {
             IndexSearcherWrapper flsdlsWrapper = (IndexSearcherWrapper) dlsFlsConstructor
                     .newInstance(indexService, settings, Objects.requireNonNull(adminDns),
                             Objects.requireNonNull(cs),
                             Objects.requireNonNull(auditLog),
-                            Objects.requireNonNull(ciol));
+                            Objects.requireNonNull(ciol),
+                            Objects.requireNonNull(complianceConfig));
             if(log.isDebugEnabled()) {
                 log.debug("FLS/DLS enabled for index {}", indexService.index().getName());
             }
@@ -463,7 +467,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
                     ciol = new ComplianceIndexingOperationListener();
                 }
 
-                indexModule.setSearcherWrapper(indexService -> loadFlsDlsIndexSearcherWrapper(indexService, ciol));
+                indexModule.setSearcherWrapper(indexService -> loadFlsDlsIndexSearcherWrapper(indexService, ciol, complianceConfig));
             } else {
                 indexModule.setSearcherWrapper(indexService -> new SearchGuardIndexSearcherWrapper(indexService, settings, Objects
                         .requireNonNull(adminDns)));
@@ -673,6 +677,13 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
                 interClusterRequestEvaluator, cs, Objects.requireNonNull(sslExceptionHandler), Objects.requireNonNull(cih));
         components.add(principalExtractor);
 
+        cr.subscribeOnChange(ConfigConstants.CONFIGNAME_CONFIG, new ConfigurationChangeListener() {
+
+            @Override
+            public void onChange(Settings unused) {
+                //auditLog.logExternalConfig(settings, environment);
+            }
+        });
 
         components.add(adminDns);
         //components.add(auditLog);
@@ -688,6 +699,11 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
 
         return components;
 
+    }
+
+    @Override
+    public void onNodeStarted() {
+        auditLog.logExternalConfig(settings, new Environment(settings, configPath));
     }
 
     @Override
@@ -797,6 +813,10 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_RESTAPI_ROLES_ENABLED, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
         settings.add(Setting.groupSetting(ConfigConstants.SEARCHGUARD_RESTAPI_ENDPOINTS_DISABLED + ".", Property.NodeScope));
         settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_UNSUPPORTED_RESTAPI_ACCEPT_INVALID_LICENSE, false, Property.NodeScope, Property.Filtered));
+
+        // Compliance
+        settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_COMPLIANCE_PII_FIELDS, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
+
 
         return settings;
     }
