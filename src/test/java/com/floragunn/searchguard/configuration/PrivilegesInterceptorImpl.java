@@ -28,7 +28,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import com.floragunn.searchguard.configuration.PrivilegesEvaluator.IndexType;
 import com.floragunn.searchguard.user.User;
 
 public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
@@ -47,11 +46,11 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         return null;
     }
 
-    @Override
+    /*@Override
     public boolean replaceAllowedIndices(ActionRequest request, String action, User user, Settings config, Map<String, Set<IndexType>> leftOvers) {
         count++;
         return false;
-    }
+    }*/
 
     
 }

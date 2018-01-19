@@ -19,7 +19,9 @@ package com.floragunn.searchguard.support;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Stack;
 import java.util.regex.Pattern;
 
@@ -34,6 +36,7 @@ public class WildcardMatcher {
      * @return
      */
     public static boolean matchAny(final String[] pattern, final String[] candidate) {
+        
         return matchAny(pattern, candidate, false);
     }
     
@@ -85,6 +88,7 @@ public class WildcardMatcher {
      */
     public static boolean matchAll(final String[] pattern, final String[] candidate) {
 
+        
         for (int i = 0; i < candidate.length; i++) {
             final String string = candidate[i];
             if (!matchAny(pattern, string)) {
@@ -170,6 +174,20 @@ public class WildcardMatcher {
         for (int i = 0; i < candidate.length; i++) {
             final String string = candidate[i];
             if (match(pattern, string)) {
+                matches.add(string);
+            }
+        }
+
+        return matches;
+    }
+    
+    public static List<String> getMatchAny(final String[] patterns, final String[] candidate) {
+
+        final List<String> matches = new ArrayList<String>(candidate.length);
+
+        for (int i = 0; i < candidate.length; i++) {
+            final String string = candidate[i];
+            if (matchAny(patterns, string)) {
                 matches.add(string);
             }
         }
@@ -275,6 +293,28 @@ public class WildcardMatcher {
         }
 
         return false;
+    }
+    
+    /**
+     * 
+     * @param set will be modified
+     * @param stringContainingWc
+     * @return
+     */
+    public static boolean wildcardRemoveFromSet(Set<String> set, String stringContainingWc) {
+        if(set.contains(stringContainingWc)) {
+            return set.remove(stringContainingWc);
+        } else {
+            boolean modified = false;
+            Set<String> copy = new HashSet<>(set);
+            
+            for(String it: copy) {
+                if(WildcardMatcher.match(stringContainingWc, it)) {
+                    modified = set.remove(it) || modified;
+                }
+            }
+            return modified;
+        }  
     }
     
     
