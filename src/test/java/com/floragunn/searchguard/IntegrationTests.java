@@ -66,6 +66,7 @@ import org.elasticsearch.node.PluginAwareNode;
 import org.elasticsearch.transport.Netty4Plugin;
 import org.junit.Assert;
 import org.junit.Assume;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateAction;
@@ -130,6 +131,7 @@ public class IntegrationTests extends SingleClusterTest {
     }
 
     @Test
+    @Ignore
     public void testDnfof() throws Exception {
         setup(Settings.EMPTY, new DynamicSgConfig().setSgConfig("sg_config_dnfof.yml"), Settings.EMPTY);
         final RestHelper rh = nonSslRestHelper();

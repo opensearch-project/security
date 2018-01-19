@@ -705,7 +705,9 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
 
     @Override
     public void onNodeStarted() {
-        auditLog.logExternalConfig(settings, new Environment(settings, configPath));
+        if(!client && !disabled) {
+            auditLog.logExternalConfig(settings, new Environment(settings, configPath));
+        }
     }
 
     @Override
