@@ -165,6 +165,8 @@ public class ConfigConstants {
     public static final String SEARCHGUARD_ROLES_MAPPING_RESOLUTION = "searchguard.roles_mapping_resolution";
 
     public static final String SEARCHGUARD_COMPLIANCE_PII_FIELDS = "searchguard.compliance.pii_fields";
+    public static final String SEARCHGUARD_COMPLIANCE_DIFFS_ONLY = "searchguard.compliance.diffs_only";
+    public static final String SEARCHGUARD_COMPLIANCE_METADATA_ONLY = "searchguard.compliance.metadata_only";
 
     public enum RolesMappingResolution {
         MAPPING_ONLY,

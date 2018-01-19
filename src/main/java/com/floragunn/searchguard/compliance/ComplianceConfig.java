@@ -25,27 +25,42 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.Settings;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.WildcardMatcher;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 
 
 public final class ComplianceConfig {
 
     private final Logger log = LogManager.getLogger(getClass());
     private final Settings settings;
-    private final Map<String, Set<String>> indexFields = new HashMap<>();
+    private final Map<String, Set<String>> indexFields = new HashMap<>(100);
+    private DateTimeFormatter auditLogPattern = null;
+    private String auditLogIndex = null;
+    private final boolean logDiffsOnly;
+    private final boolean logMetadataOnly;
+    private final LoadingCache<String, Set<String>> cache;
 
     public ComplianceConfig(Settings settings) {
         super();
         this.settings = settings;
         final List<String> piiFields = this.settings.getAsList(ConfigConstants.SEARCHGUARD_COMPLIANCE_PII_FIELDS,
                 Collections.emptyList(), false);
+
+        logDiffsOnly = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_COMPLIANCE_DIFFS_ONLY, false);
+        logMetadataOnly = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_COMPLIANCE_METADATA_ONLY, false);
 
         //searchguard.compliance.pii_fields:
         //  - indexpattern,fieldpattern,fieldpattern,....
@@ -65,59 +80,91 @@ public final class ComplianceConfig {
         if("internal_elasticsearch".equalsIgnoreCase(type)) {
             final String index = settings.get(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_INDEX,"'sg6-auditlog-'YYYY.MM.dd");
             try {
-                DateTimeFormat.forPattern(index); //throws IllegalArgumentException if no pattern
-                int first = index.indexOf("'");
-                String _index = index.substring( first + 1, index.indexOf("'", first+1));
-                checkAndRemoveAuditlogIndex(_index);
+                auditLogPattern = DateTimeFormat.forPattern(index); //throws IllegalArgumentException if no pattern
             } catch (IllegalArgumentException e) {
                 //no pattern
-                checkAndRemoveAuditlogIndex(index);
+                auditLogIndex = index;
             } catch (Exception e) {
                 log.error("Unable to check if auditlog index {} is part of compliance setup", index, e);
             }
         }
 
-        log.info("PII configuration: "+indexFields);
+        log.info("PII configuration [auditLogPattern={},  auditLogIndex={}]: {}", auditLogPattern, auditLogIndex, indexFields);
+
+
+        cache = CacheBuilder.newBuilder()
+                .maximumSize(1000)
+                .build(new CacheLoader<String, Set<String>>() {
+                    @Override
+                    public Set<String> load(String index) throws Exception {
+                        return getFieldsForIndex0(index);
+                    }
+                });
     }
 
-    private void checkAndRemoveAuditlogIndex(String _index) {
-        for(String indexPattern: new HashSet<>(indexFields.keySet())) {
-            if(WildcardMatcher.match(indexPattern, _index)) {
-                indexFields.remove(indexPattern);
-                log.warn("Removed "+indexPattern+" from PII configuration");
+    //cached
+    private Set<String> getFieldsForIndex0(String index) {
+
+        if(index == null) {
+            return Collections.EMPTY_SET;
+        }
+
+        if(auditLogIndex != null && auditLogIndex.equalsIgnoreCase(index)) {
+            return Collections.EMPTY_SET;
+        }
+
+        if(auditLogPattern != null) {
+            if(index.equalsIgnoreCase(getExpandedIndexName(auditLogPattern, null))) {
+                return Collections.EMPTY_SET;
             }
         }
-    }
 
-    //cache this
-    private Set<String> get(String index) {
-        final Set<String> tmp = new HashSet<String>();
+        final Set<String> tmp = new HashSet<String>(100);
         for(String indexPattern: indexFields.keySet()) {
-            if(WildcardMatcher.match(indexPattern, index)) {
+            if(indexPattern != null && !indexPattern.isEmpty() && WildcardMatcher.match(indexPattern, index)) {
                 tmp.addAll(indexFields.get(indexPattern));
             }
         }
         return tmp;
     }
 
-    public boolean enabledForIndex(String index) {
-        return !get(index).isEmpty();
+    private String getExpandedIndexName(DateTimeFormatter indexPattern, String index) {
+        if(indexPattern == null) {
+            return index;
+        }
+        return indexPattern.print(DateTime.now(DateTimeZone.UTC));
     }
 
-    public boolean enabledForField(String index, String field) {
-        final Set<String> fields = get(index);
-        if(fields.isEmpty()) {
-            return false;
+    //no patterns here as parameters
+    public boolean enabledForIndex(String index) {
+        try {
+            return !cache.get(index).isEmpty();
+        } catch (ExecutionException e) {
+            log.error(e);
+            return true;
         }
+    }
 
-        return WildcardMatcher.matchAny(fields, field);
+    //no patterns here as parameters
+    public boolean enabledForField(String index, String field) {
+        try {
+            final Set<String> fields = cache.get(index);
+            if(fields.isEmpty()) {
+                return false;
+            }
+
+            return WildcardMatcher.matchAny(fields, field);
+        } catch (ExecutionException e) {
+            log.error(e);
+            return true;
+        }
     }
 
     public boolean logDiffsOnly() {
-        return false;
+        return logDiffsOnly;
     }
 
     public boolean logMetadataOnly() {
-        return false;
+        return logMetadataOnly;
     }
 }
