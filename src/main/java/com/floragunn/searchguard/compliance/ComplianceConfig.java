@@ -51,6 +51,7 @@ public final class ComplianceConfig {
     private String auditLogIndex = null;
     private final boolean logDiffsOnly;
     private final boolean logMetadataOnly;
+    private final boolean logExternalConfig;
     private final LoadingCache<String, Set<String>> cache;
 
     public ComplianceConfig(Settings settings) {
@@ -61,6 +62,7 @@ public final class ComplianceConfig {
 
         logDiffsOnly = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_COMPLIANCE_DIFFS_ONLY, false);
         logMetadataOnly = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_COMPLIANCE_METADATA_ONLY, false);
+        logExternalConfig = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_COMPLIANCE_LOG_EXTERNAL_CONFIG, true);
 
         //searchguard.compliance.pii_fields:
         //  - indexpattern,fieldpattern,fieldpattern,....
@@ -166,5 +168,9 @@ public final class ComplianceConfig {
 
     public boolean logMetadataOnly() {
         return logMetadataOnly;
+    }
+
+    public boolean logExternalConfig() {
+        return logExternalConfig;
     }
 }

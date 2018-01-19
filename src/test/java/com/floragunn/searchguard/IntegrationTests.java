@@ -66,7 +66,6 @@ import org.elasticsearch.node.PluginAwareNode;
 import org.elasticsearch.transport.Netty4Plugin;
 import org.junit.Assert;
 import org.junit.Assume;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateAction;
@@ -131,13 +130,22 @@ public class IntegrationTests extends SingleClusterTest {
     }
 
     @Test
-    @Ignore
     public void testDnfof() throws Exception {
-        setup(Settings.EMPTY, new DynamicSgConfig().setSgConfig("sg_config_dnfof.yml"), Settings.EMPTY);
+
+        final Settings settings = Settings.builder()
+                .put(ConfigConstants.SEARCHGUARD_ROLES_MAPPING_RESOLUTION, "BOTH")
+                .build();
+
+        setup(Settings.EMPTY, new DynamicSgConfig().setSgConfig("sg_config_dnfof.yml"), settings);
         final RestHelper rh = nonSslRestHelper();
 
             try (TransportClient tc = getInternalTransportClient()) {
                 tc.admin().indices().create(new CreateIndexRequest("copysf")).actionGet();
+
+                tc.index(new IndexRequest("indexa").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":\"indexa\"}", XContentType.JSON)).actionGet();
+                tc.index(new IndexRequest("indexb").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":\"indexb\"}", XContentType.JSON)).actionGet();
+
+
                 tc.index(new IndexRequest("vulcangov").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
                 tc.index(new IndexRequest("starfleet").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
                 tc.index(new IndexRequest("starfleet_academy").type("students").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
@@ -155,8 +163,56 @@ public class IntegrationTests extends SingleClusterTest {
 
             }
 
-            //TODO dnfofNEED TESTS
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest("starfleet/_search", encodeBasicHeader("worf", "worf")).getStatusCode());
+            String msearchBody =
+                    "{\"index\":\"indexa\", \"type\":\"doc\", \"ignore_unavailable\": true}"+System.lineSeparator()+
+                    "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"+System.lineSeparator()+
+                    "{\"index\":\"indexb\", \"type\":\"doc\", \"ignore_unavailable\": true}"+System.lineSeparator()+
+                    "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"+System.lineSeparator();
+
+            HttpResponse resc = rh.executePostRequest("_msearch?pretty", msearchBody, encodeBasicHeader("user_a", "user_a"));
+            Assert.assertEquals(200, resc.getStatusCode());
+            System.out.println(resc.getBody());
+            Assert.assertTrue(resc.getBody(), resc.getBody().contains("indexa"));
+            Assert.assertFalse(resc.getBody(), resc.getBody().contains("indexb"));
+            resc = rh.executePostRequest("_msearch?pretty", msearchBody, encodeBasicHeader("user_b", "user_b"));
+            Assert.assertEquals(200, resc.getStatusCode());
+            System.out.println(resc.getBody());
+            Assert.assertFalse(resc.getBody(), resc.getBody().contains("indexa"));
+            Assert.assertTrue(resc.getBody(), resc.getBody().contains("indexb"));
+
+            Assert.assertEquals(HttpStatus.SC_OK, (resc=rh.executeGetRequest("_search?pretty", encodeBasicHeader("user_a", "user_a"))).getStatusCode());
+            System.out.println(resc.getBody());
+            Assert.assertTrue(resc.getBody(), resc.getBody().contains("indexa"));
+            Assert.assertFalse(resc.getBody(), resc.getBody().contains("indexb"));
+
+            Assert.assertEquals(HttpStatus.SC_OK, (resc=rh.executeGetRequest("index*/_search?pretty", encodeBasicHeader("user_a", "user_a"))).getStatusCode());
+            System.out.println(resc.getBody());
+            Assert.assertTrue(resc.getBody(), resc.getBody().contains("indexa"));
+            Assert.assertFalse(resc.getBody(), resc.getBody().contains("indexb"));
+
+            Assert.assertEquals(HttpStatus.SC_OK, (resc=rh.executeGetRequest("indexa/_search?pretty", encodeBasicHeader("user_a", "user_a"))).getStatusCode());
+            System.out.println(resc.getBody());
+
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (resc=rh.executeGetRequest("indexb/_search?pretty", encodeBasicHeader("user_a", "user_a"))).getStatusCode());
+            System.out.println(resc.getBody());
+
+            Assert.assertEquals(HttpStatus.SC_OK, (resc=rh.executeGetRequest("*/_search?pretty", encodeBasicHeader("user_a", "user_a"))).getStatusCode());
+            System.out.println(resc.getBody());
+
+            Assert.assertEquals(HttpStatus.SC_OK, (resc=rh.executeGetRequest("_all/_search?pretty", encodeBasicHeader("user_a", "user_a"))).getStatusCode());
+            System.out.println(resc.getBody());
+
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (resc=rh.executeGetRequest("notexists/_search?pretty", encodeBasicHeader("user_a", "user_a"))).getStatusCode());
+            System.out.println(resc.getBody());
+
+            Assert.assertEquals(HttpStatus.SC_NOT_FOUND, (resc=rh.executeGetRequest("indexanbh,indexabb*/_search?pretty", encodeBasicHeader("user_a", "user_a"))).getStatusCode());
+            System.out.println(resc.getBody());
+
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (resc=rh.executeGetRequest("starfleet/_search?pretty", encodeBasicHeader("user_a", "user_a"))).getStatusCode());
+            System.out.println(resc.getBody());
+
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (resc=rh.executeGetRequest("starfleet/_search?pretty", encodeBasicHeader("worf", "worf"))).getStatusCode());
+            System.out.println(resc.getBody());
 
     }
 

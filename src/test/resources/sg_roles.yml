@@ -360,3 +360,18 @@ sg_aliasmngt:
         - indices:data/read/*
         - CREATE_INDEX
         - indices:admin/aliases*
+        
+sg_ua:
+  cluster:
+    - '*'
+  indices:
+    'indexa*':
+      '*':
+        - '*'
+sg_ub:
+  cluster:
+    - '*'
+  indices:
+    'indexb':
+      '*':
+        - '*'

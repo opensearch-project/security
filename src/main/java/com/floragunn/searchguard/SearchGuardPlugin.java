@@ -187,6 +187,9 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
     public SearchGuardPlugin(final Settings settings, final Path configPath) {
         super(settings, configPath, settings.getAsBoolean(ConfigConstants.SEARCHGUARD_DISABLED, false));
 
+        System.out.println("Search Guard compliance edition");
+        System.out.println("*** This is a technology preview version and NOT suitable for production. ***");
+
         disabled = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_DISABLED, false);
 
         if(disabled) {
@@ -705,7 +708,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
 
     @Override
     public void onNodeStarted() {
-        if(!client && !disabled) {
+        if(!client && !disabled && complianceConfig.logExternalConfig()) {
             auditLog.logExternalConfig(settings, new Environment(settings, configPath));
         }
     }
@@ -822,7 +825,8 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
         settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_COMPLIANCE_PII_FIELDS, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
         settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_COMPLIANCE_METADATA_ONLY, false, Property.NodeScope, Property.Filtered));
         settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_COMPLIANCE_DIFFS_ONLY, false, Property.NodeScope, Property.Filtered));
-
+        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_COMPLIANCE_LOG_EXTERNAL_CONFIG, true, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_COMPLIANCE_DISABLE_ANONYMOUS_AUTHENTICATION, false, Property.NodeScope, Property.Filtered));
 
         return settings;
     }

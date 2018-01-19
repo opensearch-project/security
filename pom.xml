@@ -273,7 +273,7 @@
         <dependency>
           <groupId>com.floragunn</groupId>
           <artifactId>dlic-search-guard-enterprise-modules</artifactId>
-          <version>6.x-HEAD-comp-SNAPSHOT</version>
+          <version>6.x-HEAD-compnpe-SNAPSHOT</version>
         </dependency>
       </dependencies>
     </profile>
