@@ -359,7 +359,9 @@ public class PrivilegesEvaluator {
             }
         }
 
-
+        final boolean dnfofEnabled =
+                getConfigSettings().getAsBoolean("searchguard.dynamic.kibana.do_not_fail_on_forbidden", false)
+                || getConfigSettings().getAsBoolean("searchguard.dynamic.do_not_fail_on_forbidden", false);
 
         if (isClusterPerm(action0)) {
             if(!sgRoles.impliesClusterPermissionPermission(action0)) {
@@ -375,10 +377,27 @@ public class PrivilegesEvaluator {
                         log.debug("Normally allowed but we need to apply some extra checks for a restore request.");
                     }
                 } else {
-                    presponse.allowed = true;
+
+                    if (dnfofEnabled
+                            && (action0.startsWith("indices:data/read/"))) {
+                        Set<String> reduced = sgRoles.reduce(requestedResolved, user, new String[]{action0}, resolver, clusterService);
+
+                        if(reduced.isEmpty()) {
+                            presponse.allowed = false;
+                            return presponse;
+                        }
+
+                        if(irr.replace(request, reduced.toArray(new String[0]))) {
+                            presponse.missingPrivileges.clear();
+                            presponse.allowed = true;
+                            return presponse;
+                        }
+                    }
+
                     if(log.isDebugEnabled()) {
                         log.debug("Allowed because we have cluster permissions for "+action0);
                     }
+                    presponse.allowed = true;
                     return presponse;
                 }
 
@@ -415,12 +434,6 @@ public class PrivilegesEvaluator {
 
         final Set<String> allIndexPermsRequired = evaluateAdditionalIndexPermissions(request, action0);
         final String[] allIndexPermsRequiredA = allIndexPermsRequired.toArray(new String[0]);
-
-        final boolean dnfofEnabled =
-                getConfigSettings().getAsBoolean("searchguard.dynamic.kibana.do_not_fail_on_forbidden", false)
-                || getConfigSettings().getAsBoolean("searchguard.dynamic.do_not_fail_on_forbidden", false);
-
-
 
         if(log.isDebugEnabled()) {
             log.debug("requested {} from {}", allIndexPermsRequired, caller);
@@ -480,6 +493,7 @@ public class PrivilegesEvaluator {
                 return presponse;
             }
         }
+
 
         //not bulk, mget, etc request here
         final Set<IndexPattern> ip = sgRoles.get(requestedResolved, user, allIndexPermsRequiredA, resolver, clusterService);

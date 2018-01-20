@@ -142,8 +142,8 @@ public class IntegrationTests extends SingleClusterTest {
             try (TransportClient tc = getInternalTransportClient()) {
                 tc.admin().indices().create(new CreateIndexRequest("copysf")).actionGet();
 
-                tc.index(new IndexRequest("indexa").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":\"indexa\"}", XContentType.JSON)).actionGet();
-                tc.index(new IndexRequest("indexb").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":\"indexb\"}", XContentType.JSON)).actionGet();
+                tc.index(new IndexRequest("indexa").type("doc").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":\"indexa\"}", XContentType.JSON)).actionGet();
+                tc.index(new IndexRequest("indexb").type("doc").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":\"indexb\"}", XContentType.JSON)).actionGet();
 
 
                 tc.index(new IndexRequest("vulcangov").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
@@ -174,11 +174,65 @@ public class IntegrationTests extends SingleClusterTest {
             System.out.println(resc.getBody());
             Assert.assertTrue(resc.getBody(), resc.getBody().contains("indexa"));
             Assert.assertFalse(resc.getBody(), resc.getBody().contains("indexb"));
+            Assert.assertFalse(resc.getBody(), resc.getBody().contains("exception"));
+            Assert.assertFalse(resc.getBody(), resc.getBody().contains("permission"));
+
             resc = rh.executePostRequest("_msearch?pretty", msearchBody, encodeBasicHeader("user_b", "user_b"));
             Assert.assertEquals(200, resc.getStatusCode());
             System.out.println(resc.getBody());
             Assert.assertFalse(resc.getBody(), resc.getBody().contains("indexa"));
             Assert.assertTrue(resc.getBody(), resc.getBody().contains("indexb"));
+            Assert.assertFalse(resc.getBody(), resc.getBody().contains("exception"));
+            Assert.assertFalse(resc.getBody(), resc.getBody().contains("permission"));
+
+            msearchBody =
+                    "{\"index\":\"indexc\", \"type\":\"doc\", \"ignore_unavailable\": true}"+System.lineSeparator()+
+                    "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"+System.lineSeparator()+
+                    "{\"index\":\"indexd\", \"type\":\"doc\", \"ignore_unavailable\": true}"+System.lineSeparator()+
+                    "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"+System.lineSeparator();
+
+            resc = rh.executePostRequest("_msearch?pretty", msearchBody, encodeBasicHeader("user_b", "user_b"));
+            Assert.assertEquals(403, resc.getStatusCode());
+
+            String mgetBody = "{"+
+                    "\"docs\" : ["+
+                        "{"+
+                             "\"_index\" : \"indexa\","+
+                            "\"_type\" : \"doc\","+
+                            "\"_id\" : \"0\""+
+                       " },"+
+                       " {"+
+                           "\"_index\" : \"indexb\","+
+                           " \"_type\" : \"doc\","+
+                           " \"_id\" : \"0\""+
+                        "}"+
+                    "]"+
+                "}";
+
+            resc = rh.executePostRequest("_mget?pretty",  mgetBody, encodeBasicHeader("user_b", "user_b"));
+            Assert.assertEquals(200, resc.getStatusCode());
+            Assert.assertFalse(resc.getBody(), resc.getBody().contains("indexa"));
+            Assert.assertTrue(resc.getBody(), resc.getBody().contains("indexb"));
+            Assert.assertFalse(resc.getBody(), resc.getBody().contains("exception"));
+            Assert.assertFalse(resc.getBody(), resc.getBody().contains("permission"));
+
+            mgetBody = "{"+
+                    "\"docs\" : ["+
+                        "{"+
+                             "\"_index\" : \"indexx\","+
+                            "\"_type\" : \"doc\","+
+                            "\"_id\" : \"0\""+
+                       " },"+
+                       " {"+
+                           "\"_index\" : \"indexy\","+
+                           " \"_type\" : \"doc\","+
+                           " \"_id\" : \"0\""+
+                        "}"+
+                    "]"+
+                "}";
+
+            resc = rh.executePostRequest("_mget?pretty",  mgetBody, encodeBasicHeader("user_b", "user_b"));
+            Assert.assertEquals(403, resc.getStatusCode());
 
             Assert.assertEquals(HttpStatus.SC_OK, (resc=rh.executeGetRequest("_search?pretty", encodeBasicHeader("user_a", "user_a"))).getStatusCode());
             System.out.println(resc.getBody());
@@ -189,6 +243,8 @@ public class IntegrationTests extends SingleClusterTest {
             System.out.println(resc.getBody());
             Assert.assertTrue(resc.getBody(), resc.getBody().contains("indexa"));
             Assert.assertFalse(resc.getBody(), resc.getBody().contains("indexb"));
+            Assert.assertFalse(resc.getBody(), resc.getBody().contains("exception"));
+            Assert.assertFalse(resc.getBody(), resc.getBody().contains("permission"));
 
             Assert.assertEquals(HttpStatus.SC_OK, (resc=rh.executeGetRequest("indexa/_search?pretty", encodeBasicHeader("user_a", "user_a"))).getStatusCode());
             System.out.println(resc.getBody());

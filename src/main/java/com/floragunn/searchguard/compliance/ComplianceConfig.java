@@ -46,10 +46,11 @@ public final class ComplianceConfig {
 
     private final Logger log = LogManager.getLogger(getClass());
     private final Settings settings;
-    private final Map<String, Set<String>> indexFields = new HashMap<>(100);
+    private final Map<String, Set<String>> readEnabledFields = new HashMap<>(100);
+    private final List<String> watchedWriteIndices;
     private DateTimeFormatter auditLogPattern = null;
     private String auditLogIndex = null;
-    private final boolean logDiffsOnly;
+    private final boolean logDiffsOnlyForWrite;
     private final boolean logMetadataOnly;
     private final boolean logExternalConfig;
     private final LoadingCache<String, Set<String>> cache;
@@ -57,24 +58,25 @@ public final class ComplianceConfig {
     public ComplianceConfig(Settings settings) {
         super();
         this.settings = settings;
-        final List<String> piiFields = this.settings.getAsList(ConfigConstants.SEARCHGUARD_COMPLIANCE_PII_FIELDS,
+        final List<String> watchedReadFields = this.settings.getAsList(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS,
                 Collections.emptyList(), false);
 
-        logDiffsOnly = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_COMPLIANCE_DIFFS_ONLY, false);
-        logMetadataOnly = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_COMPLIANCE_METADATA_ONLY, false);
-        logExternalConfig = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_COMPLIANCE_LOG_EXTERNAL_CONFIG, true);
+        watchedWriteIndices = settings.getAsList(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, Collections.emptyList());
+        logDiffsOnlyForWrite = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_WRITE_DIFFS_ONLY, false);
+        logMetadataOnly = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_METADATA_ONLY, false);
+        logExternalConfig = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED, true);
 
         //searchguard.compliance.pii_fields:
         //  - indexpattern,fieldpattern,fieldpattern,....
-        for(String pii: piiFields) {
-            final List<String> split = new ArrayList<>(Arrays.asList(pii.split(",")));
+        for(String watchedReadField: watchedReadFields) {
+            final List<String> split = new ArrayList<>(Arrays.asList(watchedReadField.split(",")));
             if(split.isEmpty()) {
                 continue;
             } else if(split.size() == 1) {
-                indexFields.put(split.get(0), Collections.singleton("*"));
+                readEnabledFields.put(split.get(0), Collections.singleton("*"));
             } else {
                 Set<String> _fields = new HashSet<String>(split.subList(1, split.size()));
-                indexFields.put(split.get(0), _fields);
+                readEnabledFields.put(split.get(0), _fields);
             }
         }
 
@@ -91,7 +93,7 @@ public final class ComplianceConfig {
             }
         }
 
-        log.info("PII configuration [auditLogPattern={},  auditLogIndex={}]: {}", auditLogPattern, auditLogIndex, indexFields);
+        log.info("PII configuration [auditLogPattern={},  auditLogIndex={}]: {}", auditLogPattern, auditLogIndex, readEnabledFields);
 
 
         cache = CacheBuilder.newBuilder()
@@ -122,9 +124,9 @@ public final class ComplianceConfig {
         }
 
         final Set<String> tmp = new HashSet<String>(100);
-        for(String indexPattern: indexFields.keySet()) {
+        for(String indexPattern: readEnabledFields.keySet()) {
             if(indexPattern != null && !indexPattern.isEmpty() && WildcardMatcher.match(indexPattern, index)) {
-                tmp.addAll(indexFields.get(indexPattern));
+                tmp.addAll(readEnabledFields.get(indexPattern));
             }
         }
         return tmp;
@@ -137,8 +139,27 @@ public final class ComplianceConfig {
         return indexPattern.print(DateTime.now(DateTimeZone.UTC));
     }
 
+    public boolean writeHistoryEnabledForIndex(String index) {
+
+        if(index == null) {
+            return false;
+        }
+
+        if(auditLogIndex != null && auditLogIndex.equalsIgnoreCase(index)) {
+            return false;
+        }
+
+        if(auditLogPattern != null) {
+            if(index.equalsIgnoreCase(getExpandedIndexName(auditLogPattern, null))) {
+                return false;
+            }
+        }
+
+        return WildcardMatcher.matchAny(watchedWriteIndices, index);
+    }
+
     //no patterns here as parameters
-    public boolean enabledForIndex(String index) {
+    public boolean readHistoryEnabledForIndex(String index) {
         try {
             return !cache.get(index).isEmpty();
         } catch (ExecutionException e) {
@@ -148,7 +169,7 @@ public final class ComplianceConfig {
     }
 
     //no patterns here as parameters
-    public boolean enabledForField(String index, String field) {
+    public boolean readHistoryEnabledForField(String index, String field) {
         try {
             final Set<String> fields = cache.get(index);
             if(fields.isEmpty()) {
@@ -162,8 +183,8 @@ public final class ComplianceConfig {
         }
     }
 
-    public boolean logDiffsOnly() {
-        return logDiffsOnly;
+    public boolean logDiffsOnlyForWrite() {
+        return logDiffsOnlyForWrite;
     }
 
     public boolean logMetadataOnly() {

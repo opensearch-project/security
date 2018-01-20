@@ -73,7 +73,7 @@ import com.floragunn.searchguard.support.WildcardMatcher;
 import com.google.common.collect.Sets;
 
 public final class IndexResolverReplacer {
-    
+
     //private final static IndicesOptions DEFAULT_INDICES_OPTIONS = IndicesOptions.lenientExpandOpen();
     //private static final String[] NO_INDICES_SET = Sets.newHashSet("\\",";",",","/","|").toArray(new String[0]);
     private static final Set<String> NULL_SET = Sets.newHashSet((String)null);
@@ -82,7 +82,7 @@ public final class IndexResolverReplacer {
     private final Logger log = LogManager.getLogger(this.getClass());
     private final IndexNameExpressionResolver resolver;
     private final ClusterService clusterService;
-    
+
     public IndexResolverReplacer(IndexNameExpressionResolver resolver, ClusterService clusterService) {
         super();
         this.resolver = resolver;
@@ -90,50 +90,50 @@ public final class IndexResolverReplacer {
     }
 
     public static final boolean isAll(final String... requestedPatterns) {
-        
+
         final List<String> patterns = requestedPatterns==null?null:Arrays.asList(requestedPatterns);
-        
+
         if(IndexNameExpressionResolver.isAllIndices(patterns)) {
             return true;
         }
-        
+
         if(patterns.size() == 1 && patterns.contains("*")) {
             return true;
         }
-        
+
         if(new HashSet<String>(patterns).equals(NULL_SET)) {
             return true;
         }
-        
+
         return false;
     }
-    
+
     private Resolved resolve(final String... requestedPatterns) {
-        
+
        if(isAll(requestedPatterns)) {
            return Resolved._ALL;
        }
-       
+
        ClusterState state = clusterService.state();
-       
-       final SortedMap<String, AliasOrIndex> lookup = state.metaData().getAliasAndIndexLookup(); 
+
+       final SortedMap<String, AliasOrIndex> lookup = state.metaData().getAliasAndIndexLookup();
        final Set<String> aliases = lookup.entrySet().stream().filter(e->e.getValue().isAlias()).map(e->e.getKey()).collect(Collectors.toSet());
-             
+
        final Set<String> matchingAliases = new HashSet<>(requestedPatterns.length*10);
        final Set<String> matchingIndices = new HashSet<>(requestedPatterns.length*10);
        final Set<String> matchingAllIndices = new HashSet<>(requestedPatterns.length*10);
-       
+
        //fill matchingAliases
-       for (int i = 0; i < requestedPatterns.length; i++) {           
+       for (int i = 0; i < requestedPatterns.length; i++) {
            final String requestedPattern = resolver.resolveDateMathExpression(requestedPatterns[i]);
            final List<String> _aliases = WildcardMatcher.getMatchAny(requestedPattern, aliases);
            matchingAliases.addAll(_aliases);
        }
-       
-       
+
+
        //-alias not possible
-       
-        {           
+
+        {
             //final String requestedPattern = resolver.resolveDateMathExpression(requestedPatterns[i]);
             //final List<String> _aliases = WildcardMatcher.getMatchAny(requestedPattern, aliases);
             //matchingAliases.addAll(_aliases);
@@ -148,14 +148,14 @@ public final class IndexResolverReplacer {
                 if (log.isDebugEnabled()) {
                     log.debug("No such indices for pattern {}, use raw value", (Object[]) requestedPatterns);
                 }
-                
+
                 _indices = new ArrayList<>(requestedPatterns.length);
-                
+
                 for (int i = 0; i < requestedPatterns.length; i++) {
                     String requestedPattern = requestedPatterns[i];
                     _indices.add(resolver.resolveDateMathExpression(requestedPattern));
                 }
-                
+
                 /*if(requestedPatterns.length == 1) {
                     _indices = Collections.singletonList(resolver.resolveDateMathExpression(requestedPatterns[0]));
                 } else {
@@ -167,33 +167,33 @@ public final class IndexResolverReplacer {
             }
 
             final List<String> _aliases = WildcardMatcher.getMatchAny(requestedPatterns, aliases);
-            
+
             matchingAllIndices.addAll(_indices);
-           
+
            if(_aliases.isEmpty()) {
                matchingIndices.addAll(_indices); //date math resolved?
            } else {
-               
+
                if(!_indices.isEmpty()) {
-                   
+
                    for(String al:_aliases) {
                        Set<String> doubleIndices = lookup.get(al).getIndices().stream().map(a->a.getIndex().getName()).collect(Collectors.toSet());
                        _indices.removeAll(doubleIndices);
                    }
-                   
+
                    matchingIndices.addAll(_indices);
                }
-           }           
-       }   
+           }
+       }
        return new Resolved.Builder(matchingAliases, matchingIndices, matchingAllIndices, null).build();
-       
+
     }
-    
+
     private Set<String> resolveTypes(final Object request) {
         //check if type security is enabled
         final Class<?> requestClass = request.getClass();
         final Set<String> requestTypes = new HashSet<String>();
-        
+
         if(true) {
             Method typeMethod = null;
             if(typeCache.containsKey(requestClass)) {
@@ -207,9 +207,9 @@ public final class IndexResolverReplacer {
                 } catch (SecurityException e) {
                     log.error("Cannot evaluate type() for {} due to {}", requestClass, e, e);
                 }
-                
+
             }
-            
+
             Method typesMethod = null;
             if(typesCache.containsKey(requestClass)) {
                 typesMethod = typesCache.get(requestClass);
@@ -222,9 +222,9 @@ public final class IndexResolverReplacer {
                 } catch (SecurityException e) {
                     log.error("Cannot evaluate types() for {} due to {}", requestClass, e, e);
                 }
-                
+
             }
-            
+
             if(typeMethod != null) {
                 try {
                     String type = (String) typeMethod.invoke(request);
@@ -235,11 +235,11 @@ public final class IndexResolverReplacer {
                     log.error("Unable to invoke type() for {} due to", requestClass, e);
                 }
             }
-            
+
             if(typesMethod != null) {
                 try {
                     final String[] types = (String[]) typesMethod.invoke(request);
-                    
+
                     if(types != null) {
                         requestTypes.addAll(Arrays.asList(types));
                     }
@@ -248,17 +248,17 @@ public final class IndexResolverReplacer {
                 }
             }
         }
-        
+
         if(log.isTraceEnabled()) {
             log.trace("requestTypes {} for {}", requestTypes, request.getClass());
         }
-        
+
         return requestTypes;
     }
-    
+
     public boolean exclude(final TransportRequest request, String... exclude) {
         return getOrReplaceAllIndices(request, new IndicesProvider() {
-            
+
             @Override
             public String[] provide(String[] original, Object request, boolean supportsReplace) {
                 if(supportsReplace) {
@@ -276,10 +276,10 @@ public final class IndexResolverReplacer {
             }
         });
     }
-    
+
     public boolean replace(final TransportRequest request, String... replacements) {
         return getOrReplaceAllIndices(request, new IndicesProvider() {
-            
+
             @Override
             public String[] provide(String[] original, Object request, boolean supportsReplace) {
                 if(supportsReplace) {
@@ -290,11 +290,11 @@ public final class IndexResolverReplacer {
             }
         });
     }
-    
+
     public Resolved resolve(final TransportRequest request) {
         return resolve0(request);
     }
-    
+
     private Resolved resolve0(final TransportRequest request) {
         if(log.isDebugEnabled()) {
             log.debug("Resolve aliases, indices and types from {}", request.getClass().getSimpleName());
@@ -302,12 +302,10 @@ public final class IndexResolverReplacer {
         Resolved.Builder resolvedBuilder = new Resolved.Builder();
         final AtomicBoolean returnEmpty = new AtomicBoolean();
         getOrReplaceAllIndices(request, new IndicesProvider() {
-            
+
             @Override
             public String[] provide(String[] original, Object localRequest, boolean supportsReplace) {
-                
-                final String[] retVal = IndicesProvider.NOOP;
-                
+
                 //CCS
                 if((localRequest instanceof FieldCapabilitiesRequest || localRequest instanceof SearchRequest)
                         && (request instanceof FieldCapabilitiesRequest || request instanceof SearchRequest)) {
@@ -319,38 +317,38 @@ public final class IndexResolverReplacer {
                         }
                         original = ccsResult.v2();
                     }
-                   
+
                 }
                 if(returnEmpty.get()) {
-                    
+
                     if(log.isTraceEnabled()) {
                         log.trace("CCS return empty indices for local node");
                     }
-                    
+
                 } else {
                     final Resolved iResolved = resolve(original);
-    
+
                     if(log.isTraceEnabled()) {
                         log.trace("Resolved patterns {} for {} ({}) to {}", original, localRequest.getClass().getSimpleName(), request.getClass().getSimpleName(), iResolved);
                     }
-                     
+
                     resolvedBuilder.add(iResolved);
                     resolvedBuilder.addTypes(resolveTypes(localRequest));
-                    
+
                 }
-                
-                return retVal;
+
+                return IndicesProvider.NOOP;
             }
         });
-        
+
         if(log.isTraceEnabled()) {
             log.trace("Finally resolved for {}: {}", request.getClass().getSimpleName(), resolvedBuilder.build());
         }
-        
+
         if(returnEmpty.get()) {
             return Resolved._EMPTY;
         }
-        
+
         return resolvedBuilder.build();
     }
 
@@ -363,7 +361,7 @@ public final class IndexResolverReplacer {
         // handle CCS
         // TODO how to handle aliases with CCS??
         if (request instanceof FieldCapabilitiesRequest || request instanceof SearchRequest) {
-            IndicesRequest.Replaceable searchRequest = (IndicesRequest.Replaceable) request;
+            IndicesRequest.Replaceable searchRequest = request;
             final Map<String, OriginalIndices> remoteClusterIndices = SearchGuardPlugin.GuiceHolder.getRemoteClusterService().groupIndices(
                     searchRequest.indicesOptions(), searchRequest.indices(), idx -> resolver.hasIndexOrAlias(idx, clusterService.state()));
 
@@ -390,9 +388,9 @@ public final class IndexResolverReplacer {
     }
 
     public final static class Resolved implements Serializable, Writeable {
-        
+
         /**
-         * 
+         *
          */
         private static final Set<String> All_SET = Sets.newHashSet("*");
         private static final long serialVersionUID = 1L;
@@ -403,25 +401,25 @@ public final class IndexResolverReplacer {
         private final Set<String> indices;
         private final Set<String> allIndices;
         private final Set<String> types;
-        
+
         private Resolved(final Set<String> aliases, final Set<String> indices, final Set<String> allIndices, final Set<String> types) {
             super();
             this.aliases = aliases;
             this.indices = indices;
             this.allIndices = allIndices;
             this.types = types;
-            
+
             if(!aliases.isEmpty() || !indices.isEmpty() || !allIndices.isEmpty()) {
                 if(types.isEmpty()) {
                     throw new ElasticsearchException("Empty types for nonempty inidices or aliases");
                 }
             }
         }
-        
+
         public boolean isAll() {
             return aliases.contains("*") && indices.contains("*") && allIndices.contains("*") && types.contains("*");
         }
-        
+
         public boolean isEmpty() {
             return aliases.isEmpty() && indices.isEmpty() && allIndices.isEmpty() && types.isEmpty();
         }
@@ -433,7 +431,7 @@ public final class IndexResolverReplacer {
         public Set<String> getIndices() {
             return Collections.unmodifiableSet(indices);
         }
-        
+
         public Set<String> getAllIndices() {
             return Collections.unmodifiableSet(allIndices);
         }
@@ -443,7 +441,7 @@ public final class IndexResolverReplacer {
         }
 
         //TODO equals and hashcode??
-        
+
         @Override
         public String toString() {
             return "Resolved [aliases=" + aliases + ", indices=" + indices + ", allIndices=" + allIndices + ", types=" + types
@@ -503,30 +501,30 @@ public final class IndexResolverReplacer {
             final Set<String> indices = new HashSet<String>();
             final Set<String> allIndices = new HashSet<String>();
             final Set<String> types = new HashSet<String>();
-            
+
             public Builder() {
                 this(null, null, null, null);
             }
-            
+
             public Builder(Collection<String> aliases, Collection<String> indices, Collection<String> allIndices, Collection<String> types) {
-                
+
                 if(aliases != null) {
                     this.aliases.addAll(aliases);
                 }
-                
+
                 if(indices != null) {
                     this.indices.addAll(indices);
                 }
-                
+
                 if(allIndices != null) {
                     this.allIndices.addAll(allIndices);
                 }
-                
+
                 if(types != null) {
                     this.types.addAll(types);
                 }
             }
-            
+
             public Builder addTypes(Collection<String> types) {
                 if(types != null && types.size() > 0) {
                     if(this.types.contains("*")) {
@@ -536,21 +534,21 @@ public final class IndexResolverReplacer {
                 }
                 return this;
             }
-            
+
             public Builder add(Resolved r) {
-                
+
                 this.aliases.addAll(r.aliases);
                 this.indices.addAll(r.indices);
                 this.allIndices.addAll(r.allIndices);
                 addTypes(r.types);
                 return this;
             }
-            
+
             public Resolved build() {
                 if(types.isEmpty()) {
                     types.add("*");
                 }
-                
+
                 return new Resolved(new HashSet<String>(aliases), new HashSet<String>(indices), new HashSet<String>(allIndices), new HashSet<String>(types));
             }
         }
@@ -569,10 +567,10 @@ public final class IndexResolverReplacer {
             out.writeStringList(new ArrayList<>(indices));
             out.writeStringList(new ArrayList<>(allIndices));
             out.writeStringList(new ArrayList<>(types));
-            
+
         }
     }
-    
+
     private List<String> renamedIndices(final RestoreSnapshotRequest request, final List<String> filteredIndices) {
         final List<String> renamedIndices = new ArrayList<>();
         for (final String index : filteredIndices) {
@@ -584,36 +582,36 @@ public final class IndexResolverReplacer {
         }
         return renamedIndices;
     }
-    
-    
+
+
     //--
-    
+
     @FunctionalInterface
     public interface IndicesProvider {
         public static final String[] NOOP = new String[0];
         String[] provide(String[] original, Object request, boolean supportsReplace);
     }
-    
+
     private boolean checkIndices(Object request, String[] indices, boolean needsToBeSizeOne) {
-        
+
         if(indices == IndicesProvider.NOOP) {
             return false;
         }
-        
+
         if(indices == null || indices.length == 0) {
             if(log.isTraceEnabled() && request != null) {
                 log.trace("Null or empty indices for "+request.getClass().getName());
             }
             return false;
         }
-        
+
         if(needsToBeSizeOne && indices.length != 1) {
             if(log.isTraceEnabled() && request != null) {
                 log.trace("To much indices for "+request.getClass().getName());
             }
             return false;
         }
-        
+
         for (int i = 0; i < indices.length; i++) {
             final String index = indices[i];
             if(index == null || index.isEmpty()) {
@@ -624,10 +622,10 @@ public final class IndexResolverReplacer {
                 return false;
             }
         }
-        
+
         return true;
     }
-    
+
     /**
      * new
      * @param request
@@ -636,11 +634,11 @@ public final class IndexResolverReplacer {
      */
     @SuppressWarnings("rawtypes")
     private boolean getOrReplaceAllIndices(final Object request, final IndicesProvider provider) {
-        
+
         if(log.isTraceEnabled()) {
             log.trace("getOrReplaceAllIndices() for "+request.getClass());
         }
-        
+
         boolean result = true;
 
         if (request instanceof BulkRequest) {
@@ -666,7 +664,7 @@ public final class IndexResolverReplacer {
             for (ActionRequest ar : (Iterable<TermVectorsRequest>) () -> ((MultiTermVectorsRequest) request).iterator()) {
                 result = getOrReplaceAllIndices(ar, provider) && result;
             }
-            
+
         } else if(request instanceof PutMappingRequest) {
             PutMappingRequest pmr = (PutMappingRequest) request;
             Index concreteIndex = pmr.getConcreteIndex();
@@ -683,9 +681,9 @@ public final class IndexResolverReplacer {
                 }
                 ((PutMappingRequest) request).indices(newIndices);
             }
-        } else if(request instanceof RestoreSnapshotRequest) { 
+        } else if(request instanceof RestoreSnapshotRequest) {
                 final RestoreSnapshotRequest restoreRequest = (RestoreSnapshotRequest) request;
-                final RepositoriesService repositoriesService = Objects.requireNonNull(SearchGuardPlugin.GuiceHolder.getRepositoriesService(), "RepositoriesService not initialized");     
+                final RepositoriesService repositoriesService = Objects.requireNonNull(SearchGuardPlugin.GuiceHolder.getRepositoriesService(), "RepositoriesService not initialized");
                 //hack, because it seems not possible to access RepositoriesService from a non guice class
                 final Repository repository = repositoriesService.repository(restoreRequest.repository());
                 SnapshotInfo snapshotInfo = null;
@@ -694,7 +692,7 @@ public final class IndexResolverReplacer {
                     if (snapshotId.getName().equals(restoreRequest.snapshot())) {
 
                         if(log.isDebugEnabled()) {
-                            log.debug("snapshot found: {} (UUID: {})", snapshotId.getName(), snapshotId.getUUID());    
+                            log.debug("snapshot found: {} (UUID: {})", snapshotId.getName(), snapshotId.getUUID());
                         }
 
                         snapshotInfo = repository.getSnapshotInfo(snapshotId);
@@ -711,10 +709,10 @@ public final class IndexResolverReplacer {
                     //final Set<String> indices = new HashSet<>(requestedResolvedIndices);
                     //indices.addAll(renamedTargetIndices);
                     if(log.isDebugEnabled()) {
-                        log.debug("snapshot: {} contains this indices: {}", snapshotInfo.snapshotId().getName(), renamedTargetIndices);    
+                        log.debug("snapshot: {} contains this indices: {}", snapshotInfo.snapshotId().getName(), renamedTargetIndices);
                     }
                     provider.provide(renamedTargetIndices.toArray(new String[0]), request, false);
-                }    
+                }
 
         } else if (request instanceof IndicesAliasesRequest) {
             for(AliasActions ar: ((IndicesAliasesRequest) request).getAliasActions()) {
@@ -799,7 +797,7 @@ public final class IndexResolverReplacer {
             }
             result = false;
         }
-        
+
         return result;
     }
 }
