@@ -168,7 +168,7 @@ public class IntegrationTests extends SingleClusterTest {
                     "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"+System.lineSeparator()+
                     "{\"index\":\"indexb\", \"type\":\"doc\", \"ignore_unavailable\": true}"+System.lineSeparator()+
                     "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"+System.lineSeparator();
-
+            System.out.println("#### msearch");
             HttpResponse resc = rh.executePostRequest("_msearch?pretty", msearchBody, encodeBasicHeader("user_a", "user_a"));
             Assert.assertEquals(200, resc.getStatusCode());
             System.out.println(resc.getBody());

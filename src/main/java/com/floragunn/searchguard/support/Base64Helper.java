@@ -1,10 +1,10 @@
 /*
  * Copyright 2015-2017 floragunn GmbH
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  */
 
 package com.floragunn.searchguard.support;
@@ -84,7 +84,7 @@ public class Base64Helper {
             }
         }
     }
-    
+
     private final static class SafeObjectInputStream extends ObjectInputStream {
 
         private static final List<String> SAFE_CLASSES = new ArrayList<>();
@@ -119,6 +119,7 @@ public class Base64Helper {
                     Enum.class.isAssignableFrom(clazz) ||
                     clazz.equals(User.class) ||
                     clazz.equals(IndexResolverReplacer.Resolved.class) ||
+                    clazz.equals(SourceFieldsContext.class) ||
                     SAFE_CLASSES.contains(clazz.getName())
                ) {
 
