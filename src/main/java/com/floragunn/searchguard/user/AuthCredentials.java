@@ -167,7 +167,7 @@ public final class AuthCredentials {
         if (getClass() != obj.getClass())
             return false;
         AuthCredentials other = (AuthCredentials) obj;
-        if (!MessageDigest.isEqual(internalPasswordHash, other.internalPasswordHash))
+        if (internalPasswordHash == null || other.internalPasswordHash == null || !MessageDigest.isEqual(internalPasswordHash, other.internalPasswordHash))
             return false;
         if (username == null) {
             if (other.username != null)
