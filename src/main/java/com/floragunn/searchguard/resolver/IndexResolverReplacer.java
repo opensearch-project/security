@@ -32,9 +32,12 @@ import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
+import org.elasticsearch.action.bulk.BulkItemRequest;
 import org.elasticsearch.action.bulk.BulkRequest;
+import org.elasticsearch.action.bulk.BulkShardRequest;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.fieldcaps.FieldCapabilitiesRequest;
+import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.MultiGetRequest;
 import org.elasticsearch.action.get.MultiGetRequest.Item;
 import org.elasticsearch.action.index.IndexRequest;
@@ -191,70 +194,85 @@ public final class IndexResolverReplacer {
     }
 
     private Set<String> resolveTypes(final Object request) {
-        //check if type security is enabled
+        // check if type security is enabled
         final Class<?> requestClass = request.getClass();
         final Set<String> requestTypes = new HashSet<String>();
 
-        if(true) {
-            Method typeMethod = null;
-            if(typeCache.containsKey(requestClass)) {
-                typeMethod = typeCache.get(requestClass);
+        if (true) {
+            if (request instanceof BulkShardRequest) {
+                BulkShardRequest bsr = (BulkShardRequest) request;
+                for (BulkItemRequest bir : bsr.items()) {
+                    requestTypes.add(bir.request().type());
+                }
+            } else if (request instanceof DocWriteRequest) {
+                requestTypes.add(((DocWriteRequest) request).type());
+            } else if (request instanceof SearchRequest) {
+                requestTypes.addAll(Arrays.asList(((SearchRequest) request).types()));
+            } else if (request instanceof GetRequest) {
+                requestTypes.add(((GetRequest) request).type());
             } else {
-                try {
-                    typeMethod = requestClass.getMethod("type");
-                    typeCache.put(requestClass, typeMethod);
-                } catch (NoSuchMethodException e) {
-                    typeCache.put(requestClass, null);
-                } catch (SecurityException e) {
-                    log.error("Cannot evaluate type() for {} due to {}", requestClass, e, e);
-                }
 
-            }
-
-            Method typesMethod = null;
-            if(typesCache.containsKey(requestClass)) {
-                typesMethod = typesCache.get(requestClass);
-            } else {
-                try {
-                    typesMethod = requestClass.getMethod("types");
-                    typesCache.put(requestClass, typesMethod);
-                } catch (NoSuchMethodException e) {
-                    typesCache.put(requestClass, null);
-                } catch (SecurityException e) {
-                    log.error("Cannot evaluate types() for {} due to {}", requestClass, e, e);
-                }
-
-            }
-
-            if(typeMethod != null) {
-                try {
-                    String type = (String) typeMethod.invoke(request);
-                    if(type != null) {
-                        requestTypes.add(type);
+                Method typeMethod = null;
+                if (typeCache.containsKey(requestClass)) {
+                    typeMethod = typeCache.get(requestClass);
+                } else {
+                    try {
+                        typeMethod = requestClass.getMethod("type");
+                        typeCache.put(requestClass, typeMethod);
+                    } catch (NoSuchMethodException e) {
+                        typeCache.put(requestClass, null);
+                    } catch (SecurityException e) {
+                        log.error("Cannot evaluate type() for {} due to {}", requestClass, e, e);
                     }
-                } catch (Exception e) {
-                    log.error("Unable to invoke type() for {} due to", requestClass, e);
+
                 }
-            }
 
-            if(typesMethod != null) {
-                try {
-                    final String[] types = (String[]) typesMethod.invoke(request);
-
-                    if(types != null) {
-                        requestTypes.addAll(Arrays.asList(types));
+                Method typesMethod = null;
+                if (typesCache.containsKey(requestClass)) {
+                    typesMethod = typesCache.get(requestClass);
+                } else {
+                    try {
+                        typesMethod = requestClass.getMethod("types");
+                        typesCache.put(requestClass, typesMethod);
+                    } catch (NoSuchMethodException e) {
+                        typesCache.put(requestClass, null);
+                    } catch (SecurityException e) {
+                        log.error("Cannot evaluate types() for {} due to {}", requestClass, e, e);
                     }
-                } catch (Exception e) {
-                    log.error("Unable to invoke types() for {} due to", requestClass, e);
+
+                }
+
+                if (typeMethod != null) {
+                    try {
+                        String type = (String) typeMethod.invoke(request);
+                        if (type != null) {
+                            requestTypes.add(type);
+                        }
+                    } catch (Exception e) {
+                        log.error("Unable to invoke type() for {} due to", requestClass, e);
+                    }
+                }
+
+                if (typesMethod != null) {
+                    try {
+                        final String[] types = (String[]) typesMethod.invoke(request);
+
+                        if (types != null) {
+                            requestTypes.addAll(Arrays.asList(types));
+                        }
+                    } catch (Exception e) {
+                        log.error("Unable to invoke types() for {} due to", requestClass, e);
+                    }
                 }
             }
+
         }
 
-        if(log.isTraceEnabled()) {
+        if (log.isTraceEnabled()) {
             log.trace("requestTypes {} for {}", requestTypes, request.getClass());
         }
 
-        return requestTypes;
+        return Collections.unmodifiableSet(requestTypes);
     }
 
     public boolean exclude(final TransportRequest request, String... exclude) {

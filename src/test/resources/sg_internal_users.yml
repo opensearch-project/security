@@ -128,3 +128,8 @@ user_b:
   #password is: user_b
   roles:
     - sg_ub
+user_c:
+  hash: $2a$04$jQcEXpODnTFoGDuA7DPdSevA84CuH/7MOYkb80M3XZIrH76YMWS9G
+  #password is: user_c
+  roles:
+    - sg_uc

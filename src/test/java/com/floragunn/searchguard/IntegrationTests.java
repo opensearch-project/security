@@ -447,6 +447,26 @@ public class IntegrationTests extends SingleClusterTest {
     }
 
     @Test
+    public void testUpdate() throws Exception {
+        final Settings settings = Settings.builder()
+                .put(ConfigConstants.SEARCHGUARD_ROLES_MAPPING_RESOLUTION, "BOTH")
+                .build();
+        setup(settings);
+        final RestHelper rh = nonSslRestHelper();
+
+        try (TransportClient tc = getInternalTransportClient()) {
+            tc.index(new IndexRequest("indexc").type("typec").id("0")
+                    .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .source("{\"content\":1}", XContentType.JSON)).actionGet();
+        }
+
+        HttpResponse res = rh.executePostRequest("indexc/typec/0/_update?pretty=true&refresh=true", "{\"doc\" : {\"content\":2}}",
+                encodeBasicHeader("user_c", "user_c"));
+        System.out.println(res.getBody());
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+}
+
+    @Test
     public void testHTTPBasic() throws Exception {
         final Settings settings = Settings.builder()
                 .putList(ConfigConstants.SEARCHGUARD_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "knuddel","nonexists")

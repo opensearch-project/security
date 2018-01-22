@@ -381,3 +381,11 @@ sg_ub:
     'indexb':
       '*':
         - '*'
+        
+sg_uc:
+  cluster:
+    - '*'
+  indices:
+    'indexc':
+      'typec':
+        - '*'
