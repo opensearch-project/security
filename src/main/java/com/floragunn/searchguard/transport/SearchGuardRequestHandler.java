@@ -27,8 +27,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchSecurityException;
-import org.elasticsearch.action.get.GetRequest;
-import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
@@ -50,7 +48,6 @@ import com.floragunn.searchguard.ssl.util.SSLRequestHelper;
 import com.floragunn.searchguard.support.Base64Helper;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.HeaderHelper;
-import com.floragunn.searchguard.support.SourceFieldsContext;
 import com.floragunn.searchguard.user.User;
 import com.google.common.base.Strings;
 
@@ -116,8 +113,6 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
                 if(!Strings.isNullOrEmpty(originalRemoteAddress)) {
                     getThreadContext().putTransient(ConfigConstants.SG_REMOTE_ADDRESS, new TransportAddress((InetSocketAddress) Base64Helper.deserializeObject(originalRemoteAddress)));
                 }
-
-                attachSoucrceFieldContext(request);
 
                 if(actionTrace.isTraceEnabled()) {
                     getThreadContext().putHeader("_sg_trace"+System.currentTimeMillis()+"#"+UUID.randomUUID().toString(), Thread.currentThread().getName()+" DIR -> "+transportChannel.getChannelType()+" "+getThreadContext().getHeaders());
@@ -233,8 +228,6 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
                     }
                 }
 
-                attachSoucrceFieldContext(request);
-
                 if(actionTrace.isTraceEnabled()) {
                     getThreadContext().putHeader("_sg_trace"+System.currentTimeMillis()+"#"+UUID.randomUUID().toString(), Thread.currentThread().getName()+" NETTI -> "+transportChannel.getChannelType()+" "+getThreadContext().getHeaders().entrySet().stream().filter(p->!p.getKey().startsWith("_sg_trace")).collect(Collectors.toMap(p -> p.getKey(), p -> p.getValue())));
                 }
@@ -279,23 +272,5 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
         }
 
         super.addAdditionalContextValues(action, request, localCerts, peerCerts, principal);
-    }
-
-    private void attachSoucrceFieldContext(T request) {
-        if(request instanceof SearchRequest && SourceFieldsContext.isNeeded((SearchRequest) request)) {
-            if(getThreadContext().getHeader("_sg_source_field_context") == null) {
-                final String serializedSourceFieldContext = Base64Helper.serializeObject(new SourceFieldsContext((SearchRequest) request));
-                getThreadContext().putHeader("_sg_source_field_context", serializedSourceFieldContext);
-            } else {
-                log.error("_sg_source_field_context header already present for "+request.getClass());
-            }
-        } else if (request instanceof GetRequest && SourceFieldsContext.isNeeded((GetRequest) request)) {
-            if(getThreadContext().getHeader("_sg_source_field_context") == null) {
-                final String serializedSourceFieldContext = Base64Helper.serializeObject(new SourceFieldsContext((GetRequest) request));
-                getThreadContext().putHeader("_sg_source_field_context", serializedSourceFieldContext);
-            } else {
-                log.error("_sg_source_field_context header already present for "+request.getClass());
-            }
-        }
     }
 }

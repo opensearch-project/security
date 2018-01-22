@@ -27,8 +27,10 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
+import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.MultiGetRequest;
 import org.elasticsearch.action.search.MultiSearchRequest;
+import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.support.ActionFilter;
 import org.elasticsearch.action.support.ActionFilterChain;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -45,8 +47,10 @@ import com.floragunn.searchguard.configuration.AdminDNs;
 import com.floragunn.searchguard.configuration.DlsFlsRequestValve;
 import com.floragunn.searchguard.configuration.PrivilegesEvaluator;
 import com.floragunn.searchguard.configuration.PrivilegesEvaluator.PrivEvalResponse;
+import com.floragunn.searchguard.support.Base64Helper;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.HeaderHelper;
+import com.floragunn.searchguard.support.SourceFieldsContext;
 import com.floragunn.searchguard.user.User;
 
 public class SearchGuardFilter implements ActionFilter {
@@ -83,6 +87,9 @@ public class SearchGuardFilter implements ActionFilter {
             if(threadContext.getTransient(ConfigConstants.SG_ORIGIN) == null) {
                 threadContext.putTransient(ConfigConstants.SG_ORIGIN, Origin.LOCAL.toString());
             }
+
+
+            attachSoucrceFieldContext(request);
 
             final User user = threadContext.getTransient(ConfigConstants.SG_USER);
             final boolean userIsAdmin = isUserAdmin(user, adminDns);
@@ -228,6 +235,24 @@ public class SearchGuardFilter implements ActionFilter {
         }
 
         return false;
+    }
+
+    private void attachSoucrceFieldContext(ActionRequest request) {
+        if(request instanceof SearchRequest && SourceFieldsContext.isNeeded((SearchRequest) request)) {
+            if(threadContext.getHeader("_sg_source_field_context") == null) {
+                final String serializedSourceFieldContext = Base64Helper.serializeObject(new SourceFieldsContext((SearchRequest) request));
+                threadContext.putHeader("_sg_source_field_context", serializedSourceFieldContext);
+            } else {
+                log.error("_sg_source_field_context header already present for "+request.getClass());
+            }
+        } else if (request instanceof GetRequest && SourceFieldsContext.isNeeded((GetRequest) request)) {
+            if(threadContext.getHeader("_sg_source_field_context") == null) {
+                final String serializedSourceFieldContext = Base64Helper.serializeObject(new SourceFieldsContext((GetRequest) request));
+                threadContext.putHeader("_sg_source_field_context", serializedSourceFieldContext);
+            } else {
+                log.error("_sg_source_field_context header already present for "+request.getClass());
+            }
+        }
     }
 
 }
