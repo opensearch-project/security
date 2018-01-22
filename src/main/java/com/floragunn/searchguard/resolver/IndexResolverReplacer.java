@@ -680,20 +680,20 @@ public final class IndexResolverReplacer {
 
             for (ListIterator<Item> it = ((MultiGetRequest) request).getItems().listIterator(); it.hasNext();){
                 Item item = it.next();
-                result = getOrReplaceAllIndices(item, provider, true) && result;
-                if(item.index() == null || item.indices() == null || item.indices().length == 0) {
+                result = getOrReplaceAllIndices(item, provider, false) && result;
+                /*if(item.index() == null || item.indices() == null || item.indices().length == 0) {
                     it.remove();
-                }
+                }*/
             }
 
         } else if (request instanceof MultiSearchRequest) {
 
             for (ListIterator<SearchRequest> it = ((MultiSearchRequest) request).requests().listIterator(); it.hasNext();) {
                 SearchRequest ar = it.next();
-                result = getOrReplaceAllIndices(ar, provider, true) && result;
-                if(ar.indices() == null || ar.indices().length == 0) {
+                result = getOrReplaceAllIndices(ar, provider, false) && result;
+                /*if(ar.indices() == null || ar.indices().length == 0) {
                     it.remove();
-                }
+                }*/
             }
 
         } else if (request instanceof MultiTermVectorsRequest) {
