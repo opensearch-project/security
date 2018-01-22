@@ -368,6 +368,12 @@ sg_ua:
     'indexa*':
       '*':
         - '*'
+    'permitnotexistentindex':
+      '*':
+        - '*'
+    '*':
+      '*':
+        - indices:data/read/field_caps
 sg_ub:
   cluster:
     - '*'

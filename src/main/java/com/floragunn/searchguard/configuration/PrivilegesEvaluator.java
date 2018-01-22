@@ -69,7 +69,6 @@ import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.resolver.IndexResolverReplacer;
 import com.floragunn.searchguard.resolver.IndexResolverReplacer.Resolved;
 import com.floragunn.searchguard.sgconf.ConfigModel;
-import com.floragunn.searchguard.sgconf.ConfigModel.IndexPattern;
 import com.floragunn.searchguard.sgconf.ConfigModel.SgRoles;
 import com.floragunn.searchguard.support.Base64Helper;
 import com.floragunn.searchguard.support.ConfigConstants;
@@ -387,7 +386,9 @@ public class PrivilegesEvaluator {
                             return presponse;
                         }
 
-                        if(irr.replace(request, reduced.toArray(new String[0]))) {
+                        System.out.println("preval cluster");
+
+                        if(irr.replace(request, true, reduced.toArray(new String[0]))) {
                             presponse.missingPrivileges.clear();
                             presponse.allowed = true;
                             return presponse;
@@ -486,7 +487,7 @@ public class PrivilegesEvaluator {
             }
 
 
-            if(irr.replace(request, reduced.toArray(new String[0]))) {
+            if(irr.replace(request, true, reduced.toArray(new String[0]))) {
                 //System.out.println("###permittedIndices replace: successfull");
                 presponse.missingPrivileges.clear();
                 presponse.allowed = true;
@@ -496,14 +497,7 @@ public class PrivilegesEvaluator {
 
 
         //not bulk, mget, etc request here
-        final Set<IndexPattern> ip = sgRoles.get(requestedResolved, user, allIndexPermsRequiredA, resolver, clusterService);
-
-        if (log.isDebugEnabled()) {
-            log.debug("Set<IndexPattern> ip: {}", ip);
-        }
-
-
-        boolean permGiven = !ip.isEmpty();
+        boolean permGiven = sgRoles.get(requestedResolved, user, allIndexPermsRequiredA, resolver, clusterService);
 
         /*if(!allowAction
                 && privilegesInterceptor.getClass() != PrivilegesInterceptor.class
