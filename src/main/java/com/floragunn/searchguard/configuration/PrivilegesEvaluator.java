@@ -386,8 +386,6 @@ public class PrivilegesEvaluator {
                             return presponse;
                         }
 
-                        System.out.println("preval cluster");
-
                         if(irr.replace(request, true, reduced.toArray(new String[0]))) {
                             presponse.missingPrivileges.clear();
                             presponse.allowed = true;

@@ -291,7 +291,7 @@ public final class IndexResolverReplacer {
                             return replacements;
                         }
                         final String[] retained = WildcardMatcher.getMatchAny(original, replacements).toArray(new String[0]);
-                        System.out.println("() retained "+Arrays.toString(retained)+" from "+Arrays.toString(original)+"//"+Arrays.toString(replacements));
+                        //System.out.println("() retained "+Arrays.toString(retained)+" from "+Arrays.toString(original)+"//"+Arrays.toString(replacements));
                         return retained;
                     }
                     return replacements;

@@ -187,6 +187,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
     public SearchGuardPlugin(final Settings settings, final Path configPath) {
         super(settings, configPath, settings.getAsBoolean(ConfigConstants.SEARCHGUARD_DISABLED, false));
 
+        log.warn("Search Guard compliance edition - *** This is a technology preview version and NOT suitable for production. ***");
         System.out.println("Search Guard compliance edition");
         System.out.println("*** This is a technology preview version and NOT suitable for production. ***");
 
