@@ -709,7 +709,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
 
     @Override
     public void onNodeStarted() {
-        if(!client && !disabled && complianceConfig.logExternalConfig()) {
+        if(!client && !disabled && !tribeNodeClient && complianceConfig.logExternalConfig()) {
             auditLog.logExternalConfig(settings, new Environment(settings, configPath));
         }
     }
