@@ -292,6 +292,9 @@ public class IntegrationTests extends SingleClusterTest {
             Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (resc=rh.executeGetRequest("starfleet/_search?pretty", encodeBasicHeader("worf", "worf"))).getStatusCode());
             System.out.println(resc.getBody());
 
+            System.out.println("#### _all/_mapping/field/*");
+            Assert.assertEquals(HttpStatus.SC_OK, (resc=rh.executeGetRequest("_all/_mapping/field/*", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
+            System.out.println(resc.getBody());
     }
 
 
@@ -446,6 +449,10 @@ public class IntegrationTests extends SingleClusterTest {
             System.out.println(resc.getBody());
 
             Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (resc=rh.executeGetRequest("starfleet/_search?pretty", encodeBasicHeader("worf", "worf"))).getStatusCode());
+            System.out.println(resc.getBody());
+            
+            System.out.println("#### _all/_mapping/field/*");
+            Assert.assertEquals(HttpStatus.SC_OK, (resc=rh.executeGetRequest("_all/_mapping/field/*", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
             System.out.println(resc.getBody());
 
     }

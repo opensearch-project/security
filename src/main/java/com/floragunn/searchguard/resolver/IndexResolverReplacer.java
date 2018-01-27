@@ -101,10 +101,14 @@ public final class IndexResolverReplacer {
             return true;
         }
 
-        if(patterns.size() == 1 && patterns.contains("*")) {
+        if(patterns.contains("*")) {
             return true;
         }
 
+        if(patterns.contains("_all")) {
+            return true;
+        }
+        
         if(new HashSet<String>(patterns).equals(NULL_SET)) {
             return true;
         }
@@ -114,6 +118,10 @@ public final class IndexResolverReplacer {
 
     private Resolved resolve(final String... requestedPatterns) {
 
+        if(log.isTraceEnabled()) {
+            log.trace("resolve requestedPatterns: "+Arrays.toString(requestedPatterns));
+        }
+        
        if(isAll(requestedPatterns)) {
            return Resolved._ALL;
        }
