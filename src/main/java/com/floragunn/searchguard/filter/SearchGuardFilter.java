@@ -26,13 +26,18 @@ import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionResponse;
+import org.elasticsearch.action.DocWriteRequest;
+import org.elasticsearch.action.DocWriteRequest.OpType;
 import org.elasticsearch.action.bulk.BulkRequest;
+import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.MultiGetRequest;
+import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.search.MultiSearchRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.support.ActionFilter;
 import org.elasticsearch.action.support.ActionFilterChain;
+import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.rest.RestStatus;
@@ -43,6 +48,7 @@ import com.floragunn.searchguard.action.licenseinfo.LicenseInfoAction;
 import com.floragunn.searchguard.action.whoami.WhoAmIAction;
 import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.auditlog.AuditLog.Origin;
+import com.floragunn.searchguard.compliance.ComplianceConfig;
 import com.floragunn.searchguard.configuration.AdminDNs;
 import com.floragunn.searchguard.configuration.DlsFlsRequestValve;
 import com.floragunn.searchguard.configuration.PrivilegesEvaluator;
@@ -63,15 +69,18 @@ public class SearchGuardFilter implements ActionFilter {
     private final AuditLog auditLog;
     private final ThreadContext threadContext;
     private final ClusterService cs;
+    private final ComplianceConfig complianceConfig;
 
     public SearchGuardFilter(final PrivilegesEvaluator evalp, final AdminDNs adminDns,
-            DlsFlsRequestValve dlsFlsValve, AuditLog auditLog, ThreadPool threadPool, ClusterService cs) {
+            DlsFlsRequestValve dlsFlsValve, AuditLog auditLog, ThreadPool threadPool, ClusterService cs,
+            ComplianceConfig complianceConfig) {
         this.evalp = evalp;
         this.adminDns = adminDns;
         this.dlsFlsValve = dlsFlsValve;
         this.auditLog = auditLog;
         this.threadContext = threadPool.getThreadContext();
         this.cs = cs;
+        this.complianceConfig = complianceConfig;
     }
 
     @Override
@@ -88,6 +97,21 @@ public class SearchGuardFilter implements ActionFilter {
                 threadContext.putTransient(ConfigConstants.SG_ORIGIN, Origin.LOCAL.toString());
             }
 
+
+            if(request instanceof DeleteRequest || request instanceof UpdateRequest) {
+                if(complianceConfig.isIndexImmutable(((DocWriteRequest) request).index())) {
+                    //auditLog.log
+                    listener.onFailure(new ElasticsearchSecurityException("Index is immutable", RestStatus.FORBIDDEN));
+                    return;
+                }
+            }
+            
+            if(request instanceof IndexRequest) {
+                if(complianceConfig.isIndexImmutable(((DocWriteRequest) request).index())) {
+                    ((IndexRequest) request).opType(OpType.CREATE);
+                }
+            }
+            
 
             attachSoucrceFieldContext(request);
 

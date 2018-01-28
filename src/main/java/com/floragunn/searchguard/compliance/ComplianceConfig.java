@@ -54,6 +54,7 @@ public final class ComplianceConfig {
     private final boolean logMetadataOnly;
     private final boolean logExternalConfig;
     private final LoadingCache<String, Set<String>> cache;
+    private final List<String> immutableIndicesPatterns;
 
     public ComplianceConfig(Settings settings) {
         super();
@@ -65,7 +66,8 @@ public final class ComplianceConfig {
         logDiffsOnlyForWrite = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_WRITE_DIFFS_ONLY, false);
         logMetadataOnly = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_METADATA_ONLY, false);
         logExternalConfig = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED, true);
-
+        immutableIndicesPatterns = settings.getAsList(ConfigConstants.SEARCHGUARD_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList());
+        
         //searchguard.compliance.pii_fields:
         //  - indexpattern,fieldpattern,fieldpattern,....
         for(String watchedReadField: watchedReadFields) {
@@ -193,5 +195,13 @@ public final class ComplianceConfig {
 
     public boolean logExternalConfig() {
         return logExternalConfig;
+    }
+    
+    public boolean isIndexImmutable(String index) {
+        if(immutableIndicesPatterns.isEmpty()) {
+            return false;
+        }
+        
+        return WildcardMatcher.matchAny(immutableIndicesPatterns, index);
     }
 }

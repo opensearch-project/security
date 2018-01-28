@@ -172,7 +172,9 @@ public class ConfigConstants {
     public static final String SEARCHGUARD_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS = "searchguard.compliance.history.write.ignore_users";
     public static final String SEARCHGUARD_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED  = "searchguard.compliance.history.external_config_enabled";
     public static final String SEARCHGUARD_COMPLIANCE_DISABLE_ANONYMOUS_AUTHENTICATION  = "searchguard.compliance.disable_anonymous_authentication";
+    public static final String SEARCHGUARD_COMPLIANCE_IMMUTABLE_INDICES = "searchguard.compliance.immutable_indices";
 
+    
     public enum RolesMappingResolution {
         MAPPING_ONLY,
         BACKENDROLES_ONLY,
