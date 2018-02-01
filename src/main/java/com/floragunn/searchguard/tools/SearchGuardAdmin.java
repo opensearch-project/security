@@ -18,6 +18,7 @@
 package com.floragunn.searchguard.tools;
 
 import java.io.ByteArrayInputStream;
+import java.io.Console;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -200,13 +201,14 @@ public class SearchGuardAdmin {
 
         options.addOption(Option.builder("w").longOpt("whoami").desc("Show information about the used admin certificate").build());
 
-        
+        options.addOption(Option.builder("prompt").longOpt("prompt-for-password").desc("Promp for password if not supplied").build());
+
         //when adding new options also adjust validate(CommandLine line)
         
         String hostname = "localhost";
         int port = 9300;
-        String kspass = System.getenv(SG_KS_PASS) != null ? System.getenv(SG_KS_PASS) : "changeit";
-        String tspass = System.getenv(SG_TS_PASS) != null ? System.getenv(SG_TS_PASS) : kspass;
+        String kspass = System.getenv(SG_KS_PASS);
+        String tspass = System.getenv(SG_TS_PASS);
         String cd = ".";
         String ks = null;
         String ts = null;
@@ -242,6 +244,7 @@ public class SearchGuardAdmin {
         String key = null;
         boolean si;
         boolean whoami;
+        final boolean promptForPassword;
         
         CommandLineParser parser = new DefaultParser();
         try {
@@ -251,8 +254,17 @@ public class SearchGuardAdmin {
             
             hostname = line.getOptionValue("h", hostname);
             port = Integer.parseInt(line.getOptionValue("p", String.valueOf(port)));
-            kspass = line.getOptionValue("kspass", kspass); //TODO null? //when no passwd is set
-            tspass = line.getOptionValue("tspass", tspass); //TODO null? //when no passwd is set
+
+            promptForPassword = line.hasOption("prompt");
+            
+            if(kspass == null || kspass.isEmpty()) {
+                kspass = line.getOptionValue("kspass",promptForPassword?null:"changeit");
+            }
+            
+            if(tspass == null || tspass.isEmpty()) {
+                tspass = line.getOptionValue("tspass",promptForPassword?null:kspass);
+            }
+
             cd = line.getOptionValue("cd", cd);
             
             if(!cd.endsWith(File.separator)) {
@@ -307,7 +319,7 @@ public class SearchGuardAdmin {
             cacert = line.getOptionValue("cacert");
             cert = line.getOptionValue("cert");
             key = line.getOptionValue("key");
-            keypass = line.getOptionValue("keypass");
+            keypass = line.getOptionValue("keypass", keypass);
             
             useOpenSSLIfAvailable = !line.hasOption("noopenssl");
             
@@ -350,8 +362,6 @@ public class SearchGuardAdmin {
         
         final Settings.Builder settingsBuilder = Settings
                 .builder()
-                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_PASSWORD, kspass)
-                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_TRUSTSTORE_PASSWORD, tspass)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, !nhnv)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, !nrhn)
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLED, true)
@@ -374,11 +384,21 @@ public class SearchGuardAdmin {
                 if(ks != null) {
                     settingsBuilder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_FILEPATH, ks);
                     settingsBuilder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_TYPE, kst==null?(ks.endsWith(".jks")?"JKS":"PKCS12"):kst);
+                    
+                    if(kspass == null && promptForPassword) {
+                        kspass = askForPasswordIfNecessary("Keystore", "kspass", SG_KS_PASS);
+                    }
+                    settingsBuilder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_PASSWORD, kspass);
                 }
                 
                 if(ts != null) {
                     settingsBuilder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, ts);
-                    settingsBuilder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_TRUSTSTORE_TYPE, tst==null?(ts.endsWith(".jks")?"JKS":"PKCS12"):tst);                   
+                    settingsBuilder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_TRUSTSTORE_TYPE, tst==null?(ts.endsWith(".jks")?"JKS":"PKCS12"):tst);
+                    
+                    if(tspass == null && promptForPassword) {
+                        tspass = askForPasswordIfNecessary("Truststore", "tspass", SG_TS_PASS);
+                    }
+                    settingsBuilder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_TRUSTSTORE_PASSWORD, tspass);
                 }            
                 
                 if(cacert != null) {
@@ -391,19 +411,26 @@ public class SearchGuardAdmin {
                 
                 if(key != null) {
                     settingsBuilder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_PEMKEY_FILEPATH, key);
-                }
-                
-                if(keypass != null) {
+                    
+                    if(keypass == null && promptForPassword) {
+                        keypass = askForPasswordIfNecessary("Pemkey", "keypass", SG_KEYPASS);
+                    }
                     settingsBuilder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_PEMKEY_PASSWORD, keypass);
                 }
-                
+
                 Settings settings = settingsBuilder.build();  
 
         try (@SuppressWarnings("resource")
         TransportClient tc = new TransportClientImpl(settings, asCollection(Netty4Plugin.class, SearchGuardPlugin.class))
                 .addTransportAddress(new TransportAddress(new InetSocketAddress(hostname, port)))) {
 
-            final WhoAmIResponse whoAmIRes = tc.execute(WhoAmIAction.INSTANCE, new WhoAmIRequest()).actionGet();                
+            try {
+                issueWarnings(tc);
+            } catch (Exception e1) {
+                System.out.println("Unable to check whether cluster is sane: "+e1.getMessage());
+            }
+            
+            final WhoAmIResponse whoAmIRes = tc.execute(WhoAmIAction.INSTANCE, new WhoAmIRequest()).actionGet();
             System.out.println("Connected as "+whoAmIRes.getDn());
 
             if(!whoAmIRes.isAdmin()) {
@@ -428,8 +455,9 @@ public class SearchGuardAdmin {
                 if(failFast) {
                     System.exit(-1);
                 }
+
             }
-            
+
             if(updateSettings != null) { 
                 Settings indexSettings = Settings.builder().put("index.number_of_replicas", updateSettings).build();                
                 tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();                
@@ -941,6 +969,10 @@ public class SearchGuardAdmin {
             System.out.println("WARN: It makes no sense to specify -cd as well as -f");
         }
         
+        if(line.hasOption("cd") && line.hasOption("r")) {
+            System.out.println("WARN: It makes no sense to specify -cd as well as -f");
+        }
+        
         if(line.hasOption("cn") && line.hasOption("icl")) {
             throw new ParseException("Only set one of -cn or -icl");
         }
@@ -954,5 +986,27 @@ public class SearchGuardAdmin {
         }
         
         //TODO add more validation rules
+    }
+    
+    private static String askForPasswordIfNecessary(String passwordName, String commandLineOption, String envVarName) throws Exception {
+        final Console console = System.console();
+        if(console == null) {
+            throw new Exception("Cannot allocate a console. Set env var "+envVarName+" or "+commandLineOption+" on commandline in that case");
+        }
+        return new String(console.readPassword("[%s]", passwordName+" password:"));
+    }
+    
+    private static void issueWarnings(Client tc) {
+        NodesInfoResponse nir = tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet();
+        Version maxVersion = nir.getNodes().stream().max((n1,n2) -> n1.getVersion().compareTo(n2.getVersion())).get().getVersion();
+        Version minVersion = nir.getNodes().stream().min((n1,n2) -> n1.getVersion().compareTo(n2.getVersion())).get().getVersion();
+        
+        if(!maxVersion.equals(minVersion)) {
+            System.out.println("WARNING: Your cluster consists of different node versions. It is not recommended to run sgadmin against a mixed cluster. This may fail.");
+            System.out.println("         Minimum node version is "+minVersion.toString());
+            System.out.println("         Maximum node version is "+maxVersion.toString());
+        } else {
+            System.out.println("Elasticsearch Version: "+minVersion.toString());
+        }
     }
 }
