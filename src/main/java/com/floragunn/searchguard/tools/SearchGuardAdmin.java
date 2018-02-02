@@ -419,6 +419,15 @@ public class SearchGuardAdmin {
                 	System.out.println("Seems you use a node certificate. This is not permitted, you have to use a client certificate and register it as admin_dn in elasticsearch.yml");
                 }
                 System.exit(-1);
+            } else if(whoAmIRes.isNodeCertificateRequest()) {
+                System.out.println("ERR: Seems you use a node certificate which is also an admin certificate");
+                System.out.println("     That may have worked with older Search Guard versions but it indicates");
+                System.out.println("     a configuration error and is therefore forbidden now.");
+                System.out.println("     Pls refer to http://docs.search-guard.com/latest/tls-in-production");
+                
+                if(failFast) {
+                    System.exit(-1);
+                }
             }
             
             if(updateSettings != null) { 
