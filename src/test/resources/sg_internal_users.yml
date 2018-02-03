@@ -116,3 +116,14 @@ aliasmngt:
   #password is: nagilum
   roles:
     - sg_aliasmngt
+    
+custattr:
+  hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
+  #password is: nagilum
+  attributes:
+    c1: v1
+    c2: v2
+    c3.c4.cd: test1
+    'c4.c4.cd': test2
+    'c5': null
+    null: abc
