@@ -33,6 +33,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -87,6 +88,7 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.plugins.PluginInfo;
 import org.elasticsearch.transport.Netty4Plugin;
 
 import com.floragunn.searchguard.SearchGuardPlugin;
@@ -386,7 +388,7 @@ public class SearchGuardAdmin {
                     settingsBuilder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_TYPE, kst==null?(ks.endsWith(".jks")?"JKS":"PKCS12"):kst);
                     
                     if(kspass == null && promptForPassword) {
-                        kspass = askForPasswordIfNecessary("Keystore", "kspass", SG_KS_PASS);
+                        kspass = promptForPassword("Keystore", "kspass", SG_KS_PASS);
                     }
                     
                     if(kspass != null) {
@@ -399,7 +401,7 @@ public class SearchGuardAdmin {
                     settingsBuilder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_TRUSTSTORE_TYPE, tst==null?(ts.endsWith(".jks")?"JKS":"PKCS12"):tst);
                     
                     if(tspass == null && promptForPassword) {
-                        tspass = askForPasswordIfNecessary("Truststore", "tspass", SG_TS_PASS);
+                        tspass = promptForPassword("Truststore", "tspass", SG_TS_PASS);
                     }
                     
                     if(tspass != null) {
@@ -419,7 +421,7 @@ public class SearchGuardAdmin {
                     settingsBuilder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_PEMKEY_FILEPATH, key);
                     
                     if(keypass == null && promptForPassword) {
-                        keypass = askForPasswordIfNecessary("Pemkey", "keypass", SG_KEYPASS);
+                        keypass = promptForPassword("Pemkey", "keypass", SG_KEYPASS);
                     }
                     
                     if(keypass != null) {
@@ -997,7 +999,7 @@ public class SearchGuardAdmin {
         //TODO add more validation rules
     }
     
-    private static String askForPasswordIfNecessary(String passwordName, String commandLineOption, String envVarName) throws Exception {
+    private static String promptForPassword(String passwordName, String commandLineOption, String envVarName) throws Exception {
         final Console console = System.console();
         if(console == null) {
             throw new Exception("Cannot allocate a console. Set env var "+envVarName+" or "+commandLineOption+" on commandline in that case");
@@ -1016,6 +1018,12 @@ public class SearchGuardAdmin {
             System.out.println("         Maximum node version is "+maxVersion.toString());
         } else {
             System.out.println("Elasticsearch Version: "+minVersion.toString());
+        }
+        
+        if(nir.getNodes().size() > 0) {
+            List<PluginInfo> pluginInfos = nir.getNodes().get(0).getPlugins().getPluginInfos();
+            String sgVersion = pluginInfos.stream().filter(p->p.getClassname().equals("com.floragunn.searchguard.SearchGuardPlugin")).map(p->p.getVersion()).findFirst().orElse("<unknown>");
+            System.out.println("Search Guard Version: "+sgVersion);
         }
     }
 }
