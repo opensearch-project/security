@@ -275,7 +275,16 @@ public class IntegrationTests extends SingleClusterTest {
             Assert.assertTrue(res.getBody().contains("\"user_name\":\"worf\""));
             Assert.assertTrue(res.getBody().contains("\"custom_attribute_names\":[]"));
             Assert.assertFalse(res.getBody().contains("attributes="));
-
+            Assert.assertTrue(PrivilegesInterceptorImpl.count > 0);
+            
+            res = rh.executeGetRequest("_searchguard/authinfo?pretty", encodeBasicHeader("custattr", "nagilum"));
+            Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+            Assert.assertTrue(res.getBody().contains("sg_tenants"));
+            Assert.assertTrue(res.getBody().contains("\"user_requested_tenant\" : null"));
+            Assert.assertTrue(res.getBody().contains("\"user_name\" : \"custattr\""));
+            Assert.assertTrue(res.getBody().contains("\"custom_attribute_names\" : ["));
+            Assert.assertTrue(res.getBody().contains("attr.internal.c3"));
+            Assert.assertTrue(res.getBody().contains("attr.internal.c1"));
             Assert.assertTrue(PrivilegesInterceptorImpl.count > 0);
             
             final String reindex = "{"+
