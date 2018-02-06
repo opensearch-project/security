@@ -17,6 +17,7 @@
 
 package com.floragunn.searchguard.transport;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -24,6 +25,7 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
@@ -177,8 +179,9 @@ public class SearchGuardInterceptor {
             this.innerHandler = innerHandler;
         }
 
-        public T newInstance() {
-            return innerHandler.newInstance();
+        @Override
+        public T read(StreamInput in) throws IOException {
+            return innerHandler.read(in);
         }
 
         public void handleResponse(T response) {
