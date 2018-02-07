@@ -17,6 +17,7 @@ jobs:
           paths:
             - ~/.m2
           key: circleci-sg-{{ checksum "pom.xml" }}
+      - run: ./smoketest.sh
       - run: mvn -Pcoverage verify
       - run: mvn -Pcoverage sonar:sonar -Dsonar.organization=floragunncom-github -Dsonar.login=$SONAR_LOGIN -Dsonar.host.url=https://sonarcloud.io
       - store_test_results:
