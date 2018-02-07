@@ -23,6 +23,7 @@ import javax.net.ssl.SSLPeerUnverifiedException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
@@ -83,16 +84,18 @@ public class SearchGuardRestFilter {
         threadContext.putTransient(ConfigConstants.SG_ORIGIN, Origin.REST.toString());
         
         if(HTTPHelper.containsBadHeader(request)) {
-            log.error("bad http header found");
+            final ElasticsearchException exception = ExceptionUtils.createBadHeaderException();
+            log.error(exception);
             auditLog.logBadHeaders(request);
-            channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, ExceptionUtils.createBadHeaderException()));
+            channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, exception));
             return true;
         }
         
         if(SSLRequestHelper.containsBadHeader(threadContext, ConfigConstants.SG_CONFIG_PREFIX)) {
-            log.error("bad http header found");
+            final ElasticsearchException exception = ExceptionUtils.createBadHeaderException();
+            log.error(exception);
             auditLog.logBadHeaders(request);
-            channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, ExceptionUtils.createBadHeaderException()));
+            channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, exception));
             return true;
         }
 

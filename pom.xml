@@ -20,7 +20,7 @@
   <artifactId>search-guard-6</artifactId>
   <packaging>jar</packaging>
   <!-- 6.x.y-a.b-->
-  <version>6.1-1-compliance-preview-2-SNAPSHOT</version>
+  <version>6.2.0-compliance-preview-2-SNAPSHOT</version>
   <name>Search Guard</name>
   <description>Provide access control related features for Elasticsearch 6</description>
   <url>https://github.com/floragunncom/search-guard</url>
@@ -35,13 +35,18 @@
   </licenses>
 
   <properties>
-    <sgssl.version>6.1.1-25.0</sgssl.version>
-    <elasticsearch.version>6.1.1</elasticsearch.version>
-    <netty-native.version>2.0.5.Final</netty-native.version>
-    <bc.version>1.58</bc.version>
+    <sgssl.version>6.x-HEAD-SNAPSHOT</sgssl.version>
+    <enterprise-modules.version>6.2.0-compliance-preview-enterprise-2-SNAPSHOT</enterprise-modules.version>
+    <elasticsearch.version>6.2.0</elasticsearch.version>
+    
+    <!-- deps -->
+    <netty-native.version>2.0.7.Final</netty-native.version>
+    <bc.version>1.59</bc.version>
     <log4j.version>2.9.1</log4j.version>
     <guava.version>23.0</guava.version>
     <commons.cli.version>1.3.1</commons.cli.version>
+    
+    <!-- assembly descriptors -->
     <elasticsearch.assembly.descriptor>${basedir}/src/main/assemblies/plugin.xml</elasticsearch.assembly.descriptor>
     <sgstandalone.descriptor>${basedir}/src/main/assemblies/sgadmin-standalone.xml</sgstandalone.descriptor>
   </properties>
@@ -71,6 +76,24 @@
       <groupId>org.elasticsearch.plugin</groupId>
       <artifactId>transport-netty4-client</artifactId>
       <version>${elasticsearch.version}</version>
+      <exclusions>
+        <exclusion>
+          <artifactId>jna</artifactId>
+          <groupId>org.elasticsearch</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>jts</artifactId>
+          <groupId>com.vividsolutions</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>log4j-api</artifactId>
+          <groupId>org.apache.logging.log4j</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>spatial4j</artifactId>
+          <groupId>org.locationtech.spatial4j</groupId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <!-- Guava -->
@@ -237,7 +260,7 @@
           <plugin>
             <groupId>com.floragunn</groupId>
             <artifactId>checksum-maven-plugin</artifactId>
-            <version>1.7</version>
+            <version>1.7.1</version>
               <executions>
                   <execution>
                       <goals>
@@ -273,7 +296,25 @@
         <dependency>
           <groupId>com.floragunn</groupId>
           <artifactId>dlic-search-guard-enterprise-modules</artifactId>
-          <version>6.1.1-compliance-preview-enterprise-2-SNAPSHOT</version>
+          <version>${enterprise-modules.version}</version>
+          <exclusions>
+            <exclusion>
+              <artifactId>jna</artifactId>
+              <groupId>org.elasticsearch</groupId>
+            </exclusion>
+            <exclusion>
+              <artifactId>jts</artifactId>
+              <groupId>com.vividsolutions</groupId>
+            </exclusion>
+            <exclusion>
+              <artifactId>log4j-api</artifactId>
+              <groupId>org.apache.logging.log4j</groupId>
+            </exclusion>
+            <exclusion>
+              <artifactId>spatial4j</artifactId>
+              <groupId>org.locationtech.spatial4j</groupId>
+            </exclusion>
+          </exclusions>
         </dependency>
       </dependencies>
     </profile>
