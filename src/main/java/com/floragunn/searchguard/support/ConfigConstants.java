@@ -103,60 +103,66 @@ public class ConfigConstants {
     public static final String SEARCHGUARD_CONFIG_INDEX_NAME = "searchguard.config_index_name";
     public static final String SEARCHGUARD_AUTHCZ_IMPERSONATION_DN = "searchguard.authcz.impersonation_dn";
     public static final String SEARCHGUARD_AUTHCZ_REST_IMPERSONATION_USERS="searchguard.authcz.rest_impersonation_user";
-    public static final String SEARCHGUARD_AUDIT_TYPE = "searchguard.audit.type";
-    public static final String SEARCHGUARD_AUDIT_CONFIG_INDEX = "searchguard.audit.config.index";
-    public static final String SEARCHGUARD_AUDIT_CONFIG_TYPE = "searchguard.audit.config.type";
-    public static final String SEARCHGUARD_AUDIT_CONFIG_USERNAME = "searchguard.audit.config.username";
-    public static final String SEARCHGUARD_AUDIT_CONFIG_PASSWORD = "searchguard.audit.config.password";
-    public static final String SEARCHGUARD_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES = "searchguard.audit.config.disabled_transport_categories";
-    public static final String SEARCHGUARD_AUDIT_CONFIG_DISABLED_REST_CATEGORIES = "searchguard.audit.config.disabled_rest_categories";
+    
+    public static final String SEARCHGUARD_AUDIT_TYPE_DEFAULT = "searchguard.audit.type";    
+    public static final String SEARCHGUARD_AUDIT_CONFIG_DEFAULT = "searchguard.audit.config";
     public static final String SEARCHGUARD_AUDIT_THREADPOOL_SIZE = "searchguard.audit.threadpool.size";
     public static final String SEARCHGUARD_AUDIT_THREADPOOL_MAX_QUEUE_LEN = "searchguard.audit.threadpool.max_queue_len";
     public static final String SEARCHGUARD_AUDIT_LOG_REQUEST_BODY = "searchguard.audit.log_request_body";
     public static final String SEARCHGUARD_AUDIT_RESOLVE_INDICES = "searchguard.audit.resolve_indices";
-    public static final String SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_SSL_VERIFY = "searchguard.audit.config.webhook.ssl.verify";
-    public static final String SEARCHGUARD_AUDIT_WEBHOOK_PEMTRUSTEDCAS_FILEPATH = "searchguard.audit.config.webhook.ssl.pemtrustedcas_filepath";
-    public static final String SEARCHGUARD_AUDIT_WEBHOOK_PEMTRUSTEDCAS_CONTENT = "searchguard.audit.config.webhook.ssl.pemtrustedcas_content";
+    public static final String SEARCHGUARD_AUDIT_ENABLE_REST = "searchguard.audit.enable_rest";
+    public static final String SEARCHGUARD_AUDIT_ENABLE_TRANSPORT = "searchguard.audit.enable_transport";
+    public static final String SEARCHGUARD_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES = "searchguard.audit.config.disabled_transport_categories";
+    public static final String SEARCHGUARD_AUDIT_CONFIG_DISABLED_REST_CATEGORIES = "searchguard.audit.config.disabled_rest_categories";
+    public static final String SEARCHGUARD_AUDIT_IGNORE_USERS = "searchguard.audit.ignore_users";
+    public static final String SEARCHGUARD_AUDIT_IGNORE_REQUESTS = "searchguard.audit.ignore_requests";
     public static final String SEARCHGUARD_AUDIT_RESOLVE_BULK_REQUESTS = "searchguard.audit.resolve_bulk_requests";
-    public static final String SEARCHGUARD_AUDIT_CONFIG_LOG4J_LOGGER_NAME = "searchguard.audit.config.log4j.logger_name";
-    public static final String SEARCHGUARD_AUDIT_CONFIG_LOG4J_LEVEL = "searchguard.audit.config.log4j.level";
-
-    public static final String SEARCHGUARD_AUDIT_SSL_VERIFY_HOSTNAMES = "searchguard.audit.config.verify_hostnames";
     public static final boolean SEARCHGUARD_AUDIT_SSL_VERIFY_HOSTNAMES_DEFAULT = true;
-    public static final String SEARCHGUARD_AUDIT_SSL_ENABLE_SSL = "searchguard.audit.config.enable_ssl";
-    public static final String SEARCHGUARD_AUDIT_SSL_ENABLE_SSL_CLIENT_AUTH = "searchguard.audit.config.enable_ssl_client_auth";
     public static final boolean SEARCHGUARD_AUDIT_SSL_ENABLE_SSL_CLIENT_AUTH_DEFAULT = false;
+    
+    public static final String SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX = "searchguard.audit.config.";
 
-    public static final String SEARCHGUARD_AUDIT_SSL_JKS_CERT_ALIAS = "searchguard.audit.config.cert_alias";
+    // Internal / External ES
+    public static final String SEARCHGUARD_AUDIT_ES_INDEX = "index";
+    public static final String SEARCHGUARD_AUDIT_ES_TYPE = "type";    
+    
+    // External ES
+    public static final String SEARCHGUARD_AUDIT_EXTERNAL_ES_HTTP_ENDPOINTS = "http_endpoints";
+    public static final String SEARCHGUARD_AUDIT_EXTERNAL_ES_USERNAME = "username";
+    public static final String SEARCHGUARD_AUDIT_EXTERNAL_ES_PASSWORD = "password";
+    public static final String SEARCHGUARD_AUDIT_EXTERNAL_ES_ENABLE_SSL = "enable_ssl";
+    public static final String SEARCHGUARD_AUDIT_EXTERNAL_ES_VERIFY_HOSTNAMES = "verify_hostnames";    
+    public static final String SEARCHGUARD_AUDIT_EXTERNAL_ES_ENABLE_SSL_CLIENT_AUTH = "enable_ssl_client_auth";    
+    public static final String SEARCHGUARD_AUDIT_EXTERNAL_ES_PEMKEY_FILEPATH = "pemkey_filepath";
+    public static final String SEARCHGUARD_AUDIT_EXTERNAL_ES_PEMKEY_CONTENT = "pemkey_content";
+    public static final String SEARCHGUARD_AUDIT_EXTERNAL_ES_PEMKEY_PASSWORD = "pemkey_password";
+    public static final String SEARCHGUARD_AUDIT_EXTERNAL_ES_PEMCERT_FILEPATH = "pemcert_filepath";
+    public static final String SEARCHGUARD_AUDIT_EXTERNAL_ES_PEMCERT_CONTENT = "pemcert_content";
+    public static final String SEARCHGUARD_AUDIT_EXTERNAL_ES_PEMTRUSTEDCAS_FILEPATH = "pemtrustedcas_filepath";
+    public static final String SEARCHGUARD_AUDIT_EXTERNAL_ES_PEMTRUSTEDCAS_CONTENT = "pemtrustedcas_content";
+    public static final String SEARCHGUARD_AUDIT_EXTERNAL_ES_JKS_CERT_ALIAS = "cert_alias";
+    public static final String SEARCHGUARD_AUDIT_EXTERNAL_ES_ENABLED_SSL_CIPHERS = "enabled_ssl_ciphers";
+    public static final String SEARCHGUARD_AUDIT_EXTERNAL_ES_ENABLED_SSL_PROTOCOLS = "enabled_ssl_protocols";
 
-    public static final String SEARCHGUARD_AUDIT_SSL_PEMKEY_FILEPATH = "searchguard.audit.config.pemkey_filepath";
-    public static final String SEARCHGUARD_AUDIT_SSL_PEMKEY_CONTENT = "searchguard.audit.config.pemkey_content";
-    public static final String SEARCHGUARD_AUDIT_SSL_PEMKEY_PASSWORD = "searchguard.audit.config.pemkey_password";
-    public static final String SEARCHGUARD_AUDIT_SSL_PEMCERT_FILEPATH = "searchguard.audit.config.pemcert_filepath";
-    public static final String SEARCHGUARD_AUDIT_SSL_PEMCERT_CONTENT = "searchguard.audit.config.pemcert_content";
-    public static final String SEARCHGUARD_AUDIT_SSL_PEMTRUSTEDCAS_FILEPATH = "searchguard.audit.config.pemtrustedcas_filepath";
-    public static final String SEARCHGUARD_AUDIT_SSL_PEMTRUSTEDCAS_CONTENT = "searchguard.audit.config.pemtrustedcas_content";
+    // Webhooks    
+    public static final String SEARCHGUARD_AUDIT_WEBHOOK_URL = "webhook.url";
+    public static final String SEARCHGUARD_AUDIT_WEBHOOK_FORMAT = "webhook.format";
+    public static final String SEARCHGUARD_AUDIT_WEBHOOK_SSL_VERIFY = "webhook.ssl.verify";
+    public static final String SEARCHGUARD_AUDIT_WEBHOOK_PEMTRUSTEDCAS_FILEPATH = "webhook.ssl.pemtrustedcas_filepath";
+    public static final String SEARCHGUARD_AUDIT_WEBHOOK_PEMTRUSTEDCAS_CONTENT = "webhook.ssl.pemtrustedcas_content";
+    
+    // Log4j
+    public static final String SEARCHGUARD_AUDIT_LOG4J_LOGGER_NAME = "log4j.logger_name";
+    public static final String SEARCHGUARD_AUDIT_LOG4J_LEVEL = "log4j.level";
 
-    public static final String SEARCHGUARD_AUDIT_SSL_ENABLED_SSL_CIPHERS = "searchguard.audit.config.enabled_ssl_ciphers";
-    public static final String SEARCHGUARD_AUDIT_SSL_ENABLED_SSL_PROTOCOLS = "searchguard.audit.config.enabled_ssl_protocols";
-
+        
     public static final String SEARCHGUARD_KERBEROS_KRB5_FILEPATH = "searchguard.kerberos.krb5_filepath";
     public static final String SEARCHGUARD_KERBEROS_ACCEPTOR_KEYTAB_FILEPATH = "searchguard.kerberos.acceptor_keytab_filepath";
     public static final String SEARCHGUARD_KERBEROS_ACCEPTOR_PRINCIPAL = "searchguard.kerberos.acceptor_principal";
-    public static final String SEARCHGUARD_AUDIT_CONFIG_HTTP_ENDPOINTS = "searchguard.audit.config.http_endpoints";
-    public static final String SEARCHGUARD_AUDIT_CONFIG_ENABLE_SSL = "searchguard.audit.config.enable_ssl";
-    public static final String SEARCHGUARD_AUDIT_CONFIG_VERIFY_HOSTNAMES = "searchguard.audit.config.verify_hostnames";
-    public static final String SEARCHGUARD_AUDIT_CONFIG_ENABLE_SSL_CLIENT_AUTH = "searchguard.audit.config.enable_ssl_client_auth";
-    public static final String SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_URL = "searchguard.audit.config.webhook.url";
-    public static final String SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_FORMAT = "searchguard.audit.config.webhook.format";
     public static final String SEARCHGUARD_CERT_OID = "searchguard.cert.oid";
     public static final String SEARCHGUARD_CERT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = "searchguard.cert.intercluster_request_evaluator_class";
     public static final String SEARCHGUARD_ENTERPRISE_MODULES_ENABLED = "searchguard.enterprise_modules_enabled";
     public static final String SEARCHGUARD_NODES_DN = "searchguard.nodes_dn";
-    public static final String SEARCHGUARD_AUDIT_IGNORE_USERS = "searchguard.audit.ignore_users";
-    public static final String SEARCHGUARD_AUDIT_IGNORE_REQUESTS = "searchguard.audit.ignore_requests";
-    public static final String SEARCHGUARD_AUDIT_ENABLE_REST = "searchguard.audit.enable_rest";
-    public static final String SEARCHGUARD_AUDIT_ENABLE_TRANSPORT = "searchguard.audit.enable_transport";
     public static final String SEARCHGUARD_DISABLED = "searchguard.disabled";
     public static final String SEARCHGUARD_CACHE_TTL_MINUTES = "searchguard.cache.ttl_minutes";
     public static final String SEARCHGUARD_ALLOW_UNSAFE_DEMOCERTIFICATES = "searchguard.allow_unsafe_democertificates";

@@ -82,9 +82,9 @@ public final class ComplianceConfig {
             }
         }
 
-        final String type = settings.get(ConfigConstants.SEARCHGUARD_AUDIT_TYPE, null);
+        final String type = settings.get(ConfigConstants.SEARCHGUARD_AUDIT_TYPE_DEFAULT, null);
         if("internal_elasticsearch".equalsIgnoreCase(type)) {
-            final String index = settings.get(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_INDEX,"'sg6-auditlog-'YYYY.MM.dd");
+            final String index = settings.get(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_ES_INDEX,"'sg6-auditlog-'YYYY.MM.dd");
             try {
                 auditLogPattern = DateTimeFormat.forPattern(index); //throws IllegalArgumentException if no pattern
             } catch (IllegalArgumentException e) {

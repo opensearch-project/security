@@ -730,7 +730,6 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
         builder.put(NetworkModule.HTTP_TYPE_KEY, "com.floragunn.searchguard.http.SearchGuardHttpServerTransport");
         return builder.build();
     }
-
     @Override
     public List<Setting<?>> getSettings() {
         List<Setting<?>> settings = new ArrayList<Setting<?>>();
@@ -742,34 +741,6 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
         settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_CONFIG_INDEX_NAME, Property.NodeScope, Property.Filtered));
         settings.add(Setting.groupSetting(ConfigConstants.SEARCHGUARD_AUTHCZ_IMPERSONATION_DN+".", Property.NodeScope)); //not filtered here
 
-        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_TYPE, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_INDEX, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_TYPE, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_USERNAME, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_PASSWORD, Property.NodeScope, Property.Filtered));
-        final List<String> disabledCategories = new ArrayList<String>(2);
-        disabledCategories.add("AUTHENTICATED");
-        disabledCategories.add("GRANTED_PRIVILEGES");
-        settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, disabledCategories, Function.identity(), Property.NodeScope)); //not filtered here
-        settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, disabledCategories, Function.identity(), Property.NodeScope)); //not filtered here
-        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_ENABLE_REST, true, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_ENABLE_TRANSPORT, true, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.intSetting(ConfigConstants.SEARCHGUARD_AUDIT_THREADPOOL_SIZE, 10, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_LOG_REQUEST_BODY, true, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_RESOLVE_INDICES, true, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_SSL_VERIFY, true, Property.NodeScope, Property.Filtered));
-
-        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_KERBEROS_KRB5_FILEPATH, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_KERBEROS_ACCEPTOR_KEYTAB_FILEPATH, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_KERBEROS_ACCEPTOR_PRINCIPAL, Property.NodeScope, Property.Filtered));
-
-        settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_HTTP_ENDPOINTS, Lists.newArrayList("localhost:9200"), Function.identity(), Property.NodeScope)); //not filtered here
-        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_ENABLE_SSL, false, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_VERIFY_HOSTNAMES, true, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_ENABLE_SSL_CLIENT_AUTH, false, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_URL, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_WEBHOOK_FORMAT, Property.NodeScope, Property.Filtered));
-
         settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_CERT_OID, Property.NodeScope, Property.Filtered));
 
         settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_CERT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS, Property.NodeScope, Property.Filtered));
@@ -779,10 +750,6 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
                 Property.NodeScope, Property.Filtered));
         settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES, ConfigConstants.SG_DEFAULT_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES,
                 Property.NodeScope, Property.Filtered));
-
-        final List<String> ignoredUsers = new ArrayList<String>(2);
-        ignoredUsers.add("kibanaserver");
-        settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_AUDIT_IGNORE_USERS, ignoredUsers, Function.identity(), Property.NodeScope)); //not filtered here
 
         settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_DISABLED, false, Property.NodeScope, Property.Filtered));
         settings.add(Setting.intSetting(ConfigConstants.SEARCHGUARD_CACHE_TTL_MINUTES, 60, 0, Property.NodeScope, Property.Filtered));
@@ -800,23 +767,64 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
         //TODO remove searchguard.tribe.clustername?
         //settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_TRIBE_CLUSTERNAME, Property.NodeScope, Property.Filtered));
 
-        // SG6 - Audit
+        // SG6 - Audit        
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_TYPE_DEFAULT, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.intSetting(ConfigConstants.SEARCHGUARD_AUDIT_THREADPOOL_SIZE, 10, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.intSetting(ConfigConstants.SEARCHGUARD_AUDIT_THREADPOOL_MAX_QUEUE_LEN, 100*1000, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_LOG_REQUEST_BODY, true, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_RESOLVE_INDICES, true, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_ENABLE_REST, true, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_ENABLE_TRANSPORT, true, Property.NodeScope, Property.Filtered));        
+        final List<String> disabledCategories = new ArrayList<String>(2);
+        disabledCategories.add("AUTHENTICATED");
+        disabledCategories.add("GRANTED_PRIVILEGES");
+        settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, disabledCategories, Function.identity(), Property.NodeScope)); //not filtered here
+        settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, disabledCategories, Function.identity(), Property.NodeScope)); //not filtered here
+        final List<String> ignoredUsers = new ArrayList<String>(2);
+        ignoredUsers.add("kibanaserver");
+        settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_AUDIT_IGNORE_USERS, ignoredUsers, Function.identity(), Property.NodeScope)); //not filtered here
         settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_AUDIT_IGNORE_REQUESTS, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
         settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_RESOLVE_BULK_REQUESTS, false, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_LOG4J_LOGGER_NAME, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_LOG4J_LEVEL, Property.NodeScope, Property.Filtered));
+        
+        // SG6 - Audit - Sink
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_ES_INDEX, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_ES_TYPE, Property.NodeScope, Property.Filtered));
 
-        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_SSL_PEMCERT_CONTENT, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_SSL_PEMCERT_FILEPATH, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_SSL_PEMKEY_CONTENT, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_SSL_PEMKEY_FILEPATH, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_SSL_PEMKEY_PASSWORD, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_SSL_PEMTRUSTEDCAS_CONTENT, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_SSL_PEMTRUSTEDCAS_FILEPATH, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_WEBHOOK_PEMTRUSTEDCAS_CONTENT, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_WEBHOOK_PEMTRUSTEDCAS_FILEPATH, Property.NodeScope, Property.Filtered));
+        // External ES
+        settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_EXTERNAL_ES_HTTP_ENDPOINTS, Lists.newArrayList("localhost:9200"), Function.identity(), Property.NodeScope)); //not filtered here
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_EXTERNAL_ES_USERNAME, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_EXTERNAL_ES_PASSWORD, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_EXTERNAL_ES_ENABLE_SSL, false, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_EXTERNAL_ES_VERIFY_HOSTNAMES, true, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_EXTERNAL_ES_ENABLE_SSL_CLIENT_AUTH, false, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_EXTERNAL_ES_PEMCERT_CONTENT, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_EXTERNAL_ES_PEMCERT_FILEPATH, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_EXTERNAL_ES_PEMKEY_CONTENT, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_EXTERNAL_ES_PEMKEY_FILEPATH, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_EXTERNAL_ES_PEMKEY_PASSWORD, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_EXTERNAL_ES_PEMTRUSTEDCAS_CONTENT, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_EXTERNAL_ES_PEMTRUSTEDCAS_FILEPATH, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_EXTERNAL_ES_JKS_CERT_ALIAS, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_EXTERNAL_ES_ENABLED_SSL_CIPHERS, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
+        settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_EXTERNAL_ES_ENABLED_SSL_PROTOCOLS, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
 
-        settings.add(Setting.intSetting(ConfigConstants.SEARCHGUARD_AUDIT_THREADPOOL_MAX_QUEUE_LEN, 100*1000, Property.NodeScope, Property.Filtered));
+        // Webhooks
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_WEBHOOK_URL, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_WEBHOOK_FORMAT, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_WEBHOOK_SSL_VERIFY, true, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_WEBHOOK_PEMTRUSTEDCAS_FILEPATH, Property.NodeScope, Property.Filtered));             
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_WEBHOOK_PEMTRUSTEDCAS_CONTENT, Property.NodeScope, Property.Filtered));
+        
+        // Log4j
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_LOG4J_LOGGER_NAME, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_LOG4J_LEVEL, Property.NodeScope, Property.Filtered));
+        
+
+        // Kerberos
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_KERBEROS_KRB5_FILEPATH, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_KERBEROS_ACCEPTOR_KEYTAB_FILEPATH, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_KERBEROS_ACCEPTOR_PRINCIPAL, Property.NodeScope, Property.Filtered));
+
 
         // SG6 - REST API
         settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_RESTAPI_ROLES_ENABLED, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
