@@ -305,7 +305,7 @@ public final class PemKeyReader {
     
     public static String resolve(String propName, Settings settings, Path configPath, boolean mustBeValid) {        
         final String originalPath = settings.get(propName, null);
-        return resolve(propName, originalPath,  settings, configPath, mustBeValid);
+        return resolve(originalPath, propName, settings, configPath, mustBeValid);
     }
 
     public static String resolve(String originalPath, String propName, Settings settings, Path configPath, boolean mustBeValid) {
