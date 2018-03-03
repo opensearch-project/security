@@ -55,9 +55,11 @@ public final class ComplianceConfig {
     private final boolean logDiffsOnlyForWrite;
     private final boolean logMetadataOnly;
     private final boolean logExternalConfig;
+    private final boolean logInternalConfig;
     private final LoadingCache<String, Set<String>> cache;
     private final List<String> immutableIndicesPatterns;
     private final byte[] salt16;
+    private final String searchguardIndex;
 
     public ComplianceConfig(Settings settings) {
         super();
@@ -69,15 +71,18 @@ public final class ComplianceConfig {
         logDiffsOnlyForWrite = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_WRITE_DIFFS_ONLY, false);
         logMetadataOnly = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_METADATA_ONLY, false);
         logExternalConfig = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED, true);
+        logInternalConfig = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, true);
         immutableIndicesPatterns = settings.getAsList(ConfigConstants.SEARCHGUARD_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList());
         final String saltAsString = settings.get(ConfigConstants.SEARCHGUARD_COMPLIANCE_SALT, ConfigConstants.SEARCHGUARD_COMPLIANCE_SALT_DEAULT);
         final byte[] saltAsBytes = saltAsString.getBytes(StandardCharsets.UTF_8);
+
         
         if(saltAsBytes.length < 16) {
             throw new ElasticsearchException(ConfigConstants.SEARCHGUARD_COMPLIANCE_SALT+" must be at least contain 16 bytes");
         }
         
         salt16 = Arrays.copyOf(saltAsBytes, 16);
+        this.searchguardIndex = settings.get(ConfigConstants.SEARCHGUARD_CONFIG_INDEX_NAME, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
         
         //searchguard.compliance.pii_fields:
         //  - indexpattern,fieldpattern,fieldpattern,....
@@ -157,6 +162,10 @@ public final class ComplianceConfig {
         if(index == null) {
             return false;
         }
+        
+        if(searchguardIndex.equals(index)) {
+            return logInternalConfig;
+        }
 
         if(auditLogIndex != null && auditLogIndex.equalsIgnoreCase(index)) {
             return false;
@@ -173,6 +182,11 @@ public final class ComplianceConfig {
 
     //no patterns here as parameters
     public boolean readHistoryEnabledForIndex(String index) {
+        
+        if(searchguardIndex.equals(index)) {
+            return logInternalConfig;
+        }
+        
         try {
             return !cache.get(index).isEmpty();
         } catch (ExecutionException e) {
@@ -183,6 +197,11 @@ public final class ComplianceConfig {
 
     //no patterns here as parameters
     public boolean readHistoryEnabledForField(String index, String field) {
+        
+        if(searchguardIndex.equals(index)) {
+            return logInternalConfig;
+        }
+        
         try {
             final Set<String> fields = cache.get(index);
             if(fields.isEmpty()) {
@@ -209,6 +228,11 @@ public final class ComplianceConfig {
     }
     
     public boolean isIndexImmutable(String index) {
+        
+        if(searchguardIndex.equals(index)) {
+            return false;
+        }
+        
         if(immutableIndicesPatterns.isEmpty()) {
             return false;
         }
