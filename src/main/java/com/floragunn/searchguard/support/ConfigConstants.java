@@ -123,6 +123,7 @@ public class ConfigConstants {
     public static final String SEARCHGUARD_AUDIT_RESOLVE_BULK_REQUESTS = "searchguard.audit.resolve_bulk_requests";
     public static final boolean SEARCHGUARD_AUDIT_SSL_VERIFY_HOSTNAMES_DEFAULT = true;
     public static final boolean SEARCHGUARD_AUDIT_SSL_ENABLE_SSL_CLIENT_AUTH_DEFAULT = false;
+    public static final String SEARCHGUARD_AUDIT_EXCLUDE_SENSITIVE_HEADERS = "searchguard.audit.exclude_sensitive_headers";
     
     public static final String SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX = "searchguard.audit.config.";
 
