@@ -84,11 +84,12 @@ public class ConfigModel {
 
                 final String dls = settings.get(resolvedRole+".indices."+indexPattern+"._dls_");
                 final List<String> fls = settings.getAsList(resolvedRole+".indices."+indexPattern+"._fls_");
+                final List<String> maskedFields = settings.getAsList(resolvedRole+".indices."+indexPattern+"._masked_fields_");
 
                 IndexPattern _indexPattern = new IndexPattern(indexPattern);
                 _indexPattern.setDlsQuery(dls);
                 _indexPattern.addFlsFields(fls);
-
+                _indexPattern.addMaskedFields(maskedFields);
 
                 for(String type: permittedAliasesIndices.get(indexPattern).names()) {
 
@@ -169,6 +170,43 @@ public class ConfigModel {
                 }
             }
             return retVal;
+        }
+        
+        public Map<String,Set<String>> getMaskedFields(User user, IndexNameExpressionResolver resolver, ClusterService cs) {
+            final Map<String,Set<String>> maskedFieldsMap = new HashMap<String, Set<String>>();
+            
+            for(SgRole sgr: roles) {
+                for(IndexPattern ip: sgr.getIpatterns()) {
+                    final Set<String> maskedFields = ip.getMaskedFields();
+                    final String indexPattern = ip.getUnresolvedIndexPattern(user);
+                    String[] concreteIndices = new String[0];
+
+                    if((maskedFields != null && maskedFields.size() > 0)) {
+                        concreteIndices = ip.getResolvedIndexPattern(user, resolver, cs);
+                    }
+
+                    if(maskedFields != null && maskedFields.size() > 0) {
+
+                        if(maskedFieldsMap.containsKey(indexPattern)) {
+                            maskedFieldsMap.get(indexPattern).addAll(Sets.newHashSet(maskedFields));
+                        } else {
+                            maskedFieldsMap.put(indexPattern, new HashSet<String>());
+                            maskedFieldsMap.get(indexPattern).addAll(Sets.newHashSet(maskedFields));
+                        }
+
+                        for (int i = 0; i < concreteIndices.length; i++) {
+                            final String ci = concreteIndices[i];
+                            if(maskedFieldsMap.containsKey(ci)) {
+                                maskedFieldsMap.get(ci).addAll(Sets.newHashSet(maskedFields));
+                            } else {
+                                maskedFieldsMap.put(ci, new HashSet<String>());
+                                maskedFieldsMap.get(ci).addAll(Sets.newHashSet(maskedFields));
+                            }
+                        }
+                    }
+                }
+            }
+            return maskedFieldsMap;
         }
 
         public Tuple<Map<String,Set<String>>,Map<String,Set<String>>> getDlsFls(User user, IndexNameExpressionResolver resolver, ClusterService cs) {
@@ -476,6 +514,7 @@ public class ConfigModel {
         private final String indexPattern;
         private String dlsQuery;
         private final Set<String> fls = new HashSet<>();
+        private final Set<String> maskedFields = new HashSet<>();
         private final Set<TypePerm> typePerms = new HashSet<>();
 
         public IndexPattern(String indexPattern) {
@@ -517,6 +556,13 @@ public class ConfigModel {
             }
             return this;
         }
+        
+        public IndexPattern addMaskedFields(List<String> maskedFields) {
+            if(maskedFields != null) {
+                this.maskedFields.addAll(maskedFields);
+            }
+            return this;
+        }
 
         public IndexPattern addTypePerms(TypePerm typePerm) {
             if(typePerm != null) {
@@ -538,6 +584,7 @@ public class ConfigModel {
             int result = 1;
             result = prime * result + ((dlsQuery == null) ? 0 : dlsQuery.hashCode());
             result = prime * result + ((fls == null) ? 0 : fls.hashCode());
+            result = prime * result + ((maskedFields == null) ? 0 : maskedFields.hashCode());
             result = prime * result + ((indexPattern == null) ? 0 : indexPattern.hashCode());
             result = prime * result + ((typePerms == null) ? 0 : typePerms.hashCode());
             return result;
@@ -561,6 +608,11 @@ public class ConfigModel {
                 if (other.fls != null)
                     return false;
             } else if (!fls.equals(other.fls))
+                return false;
+            if (maskedFields == null) {
+                if (other.maskedFields != null)
+                    return false;
+            } else if (!maskedFields.equals(other.maskedFields))
                 return false;
             if (indexPattern == null) {
                 if (other.indexPattern != null)
@@ -605,6 +657,10 @@ public class ConfigModel {
 
         public Set<String> getFls() {
             return Collections.unmodifiableSet(fls);
+        }
+        
+        public Set<String> getMaskedFields() {
+            return Collections.unmodifiableSet(maskedFields);
         }
 
         public Set<TypePerm> getTypePerms() {

@@ -227,6 +227,25 @@ public class PrivilegesEvaluator {
         }
 
 
+        //maskedFields
+        final Map<String, Set<String>> maskedFieldsMap = sgRoles.getMaskedFields(user, resolver, clusterService);
+        
+        if(maskedFieldsMap != null && !maskedFieldsMap.isEmpty()) {
+            if(this.threadContext.getHeader(ConfigConstants.SG_MASKED_FIELD_HEADER) != null) {
+                if(!maskedFieldsMap.equals(Base64Helper.deserializeObject(this.threadContext.getHeader(ConfigConstants.SG_MASKED_FIELD_HEADER)))) {
+                    throw new ElasticsearchSecurityException(ConfigConstants.SG_MASKED_FIELD_HEADER+" does not match (SG 901D)");
+                } else {
+                    if(log.isDebugEnabled()) {
+                        log.debug(ConfigConstants.SG_MASKED_FIELD_HEADER+" already set");
+                    }
+                }
+            } else {
+                this.threadContext.putHeader(ConfigConstants.SG_MASKED_FIELD_HEADER, Base64Helper.serializeObject((Serializable) maskedFieldsMap));
+                if(log.isDebugEnabled()) {
+                    log.debug("attach masked fields info: {}", maskedFieldsMap);
+                }
+            }
+        }
 
         //attach dls/fls map if not already done
         //TODO do this only if enterprise module are loaded

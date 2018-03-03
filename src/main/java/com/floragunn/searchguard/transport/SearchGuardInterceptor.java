@@ -113,6 +113,7 @@ public class SearchGuardInterceptor {
                             || k.equals(ConfigConstants.SG_USER_HEADER)
                             || k.equals(ConfigConstants.SG_DLS_QUERY_HEADER)
                             || k.equals(ConfigConstants.SG_FLS_FIELDS_HEADER)
+                            || k.equals(ConfigConstants.SG_MASKED_FIELD_HEADER)
                             || (k.equals("_sg_source_field_context") && ! (request instanceof SearchRequest) && !(request instanceof GetRequest))
                             || k.startsWith("_sg_trace")
                             )));

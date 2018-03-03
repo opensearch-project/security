@@ -17,6 +17,7 @@
 
 package com.floragunn.searchguard.compliance;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -29,6 +30,7 @@ import java.util.concurrent.ExecutionException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.settings.Settings;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -55,6 +57,7 @@ public final class ComplianceConfig {
     private final boolean logExternalConfig;
     private final LoadingCache<String, Set<String>> cache;
     private final List<String> immutableIndicesPatterns;
+    private final byte[] salt16;
 
     public ComplianceConfig(Settings settings) {
         super();
@@ -67,6 +70,14 @@ public final class ComplianceConfig {
         logMetadataOnly = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_METADATA_ONLY, false);
         logExternalConfig = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED, true);
         immutableIndicesPatterns = settings.getAsList(ConfigConstants.SEARCHGUARD_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList());
+        final String saltAsString = settings.get(ConfigConstants.SEARCHGUARD_COMPLIANCE_SALT, ConfigConstants.SEARCHGUARD_COMPLIANCE_SALT_DEAULT);
+        final byte[] saltAsBytes = saltAsString.getBytes(StandardCharsets.UTF_8);
+        
+        if(saltAsBytes.length < 16) {
+            throw new ElasticsearchException(ConfigConstants.SEARCHGUARD_COMPLIANCE_SALT+" must be at least contain 16 bytes");
+        }
+        
+        salt16 = Arrays.copyOf(saltAsBytes, 16);
         
         //searchguard.compliance.pii_fields:
         //  - indexpattern,fieldpattern,fieldpattern,....
@@ -203,5 +214,9 @@ public final class ComplianceConfig {
         }
         
         return WildcardMatcher.matchAny(immutableIndicesPatterns, index);
+    }
+
+    public byte[] getSalt16() {
+        return salt16.clone();
     }
 }
