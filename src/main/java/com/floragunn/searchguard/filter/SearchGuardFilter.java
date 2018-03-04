@@ -164,14 +164,19 @@ public class SearchGuardFilter implements ActionFilter {
                 return;
             }
             
+            boolean isImmutable;
             
             if(request instanceof BulkShardRequest) {
                 for(BulkItemRequest bsr: ((BulkShardRequest) request).items()) {
-                    checkImmutableIndices(bsr.request(), listener);
+                    isImmutable = checkImmutableIndices(bsr.request(), listener);
                 }
             }
 
-            checkImmutableIndices(request, listener);
+            isImmutable = checkImmutableIndices(request, listener);
+            
+            if(isImmutable) {
+                return;
+            }
 
 
             if(Origin.LOCAL.toString().equals(threadContext.getTransient(ConfigConstants.SG_ORIGIN))
@@ -282,7 +287,7 @@ public class SearchGuardFilter implements ActionFilter {
     }
     
     @SuppressWarnings("rawtypes")
-    private void checkImmutableIndices(Object request, ActionListener listener) {
+    private boolean checkImmutableIndices(Object request, ActionListener listener) {
 
         if(        request instanceof DeleteRequest 
                 || request instanceof UpdateRequest 
@@ -296,7 +301,7 @@ public class SearchGuardFilter implements ActionFilter {
             if(complianceConfig.isIndexImmutable(request)) {
                 //auditLog.log
                 listener.onFailure(new ElasticsearchSecurityException("Index is immutable", RestStatus.FORBIDDEN));
-                return;
+                return true;
             }
         }
         
@@ -305,6 +310,8 @@ public class SearchGuardFilter implements ActionFilter {
                 ((IndexRequest) request).opType(OpType.CREATE);
             }
         }
+        
+        return false;
     }
 
 }
