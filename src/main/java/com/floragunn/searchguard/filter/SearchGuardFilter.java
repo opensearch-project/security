@@ -28,6 +28,9 @@ import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.DocWriteRequest;
 import org.elasticsearch.action.DocWriteRequest.OpType;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
+import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.bulk.BulkItemRequest;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkShardRequest;
@@ -43,6 +46,7 @@ import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.index.reindex.DeleteByQueryRequest;
+import org.elasticsearch.index.reindex.ReindexRequest;
 import org.elasticsearch.index.reindex.UpdateByQueryRequest;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.tasks.Task;
@@ -101,14 +105,7 @@ public class SearchGuardFilter implements ActionFilter {
             if(threadContext.getTransient(ConfigConstants.SG_ORIGIN) == null) {
                 threadContext.putTransient(ConfigConstants.SG_ORIGIN, Origin.LOCAL.toString());
             }
-
-            if(request instanceof BulkShardRequest) {
-                for(BulkItemRequest bsr: ((BulkShardRequest) request).items()) {
-                    checkImmutableIndices(bsr.request(), listener);
-                }
-            }
-
-            checkImmutableIndices(request, listener);
+            
             attachSoucrceFieldContext(request);
 
             final User user = threadContext.getTransient(ConfigConstants.SG_USER);
@@ -166,6 +163,15 @@ public class SearchGuardFilter implements ActionFilter {
                 chain.proceed(task, action, request, listener);
                 return;
             }
+            
+            
+            if(request instanceof BulkShardRequest) {
+                for(BulkItemRequest bsr: ((BulkShardRequest) request).items()) {
+                    checkImmutableIndices(bsr.request(), listener);
+                }
+            }
+
+            checkImmutableIndices(request, listener);
 
 
             if(Origin.LOCAL.toString().equals(threadContext.getTransient(ConfigConstants.SG_ORIGIN))
@@ -278,8 +284,15 @@ public class SearchGuardFilter implements ActionFilter {
     @SuppressWarnings("rawtypes")
     private void checkImmutableIndices(Object request, ActionListener listener) {
 
-        if(request instanceof DeleteRequest || request instanceof UpdateRequest 
-                || request instanceof UpdateByQueryRequest || request instanceof DeleteByQueryRequest) {
+        if(        request instanceof DeleteRequest 
+                || request instanceof UpdateRequest 
+                || request instanceof UpdateByQueryRequest 
+                || request instanceof DeleteByQueryRequest
+                || request instanceof DeleteIndexRequest
+                || request instanceof RestoreSnapshotRequest
+                || request instanceof CloseIndexRequest
+                || request instanceof ReindexRequest
+                ) {
             if(complianceConfig.isIndexImmutable(request)) {
                 //auditLog.log
                 listener.onFailure(new ElasticsearchSecurityException("Index is immutable", RestStatus.FORBIDDEN));
