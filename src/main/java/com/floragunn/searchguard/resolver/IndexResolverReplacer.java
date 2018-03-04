@@ -328,11 +328,11 @@ public final class IndexResolverReplacer {
         }, false);
     }
 
-    public Resolved resolve(final TransportRequest request) {
+    public Resolved resolve(final Object request) {
         return resolve0(request);
     }
 
-    private Resolved resolve0(final TransportRequest request) {
+    private Resolved resolve0(final Object request) {
         if(log.isDebugEnabled()) {
             log.debug("Resolve aliases, indices and types from {}", request.getClass().getSimpleName());
         }

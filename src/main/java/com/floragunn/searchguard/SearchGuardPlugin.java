@@ -168,7 +168,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
     private final boolean enterpriseModulesEnabled;
     private final List<String> demoCertHashes = new ArrayList<String>(3);
     private SearchGuardFilter sgf;
-    private final ComplianceConfig complianceConfig;
+    private ComplianceConfig complianceConfig;
     private IndexResolverReplacer irr;
 
     @Override
@@ -228,8 +228,6 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
                 return null;
             }
         });
-
-        complianceConfig = new ComplianceConfig(settings);
 
         enterpriseModulesEnabled = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_ENTERPRISE_MODULES_ENABLED, true);
         ReflectionHelper.init(enterpriseModulesEnabled);
@@ -643,6 +641,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
 
         final IndexNameExpressionResolver resolver = new IndexNameExpressionResolver(settings);
         irr = new IndexResolverReplacer(resolver, clusterService);
+        complianceConfig = new ComplianceConfig(settings, Objects.requireNonNull(irr));
         auditLog = ReflectionHelper.instantiateAuditLog(settings, configPath, localClient, threadPool, resolver, clusterService);
         sslExceptionHandler = new AuditLogSslExceptionHandler(auditLog);
 

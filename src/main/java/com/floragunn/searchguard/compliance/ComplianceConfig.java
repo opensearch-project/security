@@ -37,6 +37,8 @@ import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
+import com.floragunn.searchguard.resolver.IndexResolverReplacer;
+import com.floragunn.searchguard.resolver.IndexResolverReplacer.Resolved;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.WildcardMatcher;
 import com.google.common.cache.CacheBuilder;
@@ -57,13 +59,15 @@ public final class ComplianceConfig {
     private final boolean logExternalConfig;
     private final boolean logInternalConfig;
     private final LoadingCache<String, Set<String>> cache;
-    private final List<String> immutableIndicesPatterns;
+    private final Set<String> immutableIndicesPatterns;
     private final byte[] salt16;
     private final String searchguardIndex;
+    private final IndexResolverReplacer irr;
 
-    public ComplianceConfig(Settings settings) {
+    public ComplianceConfig(final Settings settings, final IndexResolverReplacer irr) {
         super();
         this.settings = settings;
+        this.irr = irr;
         final List<String> watchedReadFields = this.settings.getAsList(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS,
                 Collections.emptyList(), false);
 
@@ -72,7 +76,7 @@ public final class ComplianceConfig {
         logMetadataOnly = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_METADATA_ONLY, false);
         logExternalConfig = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED, true);
         logInternalConfig = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, true);
-        immutableIndicesPatterns = settings.getAsList(ConfigConstants.SEARCHGUARD_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList());
+        immutableIndicesPatterns = new HashSet<String>(settings.getAsList(ConfigConstants.SEARCHGUARD_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList()));
         final String saltAsString = settings.get(ConfigConstants.SEARCHGUARD_COMPLIANCE_SALT, ConfigConstants.SEARCHGUARD_COMPLIANCE_SALT_DEAULT);
         final byte[] saltAsBytes = saltAsString.getBytes(StandardCharsets.UTF_8);
 
@@ -125,6 +129,7 @@ public final class ComplianceConfig {
     }
 
     //cached
+    @SuppressWarnings("unchecked")
     private Set<String> getFieldsForIndex0(String index) {
 
         if(index == null) {
@@ -226,18 +231,22 @@ public final class ComplianceConfig {
     public boolean logExternalConfig() {
         return logExternalConfig;
     }
-    
-    public boolean isIndexImmutable(String index) {
-        
-        if(searchguardIndex.equals(index)) {
-            return false;
-        }
+
+    public boolean isIndexImmutable(Object request) {
         
         if(immutableIndicesPatterns.isEmpty()) {
             return false;
         }
         
-        return WildcardMatcher.matchAny(immutableIndicesPatterns, index);
+        final Resolved resolved = irr.resolve(request);
+        final Set<String> allIndices = resolved.getAllIndices();
+        
+        //assert allIndices.size() == 1:"only one index here, not "+allIndices;
+        //assert allIndices.contains("_all"):"no _all in "+allIndices;
+        //assert allIndices.contains("*"):"no * in "+allIndices;
+        //assert allIndices.contains(""):"no EMPTY in "+allIndices;
+
+        return WildcardMatcher.matchAny(immutableIndicesPatterns, allIndices);
     }
 
     public byte[] getSalt16() {

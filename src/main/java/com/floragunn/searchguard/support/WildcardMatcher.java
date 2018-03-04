@@ -39,6 +39,11 @@ public class WildcardMatcher {
 
         return matchAny(pattern, candidate, false);
     }
+    
+    public static boolean matchAny(final Collection<String> pattern, final Collection<String> candidate) {
+
+        return matchAny(pattern, candidate, false);
+    }
 
     /**
      * returns true if at least one candidate match at least one pattern
@@ -69,6 +74,17 @@ public class WildcardMatcher {
      * @return
      */
     public static boolean matchAny(final Collection<String> pattern, final String[] candidate, boolean ignoreCase) {
+
+        for (String string: pattern) {
+            if (matchAny(string, candidate, ignoreCase)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+    
+    public static boolean matchAny(final Collection<String> pattern, final Collection<String> candidate, boolean ignoreCase) {
 
         for (String string: pattern) {
             if (matchAny(string, candidate, ignoreCase)) {
@@ -120,6 +136,10 @@ public class WildcardMatcher {
     }
 
     public static boolean matchAny(final String pattern, final String[] candidate) {
+        return matchAny(pattern, candidate, false);
+    }
+    
+    public static boolean matchAny(final String pattern, final Collection<String> candidate) {
         return matchAny(pattern, candidate, false);
     }
 
