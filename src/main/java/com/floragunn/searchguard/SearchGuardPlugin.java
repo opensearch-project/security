@@ -768,9 +768,9 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
 
         // SG6 - Audit        
         settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_TYPE_DEFAULT, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_ROUTES, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
-        settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_ENDPOINTS, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
-        settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_FALLBACK, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
+        settings.add(Setting.groupSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_ROUTES + ".", Property.NodeScope)); 
+        settings.add(Setting.groupSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_ENDPOINTS + ".",  Property.NodeScope)); 
+        settings.add(Setting.groupSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_FALLBACK + ".", Property.NodeScope)); 
         settings.add(Setting.intSetting(ConfigConstants.SEARCHGUARD_AUDIT_THREADPOOL_SIZE, 10, Property.NodeScope, Property.Filtered));
         settings.add(Setting.intSetting(ConfigConstants.SEARCHGUARD_AUDIT_THREADPOOL_MAX_QUEUE_LEN, 100*1000, Property.NodeScope, Property.Filtered));
         settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_LOG_REQUEST_BODY, true, Property.NodeScope, Property.Filtered));
