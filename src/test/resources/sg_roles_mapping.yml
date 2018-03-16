@@ -126,3 +126,7 @@ sg_logstash:
 sg_twitter:
   users:
     - twitter
+    
+sg_attr:
+  users:
+    - custattr

@@ -145,6 +145,8 @@ public class IntegrationTests extends SingleClusterTest {
                 tc.index(new IndexRequest("starfleet_library").type("public").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
                 tc.index(new IndexRequest("klingonempire").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
                 tc.index(new IndexRequest("public").type("legends").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
+                tc.index(new IndexRequest("v2").type("legends").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
+                tc.index(new IndexRequest("v3").type("legends").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
      
                 tc.index(new IndexRequest("spock").type("type01").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
                 tc.index(new IndexRequest("kirk").type("type01").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
@@ -233,7 +235,7 @@ public class IntegrationTests extends SingleClusterTest {
             Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("starfleet/ships/_search?pretty", encodeBasicHeader("worf", "worf")).getStatusCode());
             HttpResponse res = rh.executeGetRequest("_search?pretty", encodeBasicHeader("nagilum", "nagilum"));
             Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
-            Assert.assertTrue(res.getBody().contains("\"total\" : 9"));
+            Assert.assertTrue(res.getBody().contains("\"total\" : 11"));
             Assert.assertTrue(!res.getBody().contains("searchguard"));
             
             res = rh.executeGetRequest("_nodes/stats?pretty", encodeBasicHeader("nagilum", "nagilum"));
@@ -286,6 +288,12 @@ public class IntegrationTests extends SingleClusterTest {
             Assert.assertTrue(res.getBody().contains("attr.internal.c3"));
             Assert.assertTrue(res.getBody().contains("attr.internal.c1"));
             Assert.assertTrue(PrivilegesInterceptorImpl.count > 0);
+            
+            res = rh.executeGetRequest("v2/_search", encodeBasicHeader("custattr", "nagilum"));
+            Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+            
+            res = rh.executeGetRequest("v3/_search", encodeBasicHeader("custattr", "nagilum"));
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
             
             final String reindex = "{"+
                     "\"source\": {"+    

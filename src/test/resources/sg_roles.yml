@@ -360,3 +360,9 @@ sg_aliasmngt:
         - indices:data/read/*
         - CREATE_INDEX
         - indices:admin/aliases*
+
+sg_attr:
+  indices:
+    '${attr_internal_c2}':
+      '*':
+        - indices:data/read/*
