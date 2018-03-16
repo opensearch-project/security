@@ -1675,6 +1675,9 @@ public class PrivilegesEvaluator {
     private static String replaceProperties(String orig, User user) {
         orig = orig.replace("${user.name}", user.getName()).replace("${user_name}", user.getName());
         for(Entry<String, String> entry: user.getCustomAttributesMap().entrySet()) {
+            if(entry == null || entry.getKey() == null || entry.getValue() == null) {
+                continue;
+            }
             orig = orig.replace("${"+entry.getKey()+"}", entry.getValue());
             orig = orig.replace("${"+entry.getKey().replace('.', '_')+"}", entry.getValue());
         }
