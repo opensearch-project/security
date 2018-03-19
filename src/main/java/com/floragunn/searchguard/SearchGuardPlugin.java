@@ -317,6 +317,11 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
         if(!Files.isRegularFile(p, LinkOption.NOFOLLOW_LINKS)) {
             return "";
         }
+        
+        if(!Files.isReadable(p)) {
+            log.debug("Unreadable file "+p+" found");
+            return "";
+        }
 
         try {
             MessageDigest digester = MessageDigest.getInstance("SHA256");
@@ -324,7 +329,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin {
             log.debug(hash +" :: "+p);
             return hash;
         } catch (Exception e) {
-            throw new ElasticsearchSecurityException("Unable to digest file", e);
+            throw new ElasticsearchSecurityException("Unable to digest file "+p, e);
         }
     }
     
