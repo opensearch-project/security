@@ -252,6 +252,10 @@ public class ReflectionHelper {
         if (clazz.equalsIgnoreCase("com.floragunn.dlic.auth.http.jwt.HTTPJwtAuthenticator")) {
             enterpriseModuleInstalled = true;
         }
+        
+        if (clazz.equalsIgnoreCase("com.floragunn.dlic.auth.http.jwt.keybyoidc.HTTPJwtKeyByOpenIdConnectAuthenticator")) {
+            enterpriseModuleInstalled = true;
+        }
 
         if (clazz.equalsIgnoreCase("com.floragunn.dlic.auth.http.kerberos.HTTPSpnegoAuthenticator")) {
             enterpriseModuleInstalled = true;

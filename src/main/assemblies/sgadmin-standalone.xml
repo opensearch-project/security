@@ -20,7 +20,6 @@
       <outputDirectory>${file.separator}deps</outputDirectory>
       <includes>
         <include>sgconfig/**</include>
-        <include>defaultcerts/**</include>
       </includes>
       <fileMode>0755</fileMode>
     </fileSet>

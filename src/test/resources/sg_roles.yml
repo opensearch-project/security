@@ -389,3 +389,9 @@ sg_uc:
     'indexc':
       'typec':
         - '*'
+
+sg_attr:
+  indices:
+    '${attr_internal_c2}':
+      '*':
+        - indices:data/read/*

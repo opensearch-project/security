@@ -188,9 +188,9 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
     public SearchGuardPlugin(final Settings settings, final Path configPath) {
         super(settings, configPath, settings.getAsBoolean(ConfigConstants.SEARCHGUARD_DISABLED, false));
 
-        log.warn("Search Guard compliance edition - *** This is a technology preview version and NOT suitable for production. ***");
+        log.warn("Search Guard compliance edition - *** This is a BETA version and NOT suitable for production. ***");
         System.out.println("Search Guard compliance edition");
-        System.out.println("*** This is a technology preview version and NOT suitable for production. ***");
+        System.out.println("*** This is a BETA version and NOT suitable for production. ***");
 
         disabled = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_DISABLED, false);
 
@@ -328,6 +328,11 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
         if(!Files.isRegularFile(p, LinkOption.NOFOLLOW_LINKS)) {
             return "";
         }
+        
+        if(!Files.isReadable(p)) {
+            log.debug("Unreadable file "+p+" found");
+            return "";
+        }
 
         try {
             MessageDigest digester = MessageDigest.getInstance("SHA256");
@@ -335,7 +340,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
             log.debug(hash +" :: "+p);
             return hash;
         } catch (Exception e) {
-            throw new ElasticsearchSecurityException("Unable to digest file", e);
+            throw new ElasticsearchSecurityException("Unable to digest file "+p, e);
         }
     }
 
