@@ -22,10 +22,9 @@ import io.netty.handler.ssl.OpenSsl;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.Objects;
-
-import javax.xml.bind.DatatypeConverter;
 
 import org.apache.http.Header;
 import org.apache.http.message.BasicHeader;
@@ -95,8 +94,8 @@ public abstract class AbstractSGUnitTest {
 	public final TestWatcher testWatcher = new SGTestWatcher();
 
 	public static Header encodeBasicHeader(final String username, final String password) {
-		return new BasicHeader("Authorization", "Basic "+new String(DatatypeConverter.printBase64Binary(
-				(username + ":" + Objects.requireNonNull(password)).getBytes(StandardCharsets.UTF_8))));
+		return new BasicHeader("Authorization", "Basic "+Base64.getEncoder().encodeToString(
+				(username + ":" + Objects.requireNonNull(password)).getBytes(StandardCharsets.UTF_8)));
 	}
 	
 	protected static class TransportClientImpl extends TransportClient {
