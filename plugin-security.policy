@@ -56,4 +56,8 @@ grant {
   permission java.security.SecurityPermission "insertProvider.BC";
   
   permission java.lang.RuntimePermission "accessUserInformation";
+  
+  //Java 9+
+  permission java.lang.RuntimePermission "accessClassInPackage.com.sun.jndi.ldap";
+
 };
