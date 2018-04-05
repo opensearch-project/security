@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<assembly>
+    <id>veracode</id>
+    <formats>
+        <format>zip</format>
+    </formats>
+    <includeBaseDirectory>false</includeBaseDirectory>
+    <dependencySets>
+        <dependencySet>
+            <useStrictFiltering>true</useStrictFiltering>
+            <outputDirectory>${file.separator}elasticsearch${file.separator}</outputDirectory>
+            <useProjectAttachments>true</useProjectAttachments>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <scope>compile</scope>
+            <excludes>
+                <exclude>org.elasticsearch:jna</exclude>
+                <exclude>org.apache.lucene:lucene-backward-codecs</exclude>
+                <exclude>org.apache.logging.log4j:log4j-core</exclude>
+                <exclude>*:*:*:test*:*</exclude>
+            </excludes>
+        </dependencySet>
+    </dependencySets>
+</assembly>
+
