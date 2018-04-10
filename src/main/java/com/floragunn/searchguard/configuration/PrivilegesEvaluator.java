@@ -59,6 +59,9 @@ import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
+import org.elasticsearch.index.query.MatchNoneQueryBuilder;
+import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.TermsQueryBuilder;
 import org.elasticsearch.index.reindex.ReindexAction;
 import org.elasticsearch.search.aggregations.AggregationBuilder;
 import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
@@ -101,6 +104,17 @@ public class PrivilegesEvaluator {
     //private final boolean typeSecurityDisabled = false;
     private final ConfigModel configModel;
     private final IndexResolverReplacer irr;
+    
+    private static final String[] READ_ACTIONS = new String[]{
+            "indices:data/read/msearch",
+            "indices:data/read/mget",
+            "indices:data/read/get",
+            "indices:data/read/search",
+            "indices:data/read/field_caps*"
+            //"indices:admin/mappings/fields/get*"
+            };
+    
+    private static final QueryBuilder NONE_QUERY = new MatchNoneQueryBuilder();
 
     public PrivilegesEvaluator(final ClusterService clusterService, final ThreadPool threadPool, final ConfigurationRepository configurationRepository, final ActionGroupHolder ah,
             final IndexNameExpressionResolver resolver, AuditLog auditLog, final Settings settings, final PrivilegesInterceptor privilegesInterceptor,
@@ -440,6 +454,15 @@ public class PrivilegesEvaluator {
                        if("_index".equals(((TermsAggregationBuilder) ab).field())
                                && ab.getPipelineAggregations().isEmpty()
                                && ab.getSubAggregations().isEmpty()) {
+
+                           
+                           final Set<String> allPermittedIndices = getSgRoles(user, caller).getAllPermittedIndices(user, READ_ACTIONS, resolver, clusterService);
+                           if(allPermittedIndices == null || allPermittedIndices.isEmpty()) {
+                               sr.source().query(NONE_QUERY);
+                           } else {
+                               sr.source().query(new TermsQueryBuilder("_index", allPermittedIndices));
+                           }                 
+                           
                            presponse.allowed = true;
                            return presponse;
                        }

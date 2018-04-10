@@ -282,6 +282,14 @@ public class ConfigModel {
             return new Tuple<Map<String,Set<String>>, Map<String,Set<String>>>(dlsQueries, flsFields);
 
         }
+        
+        public Set<String> getAllPermittedIndices(User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
+            Set<String> retVal = new HashSet<>();
+            for(SgRole sgr: roles) {
+                retVal.addAll(sgr.getAllResolvedPermittedIndices(Resolved._ALL, user, actions, resolver, cs));
+            }
+            return Collections.unmodifiableSet(retVal);
+        }
 
         //dnfof only
         public Set<String> reduce(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
