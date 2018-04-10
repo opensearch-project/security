@@ -48,6 +48,7 @@
     <!-- assembly descriptors -->
     <elasticsearch.assembly.descriptor>${basedir}/src/main/assemblies/plugin.xml</elasticsearch.assembly.descriptor>
     <sgstandalone.descriptor>${basedir}/src/main/assemblies/sgadmin-standalone.xml</sgstandalone.descriptor>
+    <veracode.descriptor>${basedir}/src/main/assemblies/veracode.xml</veracode.descriptor>
   </properties>
 
   <scm>
@@ -113,12 +114,6 @@
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcpg-jdk15on</artifactId>
-      <version>${bc.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.bouncycastle</groupId>
-      <artifactId>bcprov-jdk15on</artifactId>
       <version>${bc.version}</version>
     </dependency>
 
@@ -314,7 +309,41 @@
               <groupId>org.locationtech.spatial4j</groupId>
             </exclusion>
           </exclusions>
-        </dependency>
+          </dependency>
+      </dependencies>
+    </profile>
+    <profile>
+      <id>veracode</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-assembly-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>veracode</id>
+                <phase>package</phase>
+                <configuration>
+                  <appendAssemblyId>true</appendAssemblyId>
+                  <outputDirectory>${project.build.directory}/veracode/</outputDirectory>
+                  <descriptors>
+                    <descriptor>${veracode.descriptor}</descriptor>
+                  </descriptors>
+                </configuration>
+                <goals>
+                  <goal>single</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+      <dependencies>
+        <dependency>
+          <groupId>com.floragunn</groupId>
+          <artifactId>dlic-search-guard-enterprise-modules</artifactId>
+          <version>${enterprise-modules.version}</version>
+          </dependency>
       </dependencies>
     </profile>
   </profiles>

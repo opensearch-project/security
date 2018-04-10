@@ -18,10 +18,9 @@
 package com.floragunn.searchguard.support;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
-
-import javax.xml.bind.DatatypeConverter;
 
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.rest.RestRequest;
@@ -38,7 +37,7 @@ public class HTTPHelper {
                 return null;
             } else {
 
-                final String decodedBasicHeader = new String(DatatypeConverter.parseBase64Binary(authorizationHeader.split(" ")[1]),
+                final String decodedBasicHeader = new String(Base64.getDecoder().decode(authorizationHeader.split(" ")[1]),
                         StandardCharsets.UTF_8);
 
                 //username:password
