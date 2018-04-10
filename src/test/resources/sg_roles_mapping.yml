@@ -130,3 +130,7 @@ sg_twitter:
 sg_attr:
   users:
     - custattr
+    
+sg_rexclude:
+  users:
+    - rexclude

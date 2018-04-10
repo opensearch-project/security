@@ -127,3 +127,7 @@ custattr:
     'c4.c4.cd': test2
     'c5': null
     null: abc
+
+rexclude:
+  hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
+  #password is: nagilum

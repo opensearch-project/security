@@ -1939,4 +1939,25 @@ public class IntegrationTests extends SingleClusterTest {
             
         }
     
+    @Test
+    public void testRegexExcludes() throws Exception {
+        
+        setup(Settings.EMPTY, new DynamicSgConfig(), Settings.EMPTY);
+
+        try (TransportClient tc = getInternalTransportClient(this.clusterInfo, Settings.EMPTY)) {
+            tc.index(new IndexRequest("indexa").type("type01").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"indexa\":1}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest("indexb").type("type01").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"indexb\":1}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest("isallowed").type("type01").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"isallowed\":1}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest("special").type("type01").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"special\":1}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest("alsonotallowed").type("type01").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"alsonotallowed\":1}", XContentType.JSON)).actionGet();
+        }
+        
+        RestHelper rh = nonSslRestHelper();
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("index*/_search",encodeBasicHeader("rexclude", "nagilum")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("indexa/_search",encodeBasicHeader("rexclude", "nagilum")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("isallowed/_search",encodeBasicHeader("rexclude", "nagilum")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest("special/_search",encodeBasicHeader("rexclude", "nagilum")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest("alsonotallowed/_search",encodeBasicHeader("rexclude", "nagilum")).getStatusCode());
+    }
+    
 }

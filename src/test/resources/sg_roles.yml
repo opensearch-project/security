@@ -366,3 +366,9 @@ sg_attr:
     '${attr_internal_c2}':
       '*':
         - indices:data/read/*
+        
+sg_rexclude:
+  indices:
+    '/(?!special|alsonotallowed)(\S|\s)*/':
+      '*':
+        - READ
