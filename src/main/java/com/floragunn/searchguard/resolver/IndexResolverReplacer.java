@@ -718,7 +718,9 @@ public final class IndexResolverReplacer {
                 if(checkIndices(request, newIndices, true, allowEmptyIndices) == false) {
                     return false;
                 }
+                
                 ((PutMappingRequest) request).indices(newIndices);
+                ((PutMappingRequest) request).setConcreteIndex(null);
             } else {
                 String[] newIndices = provider.provide(((PutMappingRequest) request).indices(), request, true);
                 if(checkIndices(request, newIndices, false, allowEmptyIndices) == false) {
@@ -807,6 +809,9 @@ public final class IndexResolverReplacer {
                 return false;
             }
             ((Replaceable) request).indices(newIndices);
+        } else if (request instanceof BulkShardRequest) {
+            provider.provide(((ReplicationRequest) request).indices(), request, false);
+            //replace not supported?
         } else if (request instanceof ReplicationRequest) {
             String[] newIndices = provider.provide(((ReplicationRequest) request).indices(), request, true);
             if(checkIndices(request, newIndices, true, allowEmptyIndices) == false) {
