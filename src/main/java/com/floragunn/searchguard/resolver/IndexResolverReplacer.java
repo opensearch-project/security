@@ -287,15 +287,37 @@ public final class IndexResolverReplacer {
         return getOrReplaceAllIndices(request, new IndicesProvider() {
 
             @Override
-            public String[] provide(String[] original, Object request, boolean supportsReplace) {
+            public String[] provide(final String[] original, final Object request, final boolean supportsReplace) {
                 if(supportsReplace) {
-                    List<String> result;
-                    if(isAll(original)) {
+                    
+                    final List<String> result = new ArrayList<String>(Arrays.asList(original));
+                    
+                    /*if(isAll(original)) {
                         result = new ArrayList<String>(Collections.singletonList("*"));
                     } else {
                         result = new ArrayList<String>(Arrays.asList(original));
+                    }*/
+                    
+                    
+                    
+                    final Set<String> preliminary = new HashSet<>(resolve(result.toArray(new String[0])).allIndices);      
+                    
+                    if(log.isTraceEnabled()) {
+                        log.trace("resolved original {}, excludes {}",preliminary, Arrays.toString(exclude));
                     }
-                    result.addAll(Arrays.stream(exclude).map(a->"-"+a).collect(Collectors.toList()));
+                    
+                    WildcardMatcher.wildcardRetainInSet(preliminary, exclude);      
+                    
+                    if(log.isTraceEnabled()) {
+                        log.trace("modified original {}",preliminary);
+                    }
+                    
+                    result.addAll(preliminary.stream().map(a->"-"+a).collect(Collectors.toList()));
+
+                    if(log.isTraceEnabled()) {
+                        log.trace("exclude for {}: replaced {} with {}", request.getClass().getSimpleName(), Arrays.toString(original) ,result);
+                    }
+                    
                     return result.toArray(new String[0]);
                 } else {
                     return NOOP;

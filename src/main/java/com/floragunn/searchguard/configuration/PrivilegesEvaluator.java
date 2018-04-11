@@ -220,9 +220,8 @@ public class PrivilegesEvaluator {
         //index admin
         //cluster monitor
         //index monitor
-
-        //irr.exclude(request, exclude)
-        //irr.replace(request, sgRoles.get(resolved, user, actions, resolver, cs));
+        
+        //irr.exclude(request, searchguardIndex);
 
         final PrivEvalResponse presponse = new PrivEvalResponse();
 
