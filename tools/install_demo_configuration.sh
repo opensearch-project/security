@@ -353,6 +353,8 @@ echo "searchguard.enable_snapshot_restore_privilege: true" | $SUDO_CMD tee -a $E
 echo "searchguard.check_snapshot_restore_write_privileges: true" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null
 echo 'searchguard.restapi.roles_enabled: ["sg_all_access"]' | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null
 
+echo 'cluster.routing.allocation.disk.threshold_enabled: false' | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null
+
 if $SUDO_CMD grep --quiet -i "^cluster.name" $ES_CONF_FILE; then
 	: #already present
 else
