@@ -50,6 +50,7 @@ grant {
   permission java.util.PropertyPermission "com.sun.security.enableCRLDP", "write";
   
   permission java.net.NetPermission "getNetworkInformation";
+  permission java.net.NetPermission "getProxySelector";
   permission java.net.SocketPermission "*", "connect,accept,resolve";
   
   permission java.security.SecurityPermission "putProviderProperty.BC";
