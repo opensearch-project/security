@@ -45,6 +45,7 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import com.floragunn.searchguard.support.ConfigConstants;
+import com.floragunn.searchguard.support.SearchGuardDeprecationHandler;
 
 class ConfigurationLoader {
 
@@ -167,7 +168,7 @@ class ConfigurationLoader {
         XContentParser parser = null;
 
         try {
-            parser = XContentHelper.createParser(NamedXContentRegistry.EMPTY, ref, XContentType.JSON);
+            parser = XContentHelper.createParser(NamedXContentRegistry.EMPTY, SearchGuardDeprecationHandler.INSTANCE, ref, XContentType.JSON);
             parser.nextToken();
             parser.nextToken();
          
@@ -183,7 +184,11 @@ class ConfigurationLoader {
             throw ExceptionsHelper.convertToElastic(e);
         } finally {
             if(parser != null) {
-                parser.close();
+                try {
+                    parser.close();
+                } catch (IOException e) {
+                    //ignore
+                }
             }
         }
     }
