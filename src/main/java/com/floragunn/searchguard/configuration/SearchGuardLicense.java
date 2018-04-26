@@ -39,7 +39,7 @@ public final class SearchGuardLicense implements Writeable {
 
     private String uid;
     private Type type;
-    private Feature[] features must not be null;
+    private Feature[] features;
     private String issueDate;
     private String expiryDate;
     private String issuedTo;
@@ -82,7 +82,7 @@ public final class SearchGuardLicense implements Writeable {
         out.writeBoolean(valid);
         out.writeString(action);
         out.writeString(prodUsage);
-        out.writeArray(StreamOutput::writeEnum, features);
+        out.writeArray(StreamOutput::writeEnum, features==null?new Feature[0]:features);
     }
     
     public SearchGuardLicense(final StreamInput in) throws IOException {
@@ -155,7 +155,7 @@ public final class SearchGuardLicense implements Writeable {
         super();
         this.uid = Objects.requireNonNull(uid);
         this.type = Objects.requireNonNull(type);
-        this.features = features==null?null:features.clone();
+        this.features = features==null?new Feature[0]:features.clone();
         this.issueDate = Objects.requireNonNull(issueDate);
         this.expiryDate = Objects.requireNonNull(expiryDate);
         this.issuedTo = Objects.requireNonNull(issuedTo);

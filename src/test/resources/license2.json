@@ -1,0 +1,14 @@
+{
+  "uid": "B83FCDC8-88F7-45B0-9616-73108FA05CCD",
+  "type": "FULL",
+  "issued_date": "2018-04-26",
+  "expiry_date": "2018-01-31",
+  "issued_to": "Mustermann GmbH",
+  "issuer": "floragunn GmbH",
+  "start_date": "2017-01-31",
+  "major_version": 6,
+  "cluster_name": "*",
+  "allowed_node_count_per_cluster": 32768,
+  "license_version": 1,
+  "features": ["COMPLIANCE", "XXX"]
+}

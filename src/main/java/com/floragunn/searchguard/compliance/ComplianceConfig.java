@@ -152,7 +152,7 @@ public final class ComplianceConfig implements LicenseChangeListener {
             }
         }
         
-        System.out.println("ENABLED="+enabled);
+        log.info("Compliance features are "+(this.enabled?"enabled":"disabled. To enable them you need a special license. Please contact support for this."));
         
         //only on node startup?
         if(this.enabled && logExternalConfig) {

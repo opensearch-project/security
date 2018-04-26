@@ -298,7 +298,7 @@ public class SearchGuardFilter implements ActionFilter {
                 || request instanceof CloseIndexRequest
                 || request instanceof ReindexRequest
                 ) {
-            if(complianceConfig.isIndexImmutable(request)) {
+            if(complianceConfig != null && complianceConfig.isIndexImmutable(request)) {
                 //auditLog.log
                 listener.onFailure(new ElasticsearchSecurityException("Index is immutable", RestStatus.FORBIDDEN));
                 return true;
@@ -306,7 +306,7 @@ public class SearchGuardFilter implements ActionFilter {
         }
         
         if(request instanceof IndexRequest) {
-            if(complianceConfig.isIndexImmutable(request)) {
+            if(complianceConfig != null && complianceConfig.isIndexImmutable(request)) {
                 ((IndexRequest) request).opType(OpType.CREATE);
             }
         }

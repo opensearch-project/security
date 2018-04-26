@@ -108,6 +108,7 @@ import com.floragunn.searchguard.action.licenseinfo.TransportLicenseInfoAction;
 import com.floragunn.searchguard.action.whoami.TransportWhoAmIAction;
 import com.floragunn.searchguard.action.whoami.WhoAmIAction;
 import com.floragunn.searchguard.auditlog.AuditLog;
+import com.floragunn.searchguard.auditlog.NullAuditLog;
 import com.floragunn.searchguard.auditlog.AuditLog.Origin;
 import com.floragunn.searchguard.auditlog.AuditLogSslExceptionHandler;
 import com.floragunn.searchguard.auth.BackendRegistry;
@@ -190,9 +191,8 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
     public SearchGuardPlugin(final Settings settings, final Path configPath) {
         super(settings, configPath, settings.getAsBoolean(ConfigConstants.SEARCHGUARD_DISABLED, false));
 
-        log.warn("Search Guard compliance edition - *** This is a BETA version and NOT suitable for production. ***");
-        System.out.println("Search Guard compliance edition");
-        System.out.println("*** This is a BETA version and NOT suitable for production. ***");
+        log.warn("*** This is a RC version and NOT suitable for production. ***");
+        System.out.println("*** This is a RC version and NOT suitable for production. ***");
 
         disabled = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_DISABLED, false);
 
@@ -472,6 +472,8 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
 
                 final ComplianceIndexingOperationListener ciol;
 
+                assert complianceConfig!=null:"compliance config must not be null here";
+                
                 if(complianceConfig.writeHistoryEnabledForIndex(indexModule.getIndex().getName())) {
                     ciol = ReflectionHelper.instantiateComplianceListener(complianceConfig, Objects.requireNonNull(auditLog));
                     indexModule.addIndexOperationListener(ciol);
@@ -481,6 +483,9 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
 
                 indexModule.setSearcherWrapper(indexService -> loadFlsDlsIndexSearcherWrapper(indexService, ciol, complianceConfig));
             } else {
+                
+                assert complianceConfig==null:"compliance config must be null here";
+                
                 indexModule.setSearcherWrapper(indexService -> new SearchGuardIndexSearcherWrapper(indexService, settings, Objects
                         .requireNonNull(adminDns)));
             }
@@ -649,7 +654,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
         final IndexNameExpressionResolver resolver = new IndexNameExpressionResolver(settings);
         irr = new IndexResolverReplacer(resolver, clusterService);
         auditLog = ReflectionHelper.instantiateAuditLog(settings, configPath, localClient, threadPool, resolver, clusterService);
-        complianceConfig = new ComplianceConfig(environment, Objects.requireNonNull(irr), auditLog);
+        complianceConfig = dlsFlsAvailable && auditLog.getClass() != NullAuditLog.class?new ComplianceConfig(environment, Objects.requireNonNull(irr), auditLog):null;
         sslExceptionHandler = new AuditLogSslExceptionHandler(auditLog);
 
         final String DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = DefaultInterClusterRequestEvaluator.class.getName();

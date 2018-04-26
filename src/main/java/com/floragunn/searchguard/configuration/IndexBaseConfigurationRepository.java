@@ -354,7 +354,9 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
     
     //@Override
     public synchronized void subscribeOnLicenseChange(LicenseChangeListener licenseChangeListener) {
-        this.licenseChangeListener.add(licenseChangeListener);
+        if(licenseChangeListener != null) {
+            this.licenseChangeListener.add(licenseChangeListener);
+        }
     }
 
     private synchronized void notifyAboutLicenseChanges(SearchGuardLicense license) {
