@@ -123,6 +123,8 @@ import com.floragunn.searchguard.configuration.IndexBaseConfigurationRepository;
 import com.floragunn.searchguard.configuration.PrivilegesEvaluator;
 import com.floragunn.searchguard.configuration.PrivilegesInterceptor;
 import com.floragunn.searchguard.configuration.SearchGuardIndexSearcherWrapper;
+import com.floragunn.searchguard.configuration.SearchGuardLicense;
+import com.floragunn.searchguard.configuration.SearchGuardLicense.Feature;
 import com.floragunn.searchguard.filter.SearchGuardFilter;
 import com.floragunn.searchguard.filter.SearchGuardRestFilter;
 import com.floragunn.searchguard.http.SearchGuardHttpServerTransport;
@@ -646,8 +648,8 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
 
         final IndexNameExpressionResolver resolver = new IndexNameExpressionResolver(settings);
         irr = new IndexResolverReplacer(resolver, clusterService);
-        complianceConfig = new ComplianceConfig(settings, Objects.requireNonNull(irr));
         auditLog = ReflectionHelper.instantiateAuditLog(settings, configPath, localClient, threadPool, resolver, clusterService);
+        complianceConfig = new ComplianceConfig(environment, Objects.requireNonNull(irr), auditLog);
         sslExceptionHandler = new AuditLogSslExceptionHandler(auditLog);
 
         final String DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = DefaultInterClusterRequestEvaluator.class.getName();
@@ -666,6 +668,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
         adminDns = new AdminDNs(settings);
         //final PrincipalExtractor pe = new DefaultPrincipalExtractor();
         cr = (IndexBaseConfigurationRepository) IndexBaseConfigurationRepository.create(settings, this.configPath, threadPool, localClient, clusterService);
+        cr.subscribeOnLicenseChange(complianceConfig);
         final InternalAuthenticationBackend iab = new InternalAuthenticationBackend(cr);
         final XFFResolver xffResolver = new XFFResolver(threadPool);
         cr.subscribeOnChange(ConfigConstants.CONFIGNAME_CONFIG, xffResolver);
@@ -710,13 +713,6 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
 
         return components;
 
-    }
-
-    @Override
-    public void onNodeStarted() {
-        if(!client && !disabled && !tribeNodeClient && complianceConfig.logExternalConfig()) {
-            auditLog.logExternalConfig(settings, new Environment(settings, configPath));
-        }
     }
 
     @Override

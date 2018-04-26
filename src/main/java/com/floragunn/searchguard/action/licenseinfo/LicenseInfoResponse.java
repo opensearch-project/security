@@ -74,6 +74,7 @@ public class LicenseInfoResponse extends BaseNodesResponse<LicenseInfoNodeRespon
             
             builder.field("uid", license.getUid());
             builder.field("type", license.getType());
+            builder.field("features", license.getFeatures());
             builder.field("issue_date", license.getIssueDate());
             builder.field("expiry_date", license.getExpiryDate());
             builder.field("issued_to", license.getIssuedTo());
@@ -99,6 +100,7 @@ public class LicenseInfoResponse extends BaseNodesResponse<LicenseInfoNodeRespon
                  
             builder.field("uid", license.getUid());
             builder.field("type", license.getType());
+            builder.field("features", license.getFeatures());
             builder.field("issue_date", license.getIssueDate());
             builder.field("expiry_date", license.getExpiryDate());
             builder.field("issued_to", license.getIssuedTo());

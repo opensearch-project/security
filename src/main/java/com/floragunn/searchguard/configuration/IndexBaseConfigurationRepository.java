@@ -20,6 +20,7 @@ package com.floragunn.searchguard.configuration;
 import java.io.File;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -76,6 +77,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
     private final Client client;
     private final ConcurrentMap<String, Settings> typeToConfig;
     private final Multimap<String, ConfigurationChangeListener> configTypeToChancheListener;
+    private final List<LicenseChangeListener> licenseChangeListener;
     private final ConfigurationLoader cl;
     private final LegacyConfigurationLoader legacycl;
     private final Settings settings;
@@ -90,6 +92,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
         this.clusterService = clusterService;
         this.typeToConfig = Maps.newConcurrentMap();
         this.configTypeToChancheListener = ArrayListMultimap.create();
+        this.licenseChangeListener = new ArrayList<LicenseChangeListener>();
         cl = new ConfigurationLoader(client, threadPool, settings);
         legacycl = new LegacyConfigurationLoader(client, threadPool, settings);
 
@@ -312,6 +315,9 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
         notifyAboutChanges(loaded);
 
         final SearchGuardLicense sgLicense = getLicense();
+        
+        notifyAboutLicenseChanges(sgLicense);
+        
         final String license = sgLicense==null?"No license needed because enterprise modules are not enabled" :sgLicense.toString();
         LOGGER.info("Search Guard License Info: "+license);
 
@@ -345,7 +351,17 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
         LOGGER.debug("Subscribe on configuration changes by type {} with listener {}", configurationType, listener);
         configTypeToChancheListener.put(configurationType, listener);
     }
+    
+    //@Override
+    public synchronized void subscribeOnLicenseChange(LicenseChangeListener licenseChangeListener) {
+        this.licenseChangeListener.add(licenseChangeListener);
+    }
 
+    private synchronized void notifyAboutLicenseChanges(SearchGuardLicense license) {
+        for(LicenseChangeListener listener: this.licenseChangeListener) {
+            listener.onChange(license);
+        }
+    }
 
     private synchronized void notifyAboutChanges(Map<String, Settings> typeToConfig) {
         for (Map.Entry<String, ConfigurationChangeListener> entry : configTypeToChancheListener.entries()) {

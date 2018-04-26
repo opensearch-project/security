@@ -32,11 +32,16 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.env.Environment;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
+import com.floragunn.searchguard.auditlog.AuditLog;
+import com.floragunn.searchguard.configuration.LicenseChangeListener;
+import com.floragunn.searchguard.configuration.SearchGuardLicense;
+import com.floragunn.searchguard.configuration.SearchGuardLicense.Feature;
 import com.floragunn.searchguard.resolver.IndexResolverReplacer;
 import com.floragunn.searchguard.resolver.IndexResolverReplacer.Resolved;
 import com.floragunn.searchguard.support.ConfigConstants;
@@ -46,7 +51,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 
 
-public final class ComplianceConfig {
+public final class ComplianceConfig implements LicenseChangeListener {
 
     private final Logger log = LogManager.getLogger(getClass());
     private final Settings settings;
@@ -63,11 +68,16 @@ public final class ComplianceConfig {
     private final byte[] salt16;
     private final String searchguardIndex;
     private final IndexResolverReplacer irr;
+    private final Environment environment;
+    private final AuditLog auditLog;
+    private volatile boolean enabled = false;
 
-    public ComplianceConfig(final Settings settings, final IndexResolverReplacer irr) {
+    public ComplianceConfig(final Environment environment, final IndexResolverReplacer irr, final AuditLog auditLog) {
         super();
-        this.settings = settings;
+        this.settings = environment.settings();
+        this.environment = environment;
         this.irr = irr;
+        this.auditLog = auditLog;
         final List<String> watchedReadFields = this.settings.getAsList(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS,
                 Collections.emptyList(), false);
 
@@ -127,6 +137,32 @@ public final class ComplianceConfig {
                     }
                 });
     }
+    
+    @Override
+    public void onChange(SearchGuardLicense license) {
+        
+        
+        if(license == null) {
+            this.enabled = false;
+        } else {
+            if(license.hasFeature(Feature.COMPLIANCE)) {
+                this.enabled = true;
+            } else {
+                this.enabled = false;
+            }
+        }
+        
+        System.out.println("ENABLED="+enabled);
+        
+        //only on node startup?
+        if(this.enabled && logExternalConfig) {
+            auditLog.logExternalConfig(settings, environment);
+        }
+    }
+
+    public boolean isEnabled() {
+        return this.enabled;
+    }
 
     //cached
     @SuppressWarnings("unchecked")
@@ -162,6 +198,7 @@ public final class ComplianceConfig {
         return indexPattern.print(DateTime.now(DateTimeZone.UTC));
     }
 
+    //do not check for isEnabled
     public boolean writeHistoryEnabledForIndex(String index) {
 
         if(index == null) {
@@ -186,7 +223,12 @@ public final class ComplianceConfig {
     }
 
     //no patterns here as parameters
+    //check for isEnabled
     public boolean readHistoryEnabledForIndex(String index) {
+        
+        if(!this.enabled) {
+            return false;
+        }
         
         if(searchguardIndex.equals(index)) {
             return logInternalConfig;
@@ -201,7 +243,12 @@ public final class ComplianceConfig {
     }
 
     //no patterns here as parameters
+    //check for isEnabled
     public boolean readHistoryEnabledForField(String index, String field) {
+        
+        if(!this.enabled) {
+            return false;
+        }
         
         if(searchguardIndex.equals(index)) {
             return logInternalConfig;
@@ -228,11 +275,12 @@ public final class ComplianceConfig {
         return logMetadataOnly;
     }
 
-    public boolean logExternalConfig() {
-        return logExternalConfig;
-    }
-
+    //check for isEnabled
     public boolean isIndexImmutable(Object request) {
+        
+        if(!this.enabled) {
+            return false;
+        }
         
         if(immutableIndicesPatterns.isEmpty()) {
             return false;
