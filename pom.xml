@@ -343,7 +343,20 @@
           <groupId>com.floragunn</groupId>
           <artifactId>dlic-search-guard-enterprise-modules</artifactId>
           <version>${enterprise-modules.version}</version>
-          </dependency>
+        </dependency>
+        <!-- omit  netty-tcnative and conscrypt-openjdk-uber if scan
+             should be done without natives -->
+        <dependency>
+          <groupId>io.netty</groupId>
+          <artifactId>netty-tcnative</artifactId>
+          <version>${netty-native.version}</version>
+          <classifier>linux-x86_64</classifier>
+        </dependency>
+        <dependency>
+          <groupId>org.conscrypt</groupId>
+          <artifactId>conscrypt-openjdk-uber</artifactId>
+          <version>1.0.0.RC9</version>
+        </dependency>
       </dependencies>
     </profile>
   </profiles>
