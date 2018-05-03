@@ -19,7 +19,7 @@ jobs:
           key: circleci-sg-{{ checksum "pom.xml" }}
       - run: ./smoketest.sh
       - run: mvn -Pcoverage verify
-      - run: mvn -Pcoverage sonar:sonar -Dsonar.organization=floragunncom-github -Dsonar.login=$SONAR_LOGIN -Dsonar.host.url=https://sonarcloud.io
+      #- run: mvn -Pcoverage sonar:sonar -Dsonar.organization=floragunncom-github -Dsonar.login=$SONAR_LOGIN -Dsonar.host.url=https://sonarcloud.io
       - store_test_results:
           path: target/surefire-reports
       #- store_artifacts:
@@ -29,6 +29,8 @@ jobs:
           command: |
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
               mvn deploy -DskipTests -s settings.xml
+              mvn -Pcoverage sonar:sonar -Dsonar.organization=floragunncom-github -Dsonar.login=$SONAR_LOGIN -Dsonar.host.url=https://sonarcloud.io
+              ./dev/scan_veracode.sh
             fi
 
 #logging
