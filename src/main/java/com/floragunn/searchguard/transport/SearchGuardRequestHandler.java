@@ -27,6 +27,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchSecurityException;
+import org.elasticsearch.action.bulk.BulkShardRequest;
+import org.elasticsearch.action.support.replication.TransportReplicationAction.ConcreteShardRequest;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
@@ -78,7 +80,21 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
     @Override
     protected void messageReceivedDecorate(final T request, final TransportRequestHandler<T> handler,
             final TransportChannel transportChannel, Task task) throws Exception {
-
+        
+        String resolvedActionClass = request.getClass().getSimpleName();
+        
+        if(request instanceof BulkShardRequest) {
+            if(((BulkShardRequest) request).items().length == 1) {
+                resolvedActionClass = ((BulkShardRequest) request).items()[0].request().getClass().getSimpleName();
+            }
+        }
+        
+        if(request instanceof ConcreteShardRequest) {
+            resolvedActionClass = ((ConcreteShardRequest) request).getRequest().getClass().getSimpleName();
+        }
+                
+        String initialActionClassValue = getThreadContext().getHeader(ConfigConstants.SG_INITIAL_ACTION_CLASS_HEADER);
+        
         final ThreadContext.StoredContext sgContext = getThreadContext().newStoredContext(false);
 
         final String originHeader = getThreadContext().getHeader(ConfigConstants.SG_ORIGIN_HEADER);
@@ -117,6 +133,8 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
                 if(actionTrace.isTraceEnabled()) {
                     getThreadContext().putHeader("_sg_trace"+System.currentTimeMillis()+"#"+UUID.randomUUID().toString(), Thread.currentThread().getName()+" DIR -> "+transportChannel.getChannelType()+" "+getThreadContext().getHeaders());
                 }
+                
+                putInitialActionClassHeader(initialActionClassValue, resolvedActionClass);
 
                 super.messageReceivedDecorate(request, handler, transportChannel, task);
                 return;
@@ -232,6 +250,9 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
                     getThreadContext().putHeader("_sg_trace"+System.currentTimeMillis()+"#"+UUID.randomUUID().toString(), Thread.currentThread().getName()+" NETTI -> "+transportChannel.getChannelType()+" "+getThreadContext().getHeaders().entrySet().stream().filter(p->!p.getKey().startsWith("_sg_trace")).collect(Collectors.toMap(p -> p.getKey(), p -> p.getValue())));
                 }
 
+                
+                putInitialActionClassHeader(initialActionClassValue, resolvedActionClass);
+                
                 super.messageReceivedDecorate(request, handler, transportChannel, task);
             }
         } finally {
@@ -244,6 +265,19 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
                 sgContext.close();
             }
         }
+    }
+    
+    private void putInitialActionClassHeader(String initialActionClassValue, String resolvedActionClass) {
+        if(initialActionClassValue == null) {
+            if(getThreadContext().getHeader(ConfigConstants.SG_INITIAL_ACTION_CLASS_HEADER) == null) {
+                getThreadContext().putHeader(ConfigConstants.SG_INITIAL_ACTION_CLASS_HEADER, resolvedActionClass);
+            }
+        } else {
+            if(getThreadContext().getHeader(ConfigConstants.SG_INITIAL_ACTION_CLASS_HEADER) == null) {
+                getThreadContext().putHeader(ConfigConstants.SG_INITIAL_ACTION_CLASS_HEADER, initialActionClassValue);
+            }
+        }
+
     }
 
     @Override

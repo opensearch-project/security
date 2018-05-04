@@ -43,6 +43,8 @@ public class ConfigConstants {
 
     public static final String SG_REMOTE_ADDRESS = SG_CONFIG_PREFIX+"remote_address";
     public static final String SG_REMOTE_ADDRESS_HEADER = SG_CONFIG_PREFIX+"remote_address_header";
+    
+    public static final String SG_INITIAL_ACTION_CLASS_HEADER = SG_CONFIG_PREFIX+"initial_action_class_header";
 
     /**
      * Set by SSL plugin for https requests only

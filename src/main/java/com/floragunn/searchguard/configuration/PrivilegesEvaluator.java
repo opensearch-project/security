@@ -158,15 +158,15 @@ public class PrivilegesEvaluator {
     }
 
     private Settings getRolesSettings() {
-        return configurationRepository.getConfiguration(ConfigConstants.CONFIGNAME_ROLES);
+        return configurationRepository.getConfiguration(ConfigConstants.CONFIGNAME_ROLES, false);
     }
 
     private Settings getRolesMappingSettings() {
-        return configurationRepository.getConfiguration(ConfigConstants.CONFIGNAME_ROLES_MAPPING);
+        return configurationRepository.getConfiguration(ConfigConstants.CONFIGNAME_ROLES_MAPPING, false);
     }
 
     private Settings getConfigSettings() {
-        return configurationRepository.getConfiguration(ConfigConstants.CONFIGNAME_CONFIG);
+        return configurationRepository.getConfiguration(ConfigConstants.CONFIGNAME_CONFIG, false);
     }
 
     private SgRoles getSgRoles(final User user, final TransportAddress caller) {

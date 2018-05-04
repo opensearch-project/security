@@ -116,6 +116,7 @@ public class SearchGuardInterceptor {
                             || k.equals(ConfigConstants.SG_MASKED_FIELD_HEADER)
                             || (k.equals("_sg_source_field_context") && ! (request instanceof SearchRequest) && !(request instanceof GetRequest))
                             || k.startsWith("_sg_trace")
+                            || k.startsWith(ConfigConstants.SG_INITIAL_ACTION_CLASS_HEADER)
                             )));
 
             ensureCorrectHeaders(remoteAdress0, user0, origin0);

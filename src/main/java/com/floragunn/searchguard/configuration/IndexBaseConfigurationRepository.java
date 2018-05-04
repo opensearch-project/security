@@ -48,6 +48,7 @@ import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.component.LifecycleListener;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
@@ -59,6 +60,8 @@ import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import com.floragunn.searchguard.auditlog.AuditLog;
+import com.floragunn.searchguard.compliance.ComplianceConfig;
 import com.floragunn.searchguard.ssl.util.ExceptionUtils;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.ConfigHelper;
@@ -82,14 +85,19 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
     private final LegacyConfigurationLoader legacycl;
     private final Settings settings;
     private final ClusterService clusterService;
+    private final AuditLog auditLog;
+    private final ComplianceConfig complianceConfig;
     private ThreadPool threadPool;
 
-    private IndexBaseConfigurationRepository(Settings settings, final Path configPath, ThreadPool threadPool, Client client, ClusterService clusterService) {
+    private IndexBaseConfigurationRepository(Settings settings, final Path configPath, ThreadPool threadPool, 
+            Client client, ClusterService clusterService, AuditLog auditLog, ComplianceConfig complianceConfig) {
         this.searchguardIndex = settings.get(ConfigConstants.SEARCHGUARD_CONFIG_INDEX_NAME, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
         this.settings = settings;
         this.client = client;
         this.threadPool = threadPool;
         this.clusterService = clusterService;
+        this.auditLog = auditLog;
+        this.complianceConfig = complianceConfig;
         this.typeToConfig = Maps.newConcurrentMap();
         this.configTypeToChancheListener = ArrayListMultimap.create();
         this.licenseChangeListener = new ArrayList<LicenseChangeListener>();
@@ -245,17 +253,23 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
     }
 
 
-    public static ConfigurationRepository create(Settings settings, final Path configPath, final ThreadPool threadPool, Client client,  ClusterService clusterService) {
-        final IndexBaseConfigurationRepository repository = new IndexBaseConfigurationRepository(settings, configPath, threadPool, client, clusterService);
+    public static ConfigurationRepository create(Settings settings, final Path configPath, final ThreadPool threadPool, Client client,  ClusterService clusterService, AuditLog auditLog, ComplianceConfig complianceConfig) {
+        final IndexBaseConfigurationRepository repository = new IndexBaseConfigurationRepository(settings, configPath, threadPool, client, clusterService, auditLog, complianceConfig);
         return repository;
     }
 
     @Override
-    public Settings getConfiguration(String configurationType) {
+    public Settings getConfiguration(String configurationType, boolean triggerComplianceWhenCached) {
 
         Settings result = typeToConfig.get(configurationType);
 
         if (result != null) {
+            
+            if(triggerComplianceWhenCached && complianceConfig.isEnabled()) {
+                Map<String, String> fields = new HashMap<String, String>();
+                fields.put(configurationType, Strings.toString(result));
+                auditLog.logDocumentRead(this.searchguardIndex, configurationType, null, fields, complianceConfig);
+            }
             return result;
         }
 
@@ -275,7 +289,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
     }
 
 
-    @Override
+    /*@Override
     public Map<String, Settings> getConfiguration(Collection<String> configTypes) {
         List<String> typesToLoad = Lists.newArrayList();
         Map<String, Settings> result = Maps.newHashMap();
@@ -304,7 +318,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
         }
 
         return result;
-    }
+    }*/
 
 
     @Override
@@ -462,7 +476,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
             return null;
         }
 
-        String licenseText = getConfiguration("config").get("searchguard.dynamic.license");
+        String licenseText = getConfiguration("config", false).get("searchguard.dynamic.license");
 
         if(licenseText == null || licenseText.isEmpty()) {
             return createOrGetTrial(null);

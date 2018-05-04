@@ -102,7 +102,7 @@ public class NullAuditLog implements AuditLog {
     }
 
     @Override
-    public void logDocumentRead(String index, String id, Map<String, String> fieldNameValues, ComplianceConfig complianceConfig) {
+    public void logDocumentRead(String index, String id, ShardId shardId, Map<String, String> fieldNameValues, ComplianceConfig complianceConfig) {
         //noop, intentionally left empty
     }
 
