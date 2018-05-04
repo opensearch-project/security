@@ -71,6 +71,7 @@ public final class ComplianceConfig implements LicenseChangeListener {
     private final Environment environment;
     private final AuditLog auditLog;
     private volatile boolean enabled = false;
+    private volatile boolean externalConfigLogged = false;
 
     public ComplianceConfig(final Environment environment, final IndexResolverReplacer irr, final AuditLog auditLog) {
         super();
@@ -141,7 +142,6 @@ public final class ComplianceConfig implements LicenseChangeListener {
     @Override
     public void onChange(SearchGuardLicense license) {
         
-        
         if(license == null) {
             this.enabled = false;
         } else {
@@ -155,8 +155,9 @@ public final class ComplianceConfig implements LicenseChangeListener {
         log.info("Compliance features are "+(this.enabled?"enabled":"disabled. To enable them you need a special license. Please contact support for this."));
         
         //only on node startup?
-        if(this.enabled && logExternalConfig) {
+        if(this.enabled && logExternalConfig && !externalConfigLogged) {
             auditLog.logExternalConfig(settings, environment);
+            externalConfigLogged = true;
         }
     }
 
