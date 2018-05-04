@@ -19,7 +19,7 @@
   <artifactId>search-guard-6</artifactId>
   <packaging>jar</packaging>
   <!-- 6.x.y-a.b-->
-  <version>6.2.2-compliance-beta-2-SNAPSHOT</version>
+  <version>6.2.2-compliance-RC-SNAPSHOT</version>
   <name>Search Guard</name>
   <description>Provide access control related features for Elasticsearch 6</description>
   <url>https://github.com/floragunncom/search-guard</url>
@@ -35,7 +35,7 @@
 
   <properties>
     <sgssl.version>6.2.2-25.2</sgssl.version>
-    <enterprise-modules.version>6.2.2-compliance-beta2-SNAPSHOT</enterprise-modules.version>
+    <enterprise-modules.version>6.2.2-compliance-RC-SNAPSHOT</enterprise-modules.version>
     <elasticsearch.version>6.2.2</elasticsearch.version>
     
     <!-- deps -->
