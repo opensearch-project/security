@@ -21,6 +21,8 @@ import static org.elasticsearch.rest.RestRequest.Method.*;
 
 import java.io.IOException;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
@@ -40,6 +42,7 @@ import com.floragunn.searchguard.user.User;
 
 public class KibanaInfoAction extends BaseRestHandler {
 
+    private final Logger log = LogManager.getLogger(this.getClass());
     private final PrivilegesEvaluator evaluator;
     private final ThreadContext threadContext;
 
@@ -76,6 +79,7 @@ public class KibanaInfoAction extends BaseRestHandler {
 
                     response = new BytesRestResponse(RestStatus.OK, builder);
                 } catch (final Exception e1) {
+                    log.error(e1.toString(),e1);
                     builder = channel.newBuilder(); //NOSONAR
                     builder.startObject();
                     builder.field("error", e1.toString());
