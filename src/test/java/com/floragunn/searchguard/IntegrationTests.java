@@ -957,16 +957,16 @@ public class IntegrationTests extends SingleClusterTest {
     public void testDNSpecials() throws Exception {
     
         final Settings settings = Settings.builder()
-                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("node-untspec5-keystore.jks"))
-                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-untspec5")
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("node-untspec5-keystore.p12"))
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "1")
                 .putList("searchguard.nodes_dn", "EMAILADDRESS=unt@tst.com,CN=node-untspec5.example.com,OU=SSL,O=Te\\, st,L=Test,C=DE")
-                .putList("searchguard.authcz.admin_dn", "EMAILADDRESS=abc@xyz.com,CN=unittestspecial1, OU=client, O=cli\\, ent, L=Test, C=DE")
+                .putList("searchguard.authcz.admin_dn", "EMAILADDRESS=unt@xxx.com,CN=node-untspec6.example.com,OU=SSL,O=Te\\, st,L=Test,C=DE")
                 .put("searchguard.cert.oid","1.2.3.4.5.6")
                 .build();
         
         
         Settings tcSettings = Settings.builder()
-                .put("searchguard.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("unittestspecial1-keystore.jks"))
+                .put("searchguard.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-untspec6-keystore.p12"))
                 .build();
         
         setup(tcSettings, new DynamicSgConfig(), settings, true);
@@ -981,16 +981,16 @@ public class IntegrationTests extends SingleClusterTest {
     public void testDNSpecials1() throws Exception {
     
         final Settings settings = Settings.builder()
-                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("node-untspec6-keystore.jks"))
-                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-untspec6")
-                .putList("searchguard.nodes_dn", "EMAILADDRESS=unt@tst.com,CN=node-untspec6.example.com,OU=SSL,O=Te\\, st,L=Test,C=DE")
-                .putList("searchguard.authcz.admin_dn", "EMAILADDREss=abc@xyz.com,CN=unittestspecial2, oU=Client, O=cli\\, ent, L=Test, C=DE")
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("node-untspec5-keystore.p12"))
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "1")
+                .putList("searchguard.nodes_dn", "EMAILADDRESS=unt@tst.com,CN=node-untspec5.example.com,OU=SSL,O=Te\\, st,L=Test,C=DE")
+                .putList("searchguard.authcz.admin_dn", "EMAILADDREss=unt@xxx.com,  cn=node-untspec6.example.com, OU=SSL,O=Te\\, st,L=Test, c=DE")
                 .put("searchguard.cert.oid","1.2.3.4.5.6")
                 .build();
         
         
         Settings tcSettings = Settings.builder()
-                .put("searchguard.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("unittestspecial2-keystore.jks"))
+                .put("searchguard.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-untspec6-keystore.p12"))
                 .build();
         
         setup(tcSettings, new DynamicSgConfig(), settings, true);
