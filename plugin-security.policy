@@ -59,7 +59,7 @@ grant {
   
   //Java 9+
   permission java.lang.RuntimePermission "accessClassInPackage.com.sun.jndi.ldap";
-
+};
 
 grant codeBase "${codebase.netty-common}" {
   permission java.lang.RuntimePermission "loadLibrary.*";
