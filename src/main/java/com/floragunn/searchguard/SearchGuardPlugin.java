@@ -655,6 +655,8 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
         irr = new IndexResolverReplacer(resolver, clusterService);
         auditLog = ReflectionHelper.instantiateAuditLog(settings, configPath, localClient, threadPool, resolver, clusterService);
         complianceConfig = dlsFlsAvailable && auditLog.getClass() != NullAuditLog.class?new ComplianceConfig(environment, Objects.requireNonNull(irr), auditLog):null;
+        auditLog.setComplianceConfig(complianceConfig);
+        
         sslExceptionHandler = new AuditLogSslExceptionHandler(auditLog);
 
         final String DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = DefaultInterClusterRequestEvaluator.class.getName();

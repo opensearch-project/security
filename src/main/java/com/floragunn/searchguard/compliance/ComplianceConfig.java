@@ -51,7 +51,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 
 
-public final class ComplianceConfig implements LicenseChangeListener {
+public class ComplianceConfig implements LicenseChangeListener {
 
     private final Logger log = LogManager.getLogger(getClass());
     private final Settings settings;

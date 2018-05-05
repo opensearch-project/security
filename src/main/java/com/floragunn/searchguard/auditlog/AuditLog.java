@@ -60,7 +60,10 @@ public interface AuditLog extends Closeable {
     void logDocumentWritten(ShardId shardId, GetResult originalIndex, GetResult currentGet, Index currentIndex, IndexResult result, ComplianceConfig complianceConfig);
     void logDocumentDeleted(ShardId shardId, Delete delete, DeleteResult result);
     void logExternalConfig(Settings settings, Environment environment);
-
+    
+    // compliance config
+    void setComplianceConfig(ComplianceConfig complianceConfig);
+    
     public enum Origin {
         REST, TRANSPORT, LOCAL
     }
