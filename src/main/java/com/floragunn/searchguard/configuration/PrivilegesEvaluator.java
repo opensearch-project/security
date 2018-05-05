@@ -1073,34 +1073,35 @@ public class PrivilegesEvaluator {
                     log.trace("caller (getHostName(), dns) is {}", caller.address().getHostName()); //reverse lookup
                 }
                 
-                //IPV4 or IPv6 (compressed and without scope identifiers)
-                final String ipAddress = caller.getAddress();
-                if (caller != null &&  WildcardMatcher.matchAny(roleMapSettings.getAsList(".hosts"), ipAddress)) {
-                    sgRoles.add(roleMap);
-                    continue;
-                }
-
-                final String hostResolverMode = getConfigSettings().get("searchguard.dynamic.hosts_resolver_mode","ip-only");
-                
-                if(hostResolverMode.equalsIgnoreCase("ip-hostname") || hostResolverMode.equalsIgnoreCase("ip-hostname-lookup")){
-                    final String hostName = caller.address().getHostString();
+                if(caller != null) {
+                    //IPV4 or IPv6 (compressed and without scope identifiers)
+                    final String ipAddress = caller.getAddress();
+                    if (WildcardMatcher.matchAny(roleMapSettings.getAsList(".hosts"), ipAddress)) {
+                        sgRoles.add(roleMap);
+                        continue;
+                    }
     
-                    if (caller != null &&  WildcardMatcher.matchAny(roleMapSettings.getAsList(".hosts"), hostName)) {
-                        sgRoles.add(roleMap);
-                        continue;
+                    final String hostResolverMode = getConfigSettings().get("searchguard.dynamic.hosts_resolver_mode","ip-only");
+                    
+                    if(caller.address() != null && (hostResolverMode.equalsIgnoreCase("ip-hostname") || hostResolverMode.equalsIgnoreCase("ip-hostname-lookup"))){
+                        final String hostName = caller.address().getHostString();
+        
+                        if (WildcardMatcher.matchAny(roleMapSettings.getAsList(".hosts"), hostName)) {
+                            sgRoles.add(roleMap);
+                            continue;
+                        }
+                    }
+                    
+                    if(caller.address() != null && hostResolverMode.equalsIgnoreCase("ip-hostname-lookup")){
+    
+                        final String resolvedHostName = caller.address().getHostName();
+             
+                        if (WildcardMatcher.matchAny(roleMapSettings.getAsList(".hosts"), resolvedHostName)) {
+                            sgRoles.add(roleMap);
+                            continue;
+                        }
                     }
                 }
-                
-                if(hostResolverMode.equalsIgnoreCase("ip-hostname-lookup")){
-
-                    final String resolvedHostName = caller.address().getHostName();
-         
-                    if (caller != null &&  WildcardMatcher.matchAny(roleMapSettings.getAsList(".hosts"), resolvedHostName)) {
-                        sgRoles.add(roleMap);
-                        continue;
-                    }
-                }
-
             }
         }
 
