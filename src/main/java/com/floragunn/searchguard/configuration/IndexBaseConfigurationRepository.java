@@ -88,6 +88,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
     private final AuditLog auditLog;
     private final ComplianceConfig complianceConfig;
     private ThreadPool threadPool;
+    private volatile SearchGuardLicense effectiveLicense;
 
     private IndexBaseConfigurationRepository(Settings settings, final Path configPath, ThreadPool threadPool, 
             Client client, ClusterService clusterService, AuditLog auditLog, ComplianceConfig complianceConfig) {
@@ -479,13 +480,21 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
         String licenseText = getConfiguration("config", false).get("searchguard.dynamic.license");
 
         if(licenseText == null || licenseText.isEmpty()) {
+            if(effectiveLicense != null) {
+                return effectiveLicense;
+            }
             return createOrGetTrial(null);
         } else {
             try {
                 licenseText = LicenseHelper.validateLicense(licenseText);
-                return new SearchGuardLicense(XContentHelper.convertToMap(XContentType.JSON.xContent(), licenseText, true), clusterService);
+                SearchGuardLicense retVal = new SearchGuardLicense(XContentHelper.convertToMap(XContentType.JSON.xContent(), licenseText, true), clusterService);
+                effectiveLicense = retVal;
+                return retVal;
             } catch (Exception e) {
                 LOGGER.error("Unable to verify license", e);
+                if(effectiveLicense != null) {
+                    return effectiveLicense;
+                }
                 return createOrGetTrial("Unable to verify license due to "+ExceptionUtils.getRootCause(e));
             }
         }
