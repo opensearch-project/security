@@ -33,4 +33,18 @@ jobs:
               ./dev/scan_veracode.sh
             fi
 
-#logging
+workflows:
+  version: 2
+  commit:
+    jobs:
+      - build
+  nightly:
+    triggers:
+      - schedule:
+          cron: "0 4 * * *"
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
+      - build
