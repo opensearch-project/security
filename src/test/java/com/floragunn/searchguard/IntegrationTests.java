@@ -2312,5 +2312,22 @@ public class IntegrationTests extends SingleClusterTest {
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest("special/_search",encodeBasicHeader("rexclude", "nagilum")).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest("alsonotallowed/_search",encodeBasicHeader("rexclude", "nagilum")).getStatusCode());
     }
+    
+    @Test
+    public void testDeleteByQueryDnfof() throws Exception {
+
+        setup(Settings.EMPTY, new DynamicSgConfig().setSgConfig("sg_config_dnfof.yml"), Settings.EMPTY);
+
+        try (TransportClient tc = getInternalTransportClient()) {                    
+            for(int i=0; i<3; i++) {
+                tc.index(new IndexRequest("vulcangov").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();        
+            }
+        }
+        
+        RestHelper rh = nonSslRestHelper();
+        HttpResponse res;
+        Assert.assertEquals(HttpStatus.SC_OK, (res=rh.executePostRequest("/vulcango*/_delete_by_query?refresh=true&wait_for_completion=true&pretty=true", "{\"query\" : {\"match_all\" : {}}}", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
+        Assert.assertTrue(res.getBody().contains("\"deleted\" : 3"));
+    }
 
 }

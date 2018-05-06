@@ -410,7 +410,10 @@ public class PrivilegesEvaluator {
                 } else {
 
                     if (dnfofEnabled
-                            && (action0.startsWith("indices:data/read/"))) {
+                            && (action0.startsWith("indices:data/read/"))
+                            && !requestedResolved.getAllIndices().isEmpty()
+                            ) {
+                        
                         Set<String> reduced = sgRoles.reduce(requestedResolved, user, new String[]{action0}, resolver, clusterService);
 
                         if(reduced.isEmpty()) {
