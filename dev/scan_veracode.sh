@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-export APPID=393148
-export SANDBOXID=537580
+export APPID=421799
+#export SANDBOXID=537580
 set -e
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $DIR/..

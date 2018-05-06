@@ -6,6 +6,7 @@ jobs:
     docker:
       - image: circleci/openjdk:8-jdk-browsers
     steps:
+      - run: sudo apt-get install libapr1 openssl libxml2-utils
       - run:
           name: Versions
           command: 'uname -a;java -version;openssl version'
@@ -27,8 +28,9 @@ jobs:
           name: Maybe Sonar and Deploy
           command: |
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
-              mvn deploy -DskipTests -s settings.xml
               mvn -Pcoverage sonar:sonar -Dsonar.organization=floragunncom-github -Dsonar.login=$SONAR_LOGIN -Dsonar.host.url=https://sonarcloud.io
+              mvn deploy -DskipTests -s settings.xml
+              ./dev/scan_veracode.sh
             fi
 
 #logging

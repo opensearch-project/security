@@ -161,7 +161,11 @@ public abstract class AbstractSGUnitTest {
             Assert.assertEquals(info.numNodes,
                     tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
 
-            tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
+            try {
+                tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
+            } catch (Exception e) {
+                //ignore
+            }
 
             for(IndexRequest ir: sgconfig.getDynamicConfig(getResourceFolder())) {
                 tc.index(ir).actionGet();
