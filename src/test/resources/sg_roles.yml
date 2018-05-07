@@ -360,6 +360,11 @@ sg_aliasmngt:
         - indices:data/read/*
         - CREATE_INDEX
         - indices:admin/aliases*
+    'beats-*':
+      '*':
+        - indices:data/write/*
+        - indices:data/read/*
+        - CREATE_INDEX
 
 sg_attr:
   indices:

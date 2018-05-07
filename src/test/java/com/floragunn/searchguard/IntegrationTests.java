@@ -1370,11 +1370,16 @@ public class IntegrationTests extends SingleClusterTest {
             tc.index(new IndexRequest("logstash-"+date).type("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
         
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("nopermindex").alias("nopermalias"))).actionGet();
+            tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("searchguard").alias("mysgi"))).actionGet();
         }
         
         RestHelper rh = nonSslRestHelper();
         
         HttpResponse res = null;
+        
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executePostRequest("/mysgi/sg", "{}",encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/mysgi/_search?pretty", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
+        assertContains(res, "*\"hits\" : {*\"total\" : 0,*\"hits\" : [ ]*");
         
         System.out.println("#### add alias to allowed index");
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePutRequest("/logstash-1/_alias/alog1", "",encodeBasicHeader("aliasmngt", "nagilum"))).getStatusCode());
@@ -1409,6 +1414,17 @@ public class IntegrationTests extends SingleClusterTest {
         
         System.out.println("#### get alias no perm");
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executeGetRequest("/_alias/nopermalias", encodeBasicHeader("aliasmngt", "nagilum"))).getStatusCode());
+        
+        String alias =
+        "{"+
+          "\"aliases\": {"+
+            "\"alias1\": {}"+
+          "}"+
+        "}";
+        
+        
+        System.out.println("#### create alias along with index");
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executePutRequest("/beats-withalias", alias,encodeBasicHeader("aliasmngt", "nagilum"))).getStatusCode());        
     }
 
     @Test

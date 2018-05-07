@@ -43,8 +43,11 @@ import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.OriginalIndices;
 import org.elasticsearch.action.RealtimeRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
+import org.elasticsearch.action.admin.indices.alias.Alias;
+import org.elasticsearch.action.admin.indices.alias.IndicesAliasesAction;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexAction;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.bulk.BulkAction;
@@ -498,6 +501,13 @@ public class PrivilegesEvaluator {
                 default:
                     break;
                 }
+            }
+        }
+        
+        if (request instanceof CreateIndexRequest) {
+            CreateIndexRequest cir = (CreateIndexRequest) request;
+            if(cir.aliases() != null && !cir.aliases().isEmpty()) {
+                additionalPermissionsRequired.add(IndicesAliasesAction.NAME);
             }
         }
         
