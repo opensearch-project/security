@@ -134,3 +134,7 @@ sg_attr:
 sg_rexclude:
   users:
     - rexclude
+    
+sg_aliastest:
+  users:
+    - aliastest

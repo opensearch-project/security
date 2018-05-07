@@ -377,3 +377,19 @@ sg_rexclude:
     '/(?!special|alsonotallowed)(\S|\s)*/':
       '*':
         - READ
+        
+sg_aliastest:
+  indices:
+    'concreteindex-2':
+      '*':
+        - indices:data/write/*
+        - indices:data/read/*
+    'calias-1':
+      '*':
+        - indices:data/write/*
+        - indices:data/read/*
+    'calias-2':
+      '*':
+        - indices:data/write/*
+        - indices:data/read/*
+        

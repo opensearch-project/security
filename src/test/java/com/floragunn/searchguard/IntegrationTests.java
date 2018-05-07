@@ -1980,4 +1980,19 @@ public class IntegrationTests extends SingleClusterTest {
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest("alsonotallowed/_search",encodeBasicHeader("rexclude", "nagilum")).getStatusCode());
     }
     
+    @Test
+    public void testAliasResolution() throws Exception {
+        final Settings settings = Settings.builder()
+                .build();
+        setup(settings);
+        final RestHelper rh = nonSslRestHelper();
+    
+            try (TransportClient tc = getInternalTransportClient()) {                    
+                tc.index(new IndexRequest("concreteindex-1").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();                
+                tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("concreteindex-1").alias("calias-1"))).actionGet();
+            }
+
+            Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("calias-1/_search?pretty", encodeBasicHeader("aliastest", "nagilum")).getStatusCode());
+    }
+    
 }
