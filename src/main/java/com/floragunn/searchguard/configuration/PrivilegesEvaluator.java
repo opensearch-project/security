@@ -43,7 +43,6 @@ import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.OriginalIndices;
 import org.elasticsearch.action.RealtimeRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
-import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesAction;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
@@ -1157,8 +1156,24 @@ public class PrivilegesEvaluator {
     private void handleIndicesWithWildcard(final String[] action0, final String permittedAliasesIndex,
             final Map<String, Settings> permittedAliasesIndices, final Set<IndexType> requestedResolvedIndexTypes, final Set<IndexType> _requestedResolvedIndexTypes, final Set<String> requestedResolvedIndices0) {
         
+        final List<String> permittedAliasesIndicesResolved = new ArrayList<String>();
+        permittedAliasesIndicesResolved.add(permittedAliasesIndex);
+        
+        if(WildcardMatcher.containsWildcard(permittedAliasesIndex)) {
+            final String[] aliasesForPermittedPattern = clusterService.state().getMetaData().getAliasAndIndexLookup()        
+            .entrySet().stream()
+            .filter(e->e.getValue().isAlias())
+            .filter(e->WildcardMatcher.match(permittedAliasesIndex, e.getKey()))
+            .map(e->e.getKey()).toArray(String[]::new);
+    
+            
+            if(aliasesForPermittedPattern != null && aliasesForPermittedPattern.length > 0) {
+                permittedAliasesIndicesResolved.addAll(Arrays.asList(resolver.concreteIndexNames(clusterService.state(), DEFAULT_INDICES_OPTIONS, aliasesForPermittedPattern)));
+            }
+        }
+
         List<String> wi = null;
-        if (!(wi = WildcardMatcher.getMatchAny(permittedAliasesIndex, requestedResolvedIndices0.toArray(new String[0]))).isEmpty()) {
+        if (!(wi = WildcardMatcher.getMatchAny(permittedAliasesIndicesResolved.toArray(new String[0]), requestedResolvedIndices0)).isEmpty()) {
 
             if (log.isDebugEnabled()) {
                 log.debug("  Wildcard match for {}: {}", permittedAliasesIndex, wi);

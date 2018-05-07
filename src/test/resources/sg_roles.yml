@@ -380,15 +380,11 @@ sg_rexclude:
         
 sg_aliastest:
   indices:
-    'concreteindex-2':
+    '?kibana':
       '*':
         - indices:data/write/*
         - indices:data/read/*
     'calias-1':
-      '*':
-        - indices:data/write/*
-        - indices:data/read/*
-    'calias-2':
       '*':
         - indices:data/write/*
         - indices:data/read/*
