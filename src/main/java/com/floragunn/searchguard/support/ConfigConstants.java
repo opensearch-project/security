@@ -110,7 +110,6 @@ public class ConfigConstants {
     
     public static final String SEARCHGUARD_AUDIT_TYPE_DEFAULT = "searchguard.audit.type";    
     public static final String SEARCHGUARD_AUDIT_CONFIG_DEFAULT = "searchguard.audit.config";
-    public static final String SEARCHGUARD_AUDIT_CONFIG_FALLBACK = "searchguard.audit.fallback";
     public static final String SEARCHGUARD_AUDIT_CONFIG_ROUTES = "searchguard.audit.routes";
     public static final String SEARCHGUARD_AUDIT_CONFIG_ENDPOINTS = "searchguard.audit.endpoints";
     public static final String SEARCHGUARD_AUDIT_THREADPOOL_SIZE = "searchguard.audit.threadpool.size";
