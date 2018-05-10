@@ -169,6 +169,7 @@ public class PrivilegesEvaluator {
         return configurationRepository.getConfiguration(ConfigConstants.CONFIGNAME_CONFIG, false);
     }
 
+    //TODO: optimize, recreate only if changed
     private SgRoles getSgRoles(final User user, final TransportAddress caller) {
         Set<String> roles = mapSgRoles(user, caller);
         return configModel.load().filter(roles);
@@ -539,8 +540,16 @@ public class PrivilegesEvaluator {
 
 
         //not bulk, mget, etc request here
-        boolean permGiven = sgRoles.get(requestedResolved, user, allIndexPermsRequiredA, resolver, clusterService);
+        boolean permGiven = false;
 
+        if (config.getAsBoolean("searchguard.dynamic.multi_rolespan_enabled", false)) {
+            permGiven = sgRoles.impliesTypePermGlobal(requestedResolved, user, allIndexPermsRequiredA, resolver, clusterService);
+        }  else {
+            permGiven = sgRoles.get(requestedResolved, user, allIndexPermsRequiredA, resolver, clusterService);
+
+        }
+
+        
         /*if(!allowAction
                 && privilegesInterceptor.getClass() != PrivilegesInterceptor.class
                 && leftovers.size() > 0) {

@@ -305,7 +305,7 @@ public class ConfigModel {
         //return true on success
         public boolean get(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
             for(SgRole sgr: roles) {
-                if(sgr.impliesTypePerm(resolved, user, actions, resolver, cs)) {
+                if(ConfigModel.impliesTypePerm(sgr.getIpatterns(), resolved, user, actions, resolver, cs)) {
                     return true;
                 }
             }
@@ -316,6 +316,13 @@ public class ConfigModel {
             return roles.stream()
                     .filter(r->r.impliesClusterPermission(action)).count() > 0;
         }
+        
+        //rolespan
+        public boolean impliesTypePermGlobal(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
+            Set<IndexPattern> ipatterns = new HashSet<ConfigModel.IndexPattern>();
+            roles.stream().forEach(p->ipatterns.addAll(p.getIpatterns()));
+            return ConfigModel.impliesTypePerm(ipatterns, resolved, user, actions, resolver, cs);
+        }  
     }
 
     public static class SgRole {
@@ -378,55 +385,7 @@ public class ConfigModel {
             return Collections.unmodifiableSet(retVal);
         }
 
-        private boolean impliesTypePerm(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
-            //System.out.println("impliesTypePerm ("+this.name+") "+resolved.getAllIndices()+"/"+resolved.getTypes()+" for "+Arrays.toString(actions));
-            Set<String> matchingIndex = new HashSet<>(resolved.getAllIndices());
-
-            for(String in: resolved.getAllIndices()) {
-                //find index patterns who are matching
-                Set<String> matchingActions = new HashSet<>(Arrays.asList(actions));
-                Set<String> matchingTypes = new HashSet<>(resolved.getTypes());
-                //System.out.println("--wanted index "+in+"--");
-                for(IndexPattern p: ipatterns) {
-                    //System.out.println(" ip:"+p.getUnresolvedIndexPattern(user)+"##"+Arrays.toString(p.getResolvedIndexPattern(user, resolver, cs)));
-                    if(WildcardMatcher.matchAny(p.getResolvedIndexPattern(user, resolver, cs), in)) {
-                        //per resolved index per pattern
-                        //System.out.println("  match ip: "+p.getUnresolvedIndexPattern(user));
-                        //WildcardMatcher.wildcardRemoveFromSet(matchingIndex, in);
-                        //matchingIndex.remove(in);
-                        for(String t: resolved.getTypes()) {
-                            for(TypePerm tp: p.typePerms) {
-                                if(WildcardMatcher.match(tp.typePattern, t)) {
-                                    //System.out.println("    match type: "+tp.getTypePattern());
-                                    //WildcardMatcher.wildcardRemoveFromSet(matchingTypes, t);
-                                    matchingTypes.remove(t);
-                                    for(String a: Arrays.asList(actions)) {
-                                        //System.out.println("      check if "+a+" is in "+(tp.perms));
-                                        if(WildcardMatcher.matchAny(tp.perms, a)) {
-                                            //System.out.println("      match action: "+a);
-                                            //WildcardMatcher.wildcardRemoveFromSet(matchingActions, a);
-                                            matchingActions.remove(a);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if(matchingActions.isEmpty() && matchingTypes.isEmpty()) {
-                    if(matchingIndex.remove(in)) {
-                        //System.out.println("  matched:: ("+matchingTypes+") ("+matchingActions+")");
-                    }
-
-                } else {
-                    //System.out.println("  no matched:: ("+matchingTypes+") ("+matchingActions+")");
-                }
-            }
-
-            //System.out.println("  2 - final matched:: "+retVal+" ("+matchingIndex+") ("+matchingTypes+") ("+matchingActions+")");
-            return matchingIndex.isEmpty();
-        }
+        
 
         private SgRole addTenant(Tenant tenant) {
             if(tenant != null) {
@@ -814,5 +773,55 @@ public class ConfigModel {
             orig = orig.replace("${"+entry.getKey().replace('.', '_')+"}", entry.getValue());
         }
         return orig;
+    }
+    
+    private static boolean impliesTypePerm(Set<IndexPattern> ipatterns, Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
+        //System.out.println("impliesTypePerm ("+this.name+") "+resolved.getAllIndices()+"/"+resolved.getTypes()+" for "+Arrays.toString(actions));
+        Set<String> matchingIndex = new HashSet<>(resolved.getAllIndices());
+
+        for(String in: resolved.getAllIndices()) {
+            //find index patterns who are matching
+            Set<String> matchingActions = new HashSet<>(Arrays.asList(actions));
+            Set<String> matchingTypes = new HashSet<>(resolved.getTypes());
+            //System.out.println("--wanted index "+in+"--");
+            for(IndexPattern p: ipatterns) {
+                //System.out.println(" ip:"+p.getUnresolvedIndexPattern(user)+"##"+Arrays.toString(p.getResolvedIndexPattern(user, resolver, cs)));
+                if(WildcardMatcher.matchAny(p.getResolvedIndexPattern(user, resolver, cs), in)) {
+                    //per resolved index per pattern
+                    //System.out.println("  match ip: "+p.getUnresolvedIndexPattern(user));
+                    //WildcardMatcher.wildcardRemoveFromSet(matchingIndex, in);
+                    //matchingIndex.remove(in);
+                    for(String t: resolved.getTypes()) {
+                        for(TypePerm tp: p.typePerms) {
+                            if(WildcardMatcher.match(tp.typePattern, t)) {
+                                //System.out.println("    match type: "+tp.getTypePattern());
+                                //WildcardMatcher.wildcardRemoveFromSet(matchingTypes, t);
+                                matchingTypes.remove(t);
+                                for(String a: Arrays.asList(actions)) {
+                                    //System.out.println("      check if "+a+" is in "+(tp.perms));
+                                    if(WildcardMatcher.matchAny(tp.perms, a)) {
+                                        //System.out.println("      match action: "+a);
+                                        //WildcardMatcher.wildcardRemoveFromSet(matchingActions, a);
+                                        matchingActions.remove(a);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if(matchingActions.isEmpty() && matchingTypes.isEmpty()) {
+                if(matchingIndex.remove(in)) {
+                    //System.out.println("  matched:: ("+matchingTypes+") ("+matchingActions+")");
+                }
+
+            } else {
+                //System.out.println("  no matched:: ("+matchingTypes+") ("+matchingActions+")");
+            }
+        }
+
+        //System.out.println("  2 - final matched:: "+retVal+" ("+matchingIndex+") ("+matchingTypes+") ("+matchingActions+")");
+        return matchingIndex.isEmpty();
     }
 }
