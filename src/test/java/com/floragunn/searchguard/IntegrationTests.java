@@ -2058,5 +2058,20 @@ public class IntegrationTests extends SingleClusterTest {
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
          
     }
+    
+    @Test
+    public void testCCSIndexResolve() throws Exception {
+        
+        setup();
+        final RestHelper rh = nonSslRestHelper();
+
+        try (TransportClient tc = getInternalTransportClient()) {                                       
+            tc.index(new IndexRequest(".abc-6").type("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
+        }
+        
+        HttpResponse res = rh.executeGetRequest("/*:.abc-6,.abc-6/_search", encodeBasicHeader("ccsresolv", "nagilum"));
+        Assert.assertTrue(res.getBody(),res.getBody().contains("\"content\":1"));
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+    }
 
 }
