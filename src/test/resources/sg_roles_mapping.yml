@@ -151,3 +151,7 @@ sg_mindex2:
 sg_mindex3:
   users:
     - mindex12
+    
+sg_ccsresolv:
+  users:
+    - ccsresolv

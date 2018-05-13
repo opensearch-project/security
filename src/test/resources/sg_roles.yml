@@ -434,3 +434,9 @@ sg_mindex3:
     'mindex_3':
       '*':
         - indices:data/write*
+        
+sg_ccsresolv:
+  indices:
+    '?abc*':
+      '*':
+        - 'indices:data/read/*'
