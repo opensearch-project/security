@@ -59,8 +59,9 @@ public class ComplianceConfig implements LicenseChangeListener {
     private final List<String> watchedWriteIndices;
     private DateTimeFormatter auditLogPattern = null;
     private String auditLogIndex = null;
-    private final boolean logDiffsOnlyForWrite;
-    private final boolean logMetadataOnly;
+    private final boolean logDiffsForWrite;
+    private final boolean logWriteMetadataOnly;
+    private final boolean logReadMetadataOnly;
     private final boolean logExternalConfig;
     private final boolean logInternalConfig;
     private final LoadingCache<String, Set<String>> cache;
@@ -83,8 +84,9 @@ public class ComplianceConfig implements LicenseChangeListener {
                 Collections.emptyList(), false);
 
         watchedWriteIndices = settings.getAsList(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, Collections.emptyList());
-        logDiffsOnlyForWrite = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_WRITE_DIFFS_ONLY, false);
-        logMetadataOnly = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_METADATA_ONLY, false);
+        logDiffsForWrite = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS, false);
+        logWriteMetadataOnly = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_WRITE_METADATA_ONLY, false);
+        logReadMetadataOnly = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_READ_METADATA_ONLY, false);
         logExternalConfig = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED, false);
         logInternalConfig = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, false);
         immutableIndicesPatterns = new HashSet<String>(settings.getAsList(ConfigConstants.SEARCHGUARD_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList()));
@@ -268,12 +270,16 @@ public class ComplianceConfig implements LicenseChangeListener {
         }
     }
 
-    public boolean logDiffsOnlyForWrite() {
-        return logDiffsOnlyForWrite;
+    public boolean logDiffsForWrite() {
+        return !logWriteMetadataOnly() && logDiffsForWrite;
     }
 
-    public boolean logMetadataOnly() {
-        return logMetadataOnly;
+    public boolean logWriteMetadataOnly() {
+        return logWriteMetadataOnly;
+    }
+    
+    public boolean logReadMetadataOnly() {
+        return logReadMetadataOnly;
     }
 
     //check for isEnabled

@@ -852,8 +852,9 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
         // Compliance
         settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
         settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
-        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_METADATA_ONLY, false, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_WRITE_DIFFS_ONLY, false, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_WRITE_METADATA_ONLY, false, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_READ_METADATA_ONLY, false, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS, false, Property.NodeScope, Property.Filtered));
         settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED, false, Property.NodeScope, Property.Filtered));
         settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_READ_IGNORE_USERS, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
         settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here

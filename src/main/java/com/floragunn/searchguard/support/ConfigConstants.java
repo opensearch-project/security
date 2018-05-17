@@ -177,10 +177,11 @@ public class ConfigConstants {
 
     public static final String SEARCHGUARD_ROLES_MAPPING_RESOLUTION = "searchguard.roles_mapping_resolution";
 
-    public static final String SEARCHGUARD_COMPLIANCE_HISTORY_METADATA_ONLY = "searchguard.compliance.history.metadata_only";
+    public static final String SEARCHGUARD_COMPLIANCE_HISTORY_WRITE_METADATA_ONLY = "searchguard.compliance.history.write.metadata_only";
+    public static final String SEARCHGUARD_COMPLIANCE_HISTORY_READ_METADATA_ONLY = "searchguard.compliance.history.read.metadata_only";
     public static final String SEARCHGUARD_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS = "searchguard.compliance.history.read.watched_fields";
     public static final String SEARCHGUARD_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES = "searchguard.compliance.history.write.watched_indices";
-    public static final String SEARCHGUARD_COMPLIANCE_HISTORY_WRITE_DIFFS_ONLY = "searchguard.compliance.history.write.diffs_only";
+    public static final String SEARCHGUARD_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS = "searchguard.compliance.history.write.log_diffs";
     public static final String SEARCHGUARD_COMPLIANCE_HISTORY_READ_IGNORE_USERS = "searchguard.compliance.history.read.ignore_users";
     public static final String SEARCHGUARD_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS = "searchguard.compliance.history.write.ignore_users";
     public static final String SEARCHGUARD_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED  = "searchguard.compliance.history.external_config_enabled";
