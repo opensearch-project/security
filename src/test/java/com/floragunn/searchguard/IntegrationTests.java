@@ -66,6 +66,7 @@ import org.elasticsearch.node.PluginAwareNode;
 import org.elasticsearch.transport.Netty4Plugin;
 import org.junit.Assert;
 import org.junit.Assume;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.floragunn.searchguard.action.configupdate.ConfigUpdateAction;
@@ -2401,4 +2402,66 @@ public class IntegrationTests extends SingleClusterTest {
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
     }
 
+    @Test
+    @Ignore
+    public void testCCSIndexResolve2() throws Exception {
+        
+        setup();
+        final RestHelper rh = nonSslRestHelper();
+
+        try (TransportClient tc = getInternalTransportClient()) {                                       
+            tc.index(new IndexRequest(".abc").type("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest("xyz").type("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":2}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest("noperm").type("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":3}", XContentType.JSON)).actionGet();
+
+        }
+        
+        HttpResponse res = rh.executeGetRequest("/*:.abc,.abc/_search", encodeBasicHeader("nagilum", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        Assert.assertTrue(res.getBody(),res.getBody().contains("\"content\":1"));
+        
+        res = rh.executeGetRequest("/ba*bcuzh/_search", encodeBasicHeader("nagilum", "nagilum"));
+        Assert.assertTrue(res.getBody(),res.getBody().contains("\"content\":12"));
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        
+        res = rh.executeGetRequest("/*:.abc/_search", encodeBasicHeader("nagilum", "nagilum"));
+        Assert.assertTrue(res.getBody(),res.getBody().contains("\"content\":1"));
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        
+        res = rh.executeGetRequest("/*:xyz,xyz/_search", encodeBasicHeader("nagilum", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        Assert.assertTrue(res.getBody(),res.getBody().contains("\"content\":2"));
+        
+        //res = rh.executeGetRequest("/*noexist/_search", encodeBasicHeader("nagilum", "nagilum"));
+        //Assert.assertEquals(HttpStatus.SC_NOT_FOUND, res.getStatusCode()); 
+        
+        res = rh.executeGetRequest("/*:.abc/_search", encodeBasicHeader("nagilum", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode()); 
+        Assert.assertTrue(res.getBody(),res.getBody().contains("\"content\":1"));
+        
+        res = rh.executeGetRequest("/*:xyz/_search", encodeBasicHeader("nagilum", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode()); 
+        Assert.assertTrue(res.getBody(),res.getBody().contains("\"content\":2"));
+   
+        res = rh.executeGetRequest("/.abc/_search", encodeBasicHeader("ccsresolv", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());  
+        res = rh.executeGetRequest("/xyz/_search", encodeBasicHeader("ccsresolv", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());  
+        res = rh.executeGetRequest("/*:.abc,.abc/_search", encodeBasicHeader("ccsresolv", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());  
+        res = rh.executeGetRequest("/*:xyz,xyz/_search", encodeBasicHeader("ccsresolv", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        res = rh.executeGetRequest("/*:.abc/_search", encodeBasicHeader("ccsresolv", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode()); 
+        res = rh.executeGetRequest("/*:xyz/_search", encodeBasicHeader("ccsresolv", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode()); 
+        res = rh.executeGetRequest("/*:noperm/_search", encodeBasicHeader("ccsresolv", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        res = rh.executeGetRequest("/*:noperm/_search", encodeBasicHeader("ccsresolv", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        System.out.println(res.getBody());
+        res = rh.executeGetRequest("/*:noexists/_search", encodeBasicHeader("ccsresolv", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        System.out.println(res.getBody());
+    }
 }
