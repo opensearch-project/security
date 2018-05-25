@@ -191,9 +191,6 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
     public SearchGuardPlugin(final Settings settings, final Path configPath) {
         super(settings, configPath, settings.getAsBoolean(ConfigConstants.SEARCHGUARD_DISABLED, false));
 
-        log.warn("*** This is a RC version and NOT suitable for production. ***");
-        System.out.println("*** This is a RC version and NOT suitable for production. ***");
-
         disabled = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_DISABLED, false);
 
         if(disabled) {
