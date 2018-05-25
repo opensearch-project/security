@@ -2074,4 +2074,21 @@ public class IntegrationTests extends SingleClusterTest {
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
     }
 
+    @Test
+    public void testSGUnderscore() throws Exception {
+        
+        setup();
+        final RestHelper rh = nonSslRestHelper();
+        
+        HttpResponse res = rh.executePostRequest("abc_xyz_2018_05_24/logs/1", "{\"content\":1}", encodeBasicHeader("underscore", "nagilum"));
+        
+        res = rh.executeGetRequest("abc_xyz_2018_05_24/logs/1", encodeBasicHeader("underscore", "nagilum"));
+        Assert.assertTrue(res.getBody(),res.getBody().contains("\"content\":1"));
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        res = rh.executeGetRequest("abc_xyz_2018_05_24/_refresh", encodeBasicHeader("underscore", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        res = rh.executeGetRequest("aaa_bbb_2018_05_24/_refresh", encodeBasicHeader("underscore", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+    }
+
 }

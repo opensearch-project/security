@@ -416,3 +416,11 @@ sg_ccsresolv:
     '?abc*':
       '*':
         - 'indices:data/read/*'
+        
+sg_underscore:
+  cluster:
+    - '*'
+  indices:
+    '*abc_xyz_*':
+      '*':
+        - '*'
