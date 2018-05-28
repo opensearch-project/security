@@ -209,6 +209,23 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.21.0</version>
+        
+        <configuration>
+          <forkCount>3</forkCount>
+          <reuseForks>true</reuseForks>
+          <!-- 
+          <parallel>methods</parallel>
+          <threadCount>1</threadCount>
+           -->
+          <systemPropertyVariables>
+              <forkno>fork_${surefire.forkNumber}</forkno>
+          </systemPropertyVariables>
+        
+          <includes>
+              <include>**/*.java</include>
+          </includes>
+        </configuration>
       </plugin>
     </plugins>
   </build>

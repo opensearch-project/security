@@ -1,6 +1,7 @@
 version: 2
 jobs:
   build:
+    parallelism: 4
     working_directory: ~/circleci-sg
     resource_class: large
     docker:
@@ -19,11 +20,20 @@ jobs:
             - ~/.m2
           key: circleci-sg-{{ checksum "pom.xml" }}
       - run: ./smoketest.sh
-      - run: mvn -Pcoverage verify
+      - run:
+          command: |
+            set -x
+            cd src/test/java         
+            TESTFILES="$(circleci tests glob **/*Tests*.java | circleci tests split --split-by=timings | tr -s '\n' ',')"
+            echo "$TESTFILES"
+            #echo "${TESTFILES// /,}"
+            cd ~/circleci-sg
+            mvn -Pcoverage verify -Dtest="$TESTFILES"
+      #- run: mvn -Pcoverage verify mvn test -Dtest="com/floragunn/searchguard/HealthTests.java"
       - store_test_results:
           path: target/surefire-reports
-      #- store_artifacts:
-      #    path: target/demo-java-spring-0.0.1-SNAPSHOT.jar
+      - store_artifacts:
+          path: /.circleci-task-data
       - deploy:
           name: Maybe Deploy
           command: |

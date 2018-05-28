@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.http.Header;
 import org.apache.http.message.BasicHeader;
@@ -61,6 +62,8 @@ import com.floragunn.searchguard.test.helper.rest.RestHelper.HttpResponse;
 import com.floragunn.searchguard.test.helper.rules.SGTestWatcher;
 
 public abstract class AbstractSGUnitTest {
+    
+    protected static final AtomicLong num = new AtomicLong();
 
 	static {
 

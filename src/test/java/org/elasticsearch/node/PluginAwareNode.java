@@ -23,9 +23,16 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
 
 public class PluginAwareNode extends Node {
+    
+    private final boolean masterEligible;
 
     @SafeVarargs
-    public PluginAwareNode(final Settings preparedSettings, final Class<? extends Plugin>... plugins) {
+    public PluginAwareNode(boolean masterEligible, final Settings preparedSettings, final Class<? extends Plugin>... plugins) {
         super(InternalSettingsPreparer.prepareEnvironment(preparedSettings, null), Arrays.asList(plugins));
+        this.masterEligible = masterEligible;
+    }
+
+    public boolean isMasterEligible() {
+        return masterEligible;
     }
 }
