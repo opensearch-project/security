@@ -365,6 +365,10 @@ public class PrivilegesEvaluator {
         
         if(action.startsWith("cluster:admin/snapshot/restore")) {
             if (enableSnapshotRestorePrivilege) {
+                if(clusterInfoHolder.isLocalNodeElectedMaster() == Boolean.FALSE) {
+                    presponse.allowed = true;
+                    return presponse;
+                }
                 return evaluateSnapshotRestore(user, action, request, caller, task);
             } else {
                 log.warn(action + " is not allowed for a regular user");
