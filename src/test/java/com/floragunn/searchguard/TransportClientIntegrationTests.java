@@ -53,6 +53,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
         
         final Settings settings = Settings.builder()
                 .putList(ConfigConstants.SEARCHGUARD_AUTHCZ_IMPERSONATION_DN+".CN=spock,OU=client,O=client,L=Test,C=DE", "worf", "nagilum")
+                .put("discovery.initial_state_timeout","8s")
                 .build();
         setup(settings);
     

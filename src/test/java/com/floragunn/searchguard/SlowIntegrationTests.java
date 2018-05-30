@@ -40,6 +40,7 @@ public class SlowIntegrationTests extends SingleClusterTest {
         
         final Settings settings = Settings.builder()
                 .put(ConfigConstants.SG_INTERCLUSTER_REQUEST_EVALUATOR_CLASS, "com.floragunn.searchguard.AlwaysFalseInterClusterRequestEvaluator")
+                .put("discovery.initial_state_timeout","8s")
                 .build();
         setup(Settings.EMPTY, null, settings, false,ClusterConfiguration.DEFAULT ,5,1);
         Assert.assertEquals(1, clusterHelper.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getNumberOfNodes());
@@ -61,6 +62,7 @@ public class SlowIntegrationTests extends SingleClusterTest {
                 .put("node.master", false)
                 .put("node.ingest", false)
                 .put("path.home", ".")
+                .put("discovery.initial_state_timeout","8s")
                 .putList("discovery.zen.ping.unicast.hosts", clusterInfo.nodeHost+":"+clusterInfo.nodePort)
                 .build();
     
@@ -87,16 +89,20 @@ public class SlowIntegrationTests extends SingleClusterTest {
                 .put("node.master", false)
                 .put("node.ingest", false)
                 .put("path.home", ".")
+                .put("discovery.initial_state_timeout","8s")
                 .put("searchguard.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("kirk-keystore.jks"))
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS,"kirk")
                 .build();
     
         log.debug("Start node client");
-        
+
         try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class, SearchGuardPlugin.class).start()) {
             Thread.sleep(50);
             Assert.assertEquals(1, node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());    
+        } catch (Exception e) {
+            Assert.fail(e.toString());
         }
+         
     }
     
     @SuppressWarnings("resource")
@@ -113,6 +119,7 @@ public class SlowIntegrationTests extends SingleClusterTest {
                 .put("node.master", false)
                 .put("node.ingest", false)
                 .put("path.home", ".")
+                .put("discovery.initial_state_timeout","8s")
                 .put("searchguard.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("spock-keystore.jks"))
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS,"spock")
                 .build();

@@ -151,6 +151,8 @@ public final class ClusterHelper {
 	    //close master nodes
 	    esNodes.stream().filter(n->n.isMasterEligible()).forEach(node->closeNode(node));		
 		esNodes.clear();
+		
+		FileUtils.deleteDirectory(new File("data/"+clustername));
 	}
 	
 	private static void closeNode(Node node) {
@@ -274,6 +276,7 @@ public final class ClusterHelper {
 				.put("discovery.zen.minimum_master_nodes", minMasterNodes(masterCount))
 				.put("discovery.zen.no_master_block", "all")
 				.put("discovery.zen.fd.ping_timeout", "5s")
+				.put("discovery.initial_state_timeout","8s")
 				.putList("discovery.zen.ping.unicast.hosts", tcpPorts.stream().map(s->"127.0.0.1:"+s).collect(Collectors.toList()))
 				.put("transport.tcp.port", tcpPort)
 				.put("http.port", httpPort)
