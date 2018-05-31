@@ -233,7 +233,7 @@ public class PrivilegesEvaluator {
         }
 
 
-        final Resolved requestedResolved = irr.resolve(request);
+        final Resolved requestedResolved = irr.resolveRequest(request);
 
         if (log.isDebugEnabled()) {
             log.debug("requestedResolved : {}", requestedResolved );

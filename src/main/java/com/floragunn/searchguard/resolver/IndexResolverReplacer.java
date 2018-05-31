@@ -116,7 +116,7 @@ public final class IndexResolverReplacer {
         return false;
     }
 
-    private Resolved resolve(final String... requestedPatterns) {
+    private Resolved resolveIndexPatterns(final String... requestedPatterns) {
 
         if(log.isTraceEnabled()) {
             log.trace("resolve requestedPatterns: "+Arrays.toString(requestedPatterns));
@@ -201,6 +201,7 @@ public final class IndexResolverReplacer {
 
     }
 
+    @SuppressWarnings("rawtypes")
     private Set<String> resolveTypes(final Object request) {
         // check if type security is enabled
         final Class<?> requestClass = request.getClass();
@@ -283,7 +284,7 @@ public final class IndexResolverReplacer {
         return Collections.unmodifiableSet(requestTypes);
     }
 
-    public boolean exclude(final TransportRequest request, String... exclude) {
+    /*public boolean exclude(final TransportRequest request, String... exclude) {
         return getOrReplaceAllIndices(request, new IndicesProvider() {
 
             @Override
@@ -292,15 +293,15 @@ public final class IndexResolverReplacer {
                     
                     final List<String> result = new ArrayList<String>(Arrays.asList(original));
                     
-                    /*if(isAll(original)) {
-                        result = new ArrayList<String>(Collections.singletonList("*"));
-                    } else {
-                        result = new ArrayList<String>(Arrays.asList(original));
-                    }*/
+//                    if(isAll(original)) {
+//                        result = new ArrayList<String>(Collections.singletonList("*"));
+//                    } else {
+//                        result = new ArrayList<String>(Arrays.asList(original));
+//                    }
                     
                     
                     
-                    final Set<String> preliminary = new HashSet<>(resolve(result.toArray(new String[0])).allIndices);      
+                    final Set<String> preliminary = new HashSet<>(resolveIndexPatterns(result.toArray(new String[0])).allIndices);      
                     
                     if(log.isTraceEnabled()) {
                         log.trace("resolved original {}, excludes {}",preliminary, Arrays.toString(exclude));
@@ -324,8 +325,9 @@ public final class IndexResolverReplacer {
                 }
             }
         }, false);
-    }
+    }*/
 
+    //dnfof
     public boolean replace(final TransportRequest request, boolean retainMode, String... replacements) {
         return getOrReplaceAllIndices(request, new IndicesProvider() {
 
@@ -350,11 +352,7 @@ public final class IndexResolverReplacer {
         }, false);
     }
 
-    public Resolved resolve(final Object request) {
-        return resolve0(request);
-    }
-
-    private Resolved resolve0(final Object request) {
+    public Resolved resolveRequest(final Object request) {
         if(log.isDebugEnabled()) {
             log.debug("Resolve aliases, indices and types from {}", request.getClass().getSimpleName());
         }
@@ -385,7 +383,7 @@ public final class IndexResolverReplacer {
                     }
 
                 } else {
-                    final Resolved iResolved = resolve(original);
+                    final Resolved iResolved = resolveIndexPatterns(original);
 
                     if(log.isTraceEnabled()) {
                         log.trace("Resolved patterns {} for {} ({}) to {}", original, localRequest.getClass().getSimpleName(), request.getClass().getSimpleName(), iResolved);
