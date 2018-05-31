@@ -277,12 +277,14 @@ public class SearchGuardFilter implements ActionFilter {
     }
 
     private void attachSoucrceFieldContext(ActionRequest request) {
+
         if(request instanceof SearchRequest && SourceFieldsContext.isNeeded((SearchRequest) request)) {
             if(threadContext.getHeader("_sg_source_field_context") == null) {
                 final String serializedSourceFieldContext = Base64Helper.serializeObject(new SourceFieldsContext((SearchRequest) request));
                 threadContext.putHeader("_sg_source_field_context", serializedSourceFieldContext);
             } else {
                 log.error("_sg_source_field_context header already present for "+request.getClass());
+                assert false:"_sg_source_field_context header already present";
             }
         } else if (request instanceof GetRequest && SourceFieldsContext.isNeeded((GetRequest) request)) {
             if(threadContext.getHeader("_sg_source_field_context") == null) {
@@ -290,6 +292,7 @@ public class SearchGuardFilter implements ActionFilter {
                 threadContext.putHeader("_sg_source_field_context", serializedSourceFieldContext);
             } else {
                 log.error("_sg_source_field_context header already present for "+request.getClass());
+                assert false:"_sg_source_field_context header already present";
             }
         }
     }
