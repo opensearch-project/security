@@ -26,7 +26,6 @@ import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionResponse;
-import org.elasticsearch.action.DocWriteRequest;
 import org.elasticsearch.action.DocWriteRequest.OpType;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
@@ -106,7 +105,9 @@ public class SearchGuardFilter implements ActionFilter {
                 threadContext.putTransient(ConfigConstants.SG_ORIGIN, Origin.LOCAL.toString());
             }
             
-            attachSoucrceFieldContext(request);
+            if(complianceConfig != null && complianceConfig.isEnabled()) {
+                attachSoucrceFieldContext(request);
+            }
 
             final User user = threadContext.getTransient(ConfigConstants.SG_USER);
             final boolean userIsAdmin = isUserAdmin(user, adminDns);
@@ -164,20 +165,27 @@ public class SearchGuardFilter implements ActionFilter {
                 return;
             }
             
-            boolean isImmutable;
             
-            if(request instanceof BulkShardRequest) {
-                for(BulkItemRequest bsr: ((BulkShardRequest) request).items()) {
-                    isImmutable = checkImmutableIndices(bsr.request(), listener);
+            if(complianceConfig != null && complianceConfig.isEnabled()) {
+            
+                boolean isImmutable = false;
+                
+                if(request instanceof BulkShardRequest) {
+                    for(BulkItemRequest bsr: ((BulkShardRequest) request).items()) {
+                        isImmutable = checkImmutableIndices(bsr.request(), listener);
+                        if(isImmutable) {
+                            break;
+                        }
+                    }
+                } else {
+                    isImmutable = checkImmutableIndices(request, listener);
                 }
-            }
+    
+                if(isImmutable) {
+                    return;
+                }
 
-            isImmutable = checkImmutableIndices(request, listener);
-            
-            if(isImmutable) {
-                return;
             }
-
 
             if(Origin.LOCAL.toString().equals(threadContext.getTransient(ConfigConstants.SG_ORIGIN))
                     && (interClusterRequest || HeaderHelper.isDirectRequest(threadContext))
