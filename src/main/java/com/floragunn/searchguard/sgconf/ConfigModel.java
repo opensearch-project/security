@@ -603,7 +603,7 @@ public class ConfigModel {
             return replaceProperties(indexPattern, user);
         }
 
-        public String[] getResolvedIndexPattern(User user, IndexNameExpressionResolver resolver, ClusterService cs) {
+        private String[] getResolvedIndexPattern(User user, IndexNameExpressionResolver resolver, ClusterService cs) {
             String unresolved = getUnresolvedIndexPattern(user);
             String[] resolved = resolver.concreteIndexNames(cs.state(), IndicesOptions.lenientExpandOpen(), unresolved);
             if(resolved == null || resolved.length == 0) {
