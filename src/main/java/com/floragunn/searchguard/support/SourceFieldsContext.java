@@ -27,7 +27,7 @@ public class SourceFieldsContext implements Serializable {
 
     private String[] includes;
     private String[] excludes;
-    private String[] storedFields;
+    //private String[] storedFields;
     private boolean fetchSource = true;
 
     /**
@@ -58,9 +58,9 @@ public class SourceFieldsContext implements Serializable {
             fetchSource = request.source().fetchSource().fetchSource();
         }
 
-        if (request.source() != null && request.source().storedFields() != null && request.source().storedFields().fieldNames() != null) {
-            storedFields = request.source().storedFields().fieldNames().toArray(new String[0]);
-        }
+        //if (request.source() != null && request.source().storedFields() != null && request.source().storedFields().fieldNames() != null) {
+        //    storedFields = request.source().storedFields().fieldNames().toArray(new String[0]);
+        //}
     }
 
     public SourceFieldsContext(GetRequest request) {
@@ -70,44 +70,32 @@ public class SourceFieldsContext implements Serializable {
             fetchSource = request.fetchSourceContext().fetchSource();
         }
 
-        storedFields = request.storedFields();
+        //storedFields = request.storedFields();
     }
 
     public String[] getIncludes() {
         return includes;
     }
 
-    public void setIncludes(String[] includes) {
-        this.includes = includes;
-    }
-
     public String[] getExcludes() {
         return excludes;
     }
 
-    public void setExcludes(String[] excludes) {
-        this.excludes = excludes;
-    }
+    //public String[] getStoredFields() {
+    //    return storedFields;
+    //}
 
-    public String[] getStoredFields() {
-        return storedFields;
+    public boolean hasIncludesOrExcludes() {
+        return (includes != null && includes.length > 0) || (excludes != null && excludes.length > 0);
     }
-
-    public void setStoredFields(String[] storedFields) {
-        this.storedFields = storedFields;
-    }
-
+    
     public boolean isFetchSource() {
         return fetchSource;
     }
 
-    public void setFetchSource(boolean fetchSource) {
-        this.fetchSource = fetchSource;
-    }
-
     @Override
     public String toString() {
-        return "SourceFieldsContext [includes=" + Arrays.toString(includes) + ", excludes=" + Arrays.toString(excludes) + ", storedFields="
-                + Arrays.toString(storedFields) + ", fetchSource=" + fetchSource + "]";
+        return "SourceFieldsContext [includes=" + Arrays.toString(includes) + ", excludes=" + Arrays.toString(excludes) + ", fetchSource="
+                + fetchSource + "]";
     }
 }
