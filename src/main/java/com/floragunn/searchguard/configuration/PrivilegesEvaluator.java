@@ -36,8 +36,10 @@ import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.RealtimeRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
+import org.elasticsearch.action.admin.indices.alias.IndicesAliasesAction;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexAction;
 import org.elasticsearch.action.bulk.BulkAction;
 import org.elasticsearch.action.bulk.BulkItemRequest;
@@ -329,7 +331,14 @@ public class PrivilegesEvaluator {
         }
 
         if(request instanceof RestoreSnapshotRequest) {
+            
             if (enableSnapshotRestorePrivilege) {
+                
+                if(clusterInfoHolder.isLocalNodeElectedMaster() == Boolean.FALSE) {
+                    presponse.allowed = true;
+                    return presponse;
+                }
+                
                 final RestoreSnapshotRequest restoreRequest = (RestoreSnapshotRequest) request;
 
                 // Do not allow restore of global state
@@ -751,6 +760,13 @@ public class PrivilegesEvaluator {
                 default:
                     break;
                 }
+            }
+        }
+        
+        if (request instanceof CreateIndexRequest) {
+            CreateIndexRequest cir = (CreateIndexRequest) request;
+            if(cir.aliases() != null && !cir.aliases().isEmpty()) {
+                additionalPermissionsRequired.add(IndicesAliasesAction.NAME);
             }
         }
 

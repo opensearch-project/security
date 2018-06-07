@@ -37,6 +37,7 @@ public class ClusterInfoHolder implements ClusterStateListener {
     private volatile Boolean has5xNodes = null;
     private volatile Boolean has5xIndices = null;
     private volatile DiscoveryNodes nodes = null;
+    private volatile Boolean isLocalNodeElectedMaster = null;;
     
     @Override
     public void clusterChanged(ClusterChangedEvent event) {
@@ -62,6 +63,8 @@ public class ClusterInfoHolder implements ClusterStateListener {
                 log.debug("Cluster Info Holder now initialized for 'nodes'");
             }
         }
+        
+        isLocalNodeElectedMaster = event.localNodeMaster()?Boolean.TRUE:Boolean.FALSE;
     }
 
     public Boolean getHas5xNodes() {
@@ -71,7 +74,11 @@ public class ClusterInfoHolder implements ClusterStateListener {
     public Boolean getHas5xIndices() {
         return has5xIndices;
     }
-    
+
+    public Boolean isLocalNodeElectedMaster() {
+        return isLocalNodeElectedMaster;
+    }
+
     public Boolean hasNode(DiscoveryNode node) {
         if(nodes == null) {
             if(log.isDebugEnabled()) {

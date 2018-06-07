@@ -389,6 +389,11 @@ sg_uc:
     'indexc':
       'typec':
         - '*'
+    'beats-*':
+      '*':
+        - indices:data/write/*
+        - indices:data/read/*
+        - CREATE_INDEX
 
 sg_attr:
   indices:
@@ -452,3 +457,11 @@ sg_ccsresolv1:
     '*noexist':
       '*':
         - 'indices:data/read/*'
+        
+sg_underscore:
+  cluster:
+    - '*'
+  indices:
+    '*abc_xyz_*':
+      '*':
+        - '*'

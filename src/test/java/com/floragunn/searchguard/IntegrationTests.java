@@ -1312,6 +1312,7 @@ public class IntegrationTests extends SingleClusterTest {
         final Settings settings = Settings.builder()
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("node-untspec5-keystore.p12"))
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "1")
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_TYPE, "PKCS12")
                 .putList("searchguard.nodes_dn", "EMAILADDRESS=unt@tst.com,CN=node-untspec5.example.com,OU=SSL,O=Te\\, st,L=Test,C=DE")
                 .putList("searchguard.authcz.admin_dn", "EMAILADDRESS=unt@xxx.com,CN=node-untspec6.example.com,OU=SSL,O=Te\\, st,L=Test,C=DE")
                 .put("searchguard.cert.oid","1.2.3.4.5.6")
@@ -1320,6 +1321,7 @@ public class IntegrationTests extends SingleClusterTest {
 
         Settings tcSettings = Settings.builder()
                 .put("searchguard.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-untspec6-keystore.p12"))
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_TYPE, "PKCS12")
                 .build();
 
         setup(tcSettings, new DynamicSgConfig(), settings, true);
@@ -1336,6 +1338,7 @@ public class IntegrationTests extends SingleClusterTest {
         final Settings settings = Settings.builder()
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("node-untspec5-keystore.p12"))
                 .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, "1")
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_TYPE, "PKCS12")
                 .putList("searchguard.nodes_dn", "EMAILADDRESS=unt@tst.com,CN=node-untspec5.example.com,OU=SSL,O=Te\\, st,L=Test,C=DE")
                 .putList("searchguard.authcz.admin_dn", "EMAILADDREss=unt@xxx.com,  cn=node-untspec6.example.com, OU=SSL,O=Te\\, st,L=Test, c=DE")
                 .put("searchguard.cert.oid","1.2.3.4.5.6")
@@ -1344,6 +1347,7 @@ public class IntegrationTests extends SingleClusterTest {
 
         Settings tcSettings = Settings.builder()
                 .put("searchguard.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-untspec6-keystore.p12"))
+                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_TYPE, "PKCS12")
                 .build();
 
         setup(tcSettings, new DynamicSgConfig(), settings, true);
@@ -1724,11 +1728,16 @@ public class IntegrationTests extends SingleClusterTest {
             tc.index(new IndexRequest("logstash-"+date).type("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
 
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("nopermindex").alias("nopermalias"))).actionGet();
+            tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("searchguard").alias("mysgi"))).actionGet();
         }
 
         RestHelper rh = nonSslRestHelper();
 
         HttpResponse res = null;
+        
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executePostRequest("/mysgi/sg", "{}",encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/mysgi/_search?pretty", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
+        assertContains(res, "*\"hits\" : {*\"total\" : 0,*\"hits\" : [ ]*");
 
         System.out.println("#### add alias to allowed index");
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePutRequest("/logstash-1/_alias/alog1", "",encodeBasicHeader("aliasmngt", "nagilum"))).getStatusCode());
@@ -1763,6 +1772,17 @@ public class IntegrationTests extends SingleClusterTest {
 
         System.out.println("#### get alias no perm");
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executeGetRequest("/_alias/nopermalias", encodeBasicHeader("aliasmngt", "nagilum"))).getStatusCode());
+        
+        String alias =
+        "{"+
+          "\"aliases\": {"+
+            "\"alias1\": {}"+
+          "}"+
+        "}";
+        
+        
+        System.out.println("#### create alias along with index");
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executePutRequest("/beats-withalias", alias,encodeBasicHeader("aliasmngt", "nagilum"))).getStatusCode());        
     }
 
     @Test
@@ -2329,6 +2349,31 @@ public class IntegrationTests extends SingleClusterTest {
         HttpResponse res;
         Assert.assertEquals(HttpStatus.SC_OK, (res=rh.executePostRequest("/vulcango*/_delete_by_query?refresh=true&wait_for_completion=true&pretty=true", "{\"query\" : {\"match_all\" : {}}}", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
         Assert.assertTrue(res.getBody().contains("\"deleted\" : 3"));
+    
+    }
+
+    @Test
+    public void testAliasResolution() throws Exception {
+
+        final Settings settings = Settings.builder()
+                .build();
+        setup(settings);
+        final RestHelper rh = nonSslRestHelper();
+
+        try (TransportClient tc = getInternalTransportClient()) {                    
+            tc.index(new IndexRequest("concreteindex-1").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();                
+            tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("concreteindex-1").alias("calias-1"))).actionGet();
+            tc.index(new IndexRequest(".kibana-6").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();                
+            tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices(".kibana-6").alias(".kibana"))).actionGet();
+
+        }
+
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("calias-1/_search?pretty", encodeBasicHeader("aliastest", "nagilum")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("calias-*/_search?pretty", encodeBasicHeader("aliastest", "nagilum")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("*kibana/_search?pretty", encodeBasicHeader("aliastest", "nagilum")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest(".ki*ana/_search?pretty", encodeBasicHeader("aliastest", "nagilum")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest(".kibana/_search?pretty", encodeBasicHeader("aliastest", "nagilum")).getStatusCode());
+
     }
     
     @Test
@@ -2463,5 +2508,22 @@ public class IntegrationTests extends SingleClusterTest {
         res = rh.executeGetRequest("/*:noexists/_search", encodeBasicHeader("ccsresolv", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         System.out.println(res.getBody());
+    }
+
+    @Test
+    public void testSGUnderscore() throws Exception {
+        
+        setup();
+        final RestHelper rh = nonSslRestHelper();
+        
+        HttpResponse res = rh.executePostRequest("abc_xyz_2018_05_24/logs/1", "{\"content\":1}", encodeBasicHeader("underscore", "nagilum"));
+        
+        res = rh.executeGetRequest("abc_xyz_2018_05_24/logs/1", encodeBasicHeader("underscore", "nagilum"));
+        Assert.assertTrue(res.getBody(),res.getBody().contains("\"content\":1"));
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        res = rh.executeGetRequest("abc_xyz_2018_05_24/_refresh", encodeBasicHeader("underscore", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        res = rh.executeGetRequest("aaa_bbb_2018_05_24/_refresh", encodeBasicHeader("underscore", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
     }
 }

@@ -127,7 +127,7 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
                 }
             } catch (Exception e) {
                 logger.error("Invalid license",e);
-                return new ConfigUpdateNodeResponse(clusterService.localNode(), new String[0], "Invalid license"); 
+                return new ConfigUpdateNodeResponse(clusterService.localNode(), new String[0], "Invalid license: "+e); 
             }
         }
 

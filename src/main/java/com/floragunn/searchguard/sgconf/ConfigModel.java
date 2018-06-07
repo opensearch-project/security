@@ -605,7 +605,22 @@ public class ConfigModel {
 
         private String[] getResolvedIndexPattern(User user, IndexNameExpressionResolver resolver, ClusterService cs) {
             String unresolved = getUnresolvedIndexPattern(user);
-            String[] resolved = resolver.concreteIndexNames(cs.state(), IndicesOptions.lenientExpandOpen(), unresolved);
+            String[] resolved = null;
+            if(WildcardMatcher.containsWildcard(unresolved)) {
+                final String[] aliasesForPermittedPattern = cs.state().getMetaData().getAliasAndIndexLookup()        
+                        .entrySet().stream()
+                        .filter(e->e.getValue().isAlias())
+                        .filter(e->WildcardMatcher.match(unresolved, e.getKey()))
+                        .map(e->e.getKey()).toArray(String[]::new);
+                
+                if(aliasesForPermittedPattern != null && aliasesForPermittedPattern.length > 0) {
+                    resolved = resolver.concreteIndexNames(cs.state(), IndicesOptions.lenientExpandOpen(), aliasesForPermittedPattern);
+                }
+            }
+            
+            if(resolved == null) {
+                resolved = resolver.concreteIndexNames(cs.state(), IndicesOptions.lenientExpandOpen(), unresolved);
+            }
             if(resolved == null || resolved.length == 0) {
                 //System.out.println("no resolutions for "+unresolved);
                 return new String[]{unresolved};

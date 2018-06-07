@@ -87,6 +87,12 @@ sg_kibana_user:
         - INDEX
         - READ
         - DELETE
+    '?kibana-6':
+      '*':
+        - MANAGE
+        - INDEX
+        - READ
+        - DELETE
     '*':
       '*':
         - indices:data/read/field_caps*
@@ -101,6 +107,9 @@ sg_kibana_server:
       - indices:admin/template*
   indices:
     '?kibana':
+      '*':
+        - INDICES_ALL
+    '?kibana-6':
       '*':
         - INDICES_ALL
     '?reporting*':
