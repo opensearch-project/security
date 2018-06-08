@@ -34,10 +34,10 @@ import com.floragunn.searchguard.test.helper.cluster.ClusterInfo;
 import com.floragunn.searchguard.test.helper.rest.RestHelper;
 import com.floragunn.searchguard.test.helper.rest.RestHelper.HttpResponse;
 
-public class CrossClusterSearchTest extends AbstractSGUnitTest{
+public class CrossClusterSearchTests extends AbstractSGUnitTest{
     
-    private final ClusterHelper cl1 = new ClusterHelper("crl1");
-    private final ClusterHelper cl2 = new ClusterHelper("crl2");
+    private final ClusterHelper cl1 = new ClusterHelper("crl1_n"+num.incrementAndGet()+"_f"+System.getProperty("forkno")+"_t"+System.nanoTime());
+    private final ClusterHelper cl2 = new ClusterHelper("crl2_n"+num.incrementAndGet()+"_f"+System.getProperty("forkno")+"_t"+System.nanoTime());
     private ClusterInfo cl1Info;
     private ClusterInfo cl2Info;
     
@@ -45,12 +45,12 @@ public class CrossClusterSearchTest extends AbstractSGUnitTest{
         
         System.setProperty("sg.display_lic_none","true");
         
-        cl2Info = cl2.startCluster(minimumSearchGuardSettings(defaultNodeSettings(first3())), ClusterConfiguration.DEFAULT);
+        cl2Info = cl2.startCluster(minimumSearchGuardSettings(Settings.EMPTY), ClusterConfiguration.DEFAULT);
         initialize(cl2Info);
         System.out.println("### cl2 complete ###");
         
         //cl1 is coordinating
-        cl1Info = cl1.startCluster(minimumSearchGuardSettings(defaultNodeSettings(crossClusterNodeSettings(cl2Info))), ClusterConfiguration.DEFAULT);
+        cl1Info = cl1.startCluster(minimumSearchGuardSettings(crossClusterNodeSettings(cl2Info)), ClusterConfiguration.DEFAULT);
         System.out.println("### cl1 start ###");
         initialize(cl1Info);
         System.out.println("### cl1 initialized ###");
@@ -62,22 +62,9 @@ public class CrossClusterSearchTest extends AbstractSGUnitTest{
         cl2.stopCluster();
     }
     
-    private Settings defaultNodeSettings(Settings other) {
-        Settings.Builder builder = Settings.builder()
-                                   .put(other);
-        return builder.build();
-    }
-    
     private Settings crossClusterNodeSettings(ClusterInfo remote) {
         Settings.Builder builder = Settings.builder()
-                .putList("search.remote.cross_cluster_two.seeds", remote.nodeHost+":"+remote.nodePort)
-                .putList("discovery.zen.ping.unicast.hosts", "localhost:9303","localhost:9304","localhost:9305");
-        return builder.build();
-    }
-    
-    private Settings first3() {
-        Settings.Builder builder = Settings.builder()
-                .putList("discovery.zen.ping.unicast.hosts", "localhost:9300","localhost:9301","localhost:9302");
+                .putList("search.remote.cross_cluster_two.seeds", remote.nodeHost+":"+remote.nodePort);
         return builder.build();
     }
     

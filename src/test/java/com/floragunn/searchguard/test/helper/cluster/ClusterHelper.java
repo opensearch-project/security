@@ -19,8 +19,12 @@ package com.floragunn.searchguard.test.helper.cluster;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.SortedSet;
+import java.util.concurrent.CountDownLatch;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
@@ -34,12 +38,14 @@ import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
+import org.elasticsearch.cluster.node.DiscoveryNode.Role;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.reindex.ReindexPlugin;
 import org.elasticsearch.join.ParentJoinPlugin;
 import org.elasticsearch.node.Node;
+import org.elasticsearch.node.NodeValidationException;
 import org.elasticsearch.node.PluginAwareNode;
 import org.elasticsearch.percolator.PercolatorPlugin;
 import org.elasticsearch.script.mustache.MustachePlugin;
@@ -49,6 +55,7 @@ import org.elasticsearch.transport.Netty4Plugin;
 import com.floragunn.searchguard.SearchGuardPlugin;
 import com.floragunn.searchguard.test.NodeSettingsSupplier;
 import com.floragunn.searchguard.test.helper.cluster.ClusterConfiguration.NodeSettings;
+import com.floragunn.searchguard.test.helper.network.SocketUtils;
 
 public final class ClusterHelper {
 
@@ -59,7 +66,7 @@ public final class ClusterHelper {
     
 	protected final Logger log = LogManager.getLogger(ClusterHelper.class);
 
-	protected final List<Node> esNodes = new LinkedList<>();
+	protected final List<PluginAwareNode> esNodes = new LinkedList<>();
 
 	private final String clustername;
 	
@@ -90,19 +97,46 @@ public final class ClusterHelper {
 		FileUtils.deleteDirectory(new File("data/"+clustername));
 
 		List<NodeSettings> internalNodeSettings = clusterConfiguration.getNodeSettings();
-
+		
+		SortedSet<Integer> tcpPorts = SocketUtils.findAvailableTcpPorts(internalNodeSettings.size());
+		Iterator<Integer> tcpPortsIt = tcpPorts.iterator();
+		
+		SortedSet<Integer> httpPorts = SocketUtils.findAvailableTcpPorts(internalNodeSettings.size(), tcpPorts.last()+1, SocketUtils.PORT_RANGE_MAX);
+        Iterator<Integer> httpPortsIt = httpPorts.iterator();
+		
+		final CountDownLatch latch = new CountDownLatch(internalNodeSettings.size());
+        
 		for (int i = 0; i < internalNodeSettings.size(); i++) {
 			NodeSettings setting = internalNodeSettings.get(i);
 			
-			Node node = new PluginAwareNode(
-					getMinimumNonSgNodeSettingsBuilder(i, setting.masterNode, setting.dataNode, setting.tribeNode, internalNodeSettings.size(), clusterConfiguration.getMasterNodes())
+			PluginAwareNode node = new PluginAwareNode(setting.masterNode,
+					getMinimumNonSgNodeSettingsBuilder(i, setting.masterNode, setting.dataNode, setting.tribeNode, internalNodeSettings.size(), clusterConfiguration.getMasterNodes(), tcpPorts, tcpPortsIt.next(), httpPortsIt.next())
 							.put(nodeSettingsSupplier == null ? Settings.Builder.EMPTY_SETTINGS : nodeSettingsSupplier.get(i)).build(),
 					Netty4Plugin.class, SearchGuardPlugin.class, MatrixAggregationPlugin.class, MustachePlugin.class, ParentJoinPlugin.class, PercolatorPlugin.class, ReindexPlugin.class);
 			System.out.println(node.settings());
-			node.start();
+			
+			new Thread(new Runnable() {
+                
+                @Override
+                public void run() {
+                    try {
+                        node.start();
+                        latch.countDown();
+                    } catch (NodeValidationException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
+                }
+            }).start();
+			
+			
+			
 			esNodes.add(node);
-			Thread.sleep(200);
 		}
+		
+		
+		latch.await();
+		
 		ClusterInfo cInfo = waitForCluster(ClusterHealthStatus.GREEN, TimeValue.timeValueSeconds(timeout), nodes == null?esNodes.size():nodes.intValue());
 		cInfo.numNodes = internalNodeSettings.size();
 		cInfo.clustername = clustername;
@@ -110,18 +144,28 @@ public final class ClusterHelper {
 	}
 
 	public final void stopCluster() throws Exception {
-		for (Node node : esNodes) {
-			try {
-                node.close();
-                LoggerContext context = (LoggerContext) LogManager.getContext(false);
-                Configurator.shutdown(context);
-                Thread.sleep(150);
-            } catch (Throwable e) {
-                e.printStackTrace();
-            }
-		}
+	    
+	    //close non master nodes
+	    esNodes.stream().filter(n->!n.isMasterEligible()).forEach(node->closeNode(node));
+	    
+	    //close master nodes
+	    esNodes.stream().filter(n->n.isMasterEligible()).forEach(node->closeNode(node));		
 		esNodes.clear();
+		
+		FileUtils.deleteDirectory(new File("data/"+clustername));
 	}
+	
+	private static void closeNode(Node node) {
+	    try {
+            LoggerContext context = (LoggerContext) LogManager.getContext(false);
+            Configurator.shutdown(context);
+	        node.close();
+	        Thread.sleep(250);
+        } catch (Throwable e) {
+            //ignore
+        }
+	}
+	
 
 	public Client nodeClient() {
 	    return esNodes.get(0).client();
@@ -155,21 +199,61 @@ public final class ClusterHelper {
 
 			final List<NodeInfo> nodes = res.getNodes();
 
-			// TODO: can be optimized
-			for (NodeInfo nodeInfo: nodes) {
-				if (nodeInfo.getHttp() != null && nodeInfo.getHttp().address() != null) {
-					final TransportAddress is = nodeInfo.getHttp().address()
-							.publishAddress();
-					clusterInfo.httpPort = is.getPort();
-					clusterInfo.httpHost = is.getAddress();
-					clusterInfo.httpAdresses.add(is);
-				}
+			//final List<NodeInfo> masterNodes = nodes.stream().filter(n->n.getNode().getRoles().contains(Role.MASTER)).collect(Collectors.toList());
+	        final List<NodeInfo> dataNodes = nodes.stream().filter(n->n.getNode().getRoles().contains(Role.DATA) && !n.getNode().getRoles().contains(Role.MASTER)).collect(Collectors.toList());
+	        final List<NodeInfo> clientNodes = nodes.stream().filter(n->!n.getNode().getRoles().contains(Role.MASTER) && !n.getNode().getRoles().contains(Role.DATA)).collect(Collectors.toList());
 
-				final TransportAddress is = nodeInfo.getTransport().getAddress()
-						.publishAddress();
-				clusterInfo.nodePort = is.getPort();
-				clusterInfo.nodeHost = is.getAddress();
-			}
+	        if(!clientNodes.isEmpty()) {
+	            NodeInfo nodeInfo = clientNodes.get(0);
+	            if (nodeInfo.getHttp() != null && nodeInfo.getHttp().address() != null) {
+                    final TransportAddress his = nodeInfo.getHttp().address()
+                            .publishAddress();
+                    clusterInfo.httpPort = his.getPort();
+                    clusterInfo.httpHost = his.getAddress();
+                    clusterInfo.httpAdresses.add(his);
+                } else {
+                    throw new RuntimeException("no http host/port for client node");
+                }
+
+                final TransportAddress is = nodeInfo.getTransport().getAddress()
+                        .publishAddress();
+                clusterInfo.nodePort = is.getPort();
+                clusterInfo.nodeHost = is.getAddress();
+	        } else if(!dataNodes.isEmpty()) {
+	            
+	            for (NodeInfo nodeInfo: dataNodes) {
+	                final TransportAddress is = nodeInfo.getTransport().getAddress()
+                            .publishAddress();
+                    clusterInfo.nodePort = is.getPort();
+                    clusterInfo.nodeHost = is.getAddress();
+	                
+	                if (nodeInfo.getHttp() != null && nodeInfo.getHttp().address() != null) {
+	                    final TransportAddress his = nodeInfo.getHttp().address()
+	                            .publishAddress();
+	                    clusterInfo.httpPort = his.getPort();
+	                    clusterInfo.httpHost = his.getAddress();
+	                    clusterInfo.httpAdresses.add(his);
+	                    break;
+	                }  
+	            }  
+	        }  else  {
+                
+                for (NodeInfo nodeInfo: nodes) {
+                    final TransportAddress is = nodeInfo.getTransport().getAddress()
+                            .publishAddress();
+                    clusterInfo.nodePort = is.getPort();
+                    clusterInfo.nodeHost = is.getAddress();
+                    
+                    if (nodeInfo.getHttp() != null && nodeInfo.getHttp().address() != null) {
+                        final TransportAddress his = nodeInfo.getHttp().address()
+                                .publishAddress();
+                        clusterInfo.httpPort = his.getPort();
+                        clusterInfo.httpHost = his.getAddress();
+                        clusterInfo.httpAdresses.add(his);
+                        break;
+                    }  
+                }  
+            }       	
 		} catch (final ElasticsearchTimeoutException e) {
 			throw new IOException(
 					"timeout, cluster does not respond to health request, cowardly refusing to continue with operations");
@@ -179,20 +263,23 @@ public final class ClusterHelper {
 
 	// @formatter:off
 	private Settings.Builder getMinimumNonSgNodeSettingsBuilder(final int nodenum, final boolean masterNode,
-			final boolean dataNode, final boolean tribeNode, int nodeCount, int masterCount) {
+			final boolean dataNode, final boolean tribeNode, int nodeCount, int masterCount, SortedSet<Integer> tcpPorts, int tcpPort, int httpPort) {
 
 		return Settings.builder()
-		        .put("node.name", "searchguard_testnode_"+clustername+ "_" + nodenum)
+		        .put("node.name", "node_"+clustername+ "_num" + nodenum)
 		        .put("node.data", dataNode)
 				.put("node.master", masterNode)
 				.put("cluster.name", clustername)
 				.put("path.data", "data/"+clustername+"/data")
 				.put("path.logs", "data/"+clustername+"/logs")
 				.put("node.max_local_storage_nodes", nodeCount)
-				//TODO check minMasterNodes
-				//.put("discovery.zen.minimum_master_nodes", minMasterNodes(masterCount))
-				//.put("discovery.zen.no_master_block", "all")
-				//.put("discovery.zen.fd.ping_timeout", "2s")
+				.put("discovery.zen.minimum_master_nodes", minMasterNodes(masterCount))
+				.put("discovery.zen.no_master_block", "all")
+				.put("discovery.zen.fd.ping_timeout", "5s")
+				.put("discovery.initial_state_timeout","8s")
+				.putList("discovery.zen.ping.unicast.hosts", tcpPorts.stream().map(s->"127.0.0.1:"+s).collect(Collectors.toList()))
+				.put("transport.tcp.port", tcpPort)
+				.put("http.port", httpPort)
 				.put("http.enabled", true)
 				.put("cluster.routing.allocation.disk.threshold_enabled", false)
 				.put("http.cors.enabled", true)
@@ -202,7 +289,7 @@ public final class ClusterHelper {
 	
 	private int minMasterNodes(int masterEligibleNodes) {
 	    if(masterEligibleNodes <= 0) {
-	        throw new IllegalArgumentException();
+	        throw new IllegalArgumentException("no master eligible nodes");
 	    }
 	    
 	    return (masterEligibleNodes/2) + 1;
