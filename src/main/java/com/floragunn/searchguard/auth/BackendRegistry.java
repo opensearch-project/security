@@ -287,11 +287,11 @@ public class BackendRegistry implements ConfigurationChangeListener {
                 //no credentials submitted
                 //impersonation possible
                 impersonatedTransportUser = impersonate(request, origPKIUser);
-                authenticatedUser = checkExistsAndAuthz(userCacheTransport, impersonatedTransportUser==null?origPKIUser:impersonatedTransportUser, authDomain, transportAuthorizers);
+                authenticatedUser = checkExistsAndAuthz(userCacheTransport, impersonatedTransportUser==null?origPKIUser:impersonatedTransportUser, authDomain.getBackend(), transportAuthorizers);
             } else {
                  //auth credentials submitted
                 //impersonation not possible, if requested it will be ignored
-                authenticatedUser = authcz(authenticatedUserCacheTransport, creds, authDomain, transportAuthorizers);
+                authenticatedUser = authcz(authenticatedUserCacheTransport, creds, authDomain.getBackend(), transportAuthorizers);
             }
             
             if(authenticatedUser == null) {
@@ -414,7 +414,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
 
             //http completed
             
-            authenticatedUser = authcz(userCache, ac, authDomain, restAuthorizers);
+            authenticatedUser = authcz(userCache, ac, authDomain.getBackend(), restAuthorizers);
      
             if(authenticatedUser == null) {
                 if(log.isDebugEnabled()) {
@@ -438,7 +438,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
             }
 
             authenticatedUser.setRequestedTenant(tenant);
-            final User impersonatedUser = impersonate(request, authenticatedUser, authDomain);
+            final User impersonatedUser = impersonate(request, authenticatedUser, authDomain.getBackend());
             threadContext.putTransient(ConfigConstants.SG_USER, impersonatedUser==null?authenticatedUser:impersonatedUser);
             
             auditLog.logSucceededLogin((impersonatedUser==null?authenticatedUser:impersonatedUser).getName(), false, authenticatedUser.getName(), request);
@@ -495,7 +495,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
      * @param authDomain
      * @return null if user cannot b authenticated
      */
-    private User checkExistsAndAuthz(final Cache<String, User> cache, final User user, final AuthDomain authDomain, final Set<AuthorizationBackend> authorizers) {
+    private User checkExistsAndAuthz(final Cache<String, User> cache, final User user, final AuthenticationBackend authenticationBackend, final Set<AuthorizationBackend> authorizers) {
         if(user == null) {
             return null;
         }
@@ -505,9 +505,9 @@ public class BackendRegistry implements ConfigurationChangeListener {
                 @Override
                 public User call() throws Exception {
                     if(log.isDebugEnabled()) {
-                        log.debug(user.getName()+" not cached, return from "+authDomain.getBackend().getType()+" backend directly");
+                        log.debug(user.getName()+" not cached, return from "+authenticationBackend.getType()+" backend directly");
                     }
-                    if(authDomain.getBackend().exists(user)) {
+                    if(authenticationBackend.exists(user)) {
                         for (final AuthorizationBackend ab : authorizers) {
                             try {
                                 ab.fillRoles(user, new AuthCredentials(user.getName()));
@@ -521,7 +521,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
                     }
 
                     if(log.isDebugEnabled()) {
-                        log.debug("User "+user.getName()+" does not exist in "+authDomain.getBackend().getType());
+                        log.debug("User "+user.getName()+" does not exist in "+authenticationBackend.getType());
                     }
                     return null;
                 }
@@ -541,19 +541,28 @@ public class BackendRegistry implements ConfigurationChangeListener {
      * @param authDomain
      * @return null if user cannot b authenticated
      */
-    private User authcz(final Cache<AuthCredentials, User> cache, final AuthCredentials ac, final AuthDomain authDomain, final Set<AuthorizationBackend> authorizers) {
+    private User authcz(final Cache<AuthCredentials, User> cache, final AuthCredentials ac, final AuthenticationBackend authBackend, final Set<AuthorizationBackend> authorizers) {
         if(ac == null) {
             return null;
         }
-
         try {
+            
+            //noop backend configured and no authorizers
+            //that mean authc and authz was completely done via HTTP (like JWT or PKI)
+            if(authBackend.getClass() == NoOpAuthenticationBackend.class && authorizers.isEmpty()) {
+                //no cache
+                return authBackend.authenticate(ac);
+            }
+        
+
+        
             return cache.get(ac, new Callable<User>() {
                 @Override
                 public User call() throws Exception {
                     if(log.isDebugEnabled()) {
-                        log.debug(ac.getUsername()+" not cached, return from "+authDomain.getBackend().getType()+" backend directly");
+                        log.debug(ac.getUsername()+" not cached, return from "+authBackend.getType()+" backend directly");
                     }
-                    final User authenticatedUser = authDomain.getBackend().authenticate(ac);
+                    final User authenticatedUser = authBackend.authenticate(ac);
                     for (final AuthorizationBackend ab : authorizers) {
                         try {
                             ab.fillRoles(authenticatedUser, new AuthCredentials(authenticatedUser.getName()));
@@ -614,7 +623,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
         return aU;
     }
     
-    private User impersonate(final RestRequest request, final User originalUser, final AuthDomain authDomain) throws ElasticsearchSecurityException {
+    private User impersonate(final RestRequest request, final User originalUser, final AuthenticationBackend authenticationBackend) throws ElasticsearchSecurityException {
 
         final String impersonatedUserHeader = request.header("sg_impersonate_as");
 
@@ -635,10 +644,10 @@ public class BackendRegistry implements ConfigurationChangeListener {
             throw new ElasticsearchSecurityException("'" + originalUser.getName() + "' is not allowed to impersonate as '" + impersonatedUserHeader
                     + "'", RestStatus.FORBIDDEN);
         } else {
-            final User impersonatedUser = checkExistsAndAuthz(restImpersonationCache, new User(impersonatedUserHeader), authDomain, restAuthorizers);
+            final User impersonatedUser = checkExistsAndAuthz(restImpersonationCache, new User(impersonatedUserHeader), authenticationBackend, restAuthorizers);
             
             if(impersonatedUser == null) {
-                log.debug("Unable to impersonate rest user from '{}' to '{}' because the impersonated user does not exists in {}", originalUser.getName(), impersonatedUserHeader, authDomain.getBackend().getType());
+                log.debug("Unable to impersonate rest user from '{}' to '{}' because the impersonated user does not exists in {}", originalUser.getName(), impersonatedUserHeader, authenticationBackend.getType());
                 throw new ElasticsearchSecurityException("No such user:" + impersonatedUserHeader, RestStatus.FORBIDDEN);
             }
             
