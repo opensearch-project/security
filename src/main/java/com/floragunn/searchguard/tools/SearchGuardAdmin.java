@@ -205,6 +205,9 @@ public class SearchGuardAdmin {
 
         options.addOption(Option.builder("prompt").longOpt("prompt-for-password").desc("Promp for password if not supplied").build());
 
+        options.addOption(Option.builder("er").longOpt("explicit-replicas").hasArg().argName("number of replicas or autoexpand expression").desc("Set explicit number of replicas for searchguard index").build());
+
+        
         //when adding new options also adjust validate(CommandLine line)
         
         String hostname = "localhost";
@@ -247,6 +250,7 @@ public class SearchGuardAdmin {
         boolean si;
         boolean whoami;
         final boolean promptForPassword;
+        String explicitReplicas = null;
         
         CommandLineParser parser = new DefaultParser();
         try {
@@ -328,6 +332,8 @@ public class SearchGuardAdmin {
             si = line.hasOption("si");
             
             whoami = line.hasOption("w");
+            
+            explicitReplicas = line.getOptionValue("er", explicitReplicas);
             
         }
         catch( ParseException exp ) {
@@ -616,14 +622,23 @@ public class SearchGuardAdmin {
                 
                 Map<String, Object> indexSettings = new HashMap<>();
                 indexSettings.put("index.number_of_shards", 1);
-                indexSettings.put("index.auto_expand_replicas", "0-all");
                 
+                if(explicitReplicas != null) {
+                    if(explicitReplicas.contains("-")) {
+                        indexSettings.put("index.auto_expand_replicas", explicitReplicas);
+                    } else {
+                        indexSettings.put("index.number_of_replicas", Integer.parseInt(explicitReplicas));
+                    }
+                } else {
+                    indexSettings.put("index.auto_expand_replicas", "0-all");
+                }
+
                 final boolean indexCreated = tc.admin().indices().create(new CreateIndexRequest(index)
                 .settings(indexSettings))
                         .actionGet().isAcknowledged();
 
                 if (indexCreated) {
-                    System.out.println("done (auto expand replicas is on)");
+                    System.out.println("done ("+(explicitReplicas!=null?explicitReplicas:"0-all")+" replicas)");
                 } else {
                     System.out.println("failed!");
                     System.out.println("FAIL: Unable to create the "+index+" index. See elasticsearch logs for more details");

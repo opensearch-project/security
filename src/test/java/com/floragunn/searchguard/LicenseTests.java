@@ -130,6 +130,18 @@ public class LicenseTests extends SingleClusterTest {
     }
 
     @Test
+    public void testFullLicenseRK() throws Exception {
+        setup(Settings.EMPTY, new DynamicSgConfig().setSgConfig("sg_config_lic_rk.yml"), Settings.EMPTY);
+        
+        RestHelper rh = nonSslRestHelper();
+        HttpResponse res;
+        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_searchguard/license?pretty", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
+        System.out.println(res.getBody());
+        Assert.assertTrue(res.getBody().contains("FULL"));
+        Assert.assertTrue(res.getBody().contains("is_valid\" : true"));
+    }
+    
+    @Test
     public void testFullLicenseReload() throws Exception {
         setup(Settings.EMPTY, new DynamicSgConfig().setSgConfig("sg_config_lic.yml"), Settings.EMPTY);
         
