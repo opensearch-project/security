@@ -106,7 +106,7 @@ public class SearchGuardFilter implements ActionFilter {
             }
             
             if(complianceConfig != null && complianceConfig.isEnabled()) {
-                attachSoucrceFieldContext(request);
+                attachSourceFieldContext(request);
             }
 
             final User user = threadContext.getTransient(ConfigConstants.SG_USER);
@@ -276,7 +276,7 @@ public class SearchGuardFilter implements ActionFilter {
         return false;
     }
 
-    private void attachSoucrceFieldContext(ActionRequest request) {
+    private void attachSourceFieldContext(ActionRequest request) {
 
         if(request instanceof SearchRequest && SourceFieldsContext.isNeeded((SearchRequest) request)) {
             if(threadContext.getHeader("_sg_source_field_context") == null) {
