@@ -353,14 +353,21 @@ echo "searchguard.enable_snapshot_restore_privilege: true" | $SUDO_CMD tee -a $E
 echo "searchguard.check_snapshot_restore_write_privileges: true" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null
 echo 'searchguard.restapi.roles_enabled: ["sg_all_access"]' | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null
 
-echo 'cluster.routing.allocation.disk.threshold_enabled: false' | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null
+#cluster.routing.allocation.disk.threshold_enabled
+if $SUDO_CMD grep --quiet -i "^cluster.routing.allocation.disk.threshold_enabled" $ES_CONF_FILE; then
+	: #already present
+else
+    echo 'cluster.routing.allocation.disk.threshold_enabled: false' | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null
+fi
 
+#cluster.name
 if $SUDO_CMD grep --quiet -i "^cluster.name" $ES_CONF_FILE; then
 	: #already present
 else
     echo "cluster.name: searchguard_demo" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null 
 fi
 
+#network.host
 if $SUDO_CMD grep --quiet -i "^network.host" $ES_CONF_FILE; then
 	: #already present
 else
@@ -369,20 +376,27 @@ else
     fi
 fi
 
+#discovery.zen.minimum_master_nodes
 if $SUDO_CMD grep --quiet -i "^discovery.zen.minimum_master_nodes" $ES_CONF_FILE; then
 	: #already present
 else
     echo "discovery.zen.minimum_master_nodes: 1" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null
 fi
 
+#node.max_local_storage_nodes
 if $SUDO_CMD grep --quiet -i "^node.max_local_storage_nodes" $ES_CONF_FILE; then
 	: #already present
 else
     echo 'node.max_local_storage_nodes: 3' | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null
 fi
 
-if [ -d "$ES_PLUGINS_DIR/x-pack" ];then
-	echo "xpack.security.enabled: false" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null
+#xpack.security.enabled
+if $SUDO_CMD grep --quiet -i "^xpack.security.enabled" $ES_CONF_FILE; then
+	: #already present
+else
+    if [ -d "$ES_PLUGINS_DIR/x-pack" ];then
+	    echo "xpack.security.enabled: false" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null
+    fi
 fi
 
 echo "######## End Search Guard Demo Configuration ########" | $SUDO_CMD tee -a $ES_CONF_FILE > /dev/null 
