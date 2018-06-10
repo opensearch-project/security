@@ -78,7 +78,7 @@ sg_readall_and_monitor:
 sg_kibana_user:
   readonly: true
   cluster:
-    - MONITOR
+    - INDICES_MONITOR
     - CLUSTER_COMPOSITE_OPS
   indices:
     '?kibana':
