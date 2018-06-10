@@ -310,10 +310,22 @@ public class SearchGuardFilter implements ActionFilter {
                 || request instanceof DeleteIndexRequest
                 || request instanceof RestoreSnapshotRequest
                 || request instanceof CloseIndexRequest
-                || request instanceof ReindexRequest
+                || request instanceof IndicesAliasesRequest //TODO only remove index
                 ) {
+            
             if(complianceConfig != null && complianceConfig.isIndexImmutable(request)) {
                 //auditLog.log
+                
+                //check index for type = remove index
+                //IndicesAliasesRequest iar = (IndicesAliasesRequest) request;
+                //for(AliasActions aa: iar.getAliasActions()) {
+                //    if(aa.actionType() == Type.REMOVE_INDEX) {
+                        
+                //    }
+                //}
+                
+                
+                
                 listener.onFailure(new ElasticsearchSecurityException("Index is immutable", RestStatus.FORBIDDEN));
                 return true;
             }
