@@ -28,6 +28,7 @@ import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.DocWriteRequest.OpType;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
+import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.bulk.BulkItemRequest;
@@ -44,8 +45,8 @@ import org.elasticsearch.action.support.ActionFilterChain;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
+import org.elasticsearch.common.util.concurrent.ThreadContext.StoredContext;
 import org.elasticsearch.index.reindex.DeleteByQueryRequest;
-import org.elasticsearch.index.reindex.ReindexRequest;
 import org.elasticsearch.index.reindex.UpdateByQueryRequest;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.tasks.Task;
@@ -97,6 +98,14 @@ public class SearchGuardFilter implements ActionFilter {
 
     @Override
     public <Request extends ActionRequest, Response extends ActionResponse> void apply(Task task, final String action, Request request,
+            ActionListener<Response> listener, ActionFilterChain<Request, Response> chain) {
+        try (StoredContext ctx = threadContext.newStoredContext(true)){
+            apply0(task, action, request, listener, chain);
+        }
+    }
+    
+
+    private <Request extends ActionRequest, Response extends ActionResponse> void apply0(Task task, final String action, Request request,
             ActionListener<Response> listener, ActionFilterChain<Request, Response> chain) {
         
         try {
@@ -277,22 +286,16 @@ public class SearchGuardFilter implements ActionFilter {
     }
 
     private void attachSourceFieldContext(ActionRequest request) {
-
-        if(request instanceof SearchRequest && SourceFieldsContext.isNeeded((SearchRequest) request)) {
+        
+        if(request instanceof SearchRequest && SourceFieldsContext.isNeeded((SearchRequest) request)) {            
             if(threadContext.getHeader("_sg_source_field_context") == null) {
                 final String serializedSourceFieldContext = Base64Helper.serializeObject(new SourceFieldsContext((SearchRequest) request));
                 threadContext.putHeader("_sg_source_field_context", serializedSourceFieldContext);
-            } else {
-                log.error("_sg_source_field_context header already present for "+request.getClass());
-                assert false:"_sg_source_field_context header already present";
             }
         } else if (request instanceof GetRequest && SourceFieldsContext.isNeeded((GetRequest) request)) {
             if(threadContext.getHeader("_sg_source_field_context") == null) {
                 final String serializedSourceFieldContext = Base64Helper.serializeObject(new SourceFieldsContext((GetRequest) request));
                 threadContext.putHeader("_sg_source_field_context", serializedSourceFieldContext);
-            } else {
-                log.error("_sg_source_field_context header already present for "+request.getClass());
-                assert false:"_sg_source_field_context header already present";
             }
         }
     }
