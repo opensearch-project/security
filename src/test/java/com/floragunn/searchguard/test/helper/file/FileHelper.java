@@ -41,6 +41,7 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 
 import com.floragunn.searchguard.SearchGuardPlugin;
+import com.floragunn.searchguard.support.SearchGuardDeprecationHandler;
 
 public class FileHelper {
 
@@ -91,17 +92,21 @@ public class FileHelper {
         
         XContentParser parser = null;
         try {
-            parser = XContentFactory.xContent(XContentType.YAML).createParser(NamedXContentRegistry.EMPTY, new StringReader(loadFile(file)));
+            parser = XContentFactory.xContent(XContentType.YAML).createParser(NamedXContentRegistry.EMPTY, SearchGuardDeprecationHandler.INSTANCE, new StringReader(loadFile(file)));
             parser.nextToken();
             final XContentBuilder builder = XContentFactory.jsonBuilder();
             builder.copyCurrentStructure(parser);
-            return builder.bytes();
+            return BytesReference.bytes(builder);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
         finally {
             if (parser != null) {
-                parser.close();
+                try {
+                    parser.close();
+                } catch (IOException e) {
+                    //ignore
+                }
             }
         }
 	}
