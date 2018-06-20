@@ -204,9 +204,9 @@ public class SearchGuardAdmin {
 
         options.addOption(Option.builder("w").longOpt("whoami").desc("Show information about the used admin certificate").build());
 
-        options.addOption(Option.builder("prompt").longOpt("prompt-for-password").desc("Promp for password if not supplied").build());
+        options.addOption(Option.builder("prompt").longOpt("prompt-for-password").desc("Prompt for password if not supplied").build());
 
-        options.addOption(Option.builder("er").longOpt("explicit-replicas").hasArg().argName("number of replicas or autoexpand expression").desc("Set explicit number of replicas for searchguard index").build());
+        options.addOption(Option.builder("er").longOpt("explicit-replicas").hasArg().argName("number of replicas").desc("Set explicit number of replicas or autoexpand expression for searchguard index").build());
 
         
         //when adding new options also adjust validate(CommandLine line)
