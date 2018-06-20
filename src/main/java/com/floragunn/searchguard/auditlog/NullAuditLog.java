@@ -107,7 +107,7 @@ public class NullAuditLog implements AuditLog {
     }
 
     @Override
-    public void logDocumentWritten(ShardId shardId, GetResult originalIndex, GetResult currentGet, Index currentIndex, IndexResult result, ComplianceConfig complianceConfig) {
+    public void logDocumentWritten(ShardId shardId, GetResult originalIndex, Index currentIndex, IndexResult result, ComplianceConfig complianceConfig) {
         //noop, intentionally left empty
     }
 

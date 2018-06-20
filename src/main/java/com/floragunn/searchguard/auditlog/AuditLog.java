@@ -57,7 +57,7 @@ public interface AuditLog extends Closeable {
     void logSSLException(RestRequest request, Throwable t);
 
     void logDocumentRead(String index, String id, ShardId shardId, Map<String, String> fieldNameValues, ComplianceConfig complianceConfig);
-    void logDocumentWritten(ShardId shardId, GetResult originalIndex, GetResult currentGet, Index currentIndex, IndexResult result, ComplianceConfig complianceConfig);
+    void logDocumentWritten(ShardId shardId, GetResult originalIndex, Index currentIndex, IndexResult result, ComplianceConfig complianceConfig);
     void logDocumentDeleted(ShardId shardId, Delete delete, DeleteResult result);
     void logExternalConfig(Settings settings, Environment environment);
     
