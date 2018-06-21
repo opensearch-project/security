@@ -35,11 +35,11 @@ jobs:
       - store_artifacts:
           path: /.circleci-task-data
       - deploy:
-          name: Maybe Deploy
-          command: |
+          name: Deploy
+          command: |          
+            mvn deploy -DskipTests -s settings.xml
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
               mvn -Pcoverage sonar:sonar -Dsonar.organization=floragunncom-github -Dsonar.login=$SONAR_LOGIN -Dsonar.host.url=https://sonarcloud.io
-              mvn deploy -DskipTests -s settings.xml
               ./dev/scan_veracode.sh
             fi
 
