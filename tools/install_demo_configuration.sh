@@ -361,7 +361,7 @@ echo "searchguard.check_snapshot_restore_write_privileges: true" | $SUDO_CMD tee
 echo 'searchguard.restapi.roles_enabled: ["sg_all_access"]' | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
 
 #cluster.routing.allocation.disk.threshold_enabled
-if $SUDO_CMD grep --quiet -i "^cluster.routing.allocation.disk.threshold_enabled" $"ES_CONF_FILE"; then
+if $SUDO_CMD grep --quiet -i "^cluster.routing.allocation.disk.threshold_enabled" "$ES_CONF_FILE"; then
 	: #already present
 else
     echo 'cluster.routing.allocation.disk.threshold_enabled: false' | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
