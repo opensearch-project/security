@@ -44,6 +44,7 @@ public enum ModuleType implements Serializable {
 	KERBEROS_AUTHENTICATION_BACKEND("Kerberos authorization backend", "com.floragunn.dlic.auth.http.kerberos.HTTPSpnegoAuthenticator", Boolean.TRUE),
 	JWT_AUTHENTICATION_BACKEND("JWT authorization backend", "com.floragunn.dlic.auth.http.jwt.HTTPJwtAuthenticator", Boolean.TRUE),
 	OPENID_AUTHENTICATION_BACKEND("OpenID authorization backend", "com.floragunn.dlic.auth.http.jwt.keybyoidc.HTTPJwtKeyByOpenIdConnectAuthenticator", Boolean.TRUE),
+	SAML_AUTHENTICATION_BACKEND("SAML authentication backend", "com.floragunn.dlic.auth.http.saml.HTTPSamlAuthenticator", Boolean.TRUE),
 	INTERNAL_USERS_AUTHENTICATION_BACKEND("Internal users authorization backend", InternalAuthenticationBackend.class.getName(), Boolean.FALSE),
 	NOOP_AUTHENTICATION_BACKEND("Noop authentication backend", NoOpAuthenticationBackend.class.getName(), Boolean.FALSE),
 	NOOP_AUTHORIZATION_BACKEND("Noop authorization backend", NoOpAuthorizationBackend.class.getName(), Boolean.FALSE),
