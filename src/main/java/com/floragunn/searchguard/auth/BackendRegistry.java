@@ -20,6 +20,8 @@ package com.floragunn.searchguard.auth;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
@@ -73,6 +75,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
     private final Set<AuthorizationBackend> restAuthorizers = new HashSet<AuthorizationBackend>();
     private final SortedSet<AuthDomain> transportAuthDomains = new TreeSet<AuthDomain>();
     private final Set<AuthorizationBackend> transportAuthorizers = new HashSet<AuthorizationBackend>();
+    private final List<Destroyable> destroyableComponents = new LinkedList<Destroyable>();
     private volatile boolean initialized;
     private final AdminDNs adminDns;
     private final XFFResolver xffResolver;
@@ -179,6 +182,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
         restAuthorizers.clear();
         transportAuthorizers.clear();
         invalidateCache();
+        destroyDestroyables();
         anonymousAuthEnabled = settings.getAsBoolean("searchguard.dynamic.http.anonymous_auth_enabled", false);
         
         final Map<String, Settings> authzDyn = settings.getGroups("searchguard.dynamic.authz");
@@ -202,6 +206,10 @@ public class BackendRegistry implements ConfigurationChangeListener {
                     
                     if (transportEnabled) {
                         transportAuthorizers.add(authorizationBackend);
+                    }
+                    
+                    if (authorizationBackend instanceof Destroyable) {
+                    	this.destroyableComponents.add((Destroyable) authorizationBackend);
                     }
                 } catch (final Exception e) {
                     log.error("Unable to initialize AuthorizationBackend {} due to {}", ad, e.toString(),e);
@@ -246,6 +254,15 @@ public class BackendRegistry implements ConfigurationChangeListener {
                     if (transportEnabled) {
                         transportAuthDomains.add(_ad);
                     }
+                    
+                    if (httpAuthenticator instanceof Destroyable) {
+                    	this.destroyableComponents.add((Destroyable) httpAuthenticator);
+                    }
+                    
+                    if (authenticationBackend instanceof Destroyable) {
+                    	this.destroyableComponents.add((Destroyable) authenticationBackend);                    	
+                    }
+                    
                 } catch (final Exception e) {
                     log.error("Unable to initialize auth domain {} due to {}", ad, e.toString(), e);
                 }
@@ -675,5 +692,17 @@ public class BackendRegistry implements ConfigurationChangeListener {
         }
         
         return ReflectionHelper.instantiateAAA(clazz, settings, configPath, isEnterprise);
+    }
+    
+    private void destroyDestroyables() {
+    	for (Destroyable destroyable : this.destroyableComponents) {
+    		try {
+    			destroyable.destroy();
+    		} catch (Exception e) {
+    			log.error("Error while destroying " + destroyable, e);
+    		}
+    	}
+    	
+    	this.destroyableComponents.clear();
     }
 }
