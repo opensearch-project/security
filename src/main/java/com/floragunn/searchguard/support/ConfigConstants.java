@@ -71,6 +71,9 @@ public class ConfigConstants {
     
     public static final String SG_XFF_DONE = SG_CONFIG_PREFIX+"xff_done";
 
+    public static final String SSO_LOGOUT_URL = SG_CONFIG_PREFIX+"sso_logout_url";
+
+    
     public static final String SG_DEFAULT_CONFIG_INDEX = "searchguard";
 
     public static final String SEARCHGUARD_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE = "searchguard.enable_snapshot_restore_privilege";
