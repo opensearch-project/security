@@ -105,6 +105,7 @@ import com.floragunn.searchguard.action.whoami.WhoAmIResponse;
 import com.floragunn.searchguard.ssl.util.ExceptionUtils;
 import com.floragunn.searchguard.ssl.util.SSLConfigConstants;
 import com.floragunn.searchguard.support.ConfigConstants;
+import com.floragunn.searchguard.support.SearchGuardDeprecationHandler;
 import com.google.common.io.Files;
 
 public class SearchGuardAdmin {
@@ -842,11 +843,11 @@ public class SearchGuardAdmin {
         BytesReference retVal;
         XContentParser parser = null;
         try {
-            parser = XContentFactory.xContent(xContentType).createParser(NamedXContentRegistry.EMPTY, reader);
+            parser = XContentFactory.xContent(xContentType).createParser(NamedXContentRegistry.EMPTY, SearchGuardDeprecationHandler.INSTANCE, reader);
             parser.nextToken();
             final XContentBuilder builder = XContentFactory.jsonBuilder();
             builder.copyCurrentStructure(parser);
-            retVal = builder.bytes();
+            retVal = BytesReference.bytes(builder);
         } finally {
             if (parser != null) {
                 parser.close();
@@ -860,7 +861,7 @@ public class SearchGuardAdmin {
     
     private static String convertToYaml(String type, BytesReference bytes, boolean prettyPrint) throws IOException {
         
-        try (XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, bytes.streamInput())) {
+        try (XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, SearchGuardDeprecationHandler.INSTANCE, bytes.streamInput())) {
             
             parser.nextToken();
             parser.nextToken();
@@ -875,8 +876,8 @@ public class SearchGuardAdmin {
             if (prettyPrint) {
                 builder.prettyPrint();
             }
-            builder.rawValue(new BytesArray(parser.binaryValue()), XContentType.YAML);
-            return builder.string();
+            builder.rawValue(new ByteArrayInputStream(parser.binaryValue()), XContentType.YAML);
+            return Strings.toString(builder);
         }
     }
 
