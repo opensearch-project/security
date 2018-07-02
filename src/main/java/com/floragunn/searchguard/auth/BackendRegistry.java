@@ -157,6 +157,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
         authImplMap.put("kerberos_h", "com.floragunn.dlic.auth.http.kerberos.HTTPSpnegoAuthenticator");
         authImplMap.put("jwt_h", "com.floragunn.dlic.auth.http.jwt.HTTPJwtAuthenticator");
         authImplMap.put("openid_h", "com.floragunn.dlic.auth.http.jwt.keybyoidc.HTTPJwtKeyByOpenIdConnectAuthenticator");
+        authImplMap.put("saml_h", "com.floragunn.dlic.auth.http.saml.HTTPSamlAuthenticator");
         
         this.ttlInMin = settings.getAsInt(ConfigConstants.SEARCHGUARD_CACHE_TTL_MINUTES, 60);
         createCaches();

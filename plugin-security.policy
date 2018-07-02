@@ -57,6 +57,10 @@ grant {
   
   permission java.lang.RuntimePermission "accessUserInformation";
   
+  permission java.security.SecurityPermission "org.apache.xml.security.register";
+  permission java.util.PropertyPermission "org.apache.xml.security.ignoreLineBreaks", "write";
+  
+  
   //Java 9+
   permission java.lang.RuntimePermission "accessClassInPackage.com.sun.jndi.ldap";
 };
