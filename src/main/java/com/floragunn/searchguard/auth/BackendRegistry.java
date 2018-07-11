@@ -395,9 +395,11 @@ public class BackendRegistry implements ConfigurationChangeListener {
                         
                 if(authDomain.isChallenge() && httpAuthenticator.reRequestAuthentication(channel, null)) {
                     auditLog.logFailedLogin("<NONE>", false, null, request);
+                    log.trace("No 'Authorization' header, send 401 and 'WWW-Authenticate Basic'");
                     return false;
                 } else {
                     //no reRequest possible
+                	log.trace("No 'Authorization' header, send 403");
                     continue;
                 }      
             } else if (!ac.isComplete()) {
