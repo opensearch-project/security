@@ -27,7 +27,7 @@ import com.google.common.collect.Sets;
 
 public class ConfigModel {
 
-    private final static Set<String> DLSFLS = ImmutableSet.of("_dls_", "_fls_");
+    private final static Set<String> IGNORED_TYPES = ImmutableSet.of("_dls_", "_fls_","_masked_fields_");
     private final ActionGroupHolder ah;
     private final ConfigurationRepository configurationRepository;
 
@@ -93,7 +93,7 @@ public class ConfigModel {
 
                 for(String type: permittedAliasesIndices.get(indexPattern).names()) {
 
-                    if(DLSFLS.contains(type)) {
+                    if(IGNORED_TYPES.contains(type)) {
                         continue;
                     }
 
@@ -660,7 +660,7 @@ public class ConfigModel {
         private TypePerm(String typePattern) {
             super();
             this.typePattern = Objects.requireNonNull(typePattern);
-            if(DLSFLS.contains(typePattern)) {
+            if(IGNORED_TYPES.contains(typePattern)) {
                 throw new RuntimeException("typepattern '"+typePattern+"' not allowed");
             }
         }
