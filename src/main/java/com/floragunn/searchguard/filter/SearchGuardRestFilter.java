@@ -38,6 +38,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.auditlog.AuditLog.Origin;
 import com.floragunn.searchguard.auth.BackendRegistry;
+import com.floragunn.searchguard.configuration.CompatConfig;
 import com.floragunn.searchguard.ssl.transport.PrincipalExtractor;
 import com.floragunn.searchguard.ssl.util.ExceptionUtils;
 import com.floragunn.searchguard.ssl.util.SSLRequestHelper;
@@ -54,10 +55,11 @@ public class SearchGuardRestFilter {
     private final PrincipalExtractor principalExtractor;
     private final Settings settings;
     private final Path configPath;
+    private final CompatConfig compatConfig;
 
     public SearchGuardRestFilter(final BackendRegistry registry, final AuditLog auditLog,
             final ThreadPool threadPool, final PrincipalExtractor principalExtractor,
-            final Settings settings, final Path configPath) {
+            final Settings settings, final Path configPath, final CompatConfig compatConfig) {
         super();
         this.registry = registry;
         this.auditLog = auditLog;
@@ -65,6 +67,7 @@ public class SearchGuardRestFilter {
         this.principalExtractor = principalExtractor;
         this.settings = settings;
         this.configPath = configPath;
+        this.compatConfig = compatConfig;
     }
     
     public RestHandler wrap(RestHandler original) {
@@ -117,6 +120,10 @@ public class SearchGuardRestFilter {
             auditLog.logSSLException(request, e);
             channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, e));
             return true;
+        }
+        
+        if(!compatConfig.restAuthEnabled()) {
+            return false;
         }
 
         if(request.method() != Method.OPTIONS 
