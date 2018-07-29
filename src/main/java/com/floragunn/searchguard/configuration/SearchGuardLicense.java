@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -38,6 +39,7 @@ public final class SearchGuardLicense implements Writeable {
 
     private String uid;
     private Type type;
+    private Feature[] features;
     private String issueDate;
     private String expiryDate;
     private String issuedTo;
@@ -55,7 +57,7 @@ public final class SearchGuardLicense implements Writeable {
     private final ClusterService clusterService;
     
     public static SearchGuardLicense createTrialLicense(String issueDate, ClusterService clusterService, String msg) {
-        final SearchGuardLicense trialLicense =  new SearchGuardLicense("00000000-0000-0000-0000-000000000000", Type.TRIAL, issueDate, addDays(issueDate, 61L), "The world", "floragunn GmbH", issueDate, 6, "*", Integer.MAX_VALUE, clusterService);
+        final SearchGuardLicense trialLicense =  new SearchGuardLicense("00000000-0000-0000-0000-000000000000", Type.TRIAL, Feature.values(), issueDate, addDays(issueDate, 61L), "The world", "floragunn GmbH", issueDate, 6, "*", Integer.MAX_VALUE, clusterService);
         if(msg != null) {
             trialLicense.msgs.add(msg);
         }
@@ -80,6 +82,7 @@ public final class SearchGuardLicense implements Writeable {
         out.writeBoolean(valid);
         out.writeString(action);
         out.writeString(prodUsage);
+        out.writeArray(StreamOutput::writeEnum, features==null?new Feature[0]:features);
     }
     
     public SearchGuardLicense(final StreamInput in) throws IOException {
@@ -99,13 +102,22 @@ public final class SearchGuardLicense implements Writeable {
         valid = in.readBoolean();
         action = in.readString();
         prodUsage = in.readString();
+        features = in.readArray(new Reader<Feature>() {
+
+            @Override
+            public Feature read(StreamInput in) throws IOException {
+                return in.readEnum(Feature.class);
+            }}, Feature[]::new);
+
         clusterService = null;
+        
     }
 
     public SearchGuardLicense(final Map<String, Object> map, ClusterService clusterService) {
         this(
                  (String) (map==null?null:map.get("uid")),
                  (Type)   (map==null?null:Type.valueOf(((String)map.get("type")).toUpperCase())),
+                 (map==null?null:parseFeatures((List<String>) map.get("features"))),
                  (String) (map==null?null:map.get("issued_date")),
                  (String) (map==null?null:map.get("expiry_date")),
                  (String) (map==null?null:map.get("issued_to")),
@@ -118,10 +130,32 @@ public final class SearchGuardLicense implements Writeable {
         );
     }
     
-    public SearchGuardLicense(String uid, Type type, String issueDate, String expiryDate, String issuedTo, String issuer, String startDate, Integer majorVersion, String clusterName, int allowedNodeCount,  ClusterService clusterService) {
+    private final static Feature[] parseFeatures(List<String> featuresAsString) {
+        if(featuresAsString == null || featuresAsString.isEmpty()) {
+            return new Feature[0];
+        }
+        
+        List<Feature> retVal = new ArrayList<SearchGuardLicense.Feature>();
+        
+        for(String feature: featuresAsString) {
+            if(feature != null && !feature.isEmpty()) {
+                try {
+                    retVal.add(Feature.valueOf(feature.toUpperCase()));
+                } catch (Exception e) {
+                    //no such feature
+                }
+            }
+            
+        }
+        
+        return retVal.toArray(new Feature[0]);
+    }
+    
+    public SearchGuardLicense(String uid, Type type, Feature[] features, String issueDate, String expiryDate, String issuedTo, String issuer, String startDate, Integer majorVersion, String clusterName, int allowedNodeCount,  ClusterService clusterService) {
         super();
         this.uid = Objects.requireNonNull(uid);
         this.type = Objects.requireNonNull(type);
+        this.features = features==null?new Feature[0]:features.clone();
         this.issueDate = Objects.requireNonNull(issueDate);
         this.expiryDate = Objects.requireNonNull(expiryDate);
         this.issuedTo = Objects.requireNonNull(issuedTo);
@@ -245,6 +279,10 @@ public final class SearchGuardLicense implements Writeable {
         TRIAL,
         COMPANY
     }
+    
+    public enum Feature {
+        COMPLIANCE
+    }
    
     private static Date parseDate(String date) throws ParseException {
         return new SimpleDateFormat("yyyy-MM-dd").parse(date);
@@ -321,10 +359,21 @@ public final class SearchGuardLicense implements Writeable {
     public int getAllowedNodeCount() {
         return allowedNodeCount;
     }
+    
+    public Feature[] getFeatures() {
+        return features==null?null:features.clone();
+    }
+    
+    public boolean hasFeature(Feature feature) {
+        if(features == null || features.length == 0) {
+            return false;
+        }
+        return Arrays.asList(features).contains(feature);
+    }
 
     @Override
     public String toString() {
-        return "SearchGuardLicense [uid=" + uid + ", type=" + type + ", issueDate=" + issueDate + ", expiryDate=" + expiryDate
+        return "SearchGuardLicense [uid=" + uid + ", type=" + type + ", features=" + Arrays.toString(features) + ", issueDate=" + issueDate + ", expiryDate=" + expiryDate
                 + ", issuedTo=" + issuedTo + ", issuer=" + issuer + ", startDate=" + startDate + ", majorVersion=" + majorVersion
                 + ", clusterName=" + clusterName + ", allowedNodeCount=" + allowedNodeCount + ", msgs=" + msgs + ", expiresInDays="
                 + expiresInDays + ", isExpired=" + isExpired + ", valid=" + valid + ", action=" + action + ", prodUsage=" + prodUsage

@@ -360,6 +360,35 @@ sg_aliasmngt:
         - indices:data/read/*
         - CREATE_INDEX
         - indices:admin/aliases*
+        
+sg_ua:
+  cluster:
+    - '*'
+  indices:
+    'indexa*':
+      '*':
+        - '*'
+    'permitnotexistentindex':
+      '*':
+        - '*'
+    '*':
+      '*':
+        - indices:data/read/field_caps
+sg_ub:
+  cluster:
+    - '*'
+  indices:
+    'indexb':
+      '*':
+        - '*'
+        
+sg_uc:
+  cluster:
+    - '*'
+  indices:
+    'indexc':
+      'typec':
+        - '*'
     'beats-*':
       '*':
         - indices:data/write/*
@@ -414,6 +443,18 @@ sg_mindex3:
 sg_ccsresolv:
   indices:
     '?abc*':
+      '*':
+        - 'indices:data/read/*'
+
+sg_ccsresolv1:
+  indices:
+    '?abc*':
+      '*':
+        - 'indices:data/read/*'
+    'xyz':
+      '*':
+        - 'indices:data/read/*'
+    '*noexist':
       '*':
         - 'indices:data/read/*'
         

@@ -303,11 +303,14 @@ public final class PemKeyReader {
         return new ByteArrayInputStream(content.getBytes(StandardCharsets.US_ASCII));
     }
     
-    public static String resolve(String propName, Settings settings, Path configPath, boolean mustBeValid) {
-        
+    public static String resolve(String propName, Settings settings, Path configPath, boolean mustBeValid) {        
         final String originalPath = settings.get(propName, null);
+        return resolve(originalPath, propName, settings, configPath, mustBeValid);
+    }
+
+    public static String resolve(String originalPath, String propName, Settings settings, Path configPath, boolean mustBeValid) {
+        log.debug("Path is is {}", originalPath);
         String path = originalPath;
-        log.debug("Value for {} is {}", propName, originalPath);
         final Environment env = new Environment(settings, configPath);
         
         if(env != null && originalPath != null && originalPath.length() > 0) {
@@ -323,7 +326,7 @@ public final class PemKeyReader {
             path = null;
         }
         
-        return path;
+        return path;	
     }
     
     public static KeyStore toTruststore(final String trustCertificatesAliasPrefix, final X509Certificate[] trustCertificates) throws Exception {

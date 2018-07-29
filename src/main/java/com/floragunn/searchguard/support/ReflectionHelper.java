@@ -1,10 +1,10 @@
 /*
  * Copyright 2015-2017 floragunn GmbH
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  */
 
 package com.floragunn.searchguard.support;
@@ -42,6 +42,8 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import com.floragunn.searchguard.auditlog.AuditLog;
 import com.floragunn.searchguard.auditlog.NullAuditLog;
+import com.floragunn.searchguard.compliance.ComplianceConfig;
+import com.floragunn.searchguard.compliance.ComplianceIndexingOperationListener;
 import com.floragunn.searchguard.configuration.AdminDNs;
 import com.floragunn.searchguard.configuration.DlsFlsRequestValve;
 import com.floragunn.searchguard.configuration.IndexBaseConfigurationRepository;
@@ -54,231 +56,256 @@ import com.floragunn.searchguard.transport.InterClusterRequestEvaluator;
 
 public class ReflectionHelper {
 
-	protected static final Logger log = LogManager.getLogger(ReflectionHelper.class);
+    protected static final Logger log = LogManager.getLogger(ReflectionHelper.class);
 
-	private static Set<ModuleInfo> modulesLoaded = new HashSet<>();
+    private static Set<ModuleInfo> modulesLoaded = new HashSet<>();
 
-	public static Set<ModuleInfo> getModulesLoaded() {
-		return Collections.unmodifiableSet(modulesLoaded);
-	}
+    public static Set<ModuleInfo> getModulesLoaded() {
+        return Collections.unmodifiableSet(modulesLoaded);
+    }
 
-	private static boolean enterpriseModulesDisabled() {
-		return !enterpriseModulesEnabled;
-	}
+    private static boolean enterpriseModulesDisabled() {
+        return !enterpriseModulesEnabled;
+    }
 
-	@SuppressWarnings("unchecked")
-	public static Collection<RestHandler> instantiateMngtRestApiHandler(final Settings settings, final Path configPath, final RestController restController,
-			final Client localClient, final AdminDNs adminDns, final IndexBaseConfigurationRepository cr, final ClusterService cs, final PrincipalExtractor principalExtractor,
-			final PrivilegesEvaluator evaluator, final ThreadPool threadPool, final AuditLog auditlog) {
+    @SuppressWarnings("unchecked")
+    public static Collection<RestHandler> instantiateMngtRestApiHandler(final Settings settings, final Path configPath, final RestController restController,
+            final Client localClient, final AdminDNs adminDns, final IndexBaseConfigurationRepository cr, final ClusterService cs, final PrincipalExtractor principalExtractor,
+            final PrivilegesEvaluator evaluator, final ThreadPool threadPool, final AuditLog auditlog) {
 
-		if (enterpriseModulesDisabled()) {
-			return Collections.emptyList();
-		}
+        if (enterpriseModulesDisabled()) {
+            return Collections.emptyList();
+        }
 
-		try {
-			final Class<?> clazz = Class.forName("com.floragunn.searchguard.dlic.rest.api.SearchGuardRestApiActions");
-			final Collection<RestHandler> ret = (Collection<RestHandler>) clazz
-					.getDeclaredMethod("getHandler", Settings.class, Path.class, RestController.class, Client.class, AdminDNs.class, IndexBaseConfigurationRepository.class,
-							ClusterService.class, PrincipalExtractor.class, PrivilegesEvaluator.class, ThreadPool.class, AuditLog.class)
-					.invoke(null, settings, configPath, restController, localClient, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditlog);
-			addLoadedModule(clazz);
-			return ret;
-		} catch (final Throwable e) {
-			log.warn("Unable to enable Rest Management Api Module due to {}", e.toString());
-			return Collections.emptyList();
-		}
-	}
+        try {
+            final Class<?> clazz = Class.forName("com.floragunn.searchguard.dlic.rest.api.SearchGuardRestApiActions");
+            final Collection<RestHandler> ret = (Collection<RestHandler>) clazz
+                    .getDeclaredMethod("getHandler", Settings.class, Path.class, RestController.class, Client.class, AdminDNs.class, IndexBaseConfigurationRepository.class,
+                            ClusterService.class, PrincipalExtractor.class, PrivilegesEvaluator.class, ThreadPool.class, AuditLog.class)
+                    .invoke(null, settings, configPath, restController, localClient, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditlog);
+            addLoadedModule(clazz);
+            return ret;
+        } catch (final Throwable e) {
+            log.warn("Unable to enable Rest Management Api Module due to {}", e.toString());
+            return Collections.emptyList();
+        }
+    }
 
-	@SuppressWarnings("rawtypes")
+    @SuppressWarnings("rawtypes")
     public static Constructor instantiateDlsFlsConstructor() {
 
-		if (enterpriseModulesDisabled()) {
-			return null;
-		}
+        if (enterpriseModulesDisabled()) {
+            return null;
+        }
 
-		try {
-			final Class<?> clazz = Class.forName("com.floragunn.searchguard.configuration.SearchGuardFlsDlsIndexSearcherWrapper");
-			final Constructor<?> ret = clazz.getConstructor(IndexService.class, Settings.class, AdminDNs.class);
-			addLoadedModule(clazz);
-			return ret;
-		} catch (final Throwable e) {
-			log.warn("Unable to enable DLS/FLS Module due to {}", e.toString());
-			return null;
-		}
-	}
+        try {
+            final Class<?> clazz = Class.forName("com.floragunn.searchguard.configuration.SearchGuardFlsDlsIndexSearcherWrapper");
+            final Constructor<?> ret = clazz.getConstructor(IndexService.class,
+                    Settings.class, AdminDNs.class, ClusterService.class, AuditLog.class,
+                    ComplianceIndexingOperationListener.class, ComplianceConfig.class);
+            addLoadedModule(clazz);
+            return ret;
+        } catch (final Throwable e) {
+            log.warn("Unable to enable DLS/FLS Module due to {}", e.toString());
+            return null;
+        }
+    }
 
-	public static DlsFlsRequestValve instantiateDlsFlsValve() {
+    public static DlsFlsRequestValve instantiateDlsFlsValve() {
 
-		if (enterpriseModulesDisabled()) {
-			return new DlsFlsRequestValve.NoopDlsFlsRequestValve();
-		}
+        if (enterpriseModulesDisabled()) {
+            return new DlsFlsRequestValve.NoopDlsFlsRequestValve();
+        }
 
-		try {
-			final Class<?> clazz = Class.forName("com.floragunn.searchguard.configuration.DlsFlsValveImpl");
-			final DlsFlsRequestValve ret = (DlsFlsRequestValve) clazz.newInstance();
-			return ret;
-		} catch (final Throwable e) {
-			log.warn("Unable to enable DLS/FLS Valve Module due to {}", e.toString());
-			return new DlsFlsRequestValve.NoopDlsFlsRequestValve();
-		}
-	}
+        try {
+            final Class<?> clazz = Class.forName("com.floragunn.searchguard.configuration.DlsFlsValveImpl");
+            final DlsFlsRequestValve ret = (DlsFlsRequestValve) clazz.newInstance();
+            return ret;
+        } catch (final Throwable e) {
+            log.warn("Unable to enable DLS/FLS Valve Module due to {}", e.toString());
+            return new DlsFlsRequestValve.NoopDlsFlsRequestValve();
+        }
+    }
 
-	public static AuditLog instantiateAuditLog(final Settings settings, final Path configPath, final Client localClient, final ThreadPool threadPool,
-			final IndexNameExpressionResolver resolver, final ClusterService clusterService) {
+    public static AuditLog instantiateAuditLog(final Settings settings, final Path configPath, final Client localClient, final ThreadPool threadPool,
+            final IndexNameExpressionResolver resolver, final ClusterService clusterService) {
 
-		if (enterpriseModulesDisabled()) {
-			return new NullAuditLog();
-		}
+        if (enterpriseModulesDisabled()) {
+            return new NullAuditLog();
+        }
 
-		try {
-			final Class<?> clazz = Class.forName("com.floragunn.searchguard.auditlog.impl.AuditLogImpl");
-			final AuditLog impl = (AuditLog) clazz
-					.getConstructor(Settings.class, Path.class, Client.class, ThreadPool.class, IndexNameExpressionResolver.class, ClusterService.class)
-					.newInstance(settings, configPath, localClient, threadPool, resolver, clusterService);
-			addLoadedModule(clazz);
-			return impl;
-		} catch (final Throwable e) {
-			log.warn("Unable to enable Auditlog Module due to {}", e.toString());
-			return new NullAuditLog();
-		}
-	}
+        try {
+            final Class<?> clazz = Class.forName("com.floragunn.searchguard.auditlog.impl.AuditLogImpl");
+            final AuditLog impl = (AuditLog) clazz
+                    .getConstructor(Settings.class, Path.class, Client.class, ThreadPool.class, IndexNameExpressionResolver.class, ClusterService.class)
+                    .newInstance(settings, configPath, localClient, threadPool, resolver, clusterService);
+            addLoadedModule(clazz);
+            return impl;
+        } catch (final Throwable e) {
+            log.warn("Unable to enable Auditlog Module due to {}", e.toString());
+            return new NullAuditLog();
+        }
+    }
 
-	public static PrivilegesInterceptor instantiatePrivilegesInterceptorImpl(final IndexNameExpressionResolver resolver, final ClusterService clusterService,
-			final Client localClient, final ThreadPool threadPool) {
+    public static ComplianceIndexingOperationListener instantiateComplianceListener(ComplianceConfig complianceConfig, AuditLog auditlog) {
 
-		final PrivilegesInterceptor noop = new PrivilegesInterceptor(resolver, clusterService, localClient, threadPool);
+        if (enterpriseModulesDisabled()) {
+            return new ComplianceIndexingOperationListener();
+        }
 
-		if (enterpriseModulesDisabled()) {
-			return noop;
-		}
+        try {
+            final Class<?> clazz = Class.forName("com.floragunn.searchguard.compliance.ComplianceIndexingOperationListenerImpl");
+            final ComplianceIndexingOperationListener impl = (ComplianceIndexingOperationListener) clazz
+                    .getConstructor(ComplianceConfig.class, AuditLog.class)
+                    .newInstance(complianceConfig, auditlog);
+            addLoadedModule(clazz);
+            return impl;
+        } catch (final ClassNotFoundException e) {
+            //TODO produce a single warn msg, this here is issued for every index
+           log.debug("Unable to enable Compliance Module due to {}", e.toString());
+           return new ComplianceIndexingOperationListener();
+        } catch (final Throwable e) {
+            log.error("Unable to enable Compliance Module due to {}", e.toString());
+            return new ComplianceIndexingOperationListener();
+        }
+    }
 
-		try {
-			final Class<?> clazz = Class.forName("com.floragunn.searchguard.configuration.PrivilegesInterceptorImpl");
-			final PrivilegesInterceptor ret = (PrivilegesInterceptor) clazz.getConstructor(IndexNameExpressionResolver.class, ClusterService.class, Client.class, ThreadPool.class)
-					.newInstance(resolver, clusterService, localClient, threadPool);
-			addLoadedModule(clazz);
-			return ret;
-		} catch (final Throwable e) {
-			log.warn("Unable to enable Kibana Module due to {}", e.toString());
-			return noop;
-		}
-	}
+    public static PrivilegesInterceptor instantiatePrivilegesInterceptorImpl(final IndexNameExpressionResolver resolver, final ClusterService clusterService,
+            final Client localClient, final ThreadPool threadPool) {
 
-	@SuppressWarnings("unchecked")
-	public static <T> T instantiateAAA(final String clazz, final Settings settings, final Path configPath, final boolean checkEnterprise) {
+        final PrivilegesInterceptor noop = new PrivilegesInterceptor(resolver, clusterService, localClient, threadPool);
 
-		if (checkEnterprise && enterpriseModulesDisabled()) {
-			throw new ElasticsearchException("Can not load '{}' because enterprise modules are disabled", clazz);
-		}
+        if (enterpriseModulesDisabled()) {
+            return noop;
+        }
 
-		try {
-			final Class<?> clazz0 = Class.forName(clazz);
-			final T ret = (T) clazz0.getConstructor(Settings.class, Path.class).newInstance(settings, configPath);
+        try {
+            final Class<?> clazz = Class.forName("com.floragunn.searchguard.configuration.PrivilegesInterceptorImpl");
+            final PrivilegesInterceptor ret = (PrivilegesInterceptor) clazz.getConstructor(IndexNameExpressionResolver.class, ClusterService.class, Client.class, ThreadPool.class)
+                    .newInstance(resolver, clusterService, localClient, threadPool);
+            addLoadedModule(clazz);
+            return ret;
+        } catch (final Throwable e) {
+            log.warn("Unable to enable Kibana Module due to {}", e.toString());
+            return noop;
+        }
+    }
 
-			addLoadedModule(clazz0);
+    @SuppressWarnings("unchecked")
+    public static <T> T instantiateAAA(final String clazz, final Settings settings, final Path configPath, final boolean checkEnterprise) {
 
-			return ret;
+        if (checkEnterprise && enterpriseModulesDisabled()) {
+            throw new ElasticsearchException("Can not load '{}' because enterprise modules are disabled", clazz);
+        }
 
-		} catch (final Throwable e) {
-			log.warn("Unable to enable '{}' due to {}", clazz, e.toString());
-			throw new ElasticsearchException(e);
-		}
-	}
+        try {
+            final Class<?> clazz0 = Class.forName(clazz);
+            final T ret = (T) clazz0.getConstructor(Settings.class, Path.class).newInstance(settings, configPath);
 
-	public static InterClusterRequestEvaluator instantiateInterClusterRequestEvaluator(final String clazz, final Settings settings) {
+            addLoadedModule(clazz0);
 
-		try {
-			final Class<?> clazz0 = Class.forName(clazz);
-			final InterClusterRequestEvaluator ret = (InterClusterRequestEvaluator) clazz0.getConstructor(Settings.class).newInstance(settings);
-			addLoadedModule(clazz0);
-			return ret;
-		} catch (final Throwable e) {
-			log.warn("Unable to load inter cluster request evaluator '{}' due to {}", clazz, e.toString());
-			return new DefaultInterClusterRequestEvaluator(settings);
-		}
-	}
+            return ret;
 
-	public static PrincipalExtractor instantiatePrincipalExtractor(final String clazz) {
+        } catch (final Throwable e) {
+            log.warn("Unable to enable '{}' due to {}", clazz, e.toString());
+            throw new ElasticsearchException(e);
+        }
+    }
 
-		try {
-			final Class<?> clazz0 = Class.forName(clazz);
-			final PrincipalExtractor ret = (PrincipalExtractor) clazz0.newInstance();
-			addLoadedModule(clazz0);
-			return ret;
-		} catch (final Throwable e) {
-			log.warn("Unable to load pricipal extractor '{}' due to {}", clazz, e.toString());
-			return new DefaultPrincipalExtractor();
-		}
-	}
+    public static InterClusterRequestEvaluator instantiateInterClusterRequestEvaluator(final String clazz, final Settings settings) {
 
-	public static boolean isEnterpriseAAAModule(final String clazz) {
-		boolean enterpriseModuleInstalled = false;
+        try {
+            final Class<?> clazz0 = Class.forName(clazz);
+            final InterClusterRequestEvaluator ret = (InterClusterRequestEvaluator) clazz0.getConstructor(Settings.class).newInstance(settings);
+            addLoadedModule(clazz0);
+            return ret;
+        } catch (final Throwable e) {
+            log.warn("Unable to load inter cluster request evaluator '{}' due to {}", clazz, e.toString());
+            return new DefaultInterClusterRequestEvaluator(settings);
+        }
+    }
 
-		if (clazz.equalsIgnoreCase("com.floragunn.dlic.auth.ldap.backend.LDAPAuthorizationBackend")) {
-			enterpriseModuleInstalled = true;
-		}
+    public static PrincipalExtractor instantiatePrincipalExtractor(final String clazz) {
 
-		if (clazz.equalsIgnoreCase("com.floragunn.dlic.auth.ldap.backend.LDAPAuthenticationBackend")) {
-			enterpriseModuleInstalled = true;
-		}
+        try {
+            final Class<?> clazz0 = Class.forName(clazz);
+            final PrincipalExtractor ret = (PrincipalExtractor) clazz0.newInstance();
+            addLoadedModule(clazz0);
+            return ret;
+        } catch (final Throwable e) {
+            log.warn("Unable to load pricipal extractor '{}' due to {}", clazz, e.toString());
+            return new DefaultPrincipalExtractor();
+        }
+    }
 
-		if (clazz.equalsIgnoreCase("com.floragunn.dlic.auth.http.jwt.HTTPJwtAuthenticator")) {
-			enterpriseModuleInstalled = true;
-		}
+    public static boolean isEnterpriseAAAModule(final String clazz) {
+        boolean enterpriseModuleInstalled = false;
 
-		if (clazz.equalsIgnoreCase("com.floragunn.dlic.auth.http.jwt.keybyoidc.HTTPJwtKeyByOpenIdConnectAuthenticator")) {
-			enterpriseModuleInstalled = true;
-		}
+        if (clazz.equalsIgnoreCase("com.floragunn.dlic.auth.ldap.backend.LDAPAuthorizationBackend")) {
+            enterpriseModuleInstalled = true;
+        }
 
-		if (clazz.equalsIgnoreCase("com.floragunn.dlic.auth.http.kerberos.HTTPSpnegoAuthenticator")) {
-			enterpriseModuleInstalled = true;
-		}
+        if (clazz.equalsIgnoreCase("com.floragunn.dlic.auth.ldap.backend.LDAPAuthenticationBackend")) {
+            enterpriseModuleInstalled = true;
+        }
 
-		return enterpriseModuleInstalled;
-	}
+        if (clazz.equalsIgnoreCase("com.floragunn.dlic.auth.http.jwt.HTTPJwtAuthenticator")) {
+            enterpriseModuleInstalled = true;
+        }
+        
+        if (clazz.equalsIgnoreCase("com.floragunn.dlic.auth.http.jwt.keybyoidc.HTTPJwtKeyByOpenIdConnectAuthenticator")) {
+            enterpriseModuleInstalled = true;
+        }
 
-	public static boolean addLoadedModule(Class<?> clazz) {
-		ModuleInfo moduleInfo = getModuleInfo(clazz);
-		if (log.isDebugEnabled()) {
-			log.debug("Loaded module {}", moduleInfo);
-		}
-		return modulesLoaded.add(moduleInfo);
-	}
+        if (clazz.equalsIgnoreCase("com.floragunn.dlic.auth.http.kerberos.HTTPSpnegoAuthenticator")) {
+            enterpriseModuleInstalled = true;
+        }
 
-	private static boolean enterpriseModulesEnabled;
+        return enterpriseModuleInstalled;
+    }
 
-	// TODO static hack
-	public static void init(final boolean enterpriseModulesEnabled) {
-		ReflectionHelper.enterpriseModulesEnabled = enterpriseModulesEnabled;
-	}
+    public static boolean addLoadedModule(Class<?> clazz) {
+        ModuleInfo moduleInfo = getModuleInfo(clazz);
+        if (log.isDebugEnabled()) {
+            log.debug("Loaded module {}", moduleInfo);
+        }
+        return modulesLoaded.add(moduleInfo);
+    }
 
-	private static ModuleInfo getModuleInfo(final Class<?> impl) {
+    private static boolean enterpriseModulesEnabled;
 
-		ModuleType moduleType = ModuleType.getByDefaultImplClass(impl);
-		ModuleInfo moduleInfo = new ModuleInfo(moduleType, impl.getName());
+    // TODO static hack
+    public static void init(final boolean enterpriseModulesEnabled) {
+        ReflectionHelper.enterpriseModulesEnabled = enterpriseModulesEnabled;
+    }
 
-		try {
+    private static ModuleInfo getModuleInfo(final Class<?> impl) {
 
-			final String classPath = impl.getResource(impl.getSimpleName() + ".class").toString();
-			moduleInfo.setClasspath(classPath);			
-			
-			if (!classPath.startsWith("jar")) {
-				return moduleInfo;
-			}
+        ModuleType moduleType = ModuleType.getByDefaultImplClass(impl);
+        ModuleInfo moduleInfo = new ModuleInfo(moduleType, impl.getName());
 
-			final String manifestPath = classPath.substring(0, classPath.lastIndexOf("!") + 1) + "/META-INF/MANIFEST.MF";
+        try {
 
-			try (InputStream stream = new URL(manifestPath).openStream()) {
-				final Manifest manifest = new Manifest(stream);
-				final Attributes attr = manifest.getMainAttributes();
-				moduleInfo.setVersion(attr.getValue("Implementation-Version"));
-				moduleInfo.setBuildTime(attr.getValue("Build-Time"));
-				moduleInfo.setGitsha1(attr.getValue("git-sha1"));
-			}
-		} catch (final Throwable e) {
-			log.error("Unable to retrieve module info for " + impl, e);
-		}
+            final String classPath = impl.getResource(impl.getSimpleName() + ".class").toString();
+            moduleInfo.setClasspath(classPath);
 
-		return moduleInfo;
-	}
+            if (!classPath.startsWith("jar")) {
+                return moduleInfo;
+            }
+
+            final String manifestPath = classPath.substring(0, classPath.lastIndexOf("!") + 1) + "/META-INF/MANIFEST.MF";
+
+            try (InputStream stream = new URL(manifestPath).openStream()) {
+                final Manifest manifest = new Manifest(stream);
+                final Attributes attr = manifest.getMainAttributes();
+                moduleInfo.setVersion(attr.getValue("Implementation-Version"));
+                moduleInfo.setBuildTime(attr.getValue("Build-Time"));
+                moduleInfo.setGitsha1(attr.getValue("git-sha1"));
+            }
+        } catch (final Throwable e) {
+            log.error("Unable to retrieve module info for " + impl, e);
+        }
+
+        return moduleInfo;
+    }
 }

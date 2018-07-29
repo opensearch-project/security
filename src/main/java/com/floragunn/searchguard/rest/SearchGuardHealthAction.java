@@ -33,7 +33,6 @@ import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.rest.RestStatus;
 
 import com.floragunn.searchguard.auth.BackendRegistry;
-import com.floragunn.searchguard.configuration.PrivilegesEvaluator;
 
 public class SearchGuardHealthAction extends BaseRestHandler {
 

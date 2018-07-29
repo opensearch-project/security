@@ -25,8 +25,6 @@ import java.util.TreeSet;
 
 import javax.net.ServerSocketFactory;
 
-import org.junit.Assert;
-
 /**
  * Simple utility methods for working with network sockets &mdash; for example,
  * for finding available ports on {@code localhost}.

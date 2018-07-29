@@ -31,8 +31,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentHelper;
 
 import com.floragunn.searchguard.configuration.SearchGuardLicense;
 import com.floragunn.searchguard.support.ModuleInfo;
@@ -76,6 +74,7 @@ public class LicenseInfoResponse extends BaseNodesResponse<LicenseInfoNodeRespon
             
             builder.field("uid", license.getUid());
             builder.field("type", license.getType());
+            builder.field("features", license.getFeatures());
             builder.field("issue_date", license.getIssueDate());
             builder.field("expiry_date", license.getExpiryDate());
             builder.field("issued_to", license.getIssuedTo());
@@ -101,6 +100,7 @@ public class LicenseInfoResponse extends BaseNodesResponse<LicenseInfoNodeRespon
                  
             builder.field("uid", license.getUid());
             builder.field("type", license.getType());
+            builder.field("features", license.getFeatures());
             builder.field("issue_date", license.getIssueDate());
             builder.field("expiry_date", license.getExpiryDate());
             builder.field("issued_to", license.getIssuedTo());

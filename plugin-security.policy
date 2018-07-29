@@ -22,11 +22,7 @@ grant {
   permission javax.security.auth.AuthPermission "modifyPrivateCredentials";
   permission javax.security.auth.AuthPermission "doAs";
   permission javax.security.auth.kerberos.ServicePermission "*","accept";
-  permission java.util.PropertyPermission "javax.security.auth.useSubjectCredsOnly","write";
-  permission java.util.PropertyPermission "java.security.krb5.conf","write";
-  permission java.util.PropertyPermission "sun.security.krb5.debug","write";
-  permission java.util.PropertyPermission "java.security.debug","write";
-  permission java.util.PropertyPermission "sun.security.spnego.debug","write";
+  permission java.util.PropertyPermission "*","read,write";
 
   //Enable when we switch to UnboundID LDAP SDK
   //permission java.util.PropertyPermission "*", "read,write";
@@ -41,12 +37,8 @@ grant {
   permission java.lang.RuntimePermission "accessClassInPackage.sun.security.x509";
   permission java.lang.RuntimePermission "accessClassInPackage.sun.nio.ch";
   permission java.io.FilePermission "/proc/sys/net/core/somaxconn","read";
-  permission java.util.PropertyPermission "sun.nio.ch.bugLevel", "write";
-  permission java.util.PropertyPermission "es.set.netty.runtime.available.processors", "write";
-  permission java.util.PropertyPermission "jdk.tls.rejectClientInitiatedRenegotiation", "write";
-
+  
   permission java.security.SecurityPermission "setProperty.ocsp.enable";
-  permission java.util.PropertyPermission "com.sun.security.enableCRLDP", "write";
   
   permission java.net.NetPermission "getNetworkInformation";
   permission java.net.NetPermission "getProxySelector";

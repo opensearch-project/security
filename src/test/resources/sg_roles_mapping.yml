@@ -155,7 +155,7 @@ sg_mindex3:
 sg_ccsresolv:
   users:
     - ccsresolv
-    
+
 sg_underscore:
   users:
     - underscore

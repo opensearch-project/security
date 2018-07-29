@@ -144,6 +144,6 @@ public class InternalAuthenticationBackend implements AuthenticationBackend {
     }
 
     private Settings getConfigSettings() {
-        return configurationRepository.getConfiguration(ConfigConstants.CONFIGNAME_INTERNAL_USERS);
+        return configurationRepository.getConfiguration(ConfigConstants.CONFIGNAME_INTERNAL_USERS, false);
     }
 }

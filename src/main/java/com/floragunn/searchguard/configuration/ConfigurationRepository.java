@@ -18,10 +18,10 @@
 package com.floragunn.searchguard.configuration;
 
 
-import org.elasticsearch.common.settings.Settings;
-
 import java.util.Collection;
 import java.util.Map;
+
+import org.elasticsearch.common.settings.Settings;
 
 /**
  * Abstraction layer over search guard configuration repository
@@ -37,7 +37,7 @@ public interface ConfigurationRepository {
      * @throws NullPointerException if specified configuration type is null or empty
      */
     
-    Settings getConfiguration(String configurationType);
+    Settings getConfiguration(String configurationType, boolean triggerComplianceWhenCached);
 
     /**
      * Bulk load configuration from persistence layer
@@ -48,7 +48,7 @@ public interface ConfigurationRepository {
      * they will be absent in result map
      * @throws NullPointerException if specified collection with type null or contain null or empty types
      */
-    Map<String, Settings> getConfiguration(Collection<String> configTypes);
+    //Map<String, Settings> getConfiguration(Collection<String> configTypes);
 
     /**
      * Bulk reload configuration from persistence layer. If configuration was modify manually bypassing business logic define

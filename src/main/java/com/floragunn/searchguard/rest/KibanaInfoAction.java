@@ -17,7 +17,8 @@
 
 package com.floragunn.searchguard.rest;
 
-import static org.elasticsearch.rest.RestRequest.Method.*;
+import static org.elasticsearch.rest.RestRequest.Method.GET;
+import static org.elasticsearch.rest.RestRequest.Method.POST;
 
 import java.io.IOException;
 
@@ -74,7 +75,7 @@ public class KibanaInfoAction extends BaseRestHandler {
                     builder.field("kibana_mt_enabled", evaluator.multitenancyEnabled());
                     builder.field("kibana_index", evaluator.kibanaIndex());
                     builder.field("kibana_server_user", evaluator.kibanaServerUsername());
-                    builder.field("kibana_index_readonly", evaluator.kibanaIndexReadonly(user, remoteAddress));
+                    //builder.field("kibana_index_readonly", evaluator.kibanaIndexReadonly(user, remoteAddress));
                     builder.endObject();
 
                     response = new BytesRestResponse(RestStatus.OK, builder);

@@ -1,10 +1,10 @@
 /*
  * Copyright 2015-2017 floragunn GmbH
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  */
 
 package com.floragunn.searchguard.support;
@@ -34,7 +34,7 @@ import com.floragunn.searchguard.ssl.transport.PrincipalExtractor;
 import com.floragunn.searchguard.transport.InterClusterRequestEvaluator;
 
 public enum ModuleType implements Serializable {
-	
+
 	REST_MANAGEMENT_API("REST Management API", "com.floragunn.searchguard.dlic.rest.api.SearchGuardRestApiActions", Boolean.TRUE),
 	DLSFLS("Document- and Field-Level Security", "com.floragunn.searchguard.configuration.SearchGuardFlsDlsIndexSearcherWrapper", Boolean.TRUE),
 	AUDITLOG("Audit Logging", "com.floragunn.searchguard.auditlog.impl.AuditLogImpl", Boolean.TRUE),
@@ -56,27 +56,28 @@ public enum ModuleType implements Serializable {
 	CUSTOM_AUTHORIZATION_BACKEND("Custom authorization backend", null, Boolean.TRUE),
 	CUSTOM_INTERCLUSTER_REQUEST_EVALUATOR("Intercluster Request Evaluator", null, Boolean.FALSE),
 	CUSTOM_PRINCIPAL_EXTRACTOR("TLS Principal Extractor", null, Boolean.FALSE),
+	COMPLIANCE("Compliance", "com.floragunn.searchguard.compliance.ComplianceIndexingOperationListenerImpl", Boolean.TRUE),
 	UNKNOWN("Unknown type", null, Boolean.TRUE);
-	
+
 	private String description;
 	private String defaultImplClass;
-	private Boolean isEnterprise = Boolean.TRUE;	
+	private Boolean isEnterprise = Boolean.TRUE;
 	private static Map<String, ModuleType> modulesMap = new HashMap<>();
-	
+
 	static{
 		for(ModuleType module : ModuleType.values()) {
 			if (module.defaultImplClass != null) {
-				modulesMap.put(module.getDefaultImplClass(), module);	
-			}			
+				modulesMap.put(module.getDefaultImplClass(), module);
+			}
 		}
 	}
-	
+
 	private ModuleType(String description, String defaultImplClass, Boolean isEnterprise) {
 		this.description = description;
 		this.defaultImplClass = defaultImplClass;
 		this.isEnterprise = isEnterprise;
 	}
-	
+
 	public static ModuleType getByDefaultImplClass(Class<?> clazz) {
 		ModuleType moduleType = modulesMap.get(clazz.getName());
     	if(moduleType == null) {
@@ -109,18 +110,18 @@ public enum ModuleType implements Serializable {
     	}
     	return moduleType;
 	}
-	
+
 	public String getDescription() {
 		return this.description;
 	}
-	
+
 	public String getDefaultImplClass() {
 		return defaultImplClass;
 	}
-	
+
 	public Boolean isEnterprise() {
 		return isEnterprise;
 	}
 
-	
+
 }

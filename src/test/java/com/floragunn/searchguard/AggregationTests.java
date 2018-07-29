@@ -56,9 +56,13 @@ public class AggregationTests extends SingleClusterTest {
             tc.index(new IndexRequest("kirk").type("type01").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest("role01_role02").type("type01").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
 
+            tc.index(new IndexRequest("xyz").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
+
+            
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("starfleet","starfleet_academy","starfleet_library").alias("sf"))).actionGet();
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("klingonempire","vulcangov").alias("nonsf"))).actionGet();
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("public").alias("unrestricted"))).actionGet();
+            tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("xyz").alias("alias1"))).actionGet();
 
         }
         
@@ -70,6 +74,10 @@ public class AggregationTests extends SingleClusterTest {
         assertNotContains(res, "*mpty*");
         assertNotContains(res, "*earchguard*");
         assertContains(res, "*vulcangov*");
+        assertContains(res, "*starfleet*");
+        assertContains(res, "*klingonempire*");
+        assertContains(res, "*xyz*");
+        assertContains(res, "*role01_role02*");
         assertContains(res, "*\"failed\" : 0*");
         
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("*/_search?pretty", "{\"size\":0,\"aggs\":{\"indices\":{\"terms\":{\"field\":\"_index\",\"size\":40}}}}",encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
@@ -79,6 +87,10 @@ public class AggregationTests extends SingleClusterTest {
         assertNotContains(res, "*mpty*");
         assertNotContains(res, "*earchguard*");
         assertContains(res, "*vulcangov*");
+        assertContains(res, "*starfleet*");
+        assertContains(res, "*klingonempire*");
+        assertContains(res, "*xyz*");
+        assertContains(res, "*role01_role02*");
         assertContains(res, "*\"failed\" : 0*");
         
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("_search?pretty", "{\"size\":0,\"aggs\":{\"indices\":{\"terms\":{\"field\":\"_index\",\"size\":40}}}}",encodeBasicHeader("worf", "worf"))).getStatusCode());
@@ -87,7 +99,11 @@ public class AggregationTests extends SingleClusterTest {
         assertNotContains(res, "*erial*");
         assertNotContains(res, "*mpty*");
         assertNotContains(res, "*earchguard*");
-        assertContains(res, "*vulcangov*");
+        assertNotContains(res, "*vulcangov*");
+        assertNotContains(res, "*kirk*");
+        assertNotContains(res, "*starfleet*");
+        assertContains(res, "*public*");
+        assertContains(res, "*xyz*");
         assertContains(res, "*\"failed\" : 0*");
         
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executePostRequest("_search?pretty", "{\"size\":0,\"aggs\":{\"myindices\":{\"terms\":{\"field\":\"_index\",\"size\":40}}}}",encodeBasicHeader("worf", "worf"))).getStatusCode());

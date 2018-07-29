@@ -17,17 +17,44 @@
 
 package com.floragunn.searchguard;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 import org.apache.http.HttpStatus;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
+import com.floragunn.searchguard.configuration.SearchGuardLicense;
+import com.floragunn.searchguard.configuration.SearchGuardLicense.Feature;
 import com.floragunn.searchguard.test.DynamicSgConfig;
 import com.floragunn.searchguard.test.SingleClusterTest;
+import com.floragunn.searchguard.test.helper.file.FileHelper;
 import com.floragunn.searchguard.test.helper.rest.RestHelper;
 import com.floragunn.searchguard.test.helper.rest.RestHelper.HttpResponse;
 
 public class LicenseTests extends SingleClusterTest {
+    
+    ClusterService cs = mock(ClusterService.class);
+    DiscoveryNodes dns = mock(DiscoveryNodes.class);
+    ClusterState cstate = mock(ClusterState.class);
+
+    @Before
+    public void setup() {
+        when(dns.getSize()).thenReturn(10);
+        when(cstate.getNodes()).thenReturn(dns);
+        when(cs.state()).thenReturn(cstate);
+    }
     
     @Test
     public void testInvalidLicense() throws Exception {
@@ -66,6 +93,40 @@ public class LicenseTests extends SingleClusterTest {
         Assert.assertTrue(res.getBody().contains("is_valid\" : true"));
     }
     
+    @Test
+    public void testComplianceLicense() throws Exception {
+
+        SearchGuardLicense license = SearchGuardLicense.createTrialLicense(new SimpleDateFormat("yyyy-MM-dd").format(new Date()), cs, "");
+        
+        Assert.assertTrue(license.hasFeature(Feature.COMPLIANCE));
+        Assert.assertArrayEquals(license.getFeatures(), Feature.values());
+        Assert.assertTrue(license.isValid());
+        Assert.assertFalse(license.isExpired());
+        Assert.assertEquals(60, license.getExpiresInDays());
+    }
+    
+    @Test
+    public void testComplianceLicenseMap() throws Exception {
+
+        SearchGuardLicense license = new SearchGuardLicense(XContentHelper
+                .convertToMap(new BytesArray(FileHelper.loadFile("license1.json")), false, JsonXContent.jsonXContent.type()).v2(), cs);
+        
+        Assert.assertFalse(license.hasFeature(Feature.COMPLIANCE));
+        Assert.assertArrayEquals(license.getFeatures(), new Feature[0]);
+        
+        license = new SearchGuardLicense(XContentHelper
+                .convertToMap(new BytesArray(FileHelper.loadFile("license3.json")), false, JsonXContent.jsonXContent.type()).v2(), cs);
+        
+        Assert.assertFalse(license.hasFeature(Feature.COMPLIANCE));
+        Assert.assertArrayEquals(license.getFeatures(), new Feature[0]);
+        
+        license = new SearchGuardLicense(XContentHelper
+                .convertToMap(new BytesArray(FileHelper.loadFile("license2.json")), false, JsonXContent.jsonXContent.type()).v2(), cs);
+        
+        Assert.assertTrue(license.hasFeature(Feature.COMPLIANCE));
+        Assert.assertArrayEquals(license.getFeatures(), Feature.values());
+    }
+
     @Test
     public void testFullLicenseRK() throws Exception {
         setup(Settings.EMPTY, new DynamicSgConfig().setSgConfig("sg_config_lic_rk.yml"), Settings.EMPTY);

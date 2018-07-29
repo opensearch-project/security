@@ -40,7 +40,6 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 
-import com.floragunn.searchguard.SearchGuardPlugin;
 import com.floragunn.searchguard.support.SearchGuardDeprecationHandler;
 
 public class FileHelper {

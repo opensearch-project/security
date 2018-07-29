@@ -1,10 +1,10 @@
 /*
  * Copyright 2015-2017 floragunn GmbH
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  */
 
 package com.floragunn.searchguard.user;
@@ -29,7 +29,7 @@ import java.util.Set;
 import org.elasticsearch.ElasticsearchSecurityException;
 
 /**
- * AuthCredentials are an abstraction to encapsulate credentials like passwords or generic 
+ * AuthCredentials are an abstraction to encapsulate credentials like passwords or generic
  * native credentials like GSS tokens.
  *
  */
@@ -46,14 +46,14 @@ public final class AuthCredentials {
 
     /**
      * Create new credentials with a username and native credentials
-     * 
+     *
      * @param username The username, must not be null or empty
      * @param nativeCredentials Arbitrary credentials (like GSS tokens), must not be null
      * @throws IllegalArgumentException if username or nativeCredentials are null or empty
      */
     public AuthCredentials(final String username, final Object nativeCredentials) {
         this(username, null, nativeCredentials);
-        
+
         if (nativeCredentials == null) {
             throw new IllegalArgumentException("nativeCredentials must not be null or empty");
         }
@@ -68,7 +68,7 @@ public final class AuthCredentials {
      */
     public AuthCredentials(final String username, final byte[] password) {
         this(username, password, null);
-        
+
         if (password == null || password.length == 0) {
             throw new IllegalArgumentException("password must not be null or empty");
         }
@@ -95,7 +95,7 @@ public final class AuthCredentials {
         this.username = username;
         // make defensive copy
         this.password = password == null ? null : Arrays.copyOf(password, password.length);
-        
+
         if(this.password != null) {
             try {
                 MessageDigest digester = MessageDigest.getInstance(DIGEST_ALGORITHM);
@@ -106,15 +106,15 @@ public final class AuthCredentials {
         } else {
             internalPasswordHash = null;
         }
-        
+
         if(password != null) {
             Arrays.fill(password, (byte) '\0');
             password = null;
         }
-        
+
         this.nativeCredentials = nativeCredentials;
         nativeCredentials = null;
-        
+
         if(backendRoles != null && backendRoles.length > 0) {
             this.backendRoles.addAll(Arrays.asList(backendRoles));
         }
@@ -137,7 +137,7 @@ public final class AuthCredentials {
     }
 
     /**
-     * 
+     *
      * @return Defensive copy of the password
      */
     public byte[] getPassword() {
@@ -150,7 +150,7 @@ public final class AuthCredentials {
     }
 
     @Override
-    public int hashCode() {        
+    public int hashCode() {
         final int prime = 31;
         int result = 1;
         result = prime * result + Arrays.hashCode(internalPasswordHash);
@@ -184,7 +184,7 @@ public final class AuthCredentials {
     }
 
     /**
-     * 
+     *
      * @return Defensive copy of the roles this user is member of.
      */
     public Set<String> getBackendRoles() {
@@ -196,24 +196,24 @@ public final class AuthCredentials {
     }
 
     /**
-     * If the credentials are complete and no further roundtrips with the originator are due 
-     * then this method <b>must</b> be called so that the authentication flow can proceed. 
+     * If the credentials are complete and no further roundtrips with the originator are due
+     * then this method <b>must</b> be called so that the authentication flow can proceed.
      * <p/>
      * If this credentials are already marked a complete then a call to this method does nothing.
-     * 
+     *
      * @return this
      */
     public AuthCredentials markComplete() {
         this.complete = true;
         return this;
     }
-    
+
     public void addAttribute(String name, String value) {
         if(name != null && !name.isEmpty()) {
             this.attributes.put(name, value);
         }
     }
-    
+
     public Map<String, String> getAttributes() {
         return Collections.unmodifiableMap(this.attributes);
     }

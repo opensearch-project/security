@@ -1,10 +1,10 @@
 /*
  * Copyright 2015-2017 floragunn GmbH
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  */
 
 package com.floragunn.searchguard.configuration;
@@ -41,7 +41,7 @@ public class SearchGuardIndexSearcherWrapper extends IndexSearcherWrapper {
     protected final Index index;
     protected final String searchguardIndex;
     private final AdminDNs adminDns;
-	
+
     //constructor is called per index, so avoid costly operations here
 	public SearchGuardIndexSearcherWrapper(final IndexService indexService, final Settings settings, final AdminDNs adminDNs) {
 	    index = indexService.index();
@@ -53,43 +53,35 @@ public class SearchGuardIndexSearcherWrapper extends IndexSearcherWrapper {
     @Override
     public final DirectoryReader wrap(final DirectoryReader reader) throws IOException {
 
-        if (isSearchGuardIndexRequest() && !isAdminAuthenticatedOrInternalRequest()) {          
+        if (isSearchGuardIndexRequest() && !isAdminAuthenticatedOrInternalRequest()) {
             return new EmptyFilterLeafReader.EmptyDirectoryReader(reader);
         }
 
-        if (!isAdminAuthenticatedOrInternalRequest()) {
-            return dlsFlsWrap(reader);
-        }
 
-        return reader;
+        return dlsFlsWrap(reader, isAdminAuthenticatedOrInternalRequest());
     }
 
     @Override
     public final IndexSearcher wrap(final IndexSearcher searcher) throws EngineException {
+        return dlsFlsWrap(searcher, isAdminAuthenticatedOrInternalRequest());
+    }
 
-        if (!isAdminAuthenticatedOrInternalRequest()) {
-            return dlsFlsWrap(searcher);
-        }
-
+    protected IndexSearcher dlsFlsWrap(final IndexSearcher searcher, boolean isAdmin) throws EngineException {
         return searcher;
     }
 
-    protected IndexSearcher dlsFlsWrap(final IndexSearcher searcher) throws EngineException {
-        return searcher;
-    }
-
-    protected DirectoryReader dlsFlsWrap(final DirectoryReader reader) throws IOException {
+    protected DirectoryReader dlsFlsWrap(final DirectoryReader reader, boolean isAdmin) throws IOException {
         return reader;
     }
 
     protected final boolean isAdminAuthenticatedOrInternalRequest() {
 
         final User user = (User) threadContext.getTransient(ConfigConstants.SG_USER);
-                
+
         if (user != null && adminDns.isAdmin(user.getName())) {
             return true;
         }
-        
+
         if ("true".equals(HeaderHelper.getSafeFromHeader(threadContext, ConfigConstants.SG_CONF_REQUEST_HEADER))) {
             return true;
         }

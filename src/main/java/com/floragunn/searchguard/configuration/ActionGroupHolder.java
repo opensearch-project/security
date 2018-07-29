@@ -63,8 +63,22 @@ public class ActionGroupHolder {
         }
         return ret;
     }
+    
+    public Set<String> resolvedActions(final List<String> actions) {
+        final Set<String> resolvedActions = new HashSet<String>();
+        for (String string: actions) {
+            final Set<String> groups = getGroupMembers(string);
+            if (groups.isEmpty()) {
+                resolvedActions.add(string);
+            } else {
+                resolvedActions.addAll(groups);
+            }
+        }
+
+        return resolvedActions;
+    }
 
     private Settings getSettings() {
-        return configurationRepository.getConfiguration(ConfigConstants.CONFIGNAME_ACTION_GROUPS);
+        return configurationRepository.getConfiguration(ConfigConstants.CONFIGNAME_ACTION_GROUPS, false);
     }
 }

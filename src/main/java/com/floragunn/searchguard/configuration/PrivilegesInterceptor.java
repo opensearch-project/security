@@ -50,10 +50,10 @@ public class PrivilegesInterceptor {
         //return false;
     }
     
-    public boolean replaceAllowedIndices(final ActionRequest request, final String action, final User user, final Settings config, final Map<String, Set<PrivilegesEvaluator.IndexType>> leftOvers) {
+    /*public boolean replaceAllowedIndices(final ActionRequest request, final String action, final User user, final Settings config, final Map<String, Set<PrivilegesEvaluator.IndexType>> leftOvers) {
         throw new RuntimeException("not implemented");
         //return false;   
-    }
+    }*/
     
     protected ThreadContext getThreadContext() {
         return threadPool.getThreadContext();
