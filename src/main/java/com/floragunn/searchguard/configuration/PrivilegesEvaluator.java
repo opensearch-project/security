@@ -531,7 +531,6 @@ public class PrivilegesEvaluator {
                 && (action0.startsWith("indices:data/read/")
                 || action0.startsWith("indices:admin/mappings/fields/get"))) {
             Set<String> reduced = sgRoles.reduce(requestedResolved, user, allIndexPermsRequiredA, resolver, clusterService);
-            //System.out.println("###permittedIndices final: "+reduced);
 
             if(reduced.isEmpty()) {
                 presponse.allowed = false;
@@ -540,7 +539,6 @@ public class PrivilegesEvaluator {
 
 
             if(irr.replace(request, true, reduced.toArray(new String[0]))) {
-                //System.out.println("###permittedIndices replace: successfull");
                 presponse.missingPrivileges.clear();
                 presponse.allowed = true;
                 return presponse;

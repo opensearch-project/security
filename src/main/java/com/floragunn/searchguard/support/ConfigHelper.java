@@ -48,9 +48,7 @@ public class ConfigHelper {
                     .index(new IndexRequest(index).type("sg").id(id).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                             .source(id, readXContent(reader, XContentType.YAML))).actionGet().getId();
 
-            if (id.equals(res)) {
-                //System.out.println("   SUCC: Configuration for '" + type + "' created or updated");
-            } else {
+            if (!id.equals(res)) {
                 throw new Exception("   FAIL: Configuration for '" + id
                         + "' failed for unknown reasons. Pls. consult logfile of elasticsearch");
             }

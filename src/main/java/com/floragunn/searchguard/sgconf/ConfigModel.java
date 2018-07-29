@@ -293,12 +293,10 @@ public class ConfigModel {
 
         //dnfof only
         public Set<String> reduce(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
-            //System.out.println("resol: "+resolved.getAllIndices());
             Set<String> retVal = new HashSet<>();
             for(SgRole sgr: roles) {
                 retVal.addAll(sgr.getAllResolvedPermittedIndices(resolved, user, actions, resolver, cs));
             }
-            //System.out.println("finally: wanted and permitted "+retVal);
             return Collections.unmodifiableSet(retVal);
         }
 
@@ -347,33 +345,24 @@ public class ConfigModel {
 
             final Set<String> retVal = new HashSet<>();
             for(IndexPattern p: ipatterns) {
-               //System.out.println("#pat: "+p.getUnresolvedIndexPattern(user)+" for "+this.name);
                //what if we cannot resolve one (for create purposes)
                boolean patternMatch = false;
                final Set<TypePerm> tperms = p.getTypePerms();
                for(TypePerm tp: tperms) {
-                   //System.out.println("   tp: "+tp.getTypePattern());
-                   //System.out.println("     1: "+tp.perms);
-                   //System.out.println("     2: "+Arrays.toString(actions));
                    if(WildcardMatcher.matchAny(tp.typePattern, resolved.getTypes().toArray(new String[0]))) {
                        patternMatch = WildcardMatcher.matchAll(tp.perms.toArray(new String[0]), actions);
                    }
                }
-               //System.out.println("match: "+patternMatch);
                if(patternMatch) {
                    //resolved but can contain patterns for nonexistent indices
                    final String[] permitted = p.getResolvedIndexPattern(user, resolver, cs); //maybe they do not exists
-                   //System.out.println("permitted "+Arrays.toString(permitted));
                    final Set<String> res = new HashSet<>();
                    if(!resolved.isAll() && !resolved.getAllIndices().contains("*")  && !resolved.getAllIndices().contains("_all")) {
                        final Set<String> wanted = new HashSet<>(resolved.getAllIndices());
-                       //System.out.println("wanted "+wanted);
                        //resolved but can contain patterns for nonexistent indices
                        WildcardMatcher.wildcardRetainInSet(wanted, permitted);
-                       //System.out.println("wanted and permitted "+wanted);
                        res.addAll(wanted);
                    } else {
-                       //System.out.println("wanted: all!");
                        //we want all indices so just return whats permitted
                        res.addAll(Arrays.asList(resolver.concreteIndexNames(cs.state(), IndicesOptions.lenientExpandOpen(), permitted)));
                    }
@@ -489,34 +478,6 @@ public class ConfigModel {
             this.indexPattern = Objects.requireNonNull(indexPattern);
         }
 
-        /*public Set<String> impliedPermissions(String[] types, String[] actions) {
-            Set<String> allPerms0 = new HashSet<String>();
-            for (int i = 0; i < types.length; i++) {
-                String type = types[i];
-                //System.out.println("    3 - impliesPermission():: "+type);
-                for(TypePerm tp: typePerms) {
-                    boolean wcMatch = WildcardMatcher.match(tp.typePattern, type);
-
-                    if(!wcMatch) {
-                        continue;
-                    }
-
-                    List<String> impliedPerms = tp.impliedPermissions(actions);
-                    allPerms0.addAll(impliedPerms);
-
-                    //for(String ipp:impliedPerms) {
-                    //    WildcardMatcher.wildcardRemoveFromSet(allPerms, ipp);
-                    //}
-
-                    //System.out.println("        wcMatch:: "+ wcMatch);
-                    //System.out.println("        actionMatch:: "+impliedPerms);
-                    //System.out.println("        actionMatchAllCur:: "+allPerms0);
-                }
-            }
-            //System.out.println("    3 - ir: "+allPerms0);
-            return Collections.unmodifiableSet(allPerms0);
-        }*/
-
         public IndexPattern addFlsFields(List<String> flsFields) {
             if(flsFields != null) {
                 this.fls.addAll(flsFields);
@@ -622,13 +583,11 @@ public class ConfigModel {
                 resolved = resolver.concreteIndexNames(cs.state(), IndicesOptions.lenientExpandOpen(), unresolved);
             }
             if(resolved == null || resolved.length == 0) {
-                //System.out.println("no resolutions for "+unresolved);
                 return new String[]{unresolved};
             } else {
                 //append unresolved value for pattern matching
                 String[] retval = Arrays.copyOf(resolved, resolved.length +1);
                 retval[retval.length-1] = unresolved;
-                //System.out.println("resolved "+unresolved+" to "+Arrays.toString(retval));
                 return retval;
             }
         }
@@ -664,13 +623,6 @@ public class ConfigModel {
                 throw new RuntimeException("typepattern '"+typePattern+"' not allowed");
             }
         }
-
-        /*public List<String> impliedPermissions(String[] actions) {
-            //System.out.println("      4 - impliesAllPermissions():: "+typePattern);
-            //System.out.println("              actions:: "+Arrays.toString(actions));
-            //System.out.println("              perms:: "+perms);
-            return WildcardMatcher.getMatchAny(perms.toArray(new String[0]), actions);
-        }*/
 
         private TypePerm addPerms(Collection<String> perms) {
             if(perms != null) {
@@ -791,32 +743,21 @@ public class ConfigModel {
     }
     
     private static boolean impliesTypePerm(Set<IndexPattern> ipatterns, Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
-        //System.out.println("impliesTypePerm ("+this.name+") "+resolved.getAllIndices()+"/"+resolved.getTypes()+" for "+Arrays.toString(actions));
         Set<String> matchingIndex = new HashSet<>(resolved.getAllIndices());
 
         for(String in: resolved.getAllIndices()) {
             //find index patterns who are matching
             Set<String> matchingActions = new HashSet<>(Arrays.asList(actions));
             Set<String> matchingTypes = new HashSet<>(resolved.getTypes());
-            //System.out.println("--wanted index "+in+"--");
             for(IndexPattern p: ipatterns) {
-                //System.out.println(" ip:"+p.getUnresolvedIndexPattern(user)+"##"+Arrays.toString(p.getResolvedIndexPattern(user, resolver, cs)));
                 if(WildcardMatcher.matchAny(p.getResolvedIndexPattern(user, resolver, cs), in)) {
                     //per resolved index per pattern
-                    //System.out.println("  match ip: "+p.getUnresolvedIndexPattern(user));
-                    //WildcardMatcher.wildcardRemoveFromSet(matchingIndex, in);
-                    //matchingIndex.remove(in);
                     for(String t: resolved.getTypes()) {
                         for(TypePerm tp: p.typePerms) {
                             if(WildcardMatcher.match(tp.typePattern, t)) {
-                                //System.out.println("    match type: "+tp.getTypePattern());
-                                //WildcardMatcher.wildcardRemoveFromSet(matchingTypes, t);
                                 matchingTypes.remove(t);
                                 for(String a: Arrays.asList(actions)) {
-                                    //System.out.println("      check if "+a+" is in "+(tp.perms));
                                     if(WildcardMatcher.matchAny(tp.perms, a)) {
-                                        //System.out.println("      match action: "+a);
-                                        //WildcardMatcher.wildcardRemoveFromSet(matchingActions, a);
                                         matchingActions.remove(a);
                                     }
                                 }
@@ -827,16 +768,10 @@ public class ConfigModel {
             }
 
             if(matchingActions.isEmpty() && matchingTypes.isEmpty()) {
-                if(matchingIndex.remove(in)) {
-                    //System.out.println("  matched:: ("+matchingTypes+") ("+matchingActions+")");
-                }
-
-            } else {
-                //System.out.println("  no matched:: ("+matchingTypes+") ("+matchingActions+")");
+                matchingIndex.remove(in);
             }
         }
 
-        //System.out.println("  2 - final matched:: "+retVal+" ("+matchingIndex+") ("+matchingTypes+") ("+matchingActions+")");
         return matchingIndex.isEmpty();
     }
 }
