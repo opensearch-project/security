@@ -17,7 +17,8 @@
 
 package com.floragunn.searchguard.rest;
 
-import static org.elasticsearch.rest.RestRequest.Method.*;
+import static org.elasticsearch.rest.RestRequest.Method.GET;
+import static org.elasticsearch.rest.RestRequest.Method.POST;
 
 import java.io.IOException;
 import java.io.Serializable;

@@ -18,10 +18,10 @@
 package com.floragunn.searchguard.configuration;
 
 
-import org.elasticsearch.common.settings.Settings;
-
 import java.util.Collection;
 import java.util.Map;
+
+import org.elasticsearch.common.settings.Settings;
 
 /**
  * Abstraction layer over search guard configuration repository
