@@ -29,12 +29,13 @@ import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.common.settings.Settings;
 
 import com.floragunn.searchguard.auth.AuthenticationBackend;
+import com.floragunn.searchguard.auth.AuthorizationBackend;
 import com.floragunn.searchguard.configuration.ConfigurationRepository;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.user.AuthCredentials;
 import com.floragunn.searchguard.user.User;
 
-public class InternalAuthenticationBackend implements AuthenticationBackend {
+public class InternalAuthenticationBackend implements AuthenticationBackend, AuthorizationBackend {
 
     private final ConfigurationRepository configurationRepository;
 
@@ -145,5 +146,18 @@ public class InternalAuthenticationBackend implements AuthenticationBackend {
 
     private Settings getConfigSettings() {
         return configurationRepository.getConfiguration(ConfigConstants.CONFIGNAME_INTERNAL_USERS, false);
+    }
+
+    @Override
+    public void fillRoles(User user, AuthCredentials credentials) throws ElasticsearchSecurityException {
+        final Settings cfg = getConfigSettings();
+        if (cfg == null) {
+            throw new ElasticsearchSecurityException("Internal authentication backend not configured. May be Search Guard is not initialized. See http://docs.search-guard.com/v6/sgadmin");
+
+        }
+        final List<String> roles = cfg.getAsList(credentials.getUsername() + ".roles", Collections.emptyList());
+        if(roles != null && !roles.isEmpty() && user != null) {
+            user.addRoles(roles);
+        }
     }
 }

@@ -198,10 +198,21 @@ public class BackendRegistry implements ConfigurationChangeListener {
 
             if (httpEnabled || transportEnabled) {
                 try {
-                    final AuthorizationBackend authorizationBackend = newInstance(
-                            ads.get("authorization_backend.type", "noop"),"z",
-                            Settings.builder().put(esSettings).put(ads.getAsSettings("authorization_backend.config")).build(), configPath);
 
+                    final String authzBackendClazz = ads.get("authorization_backend.type", "noop");
+                    final AuthorizationBackend authorizationBackend;
+                    
+                    if(authzBackendClazz.equals(InternalAuthenticationBackend.class.getName()) //NOSONAR
+                            || authzBackendClazz.equals("internal")
+                            || authzBackendClazz.equals("intern")) {
+                        authorizationBackend = iab;
+                        ReflectionHelper.addLoadedModule(InternalAuthenticationBackend.class);
+                    } else {
+                        authorizationBackend = newInstance(
+                                authzBackendClazz,"z",
+                                Settings.builder().put(esSettings).put(ads.getAsSettings("authorization_backend.config")).build(), configPath);
+                    }
+                    
                     if (httpEnabled) {
                         restAuthorizers.add(authorizationBackend);
                     }
