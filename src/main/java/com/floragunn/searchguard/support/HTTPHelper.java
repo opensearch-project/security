@@ -71,7 +71,6 @@ public class HTTPHelper {
                 }
             }
         } else {
-            log.trace("No 'Authorization' header, send 401 and 'WWW-Authenticate Basic'");
             return null;
         }
     }
