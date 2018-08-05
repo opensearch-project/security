@@ -210,10 +210,8 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
                     User user;
                     //try {
                         if((user = backendRegistry.authenticate(request, principal, task, task.getAction())) == null) {
-
-                            // make it possible to filter logs by username
-                            org.apache.logging.log4j.ThreadContext.put("user", user.getName());
-
+                            org.apache.logging.log4j.ThreadContext.remove("user");
+                           
                             if(task.getAction().equals(WhoAmIAction.NAME)) {
                                 super.messageReceivedDecorate(request, handler, transportChannel, task);
                                 return;
@@ -230,7 +228,8 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
                             transportChannel.sendResponse(new ElasticsearchSecurityException("Cannot authenticate "+getThreadContext().getTransient(ConfigConstants.SG_USER)));
                             return;
                         } else {
-                            org.apache.logging.log4j.ThreadContext.remove("user");
+                            // make it possible to filter logs by username
+                            org.apache.logging.log4j.ThreadContext.put("user", user.getName());
                         }
                     //} catch (Exception e) {
                         //    log.error("Error authentication transport user "+e, e);
