@@ -202,6 +202,13 @@ public class PrivilegesEvaluator {
         public Map<String,Set<String>> getQueries() {
             return queries;
         }
+        @Override
+        public String toString() {
+            return "PrivEvalResponse [allowed=" + allowed + ", missingPrivileges=" + missingPrivileges
+                    + ", allowedFlsFields=" + allowedFlsFields + ", queries=" + queries + "]";
+        }
+        
+        
     }
 
     public PrivEvalResponse evaluate(final User user, String action0, final ActionRequest request, Task task) {
@@ -217,15 +224,6 @@ public class PrivilegesEvaluator {
         final TransportAddress caller = Objects.requireNonNull((TransportAddress) this.threadContext.getTransient(ConfigConstants.SG_REMOTE_ADDRESS));
         final SgRoles sgRoles = getSgRoles(user, caller);
 
-        //read
-        //write
-        //cluster admin
-        //index admin
-        //cluster monitor
-        //index monitor
-        
-        //irr.exclude(request, searchguardIndex);
-
         final PrivEvalResponse presponse = new PrivEvalResponse();
 
 
@@ -234,14 +232,11 @@ public class PrivilegesEvaluator {
             log.debug("action: "+action0+" ("+request.getClass().getSimpleName()+")");
         }
 
-
         final Resolved requestedResolved = irr.resolveRequest(request);
 
         if (log.isDebugEnabled()) {
             log.debug("requestedResolved : {}", requestedResolved );
-
         }
-
 
         //maskedFields
         final Map<String, Set<String>> maskedFieldsMap = sgRoles.getMaskedFields(user, resolver, clusterService);
@@ -268,7 +263,6 @@ public class PrivilegesEvaluator {
         final Tuple<Map<String, Set<String>>, Map<String, Set<String>>> dlsFls = sgRoles.getDlsFls(user, resolver, clusterService);
         final Map<String,Set<String>> dlsQueries = dlsFls.v1();
         final Map<String,Set<String>> flsFields = dlsFls.v2();
-
 
         if(!dlsQueries.isEmpty()) {
 
@@ -403,7 +397,11 @@ public class PrivilegesEvaluator {
         final boolean dnfofEnabled =
                 getConfigSettings().getAsBoolean("searchguard.dynamic.kibana.do_not_fail_on_forbidden", false)
                 || getConfigSettings().getAsBoolean("searchguard.dynamic.do_not_fail_on_forbidden", false);
-
+        
+        if(log.isTraceEnabled()) {
+            log.trace("dnfof enabled? {}", dnfofEnabled);
+        }
+        
         if (isClusterPerm(action0)) {
             if(!sgRoles.impliesClusterPermissionPermission(action0)) {
                 presponse.missingPrivileges.add(action0);
@@ -556,16 +554,6 @@ public class PrivilegesEvaluator {
 
         }
 
-        
-        /*if(!allowAction
-                && privilegesInterceptor.getClass() != PrivilegesInterceptor.class
-                && leftovers.size() > 0) {
-            boolean interceptorAllow = privilegesInterceptor.replaceAllowedIndices(request, action, user, config, leftovers);
-            presponse.allowed=interceptorAllow;
-            return presponse;
-        }*/
-
-
          if (!permGiven) {
             log.info("No {}-level perm match for {} {} [Action [{}]] [RolesChecked {}]", "index" , user, requestedResolved, action0, sgRoles.getRoles().stream().map(r->r.getName()).toArray());
             log.info("No permissions for {}", presponse.missingPrivileges);
@@ -672,7 +660,7 @@ public class PrivilegesEvaluator {
             return Collections.emptyMap();
         }
 
-        final Map<String, Boolean> result = new HashMap<String, Boolean>();
+        final Map<String, Boolean> result = new HashMap<>();
         result.put(user.getName(), true);
 
         for(String sgRole: mapSgRoles(user, caller)) {
@@ -862,7 +850,7 @@ public class PrivilegesEvaluator {
             return Collections.emptyList();
         }
 
-        final List<String> ret = new ArrayList<String>(aliases.size());
+        final List<String> ret = new ArrayList<>(aliases.size());
 
         for(final AliasMetaData amd: aliases) {
             if(amd != null) {

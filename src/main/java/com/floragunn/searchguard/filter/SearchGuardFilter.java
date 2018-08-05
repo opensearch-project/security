@@ -256,7 +256,11 @@ public class SearchGuardFilter implements ActionFilter {
             }
 
             final PrivEvalResponse pres = eval.evaluate(user, action, request, task);
-
+            
+            if (log.isDebugEnabled()) {
+                log.debug(pres);
+            }
+            
             if (pres.isAllowed()) {
                 auditLog.logGrantedPrivileges(action, request, task);
                 if(!dlsFlsValve.invoke(request, listener, pres.getAllowedFlsFields(), pres.getQueries())) {

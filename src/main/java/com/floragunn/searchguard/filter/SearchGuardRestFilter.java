@@ -44,6 +44,7 @@ import com.floragunn.searchguard.ssl.util.SSLRequestHelper;
 import com.floragunn.searchguard.ssl.util.SSLRequestHelper.SSLInfo;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.HTTPHelper;
+import com.floragunn.searchguard.user.User;
 
 public class SearchGuardRestFilter {
 
@@ -124,7 +125,11 @@ public class SearchGuardRestFilter {
                 && !"/_searchguard/health".equals(request.path())) {
             if (!registry.authenticate(request, channel, threadContext)) {
                 // another roundtrip
+                org.apache.logging.log4j.ThreadContext.remove("user");
                 return true;
+            } else {
+                // make it possible to filter logs by username
+                org.apache.logging.log4j.ThreadContext.put("user", ((User)threadContext.getTransient(ConfigConstants.SG_USER)).getName());
             }
         }
         

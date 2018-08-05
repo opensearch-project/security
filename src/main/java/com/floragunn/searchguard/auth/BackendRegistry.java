@@ -70,12 +70,12 @@ import com.google.common.cache.RemovalNotification;
 public class BackendRegistry implements ConfigurationChangeListener {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
-    private final Map<String, String> authImplMap = new HashMap<String, String>();
-    private final SortedSet<AuthDomain> restAuthDomains = new TreeSet<AuthDomain>();
-    private final Set<AuthorizationBackend> restAuthorizers = new HashSet<AuthorizationBackend>();
-    private final SortedSet<AuthDomain> transportAuthDomains = new TreeSet<AuthDomain>();
-    private final Set<AuthorizationBackend> transportAuthorizers = new HashSet<AuthorizationBackend>();
-    private final List<Destroyable> destroyableComponents = new LinkedList<Destroyable>();
+    private final Map<String, String> authImplMap = new HashMap<>();
+    private final SortedSet<AuthDomain> restAuthDomains = new TreeSet<>();
+    private final Set<AuthorizationBackend> restAuthorizers = new HashSet<>();
+    private final SortedSet<AuthDomain> transportAuthDomains = new TreeSet<>();
+    private final Set<AuthorizationBackend> transportAuthorizers = new HashSet<>();
+    private final List<Destroyable> destroyableComponents = new LinkedList<>();
     private volatile boolean initialized;
     private final AdminDNs adminDns;
     private final XFFResolver xffResolver;
