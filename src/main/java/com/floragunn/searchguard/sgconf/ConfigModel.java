@@ -28,6 +28,8 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -44,7 +46,8 @@ import com.google.common.collect.Sets;
 
 public class ConfigModel {
 
-    private final static Set<String> IGNORED_TYPES = ImmutableSet.of("_dls_", "_fls_","_masked_fields_");
+    protected final Logger log = LogManager.getLogger(this.getClass());
+    private static final Set<String> IGNORED_TYPES = ImmutableSet.of("_dls_", "_fls_","_masked_fields_");
     private final ActionGroupHolder ah;
     private final ConfigurationRepository configurationRepository;
 
@@ -133,6 +136,8 @@ public class ConfigModel {
 
     public static class SgRoles {
 
+        protected final Logger log = LogManager.getLogger(this.getClass());
+        
         final Set<SgRole> roles = new HashSet<>(100);
 
         private SgRoles() {
@@ -262,11 +267,6 @@ public class ConfigModel {
                             }
                         }
 
-
-                        //if (log.isDebugEnabled()) {
-                        //    log.debug("dls query {} for {}", dls, Arrays.toString(concreteIndices));
-                        //}
-
                     }
 
                     if(fls != null && fls.size() > 0) {
@@ -287,11 +287,6 @@ public class ConfigModel {
                                 flsFields.get(ci).addAll(Sets.newHashSet(fls));
                             }
                         }
-
-                        //if (log.isDebugEnabled()) {
-                        //    log.debug("fls fields {} for {}", Sets.newHashSet(fls), Arrays.toString(concreteIndices));
-                        //}
-
                     }
                 }
             }
@@ -313,6 +308,9 @@ public class ConfigModel {
             Set<String> retVal = new HashSet<>();
             for(SgRole sgr: roles) {
                 retVal.addAll(sgr.getAllResolvedPermittedIndices(resolved, user, actions, resolver, cs));
+            }
+            if(log.isDebugEnabled()) {
+                log.debug("Reduced requested resolved indices {} to permitted indices {}.", resolved, retVal.toString());
             }
             return Collections.unmodifiableSet(retVal);
         }
