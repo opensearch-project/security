@@ -386,7 +386,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
       }
 
     @Test
-    public void testHTTPProxy() throws Exception {
+    public void testHTTPProxyDefault() throws Exception {
         setup(Settings.EMPTY, new DynamicSgConfig().setSgConfig("sg_config_proxy.yml"), Settings.EMPTY, true);
         RestHelper rh = nonSslRestHelper();
     
@@ -399,6 +399,19 @@ public class HttpIntegrationTests extends SingleClusterTest {
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", new BasicHeader("x-forwarded-for", "localhost,192.168.0.1,10.0.0.2"),new BasicHeader("x-proxy-user", "scotty")).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", new BasicHeader("x-forwarded-for", "localhost,192.168.0.1,10.0.0.2"),new BasicHeader("X-Proxy-User", "scotty")).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", new BasicHeader("x-forwarded-for", "localhost,192.168.0.1,10.0.0.2"),new BasicHeader("x-proxy-user", "scotty"),new BasicHeader("x-proxy-roles", "starfleet,engineer")).getStatusCode());
+        
+    }
+
+    @Test
+    public void testHTTPProxyRolesSeparator() throws Exception {
+        setup(Settings.EMPTY, new DynamicSgConfig().setSgConfig("sg_config_proxy_custom.yml"), Settings.EMPTY, true);
+        RestHelper rh = nonSslRestHelper();
+        // separator is configured as ";" so separating roles with "," leads to one (wrong) backend role
+        HttpResponse res = rh.executeGetRequest("/_searchguard/authinfo", new BasicHeader("x-forwarded-for", "localhost,192.168.0.1,10.0.0.2"),new BasicHeader("user", "scotty"),new BasicHeader("roles", "starfleet,engineer"));
+        Assert.assertTrue("Expected one backend role since separator is incorrect", res.getBody().contains("\"backend_roles\":[\"starfleet,engineer\"]"));    
+        // correct separator, now we should see two backend roles
+        res = rh.executeGetRequest("/_searchguard/authinfo", new BasicHeader("x-forwarded-for", "localhost,192.168.0.1,10.0.0.2"),new BasicHeader("user", "scotty"),new BasicHeader("roles", "starfleet;engineer"));
+        Assert.assertTrue("Expected two backend roles string since separator is correct: " + res.getBody(), res.getBody().contains("\"backend_roles\":[\"starfleet\",\"engineer\"]"));    
         
     }
 
