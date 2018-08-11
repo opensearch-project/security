@@ -103,6 +103,7 @@ public class SearchGuardFilter implements ActionFilter {
     public <Request extends ActionRequest, Response extends ActionResponse> void apply(Task task, final String action, Request request,
             ActionListener<Response> listener, ActionFilterChain<Request, Response> chain) {
         try (StoredContext ctx = threadContext.newStoredContext(true)){
+            org.apache.logging.log4j.ThreadContext.clearAll();
             apply0(task, action, request, listener, chain);
         }
     }
@@ -135,6 +136,10 @@ public class SearchGuardFilter implements ActionFilter {
                     && action.startsWith("internal:")
                     && !action.startsWith("internal:transport/proxy");
 
+            if (user != null) {
+                org.apache.logging.log4j.ThreadContext.put("user", user.getName());    
+            }
+                        
             if(actionTrace.isTraceEnabled()) {
 
                 String count = "";

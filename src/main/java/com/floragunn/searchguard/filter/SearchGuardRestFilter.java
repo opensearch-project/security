@@ -76,6 +76,7 @@ public class SearchGuardRestFilter {
             
             @Override
             public void handleRequest(RestRequest request, RestChannel channel, NodeClient client) throws Exception {
+                org.apache.logging.log4j.ThreadContext.clearAll();
                 if(!checkAndAuthenticateRequest(request, channel, client)) {
                     original.handleRequest(request, channel, client);
                 }

@@ -403,8 +403,8 @@ public class BackendRegistry implements ConfigurationChangeListener {
                 firstChallengingHttpAuthenticator = httpAuthenticator;
             }
 
-            if(log.isDebugEnabled()) {
-                log.debug("Try to extract auth creds from {} http authenticator", httpAuthenticator.getType());
+            if(log.isTraceEnabled()) {
+                log.trace("Try to extract auth creds from {} http authenticator", httpAuthenticator.getType());
             }
             final AuthCredentials ac;
             try {
@@ -432,16 +432,19 @@ public class BackendRegistry implements ConfigurationChangeListener {
                 	log.trace("No 'Authorization' header, send 403");
                     continue;
                 }
-            } else if (!ac.isComplete()) {
-                //credentials found in request but we need another client challenge
-                if(httpAuthenticator.reRequestAuthentication(channel, ac)) {
-                    //auditLog.logFailedLogin(ac.getUsername()+" <incomplete>", request); --noauditlog
-                    return false;
-                } else {
-                    //no reRequest possible
-                    continue;
-                }
+            } else {
+                org.apache.logging.log4j.ThreadContext.put("user", ac.getUsername());
+                if (!ac.isComplete()) {
+                    //credentials found in request but we need another client challenge
+                    if(httpAuthenticator.reRequestAuthentication(channel, ac)) {
+                        //auditLog.logFailedLogin(ac.getUsername()+" <incomplete>", request); --noauditlog
+                        return false;
+                    } else {
+                        //no reRequest possible
+                        continue;
+                    }
 
+                }
             }
 
             //http completed       

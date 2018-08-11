@@ -136,7 +136,7 @@ public class CrossClusterSearchTests extends AbstractSGUnitTest{
         System.out.println("###################### query 5");
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:abcnonext/xx/_search?pretty", encodeBasicHeader("nagilum","nagilum"));
         System.out.println(ccs.getBody());
-        Assert.assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, ccs.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, ccs.getStatusCode());
         Assert.assertTrue(ccs.getBody().contains("index_not_found_exception"));
         
         System.out.println("###################### query 6");
@@ -176,11 +176,10 @@ public class CrossClusterSearchTests extends AbstractSGUnitTest{
         
         HttpResponse ccs = null;
         
-        //TODO 403 instead of SC_INTERNAL_SERVER_ERROR
         System.out.println("###################### query 1");
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:*/_search?pretty", encodeBasicHeader("twitter","nagilum"));
         System.out.println(ccs.getBody());
-        Assert.assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, ccs.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
         
         System.out.println("###################### query 2");
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:twit*/_search?pretty", encodeBasicHeader("twitter","nagilum"));
@@ -201,7 +200,7 @@ public class CrossClusterSearchTests extends AbstractSGUnitTest{
         System.out.println("###################### query 5");
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:twutter,twitter/tweet/_search?pretty", encodeBasicHeader("twitter","nagilum"));
         System.out.println(ccs.getBody());
-        Assert.assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, ccs.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
         
         System.out.println("###################### query 6");
         String msearchBody = 
