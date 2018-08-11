@@ -13,7 +13,7 @@
   <parent>
     <groupId>com.floragunn</groupId>
     <artifactId>search-guard-parent</artifactId>
-    <version>6.20.0</version>
+    <version>6.21.0</version>
   </parent>
 
   <artifactId>search-guard-6</artifactId>
