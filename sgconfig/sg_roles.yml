@@ -158,6 +158,8 @@ sg_own_index:
 ### X-Pack COMPATIBILITY
 sg_xp_monitoring:
   readonly: true
+  cluster:
+    - cluster:monitor/xpack/info
   indices:
     '?monitor*':
       '*':
