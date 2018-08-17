@@ -160,6 +160,8 @@ sg_xp_monitoring:
   readonly: true
   cluster:
     - cluster:monitor/xpack/info
+    - cluster:monitor/main
+    - cluster:admin/xpack/monitoring/bulk
   indices:
     '?monitor*':
       '*':
