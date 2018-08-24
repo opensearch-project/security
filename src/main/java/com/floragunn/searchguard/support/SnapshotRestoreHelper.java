@@ -28,6 +28,7 @@ import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotUtils;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import com.floragunn.searchguard.SearchGuardPlugin;
 
@@ -36,7 +37,8 @@ public class SnapshotRestoreHelper {
     protected static final Logger log = LogManager.getLogger(SnapshotRestoreHelper.class);
     
     public static List<String> resolveOriginalIndices(RestoreSnapshotRequest restoreRequest) {
-        
+        String threadName = Thread.currentThread().getName();
+        Thread.currentThread().setName(ThreadPool.Names.GENERIC);
         final RepositoriesService repositoriesService = Objects.requireNonNull(SearchGuardPlugin.GuiceHolder.getRepositoriesService(), "RepositoriesService not initialized");     
         //hack, because it seems not possible to access RepositoriesService from a non guice class
         final Repository repository = repositoriesService.repository(restoreRequest.repository());
@@ -53,14 +55,14 @@ public class SnapshotRestoreHelper {
                 break;
             }
         }
-
+        Thread.currentThread().setName(threadName);
         if (snapshotInfo == null) {
             log.warn("snapshot repository '" + restoreRequest.repository() + "', snapshot '" + restoreRequest.snapshot() + "' not found");
             return null;
         } else {
             return SnapshotUtils.filterIndices(snapshotInfo.indices(), restoreRequest.indices(), restoreRequest.indicesOptions());
         }    
-
+        
         
     }
     

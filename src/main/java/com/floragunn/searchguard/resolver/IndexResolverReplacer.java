@@ -85,6 +85,7 @@ import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotUtils;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusterAware;
 import org.elasticsearch.transport.TransportRequest;
 
@@ -764,6 +765,8 @@ public final class IndexResolverReplacer {
                 ((PutMappingRequest) request).indices(newIndices);
             }
         } else if(request instanceof RestoreSnapshotRequest) {
+                String threadName = Thread.currentThread().getName();
+                Thread.currentThread().setName(ThreadPool.Names.GENERIC);
                 final RestoreSnapshotRequest restoreRequest = (RestoreSnapshotRequest) request;
                 final RepositoriesService repositoriesService = Objects.requireNonNull(SearchGuardPlugin.GuiceHolder.getRepositoriesService(), "RepositoriesService not initialized");
                 //hack, because it seems not possible to access RepositoriesService from a non guice class
@@ -795,7 +798,7 @@ public final class IndexResolverReplacer {
                     }
                     provider.provide(renamedTargetIndices.toArray(new String[0]), request, false);
                 }
-
+                Thread.currentThread().setName(threadName);
         } else if (request instanceof IndicesAliasesRequest) {
             for(AliasActions ar: ((IndicesAliasesRequest) request).getAliasActions()) {
                 result = getOrReplaceAllIndices(ar, provider, false) && result;
