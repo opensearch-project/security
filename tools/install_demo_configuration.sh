@@ -401,7 +401,7 @@ fi
 if $SUDO_CMD grep --quiet -i "^xpack.security.enabled" "$ES_CONF_FILE"; then
 	: #already present
 else
-    if [ -d "$ES_MODULES_DIR/x-pack" ];then
+    if [ -d "$ES_MODULES_DIR/x-pack-security" ];then
 	    echo "xpack.security.enabled: false" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
     fi
 fi
