@@ -17,11 +17,14 @@
 
 package com.floragunn.searchguard.support;
 
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.List;
 import java.util.Objects;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.SpecialPermission;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.Repository;
@@ -37,25 +40,8 @@ public class SnapshotRestoreHelper {
     protected static final Logger log = LogManager.getLogger(SnapshotRestoreHelper.class);
     
     public static List<String> resolveOriginalIndices(RestoreSnapshotRequest restoreRequest) {
-        String threadName = Thread.currentThread().getName();
-        Thread.currentThread().setName(ThreadPool.Names.GENERIC);
-        final RepositoriesService repositoriesService = Objects.requireNonNull(SearchGuardPlugin.GuiceHolder.getRepositoriesService(), "RepositoriesService not initialized");     
-        //hack, because it seems not possible to access RepositoriesService from a non guice class
-        final Repository repository = repositoriesService.repository(restoreRequest.repository());
-        SnapshotInfo snapshotInfo = null;
+        final SnapshotInfo snapshotInfo = getSnapshotInfo(restoreRequest);
 
-        for (final SnapshotId snapshotId : repository.getRepositoryData().getSnapshotIds()) {
-            if (snapshotId.getName().equals(restoreRequest.snapshot())) {
-
-                if(log.isDebugEnabled()) {
-                    log.debug("snapshot found: {} (UUID: {})", snapshotId.getName(), snapshotId.getUUID());    
-                }
-
-                snapshotInfo = repository.getSnapshotInfo(snapshotId);
-                break;
-            }
-        }
-        Thread.currentThread().setName(threadName);
         if (snapshotInfo == null) {
             log.warn("snapshot repository '" + restoreRequest.repository() + "', snapshot '" + restoreRequest.snapshot() + "' not found");
             return null;
@@ -64,6 +50,47 @@ public class SnapshotRestoreHelper {
         }    
         
         
+    }
+    
+    public static SnapshotInfo getSnapshotInfo(RestoreSnapshotRequest restoreRequest) {
+        final RepositoriesService repositoriesService = Objects.requireNonNull(SearchGuardPlugin.GuiceHolder.getRepositoriesService(), "RepositoriesService not initialized");     
+        final Repository repository = repositoriesService.repository(restoreRequest.repository());
+        final String threadName = Thread.currentThread().getName();
+        SnapshotInfo snapshotInfo = null;
+        
+        try {
+            setCurrentThreadName(ThreadPool.Names.GENERIC);            
+            for (final SnapshotId snapshotId : repository.getRepositoryData().getSnapshotIds()) {
+                if (snapshotId.getName().equals(restoreRequest.snapshot())) {
+
+                    if(log.isDebugEnabled()) {
+                        log.debug("snapshot found: {} (UUID: {})", snapshotId.getName(), snapshotId.getUUID());
+                    }
+
+                    snapshotInfo = repository.getSnapshotInfo(snapshotId);
+                    break;
+                }
+            }
+        } finally {
+            setCurrentThreadName(threadName);
+        }
+        return snapshotInfo;
+    }
+    
+    private static void setCurrentThreadName(final String name) {
+        final SecurityManager sm = System.getSecurityManager();
+
+        if (sm != null) {
+            sm.checkPermission(new SpecialPermission());
+        }
+        
+        AccessController.doPrivileged(new PrivilegedAction<Object>() {
+            @Override
+            public Object run() {
+                Thread.currentThread().setName(name);
+                return null;
+            }
+        });
     }
     
 }

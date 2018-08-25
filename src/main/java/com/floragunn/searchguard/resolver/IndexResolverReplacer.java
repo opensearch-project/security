@@ -29,7 +29,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -80,16 +79,14 @@ import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.reindex.ReindexRequest;
-import org.elasticsearch.repositories.RepositoriesService;
-import org.elasticsearch.repositories.Repository;
-import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotUtils;
-import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusterAware;
 import org.elasticsearch.transport.TransportRequest;
 
 import com.floragunn.searchguard.SearchGuardPlugin;
+import com.floragunn.searchguard.configuration.ClusterInfoHolder;
+import com.floragunn.searchguard.support.SnapshotRestoreHelper;
 import com.floragunn.searchguard.support.WildcardMatcher;
 import com.google.common.collect.Sets;
 
@@ -103,11 +100,13 @@ public final class IndexResolverReplacer {
     private final Logger log = LogManager.getLogger(this.getClass());
     private final IndexNameExpressionResolver resolver;
     private final ClusterService clusterService;
+    private final ClusterInfoHolder clusterInfoHolder;
 
-    public IndexResolverReplacer(IndexNameExpressionResolver resolver, ClusterService clusterService) {
+    public IndexResolverReplacer(IndexNameExpressionResolver resolver, ClusterService clusterService, ClusterInfoHolder clusterInfoHolder) {
         super();
         this.resolver = resolver;
         this.clusterService = clusterService;
+        this.clusterInfoHolder = clusterInfoHolder;
     }
 
     public static final boolean isAll(final String... requestedPatterns) {
@@ -765,25 +764,13 @@ public final class IndexResolverReplacer {
                 ((PutMappingRequest) request).indices(newIndices);
             }
         } else if(request instanceof RestoreSnapshotRequest) {
-                String threadName = Thread.currentThread().getName();
-                Thread.currentThread().setName(ThreadPool.Names.GENERIC);
+            
+                if(clusterInfoHolder.isLocalNodeElectedMaster() == Boolean.FALSE) {
+                    return true;
+                }      
+
                 final RestoreSnapshotRequest restoreRequest = (RestoreSnapshotRequest) request;
-                final RepositoriesService repositoriesService = Objects.requireNonNull(SearchGuardPlugin.GuiceHolder.getRepositoriesService(), "RepositoriesService not initialized");
-                //hack, because it seems not possible to access RepositoriesService from a non guice class
-                final Repository repository = repositoriesService.repository(restoreRequest.repository());
-                SnapshotInfo snapshotInfo = null;
-
-                for (final SnapshotId snapshotId : repository.getRepositoryData().getSnapshotIds()) {
-                    if (snapshotId.getName().equals(restoreRequest.snapshot())) {
-
-                        if(log.isDebugEnabled()) {
-                            log.debug("snapshot found: {} (UUID: {})", snapshotId.getName(), snapshotId.getUUID());
-                        }
-
-                        snapshotInfo = repository.getSnapshotInfo(snapshotId);
-                        break;
-                    }
-                }
+                final SnapshotInfo snapshotInfo = SnapshotRestoreHelper.getSnapshotInfo(restoreRequest);
 
                 if (snapshotInfo == null) {
                     log.warn("snapshot repository '" + restoreRequest.repository() + "', snapshot '" + restoreRequest.snapshot() + "' not found");
@@ -798,7 +785,7 @@ public final class IndexResolverReplacer {
                     }
                     provider.provide(renamedTargetIndices.toArray(new String[0]), request, false);
                 }
-                Thread.currentThread().setName(threadName);
+
         } else if (request instanceof IndicesAliasesRequest) {
             for(AliasActions ar: ((IndicesAliasesRequest) request).getAliasActions()) {
                 result = getOrReplaceAllIndices(ar, provider, false) && result;

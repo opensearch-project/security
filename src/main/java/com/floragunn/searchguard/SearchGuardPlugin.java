@@ -719,7 +719,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
         DlsFlsRequestValve dlsFlsValve = ReflectionHelper.instantiateDlsFlsValve();
 
         final IndexNameExpressionResolver resolver = new IndexNameExpressionResolver(settings);
-        irr = new IndexResolverReplacer(resolver, clusterService);
+        irr = new IndexResolverReplacer(resolver, clusterService, cih);
         auditLog = ReflectionHelper.instantiateAuditLog(settings, configPath, localClient, threadPool, resolver, clusterService);
         complianceConfig = dlsFlsAvailable && auditLog.getClass() != NullAuditLog.class?new ComplianceConfig(environment, Objects.requireNonNull(irr), auditLog):null;
         auditLog.setComplianceConfig(complianceConfig);

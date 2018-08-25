@@ -156,7 +156,7 @@ public class PrivilegesEvaluator {
         this.clusterInfoHolder = clusterInfoHolder;
         //this.typeSecurityDisabled = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_DISABLE_TYPE_SECURITY, false);
         configModel = new ConfigModel(ah, configurationRepository);
-        irr = new IndexResolverReplacer(resolver, clusterService);
+        irr = new IndexResolverReplacer(resolver, clusterService, clusterInfoHolder);
     }
 
     private Settings getRolesSettings() {
