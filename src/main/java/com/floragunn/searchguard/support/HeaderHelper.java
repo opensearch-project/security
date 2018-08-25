@@ -50,7 +50,7 @@ public class HeaderHelper {
             return null;
         }
 
-        if (isInterClusterRequest(context) || isDirectRequest(context)) {
+        if (isInterClusterRequest(context) || isTrustedClusterRequest(context) || isDirectRequest(context)) {
             return headerValue;
         }
 
