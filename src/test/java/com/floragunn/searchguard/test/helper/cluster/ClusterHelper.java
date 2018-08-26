@@ -23,7 +23,9 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
@@ -45,7 +47,6 @@ import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.reindex.ReindexPlugin;
 import org.elasticsearch.join.ParentJoinPlugin;
 import org.elasticsearch.node.Node;
-import org.elasticsearch.node.NodeValidationException;
 import org.elasticsearch.node.PluginAwareNode;
 import org.elasticsearch.percolator.PercolatorPlugin;
 import org.elasticsearch.script.mustache.MustachePlugin;
@@ -87,7 +88,7 @@ public final class ClusterHelper {
 	}
 	
 	
-	public final ClusterInfo startCluster(final NodeSettingsSupplier nodeSettingsSupplier, ClusterConfiguration clusterConfiguration, int timeout, Integer nodes)
+	public final synchronized ClusterInfo startCluster(final NodeSettingsSupplier nodeSettingsSupplier, ClusterConfiguration clusterConfiguration, int timeout, Integer nodes)
 			throws Exception {
 	    
 		if (!esNodes.isEmpty()) {
@@ -98,14 +99,21 @@ public final class ClusterHelper {
 
 		List<NodeSettings> internalNodeSettings = clusterConfiguration.getNodeSettings();
 		
-		SortedSet<Integer> tcpPorts = SocketUtils.findAvailableTcpPorts(internalNodeSettings.size());
-		Iterator<Integer> tcpPortsIt = tcpPorts.iterator();
+		final SortedSet<Integer> freePorts = SocketUtils.findAvailableTcpPorts(internalNodeSettings.size()*2);
+		final SortedSet<Integer> tcpPorts = new TreeSet<Integer>();
+		freePorts.stream().limit(internalNodeSettings.size()).forEach(el->tcpPorts.add(el));
+		final Iterator<Integer> tcpPortsIt = tcpPorts.iterator();
 		
-		SortedSet<Integer> httpPorts = SocketUtils.findAvailableTcpPorts(internalNodeSettings.size(), tcpPorts.last()+1, SocketUtils.PORT_RANGE_MAX);
-        Iterator<Integer> httpPortsIt = httpPorts.iterator();
+		final SortedSet<Integer> httpPorts = new TreeSet<Integer>();
+	    freePorts.stream().skip(internalNodeSettings.size()).limit(internalNodeSettings.size()).forEach(el->httpPorts.add(el));
+		final Iterator<Integer> httpPortsIt = httpPorts.iterator();
+		
+		log.info("tcpPorts: "+tcpPorts+"/httpPorts: "+httpPorts);
 		
 		final CountDownLatch latch = new CountDownLatch(internalNodeSettings.size());
-        
+		
+		final AtomicReference<Exception> err = new AtomicReference<Exception>();
+
 		for (int i = 0; i < internalNodeSettings.size(); i++) {
 			NodeSettings setting = internalNodeSettings.get(i);
 			
@@ -122,9 +130,11 @@ public final class ClusterHelper {
                     try {
                         node.start();
                         latch.countDown();
-                    } catch (NodeValidationException e) {
-                        // TODO Auto-generated catch block
+                    } catch (Exception e) {
                         e.printStackTrace();
+                        log.error("Unable to start node: "+e);
+                        err.set(e);
+                        latch.countDown();
                     }
                 }
             }).start();
@@ -136,6 +146,10 @@ public final class ClusterHelper {
 		
 		
 		latch.await();
+		
+		if(err.get() != null) {
+		    throw new RuntimeException("Could not start all nodes "+err.get(),err.get());
+		}
 		
 		ClusterInfo cInfo = waitForCluster(ClusterHealthStatus.GREEN, TimeValue.timeValueSeconds(timeout), nodes == null?esNodes.size():nodes.intValue());
 		cInfo.numNodes = internalNodeSettings.size();
