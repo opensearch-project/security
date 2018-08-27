@@ -104,7 +104,7 @@ public final class ClusterHelper {
 		int forkNumber = 1;
 		
 		if(forkno != null && forkno.length() > 0) {
-		    forkNumber = Integer.parseInt(forkno)+1;
+		    forkNumber = Integer.parseInt(forkno.split("_")[1]);
 		}
 	
 		final int min = SocketUtils.PORT_RANGE_MIN+(forkNumber*5000);
