@@ -60,8 +60,6 @@ import com.floragunn.searchguard.test.helper.cluster.ClusterConfiguration.NodeSe
 import com.floragunn.searchguard.test.helper.network.SocketUtils;
 
 public final class ClusterHelper {
-    
-    private final static AtomicInteger lastPort = new AtomicInteger(SocketUtils.PORT_RANGE_MIN);
 
     static {
         System.setProperty("es.enforce.bootstrap.checks", "true");
@@ -102,9 +100,18 @@ public final class ClusterHelper {
 
 		List<NodeSettings> internalNodeSettings = clusterConfiguration.getNodeSettings();
 		
-		final SortedSet<Integer> freePorts = SocketUtils.findAvailableTcpPorts(internalNodeSettings.size()*2, lastPort.get()+1, lastPort.get()+(internalNodeSettings.size()*2)+100);
+		final String forkno = System.getProperty("forkno");
+		int forkNumber = 1;
+		
+		if(forkno != null && forkno.length() > 0) {
+		    forkNumber = Integer.parseInt(forkno)+1;
+		}
+	
+		final int min = SocketUtils.PORT_RANGE_MIN+(forkNumber*5000);
+		final int max = SocketUtils.PORT_RANGE_MIN+((forkNumber+1)*5000)-1;
+		
+		final SortedSet<Integer> freePorts = SocketUtils.findAvailableTcpPorts(internalNodeSettings.size()*2, min, max);
 		assert freePorts.size() == internalNodeSettings.size()*2;
-		lastPort.set(freePorts.last().intValue());
 		final SortedSet<Integer> tcpPorts = new TreeSet<Integer>();
 		freePorts.stream().limit(internalNodeSettings.size()).forEach(el->tcpPorts.add(el));
 		final Iterator<Integer> tcpPortsIt = tcpPorts.iterator();
@@ -113,7 +120,7 @@ public final class ClusterHelper {
 	    freePorts.stream().skip(internalNodeSettings.size()).limit(internalNodeSettings.size()).forEach(el->httpPorts.add(el));
 		final Iterator<Integer> httpPortsIt = httpPorts.iterator();
 		
-		System.out.println("tcpPorts: "+tcpPorts+"/httpPorts: "+httpPorts);
+		System.out.println("tcpPorts: "+tcpPorts+"/httpPorts: "+httpPorts+" for ("+min+"-"+max+") fork "+forkNumber);
 		
 		final CountDownLatch latch = new CountDownLatch(internalNodeSettings.size());
 		
