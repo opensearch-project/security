@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -59,6 +60,8 @@ import com.floragunn.searchguard.test.helper.cluster.ClusterConfiguration.NodeSe
 import com.floragunn.searchguard.test.helper.network.SocketUtils;
 
 public final class ClusterHelper {
+    
+    private final static AtomicInteger lastPort = new AtomicInteger(SocketUtils.PORT_RANGE_MIN);
 
     static {
         System.setProperty("es.enforce.bootstrap.checks", "true");
@@ -99,7 +102,9 @@ public final class ClusterHelper {
 
 		List<NodeSettings> internalNodeSettings = clusterConfiguration.getNodeSettings();
 		
-		final SortedSet<Integer> freePorts = SocketUtils.findAvailableTcpPorts(internalNodeSettings.size()*2);
+		final SortedSet<Integer> freePorts = SocketUtils.findAvailableTcpPorts(internalNodeSettings.size()*2, lastPort.get()+1, lastPort.get()+(internalNodeSettings.size()*2)+100);
+		assert freePorts.size() == internalNodeSettings.size()*2;
+		lastPort.set(freePorts.last().intValue());
 		final SortedSet<Integer> tcpPorts = new TreeSet<Integer>();
 		freePorts.stream().limit(internalNodeSettings.size()).forEach(el->tcpPorts.add(el));
 		final Iterator<Integer> tcpPortsIt = tcpPorts.iterator();
@@ -108,7 +113,7 @@ public final class ClusterHelper {
 	    freePorts.stream().skip(internalNodeSettings.size()).limit(internalNodeSettings.size()).forEach(el->httpPorts.add(el));
 		final Iterator<Integer> httpPortsIt = httpPorts.iterator();
 		
-		log.info("tcpPorts: "+tcpPorts+"/httpPorts: "+httpPorts);
+		System.out.println("tcpPorts: "+tcpPorts+"/httpPorts: "+httpPorts);
 		
 		final CountDownLatch latch = new CountDownLatch(internalNodeSettings.size());
 		

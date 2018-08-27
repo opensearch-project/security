@@ -3,7 +3,7 @@ jobs:
   build:
     parallelism: 4
     working_directory: ~/circleci-sg
-    resource_class: large
+    resource_class: xlarge
     docker:
       - image: circleci/openjdk:8-jdk-browsers
     steps:
