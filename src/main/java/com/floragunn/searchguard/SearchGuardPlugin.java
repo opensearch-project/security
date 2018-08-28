@@ -161,23 +161,23 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
     private final boolean tribeNodeClient;
     private final boolean dlsFlsAvailable;
     private final Constructor<?> dlsFlsConstructor;
-    private SearchGuardRestFilter sgRestHandler;
-    private SearchGuardInterceptor sgi;
-    private PrivilegesEvaluator evaluator;
-    private ThreadPool threadPool;
-    private IndexBaseConfigurationRepository cr;
-    private AdminDNs adminDns;
-    private ClusterService cs;
-    private AuditLog auditLog;
-    private BackendRegistry backendRegistry;
-    private SslExceptionHandler sslExceptionHandler;
-    private Client localClient;
+    private volatile SearchGuardRestFilter sgRestHandler;
+    private volatile SearchGuardInterceptor sgi;
+    private volatile PrivilegesEvaluator evaluator;
+    private volatile ThreadPool threadPool;
+    private volatile IndexBaseConfigurationRepository cr;
+    private volatile AdminDNs adminDns;
+    private volatile ClusterService cs;
+    private volatile AuditLog auditLog;
+    private volatile BackendRegistry backendRegistry;
+    private volatile SslExceptionHandler sslExceptionHandler;
+    private volatile Client localClient;
     private final boolean disabled;
     private final boolean enterpriseModulesEnabled;
     private final List<String> demoCertHashes = new ArrayList<String>(3);
-    private SearchGuardFilter sgf;
-    private ComplianceConfig complianceConfig;
-    private IndexResolverReplacer irr;
+    private volatile SearchGuardFilter sgf;
+    private volatile ComplianceConfig complianceConfig;
+    private volatile IndexResolverReplacer irr;
 
     @Override
     public void close() throws IOException {
@@ -477,6 +477,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
         //called for every index!
 
         if (!disabled && !client) {
+            log.debug("Handle complianceConfig="+complianceConfig+"/dlsFlsAvailable: "+dlsFlsAvailable+"/auditLog="+auditLog.getClass()+" for onIndexModule() of index "+indexModule.getIndex().getName());
             if (dlsFlsAvailable) {
 
                 final ComplianceIndexingOperationListener ciol;
@@ -729,7 +730,8 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
         final IndexNameExpressionResolver resolver = new IndexNameExpressionResolver(settings);
         irr = new IndexResolverReplacer(resolver, clusterService, cih);
         auditLog = ReflectionHelper.instantiateAuditLog(settings, configPath, localClient, threadPool, resolver, clusterService);
-        complianceConfig = dlsFlsAvailable && auditLog.getClass() != NullAuditLog.class?new ComplianceConfig(environment, Objects.requireNonNull(irr), auditLog):null;
+        complianceConfig = (dlsFlsAvailable && (auditLog.getClass() != NullAuditLog.class))?new ComplianceConfig(environment, Objects.requireNonNull(irr), auditLog):null;
+        log.debug("Compliance config is "+complianceConfig+" because of dlsFlsAvailable: "+dlsFlsAvailable+" and auditLog="+auditLog.getClass());
         auditLog.setComplianceConfig(complianceConfig);
         
         sslExceptionHandler = new AuditLogSslExceptionHandler(auditLog);
