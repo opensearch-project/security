@@ -290,6 +290,10 @@ public class ReflectionHelper {
         if (clazz.equalsIgnoreCase("com.floragunn.dlic.auth.http.kerberos.HTTPSpnegoAuthenticator")) {
             enterpriseModuleInstalled = true;
         }
+        
+        if (clazz.equalsIgnoreCase("com.floragunn.dlic.auth.http.saml.HTTPSamlAuthenticator")) {
+            enterpriseModuleInstalled = true;
+        }
 
         return enterpriseModuleInstalled;
     }
