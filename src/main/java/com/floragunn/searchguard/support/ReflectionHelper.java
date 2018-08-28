@@ -87,6 +87,9 @@ public class ReflectionHelper {
             return ret;
         } catch (final Throwable e) {
             log.warn("Unable to enable Rest Management Api Module due to {}", e.toString());
+            if(log.isDebugEnabled()) {
+                log.debug("Stacktrace: ",e);
+            }
             return Collections.emptyList();
         }
     }
@@ -107,6 +110,9 @@ public class ReflectionHelper {
             return ret;
         } catch (final Throwable e) {
             log.warn("Unable to enable DLS/FLS Module due to {}", e.toString());
+            if(log.isDebugEnabled()) {
+                log.debug("Stacktrace: ",e);
+            }
             return null;
         }
     }
@@ -123,6 +129,9 @@ public class ReflectionHelper {
             return ret;
         } catch (final Throwable e) {
             log.warn("Unable to enable DLS/FLS Valve Module due to {}", e.toString());
+            if(log.isDebugEnabled()) {
+                log.debug("Stacktrace: ",e);
+            }
             return new DlsFlsRequestValve.NoopDlsFlsRequestValve();
         }
     }
@@ -143,6 +152,9 @@ public class ReflectionHelper {
             return impl;
         } catch (final Throwable e) {
             log.warn("Unable to enable Auditlog Module due to {}", e.toString());
+            if(log.isDebugEnabled()) {
+                log.debug("Stacktrace: ",e);
+            }
             return new NullAuditLog();
         }
     }
@@ -163,9 +175,15 @@ public class ReflectionHelper {
         } catch (final ClassNotFoundException e) {
             //TODO produce a single warn msg, this here is issued for every index
            log.debug("Unable to enable Compliance Module due to {}", e.toString());
+           if(log.isDebugEnabled()) {
+               log.debug("Stacktrace: ",e);
+           }
            return new ComplianceIndexingOperationListener();
         } catch (final Throwable e) {
             log.error("Unable to enable Compliance Module due to {}", e.toString());
+            if(log.isDebugEnabled()) {
+                log.debug("Stacktrace: ",e);
+            }
             return new ComplianceIndexingOperationListener();
         }
     }
@@ -187,6 +205,9 @@ public class ReflectionHelper {
             return ret;
         } catch (final Throwable e) {
             log.warn("Unable to enable Kibana Module due to {}", e.toString());
+            if(log.isDebugEnabled()) {
+                log.debug("Stacktrace: ",e);
+            }
             return noop;
         }
     }
@@ -208,6 +229,9 @@ public class ReflectionHelper {
 
         } catch (final Throwable e) {
             log.warn("Unable to enable '{}' due to {}", clazz, e.toString());
+            if(log.isDebugEnabled()) {
+                log.debug("Stacktrace: ",e);
+            }
             throw new ElasticsearchException(e);
         }
     }
@@ -221,6 +245,9 @@ public class ReflectionHelper {
             return ret;
         } catch (final Throwable e) {
             log.warn("Unable to load inter cluster request evaluator '{}' due to {}", clazz, e.toString());
+            if(log.isDebugEnabled()) {
+                log.debug("Stacktrace: ",e);
+            }
             return new DefaultInterClusterRequestEvaluator(settings);
         }
     }
@@ -234,6 +261,9 @@ public class ReflectionHelper {
             return ret;
         } catch (final Throwable e) {
             log.warn("Unable to load pricipal extractor '{}' due to {}", clazz, e.toString());
+            if(log.isDebugEnabled()) {
+                log.debug("Stacktrace: ",e);
+            }
             return new DefaultPrincipalExtractor();
         }
     }
