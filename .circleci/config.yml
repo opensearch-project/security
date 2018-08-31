@@ -37,7 +37,7 @@ jobs:
       - deploy:
           name: Deploy
           command: |          
-            mvn deploy -DskipTests -s settings.xml
+            mvn deploy -Penterprise -DskipTests -s settings.xml
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
               mvn -Pcoverage sonar:sonar -Dsonar.organization=floragunncom-github -Dsonar.login=$SONAR_LOGIN -Dsonar.host.url=https://sonarcloud.io
               ./dev/scan_veracode.sh
