@@ -5,20 +5,20 @@ jobs:
     working_directory: ~/circleci-sg
     resource_class: xlarge
     docker:
-      - image: circleci/openjdk:11-jdk-browsers
+      - image: circleci/openjdk:${SG_JAVA_BUILD_VERSION:-11}-jdk-browsers
     steps:
-      - run: sudo apt-get install libapr1 openssl libxml2-utils
+      - run:
+          name: Install and Update
+          command: sudo apt-get update -yqq && sudo apt-get install -yqq libapr1 openssl libxml2-utils
       - run:
           name: Versions
           command: 'uname -a;java -version;openssl version'
       - checkout
       - restore_cache:
-          key: circleci-sg-{{ checksum "pom.xml" }}
-      - run: mvn dependency:go-offline
-      - save_cache:
-          paths:
-            - ~/.m2
-          key: circleci-sg-{{ checksum "pom.xml" }}
+          keys:
+            - maven-repo-v3-{{ .Branch }}-{{ checksum "pom.xml" }}
+            - maven-repo-v3-{{ .Branch }}-
+            - maven-repo-v3-
       - run: ./smoketest.sh
       - run:
           command: |
@@ -28,7 +28,7 @@ jobs:
             echo "$TESTFILES"
             #echo "${TESTFILES// /,}"
             cd ~/circleci-sg
-            mvn -Pcoverage verify -Dtest="$TESTFILES"
+            mvn -U -Pcoverage verify -Dtest="$TESTFILES"
       #- run: mvn -Pcoverage verify mvn test -Dtest="com/floragunn/searchguard/HealthTests.java"
       - store_test_results:
           path: target/surefire-reports
@@ -37,24 +37,31 @@ jobs:
       - deploy:
           name: Deploy
           command: |          
-            mvn deploy -Penterprise -DskipTests -s settings.xml
+            mvn deploy -U -Penterprise -DskipTests -s settings.xml
+            
+            set +e
+            
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
-              mvn -Pcoverage sonar:sonar -Dsonar.organization=floragunncom-github -Dsonar.login=$SONAR_LOGIN -Dsonar.host.url=https://sonarcloud.io
+              mvn -U -Pcoverage sonar:sonar -Dsonar.organization=floragunncom-github -Dsonar.login=$SONAR_LOGIN -Dsonar.host.url=https://sonarcloud.io
               ./dev/scan_veracode.sh
             fi
+      - save_cache:
+          paths:
+            - ~/.m2
+          key: maven-repo-v3-{{ .Branch }}-{{ checksum "pom.xml" }}
 
-workflows:
-  version: 2
-  commit:
-    jobs:
-      - build
-  nightly:
-    triggers:
-      - schedule:
-          cron: "0 * * * *"
-          filters:
-            branches:
-              only:
-                - master
-    jobs:
-      - build
+#workflows:
+#  version: 2
+#  commit:
+#    jobs:
+#      - build
+#  nightly:
+#    triggers:
+#      - schedule:
+#          cron: "0 * * * *"
+#          filters:
+#            branches:
+#              only:
+#                - master
+#    jobs:
+#      - build
