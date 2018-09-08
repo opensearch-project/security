@@ -2,7 +2,7 @@
 
 ![Logo](https://raw.githubusercontent.com/floragunncom/sg-assets/master/logo/sg_dlic_small.png) 
 
-Search Guard(®) is an Elasticsearch plugin that offers encryption, authentication, and authorization. It supports authentication via Active Directory, LDAP, Kerberos, JSON web tokens and many more, and includes fine grained role-based access control to clusters, indices, documents and fields. Enjoy true multi tenancy in Kibana, and stay compliant with GDPR, HIPAA, PCI, SOX and ISO by using audit logging. 
+Search Guard(®) is an Elasticsearch plugin that offers encryption, authentication, authorization. It supports authentication via Active Directory, LDAP, Kerberos, JSON web tokens, SAML, OpenID and many more. It includes fine grained role-based access control to indices, documents and fields. Enjoy true multi tenancy in Kibana, and stay compliant with GDPR, HIPAA, PCI, SOX and ISO by using audit and compliance logging. 
 
 Search Guard supports **OpenSSL** for maximum performance and security. The complete code is **Open Source**.
 
@@ -12,31 +12,38 @@ Search Guard offers all basic security features for free. The Community Edition 
 
 * Full data in transit encryption
 * Node-to-node encryption
-* Index level access control
-* Document type based access control
+* Certificate revocation lists
+* Role-based cluster level access control
+* Role-based index level access control
 * User-, role- and permission management
+* Internal user database
 * HTTP basic authentication
+* PKI authentication
+* Proxy authentication
 * User Impersonation
-* Proxy support
 
-Please see [here for a feature comparison](https://floragunn.com/searchguard-license-support/).
 
-## Enterprise Edition
+Please see [here for a feature comparison](https://search-guard.com/product#feature-comparison).
+
+## Enterprise and Compliance Edition
 
 The Enterprise Edition on Search Guard adds:
 
 * Active Directory / LDAP
 * Kerberos / SPNEGO
 * JSON web token (JWT)
+* OpenID
+* SAML
 * Document-level security
 * Field-level security
-* Audit logging to stay compliant with security compliance regulations
-* True Kibana Multi Tenancy
+* Audit logging 
+* Compliance logging for GDPR, HIPAA, PCI, SOX and ISO compliance
+* True Kibana multi-tenancy
 * REST management API
 
-Please see [here for a feature comparison](https://floragunn.com/searchguard-license-support/).
+Please see [here for a feature comparison](https://search-guard.com/product#feature-comparison).
 
-If you want to use our enterprise features in production, you need to obtain a license. We offer a [very flexible licensing model](https://floragunn.com/searchguard/searchguard-license-support/), based on productive clusters with an **unlimited number of nodes**. Non-productive systems like Development, Staging or QA are covered by the license at no additional cost.
+If you want to use our enterprise features in production, you need to obtain a license. We offer a [very flexible licensing model](https://search-guard.com/licensing/), based on productive clusters with an **unlimited number of nodes**. Non-productive systems like Development, Staging or QA are covered by the license at no additional cost.
 
 ## Trial license
 
@@ -50,11 +57,11 @@ Please refer to the [Official documentation](http://docs.search-guard.com) for d
 
 * Install Elasticsearch
 
-* Install the Search Guard plugin for your [Elasticsearch version](https://github.com/floragunncom/search-guard/wiki), e.g.:
+* Install the Search Guard plugin for your [Elasticsearch version](https://docs.search-guard.com/latest/search-guard-versions), e.g.:
 
 ```
 <ES directory>/bin/elasticsearch-plugin install \
-  -b com.floragunn:search-guard-6:6.0.0-17.beta1
+  -b com.floragunn:search-guard-6:6.4.0-23.0
 ```
 
 * ``cd`` into ``<ES directory>/plugins/search-guard-<version>/tools``
@@ -71,7 +78,7 @@ Please refer to the [Official documentation](http://docs.search-guard.com) for d
 
 ## Config hot reloading
 
-The Search Guard configuration is stored in a dedicated index in Elasticsearch itself. Changes to the configuration are pushed to this index via the [sgadmin command line tool](http://docs.search-guard.com/v6/sgadmin). This will trigger a reload of the configuration on all nodes automatically. This has several advantages over configuration via elasticsearch.yml:
+The Search Guard configuration is stored in a dedicated index in Elasticsearch itself. Changes to the configuration are pushed to this index via the [sgadmin command line tool](https://docs.search-guard.com/latest/sgadmin). This will trigger a reload of the configuration on all nodes automatically. This has several advantages over configuration via elasticsearch.yml:
 
 * Configuration is stored in a central place
 * No configuration files on the nodes necessary
@@ -79,9 +86,9 @@ The Search Guard configuration is stored in a dedicated index in Elasticsearch i
 * Configuration changes take effect immediately
 
 ## Support
-* Commercial support available through [floragunn GmbH](https://floragunn.com/searchguard/searchguard-license-support/)
+* Commercial support available through [floragunn GmbH](https://search-guard.com)
 * Community support available via [google groups](https://groups.google.com/forum/#!forum/search-guard)
-* Follow us and get community support on twitter [@searchguard](https://twitter.com/searchguard)
+* Follow us on twitter [@searchguard](https://twitter.com/searchguard)
 
 ## Legal 
 
