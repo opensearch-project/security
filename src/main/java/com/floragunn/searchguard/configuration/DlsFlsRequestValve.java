@@ -31,12 +31,12 @@ public interface DlsFlsRequestValve {
      * @param listener
      * @return false to stop
      */
-    boolean invoke(ActionRequest request, ActionListener<?> listener, Map<String,Set<String>> allowedFlsFields, Map<String,Set<String>> queries);
+    boolean invoke(ActionRequest request, ActionListener<?> listener, Map<String,Set<String>> allowedFlsFields, final Map<String,Set<String>> maskedFields, Map<String,Set<String>> queries);
 
     public static class NoopDlsFlsRequestValve implements DlsFlsRequestValve {
 
         @Override
-        public boolean invoke(ActionRequest request, ActionListener<?> listener, Map<String,Set<String>> allowedFlsFields, Map<String,Set<String>> queries) {
+        public boolean invoke(ActionRequest request, ActionListener<?> listener, Map<String,Set<String>> allowedFlsFields, final Map<String,Set<String>> maskedFields, Map<String,Set<String>> queries) {
             return true;
         }
         

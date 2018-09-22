@@ -149,7 +149,7 @@ import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.HeaderHelper;
 import com.floragunn.searchguard.support.ModuleInfo;
 import com.floragunn.searchguard.support.ReflectionHelper;
-import com.floragunn.searchguard.support.WildcardMatcher;
+import com.floragunn.searchguard.support.SgUtils;
 import com.floragunn.searchguard.transport.DefaultInterClusterRequestEvaluator;
 import com.floragunn.searchguard.transport.InterClusterRequestEvaluator;
 import com.floragunn.searchguard.transport.SearchGuardInterceptor;
@@ -514,14 +514,14 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
                         final Map<String, Set<String>> allowedFlsFields = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadPool.getThreadContext(),
                                 ConfigConstants.SG_FLS_FIELDS_HEADER);
                         
-                        if(evalMap(allowedFlsFields, index().getName()) != null) {
+                        if(SgUtils.evalMap(allowedFlsFields, index().getName()) != null) {
                             return weight;
                         } else {
                             
                             final Map<String, Set<String>> maskedFieldsMap = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadPool.getThreadContext(),
                                     ConfigConstants.SG_MASKED_FIELD_HEADER);
                             
-                            if(evalMap(maskedFieldsMap, index().getName()) != null) {
+                            if(SgUtils.evalMap(maskedFieldsMap, index().getName()) != null) {
                                 return weight;
                             } else {
                                 return nodeCache.doCache(weight, policy);
@@ -529,33 +529,6 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
                         }
                         
                     }
-                    
-                    private String evalMap(final Map<String,Set<String>> map, final String index) {
-
-                        if (map == null) {
-                            return null;
-                        }
-
-                        if (map.get(index) != null) {
-                            return index;
-                        } else if (map.get("*") != null) {
-                            return "*";
-                        }
-                        if (map.get("_all") != null) {
-                            return "_all";
-                        }
-
-                        //regex
-                        for(final String key: map.keySet()) {
-                            if(WildcardMatcher.containsWildcard(key) 
-                                    && WildcardMatcher.match(key, index)) {
-                                return key;
-                            }
-                        }
-
-                        return null;
-                    }
-
                 });
             } else {
                 

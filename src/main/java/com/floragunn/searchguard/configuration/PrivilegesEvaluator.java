@@ -186,6 +186,7 @@ public class PrivilegesEvaluator {
         boolean allowed = false;
         Set<String> missingPrivileges = new HashSet<String>();
         Map<String,Set<String>> allowedFlsFields;
+        Map<String,Set<String>> maskedFields;
         Map<String,Set<String>> queries;
 
         public boolean isAllowed() {
@@ -198,6 +199,10 @@ public class PrivilegesEvaluator {
         public Map<String,Set<String>> getAllowedFlsFields() {
             return allowedFlsFields;
         }
+        
+        public Map<String,Set<String>> getMaskedFields() {
+            return maskedFields;
+        }
 
         public Map<String,Set<String>> getQueries() {
             return queries;
@@ -205,7 +210,7 @@ public class PrivilegesEvaluator {
         @Override
         public String toString() {
             return "PrivEvalResponse [allowed=" + allowed + ", missingPrivileges=" + missingPrivileges
-                    + ", allowedFlsFields=" + allowedFlsFields + ", queries=" + queries + "]";
+                    + ", allowedFlsFields=" + allowedFlsFields + ", maskedFields=" + maskedFields + ", queries=" + queries + "]";
         }
         
         
@@ -257,6 +262,8 @@ public class PrivilegesEvaluator {
                 }
             }
         }
+        
+        presponse.maskedFields = new HashMap<>(maskedFieldsMap);
 
         //attach dls/fls map if not already done
         //TODO do this only if enterprise module are loaded
