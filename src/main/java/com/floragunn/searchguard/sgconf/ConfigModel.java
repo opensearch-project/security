@@ -295,6 +295,7 @@ public class ConfigModel {
 
         }
         
+        //kibana special only
         public Set<String> getAllPermittedIndices(User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
             Set<String> retVal = new HashSet<>();
             for(SgRole sgr: roles) {
@@ -355,7 +356,7 @@ public class ConfigModel {
         }
 
         //get indices which are permitted for the given types and actions
-        //dnfof only
+        //dnfof + kibana special only
         private Set<String> getAllResolvedPermittedIndices(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
 
             final Set<String> retVal = new HashSet<>();
@@ -378,8 +379,14 @@ public class ConfigModel {
                        WildcardMatcher.wildcardRetainInSet(wanted, permitted);
                        res.addAll(wanted);
                    } else {
-                       //we want all indices so just return whats permitted
-                       res.addAll(Arrays.asList(resolver.concreteIndexNames(cs.state(), IndicesOptions.lenientExpandOpen(), permitted)));
+                       //we want all indices so just return what's permitted
+                       
+                       //#557
+                       final String[] allIndices = resolver.concreteIndexNames(cs.state(), IndicesOptions.lenientExpandOpen(), "*");
+                       final Set<String> wanted = new HashSet<>(Arrays.asList(allIndices));
+                       WildcardMatcher.wildcardRetainInSet(wanted, permitted);
+                       res.addAll(wanted);
+                       //res.addAll(Arrays.asList(resolver.concreteIndexNames(cs.state(), IndicesOptions.lenientExpandOpen(), permitted)));
                    }
                    retVal.addAll(res);
                }
@@ -594,7 +601,7 @@ public class ConfigModel {
                 }
             }
             
-            if(resolved == null) {
+            if(resolved == null && !unresolved.isEmpty()) {
                 resolved = resolver.concreteIndexNames(cs.state(), IndicesOptions.lenientExpandOpen(), unresolved);
             }
             if(resolved == null || resolved.length == 0) {

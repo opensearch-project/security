@@ -2,12 +2,19 @@ sg_public:
   cluster:
     - 'cluster:monitor/main'
     #- CLUSTER_COMPOSITE_OPS_RO
+  indices:
+    '.notexistingindexcvnjl9809991':
+      '*':  
+        - ALL
 
 sg_all_access:
   cluster:
     - '*'
   indices:
     '*':
+      '*':  
+        - ALL
+    '.notexistingindexcvnjl9809991':
       '*':  
         - ALL
         
@@ -465,3 +472,11 @@ sg_underscore:
     '*abc_xyz_*':
       '*':
         - '*'
+
+sg_557:
+  cluster:
+    - '*'
+  indices:    
+    '/\S*/':
+      '*':
+        - READ

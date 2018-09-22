@@ -45,6 +45,7 @@ import com.floragunn.searchguard.test.SingleClusterTest;
 import com.floragunn.searchguard.test.helper.file.FileHelper;
 import com.floragunn.searchguard.test.helper.rest.RestHelper;
 import com.floragunn.searchguard.test.helper.rest.RestHelper.HttpResponse;
+import com.floragunn.searchguard.test.helper.rules.SGTestWatcher;
 
 public class HttpIntegrationTests extends SingleClusterTest {
 
@@ -506,5 +507,57 @@ public class HttpIntegrationTests extends SingleClusterTest {
             
             
         }
+    
+    @Test
+    public void testBulk() throws Exception {
+        final Settings settings = Settings.builder()
+                .put(ConfigConstants.SEARCHGUARD_ROLES_MAPPING_RESOLUTION, "BOTH")
+                .build();
+        setup(Settings.EMPTY, new DynamicSgConfig().setSgRoles("sg_roles_bulk.yml"), settings);
+        final RestHelper rh = nonSslRestHelper();
+    
+        String bulkBody = 
+                "{ \"index\" : { \"_index\" : \"test\", \"_type\" : \"type1\", \"_id\" : \"1\" } }"+System.lineSeparator()+
+                "{ \"field1\" : \"value1\" }" +System.lineSeparator()+
+                "{ \"index\" : { \"_index\" : \"test\", \"_type\" : \"type1\", \"_id\" : \"2\" } }"+System.lineSeparator()+
+                "{ \"field2\" : \"value2\" }"+System.lineSeparator();
+    
+        HttpResponse res = rh.executePostRequest("_bulk", bulkBody, encodeBasicHeader("bulk", "nagilum"));
+        System.out.println(res.getBody());
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());  
+        Assert.assertTrue(res.getBody().contains("\"errors\":false"));
+        Assert.assertTrue(res.getBody().contains("\"status\":201"));  
+    }
+    
+    @Test
+    public void test557() throws Exception {
+        final Settings settings = Settings.builder()
+                .put(ConfigConstants.SEARCHGUARD_ROLES_MAPPING_RESOLUTION, "BOTH")
+                .build();
+        setup(Settings.EMPTY, new DynamicSgConfig(), settings);
+        
+        try (TransportClient tc = getInternalTransportClient(this.clusterInfo, Settings.EMPTY)) {
+            
+            tc.admin().indices().create(new CreateIndexRequest("copysf")).actionGet();
+            
+            tc.index(new IndexRequest("vulcangov").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
+             
+            tc.index(new IndexRequest("starfleet").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
+             
+            tc.index(new IndexRequest("starfleet_academy").type("students").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
+            
+        }
+        
+        final RestHelper rh = nonSslRestHelper();
+
+        HttpResponse res = rh.executePostRequest("/*/_search", "{\"size\":0,\"aggs\":{\"indices\":{\"terms\":{\"field\":\"_index\",\"size\":10}}}}", encodeBasicHeader("nagilum", "nagilum"));
+        System.out.println(res.getBody());
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());  
+        Assert.assertTrue(res.getBody().contains("starfleet_academy"));
+        res = rh.executePostRequest("/*/_search", "{\"size\":0,\"aggs\":{\"indices\":{\"terms\":{\"field\":\"_index\",\"size\":10}}}}", encodeBasicHeader("557", "nagilum"));
+        System.out.println(res.getBody());
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());  
+        Assert.assertTrue(res.getBody().contains("starfleet_academy"));  
+    }
 
 }
