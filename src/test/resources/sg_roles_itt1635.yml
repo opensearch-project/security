@@ -1,0 +1,23 @@
+sg_esb_1:
+  cluster:
+    - CLUSTER_COMPOSITE_OPS
+  indices:
+    'esb-prod-1':
+      '*':
+        - '*'
+
+sg_esb_3:
+  cluster:
+    - CLUSTER_COMPOSITE_OPS
+  indices:
+    'esb-prod-3':
+      '*':
+        - '*'
+
+sg_esb_5:
+  cluster:
+    - CLUSTER_COMPOSITE_OPS
+  indices:
+    'esb-prod-5':
+      '*':
+        - '*'

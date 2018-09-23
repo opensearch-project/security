@@ -356,6 +356,9 @@ public final class IndexResolverReplacer {
                         if(originalAsList.contains("*") || originalAsList.contains("_all")) {
                             return replacements;
                         }
+                        
+                        original = resolver.concreteIndexNames(clusterService.state(), IndicesOptions.lenientExpandOpen(), original);
+                        
                         final String[] retained = WildcardMatcher.getMatchAny(original, replacements).toArray(new String[0]);
                         return retained;
                     }

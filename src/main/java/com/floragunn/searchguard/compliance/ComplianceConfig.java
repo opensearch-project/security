@@ -90,12 +90,19 @@ public class ComplianceConfig implements LicenseChangeListener {
         logExternalConfig = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED, false);
         logInternalConfig = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, false);
         immutableIndicesPatterns = new HashSet<String>(settings.getAsList(ConfigConstants.SEARCHGUARD_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList()));
-        final String saltAsString = settings.get(ConfigConstants.SEARCHGUARD_COMPLIANCE_SALT, ConfigConstants.SEARCHGUARD_COMPLIANCE_SALT_DEAULT);
+        final String saltAsString = settings.get(ConfigConstants.SEARCHGUARD_COMPLIANCE_SALT, ConfigConstants.SEARCHGUARD_COMPLIANCE_SALT_DEFAULT);
         final byte[] saltAsBytes = saltAsString.getBytes(StandardCharsets.UTF_8);
 
+        if(saltAsString.equals(ConfigConstants.SEARCHGUARD_COMPLIANCE_SALT_DEFAULT)) {
+            log.warn("If you plan to use field masking pls configure "+ConfigConstants.SEARCHGUARD_COMPLIANCE_SALT+" to be a random string of 16 chars length identical on all nodes");
+        }
         
         if(saltAsBytes.length < 16) {
-            throw new ElasticsearchException(ConfigConstants.SEARCHGUARD_COMPLIANCE_SALT+" must be at least contain 16 bytes");
+            throw new ElasticsearchException(ConfigConstants.SEARCHGUARD_COMPLIANCE_SALT+" must at least contain 16 bytes");
+        }
+        
+        if(saltAsBytes.length > 16) {
+            log.warn(ConfigConstants.SEARCHGUARD_COMPLIANCE_SALT+" is greater than 16 bytes. Only the first 16 bytes are used for salting");
         }
         
         salt16 = Arrays.copyOf(saltAsBytes, 16);
