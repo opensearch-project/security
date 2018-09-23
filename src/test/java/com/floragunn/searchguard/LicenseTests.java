@@ -95,8 +95,9 @@ public class LicenseTests extends SingleClusterTest {
     
     @Test
     public void testComplianceLicense() throws Exception {
-
-        SearchGuardLicense license = SearchGuardLicense.createTrialLicense(new SimpleDateFormat("yyyy-MM-dd").format(new Date()), cs, "");
+      
+        final String now = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+        SearchGuardLicense license = SearchGuardLicense.createTrialLicense(now, cs, "");
         
         Assert.assertTrue(license.hasFeature(Feature.COMPLIANCE));
         Assert.assertArrayEquals(license.getFeatures(), Feature.values());
