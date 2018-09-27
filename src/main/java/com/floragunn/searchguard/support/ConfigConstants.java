@@ -99,6 +99,7 @@ public class ConfigConstants {
     public final static String CONFIGNAME_CONFIG = "config";
     public final static String CONFIGKEY_ACTION_GROUPS_PERMISSIONS = "permissions";
     public final static String CONFIGKEY_READONLY = "readonly";
+    public final static String CONFIGKEY_HIDDEN = "hidden";
 
     public final static List<String> CONFIG_NAMES = Collections.unmodifiableList(Arrays.asList(new String[] {CONFIGNAME_ROLES, CONFIGNAME_ROLES_MAPPING,
             CONFIGNAME_ACTION_GROUPS, CONFIGNAME_INTERNAL_USERS, CONFIGNAME_CONFIG}));
