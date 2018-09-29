@@ -33,6 +33,7 @@ import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.methods.HttpOptions;
+import org.apache.http.client.methods.HttpPatch;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpUriRequest;
@@ -133,6 +134,14 @@ public class RestHelper {
 		return executeRequest(uriRequest, header);
 	}
 	
+    public HttpResponse executePatchRequest(final String request, String body, Header... header) throws Exception {
+        HttpPatch uriRequest = new HttpPatch(getHttpServerUri() + "/" + request);
+        if (body != null && !body.isEmpty()) {
+            uriRequest.setEntity(new StringEntity(body));
+        }
+        return executeRequest(uriRequest, header);
+    }	
+	
 	public HttpResponse executeRequest(HttpUriRequest uriRequest, Header... header) throws Exception {
 
 		CloseableHttpClient httpClient = null;
@@ -147,7 +156,9 @@ public class RestHelper {
 				}
 			}
 
-			uriRequest.addHeader("Content-Type","application/json");
+			if (!uriRequest.containsHeader("Content-Type")) {
+			    uriRequest.addHeader("Content-Type","application/json");
+			}
 			HttpResponse res = new HttpResponse(httpClient.execute(uriRequest));
 			log.debug(res.getBody());
 			return res;
