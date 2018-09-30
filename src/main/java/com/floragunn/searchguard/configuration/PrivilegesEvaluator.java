@@ -409,6 +409,8 @@ public class PrivilegesEvaluator {
             log.trace("dnfof enabled? {}", dnfofEnabled);
         }
         
+        final Settings config = getConfigSettings();
+        
         if (isClusterPerm(action0)) {
             if(!sgRoles.impliesClusterPermissionPermission(action0)) {
                 presponse.missingPrivileges.add(action0);
@@ -423,6 +425,26 @@ public class PrivilegesEvaluator {
                         log.debug("Normally allowed but we need to apply some extra checks for a restore request.");
                     }
                 } else {
+                    
+                    
+                    if(privilegesInterceptor.getClass() != PrivilegesInterceptor.class) {
+                        
+                        final Boolean replaceResult = privilegesInterceptor.replaceKibanaIndex(request, action0, user, config, requestedResolved.getAllIndices(), mapTenants(user, caller));
+
+                        if(log.isDebugEnabled()) {
+                            log.debug("Result from privileges interceptor for cluster perm: {}", replaceResult);
+                        }
+
+                        if (replaceResult == Boolean.TRUE) {
+                            auditLog.logMissingPrivileges(action0, request, task);
+                            return presponse;
+                        }
+
+                        if (replaceResult == Boolean.FALSE) {
+                            presponse.allowed = true;
+                            return presponse;
+                        }
+                    }
 
                     if (dnfofEnabled
                             && (action0.startsWith("indices:data/read/"))
@@ -499,8 +521,6 @@ public class PrivilegesEvaluator {
 
         presponse.missingPrivileges.clear();
         presponse.missingPrivileges.addAll(allIndexPermsRequired);
-
-        final Settings config = getConfigSettings();
 
         if (log.isDebugEnabled()) {
             log.debug("requested resolved indextypes: {}", requestedResolved);
