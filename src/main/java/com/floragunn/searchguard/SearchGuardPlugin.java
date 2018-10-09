@@ -242,6 +242,8 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
 
         enterpriseModulesEnabled = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_ENTERPRISE_MODULES_ENABLED, true);
         ReflectionHelper.init(enterpriseModulesEnabled);
+        
+        ReflectionHelper.registerMngtRestApiHandler(settings);
 
         log.info("Clustername: {}", settings.get("cluster.name","elasticsearch"));
 
@@ -424,11 +426,6 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
             handlers.addAll(apiHandler);
             log.debug("Added {} management rest handler(s)", apiHandler.size());
         }
-
-
-        final Set<ModuleInfo> sgModules = ReflectionHelper.getModulesLoaded();
-
-        log.info("{} Search Guard modules loaded so far: {}", sgModules.size(), sgModules);
 
         return handlers;
     }
@@ -927,6 +924,12 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
 
         settingsFilter.add("searchguard.*");
         return settingsFilter;
+    }
+    
+    @Override
+    public void onNodeStarted() {
+        final Set<ModuleInfo> sgModules = ReflectionHelper.getModulesLoaded();
+        log.info("{} Search Guard modules loaded so far: {}", sgModules.size(), sgModules);
     }
 
     //below is a hack because it seems not possible to access RepositoriesService from a non guice class

@@ -68,6 +68,26 @@ public class ReflectionHelper {
         return !enterpriseModulesEnabled;
     }
 
+    public static void registerMngtRestApiHandler(final Settings settings) {
+
+        if (enterpriseModulesDisabled()) {
+            return;
+        }
+        
+        if(!settings.getAsBoolean("http.enabled", true)) {
+    
+            try {
+                final Class<?> clazz = Class.forName("com.floragunn.searchguard.dlic.rest.api.SearchGuardRestApiActions");
+                addLoadedModule(clazz);
+            } catch (final Throwable e) {
+                log.warn("Unable to register Rest Management Api Module due to {}", e.toString());
+                if(log.isDebugEnabled()) {
+                    log.debug("Stacktrace: ",e);
+                }
+            }
+        }
+    }
+
     @SuppressWarnings("unchecked")
     public static Collection<RestHandler> instantiateMngtRestApiHandler(final Settings settings, final Path configPath, final RestController restController,
             final Client localClient, final AdminDNs adminDns, final IndexBaseConfigurationRepository cr, final ClusterService cs, final PrincipalExtractor principalExtractor,
