@@ -17,15 +17,23 @@
 
 package com.floragunn.searchguard;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
+import java.util.Map;
+
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.floragunn.searchguard.support.SgUtils;
 import com.floragunn.searchguard.support.WildcardMatcher;
 
-public class WildcardTests {
+public class UtilTests {
     
     @Test
-    public void test() {
+    public void testWildcards() {
         Assert.assertTrue(!WildcardMatcher.match("a*?", "a"));
         Assert.assertTrue(WildcardMatcher.match("a*?", "aa"));
         Assert.assertTrue(WildcardMatcher.match("a*?", "ab"));
@@ -49,5 +57,34 @@ public class WildcardTests {
         Assert.assertTrue(WildcardMatcher.containsWildcard("abc*"));
         Assert.assertTrue(WildcardMatcher.containsWildcard("a?bc"));
         Assert.assertTrue(WildcardMatcher.containsWildcard("/(\\d{3}-\\d{2}-?\\d{4})/"));
+    }
+
+    @Test
+    public void testMapFromArray() {
+        Map<Object, Object> map = SgUtils.mapFromArray((Object)null);
+        assertTrue(map == null);
+        
+        map = SgUtils.mapFromArray("key");
+        assertTrue(map == null);
+
+        map = SgUtils.mapFromArray("key", "value", "otherkey");
+        assertTrue(map == null);
+        
+        map = SgUtils.mapFromArray("key", "value");
+        assertNotNull(map);        
+        assertEquals(1, map.size());
+        assertEquals("value", map.get("key"));
+
+        map = SgUtils.mapFromArray("key", "value", "key", "value");
+        assertNotNull(map);        
+        assertEquals(1, map.size());
+        assertEquals("value", map.get("key"));
+
+        map = SgUtils.mapFromArray("key1", "value1", "key2", "value2");
+        assertNotNull(map);        
+        assertEquals(2, map.size());
+        assertEquals("value1", map.get("key1"));
+        assertEquals("value2", map.get("key2"));
+
     }
 }

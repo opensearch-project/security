@@ -266,7 +266,7 @@ public class SearchGuardFilter implements ActionFilter {
     }
 
     private static boolean isUserAdmin(User user, final AdminDNs adminDns) {
-        if (user != null && adminDns.isAdmin(user.getName())) {
+        if (user != null && adminDns.isAdmin(user)) {
             return true;
         }
 

@@ -31,6 +31,7 @@ import org.elasticsearch.common.settings.Settings;
 
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.WildcardMatcher;
+import com.floragunn.searchguard.user.User;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 
@@ -38,19 +39,33 @@ public class AdminDNs {
 
     protected final Logger log = LogManager.getLogger(AdminDNs.class);
     private final Set<LdapName> adminDn = new HashSet<LdapName>();
+    private final Set<String> adminUsernames = new HashSet<String>();
     private final ListMultimap<LdapName, String> allowedImpersonations = ArrayListMultimap.<LdapName, String> create();
     private final ListMultimap<String, String> allowedRestImpersonations = ArrayListMultimap.<String, String> create();
+    private boolean injectUserEnabled;
+    private boolean injectAdminUserEnabled;
     
     public AdminDNs(final Settings settings) {
 
-        final List<String> adminDnsA = settings.getAsList(ConfigConstants.SEARCHGUARD_AUTHCZ_ADMIN_DN, Collections.emptyList());
+        this.injectUserEnabled = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_UNSUPPORTED_INJECT_USER_ENABLED, false);
+        this.injectAdminUserEnabled = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_UNSUPPORTED_INJECT_ADMIN_USER_ENABLED, false);
 
+        final List<String> adminDnsA = settings.getAsList(ConfigConstants.SEARCHGUARD_AUTHCZ_ADMIN_DN, Collections.emptyList());
+        
         for (String dn:adminDnsA) {
             try {
                 log.debug("{} is registered as an admin dn", dn);
                 adminDn.add(new LdapName(dn));
             } catch (final InvalidNameException e) {
-                log.error("Unable to parse admin dn {}",dn, e);
+                // make sure to log correctly depending on user injection settings
+                if (injectUserEnabled && injectAdminUserEnabled) {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Admin DN not an LDAP name, but admin user injection enabled. Will add {} to admin usernames", dn);
+                    }
+                    adminUsernames.add(dn);    
+                } else {
+                    log.error("Unable to parse admin dn {}",dn, e);    
+                }
             }
         }
        
@@ -77,18 +92,30 @@ public class AdminDNs {
         log.debug("Loaded {} impersonation users for REST {}",allowedRestImpersonations.size(), allowedRestImpersonations);
     }
 
-    public boolean isAdmin(String dn) {
+    public boolean isAdmin(User user) {
+        if (isAdminDN(user.getName())) {
+            return true;
+        }
+
+        // ThreadContext injected user, may be admin user, only if both flags are enabled and user is injected
+        if (injectUserEnabled && injectAdminUserEnabled && user.isInjected() && adminUsernames.contains(user.getName())) {
+            return true;
+        }
+        return false;
+    }
+    
+    public boolean isAdminDN(String dn) {
         
         if(dn == null) return false;
-
+                
         try {
-            return isAdmin(new LdapName(dn));
+            return isAdminDN(new LdapName(dn));
         } catch (InvalidNameException e) {
            return false;
         }
     }
 
-    private boolean isAdmin(LdapName dn) {
+    private boolean isAdminDN(LdapName dn) {
         if(dn == null) return false;
         
         boolean isAdmin = adminDn.contains(dn);
@@ -103,7 +130,7 @@ public class AdminDNs {
     public boolean isTransportImpersonationAllowed(LdapName dn, String impersonated) {
         if(dn == null) return false;
         
-        if(isAdmin(dn)) {
+        if(isAdminDN(dn)) {
             return true;
         }
 

@@ -73,6 +73,8 @@ public class ConfigConstants {
     public static final String SG_USER = SG_CONFIG_PREFIX+"user";
     public static final String SG_USER_HEADER = SG_CONFIG_PREFIX+"user_header";
 
+    public static final String SG_INJECTED_USER = "injected_user";
+    
     public static final String SG_XFF_DONE = SG_CONFIG_PREFIX+"xff_done";
 
     public static final String SSO_LOGOUT_URL = SG_CONFIG_PREFIX+"sso_logout_url";
@@ -214,5 +216,7 @@ public class ConfigConstants {
     public static final String SEARCHGUARD_UNSUPPORTED_RESTAPI_ACCEPT_INVALID_LICENSE = "searchguard.unsupported.restapi.accept_invalid_license";
     public static final String SEARCHGUARD_UNSUPPORTED_DISABLE_REST_AUTH_INITIALLY = "searchguard.unsupported.disable_rest_auth_initially";
     public static final String SEARCHGUARD_UNSUPPORTED_DISABLE_INTERTRANSPORT_AUTH_INITIALLY = "searchguard.unsupported.disable_intertransport_auth_initially";
+    public static final String SEARCHGUARD_UNSUPPORTED_INJECT_USER_ENABLED = "searchguard.unsupported.inject_user.enabled";
+    public static final String SEARCHGUARD_UNSUPPORTED_INJECT_ADMIN_USER_ENABLED = "searchguard.unsupported.inject_user.admin.enabled";
 
 }
