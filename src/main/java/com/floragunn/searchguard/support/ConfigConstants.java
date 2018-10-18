@@ -195,6 +195,7 @@ public class ConfigConstants {
     public static final String SEARCHGUARD_COMPLIANCE_SALT_DEFAULT = "e1ukloTsQlOgPquJ";//16 chars
     public static final String SEARCHGUARD_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED  = "searchguard.compliance.history.internal_config_enabled";
 
+    public static final String SEARCHGUARD_SSL_ONLY = "searchguard.ssl_only";
     
     public enum RolesMappingResolution {
         MAPPING_ONLY,
