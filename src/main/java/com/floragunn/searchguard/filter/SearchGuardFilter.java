@@ -60,8 +60,8 @@ import com.floragunn.searchguard.compliance.ComplianceConfig;
 import com.floragunn.searchguard.configuration.AdminDNs;
 import com.floragunn.searchguard.configuration.CompatConfig;
 import com.floragunn.searchguard.configuration.DlsFlsRequestValve;
-import com.floragunn.searchguard.configuration.PrivilegesEvaluator;
-import com.floragunn.searchguard.configuration.PrivilegesEvaluator.PrivEvalResponse;
+import com.floragunn.searchguard.privileges.PrivilegesEvaluator;
+import com.floragunn.searchguard.privileges.PrivilegesEvaluatorResponse;
 import com.floragunn.searchguard.support.Base64Helper;
 import com.floragunn.searchguard.support.ConfigConstants;
 import com.floragunn.searchguard.support.HeaderHelper;
@@ -239,7 +239,7 @@ public class SearchGuardFilter implements ActionFilter {
                 log.trace("Evaluate permissions for user: {}", user.getName());
             }
 
-            final PrivEvalResponse pres = eval.evaluate(user, action, request, task);
+            final PrivilegesEvaluatorResponse pres = eval.evaluate(user, action, request, task);
             
             if (log.isDebugEnabled()) {
                 log.debug(pres);

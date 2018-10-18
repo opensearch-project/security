@@ -15,7 +15,7 @@
  * 
  */
 
-package com.floragunn.searchguard.configuration;
+package com.floragunn.searchguard.privileges;
 
 import java.util.Map;
 import java.util.Set;
