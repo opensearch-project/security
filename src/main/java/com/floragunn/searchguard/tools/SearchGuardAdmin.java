@@ -337,7 +337,7 @@ public class SearchGuardAdmin {
             
         }
         catch( ParseException exp ) {
-            System.err.println("ERR: Parsing failed.  Reason: " + exp.getMessage());
+            System.out.println("ERR: Parsing failed.  Reason: " + exp.getMessage());
             formatter.printHelp("sgadmin.sh", options, true);
             return;
         }

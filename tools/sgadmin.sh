@@ -8,5 +8,5 @@ else
     BIN_PATH="$JAVA_HOME/bin/java"
 fi
 
-"$BIN_PATH" $JAVA_OPTS -Dorg.apache.logging.log4j.simplelog.StatusLogger.level=OFF -cp "$DIR/../*:$DIR/../../../lib/*:$DIR/../deps/*" com.floragunn.searchguard.tools.SearchGuardAdmin "$@"
+"$BIN_PATH" $JAVA_OPTS -Dorg.apache.logging.log4j.simplelog.StatusLogger.level=OFF -cp "$DIR/../*:$DIR/../../../lib/*:$DIR/../deps/*" com.floragunn.searchguard.tools.SearchGuardAdmin "$@" 2>/dev/null
 
