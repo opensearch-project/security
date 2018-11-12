@@ -48,6 +48,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
     private final Set<String> roles = new HashSet<String>();
     private String requestedTenant;
     private Map<String, String> attributes = new HashMap<>();
+    private boolean isInjected = false;
 
     public User(final StreamInput in) throws IOException {
         super();
@@ -135,6 +136,17 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
     public final boolean isUserInRole(final String role) {
         return this.roles.contains(role);
     }
+
+    /**
+     * Associate this user with a set of roles
+     * 
+     * @param roles The roles
+     */
+    public final void addAttributes(final Map<String,String> attributes) {
+        if(attributes != null) {
+            this.attributes.putAll(attributes);
+        }
+    }
     
     public final String getRequestedTenant() {
         return requestedTenant;
@@ -142,6 +154,15 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
 
     public final void setRequestedTenant(String requestedTenant) {
         this.requestedTenant = requestedTenant;
+    }
+    
+    
+    public boolean isInjected() {
+        return isInjected;
+    }
+
+    public void setInjected(boolean isInjected) {
+        this.isInjected = isInjected;
     }
 
     public final String toStringWithAttributes() {

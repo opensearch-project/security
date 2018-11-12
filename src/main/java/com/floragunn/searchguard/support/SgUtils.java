@@ -17,10 +17,18 @@
 
 package com.floragunn.searchguard.support;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 public final class SgUtils {
+    
+    protected final static Logger log = LogManager.getLogger(SgUtils.class);
     
     private SgUtils() {
     }
@@ -50,5 +58,21 @@ public final class SgUtils {
 
         return null;
     }
-
+    
+    @SafeVarargs
+    public static <T> Map<T, T>  mapFromArray(T ... keyValues) {
+        if(keyValues == null) {
+            return Collections.emptyMap();
+        }
+        if (keyValues.length % 2 != 0) {
+            log.error("Expected even number of key/value pairs, got {}.", Arrays.toString(keyValues));
+            return null;
+        }
+        Map<T, T> map = new HashMap<>();
+        
+        for(int i = 0; i<keyValues.length; i+=2) {
+            map.put(keyValues[i], keyValues[i+1]);
+        }
+        return map;
+    }
 }

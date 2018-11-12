@@ -85,12 +85,13 @@ public class BackendRegistry implements ConfigurationChangeListener {
     private final InternalAuthenticationBackend iab;
     private final AuditLog auditLog;
     private final ThreadPool threadPool;
+    private final UserInjector userInjector;
     private final int ttlInMin;
     private Cache<AuthCredentials, User> userCache;
     private Cache<String, User> userCacheTransport;
     private Cache<AuthCredentials, User> authenticatedUserCacheTransport;
     private Cache<String, User> restImpersonationCache;
-
+    
     private void createCaches() {
         userCache = CacheBuilder.newBuilder()
                 .expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
@@ -138,7 +139,8 @@ public class BackendRegistry implements ConfigurationChangeListener {
         this.iab = iab;
         this.auditLog = auditLog;
         this.threadPool = threadPool;
-
+        this.userInjector = new UserInjector(settings, threadPool, auditLog, xffResolver);
+        
         authImplMap.put("intern_c", InternalAuthenticationBackend.class.getName());
         authImplMap.put("intern_z", NoOpAuthorizationBackend.class.getName());
 
@@ -160,6 +162,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
         authImplMap.put("saml_h", "com.floragunn.dlic.auth.http.saml.HTTPSamlAuthenticator");
 
         this.ttlInMin = settings.getAsInt(ConfigConstants.SEARCHGUARD_CACHE_TTL_MINUTES, 60);
+                
         createCaches();
     }
 
@@ -290,7 +293,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
     public User authenticate(final TransportRequest request, final String sslPrincipal, final Task task, final String action) {
 
         final User origPKIUser = new User(sslPrincipal);
-        if(adminDns.isAdmin(origPKIUser.getName())) {
+        if(adminDns.isAdmin(origPKIUser)) {
             auditLog.logSucceededLogin(origPKIUser.getName(), true, null, request, action, task);
             return origPKIUser;
         }
@@ -331,7 +334,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
                 continue;
             }
 
-            if(adminDns.isAdmin(authenticatedUser.getName())) {
+            if(adminDns.isAdmin(authenticatedUser)) {
                 log.error("Cannot authenticate user because admin user is not permitted to login");
                 auditLog.logFailedLogin(authenticatedUser.getName(), true, null, request, task);
                 return null;
@@ -371,13 +374,18 @@ public class BackendRegistry implements ConfigurationChangeListener {
 
         final String sslPrincipal = (String) threadPool.getThreadContext().getTransient(ConfigConstants.SG_SSL_PRINCIPAL);
 
-        if(adminDns.isAdmin(sslPrincipal)) {
+        if(adminDns.isAdminDN(sslPrincipal)) {
             //PKI authenticated REST call
             threadPool.getThreadContext().putTransient(ConfigConstants.SG_USER, new User(sslPrincipal));
             auditLog.logSucceededLogin(sslPrincipal, true, null, request);
             return true;
         }
 
+        if (userInjector.injectUser(request)) {
+            // ThreadContext injected user
+            return true;
+        }
+        
         if (!isInitialized()) {
             log.error("Not yet initialized (you may need to run sgadmin)");
             channel.sendResponse(new BytesRestResponse(RestStatus.SERVICE_UNAVAILABLE, "Search Guard not initialized (SG11). See http://docs.search-guard.com/v6/sgadmin"));
@@ -457,7 +465,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
                 continue;
             }
 
-            if(adminDns.isAdmin(authenticatedUser.getName())) {
+            if(adminDns.isAdmin(authenticatedUser)) {
                 log.error("Cannot authenticate user because admin user is not permitted to login via HTTP");
                 auditLog.logFailedLogin(authenticatedUser.getName(), true, null, request);
                 channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, "Cannot authenticate user because admin user is not permitted to login via HTTP"));
@@ -636,7 +644,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
 
         User aU = origPKIuser;
 
-        if (adminDns.isAdmin(impersonatedUser)) {
+        if (adminDns.isAdminDN(impersonatedUser)) {
             throw new ElasticsearchSecurityException("'"+origPKIuser.getName() + "' is not allowed to impersonate as an adminuser  '" + impersonatedUser+"'");
         }
 
@@ -669,7 +677,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
             throw new ElasticsearchSecurityException("Could not check for impersonation because Search Guard is not yet initialized");
         }
 
-        if (adminDns.isAdmin(impersonatedUserHeader)) {
+        if (adminDns.isAdminDN(impersonatedUserHeader)) {
             throw new ElasticsearchSecurityException("It is not allowed to impersonate as an adminuser  '" + impersonatedUserHeader + "'",
                     RestStatus.FORBIDDEN);
         }
@@ -693,7 +701,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
         }
 
     }
-
+        
     private <T> T newInstance(final String clazzOrShortcut, String type, final Settings settings, final Path configPath) {
 
         String clazz = clazzOrShortcut;

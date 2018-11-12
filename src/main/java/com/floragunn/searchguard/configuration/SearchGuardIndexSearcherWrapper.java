@@ -78,7 +78,7 @@ public class SearchGuardIndexSearcherWrapper extends IndexSearcherWrapper {
 
         final User user = (User) threadContext.getTransient(ConfigConstants.SG_USER);
 
-        if (user != null && adminDns.isAdmin(user.getName())) {
+        if (user != null && adminDns.isAdmin(user)) {
             return true;
         }
 

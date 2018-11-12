@@ -22,6 +22,18 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.elasticsearch.index.reindex.ReindexPlugin;
+import org.elasticsearch.join.ParentJoinPlugin;
+import org.elasticsearch.percolator.PercolatorPlugin;
+import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.script.mustache.MustachePlugin;
+import org.elasticsearch.search.aggregations.matrix.MatrixAggregationPlugin;
+import org.elasticsearch.transport.Netty4Plugin;
+
+import com.floragunn.searchguard.SearchGuardPlugin;
+import com.floragunn.searchguard.test.plugin.UserInjectorPlugin;
+import com.google.common.collect.Lists;
+
 public enum ClusterConfiguration {
 	//first one needs to be a master
     //HUGE(new NodeSettings(true, false, false), new NodeSettings(true, false, false), new NodeSettings(true, false, false), new NodeSettings(false, true,false), new NodeSettings(false, true, false)),
@@ -33,8 +45,11 @@ public enum ClusterConfiguration {
 	SINGLENODE(new NodeSettings(true, true, false)),
     
 	//4 node (1m, 2d, 1c)
-	CLIENTNODE(new NodeSettings(true, false, false), new NodeSettings(false, true, false), new NodeSettings(false, true, false), new NodeSettings(false, false, false));
-	
+	CLIENTNODE(new NodeSettings(true, false, false), new NodeSettings(false, true, false), new NodeSettings(false, true, false), new NodeSettings(false, false, false)),
+
+    //3 nodes (1m, 2d) plus additional UserInjectorPlugin
+    USERINJECTOR(new NodeSettings(true, false, false, Lists.newArrayList(UserInjectorPlugin.class)), new NodeSettings(false, true, false, Lists.newArrayList(UserInjectorPlugin.class)), new NodeSettings(false, true, false, Lists.newArrayList(UserInjectorPlugin.class)));
+
 	private List<NodeSettings> nodeSettings = new LinkedList<>();
 	
 	private ClusterConfiguration(NodeSettings ... settings) {
@@ -65,6 +80,7 @@ public enum ClusterConfiguration {
 		public boolean masterNode;
 		public boolean dataNode;
 		public boolean tribeNode;
+		public List<Class<? extends Plugin>> plugins = Lists.newArrayList(Netty4Plugin.class, SearchGuardPlugin.class, MatrixAggregationPlugin.class, MustachePlugin.class, ParentJoinPlugin.class, PercolatorPlugin.class, ReindexPlugin.class);
 		
 		public NodeSettings(boolean masterNode, boolean dataNode, boolean tribeNode) {
 			super();
@@ -72,6 +88,14 @@ public enum ClusterConfiguration {
 			this.dataNode = dataNode;
 			this.tribeNode = tribeNode;
 		}
+        
+		public NodeSettings(boolean masterNode, boolean dataNode, boolean tribeNode, List<Class<? extends Plugin>> additionalPlugins) {
+            this(masterNode, dataNode, tribeNode);
+            this.plugins.addAll(additionalPlugins);
+        }
 		
+		public Class<? extends Plugin>[] getPlugins() {
+		    return plugins.toArray(new Class[0] );
+		}
 	}
 }

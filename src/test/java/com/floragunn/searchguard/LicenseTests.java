@@ -95,7 +95,6 @@ public class LicenseTests extends SingleClusterTest {
     }
     
     @Test
-    @Ignore
     public void testComplianceLicense() throws Exception {
       
         final String now = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
