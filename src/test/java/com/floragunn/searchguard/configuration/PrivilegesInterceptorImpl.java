@@ -28,6 +28,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import com.floragunn.searchguard.privileges.PrivilegesInterceptor;
 import com.floragunn.searchguard.user.User;
 
 public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {

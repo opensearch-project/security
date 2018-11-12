@@ -15,9 +15,8 @@
  *
  */
 
-package com.floragunn.searchguard.configuration;
+package com.floragunn.searchguard.privileges;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -25,7 +24,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
@@ -34,7 +32,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.action.ActionRequest;
-import org.elasticsearch.action.RealtimeRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesAction;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
@@ -57,7 +54,6 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
@@ -71,13 +67,14 @@ import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import com.floragunn.searchguard.auditlog.AuditLog;
+import com.floragunn.searchguard.configuration.ActionGroupHolder;
+import com.floragunn.searchguard.configuration.ClusterInfoHolder;
+import com.floragunn.searchguard.configuration.ConfigurationRepository;
 import com.floragunn.searchguard.resolver.IndexResolverReplacer;
 import com.floragunn.searchguard.resolver.IndexResolverReplacer.Resolved;
 import com.floragunn.searchguard.sgconf.ConfigModel;
 import com.floragunn.searchguard.sgconf.ConfigModel.SgRoles;
-import com.floragunn.searchguard.support.Base64Helper;
 import com.floragunn.searchguard.support.ConfigConstants;
-import com.floragunn.searchguard.support.SnapshotRestoreHelper;
 import com.floragunn.searchguard.support.WildcardMatcher;
 import com.floragunn.searchguard.user.User;
 
@@ -87,36 +84,30 @@ public class PrivilegesEvaluator {
     protected final Logger log = LogManager.getLogger(this.getClass());
     protected final Logger actionTrace = LogManager.getLogger("sg_action_trace");
     private final ClusterService clusterService;
-    private final ActionGroupHolder ah;
+
     private final IndexNameExpressionResolver resolver;
-    private final String[] sgDeniedActionPatterns;
+    
     private final AuditLog auditLog;
     private ThreadContext threadContext;
     //private final static IndicesOptions DEFAULT_INDICES_OPTIONS = IndicesOptions.lenientExpandOpen();
     private final ConfigurationRepository configurationRepository;
 
-    private final String searchguardIndex;
     private PrivilegesInterceptor privilegesInterceptor;
 
-    private final boolean enableSnapshotRestorePrivilege;
     private final boolean checkSnapshotRestoreWritePrivileges;
+
     private ConfigConstants.RolesMappingResolution rolesMappingResolution;
 
     private final ClusterInfoHolder clusterInfoHolder;
     //private final boolean typeSecurityDisabled = false;
     private final ConfigModel configModel;
     private final IndexResolverReplacer irr;
+    private final SnapshotRestoreEvaluator snapshotRestoreEvaluator;
+    private final SearchGuardIndexAccessEvaluator sgIndexAccessEvaluator;
+    private final TermsAggregationEvaluator termsAggregationEvaluator;
     
-    private static final String[] READ_ACTIONS = new String[]{
-            "indices:data/read/msearch",
-            "indices:data/read/mget",
-            "indices:data/read/get",
-            "indices:data/read/search",
-            "indices:data/read/field_caps*"
-            //"indices:admin/mappings/fields/get*"
-            };
+    private final DlsFlsEvaluator dlsFlsEvaluator;
     
-    private static final QueryBuilder NONE_QUERY = new MatchNoneQueryBuilder();
 
     public PrivilegesEvaluator(final ClusterService clusterService, final ThreadPool threadPool, final ConfigurationRepository configurationRepository, final ActionGroupHolder ah,
             final IndexNameExpressionResolver resolver, AuditLog auditLog, final Settings settings, final PrivilegesInterceptor privilegesInterceptor,
@@ -125,17 +116,11 @@ public class PrivilegesEvaluator {
         super();
         this.configurationRepository = configurationRepository;
         this.clusterService = clusterService;
-        this.ah = ah;
         this.resolver = resolver;
         this.auditLog = auditLog;
 
         this.threadContext = threadPool.getThreadContext();
-        this.searchguardIndex = settings.get(ConfigConstants.SEARCHGUARD_CONFIG_INDEX_NAME, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
         this.privilegesInterceptor = privilegesInterceptor;
-        this.enableSnapshotRestorePrivilege = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE,
-                ConfigConstants.SG_DEFAULT_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE);
-        this.checkSnapshotRestoreWritePrivileges = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES,
-                ConfigConstants.SG_DEFAULT_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES);
 
         try {
             rolesMappingResolution = ConfigConstants.RolesMappingResolution.valueOf(settings.get(ConfigConstants.SEARCHGUARD_ROLES_MAPPING_RESOLUTION, ConfigConstants.RolesMappingResolution.MAPPING_ONLY.toString()).toUpperCase());
@@ -144,19 +129,17 @@ public class PrivilegesEvaluator {
             rolesMappingResolution =  ConfigConstants.RolesMappingResolution.MAPPING_ONLY;
         }
 
-        final List<String> sgIndexdeniedActionPatternsList = new ArrayList<String>();
-        sgIndexdeniedActionPatternsList.add("indices:data/write*");
-        sgIndexdeniedActionPatternsList.add("indices:admin/close");
-        sgIndexdeniedActionPatternsList.add("indices:admin/delete");
-        sgIndexdeniedActionPatternsList.add("cluster:admin/snapshot/restore");
-        //deniedActionPatternsList.add("indices:admin/settings/update");
-        //deniedActionPatternsList.add("indices:admin/upgrade");
-
-        sgDeniedActionPatterns = sgIndexdeniedActionPatternsList.toArray(new String[0]);
+        this.checkSnapshotRestoreWritePrivileges = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES,
+                ConfigConstants.SG_DEFAULT_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES);
+                
         this.clusterInfoHolder = clusterInfoHolder;
         //this.typeSecurityDisabled = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_DISABLE_TYPE_SECURITY, false);
         configModel = new ConfigModel(ah, configurationRepository);
         irr = new IndexResolverReplacer(resolver, clusterService, clusterInfoHolder);
+        snapshotRestoreEvaluator = new SnapshotRestoreEvaluator(settings, auditLog);
+        sgIndexAccessEvaluator = new SearchGuardIndexAccessEvaluator(settings, auditLog);
+        dlsFlsEvaluator = new DlsFlsEvaluator(settings, threadPool);
+        termsAggregationEvaluator = new TermsAggregationEvaluator();
     }
 
     private Settings getRolesSettings() {
@@ -182,41 +165,7 @@ public class PrivilegesEvaluator {
         return getRolesSettings() != null && getRolesMappingSettings() != null && getConfigSettings() != null;
     }
 
-    public static class PrivEvalResponse {
-        boolean allowed = false;
-        Set<String> missingPrivileges = new HashSet<String>();
-        Map<String,Set<String>> allowedFlsFields;
-        Map<String,Set<String>> maskedFields;
-        Map<String,Set<String>> queries;
-
-        public boolean isAllowed() {
-            return allowed;
-        }
-        public Set<String> getMissingPrivileges() {
-            return new HashSet<String>(missingPrivileges);
-        }
-
-        public Map<String,Set<String>> getAllowedFlsFields() {
-            return allowedFlsFields;
-        }
-        
-        public Map<String,Set<String>> getMaskedFields() {
-            return maskedFields;
-        }
-
-        public Map<String,Set<String>> getQueries() {
-            return queries;
-        }
-        @Override
-        public String toString() {
-            return "PrivEvalResponse [allowed=" + allowed + ", missingPrivileges=" + missingPrivileges
-                    + ", allowedFlsFields=" + allowedFlsFields + ", maskedFields=" + maskedFields + ", queries=" + queries + "]";
-        }
-        
-        
-    }
-
-    public PrivEvalResponse evaluate(final User user, String action0, final ActionRequest request, Task task) {
+    public PrivilegesEvaluatorResponse evaluate(final User user, String action0, final ActionRequest request, Task task) {
 
         if (!isInitialized()) {
             throw new ElasticsearchSecurityException("Search Guard is not initialized.");
@@ -229,7 +178,7 @@ public class PrivilegesEvaluator {
         final TransportAddress caller = Objects.requireNonNull((TransportAddress) this.threadContext.getTransient(ConfigConstants.SG_REMOTE_ADDRESS));
         final SgRoles sgRoles = getSgRoles(user, caller);
 
-        final PrivEvalResponse presponse = new PrivEvalResponse();
+        final PrivilegesEvaluatorResponse presponse = new PrivilegesEvaluatorResponse();
 
 
         if (log.isDebugEnabled()) {
@@ -243,163 +192,21 @@ public class PrivilegesEvaluator {
             log.debug("requestedResolved : {}", requestedResolved );
         }
 
-        //maskedFields
-        final Map<String, Set<String>> maskedFieldsMap = sgRoles.getMaskedFields(user, resolver, clusterService);
         
-        if(maskedFieldsMap != null && !maskedFieldsMap.isEmpty()) {
-            if(this.threadContext.getHeader(ConfigConstants.SG_MASKED_FIELD_HEADER) != null) {
-                if(!maskedFieldsMap.equals(Base64Helper.deserializeObject(this.threadContext.getHeader(ConfigConstants.SG_MASKED_FIELD_HEADER)))) {
-                    throw new ElasticsearchSecurityException(ConfigConstants.SG_MASKED_FIELD_HEADER+" does not match (SG 901D)");
-                } else {
-                    if(log.isDebugEnabled()) {
-                        log.debug(ConfigConstants.SG_MASKED_FIELD_HEADER+" already set");
-                    }
-                }
-            } else {
-                this.threadContext.putHeader(ConfigConstants.SG_MASKED_FIELD_HEADER, Base64Helper.serializeObject((Serializable) maskedFieldsMap));
-                if(log.isDebugEnabled()) {
-                    log.debug("attach masked fields info: {}", maskedFieldsMap);
-                }
-            }
+        // check snapshot/restore requests 
+        if (dlsFlsEvaluator.evaluate(clusterService, resolver, requestedResolved, user, sgRoles, presponse).isComplete()) {
+            return presponse;
         }
         
-        presponse.maskedFields = new HashMap<>(maskedFieldsMap);
-
-        //attach dls/fls map if not already done
-        //TODO do this only if enterprise module are loaded
-        final Tuple<Map<String, Set<String>>, Map<String, Set<String>>> dlsFls = sgRoles.getDlsFls(user, resolver, clusterService);
-        final Map<String,Set<String>> dlsQueries = dlsFls.v1();
-        final Map<String,Set<String>> flsFields = dlsFls.v2();
-
-        if(!dlsQueries.isEmpty()) {
-
-            if(this.threadContext.getHeader(ConfigConstants.SG_DLS_QUERY_HEADER) != null) {
-                if(!dlsQueries.equals(Base64Helper.deserializeObject(this.threadContext.getHeader(ConfigConstants.SG_DLS_QUERY_HEADER)))) {
-                    throw new ElasticsearchSecurityException(ConfigConstants.SG_DLS_QUERY_HEADER+" does not match (SG 900D)");
-                }
-            } else {
-                this.threadContext.putHeader(ConfigConstants.SG_DLS_QUERY_HEADER, Base64Helper.serializeObject((Serializable) dlsQueries));
-                if(log.isDebugEnabled()) {
-                    log.debug("attach DLS info: {}", dlsQueries);
-                }
-            }
-
-            presponse.queries = new HashMap<>(dlsQueries);
-
-            if (!requestedResolved.getAllIndices().isEmpty()) {
-                for (Iterator<Entry<String, Set<String>>> it = presponse.queries.entrySet().iterator(); it.hasNext();) {
-                    Entry<String, Set<String>> entry = it.next();
-                    if (!WildcardMatcher.matchAny(entry.getKey(), requestedResolved.getAllIndices(), false)) {
-                        it.remove();
-                    }
-                }
-            }
-
-        }
-
-        if(!flsFields.isEmpty()) {
-
-            if(this.threadContext.getHeader(ConfigConstants.SG_FLS_FIELDS_HEADER) != null) {
-                if(!flsFields.equals(Base64Helper.deserializeObject(this.threadContext.getHeader(ConfigConstants.SG_FLS_FIELDS_HEADER)))) {
-                    throw new ElasticsearchSecurityException(ConfigConstants.SG_FLS_FIELDS_HEADER+" does not match (SG 901D)");
-                } else {
-                    if(log.isDebugEnabled()) {
-                        log.debug(ConfigConstants.SG_FLS_FIELDS_HEADER+" already set");
-                    }
-                }
-            } else {
-                this.threadContext.putHeader(ConfigConstants.SG_FLS_FIELDS_HEADER, Base64Helper.serializeObject((Serializable) flsFields));
-                if(log.isDebugEnabled()) {
-                    log.debug("attach FLS info: {}", flsFields);
-                }
-            }
-
-            presponse.allowedFlsFields = new HashMap<>(flsFields);
-
-            if (!requestedResolved.getAllIndices().isEmpty()) {
-                for (Iterator<Entry<String, Set<String>>> it = presponse.allowedFlsFields.entrySet().iterator(); it.hasNext();) {
-                    Entry<String, Set<String>> entry = it.next();
-                    if (!WildcardMatcher.matchAny(entry.getKey(), requestedResolved.getAllIndices(), false)) {
-                        it.remove();
-                    }
-                }
-            }
-        }
-
-        if(requestedResolved == Resolved._EMPTY) {
-            presponse.allowed = true;
+        // check snapshot/restore requests 
+        if (snapshotRestoreEvaluator.evaluate(request, task, action0, clusterInfoHolder, presponse).isComplete()) {
             return presponse;
         }
 
-        if(request instanceof RestoreSnapshotRequest) {
-            
-            if (enableSnapshotRestorePrivilege) {
-                
-                if(clusterInfoHolder.isLocalNodeElectedMaster() == Boolean.FALSE) {
-                    presponse.allowed = true;
-                    return presponse;
-                }
-                
-                final RestoreSnapshotRequest restoreRequest = (RestoreSnapshotRequest) request;
-
-                // Do not allow restore of global state
-                if (restoreRequest.includeGlobalState()) {
-                    auditLog.logSgIndexAttempt(request, action0, task);
-                    log.warn(action0 + " with 'include_global_state' enabled is not allowed");
-                    presponse.allowed = false;
-                    return presponse;
-                }
-
-                final List<String> rs = SnapshotRestoreHelper.resolveOriginalIndices(restoreRequest);
-
-                if (rs != null && (rs.contains(searchguardIndex) || rs.contains("_all") || rs.contains("*"))) {
-                    auditLog.logSgIndexAttempt(request, action0, task);
-                    log.warn(action0 + " for '{}' as source index is not allowed", searchguardIndex);
-                    presponse.allowed = false;
-                    return presponse;
-                }
-
-            } else {
-                log.warn(action0 + " is not allowed for a regular user");
-                presponse.allowed = false;
-                return presponse;
-            }
-        }
-
-        if (requestedResolved.getAllIndices().contains(searchguardIndex)
-                && WildcardMatcher.matchAny(sgDeniedActionPatterns, action0)) {
-            auditLog.logSgIndexAttempt(request, action0, task);
-            log.warn(action0 + " for '{}' index is not allowed for a regular user", searchguardIndex);
-            presponse.allowed = false;
+        // SG index access
+        if (sgIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved, presponse).isComplete()) {
             return presponse;
-        }
-
-        //TODO: newpeval: check if isAll() is all (contains("_all" or "*"))
-        if (requestedResolved.isAll()
-                && WildcardMatcher.matchAny(sgDeniedActionPatterns, action0)) {
-            auditLog.logSgIndexAttempt(request, action0, task);
-            log.warn(action0 + " for '_all' indices is not allowed for a regular user");
-            presponse.allowed = false;
-            return presponse;
-        }
-
-      //TODO: newpeval: check if isAll() is all (contains("_all" or "*"))
-        if(requestedResolved.getAllIndices().contains(searchguardIndex) || requestedResolved.isAll()) {
-
-            if(request instanceof SearchRequest) {
-                ((SearchRequest)request).requestCache(Boolean.FALSE);
-                if(log.isDebugEnabled()) {
-                    log.debug("Disable search request cache for this request");
-                }
-            }
-
-            if(request instanceof RealtimeRequest) {
-                ((RealtimeRequest) request).realtime(Boolean.FALSE);
-                if(log.isDebugEnabled()) {
-                    log.debug("Disable realtime for this request");
-                }
-            }
-        }
+        }        
 
         final boolean dnfofEnabled =
                 getConfigSettings().getAsBoolean("searchguard.dynamic.kibana.do_not_fail_on_forbidden", false)
@@ -476,41 +283,10 @@ public class PrivilegesEvaluator {
             }
         }
 
-        try {
-            if(request instanceof SearchRequest) {
-                SearchRequest sr = (SearchRequest) request;
-
-                if(     sr.source() != null
-                        && sr.source().query() == null
-                        && sr.source().aggregations() != null
-                        && sr.source().aggregations().getAggregatorFactories() != null
-                        && sr.source().aggregations().getAggregatorFactories().size() == 1
-                        && sr.source().size() == 0) {
-                   AggregationBuilder ab = sr.source().aggregations().getAggregatorFactories().get(0);
-                   if(     ab instanceof TermsAggregationBuilder
-                           && "terms".equals(ab.getType())
-                           && "indices".equals(ab.getName())) {
-                       if("_index".equals(((TermsAggregationBuilder) ab).field())
-                               && ab.getPipelineAggregations().isEmpty()
-                               && ab.getSubAggregations().isEmpty()) {
-
-                           
-                           final Set<String> allPermittedIndices = getSgRoles(user, caller).getAllPermittedIndices(user, READ_ACTIONS, resolver, clusterService);
-                           if(allPermittedIndices == null || allPermittedIndices.isEmpty()) {
-                               sr.source().query(NONE_QUERY);
-                           } else {
-                               sr.source().query(new TermsQueryBuilder("_index", allPermittedIndices));
-                           }                 
-                           
-                           presponse.allowed = true;
-                           return presponse;
-                       }
-                   }
-                }
-            }
-        } catch (Exception e) {
-            log.warn("Unable to evaluate terms aggregation",e);
-        }
+        // term aggregations
+        if (termsAggregationEvaluator.evaluate(request, clusterService, user, sgRoles, resolver, presponse) .isComplete()) {
+            return presponse;
+        }        
 
         final Set<String> allIndexPermsRequired = evaluateAdditionalIndexPermissions(request, action0);
         final String[] allIndexPermsRequiredA = allIndexPermsRequired.toArray(new String[0]);
