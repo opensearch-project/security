@@ -634,6 +634,12 @@ public class IntegrationTests extends SingleClusterTest {
 
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (resc=rh.executeGetRequest("notexists/_search?pretty", encodeBasicHeader("user_a", "user_a"))).getStatusCode());
         System.out.println(resc.getBody());
+        
+        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, (resc=rh.executeGetRequest("permitnotexistentindex/_search?pretty", encodeBasicHeader("user_a", "user_a"))).getStatusCode());
+        System.out.println(resc.getBody());
+        
+        Assert.assertEquals(HttpStatus.SC_OK, (resc=rh.executeGetRequest("permitnotexistentindex*/_search?pretty", encodeBasicHeader("user_a", "user_a"))).getStatusCode());
+        System.out.println(resc.getBody());
 
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, (resc=rh.executeGetRequest("indexanbh,indexabb*/_search?pretty", encodeBasicHeader("user_a", "user_a"))).getStatusCode());
         System.out.println(resc.getBody());

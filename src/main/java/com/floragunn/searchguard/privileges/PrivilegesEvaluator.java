@@ -258,6 +258,13 @@ public class PrivilegesEvaluator {
                             && !requestedResolved.getAllIndices().isEmpty()
                             ) {
                         
+                        if(requestedResolved.getAllIndices().isEmpty()) {
+                            presponse.missingPrivileges.clear();
+                            presponse.allowed = true;
+                            return presponse;
+                        }
+
+                        
                         Set<String> reduced = sgRoles.reduce(requestedResolved, user, new String[]{action0}, resolver, clusterService);
 
                         if(reduced.isEmpty()) {
@@ -331,6 +338,14 @@ public class PrivilegesEvaluator {
         if (dnfofEnabled
                 && (action0.startsWith("indices:data/read/")
                 || action0.startsWith("indices:admin/mappings/fields/get"))) {
+            
+            if(requestedResolved.getAllIndices().isEmpty()) {
+                presponse.missingPrivileges.clear();
+                presponse.allowed = true;
+                return presponse;
+            }
+            
+            
             Set<String> reduced = sgRoles.reduce(requestedResolved, user, allIndexPermsRequiredA, resolver, clusterService);
 
             if(reduced.isEmpty()) {
