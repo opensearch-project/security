@@ -338,6 +338,23 @@
             </exclusion>
           </exclusions>
           </dependency>
+          <dependency>	
+            <groupId>org.elasticsearch.plugin</groupId>	
+              <artifactId>lang-mustache-client</artifactId>	
+              <version>${elasticsearch.version}</version>	
+            </dependency>	
+      	
+            <dependency>	
+              <groupId>org.elasticsearch.plugin</groupId>	
+              <artifactId>parent-join-client</artifactId>	
+              <version>${elasticsearch.version}</version>	
+            </dependency>	
+        	
+            <dependency>	
+              <groupId>org.elasticsearch.plugin</groupId>	
+              <artifactId>aggs-matrix-stats-client</artifactId>	
+              <version>${elasticsearch.version}</version>	
+            </dependency>
       </dependencies>
     </profile>
     <profile>

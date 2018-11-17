@@ -831,7 +831,8 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
     @Override
     public List<Setting<?>> getSettings() {
         List<Setting<?>> settings = new ArrayList<Setting<?>>();
-
+        settings.addAll(super.getSettings());
+        
         settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_SSL_ONLY, false, Property.NodeScope, Property.Filtered));
 
         if(!sslOnly) {
@@ -952,13 +953,13 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
             //compat
             settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_UNSUPPORTED_DISABLE_INTERTRANSPORT_AUTH_INITIALLY, false, Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_UNSUPPORTED_DISABLE_REST_AUTH_INITIALLY, false, Property.NodeScope, Property.Filtered));
+
+            // system integration
+            settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_UNSUPPORTED_RESTORE_SGINDEX_ENABLED, false, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_UNSUPPORTED_INJECT_USER_ENABLED, false, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_UNSUPPORTED_INJECT_ADMIN_USER_ENABLED, false, Property.NodeScope, Property.Filtered));
         }
         
-        // system integration
-        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_UNSUPPORTED_RESTORE_SGINDEX_ENABLED, false, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_UNSUPPORTED_INJECT_USER_ENABLED, false, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_UNSUPPORTED_INJECT_ADMIN_USER_ENABLED, false, Property.NodeScope, Property.Filtered));
-
         return settings;
     }
 
