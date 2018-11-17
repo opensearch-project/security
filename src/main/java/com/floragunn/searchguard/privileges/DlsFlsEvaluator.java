@@ -74,9 +74,20 @@ public class DlsFlsEvaluator {
                     log.debug("attach masked fields info: {}", maskedFieldsMap);
                 }
             }
+        
+            presponse.maskedFields = new HashMap<>(maskedFieldsMap);
+            
+            if (!requestedResolved.getAllIndices().isEmpty()) {
+                for (Iterator<Entry<String, Set<String>>> it = presponse.maskedFields.entrySet().iterator(); it.hasNext();) {
+                    Entry<String, Set<String>> entry = it.next();
+                    if (!WildcardMatcher.matchAny(entry.getKey(), requestedResolved.getAllIndices(), false)) {
+                        it.remove();
+                    }
+                }
+            }     
         }
 
-        presponse.maskedFields = new HashMap<>(maskedFieldsMap);
+        
 
         // attach dls/fls map if not already done
         // TODO do this only if enterprise module are loaded
