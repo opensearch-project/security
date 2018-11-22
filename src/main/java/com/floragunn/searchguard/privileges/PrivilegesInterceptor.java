@@ -18,7 +18,6 @@
 package com.floragunn.searchguard.privileges;
 
 import java.util.Map;
-import java.util.Set;
 
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.client.Client;
@@ -28,6 +27,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import com.floragunn.searchguard.resolver.IndexResolverReplacer.Resolved;
 import com.floragunn.searchguard.user.User;
 
 public class PrivilegesInterceptor {
@@ -45,17 +45,11 @@ public class PrivilegesInterceptor {
         this.threadPool = threadPool;
     }
 
-    public Boolean replaceKibanaIndex(final ActionRequest request, final String action, final User user, final Settings config, final Set<String> requestedResolvedIndices, final Map<String, Boolean> tenants) { 
+    public Boolean replaceKibanaIndex(final ActionRequest request, final String action, final User user, final Settings config, final Resolved requestedResolved, final Map<String, Boolean> tenants) { 
         throw new RuntimeException("not implemented");
-        //return false;
     }
     
-    /*public boolean replaceAllowedIndices(final ActionRequest request, final String action, final User user, final Settings config, final Map<String, Set<PrivilegesEvaluator.IndexType>> leftOvers) {
-        throw new RuntimeException("not implemented");
-        //return false;   
-    }*/
-    
-    protected ThreadContext getThreadContext() {
+    protected final ThreadContext getThreadContext() {
         return threadPool.getThreadContext();
     }
 }

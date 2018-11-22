@@ -62,7 +62,7 @@ public class TermsAggregationEvaluator {
                         && sr.source().aggregations().getAggregatorFactories() != null
                         && sr.source().aggregations().getAggregatorFactories().size() == 1
                         && sr.source().size() == 0) {
-                   AggregationBuilder ab = sr.source().aggregations().getAggregatorFactories().get(0);
+                   AggregationBuilder ab = sr.source().aggregations().getAggregatorFactories().iterator().next();
                    if(     ab instanceof TermsAggregationBuilder
                            && "terms".equals(ab.getType())
                            && "indices".equals(ab.getName())) {

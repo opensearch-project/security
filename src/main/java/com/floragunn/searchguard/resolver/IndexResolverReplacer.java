@@ -82,6 +82,7 @@ import org.elasticsearch.index.reindex.ReindexRequest;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotUtils;
 import org.elasticsearch.transport.RemoteClusterAware;
+import org.elasticsearch.transport.RemoteClusterService;
 import org.elasticsearch.transport.TransportRequest;
 
 import com.floragunn.searchguard.SearchGuardPlugin;
@@ -432,29 +433,38 @@ public final class IndexResolverReplacer {
 
         Boolean modified = Boolean.FALSE;
         String[] localIndices = request.indices();
+        
+        final RemoteClusterService remoteClusterService = SearchGuardPlugin.GuiceHolder.getRemoteClusterService();
 
         // handle CCS
         // TODO how to handle aliases with CCS??
-        if (request instanceof FieldCapabilitiesRequest || request instanceof SearchRequest) {
+        if (remoteClusterService.isCrossClusterSearchEnabled() && (request instanceof FieldCapabilitiesRequest || request instanceof SearchRequest)) {
             IndicesRequest.Replaceable searchRequest = request;
             final Map<String, OriginalIndices> remoteClusterIndices = SearchGuardPlugin.GuiceHolder.getRemoteClusterService().groupIndices(
                     searchRequest.indicesOptions(), searchRequest.indices(), idx -> resolver.hasIndexOrAlias(idx, clusterService.state()));
 
-            if (remoteClusterIndices.size() > 1) {
-                // check permissions?
-                if (log.isDebugEnabled()) {
-                    log.debug("CCS case, original indices: " + Arrays.toString(localIndices));
-                }
+            assert remoteClusterIndices.size() > 0:"Remote cluster size must not be zero";
+            
+            // check permissions?
+            if (log.isDebugEnabled()) {
+                log.debug("CCS case, original indices: " + Arrays.toString(localIndices));
+                log.debug("remoteClusterIndices ({}): {}", remoteClusterIndices.size(), remoteClusterIndices);
+            }
 
-                final OriginalIndices originalLocalIndices = remoteClusterIndices.get(RemoteClusterAware.LOCAL_CLUSTER_GROUP_KEY);
-                localIndices = originalLocalIndices.indices();
-                modified = Boolean.TRUE;
+            final OriginalIndices originalLocalIndices = remoteClusterIndices.get(RemoteClusterAware.LOCAL_CLUSTER_GROUP_KEY);
+            
+            if(originalLocalIndices == null) {
+            	localIndices = null;
+            } else {
+            	localIndices = originalLocalIndices.indices();
+            }
 
-                if (log.isDebugEnabled()) {
-                    log.debug("remoteClusterIndices keys" + remoteClusterIndices.keySet() + "//remoteClusterIndices "
-                            + remoteClusterIndices);
-                    log.debug("modified local indices: " + Arrays.toString(localIndices));
-                }
+            modified = Boolean.TRUE;
+
+            if (log.isDebugEnabled()) {
+                log.debug("remoteClusterIndices keys" + remoteClusterIndices.keySet() + "//remoteClusterIndices "
+                        + remoteClusterIndices);
+                log.debug("modified local indices: " + Arrays.toString(localIndices));
             }
         }
 
