@@ -177,4 +177,7 @@ itt1635:
     - sg_esb_1
     - sg_esb_3
     - sg_esb_5
-   
+#password is: kibanaserver  
+kibanaserver:
+  readonly: true
+  hash: $2a$12$4AcgAt3xwOWadA5s5blL6ev39OXDNhmOesEoo33eZtrq2N0YrU3H.

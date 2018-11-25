@@ -159,3 +159,8 @@ sg_ccsresolv:
 sg_underscore:
   users:
     - underscore
+    
+sg_kibana_server:
+  readonly: true
+  users:
+    - kibanaserver

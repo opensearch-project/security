@@ -596,5 +596,62 @@ public class HttpIntegrationTests extends SingleClusterTest {
         res = rh.executeGetRequest("/esb-prod-all/_search?pretty", encodeBasicHeader("itt1635", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
     }
+    
+    @Test
+    public void testTenantInfo() throws Exception {
+        final Settings settings = Settings.builder()
+                .build();
+        setup(Settings.EMPTY, new DynamicSgConfig(), settings);
+        
+        /*
+         
+            [admin_1, praxisrw, abcdef_2_2, kltentro, praxisro, kltentrw]
+			admin_1==.kibana_-1139640511_admin1
+			praxisrw==.kibana_-1386441176_praxisrw
+			abcdef_2_2==.kibana_-634608247_abcdef22
+			kltentro==.kibana_-2014056171_kltentro
+			praxisro==.kibana_-1386441184_praxisro
+			kltentrw==.kibana_-2014056163_kltentrw
+         
+         */
+        
+        try (TransportClient tc = getInternalTransportClient(this.clusterInfo, Settings.EMPTY)) {
+                        
+            tc.index(new IndexRequest(".kibana-6").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":2}", XContentType.JSON)).actionGet();            
+            tc.index(new IndexRequest(".kibana_-1139640511_admin1").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":3}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest(".kibana_-1386441176_praxisrw").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":3}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest(".kibana_-634608247_abcdef22").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":3}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest(".kibana_-12345_123456").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":3}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest(".kibana2_-12345_123456").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":3}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest(".kibana_9876_xxx_ccc").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":3}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest(".kibana_fff_eee").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":3}", XContentType.JSON)).actionGet();
+
+            
+            tc.index(new IndexRequest("esb-prod-5").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":5}", XContentType.JSON)).actionGet();
+
+            tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices(".kibana-6").alias(".kibana"))).actionGet();
+            tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("esb-prod-5").alias(".kibana_-2014056163_kltentrw"))).actionGet();
+            tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("esb-prod-5").alias("esb-alias-5"))).actionGet();
+
+        }
+        
+        final RestHelper rh = nonSslRestHelper();
+
+        HttpResponse res = rh.executeGetRequest("/_searchguard/tenantinfo?pretty", encodeBasicHeader("itt1635", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());  
+
+        res = rh.executeGetRequest("/_searchguard/tenantinfo?pretty", encodeBasicHeader("kibanaserver", "kibanaserver"));
+        System.out.println(res.getBody());
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        Assert.assertTrue(res.getBody().contains("\".kibana_-1139640511_admin1\" : \"admin_1\""));
+        Assert.assertTrue(res.getBody().contains("\".kibana_-1386441176_praxisrw\" : \"praxisrw\""));
+        Assert.assertTrue(res.getBody().contains(".kibana_-2014056163_kltentrw\" : \"kltentrw\""));
+        Assert.assertTrue(res.getBody().contains("\".kibana_-634608247_abcdef22\" : \"abcdef_2_2\""));
+        Assert.assertTrue(res.getBody().contains("\".kibana_-12345_123456\" : \"__private__\""));
+        Assert.assertFalse(res.getBody().contains(".kibana-6"));
+        Assert.assertFalse(res.getBody().contains("esb-"));
+        Assert.assertFalse(res.getBody().contains("xxx"));
+        Assert.assertFalse(res.getBody().contains(".kibana2"));
+    }
 
 }

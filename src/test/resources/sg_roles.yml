@@ -33,6 +33,9 @@ sg_zdummy_all:
     '*':
       '*':  
         - ALL
+  tenants:
+    admin_1: Rw
+    abcdef_2_2: RO
 
 sg_role_klingons1:
   indices:
@@ -480,3 +483,34 @@ sg_557:
     '/\S*/':
       '*':
         - READ
+        
+sg_kibana_server:
+  readonly: true
+  cluster:
+      - CLUSTER_MONITOR
+      - CLUSTER_COMPOSITE_OPS
+      - cluster:admin/xpack/monitoring*
+      - indices:admin/template*
+      - indices:data/read/scroll*
+  indices:
+    '?kibana':
+      '*':
+        - INDICES_ALL
+    '?kibana-6':
+      '*':
+        - INDICES_ALL
+    '?kibana_*':
+      '*':
+        - INDICES_ALL
+    '?reporting*':
+      '*':
+        - INDICES_ALL
+    '?monitoring*':
+      '*':
+        - INDICES_ALL
+    '?tasks':
+      '*':
+        - INDICES_ALL
+    '*':
+      '*':
+        - "indices:admin/aliases*"
