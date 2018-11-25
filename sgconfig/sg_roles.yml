@@ -99,10 +99,18 @@ sg_kibana_user:
         - INDEX
         - READ
         - DELETE
+    '?tasks':
+      '*':
+        - INDICES_ALL
+    '?management-beats'
+      '*':
+        - INDICES_ALL        
     '*':
       '*':
         - indices:data/read/field_caps*
         - indices:data/read/xpack/rollup*
+        - indices:admin/mappings/get*
+        - indices:admin/get
 
 # For the kibana server
 sg_kibana_server:
@@ -130,6 +138,9 @@ sg_kibana_server:
       '*':
         - INDICES_ALL
     '?tasks':
+      '*':
+        - INDICES_ALL
+    '?management-beats*'
       '*':
         - INDICES_ALL
     '*':
