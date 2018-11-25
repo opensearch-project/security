@@ -102,7 +102,7 @@ sg_kibana_user:
     '?tasks':
       '*':
         - INDICES_ALL
-    '?management-beats'
+    '?management-beats':
       '*':
         - INDICES_ALL        
     '*':
@@ -140,7 +140,7 @@ sg_kibana_server:
     '?tasks':
       '*':
         - INDICES_ALL
-    '?management-beats*'
+    '?management-beats*':
       '*':
         - INDICES_ALL
     '*':
