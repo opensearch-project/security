@@ -939,6 +939,10 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
             settings.add(Setting.groupSetting(ConfigConstants.SEARCHGUARD_RESTAPI_ENDPOINTS_DISABLED + ".", Property.NodeScope));
             settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_UNSUPPORTED_RESTAPI_ACCEPT_INVALID_LICENSE, false, Property.NodeScope, Property.Filtered));
     
+            settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_RESTAPI_PASSWORD_VALIDATION_REGEX, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE, Property.NodeScope, Property.Filtered));
+
+            
             // Compliance
             settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
             settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
