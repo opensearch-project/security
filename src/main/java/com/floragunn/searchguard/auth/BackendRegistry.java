@@ -31,6 +31,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
+import javax.naming.ldap.Rdn;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -91,6 +92,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
     private Cache<String, User> userCacheTransport;
     private Cache<AuthCredentials, User> authenticatedUserCacheTransport;
     private Cache<String, User> restImpersonationCache;
+    private volatile String transportUsernameAttribute = null; 
     
     private void createCaches() {
         userCache = CacheBuilder.newBuilder()
@@ -187,6 +189,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
         transportAuthorizers.clear();
         invalidateCache();
         destroyDestroyables();
+        transportUsernameAttribute = settings.get("searchguard.dynamic.transport_userrname_attribute", null);
         anonymousAuthEnabled = settings.getAsBoolean("searchguard.dynamic.http.anonymous_auth_enabled", false)
                 && !esSettings.getAsBoolean(ConfigConstants.SEARCHGUARD_COMPLIANCE_DISABLE_ANONYMOUS_AUTHENTICATION, false);
 
@@ -291,8 +294,9 @@ public class BackendRegistry implements ConfigurationChangeListener {
     }
 
     public User authenticate(final TransportRequest request, final String sslPrincipal, final Task task, final String action) {
-
-        final User origPKIUser = new User(sslPrincipal);
+        
+        User origPKIUser = new User(sslPrincipal);
+        
         if(adminDns.isAdmin(origPKIUser)) {
             auditLog.logSucceededLogin(origPKIUser.getName(), true, null, request, action, task);
             return origPKIUser;
@@ -320,6 +324,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
                 //no credentials submitted
                 //impersonation possible
                 impersonatedTransportUser = impersonate(request, origPKIUser);
+                origPKIUser = resolveTransportUsernameAttribute(origPKIUser);
                 authenticatedUser = checkExistsAndAuthz(userCacheTransport, impersonatedTransportUser==null?origPKIUser:impersonatedTransportUser, authDomain.getBackend(), transportAuthorizers);
             } else {
                  //auth credentials submitted
@@ -736,5 +741,23 @@ public class BackendRegistry implements ConfigurationChangeListener {
     	}
     	
     	this.destroyableComponents.clear();
+    }
+    
+    private User resolveTransportUsernameAttribute(User pkiUser) {
+    	//#547
+        if(transportUsernameAttribute != null && !transportUsernameAttribute.isEmpty()) {
+	    	try {
+				final LdapName sslPrincipalAsLdapName = new LdapName(pkiUser.getName());
+				for(final Rdn rdn: sslPrincipalAsLdapName.getRdns()) {
+					if(rdn.getType().equals(transportUsernameAttribute)) {
+						return new User((String) rdn.getValue());
+					}
+				}
+			} catch (InvalidNameException e) {
+				//cannot happen
+			}
+        }
+        
+        return pkiUser;
     }
 }

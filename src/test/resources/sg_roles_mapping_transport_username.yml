@@ -1,0 +1,166 @@
+sg_role_starfleet:
+  backendroles:
+    - starfleet
+    - captains
+    - defectors
+  hosts:
+    - "*.starfleetintranet.com"
+  users:
+    - nagilum
+
+sg_role_starfleet_captains:
+  backendroles:
+    - captains
+
+sg_role_starfleet_library:
+  backendroles:
+    - 'starfleet*'
+    - ambassador
+
+sg_role_vulcans:
+  backendroles:
+    - vulcangov
+  users:
+    - kirk
+
+sg_role_vulcans_admin:
+  backendroles:
+    - vulcanadmin
+    
+sg_role_klingons1:
+  backendroles:
+    - klingon
+
+sg_role_klingons2:
+  backendroles:
+    - klingon
+
+
+sg_all_access:
+  users:
+    - nagilum
+    
+sg_public:
+  users:
+    - '*'
+sg_flsdls:
+  users:
+    - sarek
+
+sg_kibana4:
+  users:
+    - bug108
+    
+sg_zdummy_all:
+  users:
+    - bug108
+
+sg_unittest_1:
+  users:
+    - 'client'
+    
+sg_role_host1:
+  hosts:
+    - 127.0.0.1
+    - localhost
+    
+sg_role_host2:
+  users:
+    - sg_host_127.0.0.1
+    - sg_host_localhost
+
+sg_theindex_admin:
+  users:
+    - theindexadmin
+    
+sg_user1:
+  users:
+    - worf
+     
+sg_user2:
+  users:
+    - picard
+    
+sg_multiget:
+  users:
+    - picard
+    
+sg_shakespeare:
+  users:
+    - picard
+
+sg_own_index:
+  users:
+    - spock
+    - kirk
+
+sg_writer:
+  users:
+    - writer
+
+sg_dlsnoinvest:
+  users:
+    - dlsnoinvest
+
+sg_baz:
+  users:
+    - baz
+
+sg_role01_role02:
+  and_backendroles:
+    - role01
+    - role02
+
+sg_restore:
+  users:
+    - restoreuser
+    
+sg_snapres:
+  users:
+    - snapresuser
+    
+sg_logstash:
+  users:
+    - logstash
+
+sg_twitter:
+  users:
+    - twitter
+    
+sg_attr:
+  users:
+    - custattr
+    
+sg_rexclude:
+  users:
+    - rexclude
+    
+sg_aliastest:
+  users:
+    - aliastest
+    - dummy
+    
+sg_mindex1:
+  users:
+    - mindex12
+
+sg_mindex2:
+  users:
+    - mindex12
+    
+sg_mindex3:
+  users:
+    - mindex12
+    
+sg_ccsresolv:
+  users:
+    - ccsresolv
+
+sg_underscore:
+  users:
+    - underscore
+    
+sg_kibana_server:
+  readonly: true
+  users:
+    - kibanaserver
