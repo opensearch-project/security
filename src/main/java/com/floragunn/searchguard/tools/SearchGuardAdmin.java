@@ -124,13 +124,15 @@ public class SearchGuardAdmin {
         } catch (NoNodeAvailableException e) {
             System.out.println("ERR: Cannot connect to Elasticsearch. Please refer to elasticsearch logfile for more information");
             System.out.println("Trace:");
-            e.printStackTrace();
+            System.out.println(ExceptionsHelper.stackTrace(e));
+            System.out.println();
             System.exit(-1);
         } 
         catch (IndexNotFoundException e) {
             System.out.println("ERR: No Search Guard configuartion index found. Please execute sgadmin with different command line parameters");
             System.out.println("When you run it for the first time do not specify -us, -era, -dra or -rl");
             System.out.println("For more information please look here: http://docs.search-guard.com/v6/troubleshooting-sgadmin");
+            System.out.println();
             System.exit(-1);
         }
         catch (Exception e) {
@@ -141,12 +143,14 @@ public class SearchGuardAdmin {
 
                 System.out.println("ERR: You try to connect with a TLS node certificate instead of an admin client certificate");                
                 System.out.println("For more information please look here: http://docs.search-guard.com/v6/troubleshooting-sgadmin");
+                System.out.println();
                 System.exit(-1);
             }
             
             System.out.println("ERR: An unexpected "+e.getClass().getSimpleName()+" occured: "+e.getMessage());
             System.out.println("Trace:");
-            e.printStackTrace();
+            System.out.println(ExceptionsHelper.stackTrace(e));
+            System.out.println();
             System.exit(-1);
         }
     }
