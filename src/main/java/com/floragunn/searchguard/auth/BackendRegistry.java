@@ -480,16 +480,16 @@ public class BackendRegistry implements ConfigurationChangeListener {
             }
 
             authenticatedUser.setRequestedTenant(tenant);
-            final User impersonatedUser = impersonate(request, authenticatedUser, authDomain.getBackend());
-            threadContext.putTransient(ConfigConstants.SG_USER, impersonatedUser==null?authenticatedUser:impersonatedUser);
-
-            auditLog.logSucceededLogin((impersonatedUser==null?authenticatedUser:impersonatedUser).getName(), false, authenticatedUser.getName(), request);
             authenticated = true;
             break;
         }//end looping auth domains
 
 
-        if(!authenticated) {
+        if(authenticated) {
+            final User impersonatedUser = impersonate(request, authenticatedUser);
+            threadContext.putTransient(ConfigConstants.SG_USER, impersonatedUser==null?authenticatedUser:impersonatedUser);
+            auditLog.logSucceededLogin((impersonatedUser==null?authenticatedUser:impersonatedUser).getName(), false, authenticatedUser.getName(), request);
+        } else {
             if(log.isDebugEnabled()) {
                 log.debug("User still not authenticated after checking {} auth domains", restAuthDomains.size());
             }
@@ -665,7 +665,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
         return aU;
     }
 
-    private User impersonate(final RestRequest request, final User originalUser, final AuthenticationBackend authenticationBackend) throws ElasticsearchSecurityException {
+    private User impersonate(final RestRequest request, final User originalUser) throws ElasticsearchSecurityException {
 
         final String impersonatedUserHeader = request.header("sg_impersonate_as");
 
@@ -686,18 +686,24 @@ public class BackendRegistry implements ConfigurationChangeListener {
             throw new ElasticsearchSecurityException("'" + originalUser.getName() + "' is not allowed to impersonate as '" + impersonatedUserHeader
                     + "'", RestStatus.FORBIDDEN);
         } else {
+            //loop over all http/rest auth domains
+            for (final AuthDomain authDomain: restAuthDomains) {
+                final AuthenticationBackend authenticationBackend = authDomain.getBackend();
+                final User impersonatedUser = checkExistsAndAuthz(restImpersonationCache, new User(impersonatedUserHeader), authenticationBackend, restAuthorizers);
 
-            final User impersonatedUser = checkExistsAndAuthz(restImpersonationCache, new User(impersonatedUserHeader), authenticationBackend, restAuthorizers);
+                if(impersonatedUser == null) {
+                    log.debug("Unable to impersonate rest user from '{}' to '{}' because the impersonated user does not exists in {}, try next ...", originalUser.getName(), impersonatedUserHeader, authenticationBackend.getType());
+                    continue;
+                }
 
-            if(impersonatedUser == null) {
-                log.debug("Unable to impersonate rest user from '{}' to '{}' because the impersonated user does not exists in {}", originalUser.getName(), impersonatedUserHeader, authenticationBackend.getType());
-                throw new ElasticsearchSecurityException("No such user:" + impersonatedUserHeader, RestStatus.FORBIDDEN);
+                if (log.isDebugEnabled()) {
+                    log.debug("Impersonate rest user from '{}' to '{}'", originalUser.getName(), impersonatedUserHeader);
+                }
+                return impersonatedUser;
             }
 
-            if (log.isDebugEnabled()) {
-                log.debug("Impersonate rest user from '{}' to '{}'", originalUser.getName(), impersonatedUserHeader);
-            }
-            return impersonatedUser;
+            log.debug("Unable to impersonate rest user from '{}' to '{}' because the impersonated user does not exists", originalUser.getName(), impersonatedUserHeader);
+            throw new ElasticsearchSecurityException("No such user:" + impersonatedUserHeader, RestStatus.FORBIDDEN);
         }
 
     }

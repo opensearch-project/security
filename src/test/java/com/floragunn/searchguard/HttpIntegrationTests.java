@@ -45,7 +45,6 @@ import com.floragunn.searchguard.test.SingleClusterTest;
 import com.floragunn.searchguard.test.helper.file.FileHelper;
 import com.floragunn.searchguard.test.helper.rest.RestHelper;
 import com.floragunn.searchguard.test.helper.rest.RestHelper.HttpResponse;
-import com.floragunn.searchguard.test.helper.rules.SGTestWatcher;
 
 public class HttpIntegrationTests extends SingleClusterTest {
 
@@ -652,6 +651,21 @@ public class HttpIntegrationTests extends SingleClusterTest {
         Assert.assertFalse(res.getBody().contains("esb-"));
         Assert.assertFalse(res.getBody().contains("xxx"));
         Assert.assertFalse(res.getBody().contains(".kibana2"));
+    }
+    
+    @Test
+    public void testRestImpersonation() throws Exception {
+        final Settings settings = Settings.builder()
+                .putList(ConfigConstants.SEARCHGUARD_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "someotherusernotininternalusersfile")
+                .build();
+        setup(Settings.EMPTY, new DynamicSgConfig().setSgConfig("sg_config_rest_impersonation.yml"), settings);
+        final RestHelper rh = nonSslRestHelper();
+        
+        //rest impersonation
+        HttpResponse res = rh.executeGetRequest("/_searchguard/authinfo", new BasicHeader("sg_impersonate_as","someotherusernotininternalusersfile"), encodeBasicHeader("worf", "worf"));
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        Assert.assertTrue(res.getBody().contains("name=someotherusernotininternalusersfile"));
+        Assert.assertFalse(res.getBody().contains("worf"));
     }
 
 }
