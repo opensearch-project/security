@@ -24,6 +24,7 @@ mvn clean package -Pveracode -DskipTests > /dev/null 2>&1
 PLUGIN_FILE=($DIR/../target/veracode/search-guard*.zip)
 
 FILESIZE=$(wc -c <"$PLUGIN_FILE")
+echo ""
 echo "Upload $PLUGIN_FILE with a size of $((FILESIZE / 1048576)) mb"
 
 
@@ -35,6 +36,7 @@ curl -Ss --fail --compressed -u "$VERA_USER:$VERA_PASSWORD" "https://analysiscen
   -F "sandbox_id=$SANDBOXID" \
   | xmllint --format - 2>&1 | tee  vera.log
 
+echo ""
 echo "Start pre scan"
 
 #curl -Ss --fail --compressed -u "$VERA_USER:$VERA_PASSWORD"  https://analysiscenter.veracode.com/api/5.0/beginprescan.do -F "app_id=$APPID" -F "sandbox_id=$SANDBOXID" -F "auto_scan=false" | xmllint --format -
@@ -44,11 +46,19 @@ echo "Start pre scan"
 
 curl -Ss --fail --compressed -u "$VERA_USER:$VERA_PASSWORD"  https://analysiscenter.veracode.com/api/5.0/beginprescan.do -F "app_id=$APPID" -F "sandbox_id=$SANDBOXID" -F "auto_scan=true" -F "scan_all_nonfatal_top_level_modules=true" | xmllint --format -  2>&1 | tee -a vera.log
 
+echo ""
+echo ""
+echo "----- Veralog ------"
 cat vera.log
-
+echo "--------------------"
+echo ""
+echo ""
+echo "Check for errors ..."
+set +e
 grep -i error vera.log && (echo "Error executing veracode"; exit -1)
 grep -i denied vera.log && (echo "Access denied for veracode"; exit -1)
-
+echo "No errors"
+set -e
 
 #curl -Ss --fail --compressed -u "$VERA_USER:$VERA_PASSWORD" "https://analysiscenter.veracode.com/api/5.0/beginscan.do" -F "app_id=$APPID" -F "sandbox_id=$SANDBOXID" -F "scan_all_top_level_modules=true" | xmllint --format -
 
