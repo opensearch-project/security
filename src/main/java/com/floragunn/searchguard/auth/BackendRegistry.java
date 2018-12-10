@@ -37,6 +37,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.rest.BytesRestResponse;
 import org.elasticsearch.rest.RestChannel;
@@ -294,6 +295,10 @@ public class BackendRegistry implements ConfigurationChangeListener {
     }
 
     public User authenticate(final TransportRequest request, final String sslPrincipal, final Task task, final String action) {
+
+    	  if(log.isDebugEnabled() && request.remoteAddress() != null) {
+    		  log.debug("Transport authentication request from {}", request.remoteAddress());
+    	  }
         
         User origPKIUser = new User(sslPrincipal);
         
@@ -361,8 +366,8 @@ public class BackendRegistry implements ConfigurationChangeListener {
         } else {
             auditLog.logFailedLogin(creds.getUsername(), false, null, request, task);
         }
-
-        log.warn("Transport authentication finally failed for {}", creds == null ? impersonatedTransportUser==null?origPKIUser.getName():impersonatedTransportUser.getName():creds.getUsername());
+ 
+        log.warn("Transport authentication finally failed for {} from {}", creds == null ? impersonatedTransportUser==null?origPKIUser.getName():impersonatedTransportUser.getName():creds.getUsername(), request.remoteAddress());
 
         return null;
     }
@@ -396,8 +401,14 @@ public class BackendRegistry implements ConfigurationChangeListener {
             channel.sendResponse(new BytesRestResponse(RestStatus.SERVICE_UNAVAILABLE, "Search Guard not initialized (SG11). See http://docs.search-guard.com/v6/sgadmin"));
             return false;
         }
+        
+        final TransportAddress remoteAddress = xffResolver.resolve(request);
+        
+        if(log.isDebugEnabled()) {
+    		log.debug("Rest authentication request from {} [original: {}]", remoteAddress, request.getRemoteAddress());
+    	}
 
-        threadContext.putTransient(ConfigConstants.SG_REMOTE_ADDRESS, xffResolver.resolve(request));
+        threadContext.putTransient(ConfigConstants.SG_REMOTE_ADDRESS, remoteAddress);
 
         boolean authenticated = false;
 
@@ -519,13 +530,13 @@ public class BackendRegistry implements ConfigurationChangeListener {
                         log.debug("Rerequest {} failed", firstChallengingHttpAuthenticator.getClass());
                     }
 
-                    log.warn("Authentication finally failed for {}", authCredenetials == null ? null:authCredenetials.getUsername());
+                    log.warn("Authentication finally failed for {} from {}", authCredenetials == null ? null:authCredenetials.getUsername(), remoteAddress);
                     auditLog.logFailedLogin(authCredenetials == null ? null:authCredenetials.getUsername(), false, null, request);
                     return false;
                 }
             }
 
-            log.warn("Authentication finally failed for {}", authCredenetials == null ? null:authCredenetials.getUsername());
+            log.warn("Authentication finally failed for {} from {}", authCredenetials == null ? null:authCredenetials.getUsername(), remoteAddress);
             auditLog.logFailedLogin(authCredenetials == null ? null:authCredenetials.getUsername(), false, null, request);
             channel.sendResponse(new BytesRestResponse(RestStatus.UNAUTHORIZED, "Authentication finally failed"));
             return false;
