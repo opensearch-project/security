@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.Stack;
 import java.util.regex.Pattern;
@@ -239,6 +240,17 @@ public class WildcardMatcher {
         }
 
         return matches;
+    }
+    
+    public static Optional<String> getFirstMatchingPattern(final Collection<String> pattern, final String candidate) {
+
+        for (String p : pattern) {
+            if (match(p, candidate)) {
+                return Optional.of(p);
+            }
+        }
+
+        return Optional.empty();
     }
 
     /**
