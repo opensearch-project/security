@@ -163,6 +163,7 @@ import com.google.common.collect.Lists;
 
 public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements ClusterPlugin, MapperPlugin {
 
+    private static final String KEYWORD = ".keyword";
     private final boolean tribeNodeClient;
     private final boolean dlsFlsAvailable;
     private final Constructor<?> dlsFlsConstructor;
@@ -1030,20 +1031,25 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
 
                     if (firstChar == '!' || firstChar == '~') {
                         excludesSet.add(incExc.substring(1));
-                        excludesSet.add(incExc.substring(1)+".keyword");
                     } else {
                         includesSet.add(incExc);
-                        includesSet.add(incExc+".keyword");
                     }
                 }
 
                 if (!excludesSet.isEmpty()) {
-                    return field -> !WildcardMatcher.matchAny(excludesSet, field);
+                    return field -> !WildcardMatcher.matchAny(excludesSet, handleKeyword(field));
                 } else {
-                    return field -> WildcardMatcher.matchAny(includesSet, field);
+                    return field -> WildcardMatcher.matchAny(includesSet, handleKeyword(field));
                 }
             }
         };
+    }
+    
+    private static String handleKeyword(final String field) {
+        if(field != null && field.endsWith(KEYWORD)) {
+            return field.substring(0, field.length()-KEYWORD.length());
+        }
+        return field;
     }
 
     public static class GuiceHolder implements LifecycleComponent {
