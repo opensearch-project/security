@@ -35,6 +35,8 @@ public class DynamicSgConfig {
     private String sgRolesMapping = "sg_roles_mapping.yml";
     private String sgInternalUsers = "sg_internal_users.yml";
     private String sgActionGroups = "sg_action_groups.yml";
+    private String sgConfigAsYamlString = null;
+
     public String getSearchGuardIndexName() {
         return searchGuardIndexName;
     }
@@ -42,37 +44,32 @@ public class DynamicSgConfig {
         this.searchGuardIndexName = searchGuardIndexName;
         return this;
     }
-    public String getSgConfig() {
-        return sgConfig;
-    }
+
     public DynamicSgConfig setSgConfig(String sgConfig) {
         this.sgConfig = sgConfig;
         return this;
     }
-    public String getSgRoles() {
-        return sgRoles;
+
+    public DynamicSgConfig setSgConfigAsYamlString(String sgConfigAsYamlString) {
+        this.sgConfigAsYamlString = sgConfigAsYamlString;
+        return this;
     }
+
     public DynamicSgConfig setSgRoles(String sgRoles) {
         this.sgRoles = sgRoles;
         return this;
     }
-    public String getSgRolesMapping() {
-        return sgRolesMapping;
-    }
+
     public DynamicSgConfig setSgRolesMapping(String sgRolesMapping) {
         this.sgRolesMapping = sgRolesMapping;
         return this;
     }
-    public String getSgInternalUsers() {
-        return sgInternalUsers;
-    }
+
     public DynamicSgConfig setSgInternalUsers(String sgInternalUsers) {
         this.sgInternalUsers = sgInternalUsers;
         return this;
     }
-    public String getSgActionGroups() {
-        return sgActionGroups;
-    }
+
     public DynamicSgConfig setSgActionGroups(String sgActionGroups) {
         this.sgActionGroups = sgActionGroups;
         return this;
@@ -88,7 +85,7 @@ public class DynamicSgConfig {
                .type("sg")
                .id(ConfigConstants.CONFIGNAME_CONFIG)
                .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-               .source(ConfigConstants.CONFIGNAME_CONFIG, FileHelper.readYamlContent(prefix+sgConfig)));
+               .source(ConfigConstants.CONFIGNAME_CONFIG, sgConfigAsYamlString==null?FileHelper.readYamlContent(prefix+sgConfig):FileHelper.readYamlContentFromString(sgConfigAsYamlString)));
         
         ret.add(new IndexRequest(searchGuardIndexName)
         .type("sg")

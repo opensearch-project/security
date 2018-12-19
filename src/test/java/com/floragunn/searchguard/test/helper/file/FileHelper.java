@@ -109,4 +109,27 @@ public class FileHelper {
             }
         }
 	}
+    
+    public static BytesReference readYamlContentFromString(final String yaml) {
+        
+        XContentParser parser = null;
+        try {
+            parser = XContentFactory.xContent(XContentType.YAML).createParser(NamedXContentRegistry.EMPTY, SearchGuardDeprecationHandler.INSTANCE, new StringReader(yaml));
+            parser.nextToken();
+            final XContentBuilder builder = XContentFactory.jsonBuilder();
+            builder.copyCurrentStructure(parser);
+            return BytesReference.bytes(builder);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        finally {
+            if (parser != null) {
+                try {
+                    parser.close();
+                } catch (IOException e) {
+                    //ignore
+                }
+            }
+        }
+    }
 }
