@@ -8,7 +8,7 @@ searchguard:
         proxiesHeader: "x-forwarded-by"
         trustedProxies: "proxy1|proxy2"
       authenticator:  
-        type: com.floragunn.searchguard.http.HTTPBasicAuthenticator
+        type: com.amazon.opendistrosecurity.http.HTTPBasicAuthenticator
     authcz:
       authentication_domain_basic_internal:
         enabled: true

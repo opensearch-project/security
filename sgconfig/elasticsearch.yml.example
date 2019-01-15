@@ -174,11 +174,11 @@ searchguard.audit.type: internal_elasticsearch
 # See http://docs.search-guard.com/v6/tls-in-production
 #searchguard.cert.oid: '1.2.3.4.5.5'
 
-# This specifies the implementation of com.floragunn.searchguard.transport.InterClusterRequestEvaluator
+# This specifies the implementation of com.amazon.opendistrosecurity.transport.InterClusterRequestEvaluator
 # that is used to determine inter-cluster request.
-# Instances of com.floragunn.searchguard.transport.InterClusterRequestEvaluator must implement a single argument
+# Instances of com.amazon.opendistrosecurity.transport.InterClusterRequestEvaluator must implement a single argument
 # constructor that takes an org.elasticsearch.common.settings.Settings
-#searchguard.cert.intercluster_request_evaluator_class: com.floragunn.searchguard.transport.DefaultInterClusterRequestEvaluator
+#searchguard.cert.intercluster_request_evaluator_class: com.amazon.opendistrosecurity.transport.DefaultInterClusterRequestEvaluator
 
 # Allow snapshot restore for normal users
 # By default only requests signed by an admin TLS certificate can do this
