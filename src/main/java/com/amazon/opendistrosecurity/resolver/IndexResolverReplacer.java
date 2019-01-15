@@ -85,7 +85,7 @@ import org.elasticsearch.transport.RemoteClusterAware;
 import org.elasticsearch.transport.RemoteClusterService;
 import org.elasticsearch.transport.TransportRequest;
 
-import com.amazon.opendistrosecurity.SearchGuardPlugin;
+import com.amazon.opendistrosecurity.OpenDistroSecurityPlugin;
 import com.amazon.opendistrosecurity.configuration.ClusterInfoHolder;
 import com.amazon.opendistrosecurity.support.SnapshotRestoreHelper;
 import com.amazon.opendistrosecurity.support.WildcardMatcher;
@@ -434,13 +434,13 @@ public final class IndexResolverReplacer {
         Boolean modified = Boolean.FALSE;
         String[] localIndices = request.indices();
         
-        final RemoteClusterService remoteClusterService = SearchGuardPlugin.GuiceHolder.getRemoteClusterService();
+        final RemoteClusterService remoteClusterService = OpenDistroSecurityPlugin.GuiceHolder.getRemoteClusterService();
 
         // handle CCS
         // TODO how to handle aliases with CCS??
         if (remoteClusterService.isCrossClusterSearchEnabled() && (request instanceof FieldCapabilitiesRequest || request instanceof SearchRequest)) {
             IndicesRequest.Replaceable searchRequest = request;
-            final Map<String, OriginalIndices> remoteClusterIndices = SearchGuardPlugin.GuiceHolder.getRemoteClusterService().groupIndices(
+            final Map<String, OriginalIndices> remoteClusterIndices = OpenDistroSecurityPlugin.GuiceHolder.getRemoteClusterService().groupIndices(
                     searchRequest.indicesOptions(), searchRequest.indices(), idx -> resolver.hasIndexOrAlias(idx, clusterService.state()));
 
             assert remoteClusterIndices.size() > 0:"Remote cluster size must not be zero";

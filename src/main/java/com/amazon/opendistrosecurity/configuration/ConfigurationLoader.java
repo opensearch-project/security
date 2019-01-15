@@ -45,7 +45,7 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import com.amazon.opendistrosecurity.support.ConfigConstants;
-import com.amazon.opendistrosecurity.support.SearchGuardDeprecationHandler;
+import com.amazon.opendistrosecurity.support.OpenDistroSecurityDeprecationHandler;
 
 class ConfigurationLoader {
 
@@ -168,7 +168,7 @@ class ConfigurationLoader {
         XContentParser parser = null;
 
         try {
-            parser = XContentHelper.createParser(NamedXContentRegistry.EMPTY, SearchGuardDeprecationHandler.INSTANCE, ref, XContentType.JSON);
+            parser = XContentHelper.createParser(NamedXContentRegistry.EMPTY, OpenDistroSecurityDeprecationHandler.INSTANCE, ref, XContentType.JSON);
             parser.nextToken();
             parser.nextToken();
          

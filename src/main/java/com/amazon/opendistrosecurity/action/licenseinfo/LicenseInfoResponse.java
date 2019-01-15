@@ -32,7 +32,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
-import com.amazon.opendistrosecurity.configuration.SearchGuardLicense;
+import com.amazon.opendistrosecurity.configuration.OpenDistroSecurityLicense;
 import com.amazon.opendistrosecurity.support.ModuleInfo;
 import com.amazon.opendistrosecurity.support.ModuleType;
 
@@ -70,7 +70,7 @@ public class LicenseInfoResponse extends BaseNodesResponse<LicenseInfoNodeRespon
         
         if(nonNullLicenseNodes.size() != allNodes.size() && nonNullLicenseNodes.size() > 0) {
             
-            final SearchGuardLicense license = nonNullLicenseNodes.get(0).getLicense();
+            final OpenDistroSecurityLicense license = nonNullLicenseNodes.get(0).getLicense();
             
             builder.field("uid", license.getUid());
             builder.field("type", license.getType());
@@ -96,7 +96,7 @@ public class LicenseInfoResponse extends BaseNodesResponse<LicenseInfoNodeRespon
             builder.field("license_required", false);
         } else {
             
-            final SearchGuardLicense license = nonNullLicenseNodes.get(0).getLicense();
+            final OpenDistroSecurityLicense license = nonNullLicenseNodes.get(0).getLicense();
                  
             builder.field("uid", license.getUid());
             builder.field("type", license.getType());

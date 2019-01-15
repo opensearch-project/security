@@ -34,7 +34,7 @@ import com.amazon.opendistrosecurity.support.ConfigConstants;
 import com.amazon.opendistrosecurity.support.HeaderHelper;
 import com.amazon.opendistrosecurity.user.User;
 
-public class SearchGuardIndexSearcherWrapper extends IndexSearcherWrapper {
+public class OpenDistroSecurityIndexSearcherWrapper extends IndexSearcherWrapper {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
     protected final ThreadContext threadContext;
@@ -43,7 +43,7 @@ public class SearchGuardIndexSearcherWrapper extends IndexSearcherWrapper {
     private final AdminDNs adminDns;
 
     //constructor is called per index, so avoid costly operations here
-	public SearchGuardIndexSearcherWrapper(final IndexService indexService, final Settings settings, final AdminDNs adminDNs) {
+	public OpenDistroSecurityIndexSearcherWrapper(final IndexService indexService, final Settings settings, final AdminDNs adminDNs) {
 	    index = indexService.index();
 	    threadContext = indexService.getThreadPool().getThreadContext();
         this.searchguardIndex = settings.get(ConfigConstants.SEARCHGUARD_CONFIG_INDEX_NAME, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);

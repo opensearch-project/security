@@ -27,7 +27,7 @@ import org.elasticsearch.transport.Netty4Plugin;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.amazon.opendistrosecurity.SearchGuardPlugin;
+import com.amazon.opendistrosecurity.OpenDistroSecurityPlugin;
 import com.amazon.opendistrosecurity.ssl.util.SSLConfigConstants;
 import com.amazon.opendistrosecurity.support.ConfigConstants;
 import com.amazon.opendistrosecurity.test.SingleClusterTest;
@@ -69,7 +69,7 @@ public class SlowIntegrationTests extends SingleClusterTest {
     
         log.debug("Start node client");
         
-        try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class, SearchGuardPlugin.class).start()) {
+        try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class, OpenDistroSecurityPlugin.class).start()) {
             Thread.sleep(50);
             Assert.assertEquals(clusterInfo.numNodes+1, node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());    
         }
@@ -97,7 +97,7 @@ public class SlowIntegrationTests extends SingleClusterTest {
     
         log.debug("Start node client");
 
-        try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class, SearchGuardPlugin.class).start()) {
+        try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class, OpenDistroSecurityPlugin.class).start()) {
             Thread.sleep(50);
             Assert.assertEquals(1, node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());    
         } catch (Exception e) {
@@ -127,7 +127,7 @@ public class SlowIntegrationTests extends SingleClusterTest {
     
         log.debug("Start node client");
         
-        try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class, SearchGuardPlugin.class).start()) {
+        try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class, OpenDistroSecurityPlugin.class).start()) {
             Thread.sleep(50);
             Assert.assertEquals(1, node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());    
         }

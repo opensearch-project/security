@@ -60,7 +60,7 @@ public class ConfigHelper {
         BytesReference retVal;
         XContentParser parser = null;
         try {
-            parser = XContentFactory.xContent(xContentType).createParser(NamedXContentRegistry.EMPTY, SearchGuardDeprecationHandler.INSTANCE, reader);
+            parser = XContentFactory.xContent(xContentType).createParser(NamedXContentRegistry.EMPTY, OpenDistroSecurityDeprecationHandler.INSTANCE, reader);
             parser.nextToken();
             final XContentBuilder builder = XContentFactory.jsonBuilder();
             builder.copyCurrentStructure(parser);

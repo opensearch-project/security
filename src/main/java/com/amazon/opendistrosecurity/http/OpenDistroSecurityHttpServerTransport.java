@@ -23,15 +23,15 @@ import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import com.amazon.opendistrosecurity.ssl.SearchGuardKeyStore;
+import com.amazon.opendistrosecurity.ssl.OpenDistroSecurityKeyStore;
 import com.amazon.opendistrosecurity.ssl.SslExceptionHandler;
-import com.amazon.opendistrosecurity.ssl.http.netty.SearchGuardSSLNettyHttpServerTransport;
+import com.amazon.opendistrosecurity.ssl.http.netty.OpenDistroSecuritySSLNettyHttpServerTransport;
 import com.amazon.opendistrosecurity.ssl.http.netty.ValidatingDispatcher;
 
-public class SearchGuardHttpServerTransport extends SearchGuardSSLNettyHttpServerTransport {
+public class OpenDistroSecurityHttpServerTransport extends OpenDistroSecuritySSLNettyHttpServerTransport {
     
-    public SearchGuardHttpServerTransport(final Settings settings, final NetworkService networkService, 
-            final BigArrays bigArrays, final ThreadPool threadPool, final SearchGuardKeyStore sgks, 
+    public OpenDistroSecurityHttpServerTransport(final Settings settings, final NetworkService networkService, 
+            final BigArrays bigArrays, final ThreadPool threadPool, final OpenDistroSecurityKeyStore sgks, 
             final SslExceptionHandler sslExceptionHandler, final NamedXContentRegistry namedXContentRegistry, final ValidatingDispatcher dispatcher) {
         super(settings, networkService, bigArrays, threadPool, sgks, namedXContentRegistry, dispatcher, sslExceptionHandler);
     }

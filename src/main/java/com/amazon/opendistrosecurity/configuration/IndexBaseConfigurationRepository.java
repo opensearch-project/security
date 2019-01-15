@@ -87,7 +87,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
     private final AuditLog auditLog;
     private final ComplianceConfig complianceConfig;
     private ThreadPool threadPool;
-    private volatile SearchGuardLicense effectiveLicense;
+    private volatile OpenDistroSecurityLicense effectiveLicense;
 
     private IndexBaseConfigurationRepository(Settings settings, final Path configPath, ThreadPool threadPool, 
             Client client, ClusterService clusterService, AuditLog auditLog, ComplianceConfig complianceConfig) {
@@ -328,7 +328,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
         typeToConfig.putAll(loaded);
         notifyAboutChanges(loaded);
 
-        final SearchGuardLicense sgLicense = getLicense();
+        final OpenDistroSecurityLicense sgLicense = getLicense();
         
         notifyAboutLicenseChanges(sgLicense);
         
@@ -356,7 +356,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
 
     @Override
     public void persistConfiguration(String configurationType,  Settings settings) {
-        //TODO should be use from com.amazon.opendistrosecurity.tools.SearchGuardAdmin
+        //TODO should be use from com.amazon.opendistrosecurity.tools.OpenDistroSecurityAdmin
         throw new UnsupportedOperationException("Not implemented yet");
     }
 
@@ -373,7 +373,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
         }
     }
 
-    private synchronized void notifyAboutLicenseChanges(SearchGuardLicense license) {
+    private synchronized void notifyAboutLicenseChanges(OpenDistroSecurityLicense license) {
         for(LicenseChangeListener listener: this.licenseChangeListener) {
             listener.onChange(license);
         }
@@ -467,7 +467,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
      *
      * @return null if no license is needed
      */
-    public SearchGuardLicense getLicense() {
+    public OpenDistroSecurityLicense getLicense() {
 
         //TODO check spoof with cluster settings and elasticsearch.yml without node restart
         boolean enterpriseModulesEnabled = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_ENTERPRISE_MODULES_ENABLED, true);
@@ -486,7 +486,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
         } else {
             try {
                 licenseText = LicenseHelper.validateLicense(licenseText);
-                SearchGuardLicense retVal = new SearchGuardLicense(XContentHelper.convertToMap(XContentType.JSON.xContent(), licenseText, true), clusterService);
+                OpenDistroSecurityLicense retVal = new OpenDistroSecurityLicense(XContentHelper.convertToMap(XContentType.JSON.xContent(), licenseText, true), clusterService);
                 effectiveLicense = retVal;
                 return retVal;
             } catch (Exception e) {
@@ -500,7 +500,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
 
     }
 
-    private SearchGuardLicense createOrGetTrial(String msg) {
+    private OpenDistroSecurityLicense createOrGetTrial(String msg) {
         long created = System.currentTimeMillis();
         ThreadContext threadContext = threadPool.getThreadContext();
 
@@ -525,6 +525,6 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
             }
         }
 
-        return SearchGuardLicense.createTrialLicense(formatDate(created), clusterService, msg);
+        return OpenDistroSecurityLicense.createTrialLicense(formatDate(created), clusterService, msg);
     }
 }

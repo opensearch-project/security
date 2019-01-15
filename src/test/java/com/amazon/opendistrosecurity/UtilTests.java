@@ -27,7 +27,7 @@ import java.util.Map;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.amazon.opendistrosecurity.support.SgUtils;
+import com.amazon.opendistrosecurity.support.OpenDistroSecurityUtils;
 import com.amazon.opendistrosecurity.support.WildcardMatcher;
 
 public class UtilTests {
@@ -61,26 +61,26 @@ public class UtilTests {
 
     @Test
     public void testMapFromArray() {
-        Map<Object, Object> map = SgUtils.mapFromArray((Object)null);
+        Map<Object, Object> map = OpenDistroSecurityUtils.mapFromArray((Object)null);
         assertTrue(map == null);
         
-        map = SgUtils.mapFromArray("key");
+        map = OpenDistroSecurityUtils.mapFromArray("key");
         assertTrue(map == null);
 
-        map = SgUtils.mapFromArray("key", "value", "otherkey");
+        map = OpenDistroSecurityUtils.mapFromArray("key", "value", "otherkey");
         assertTrue(map == null);
         
-        map = SgUtils.mapFromArray("key", "value");
+        map = OpenDistroSecurityUtils.mapFromArray("key", "value");
         assertNotNull(map);        
         assertEquals(1, map.size());
         assertEquals("value", map.get("key"));
 
-        map = SgUtils.mapFromArray("key", "value", "key", "value");
+        map = OpenDistroSecurityUtils.mapFromArray("key", "value", "key", "value");
         assertNotNull(map);        
         assertEquals(1, map.size());
         assertEquals("value", map.get("key"));
 
-        map = SgUtils.mapFromArray("key1", "value1", "key2", "value2");
+        map = OpenDistroSecurityUtils.mapFromArray("key1", "value1", "key2", "value2");
         assertNotNull(map);        
         assertEquals(2, map.size());
         assertEquals("value1", map.get("key1"));

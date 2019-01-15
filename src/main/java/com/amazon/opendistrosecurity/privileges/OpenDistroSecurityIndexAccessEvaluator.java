@@ -33,7 +33,7 @@ import com.amazon.opendistrosecurity.resolver.IndexResolverReplacer.Resolved;
 import com.amazon.opendistrosecurity.support.ConfigConstants;
 import com.amazon.opendistrosecurity.support.WildcardMatcher;
 
-public class SearchGuardIndexAccessEvaluator {
+public class OpenDistroSecurityIndexAccessEvaluator {
     
     protected final Logger log = LogManager.getLogger(this.getClass());
     
@@ -44,7 +44,7 @@ public class SearchGuardIndexAccessEvaluator {
 
     private final boolean restoreSgIndexEnabled;
     
-    public SearchGuardIndexAccessEvaluator(final Settings settings, AuditLog auditLog) {
+    public OpenDistroSecurityIndexAccessEvaluator(final Settings settings, AuditLog auditLog) {
         this.searchguardIndex = settings.get(ConfigConstants.SEARCHGUARD_CONFIG_INDEX_NAME, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
         this.auditLog = auditLog;
         

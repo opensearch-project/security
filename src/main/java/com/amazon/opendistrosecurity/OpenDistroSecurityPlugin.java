@@ -130,45 +130,45 @@ import com.amazon.opendistrosecurity.configuration.CompatConfig;
 import com.amazon.opendistrosecurity.configuration.ConfigurationChangeListener;
 import com.amazon.opendistrosecurity.configuration.DlsFlsRequestValve;
 import com.amazon.opendistrosecurity.configuration.IndexBaseConfigurationRepository;
-import com.amazon.opendistrosecurity.configuration.SearchGuardIndexSearcherWrapper;
-import com.amazon.opendistrosecurity.filter.SearchGuardFilter;
-import com.amazon.opendistrosecurity.filter.SearchGuardRestFilter;
-import com.amazon.opendistrosecurity.http.SearchGuardHttpServerTransport;
-import com.amazon.opendistrosecurity.http.SearchGuardNonSslHttpServerTransport;
+import com.amazon.opendistrosecurity.configuration.OpenDistroSecurityIndexSearcherWrapper;
+import com.amazon.opendistrosecurity.filter.OpenDistroSecurityFilter;
+import com.amazon.opendistrosecurity.filter.OpenDistroSecurityRestFilter;
+import com.amazon.opendistrosecurity.http.OpenDistroSecurityHttpServerTransport;
+import com.amazon.opendistrosecurity.http.OpenDistroSecurityNonSslHttpServerTransport;
 import com.amazon.opendistrosecurity.http.XFFResolver;
 import com.amazon.opendistrosecurity.privileges.PrivilegesEvaluator;
 import com.amazon.opendistrosecurity.privileges.PrivilegesInterceptor;
 import com.amazon.opendistrosecurity.resolver.IndexResolverReplacer;
 import com.amazon.opendistrosecurity.rest.KibanaInfoAction;
-import com.amazon.opendistrosecurity.rest.SearchGuardHealthAction;
-import com.amazon.opendistrosecurity.rest.SearchGuardInfoAction;
-import com.amazon.opendistrosecurity.rest.SearchGuardLicenseAction;
+import com.amazon.opendistrosecurity.rest.OpenDistroSecurityHealthAction;
+import com.amazon.opendistrosecurity.rest.OpenDistroSecurityInfoAction;
+import com.amazon.opendistrosecurity.rest.OpenDistroSecurityLicenseAction;
 import com.amazon.opendistrosecurity.rest.TenantInfoAction;
-import com.amazon.opendistrosecurity.ssl.SearchGuardSSLPlugin;
+import com.amazon.opendistrosecurity.ssl.OpenDistroSecuritySSLPlugin;
 import com.amazon.opendistrosecurity.ssl.SslExceptionHandler;
 import com.amazon.opendistrosecurity.ssl.http.netty.ValidatingDispatcher;
-import com.amazon.opendistrosecurity.ssl.transport.SearchGuardSSLNettyTransport;
+import com.amazon.opendistrosecurity.ssl.transport.OpenDistroSecuritySSLNettyTransport;
 import com.amazon.opendistrosecurity.ssl.util.SSLConfigConstants;
 import com.amazon.opendistrosecurity.support.ConfigConstants;
 import com.amazon.opendistrosecurity.support.HeaderHelper;
 import com.amazon.opendistrosecurity.support.ModuleInfo;
 import com.amazon.opendistrosecurity.support.ReflectionHelper;
-import com.amazon.opendistrosecurity.support.SgUtils;
+import com.amazon.opendistrosecurity.support.OpenDistroSecurityUtils;
 import com.amazon.opendistrosecurity.support.WildcardMatcher;
 import com.amazon.opendistrosecurity.transport.DefaultInterClusterRequestEvaluator;
 import com.amazon.opendistrosecurity.transport.InterClusterRequestEvaluator;
-import com.amazon.opendistrosecurity.transport.SearchGuardInterceptor;
+import com.amazon.opendistrosecurity.transport.OpenDistroSecurityInterceptor;
 import com.amazon.opendistrosecurity.user.User;
 import com.google.common.collect.Lists;
 
-public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements ClusterPlugin, MapperPlugin {
+public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin implements ClusterPlugin, MapperPlugin {
 
     private static final String KEYWORD = ".keyword";
     private final boolean tribeNodeClient;
     private final boolean dlsFlsAvailable;
     private final Constructor<?> dlsFlsConstructor;
-    private volatile SearchGuardRestFilter sgRestHandler;
-    private volatile SearchGuardInterceptor sgi;
+    private volatile OpenDistroSecurityRestFilter sgRestHandler;
+    private volatile OpenDistroSecurityInterceptor sgi;
     private volatile PrivilegesEvaluator evaluator;
     private volatile ThreadPool threadPool;
     private volatile IndexBaseConfigurationRepository cr;
@@ -182,7 +182,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
     private final boolean enterpriseModulesEnabled;
     private final boolean sslOnly;
     private final List<String> demoCertHashes = new ArrayList<String>(3);
-    private volatile SearchGuardFilter sgf;
+    private volatile OpenDistroSecurityFilter sgf;
     private volatile ComplianceConfig complianceConfig;
     private volatile IndexResolverReplacer irr;
 
@@ -208,7 +208,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
         return settings.getAsBoolean(ConfigConstants.SEARCHGUARD_SSL_ONLY, false);
     }
     
-    public SearchGuardPlugin(final Settings settings, final Path configPath) {
+    public OpenDistroSecurityPlugin(final Settings settings, final Path configPath) {
         super(settings, configPath, isDisabled(settings));
 
         disabled = isDisabled(settings);
@@ -446,10 +446,10 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
             handlers.addAll(super.getRestHandlers(settings, restController, clusterSettings, indexScopedSettings, settingsFilter, indexNameExpressionResolver, nodesInCluster));
 
             if(!sslOnly) {
-                handlers.add(new SearchGuardInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool)));
+                handlers.add(new OpenDistroSecurityInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool)));
                 handlers.add(new KibanaInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool)));
-                handlers.add(new SearchGuardLicenseAction(settings, restController));
-                handlers.add(new SearchGuardHealthAction(settings, restController, Objects.requireNonNull(backendRegistry)));
+                handlers.add(new OpenDistroSecurityLicenseAction(settings, restController));
+                handlers.add(new OpenDistroSecurityHealthAction(settings, restController, Objects.requireNonNull(backendRegistry)));
                 handlers.add(new TenantInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool), 
                 		Objects.requireNonNull(cs), Objects.requireNonNull(adminDns)));    
                 
@@ -544,14 +544,14 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
                         final Map<String, Set<String>> allowedFlsFields = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadPool.getThreadContext(),
                                 ConfigConstants.SG_FLS_FIELDS_HEADER);
                         
-                        if(SgUtils.evalMap(allowedFlsFields, index().getName()) != null) {
+                        if(OpenDistroSecurityUtils.evalMap(allowedFlsFields, index().getName()) != null) {
                             return weight;
                         } else {
                             
                             final Map<String, Set<String>> maskedFieldsMap = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadPool.getThreadContext(),
                                     ConfigConstants.SG_MASKED_FIELD_HEADER);
                             
-                            if(SgUtils.evalMap(maskedFieldsMap, index().getName()) != null) {
+                            if(OpenDistroSecurityUtils.evalMap(maskedFieldsMap, index().getName()) != null) {
                                 return weight;
                             } else {
                                 return nodeCache.doCache(weight, policy);
@@ -564,7 +564,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
                 
                 assert complianceConfig==null:"compliance config must be null here";
                 
-                indexModule.setSearcherWrapper(indexService -> new SearchGuardIndexSearcherWrapper(indexService, settings, Objects
+                indexModule.setSearcherWrapper(indexService -> new OpenDistroSecurityIndexSearcherWrapper(indexService, settings, Objects
                         .requireNonNull(adminDns)));
             }
 
@@ -682,7 +682,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
         
         if (transportSSLEnabled) {
             transports.put("com.amazon.opendistrosecurity.ssl.http.netty.SearchGuardSSLNettyTransport",
-                    () -> new SearchGuardSSLNettyTransport(settings, threadPool, networkService, bigArrays, namedWriteableRegistry,
+                    () -> new OpenDistroSecuritySSLNettyTransport(settings, threadPool, networkService, bigArrays, namedWriteableRegistry,
                             circuitBreakerService, sgks, evaluateSslExceptionHandler()));
         }
         return transports;
@@ -705,14 +705,14 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
                 final ValidatingDispatcher validatingDispatcher = new ValidatingDispatcher(threadPool.getThreadContext(), dispatcher,
                         settings, configPath, evaluateSslExceptionHandler());
                 //TODO close sghst
-                final SearchGuardHttpServerTransport sghst = new SearchGuardHttpServerTransport(settings, networkService, bigArrays,
+                final OpenDistroSecurityHttpServerTransport sghst = new OpenDistroSecurityHttpServerTransport(settings, networkService, bigArrays,
                         threadPool, sgks, evaluateSslExceptionHandler(), xContentRegistry, validatingDispatcher);
 
-                httpTransports.put("com.amazon.opendistrosecurity.http.SearchGuardHttpServerTransport",
+                httpTransports.put("com.amazon.opendistrosecurity.http.OpenDistroSecurityHttpServerTransport",
                         () -> sghst);
             } else if (!client && !tribeNodeClient) {
-                httpTransports.put("com.amazon.opendistrosecurity.http.SearchGuardHttpServerTransport",
-                        () -> new SearchGuardNonSslHttpServerTransport(settings, networkService, bigArrays, threadPool, xContentRegistry, dispatcher));
+                httpTransports.put("com.amazon.opendistrosecurity.http.OpenDistroSecurityHttpServerTransport",
+                        () -> new OpenDistroSecurityNonSslHttpServerTransport(settings, networkService, bigArrays, threadPool, xContentRegistry, dispatcher));
             }
         }
         return httpTransports;
@@ -780,7 +780,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
         final CompatConfig compatConfig = new CompatConfig(environment);
         cr.subscribeOnChange(ConfigConstants.CONFIGNAME_CONFIG, compatConfig);
         
-        sgf = new SearchGuardFilter(evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs, complianceConfig, compatConfig);
+        sgf = new OpenDistroSecurityFilter(evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs, complianceConfig, compatConfig);
 
 
         final String principalExtractorClass = settings.get(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, null);
@@ -791,7 +791,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
             principalExtractor = ReflectionHelper.instantiatePrincipalExtractor(principalExtractorClass);
         }
 
-        sgi = new SearchGuardInterceptor(settings, threadPool, backendRegistry, auditLog, principalExtractor,
+        sgi = new OpenDistroSecurityInterceptor(settings, threadPool, backendRegistry, auditLog, principalExtractor,
                 interClusterRequestEvaluator, cs, Objects.requireNonNull(sslExceptionHandler), Objects.requireNonNull(cih));
         components.add(principalExtractor);
 
@@ -813,7 +813,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
         components.add(evaluator);
         components.add(sgi);
 
-        sgRestHandler = new SearchGuardRestFilter(backendRegistry, auditLog, threadPool, principalExtractor, settings, configPath, compatConfig);
+        sgRestHandler = new OpenDistroSecurityRestFilter(backendRegistry, auditLog, threadPool, principalExtractor, settings, configPath, compatConfig);
 
         return components;
 
@@ -832,7 +832,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
 
         if(!sslOnly){
           builder.put(NetworkModule.TRANSPORT_TYPE_KEY, "com.amazon.opendistrosecurity.ssl.http.netty.SearchGuardSSLNettyTransport");
-          builder.put(NetworkModule.HTTP_TYPE_KEY, "com.amazon.opendistrosecurity.http.SearchGuardHttpServerTransport");
+          builder.put(NetworkModule.HTTP_TYPE_KEY, "com.amazon.opendistrosecurity.http.OpenDistroSecurityHttpServerTransport");
         }
         return builder.build();
     }
@@ -1015,7 +1015,7 @@ public final class SearchGuardPlugin extends SearchGuardSSLPlugin implements Clu
             final Map<String, Set<String>> allowedFlsFields = (Map<String, Set<String>>) HeaderHelper
                     .deserializeSafeFromHeader(threadPool.getThreadContext(), ConfigConstants.SG_FLS_FIELDS_HEADER);
 
-            final String eval = SgUtils.evalMap(allowedFlsFields, index);
+            final String eval = OpenDistroSecurityUtils.evalMap(allowedFlsFields, index);
 
             if (eval == null) {
                 return field -> true;

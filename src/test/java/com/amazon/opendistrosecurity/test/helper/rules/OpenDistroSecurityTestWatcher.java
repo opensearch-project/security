@@ -20,7 +20,7 @@ package com.amazon.opendistrosecurity.test.helper.rules;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 
-public class SGTestWatcher extends TestWatcher{
+public class OpenDistroSecurityTestWatcher extends TestWatcher{
   
 	@Override
   protected void starting(final Description description) {

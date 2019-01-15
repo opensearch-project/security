@@ -52,7 +52,7 @@ import com.amazon.opendistrosecurity.support.ConfigConstants;
 import com.amazon.opendistrosecurity.user.User;
 import com.google.common.collect.Maps;
 
-public class SearchGuardInterceptor {
+public class OpenDistroSecurityInterceptor {
 
     protected final Logger actionTrace = LogManager.getLogger("sg_action_trace");
     private BackendRegistry backendRegistry;
@@ -64,7 +64,7 @@ public class SearchGuardInterceptor {
     private final Settings settings;
     private final SslExceptionHandler sslExceptionHandler;
 
-    public SearchGuardInterceptor(final Settings settings,
+    public OpenDistroSecurityInterceptor(final Settings settings,
             final ThreadPool threadPool, final BackendRegistry backendRegistry,
             final AuditLog auditLog, final PrincipalExtractor principalExtractor,
             final InterClusterRequestEvaluator requestEvalProvider,
@@ -81,9 +81,9 @@ public class SearchGuardInterceptor {
         this.sslExceptionHandler = sslExceptionHandler;
     }
 
-    public <T extends TransportRequest> SearchGuardRequestHandler<T> getHandler(String action,
+    public <T extends TransportRequest> OpenDistroSecurityRequestHandler<T> getHandler(String action,
             TransportRequestHandler<T> actualHandler) {
-        return new SearchGuardRequestHandler<T>(action, actualHandler, threadPool, backendRegistry, auditLog,
+        return new OpenDistroSecurityRequestHandler<T>(action, actualHandler, threadPool, backendRegistry, auditLog,
                 principalExtractor, requestEvalProvider, cs, sslExceptionHandler);
     }
 

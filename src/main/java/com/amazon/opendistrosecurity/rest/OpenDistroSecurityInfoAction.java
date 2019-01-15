@@ -46,13 +46,13 @@ import com.amazon.opendistrosecurity.support.Base64Helper;
 import com.amazon.opendistrosecurity.support.ConfigConstants;
 import com.amazon.opendistrosecurity.user.User;
 
-public class SearchGuardInfoAction extends BaseRestHandler {
+public class OpenDistroSecurityInfoAction extends BaseRestHandler {
 
     private final Logger log = LogManager.getLogger(this.getClass());
     private final PrivilegesEvaluator evaluator;
     private final ThreadContext threadContext;
 
-    public SearchGuardInfoAction(final Settings settings, final RestController controller, final PrivilegesEvaluator evaluator, final ThreadPool threadPool) {
+    public OpenDistroSecurityInfoAction(final Settings settings, final RestController controller, final PrivilegesEvaluator evaluator, final ThreadPool threadPool) {
         super(settings);
         this.threadContext = threadPool.getThreadContext();
         this.evaluator = evaluator;

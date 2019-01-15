@@ -32,7 +32,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import com.amazon.opendistrosecurity.auditlog.AuditLog;
 import com.amazon.opendistrosecurity.http.XFFResolver;
 import com.amazon.opendistrosecurity.support.ConfigConstants;
-import com.amazon.opendistrosecurity.support.SgUtils;
+import com.amazon.opendistrosecurity.support.OpenDistroSecurityUtils;
 import com.amazon.opendistrosecurity.user.User;
 import com.google.common.base.Strings;
 
@@ -93,7 +93,7 @@ public class UserInjector {
 
         // custom attributes
         if (parts.length > 3 && !Strings.isNullOrEmpty(parts[3])) {
-            Map<String, String> attributes = SgUtils.mapFromArray((parts[3].split(",")));
+            Map<String, String> attributes = OpenDistroSecurityUtils.mapFromArray((parts[3].split(",")));
             if (attributes == null) {
                 log.error("Could not parse custom attributes {}, user injection failed.", parts[3]);
                 return false;

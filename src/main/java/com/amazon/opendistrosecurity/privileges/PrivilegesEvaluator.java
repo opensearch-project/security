@@ -97,7 +97,7 @@ public class PrivilegesEvaluator {
     private final ConfigModel configModel;
     private final IndexResolverReplacer irr;
     private final SnapshotRestoreEvaluator snapshotRestoreEvaluator;
-    private final SearchGuardIndexAccessEvaluator sgIndexAccessEvaluator;
+    private final OpenDistroSecurityIndexAccessEvaluator sgIndexAccessEvaluator;
     private final TermsAggregationEvaluator termsAggregationEvaluator;
     
     private final DlsFlsEvaluator dlsFlsEvaluator;
@@ -131,7 +131,7 @@ public class PrivilegesEvaluator {
         configModel = new ConfigModel(ah, configurationRepository);
         irr = new IndexResolverReplacer(resolver, clusterService, clusterInfoHolder);
         snapshotRestoreEvaluator = new SnapshotRestoreEvaluator(settings, auditLog);
-        sgIndexAccessEvaluator = new SearchGuardIndexAccessEvaluator(settings, auditLog);
+        sgIndexAccessEvaluator = new OpenDistroSecurityIndexAccessEvaluator(settings, auditLog);
         dlsFlsEvaluator = new DlsFlsEvaluator(settings, threadPool);
         termsAggregationEvaluator = new TermsAggregationEvaluator();
     }

@@ -36,8 +36,8 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import com.amazon.opendistrosecurity.configuration.SearchGuardLicense;
-import com.amazon.opendistrosecurity.configuration.SearchGuardLicense.Feature;
+import com.amazon.opendistrosecurity.configuration.OpenDistroSecurityLicense;
+import com.amazon.opendistrosecurity.configuration.OpenDistroSecurityLicense.Feature;
 import com.amazon.opendistrosecurity.test.DynamicSgConfig;
 import com.amazon.opendistrosecurity.test.SingleClusterTest;
 import com.amazon.opendistrosecurity.test.helper.file.FileHelper;
@@ -98,7 +98,7 @@ public class LicenseTests extends SingleClusterTest {
     public void testComplianceLicense() throws Exception {
       
         final String now = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
-        SearchGuardLicense license = SearchGuardLicense.createTrialLicense(now, cs, "");
+        OpenDistroSecurityLicense license = OpenDistroSecurityLicense.createTrialLicense(now, cs, "");
         
         Assert.assertTrue(license.hasFeature(Feature.COMPLIANCE));
         Assert.assertArrayEquals(license.getFeatures(), Feature.values());
@@ -110,19 +110,19 @@ public class LicenseTests extends SingleClusterTest {
     @Test
     public void testComplianceLicenseMap() throws Exception {
 
-        SearchGuardLicense license = new SearchGuardLicense(XContentHelper
+        OpenDistroSecurityLicense license = new OpenDistroSecurityLicense(XContentHelper
                 .convertToMap(new BytesArray(FileHelper.loadFile("license1.json")), false, JsonXContent.jsonXContent.type()).v2(), cs);
         
         Assert.assertFalse(license.hasFeature(Feature.COMPLIANCE));
         Assert.assertArrayEquals(license.getFeatures(), new Feature[0]);
         
-        license = new SearchGuardLicense(XContentHelper
+        license = new OpenDistroSecurityLicense(XContentHelper
                 .convertToMap(new BytesArray(FileHelper.loadFile("license3.json")), false, JsonXContent.jsonXContent.type()).v2(), cs);
         
         Assert.assertFalse(license.hasFeature(Feature.COMPLIANCE));
         Assert.assertArrayEquals(license.getFeatures(), new Feature[0]);
         
-        license = new SearchGuardLicense(XContentHelper
+        license = new OpenDistroSecurityLicense(XContentHelper
                 .convertToMap(new BytesArray(FileHelper.loadFile("license2.json")), false, JsonXContent.jsonXContent.type()).v2(), cs);
         
         Assert.assertTrue(license.hasFeature(Feature.COMPLIANCE));

@@ -27,18 +27,18 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import com.amazon.opendistrosecurity.configuration.SearchGuardLicense;
+import com.amazon.opendistrosecurity.configuration.OpenDistroSecurityLicense;
 import com.amazon.opendistrosecurity.support.ModuleInfo;
 
 public class LicenseInfoNodeResponse extends BaseNodeResponse {
 
-	private SearchGuardLicense license;
+	private OpenDistroSecurityLicense license;
 	private Set<ModuleInfo> modules;
 
 	LicenseInfoNodeResponse() {
 	}
 
-	public LicenseInfoNodeResponse(final DiscoveryNode node, SearchGuardLicense license, Set<ModuleInfo> modules) {
+	public LicenseInfoNodeResponse(final DiscoveryNode node, OpenDistroSecurityLicense license, Set<ModuleInfo> modules) {
 		super(node);
 		this.license = license;
 		this.modules = modules;
@@ -50,7 +50,7 @@ public class LicenseInfoNodeResponse extends BaseNodeResponse {
 		return nodeResponse;
 	}
 
-	public SearchGuardLicense getLicense() {
+	public OpenDistroSecurityLicense getLicense() {
 		return license;
 	}
 
@@ -68,7 +68,7 @@ public class LicenseInfoNodeResponse extends BaseNodeResponse {
 	@Override
 	public void readFrom(StreamInput in) throws IOException {
 		super.readFrom(in);
-		license = in.readOptionalWriteable(SearchGuardLicense::new);
+		license = in.readOptionalWriteable(OpenDistroSecurityLicense::new);
 		modules = new HashSet<>(in.readList(ModuleInfo::new));
 	}
 

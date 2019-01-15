@@ -40,8 +40,8 @@ import org.joda.time.format.DateTimeFormatter;
 
 import com.amazon.opendistrosecurity.auditlog.AuditLog;
 import com.amazon.opendistrosecurity.configuration.LicenseChangeListener;
-import com.amazon.opendistrosecurity.configuration.SearchGuardLicense;
-import com.amazon.opendistrosecurity.configuration.SearchGuardLicense.Feature;
+import com.amazon.opendistrosecurity.configuration.OpenDistroSecurityLicense;
+import com.amazon.opendistrosecurity.configuration.OpenDistroSecurityLicense.Feature;
 import com.amazon.opendistrosecurity.resolver.IndexResolverReplacer;
 import com.amazon.opendistrosecurity.resolver.IndexResolverReplacer.Resolved;
 import com.amazon.opendistrosecurity.support.ConfigConstants;
@@ -149,7 +149,7 @@ public class ComplianceConfig implements LicenseChangeListener {
     }
     
     @Override
-    public void onChange(SearchGuardLicense license) {
+    public void onChange(OpenDistroSecurityLicense license) {
         
         if(license == null) {
             this.enabled = false;

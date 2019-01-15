@@ -26,11 +26,11 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public final class SgUtils {
+public final class OpenDistroSecurityUtils {
     
-    protected final static Logger log = LogManager.getLogger(SgUtils.class);
+    protected final static Logger log = LogManager.getLogger(OpenDistroSecurityUtils.class);
     
-    private SgUtils() {
+    private OpenDistroSecurityUtils() {
     }
 
     public static String evalMap(final Map<String,Set<String>> map, final String index) {

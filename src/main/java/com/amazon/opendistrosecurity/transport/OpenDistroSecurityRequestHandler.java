@@ -44,7 +44,7 @@ import com.amazon.opendistrosecurity.auditlog.AuditLog.Origin;
 import com.amazon.opendistrosecurity.auth.BackendRegistry;
 import com.amazon.opendistrosecurity.ssl.SslExceptionHandler;
 import com.amazon.opendistrosecurity.ssl.transport.PrincipalExtractor;
-import com.amazon.opendistrosecurity.ssl.transport.SearchGuardSSLRequestHandler;
+import com.amazon.opendistrosecurity.ssl.transport.OpenDistroSecuritySSLRequestHandler;
 import com.amazon.opendistrosecurity.ssl.util.ExceptionUtils;
 import com.amazon.opendistrosecurity.ssl.util.SSLRequestHelper;
 import com.amazon.opendistrosecurity.support.Base64Helper;
@@ -53,7 +53,7 @@ import com.amazon.opendistrosecurity.support.HeaderHelper;
 import com.amazon.opendistrosecurity.user.User;
 import com.google.common.base.Strings;
 
-public class SearchGuardRequestHandler<T extends TransportRequest> extends SearchGuardSSLRequestHandler<T> {
+public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extends OpenDistroSecuritySSLRequestHandler<T> {
 
     protected final Logger actionTrace = LogManager.getLogger("sg_action_trace");
     private final BackendRegistry backendRegistry;
@@ -61,7 +61,7 @@ public class SearchGuardRequestHandler<T extends TransportRequest> extends Searc
     private final InterClusterRequestEvaluator requestEvalProvider;
     private final ClusterService cs;
 
-    SearchGuardRequestHandler(String action,
+    OpenDistroSecurityRequestHandler(String action,
             final TransportRequestHandler<T> actualHandler,
             final ThreadPool threadPool,
             final BackendRegistry backendRegistry,

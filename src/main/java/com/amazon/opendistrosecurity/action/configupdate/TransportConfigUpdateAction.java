@@ -41,7 +41,7 @@ import org.elasticsearch.transport.TransportService;
 import com.amazon.opendistrosecurity.auth.BackendRegistry;
 import com.amazon.opendistrosecurity.configuration.ConfigurationRepository;
 import com.amazon.opendistrosecurity.configuration.IndexBaseConfigurationRepository;
-import com.amazon.opendistrosecurity.configuration.SearchGuardLicense;
+import com.amazon.opendistrosecurity.configuration.OpenDistroSecurityLicense;
 import com.amazon.opendistrosecurity.support.LicenseHelper;
 
 public class TransportConfigUpdateAction
@@ -119,7 +119,7 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
         
         if(licenseText != null && !licenseText.isEmpty()) {
             try {
-                final SearchGuardLicense license = new SearchGuardLicense(XContentHelper.convertToMap(XContentType.JSON.xContent(), LicenseHelper.validateLicense(licenseText), true), clusterService);
+                final OpenDistroSecurityLicense license = new OpenDistroSecurityLicense(XContentHelper.convertToMap(XContentType.JSON.xContent(), LicenseHelper.validateLicense(licenseText), true), clusterService);
                 
                 if(!license.isValid()) {
                     logger.warn("License "+license.getUid()+" is invalid due to "+license.getMsgs());

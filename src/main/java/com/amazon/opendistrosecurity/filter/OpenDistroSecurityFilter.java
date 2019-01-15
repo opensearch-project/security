@@ -68,7 +68,7 @@ import com.amazon.opendistrosecurity.support.HeaderHelper;
 import com.amazon.opendistrosecurity.support.SourceFieldsContext;
 import com.amazon.opendistrosecurity.user.User;
 
-public class SearchGuardFilter implements ActionFilter {
+public class OpenDistroSecurityFilter implements ActionFilter {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
     protected final Logger actionTrace = LogManager.getLogger("sg_action_trace");
@@ -81,7 +81,7 @@ public class SearchGuardFilter implements ActionFilter {
     private final ComplianceConfig complianceConfig;
     private final CompatConfig compatConfig;
 
-    public SearchGuardFilter(final PrivilegesEvaluator evalp, final AdminDNs adminDns,
+    public OpenDistroSecurityFilter(final PrivilegesEvaluator evalp, final AdminDNs adminDns,
             DlsFlsRequestValve dlsFlsValve, AuditLog auditLog, ThreadPool threadPool, ClusterService cs,
             ComplianceConfig complianceConfig, final CompatConfig compatConfig) {
         this.evalp = evalp;

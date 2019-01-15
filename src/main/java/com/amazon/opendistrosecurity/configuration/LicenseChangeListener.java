@@ -19,5 +19,5 @@ package com.amazon.opendistrosecurity.configuration;
 
 public interface LicenseChangeListener {
 
-    void onChange(SearchGuardLicense license);
+    void onChange(OpenDistroSecurityLicense license);
 }

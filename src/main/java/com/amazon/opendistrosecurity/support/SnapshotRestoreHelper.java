@@ -33,7 +33,7 @@ import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotUtils;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import com.amazon.opendistrosecurity.SearchGuardPlugin;
+import com.amazon.opendistrosecurity.OpenDistroSecurityPlugin;
 
 public class SnapshotRestoreHelper {
 
@@ -53,7 +53,7 @@ public class SnapshotRestoreHelper {
     }
     
     public static SnapshotInfo getSnapshotInfo(RestoreSnapshotRequest restoreRequest) {
-        final RepositoriesService repositoriesService = Objects.requireNonNull(SearchGuardPlugin.GuiceHolder.getRepositoriesService(), "RepositoriesService not initialized");     
+        final RepositoriesService repositoriesService = Objects.requireNonNull(OpenDistroSecurityPlugin.GuiceHolder.getRepositoriesService(), "RepositoriesService not initialized");     
         final Repository repository = repositoriesService.repository(restoreRequest.repository());
         final String threadName = Thread.currentThread().getName();
         SnapshotInfo snapshotInfo = null;

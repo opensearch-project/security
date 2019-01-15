@@ -34,11 +34,11 @@ import org.elasticsearch.rest.RestStatus;
 
 import com.amazon.opendistrosecurity.auth.BackendRegistry;
 
-public class SearchGuardHealthAction extends BaseRestHandler {
+public class OpenDistroSecurityHealthAction extends BaseRestHandler {
 
     private final BackendRegistry registry;
     
-    public SearchGuardHealthAction(final Settings settings, final RestController controller, final BackendRegistry registry) {
+    public OpenDistroSecurityHealthAction(final Settings settings, final RestController controller, final BackendRegistry registry) {
         super(settings);
         this.registry = registry;
         controller.registerHandler(GET, "/_searchguard/health", this);

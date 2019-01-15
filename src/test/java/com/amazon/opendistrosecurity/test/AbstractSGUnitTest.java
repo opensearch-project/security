@@ -49,7 +49,7 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 import org.junit.rules.TestWatcher;
 
-import com.amazon.opendistrosecurity.SearchGuardPlugin;
+import com.amazon.opendistrosecurity.OpenDistroSecurityPlugin;
 import com.amazon.opendistrosecurity.action.configupdate.ConfigUpdateAction;
 import com.amazon.opendistrosecurity.action.configupdate.ConfigUpdateRequest;
 import com.amazon.opendistrosecurity.action.configupdate.ConfigUpdateResponse;
@@ -59,7 +59,7 @@ import com.amazon.opendistrosecurity.support.WildcardMatcher;
 import com.amazon.opendistrosecurity.test.helper.cluster.ClusterInfo;
 import com.amazon.opendistrosecurity.test.helper.file.FileHelper;
 import com.amazon.opendistrosecurity.test.helper.rest.RestHelper.HttpResponse;
-import com.amazon.opendistrosecurity.test.helper.rules.SGTestWatcher;
+import com.amazon.opendistrosecurity.test.helper.rules.OpenDistroSecurityTestWatcher;
 
 public abstract class AbstractSGUnitTest {
     
@@ -94,7 +94,7 @@ public abstract class AbstractSGUnitTest {
     public final TemporaryFolder repositoryPath = new TemporaryFolder();
 
 	@Rule
-	public final TestWatcher testWatcher = new SGTestWatcher();
+	public final TestWatcher testWatcher = new OpenDistroSecurityTestWatcher();
 
 	public static Header encodeBasicHeader(final String username, final String password) {
 		return new BasicHeader("Authorization", "Basic "+Base64.getEncoder().encodeToString(
@@ -132,7 +132,7 @@ public abstract class AbstractSGUnitTest {
                 .put(initTransportClientSettings)
                 .build();
         
-        TransportClient tc = new TransportClientImpl(tcSettings, asCollection(Netty4Plugin.class, SearchGuardPlugin.class));
+        TransportClient tc = new TransportClientImpl(tcSettings, asCollection(Netty4Plugin.class, OpenDistroSecurityPlugin.class));
         tc.addTransportAddress(new TransportAddress(new InetSocketAddress(info.nodeHost, info.nodePort)));
         return tc;
     }
@@ -151,7 +151,7 @@ public abstract class AbstractSGUnitTest {
                 .put(initTransportClientSettings)
                 .build();
         
-        TransportClient tc = new TransportClientImpl(tcSettings, asCollection(Netty4Plugin.class, SearchGuardPlugin.class));
+        TransportClient tc = new TransportClientImpl(tcSettings, asCollection(Netty4Plugin.class, OpenDistroSecurityPlugin.class));
         tc.addTransportAddress(new TransportAddress(new InetSocketAddress(info.nodeHost, info.nodePort)));
         return tc;
     }

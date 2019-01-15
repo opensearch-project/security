@@ -30,7 +30,7 @@ import org.elasticsearch.script.mustache.MustachePlugin;
 import org.elasticsearch.search.aggregations.matrix.MatrixAggregationPlugin;
 import org.elasticsearch.transport.Netty4Plugin;
 
-import com.amazon.opendistrosecurity.SearchGuardPlugin;
+import com.amazon.opendistrosecurity.OpenDistroSecurityPlugin;
 import com.amazon.opendistrosecurity.test.plugin.UserInjectorPlugin;
 import com.google.common.collect.Lists;
 
@@ -80,7 +80,7 @@ public enum ClusterConfiguration {
 		public boolean masterNode;
 		public boolean dataNode;
 		public boolean tribeNode;
-		public List<Class<? extends Plugin>> plugins = Lists.newArrayList(Netty4Plugin.class, SearchGuardPlugin.class, MatrixAggregationPlugin.class, MustachePlugin.class, ParentJoinPlugin.class, PercolatorPlugin.class, ReindexPlugin.class);
+		public List<Class<? extends Plugin>> plugins = Lists.newArrayList(Netty4Plugin.class, OpenDistroSecurityPlugin.class, MatrixAggregationPlugin.class, MustachePlugin.class, ParentJoinPlugin.class, PercolatorPlugin.class, ReindexPlugin.class);
 		
 		public NodeSettings(boolean masterNode, boolean dataNode, boolean tribeNode) {
 			super();

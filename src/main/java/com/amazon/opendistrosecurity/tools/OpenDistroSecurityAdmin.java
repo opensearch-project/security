@@ -90,7 +90,7 @@ import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.plugins.PluginInfo;
 import org.elasticsearch.transport.Netty4Plugin;
 
-import com.amazon.opendistrosecurity.SearchGuardPlugin;
+import com.amazon.opendistrosecurity.OpenDistroSecurityPlugin;
 import com.amazon.opendistrosecurity.action.configupdate.ConfigUpdateAction;
 import com.amazon.opendistrosecurity.action.configupdate.ConfigUpdateNodeResponse;
 import com.amazon.opendistrosecurity.action.configupdate.ConfigUpdateRequest;
@@ -104,10 +104,10 @@ import com.amazon.opendistrosecurity.action.whoami.WhoAmIResponse;
 import com.amazon.opendistrosecurity.ssl.util.ExceptionUtils;
 import com.amazon.opendistrosecurity.ssl.util.SSLConfigConstants;
 import com.amazon.opendistrosecurity.support.ConfigConstants;
-import com.amazon.opendistrosecurity.support.SearchGuardDeprecationHandler;
+import com.amazon.opendistrosecurity.support.OpenDistroSecurityDeprecationHandler;
 import com.google.common.io.Files;
 
-public class SearchGuardAdmin {
+public class OpenDistroSecurityAdmin {
     
     private static final String SG_TS_PASS = "SG_TS_PASS";
     private static final String SG_KS_PASS = "SG_KS_PASS";
@@ -442,7 +442,7 @@ public class SearchGuardAdmin {
                 Settings settings = settingsBuilder.build();  
 
         try (@SuppressWarnings("resource")
-        TransportClient tc = new TransportClientImpl(settings, asCollection(Netty4Plugin.class, SearchGuardPlugin.class))
+        TransportClient tc = new TransportClientImpl(settings, asCollection(Netty4Plugin.class, OpenDistroSecurityPlugin.class))
                 .addTransportAddress(new TransportAddress(new InetSocketAddress(hostname, port)))) {
 
             try {
@@ -846,7 +846,7 @@ public class SearchGuardAdmin {
         BytesReference retVal;
         XContentParser parser = null;
         try {
-            parser = XContentFactory.xContent(xContentType).createParser(NamedXContentRegistry.EMPTY, SearchGuardDeprecationHandler.INSTANCE, reader);
+            parser = XContentFactory.xContent(xContentType).createParser(NamedXContentRegistry.EMPTY, OpenDistroSecurityDeprecationHandler.INSTANCE, reader);
             parser.nextToken();
             final XContentBuilder builder = XContentFactory.jsonBuilder();
             builder.copyCurrentStructure(parser);
@@ -864,7 +864,7 @@ public class SearchGuardAdmin {
     
     private static String convertToYaml(String type, BytesReference bytes, boolean prettyPrint) throws IOException {
         
-        try (XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, SearchGuardDeprecationHandler.INSTANCE, bytes.streamInput())) {
+        try (XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, OpenDistroSecurityDeprecationHandler.INSTANCE, bytes.streamInput())) {
             
             parser.nextToken();
             parser.nextToken();
@@ -1041,7 +1041,7 @@ public class SearchGuardAdmin {
         
         if(nir.getNodes().size() > 0) {
             List<PluginInfo> pluginInfos = nir.getNodes().get(0).getPlugins().getPluginInfos();
-            String sgVersion = pluginInfos.stream().filter(p->p.getClassname().equals("com.amazon.opendistrosecurity.SearchGuardPlugin")).map(p->p.getVersion()).findFirst().orElse("<unknown>");
+            String sgVersion = pluginInfos.stream().filter(p->p.getClassname().equals("com.amazon.opendistrosecurity.OpenDistroSecurityPlugin")).map(p->p.getVersion()).findFirst().orElse("<unknown>");
             System.out.println("Search Guard Version: "+sgVersion);
         }
     }

@@ -32,9 +32,9 @@ import org.elasticsearch.rest.action.RestActions.NodesResponseRestListener;
 import com.amazon.opendistrosecurity.action.licenseinfo.LicenseInfoAction;
 import com.amazon.opendistrosecurity.action.licenseinfo.LicenseInfoRequest;
 
-public class SearchGuardLicenseAction extends BaseRestHandler {
+public class OpenDistroSecurityLicenseAction extends BaseRestHandler {
 
-    public SearchGuardLicenseAction(final Settings settings, final RestController controller) {
+    public OpenDistroSecurityLicenseAction(final Settings settings, final RestController controller) {
         super(settings);
         controller.registerHandler(GET, "/_searchguard/license", this);
         controller.registerHandler(POST, "/_searchguard/license", this);

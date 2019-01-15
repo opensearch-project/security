@@ -47,7 +47,7 @@ import com.amazon.opendistrosecurity.support.ConfigConstants;
 import com.amazon.opendistrosecurity.support.HTTPHelper;
 import com.amazon.opendistrosecurity.user.User;
 
-public class SearchGuardRestFilter {
+public class OpenDistroSecurityRestFilter {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
     private final BackendRegistry registry;
@@ -58,7 +58,7 @@ public class SearchGuardRestFilter {
     private final Path configPath;
     private final CompatConfig compatConfig;
 
-    public SearchGuardRestFilter(final BackendRegistry registry, final AuditLog auditLog,
+    public OpenDistroSecurityRestFilter(final BackendRegistry registry, final AuditLog auditLog,
             final ThreadPool threadPool, final PrincipalExtractor principalExtractor,
             final Settings settings, final Path configPath, final CompatConfig compatConfig) {
         super();

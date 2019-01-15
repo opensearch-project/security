@@ -34,7 +34,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import com.amazon.opendistrosecurity.configuration.IndexBaseConfigurationRepository;
-import com.amazon.opendistrosecurity.configuration.SearchGuardLicense;
+import com.amazon.opendistrosecurity.configuration.OpenDistroSecurityLicense;
 import com.amazon.opendistrosecurity.support.ReflectionHelper;
 
 public class TransportLicenseInfoAction
@@ -100,7 +100,7 @@ TransportNodesAction<LicenseInfoRequest, LicenseInfoResponse, TransportLicenseIn
 	
     @Override
     protected LicenseInfoNodeResponse nodeOperation(final NodeLicenseRequest request) {
-        final SearchGuardLicense license = configurationRepository.getLicense();
+        final OpenDistroSecurityLicense license = configurationRepository.getLicense();
         return new LicenseInfoNodeResponse(clusterService.localNode(), license, ReflectionHelper.getModulesLoaded()); 
     }
 }

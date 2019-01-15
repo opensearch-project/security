@@ -19,7 +19,7 @@ package com.amazon.opendistrosecurity.support;
 
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 
-public class SearchGuardDeprecationHandler {
+public class OpenDistroSecurityDeprecationHandler {
     
     public final static DeprecationHandler INSTANCE = new DeprecationHandler() {
         @Override

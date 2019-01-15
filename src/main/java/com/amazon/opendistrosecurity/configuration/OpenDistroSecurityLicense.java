@@ -35,7 +35,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
-public final class SearchGuardLicense implements Writeable {
+public final class OpenDistroSecurityLicense implements Writeable {
 
     private static final DateTimeFormatter DEFAULT_FOMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     
@@ -58,8 +58,8 @@ public final class SearchGuardLicense implements Writeable {
     private String prodUsage;
     private final ClusterService clusterService;
     
-    public static SearchGuardLicense createTrialLicense(String issueDate, ClusterService clusterService, String msg) {
-        final SearchGuardLicense trialLicense =  new SearchGuardLicense("00000000-0000-0000-0000-000000000000", Type.TRIAL, Feature.values(), issueDate, addDays(issueDate, 60), "The world", "floragunn GmbH", issueDate, 6, "*", Integer.MAX_VALUE, clusterService);
+    public static OpenDistroSecurityLicense createTrialLicense(String issueDate, ClusterService clusterService, String msg) {
+        final OpenDistroSecurityLicense trialLicense =  new OpenDistroSecurityLicense("00000000-0000-0000-0000-000000000000", Type.TRIAL, Feature.values(), issueDate, addDays(issueDate, 60), "The world", "floragunn GmbH", issueDate, 6, "*", Integer.MAX_VALUE, clusterService);
         if(msg != null) {
             trialLicense.msgs.add(msg);
         }
@@ -87,7 +87,7 @@ public final class SearchGuardLicense implements Writeable {
         out.writeArray(StreamOutput::writeEnum, features==null?new Feature[0]:features);
     }
     
-    public SearchGuardLicense(final StreamInput in) throws IOException {
+    public OpenDistroSecurityLicense(final StreamInput in) throws IOException {
         uid = in.readString();
         type = in.readEnum(Type.class);
         issueDate = in.readString();
@@ -115,7 +115,7 @@ public final class SearchGuardLicense implements Writeable {
         
     }
 
-    public SearchGuardLicense(final Map<String, Object> map, ClusterService clusterService) {
+    public OpenDistroSecurityLicense(final Map<String, Object> map, ClusterService clusterService) {
         this(
                  (String) (map==null?null:map.get("uid")),
                  (Type)   (map==null?null:Type.valueOf(((String)map.get("type")).toUpperCase())),
@@ -137,7 +137,7 @@ public final class SearchGuardLicense implements Writeable {
             return new Feature[0];
         }
         
-        List<Feature> retVal = new ArrayList<SearchGuardLicense.Feature>();
+        List<Feature> retVal = new ArrayList<OpenDistroSecurityLicense.Feature>();
         
         for(String feature: featuresAsString) {
             if(feature != null && !feature.isEmpty()) {
@@ -153,7 +153,7 @@ public final class SearchGuardLicense implements Writeable {
         return retVal.toArray(new Feature[0]);
     }
     
-    public SearchGuardLicense(String uid, Type type, Feature[] features, String issueDate, String expiryDate, String issuedTo, String issuer, String startDate, Integer majorVersion, String clusterName, int allowedNodeCount,  ClusterService clusterService) {
+    public OpenDistroSecurityLicense(String uid, Type type, Feature[] features, String issueDate, String expiryDate, String issuedTo, String issuer, String startDate, Integer majorVersion, String clusterName, int allowedNodeCount,  ClusterService clusterService) {
         super();
         this.uid = Objects.requireNonNull(uid);
         this.type = Objects.requireNonNull(type);
@@ -380,7 +380,7 @@ public final class SearchGuardLicense implements Writeable {
 
     @Override
     public String toString() {
-        return "SearchGuardLicense [uid=" + uid + ", type=" + type + ", features=" + Arrays.toString(features) + ", issueDate=" + issueDate + ", expiryDate=" + expiryDate
+        return "OpenDistroSecurityLicense [uid=" + uid + ", type=" + type + ", features=" + Arrays.toString(features) + ", issueDate=" + issueDate + ", expiryDate=" + expiryDate
                 + ", issuedTo=" + issuedTo + ", issuer=" + issuer + ", startDate=" + startDate + ", majorVersion=" + majorVersion
                 + ", clusterName=" + clusterName + ", allowedNodeCount=" + allowedNodeCount + ", msgs=" + msgs + ", expiresInDays="
                 + expiresInDays + ", isExpired=" + isExpired + ", valid=" + valid + ", action=" + action + ", prodUsage=" + prodUsage

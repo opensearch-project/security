@@ -40,7 +40,7 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 
-import com.amazon.opendistrosecurity.support.SearchGuardDeprecationHandler;
+import com.amazon.opendistrosecurity.support.OpenDistroSecurityDeprecationHandler;
 
 public class FileHelper {
 
@@ -91,7 +91,7 @@ public class FileHelper {
         
         XContentParser parser = null;
         try {
-            parser = XContentFactory.xContent(XContentType.YAML).createParser(NamedXContentRegistry.EMPTY, SearchGuardDeprecationHandler.INSTANCE, new StringReader(loadFile(file)));
+            parser = XContentFactory.xContent(XContentType.YAML).createParser(NamedXContentRegistry.EMPTY, OpenDistroSecurityDeprecationHandler.INSTANCE, new StringReader(loadFile(file)));
             parser.nextToken();
             final XContentBuilder builder = XContentFactory.jsonBuilder();
             builder.copyCurrentStructure(parser);
@@ -114,7 +114,7 @@ public class FileHelper {
         
         XContentParser parser = null;
         try {
-            parser = XContentFactory.xContent(XContentType.YAML).createParser(NamedXContentRegistry.EMPTY, SearchGuardDeprecationHandler.INSTANCE, new StringReader(yaml));
+            parser = XContentFactory.xContent(XContentType.YAML).createParser(NamedXContentRegistry.EMPTY, OpenDistroSecurityDeprecationHandler.INSTANCE, new StringReader(yaml));
             parser.nextToken();
             final XContentBuilder builder = XContentFactory.jsonBuilder();
             builder.copyCurrentStructure(parser);
