@@ -291,27 +291,27 @@ public class ReflectionHelper {
     public static boolean isEnterpriseAAAModule(final String clazz) {
         boolean enterpriseModuleInstalled = false;
 
-        if (clazz.equalsIgnoreCase("com.floragunn.dlic.auth.ldap.backend.LDAPAuthorizationBackend")) {
+        if (clazz.equalsIgnoreCase("com.amazon.dlic.auth.ldap.backend.LDAPAuthorizationBackend")) {
             enterpriseModuleInstalled = true;
         }
 
-        if (clazz.equalsIgnoreCase("com.floragunn.dlic.auth.ldap.backend.LDAPAuthenticationBackend")) {
+        if (clazz.equalsIgnoreCase("com.amazon.dlic.auth.ldap.backend.LDAPAuthenticationBackend")) {
             enterpriseModuleInstalled = true;
         }
 
-        if (clazz.equalsIgnoreCase("com.floragunn.dlic.auth.http.jwt.HTTPJwtAuthenticator")) {
+        if (clazz.equalsIgnoreCase("com.amazon.dlic.auth.http.jwt.HTTPJwtAuthenticator")) {
             enterpriseModuleInstalled = true;
         }
         
-        if (clazz.equalsIgnoreCase("com.floragunn.dlic.auth.http.jwt.keybyoidc.HTTPJwtKeyByOpenIdConnectAuthenticator")) {
+        if (clazz.equalsIgnoreCase("com.amazon.dlic.auth.http.jwt.keybyoidc.HTTPJwtKeyByOpenIdConnectAuthenticator")) {
             enterpriseModuleInstalled = true;
         }
 
-        if (clazz.equalsIgnoreCase("com.floragunn.dlic.auth.http.kerberos.HTTPSpnegoAuthenticator")) {
+        if (clazz.equalsIgnoreCase("com.amazon.dlic.auth.http.kerberos.HTTPSpnegoAuthenticator")) {
             enterpriseModuleInstalled = true;
         }
         
-        if (clazz.equalsIgnoreCase("com.floragunn.dlic.auth.http.saml.HTTPSamlAuthenticator")) {
+        if (clazz.equalsIgnoreCase("com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator")) {
             enterpriseModuleInstalled = true;
         }
 

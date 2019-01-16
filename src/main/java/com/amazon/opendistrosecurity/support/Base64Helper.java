@@ -90,7 +90,7 @@ public class Base64Helper {
         private static final List<String> SAFE_CLASSES = new ArrayList<>();
 
         static {
-            SAFE_CLASSES.add("com.floragunn.dlic.auth.ldap.LdapUser");
+            SAFE_CLASSES.add("com.amazon.dlic.auth.ldap.LdapUser");
             SAFE_CLASSES.add("org.ldaptive.SearchEntry");
             SAFE_CLASSES.add("org.ldaptive.LdapEntry");
             SAFE_CLASSES.add("org.ldaptive.AbstractLdapBean");
