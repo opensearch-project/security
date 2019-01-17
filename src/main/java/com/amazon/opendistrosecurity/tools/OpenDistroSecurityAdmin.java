@@ -374,68 +374,68 @@ public class OpenDistroSecurityAdmin {
         
         final Settings.Builder settingsBuilder = Settings
                 .builder()
-                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, !nhnv)
-                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, !nrhn)
-                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLED, true)
-                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, useOpenSSLIfAvailable)
-                .putList(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLED_CIPHERS, enabledCiphers)
-                .putList(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLED_PROTOCOLS, enabledProtocols)
+                .put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, !nhnv)
+                .put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, !nrhn)
+                .put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_ENABLED, true)
+                .put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, useOpenSSLIfAvailable)
+                .putList(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, enabledCiphers)
+                .putList(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, enabledProtocols)
                 
                 .put("cluster.name", clustername)
                 .put("client.transport.ignore_cluster_name", icl)
                 .put("client.transport.sniff", sniff);
                 
                 if(ksAlias != null) {
-                    settingsBuilder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS, ksAlias);
+                    settingsBuilder.put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, ksAlias);
                 }
                 
                 if(tsAlias != null) {
-                    settingsBuilder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_TRUSTSTORE_ALIAS, tsAlias);
+                    settingsBuilder.put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_TRUSTSTORE_ALIAS, tsAlias);
                 }
                 
                 if(ks != null) {
-                    settingsBuilder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_FILEPATH, ks);
-                    settingsBuilder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_TYPE, kst==null?(ks.endsWith(".jks")?"JKS":"PKCS12"):kst);
+                    settingsBuilder.put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, ks);
+                    settingsBuilder.put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, kst==null?(ks.endsWith(".jks")?"JKS":"PKCS12"):kst);
                     
                     if(kspass == null && promptForPassword) {
                         kspass = promptForPassword("Keystore", "kspass", SG_KS_PASS);
                     }
                     
                     if(kspass != null) {
-                        settingsBuilder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_PASSWORD, kspass);
+                        settingsBuilder.put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD, kspass);
                     }
                 }
                 
                 if(ts != null) {
-                    settingsBuilder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, ts);
-                    settingsBuilder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_TRUSTSTORE_TYPE, tst==null?(ts.endsWith(".jks")?"JKS":"PKCS12"):tst);
+                    settingsBuilder.put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, ts);
+                    settingsBuilder.put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE, tst==null?(ts.endsWith(".jks")?"JKS":"PKCS12"):tst);
                     
                     if(tspass == null && promptForPassword) {
                         tspass = promptForPassword("Truststore", "tspass", SG_TS_PASS);
                     }
                     
                     if(tspass != null) {
-                        settingsBuilder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_TRUSTSTORE_PASSWORD, tspass);
+                        settingsBuilder.put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD, tspass);
                     }
                 }            
                 
                 if(cacert != null) {
-                    settingsBuilder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH, cacert);
+                    settingsBuilder.put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH, cacert);
                 }
                 
                 if(cert != null) {
-                    settingsBuilder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_PEMCERT_FILEPATH, cert);
+                    settingsBuilder.put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH, cert);
                 }
                 
                 if(key != null) {
-                    settingsBuilder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_PEMKEY_FILEPATH, key);
+                    settingsBuilder.put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH, key);
                     
                     if(keypass == null && promptForPassword) {
                         keypass = promptForPassword("Pemkey", "keypass", SG_KEYPASS);
                     }
                     
                     if(keypass != null) {
-                        settingsBuilder.put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_PEMKEY_PASSWORD, keypass);
+                        settingsBuilder.put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_PEMKEY_PASSWORD, keypass);
                     }
                 }
 

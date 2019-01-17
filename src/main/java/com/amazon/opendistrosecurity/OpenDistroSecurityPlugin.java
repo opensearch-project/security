@@ -277,7 +277,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         log.info("Clustername: {}", settings.get("cluster.name","elasticsearch"));
 
         if(!transportSSLEnabled) {
-            throw new IllegalStateException(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLED+" must be set to 'true'");
+            throw new IllegalStateException(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_ENABLED+" must be set to 'true'");
         }
 
         if(log.isDebugEnabled() && this.settings.getByPrefix("tribe").size() > 0) {
@@ -783,7 +783,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         sgf = new OpenDistroSecurityFilter(evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs, complianceConfig, compatConfig);
 
 
-        final String principalExtractorClass = settings.get(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, null);
+        final String principalExtractorClass = settings.get(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, null);
 
         if(principalExtractorClass == null) {
             principalExtractor = new com.amazon.opendistrosecurity.ssl.transport.DefaultPrincipalExtractor();

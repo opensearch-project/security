@@ -91,8 +91,8 @@ public class SlowIntegrationTests extends SingleClusterTest {
                 .put("node.ingest", false)
                 .put("path.home", ".")
                 .put("discovery.initial_state_timeout","8s")
-                .put("searchguard.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("kirk-keystore.jks"))
-                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS,"kirk")
+                .put("opendistrosecurity.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("kirk-keystore.jks"))
+                .put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS,"kirk")
                 .build();
     
         log.debug("Start node client");
@@ -121,8 +121,8 @@ public class SlowIntegrationTests extends SingleClusterTest {
                 .put("node.ingest", false)
                 .put("path.home", ".")
                 .put("discovery.initial_state_timeout","8s")
-                .put("searchguard.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("spock-keystore.jks"))
-                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_ALIAS,"spock")
+                .put("opendistrosecurity.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("spock-keystore.jks"))
+                .put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS,"spock")
                 .build();
     
         log.debug("Start node client");

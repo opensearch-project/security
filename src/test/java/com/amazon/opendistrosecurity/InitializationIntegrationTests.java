@@ -54,10 +54,10 @@ public class InitializationIntegrationTests extends SingleClusterTest {
     public void testEnsureInitViaRestDoesWork() throws Exception {
         
         final Settings settings = Settings.builder()
-                .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
-                .put("searchguard.ssl.http.enabled",true)
-                .put("searchguard.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-                .put("searchguard.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+                .put(SSLConfigConstants.OPENDISTROSECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
+                .put("opendistrosecurity.ssl.http.enabled",true)
+                .put("opendistrosecurity.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+                .put("opendistrosecurity.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
                 .build();
         setup(Settings.EMPTY, null, settings, false);
         final RestHelper rh = restHelper(); //ssl resthelper

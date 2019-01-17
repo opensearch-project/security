@@ -340,14 +340,14 @@ echo "$SG_ADMIN_CERT_KEY" | $SUDO_CMD tee "$ES_CONF_DIR/kirk-key.pem" > /dev/nul
 echo "" | $SUDO_CMD tee -a  "$ES_CONF_FILE"
 echo "######## Start Search Guard Demo Configuration ########" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null 
 echo "# WARNING: revise all the lines below before you go into production" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null 
-echo "searchguard.ssl.transport.pemcert_filepath: esnode.pem" | $SUDO_CMD tee -a  "$ES_CONF_FILE" > /dev/null 
-echo "searchguard.ssl.transport.pemkey_filepath: esnode-key.pem" | $SUDO_CMD tee -a  "$ES_CONF_FILE" > /dev/null 
-echo "searchguard.ssl.transport.pemtrustedcas_filepath: root-ca.pem" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null 
-echo "searchguard.ssl.transport.enforce_hostname_verification: false" | $SUDO_CMD tee -a  "$ES_CONF_FILE" > /dev/null 
-echo "searchguard.ssl.http.enabled: true" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null 
-echo "searchguard.ssl.http.pemcert_filepath: esnode.pem" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
-echo "searchguard.ssl.http.pemkey_filepath: esnode-key.pem" | $SUDO_CMD tee -a  "$ES_CONF_FILE" > /dev/null 
-echo "searchguard.ssl.http.pemtrustedcas_filepath: root-ca.pem" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null 
+echo "opendistrosecurity.ssl.transport.pemcert_filepath: esnode.pem" | $SUDO_CMD tee -a  "$ES_CONF_FILE" > /dev/null
+echo "opendistrosecurity.ssl.transport.pemkey_filepath: esnode-key.pem" | $SUDO_CMD tee -a  "$ES_CONF_FILE" > /dev/null
+echo "opendistrosecurity.ssl.transport.pemtrustedcas_filepath: root-ca.pem" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
+echo "opendistrosecurity.ssl.transport.enforce_hostname_verification: false" | $SUDO_CMD tee -a  "$ES_CONF_FILE" > /dev/null
+echo "opendistrosecurity.ssl.http.enabled: true" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
+echo "opendistrosecurity.ssl.http.pemcert_filepath: esnode.pem" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
+echo "opendistrosecurity.ssl.http.pemkey_filepath: esnode-key.pem" | $SUDO_CMD tee -a  "$ES_CONF_FILE" > /dev/null
+echo "opendistrosecurity.ssl.http.pemtrustedcas_filepath: root-ca.pem" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
 echo "searchguard.allow_unsafe_democertificates: true" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
 if [ "$initsg" == 1 ]; then
     echo "searchguard.allow_default_init_sgindex: true" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null

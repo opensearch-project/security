@@ -124,10 +124,10 @@ public abstract class AbstractSGUnitTest {
         
         Settings tcSettings = Settings.builder()
                 .put("cluster.name", info.clustername)
-                .put("searchguard.ssl.transport.truststore_filepath",
+                .put("opendistrosecurity.ssl.transport.truststore_filepath",
                         FileHelper.getAbsoluteFilePathFromClassPath(prefix+"truststore.jks"))
-                .put("searchguard.ssl.transport.enforce_hostname_verification", false)
-                .put("searchguard.ssl.transport.keystore_filepath",
+                .put("opendistrosecurity.ssl.transport.enforce_hostname_verification", false)
+                .put("opendistrosecurity.ssl.transport.keystore_filepath",
                         FileHelper.getAbsoluteFilePathFromClassPath(prefix+"kirk-keystore.jks"))
                 .put(initTransportClientSettings)
                 .build();
@@ -143,10 +143,10 @@ public abstract class AbstractSGUnitTest {
         
         Settings tcSettings = Settings.builder()
                 .put("cluster.name", info.clustername)
-                .put("searchguard.ssl.transport.truststore_filepath",
+                .put("opendistrosecurity.ssl.transport.truststore_filepath",
                         FileHelper.getAbsoluteFilePathFromClassPath(prefix+"truststore.jks"))
-                .put("searchguard.ssl.transport.enforce_hostname_verification", false)
-                .put("searchguard.ssl.transport.keystore_filepath",
+                .put("opendistrosecurity.ssl.transport.enforce_hostname_verification", false)
+                .put("opendistrosecurity.ssl.transport.keystore_filepath",
                         FileHelper.getAbsoluteFilePathFromClassPath(prefix+keyStore))
                 .put(initTransportClientSettings)
                 .build();
@@ -200,18 +200,18 @@ public abstract class AbstractSGUnitTest {
         final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
         
         return Settings.builder()
-                //.put("searchguard.ssl.transport.enabled", true)
+                //.put("opendistrosecurity.ssl.transport.enabled", true)
                  //.put("searchguard.no_default_init", true)
-                //.put("searchguard.ssl.http.enable_openssl_if_available", false)
-                //.put("searchguard.ssl.transport.enable_openssl_if_available", false)
-                .put(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-                .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-                .put("searchguard.ssl.transport.keystore_alias", "node-0")
-                .put("searchguard.ssl.transport.keystore_filepath",
+                //.put("opendistrosecurity.ssl.http.enable_openssl_if_available", false)
+                //.put("opendistrosecurity.ssl.transport.enable_openssl_if_available", false)
+                .put(SSLConfigConstants.OPENDISTROSECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
+                .put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
+                .put("opendistrosecurity.ssl.transport.keystore_alias", "node-0")
+                .put("opendistrosecurity.ssl.transport.keystore_filepath",
                         FileHelper.getAbsoluteFilePathFromClassPath(prefix+"node-0-keystore.jks"))
-                .put("searchguard.ssl.transport.truststore_filepath",
+                .put("opendistrosecurity.ssl.transport.truststore_filepath",
                         FileHelper.getAbsoluteFilePathFromClassPath(prefix+"truststore.jks"))
-                .put("searchguard.ssl.transport.enforce_hostname_verification", false)
+                .put("opendistrosecurity.ssl.transport.enforce_hostname_verification", false)
                 .putList("searchguard.authcz.admin_dn", "CN=kirk,OU=client,O=client,l=tEst, C=De");
                 //.put(other==null?Settings.EMPTY:other);
     }

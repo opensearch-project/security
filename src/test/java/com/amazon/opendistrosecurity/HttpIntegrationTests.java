@@ -245,9 +245,9 @@ public class HttpIntegrationTests extends SingleClusterTest {
     @Test
     public void testHTTPSCompressionEnabled() throws Exception {
         final Settings settings = Settings.builder()
-                .put("searchguard.ssl.http.enabled",true)
-                .put("searchguard.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-                .put("searchguard.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+                .put("opendistrosecurity.ssl.http.enabled",true)
+                .put("opendistrosecurity.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+                .put("opendistrosecurity.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
                 .put("http.compression",true)
                 .build();
         setup(Settings.EMPTY, new DynamicSgConfig(), settings, true);
@@ -267,9 +267,9 @@ public class HttpIntegrationTests extends SingleClusterTest {
     @Test
     public void testHTTPSCompression() throws Exception {
         final Settings settings = Settings.builder()
-                .put("searchguard.ssl.http.enabled",true)
-                .put("searchguard.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-                .put("searchguard.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+                .put("opendistrosecurity.ssl.http.enabled",true)
+                .put("opendistrosecurity.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+                .put("opendistrosecurity.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
                 .build();
         setup(Settings.EMPTY, new DynamicSgConfig(), settings, true);
         final RestHelper rh = restHelper(); //ssl resthelper
@@ -329,14 +329,14 @@ public class HttpIntegrationTests extends SingleClusterTest {
     @Test
     public void testHTTPClientCert() throws Exception {
         final Settings settings = Settings.builder()
-                .put("searchguard.ssl.http.clientauth_mode","REQUIRE")
-                .put("searchguard.ssl.http.enabled",true)
-                .put("searchguard.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-                .put("searchguard.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
-                .putList(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLED_PROTOCOLS, "TLSv1.1","TLSv1.2")
-                .putList(SSLConfigConstants.SEARCHGUARD_SSL_HTTP_ENABLED_CIPHERS, "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256")
-                .putList(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLED_PROTOCOLS, "TLSv1.1","TLSv1.2")
-                .putList(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_ENABLED_CIPHERS, "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256")
+                .put("opendistrosecurity.ssl.http.clientauth_mode","REQUIRE")
+                .put("opendistrosecurity.ssl.http.enabled",true)
+                .put("opendistrosecurity.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+                .put("opendistrosecurity.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+                .putList(SSLConfigConstants.OPENDISTROSECURITY_SSL_HTTP_ENABLED_PROTOCOLS, "TLSv1.1","TLSv1.2")
+                .putList(SSLConfigConstants.OPENDISTROSECURITY_SSL_HTTP_ENABLED_CIPHERS, "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256")
+                .putList(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, "TLSv1.1","TLSv1.2")
+                .putList(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256")
                 .build();
         
         setup(Settings.EMPTY, new DynamicSgConfig().setSgConfig("sg_config_clientcert.yml"), settings, true);
@@ -370,9 +370,9 @@ public class HttpIntegrationTests extends SingleClusterTest {
         
         try {
             final Settings settings = Settings.builder()
-                    .put("searchguard.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-                    .put("searchguard.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
-                    .put("searchguard.ssl.http.enabled", true)
+                    .put("opendistrosecurity.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+                    .put("opendistrosecurity.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+                    .put("opendistrosecurity.ssl.http.enabled", true)
                     .build();
             setup(settings);
             RestHelper rh = nonSslRestHelper();
