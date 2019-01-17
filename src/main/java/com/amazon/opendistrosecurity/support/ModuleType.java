@@ -35,8 +35,8 @@ import com.amazon.opendistrosecurity.transport.InterClusterRequestEvaluator;
 
 public enum ModuleType implements Serializable {
 
-	REST_MANAGEMENT_API("REST Management API", "com.amazon.opendistrosecurity.dlic.rest.api.SearchGuardRestApiActions", Boolean.TRUE),
-	DLSFLS("Document- and Field-Level Security", "com.amazon.opendistrosecurity.configuration.SearchGuardFlsDlsIndexSearcherWrapper", Boolean.TRUE),
+	REST_MANAGEMENT_API("REST Management API", "com.amazon.opendistrosecurity.dlic.rest.api.OpenDistroSecurityRestApiActions", Boolean.TRUE),
+	DLSFLS("Document- and Field-Level Security", "com.amazon.opendistrosecurity.configuration.OpenDistroSecurityFlsDlsIndexSearcherWrapper", Boolean.TRUE),
 	AUDITLOG("Audit Logging", "com.amazon.opendistrosecurity.auditlog.impl.AuditLogImpl", Boolean.TRUE),
 	MULTITENANCY("Kibana Multitenancy", "com.amazon.opendistrosecurity.configuration.PrivilegesInterceptorImpl", Boolean.TRUE),
 	LDAP_AUTHENTICATION_BACKEND("LDAP authentication backend", "com.amazon.dlic.auth.ldap.backend.LDAPAuthenticationBackend", Boolean.TRUE),

@@ -77,7 +77,7 @@ public class ReflectionHelper {
         if(!settings.getAsBoolean("http.enabled", true)) {
     
             try {
-                final Class<?> clazz = Class.forName("com.amazon.opendistrosecurity.dlic.rest.api.SearchGuardRestApiActions");
+                final Class<?> clazz = Class.forName("com.amazon.opendistrosecurity.dlic.rest.api.OpenDistroSecurityRestApiActions");
                 addLoadedModule(clazz);
             } catch (final Throwable e) {
                 log.warn("Unable to register Rest Management Api Module due to {}", e.toString());
@@ -98,7 +98,7 @@ public class ReflectionHelper {
         }
 
         try {
-            final Class<?> clazz = Class.forName("com.amazon.opendistrosecurity.dlic.rest.api.SearchGuardRestApiActions");
+            final Class<?> clazz = Class.forName("com.amazon.opendistrosecurity.dlic.rest.api.OpenDistroSecurityRestApiActions");
             final Collection<RestHandler> ret = (Collection<RestHandler>) clazz
                     .getDeclaredMethod("getHandler", Settings.class, Path.class, RestController.class, Client.class, AdminDNs.class, IndexBaseConfigurationRepository.class,
                             ClusterService.class, PrincipalExtractor.class, PrivilegesEvaluator.class, ThreadPool.class, AuditLog.class)
@@ -122,7 +122,7 @@ public class ReflectionHelper {
         }
 
         try {
-            final Class<?> clazz = Class.forName("com.amazon.opendistrosecurity.configuration.SearchGuardFlsDlsIndexSearcherWrapper");
+            final Class<?> clazz = Class.forName("com.amazon.opendistrosecurity.configuration.OpenDistroSecurityFlsDlsIndexSearcherWrapper");
             final Constructor<?> ret = clazz.getConstructor(IndexService.class,
                     Settings.class, AdminDNs.class, ClusterService.class, AuditLog.class,
                     ComplianceIndexingOperationListener.class, ComplianceConfig.class);
