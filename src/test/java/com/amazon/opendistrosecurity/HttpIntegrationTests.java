@@ -253,7 +253,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
         setup(Settings.EMPTY, new DynamicSgConfig(), settings, true);
         final RestHelper rh = restHelper(); //ssl resthelper
 
-        HttpResponse res = rh.executeGetRequest("_searchguard/sslinfo", encodeBasicHeader("nagilum", "nagilum"));
+        HttpResponse res = rh.executeGetRequest("_opendistrosecurity/sslinfo", encodeBasicHeader("nagilum", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         System.out.println(res);
         assertContains(res, "*ssl_protocol\":\"TLSv1.2*");
@@ -274,7 +274,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
         setup(Settings.EMPTY, new DynamicSgConfig(), settings, true);
         final RestHelper rh = restHelper(); //ssl resthelper
 
-        HttpResponse res = rh.executeGetRequest("_searchguard/sslinfo", encodeBasicHeader("nagilum", "nagilum"));
+        HttpResponse res = rh.executeGetRequest("_opendistrosecurity/sslinfo", encodeBasicHeader("nagilum", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         System.out.println(res);
         assertContains(res, "*ssl_protocol\":\"TLSv1.2*");
