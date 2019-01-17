@@ -114,7 +114,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
           
         for (Iterator<TransportAddress> iterator = clusterInfo.httpAdresses.iterator(); iterator.hasNext();) {
             TransportAddress TransportAddress = (TransportAddress) iterator.next();
-            HttpResponse res = rh.executeRequest(new HttpGet("http://"+TransportAddress.getAddress()+":"+TransportAddress.getPort() + "/" + "_searchguard/authinfo?pretty=true"), spock);
+            HttpResponse res = rh.executeRequest(new HttpGet("http://"+TransportAddress.getAddress()+":"+TransportAddress.getPort() + "/" + "_opendistrosecurity/authinfo?pretty=true"), spock);
             Assert.assertTrue(res.getBody().contains("spock"));
             Assert.assertFalse(res.getBody().contains("additionalrole"));
             Assert.assertTrue(res.getBody().contains("vulcan"));
@@ -130,7 +130,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         for (Iterator<TransportAddress> iterator = clusterInfo.httpAdresses.iterator(); iterator.hasNext();) {
             TransportAddress TransportAddress = (TransportAddress) iterator.next();
             log.debug("http://"+TransportAddress.getAddress()+":"+TransportAddress.getPort());
-            HttpResponse res = rh.executeRequest(new HttpGet("http://"+TransportAddress.getAddress()+":"+TransportAddress.getPort() + "/" + "_searchguard/authinfo?pretty=true"), spock);
+            HttpResponse res = rh.executeRequest(new HttpGet("http://"+TransportAddress.getAddress()+":"+TransportAddress.getPort() + "/" + "_opendistrosecurity/authinfo?pretty=true"), spock);
             Assert.assertTrue(res.getBody().contains("spock"));
             Assert.assertTrue(res.getBody().contains("additionalrole1"));
             Assert.assertTrue(res.getBody().contains("additionalrole2"));
@@ -146,7 +146,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         
         for (Iterator<TransportAddress> iterator = clusterInfo.httpAdresses.iterator(); iterator.hasNext();) {
             TransportAddress TransportAddress = (TransportAddress) iterator.next();
-            HttpResponse res = rh.executeRequest(new HttpGet("http://"+TransportAddress.getAddress()+":"+TransportAddress.getPort() + "/" + "_searchguard/authinfo?pretty=true"));
+            HttpResponse res = rh.executeRequest(new HttpGet("http://"+TransportAddress.getAddress()+":"+TransportAddress.getPort() + "/" + "_opendistrosecurity/authinfo?pretty=true"));
             log.debug(res.getBody());
             Assert.assertTrue(res.getBody().contains("sg_role_host1"));
             Assert.assertTrue(res.getBody().contains("sg_anonymous"));
@@ -199,7 +199,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         RestHelper rh = nonSslRestHelper();
         HttpResponse res;
         Thread.sleep(5000);
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_searchguard/license?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistrosecurity/license?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode());
         System.out.println(res.getBody());
         assertContains(res, "*TRIAL*");
         assertNotContains(res, "*FULL*");

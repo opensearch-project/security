@@ -36,8 +36,8 @@ public class OpenDistroSecurityLicenseAction extends BaseRestHandler {
 
     public OpenDistroSecurityLicenseAction(final Settings settings, final RestController controller) {
         super(settings);
-        controller.registerHandler(GET, "/_searchguard/license", this);
-        controller.registerHandler(POST, "/_searchguard/license", this);
+        controller.registerHandler(GET, "/_opendistrosecurity/license", this);
+        controller.registerHandler(POST, "/_opendistrosecurity/license", this);
     }
 
     @Override

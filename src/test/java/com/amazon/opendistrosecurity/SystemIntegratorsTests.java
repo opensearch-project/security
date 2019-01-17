@@ -47,31 +47,31 @@ public class SystemIntegratorsTests extends SingleClusterTest {
         
         HttpResponse resc;
         
-        resc = rh.executeGetRequest("_searchguard/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, null));
+        resc = rh.executeGetRequest("_opendistrosecurity/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, null));
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, resc.getStatusCode());
 
-        resc = rh.executeGetRequest("_searchguard/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "|||"));
+        resc = rh.executeGetRequest("_opendistrosecurity/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "|||"));
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, resc.getStatusCode());
         
-        resc = rh.executeGetRequest("_searchguard/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "||127.0.0:80|"));
+        resc = rh.executeGetRequest("_opendistrosecurity/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "||127.0.0:80|"));
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, resc.getStatusCode());
         
-        resc = rh.executeGetRequest("_searchguard/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "username||ip|"));
+        resc = rh.executeGetRequest("_opendistrosecurity/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "username||ip|"));
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, resc.getStatusCode());
 
-        resc = rh.executeGetRequest("_searchguard/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "username||ip:port|"));
+        resc = rh.executeGetRequest("_opendistrosecurity/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "username||ip:port|"));
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, resc.getStatusCode());
 
-        resc = rh.executeGetRequest("_searchguard/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "username||ip:80|"));
+        resc = rh.executeGetRequest("_opendistrosecurity/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "username||ip:80|"));
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, resc.getStatusCode());
 
-        resc = rh.executeGetRequest("_searchguard/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "username||127.0.x:80|"));
+        resc = rh.executeGetRequest("_opendistrosecurity/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "username||127.0.x:80|"));
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, resc.getStatusCode());
 
-        resc = rh.executeGetRequest("_searchguard/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "username||127.0.0:80|key1,value1,key2"));
+        resc = rh.executeGetRequest("_opendistrosecurity/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "username||127.0.0:80|key1,value1,key2"));
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, resc.getStatusCode());
 
-        resc = rh.executeGetRequest("_searchguard/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "||127.0.0:80|key1,value1,key2,value2"));
+        resc = rh.executeGetRequest("_opendistrosecurity/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "||127.0.0:80|key1,value1,key2,value2"));
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, resc.getStatusCode());
         
     }
@@ -91,21 +91,21 @@ public class SystemIntegratorsTests extends SingleClusterTest {
         
         HttpResponse resc;
                
-        resc = rh.executeGetRequest("_searchguard/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "admin||127.0.0:80|"));
+        resc = rh.executeGetRequest("_opendistrosecurity/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "admin||127.0.0:80|"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
         Assert.assertTrue(resc.getBody().contains("User [name=admin, roles=[], requestedTenant=null]"));
         Assert.assertTrue(resc.getBody().contains("\"remote_address\":\"127.0.0.0:80\""));
         Assert.assertTrue(resc.getBody().contains("\"backend_roles\":[]"));
         Assert.assertTrue(resc.getBody().contains("\"custom_attribute_names\":[]"));
 
-        resc = rh.executeGetRequest("_searchguard/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "admin|role1|127.0.0:80|key1,value1"));
+        resc = rh.executeGetRequest("_opendistrosecurity/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "admin|role1|127.0.0:80|key1,value1"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
         Assert.assertTrue(resc.getBody().contains("User [name=admin, roles=[role1], requestedTenant=null]"));
         Assert.assertTrue(resc.getBody().contains("\"remote_address\":\"127.0.0.0:80\""));
         Assert.assertTrue(resc.getBody().contains("\"backend_roles\":[\"role1\"]"));
         Assert.assertTrue(resc.getBody().contains("\"custom_attribute_names\":[\"key1\"]"));
 
-        resc = rh.executeGetRequest("_searchguard/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "admin|role1,role2||key1,value1"));
+        resc = rh.executeGetRequest("_opendistrosecurity/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "admin|role1,role2||key1,value1"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
         Assert.assertTrue(resc.getBody().contains("User [name=admin, roles=[role1, role2], requestedTenant=null]"));
         // remote IP is assigned by XFFResolver
@@ -113,7 +113,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
         Assert.assertTrue(resc.getBody().contains("\"backend_roles\":[\"role1\",\"role2\"]"));
         Assert.assertTrue(resc.getBody().contains("\"custom_attribute_names\":[\"key1\"]"));
 
-        resc = rh.executeGetRequest("_searchguard/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "admin|role1,role2|8.8.8.8:8|key1,value1,key2,value2"));
+        resc = rh.executeGetRequest("_opendistrosecurity/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "admin|role1,role2|8.8.8.8:8|key1,value1,key2,value2"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
         Assert.assertTrue(resc.getBody().contains("User [name=admin, roles=[role1, role2], requestedTenant=null]"));
         // remote IP is assigned by XFFResolver
@@ -121,7 +121,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
         Assert.assertTrue(resc.getBody().contains("\"backend_roles\":[\"role1\",\"role2\"]"));
         Assert.assertTrue(resc.getBody().contains("\"custom_attribute_names\":[\"key1\",\"key2\"]"));
 
-        resc = rh.executeGetRequest("_searchguard/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "nagilum|role1,role2|8.8.8.8:8|key1,value1,key2,value2"));
+        resc = rh.executeGetRequest("_opendistrosecurity/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "nagilum|role1,role2|8.8.8.8:8|key1,value1,key2,value2"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
         Assert.assertTrue(resc.getBody().contains("User [name=nagilum, roles=[role1, role2], requestedTenant=null]"));
         // remote IP is assigned by XFFResolver
@@ -131,7 +131,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
         Assert.assertTrue(resc.getBody().contains("\"sg_roles\":[\"sg_all_access\""));
         Assert.assertTrue(resc.getBody().contains("\"custom_attribute_names\":[\"key1\",\"key2\"]"));
         
-        resc = rh.executeGetRequest("_searchguard/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "myuser|role1,vulcanadmin|8.8.8.8:8|key1,value1,key2,value2"));
+        resc = rh.executeGetRequest("_opendistrosecurity/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "myuser|role1,vulcanadmin|8.8.8.8:8|key1,value1,key2,value2"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
         Assert.assertTrue(resc.getBody().contains("User [name=myuser, roles=[role1, vulcanadmin], requestedTenant=null]"));
         // remote IP is assigned by XFFResolver
@@ -142,7 +142,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
         Assert.assertTrue(resc.getBody().contains("\"custom_attribute_names\":[\"key1\",\"key2\"]"));
         
         // add requested tenant
-        resc = rh.executeGetRequest("_searchguard/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "myuser|role1,vulcanadmin|8.8.8.8:8|key1,value1,key2,value2|"));
+        resc = rh.executeGetRequest("_opendistrosecurity/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "myuser|role1,vulcanadmin|8.8.8.8:8|key1,value1,key2,value2|"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
         Assert.assertTrue(resc.getBody().contains("User [name=myuser, roles=[role1, vulcanadmin], requestedTenant=null]"));
         // remote IP is assigned by XFFResolver
@@ -152,7 +152,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
         Assert.assertTrue(resc.getBody().contains("\"sg_roles\":[\"sg_public\",\"sg_role_vulcans_admin\"]"));
         Assert.assertTrue(resc.getBody().contains("\"custom_attribute_names\":[\"key1\",\"key2\"]"));
 
-        resc = rh.executeGetRequest("_searchguard/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "myuser|role1,vulcanadmin|8.8.8.8:8|key1,value1,key2,value2|mytenant"));
+        resc = rh.executeGetRequest("_opendistrosecurity/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "myuser|role1,vulcanadmin|8.8.8.8:8|key1,value1,key2,value2|mytenant"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
         Assert.assertTrue(resc.getBody().contains("User [name=myuser, roles=[role1, vulcanadmin], requestedTenant=mytenant]"));
         // remote IP is assigned by XFFResolver
@@ -162,7 +162,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
         Assert.assertTrue(resc.getBody().contains("\"sg_roles\":[\"sg_public\",\"sg_role_vulcans_admin\"]"));
         Assert.assertTrue(resc.getBody().contains("\"custom_attribute_names\":[\"key1\",\"key2\"]"));
 
-        resc = rh.executeGetRequest("_searchguard/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "myuser|role1,vulcanadmin|8.8.8.8:8||mytenant with whitespace"));
+        resc = rh.executeGetRequest("_opendistrosecurity/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "myuser|role1,vulcanadmin|8.8.8.8:8||mytenant with whitespace"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
         Assert.assertTrue(resc.getBody().contains("User [name=myuser, roles=[role1, vulcanadmin], requestedTenant=mytenant with whitespace]"));
         // remote IP is assigned by XFFResolver
@@ -188,7 +188,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
         
         HttpResponse resc;
                
-        resc = rh.executeGetRequest("_searchguard/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "admin|role1|127.0.0:80|key1,value1"));
+        resc = rh.executeGetRequest("_opendistrosecurity/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "admin|role1|127.0.0:80|key1,value1"));
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, resc.getStatusCode());
     }
 

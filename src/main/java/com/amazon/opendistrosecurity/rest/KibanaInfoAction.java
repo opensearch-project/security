@@ -51,8 +51,8 @@ public class KibanaInfoAction extends BaseRestHandler {
         super(settings);
         this.threadContext = threadPool.getThreadContext();
         this.evaluator = evaluator;
-        controller.registerHandler(GET, "/_searchguard/kibanainfo", this);
-        controller.registerHandler(POST, "/_searchguard/kibanainfo", this);       
+        controller.registerHandler(GET, "/_opendistrosecurity/kibanainfo", this);
+        controller.registerHandler(POST, "/_opendistrosecurity/kibanainfo", this);
     }
 
     @Override

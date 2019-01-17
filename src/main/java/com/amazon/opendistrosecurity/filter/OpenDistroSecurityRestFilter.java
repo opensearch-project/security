@@ -129,8 +129,8 @@ public class OpenDistroSecurityRestFilter {
         }
 
         if(request.method() != Method.OPTIONS 
-                && !"/_searchguard/license".equals(request.path())
-                && !"/_searchguard/health".equals(request.path())) {
+                && !"/_opendistrosecurity/license".equals(request.path())
+                && !"/_opendistrosecurity/health".equals(request.path())) {
             if (!registry.authenticate(request, channel, threadContext)) {
                 // another roundtrip
                 org.apache.logging.log4j.ThreadContext.remove("user");

@@ -284,19 +284,19 @@ public class IntegrationTests extends SingleClusterTest {
         //    hash: _rest_impersonation_only_
     
         HttpResponse resp;
-        resp = rh.executeGetRequest("/_searchguard/authinfo", new BasicHeader("sg_impersonate_as", "knuddel"), encodeBasicHeader("worf", "worf"));
+        resp = rh.executeGetRequest("/_opendistrosecurity/authinfo", new BasicHeader("sg_impersonate_as", "knuddel"), encodeBasicHeader("worf", "worf"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resp.getStatusCode());
     
-        resp = rh.executeGetRequest("/_searchguard/authinfo", new BasicHeader("sg_impersonate_as", "knuddel"), encodeBasicHeader("spock", "spock"));
+        resp = rh.executeGetRequest("/_opendistrosecurity/authinfo", new BasicHeader("sg_impersonate_as", "knuddel"), encodeBasicHeader("spock", "spock"));
         Assert.assertEquals(HttpStatus.SC_OK, resp.getStatusCode());
         Assert.assertTrue(resp.getBody().contains("name=knuddel"));
         Assert.assertFalse(resp.getBody().contains("spock"));
         
-        resp = rh.executeGetRequest("/_searchguard/authinfo", new BasicHeader("sg_impersonate_as", "userwhonotexists"), encodeBasicHeader("spock", "spock"));
+        resp = rh.executeGetRequest("/_opendistrosecurity/authinfo", new BasicHeader("sg_impersonate_as", "userwhonotexists"), encodeBasicHeader("spock", "spock"));
         System.out.println(resp.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resp.getStatusCode());
     
-        resp = rh.executeGetRequest("/_searchguard/authinfo", new BasicHeader("sg_impersonate_as", "invalid"), encodeBasicHeader("spock", "spock"));
+        resp = rh.executeGetRequest("/_opendistrosecurity/authinfo", new BasicHeader("sg_impersonate_as", "invalid"), encodeBasicHeader("spock", "spock"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resp.getStatusCode());
     }
 
@@ -343,7 +343,7 @@ public class IntegrationTests extends SingleClusterTest {
     
         setup(Settings.EMPTY, new DynamicSgConfig().setSgConfig("sg_config_xff.yml"), Settings.EMPTY, true);
         RestHelper rh = nonSslRestHelper();
-        HttpResponse resc = rh.executeGetRequest("_searchguard/authinfo", new BasicHeader("x-forwarded-for", "10.0.0.7"), encodeBasicHeader("worf", "worf"));
+        HttpResponse resc = rh.executeGetRequest("_opendistrosecurity/authinfo", new BasicHeader("x-forwarded-for", "10.0.0.7"), encodeBasicHeader("worf", "worf"));
         Assert.assertEquals(200, resc.getStatusCode());
         Assert.assertTrue(resc.getBody().contains("10.0.0.7"));
     }
