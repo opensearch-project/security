@@ -37,7 +37,7 @@ public class OpenDistroSecurityIndexAccessEvaluator {
     
     protected final Logger log = LogManager.getLogger(this.getClass());
     
-    private final String searchguardIndex;
+    private final String opendistrosecurityIndex;
     private final AuditLog auditLog;
     private final String[] sgDeniedActionPatternsAll;
     private final String[] sgDeniedActionPatternsSnapshotRestoreAllowed;
@@ -45,7 +45,7 @@ public class OpenDistroSecurityIndexAccessEvaluator {
     private final boolean restoreSgIndexEnabled;
     
     public OpenDistroSecurityIndexAccessEvaluator(final Settings settings, AuditLog auditLog) {
-        this.searchguardIndex = settings.get(ConfigConstants.SEARCHGUARD_CONFIG_INDEX_NAME, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
+        this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTROSECURITY_CONFIG_INDEX_NAME, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
         this.auditLog = auditLog;
         
         final List<String> sgIndexdeniedActionPatternsListAll = new ArrayList<String>();
@@ -62,7 +62,7 @@ public class OpenDistroSecurityIndexAccessEvaluator {
               
         sgDeniedActionPatternsSnapshotRestoreAllowed = sgIndexdeniedActionPatternsListSnapshotRestoreAllowed.toArray(new String[0]);
         
-        this.restoreSgIndexEnabled = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_UNSUPPORTED_RESTORE_SGINDEX_ENABLED, false);
+        this.restoreSgIndexEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_UNSUPPORTED_RESTORE_SGINDEX_ENABLED, false);
     }
     
     public PrivilegesEvaluatorResponse evaluate(final ActionRequest request, final Task task, final String action, final Resolved requestedResolved,
@@ -70,10 +70,10 @@ public class OpenDistroSecurityIndexAccessEvaluator {
         
         final String[] sgDeniedActionPatterns = this.restoreSgIndexEnabled? sgDeniedActionPatternsSnapshotRestoreAllowed : sgDeniedActionPatternsAll;
         
-        if (requestedResolved.getAllIndices().contains(searchguardIndex)
+        if (requestedResolved.getAllIndices().contains(opendistrosecurityIndex)
                 && WildcardMatcher.matchAny(sgDeniedActionPatterns, action)) {
             auditLog.logSgIndexAttempt(request, action, task);
-            log.warn(action + " for '{}' index is not allowed for a regular user", searchguardIndex);
+            log.warn(action + " for '{}' index is not allowed for a regular user", opendistrosecurityIndex);
             presponse.allowed = false;
             return presponse.markComplete();
         }
@@ -88,7 +88,7 @@ public class OpenDistroSecurityIndexAccessEvaluator {
         }
 
       //TODO: newpeval: check if isAll() is all (contains("_all" or "*"))
-        if(requestedResolved.getAllIndices().contains(searchguardIndex) || requestedResolved.isAll()) {
+        if(requestedResolved.getAllIndices().contains(opendistrosecurityIndex) || requestedResolved.isAll()) {
 
             if(request instanceof SearchRequest) {
                 ((SearchRequest)request).requestCache(Boolean.FALSE);

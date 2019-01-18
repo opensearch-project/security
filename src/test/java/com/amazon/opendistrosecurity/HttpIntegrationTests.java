@@ -51,7 +51,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
     @Test
     public void testHTTPBasic() throws Exception {
         final Settings settings = Settings.builder()
-                .putList(ConfigConstants.SEARCHGUARD_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "knuddel","nonexists")
+                .putList(ConfigConstants.OPENDISTROSECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "knuddel","nonexists")
                 .build();
         setup(settings);
         final RestHelper rh = nonSslRestHelper();
@@ -83,8 +83,8 @@ public class HttpIntegrationTests extends SingleClusterTest {
             Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
             Assert.assertEquals(HttpStatus.SC_OK, rh.executeDeleteRequest("nonexistentindex*", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
             Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest(".nonexistentindex*", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest("searchguard/config/2", "{}",encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_NOT_FOUND, rh.executeGetRequest("searchguard/config/0", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest("opendistrosecurity/config/2", "{}",encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_NOT_FOUND, rh.executeGetRequest("opendistrosecurity/config/0", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
             Assert.assertEquals(HttpStatus.SC_NOT_FOUND, rh.executeGetRequest("xxxxyyyy/config/0", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
             Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("abc", "abc:abc")).getStatusCode());
             Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest("", encodeBasicHeader("userwithnopassword", "")).getStatusCode());
@@ -109,16 +109,16 @@ public class HttpIntegrationTests extends SingleClusterTest {
             Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest("starfleet/_search", encodeBasicHeader("worf", "worf")).getStatusCode());
             Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest("_search", encodeBasicHeader("worf", "worf")).getStatusCode());
             Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("starfleet/ships/_search?pretty", encodeBasicHeader("worf", "worf")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeDeleteRequest("searchguard/", encodeBasicHeader("worf", "worf")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("/searchguard/_close", null,encodeBasicHeader("worf", "worf")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("/searchguard/_upgrade", null,encodeBasicHeader("worf", "worf")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest("/searchguard/_mapping/config","{}",encodeBasicHeader("worf", "worf")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeDeleteRequest("opendistrosecurity/", encodeBasicHeader("worf", "worf")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("/opendistrosecurity/_close", null,encodeBasicHeader("worf", "worf")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("/opendistrosecurity/_upgrade", null,encodeBasicHeader("worf", "worf")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest("/opendistrosecurity/_mapping/config","{}",encodeBasicHeader("worf", "worf")).getStatusCode());
     
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest("searchguard/", encodeBasicHeader("worf", "worf")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest("searchguard/config/2", "{}",encodeBasicHeader("worf", "worf")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest("searchguard/config/0",encodeBasicHeader("worf", "worf")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeDeleteRequest("searchguard/config/0",encodeBasicHeader("worf", "worf")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest("searchguard/config/0","{}",encodeBasicHeader("worf", "worf")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest("opendistrosecurity/", encodeBasicHeader("worf", "worf")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest("opendistrosecurity/config/2", "{}",encodeBasicHeader("worf", "worf")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest("opendistrosecurity/config/0",encodeBasicHeader("worf", "worf")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeDeleteRequest("opendistrosecurity/config/0",encodeBasicHeader("worf", "worf")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest("opendistrosecurity/config/0","{}",encodeBasicHeader("worf", "worf")).getStatusCode());
             
             HttpResponse resc = rh.executeGetRequest("_cat/indices/public?v",encodeBasicHeader("bug108", "nagilum"));
             Assert.assertTrue(resc.getBody().contains("green"));
@@ -133,12 +133,12 @@ public class HttpIntegrationTests extends SingleClusterTest {
 
     //all  
             Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest("_mapping/config","{\"i\" : [\"4\"]}",encodeBasicHeader("worf", "worf")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("searchguard/_mget","{\"ids\" : [\"0\"]}",encodeBasicHeader("worf", "worf")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("opendistrosecurity/_mget","{\"ids\" : [\"0\"]}",encodeBasicHeader("worf", "worf")).getStatusCode());
             
             Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("starfleet/ships/_search?pretty", encodeBasicHeader("worf", "worf")).getStatusCode());
     
             try (TransportClient tc = getInternalTransportClient()) {       
-                tc.index(new IndexRequest("searchguard").type("sg").id("roles").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("roles", FileHelper.readYamlContent("sg_roles_deny.yml"))).actionGet();
+                tc.index(new IndexRequest("opendistrosecurity").type("sg").id("roles").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("roles", FileHelper.readYamlContent("sg_roles_deny.yml"))).actionGet();
                 ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"roles"})).actionGet();
                 Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());
             }
@@ -146,7 +146,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
             Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest("starfleet/ships/_search?pretty", encodeBasicHeader("worf", "worf")).getStatusCode());
     
             try (TransportClient tc = getInternalTransportClient()) {
-                tc.index(new IndexRequest("searchguard").type("sg").id("roles").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("roles", FileHelper.readYamlContent("sg_roles.yml"))).actionGet();
+                tc.index(new IndexRequest("opendistrosecurity").type("sg").id("roles").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("roles", FileHelper.readYamlContent("sg_roles.yml"))).actionGet();
                 ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"roles"})).actionGet();
                 Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());
             }
@@ -155,7 +155,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
             HttpResponse res = rh.executeGetRequest("_search?pretty", encodeBasicHeader("nagilum", "nagilum"));
             Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
             Assert.assertTrue(res.getBody().contains("\"total\" : 11"));
-            Assert.assertTrue(!res.getBody().contains("searchguard"));
+            Assert.assertTrue(!res.getBody().contains("opendistrosecurity"));
             
             res = rh.executeGetRequest("_nodes/stats?pretty", encodeBasicHeader("nagilum", "nagilum"));
             Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
@@ -313,8 +313,8 @@ public class HttpIntegrationTests extends SingleClusterTest {
             Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
             
             try (TransportClient tc = getInternalTransportClient()) {    
-                tc.index(new IndexRequest("searchguard").type("sg").id("config").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("config", FileHelper.readYamlContent("sg_config.yml"))).actionGet();
-                tc.index(new IndexRequest("searchguard").type("sg").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("internalusers").source("internalusers", FileHelper.readYamlContent("sg_internal_users.yml"))).actionGet();
+                tc.index(new IndexRequest("opendistrosecurity").type("sg").id("config").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("config", FileHelper.readYamlContent("sg_config.yml"))).actionGet();
+                tc.index(new IndexRequest("opendistrosecurity").type("sg").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("internalusers").source("internalusers", FileHelper.readYamlContent("sg_internal_users.yml"))).actionGet();
                 ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
                 Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());
              }
@@ -356,10 +356,10 @@ public class HttpIntegrationTests extends SingleClusterTest {
         rh.sendHTTPClientCertificate = true;
         rh.keystore = "spock-keystore.jks";
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_search").getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest("searchguard/sg/x", "{}").getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest("opendistrosecurity/sg/x", "{}").getStatusCode());
         
         rh.keystore = "kirk-keystore.jks";
-        Assert.assertEquals(HttpStatus.SC_CREATED, rh.executePutRequest("searchguard/sg/y", "{}").getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_CREATED, rh.executePutRequest("opendistrosecurity/sg/y", "{}").getStatusCode());
         HttpResponse res;
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistrosecurity/authinfo")).getStatusCode());
         System.out.println(res.getBody());
@@ -452,8 +452,8 @@ public class HttpIntegrationTests extends SingleClusterTest {
             Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
             Assert.assertEquals(HttpStatus.SC_OK, rh.executeDeleteRequest("nonexistentindex*", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
             Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest(".nonexistentindex*", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest("searchguard/config/2", "{}",encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_NOT_FOUND, rh.executeGetRequest("searchguard/config/0", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest("opendistrosecurity/config/2", "{}",encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_NOT_FOUND, rh.executeGetRequest("opendistrosecurity/config/0", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
             Assert.assertEquals(HttpStatus.SC_NOT_FOUND, rh.executeGetRequest("xxxxyyyy/config/0", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
             Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("abc", "abc:abc")).getStatusCode());
             Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest("", encodeBasicHeader("userwithnopassword", "")).getStatusCode());
@@ -478,16 +478,16 @@ public class HttpIntegrationTests extends SingleClusterTest {
             Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest("starfleet/_search", encodeBasicHeader("worf", "worf")).getStatusCode());
             Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest("_search", encodeBasicHeader("worf", "worf")).getStatusCode());
             Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("starfleet/ships/_search?pretty", encodeBasicHeader("worf", "worf")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeDeleteRequest("searchguard/", encodeBasicHeader("worf", "worf")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("/searchguard/_close", null,encodeBasicHeader("worf", "worf")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("/searchguard/_upgrade", null,encodeBasicHeader("worf", "worf")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest("/searchguard/_mapping/config","{}",encodeBasicHeader("worf", "worf")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeDeleteRequest("opendistrosecurity/", encodeBasicHeader("worf", "worf")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("/opendistrosecurity/_close", null,encodeBasicHeader("worf", "worf")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("/opendistrosecurity/_upgrade", null,encodeBasicHeader("worf", "worf")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest("/opendistrosecurity/_mapping/config","{}",encodeBasicHeader("worf", "worf")).getStatusCode());
     
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest("searchguard/", encodeBasicHeader("worf", "worf")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest("searchguard/config/2", "{}",encodeBasicHeader("worf", "worf")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest("searchguard/config/0",encodeBasicHeader("worf", "worf")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeDeleteRequest("searchguard/config/0",encodeBasicHeader("worf", "worf")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest("searchguard/config/0","{}",encodeBasicHeader("worf", "worf")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest("opendistrosecurity/", encodeBasicHeader("worf", "worf")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest("opendistrosecurity/config/2", "{}",encodeBasicHeader("worf", "worf")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest("opendistrosecurity/config/0",encodeBasicHeader("worf", "worf")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeDeleteRequest("opendistrosecurity/config/0",encodeBasicHeader("worf", "worf")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest("opendistrosecurity/config/0","{}",encodeBasicHeader("worf", "worf")).getStatusCode());
             
             HttpResponse resc = rh.executeGetRequest("_cat/indices/public",encodeBasicHeader("bug108", "nagilum"));
             System.out.println(resc.getBody());
@@ -510,7 +510,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
     @Test
     public void testBulk() throws Exception {
         final Settings settings = Settings.builder()
-                .put(ConfigConstants.SEARCHGUARD_ROLES_MAPPING_RESOLUTION, "BOTH")
+                .put(ConfigConstants.OPENDISTROSECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
                 .build();
         setup(Settings.EMPTY, new DynamicSgConfig().setSgRoles("sg_roles_bulk.yml"), settings);
         final RestHelper rh = nonSslRestHelper();
@@ -531,7 +531,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
     @Test
     public void test557() throws Exception {
         final Settings settings = Settings.builder()
-                .put(ConfigConstants.SEARCHGUARD_ROLES_MAPPING_RESOLUTION, "BOTH")
+                .put(ConfigConstants.OPENDISTROSECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
                 .build();
         setup(Settings.EMPTY, new DynamicSgConfig(), settings);
         
@@ -562,7 +562,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
     @Test
     public void testITT1635() throws Exception {
         final Settings settings = Settings.builder()
-                .put(ConfigConstants.SEARCHGUARD_ROLES_MAPPING_RESOLUTION, "BOTH")
+                .put(ConfigConstants.OPENDISTROSECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
                 .build();
         setup(Settings.EMPTY, new DynamicSgConfig().setSgConfig("sg_config_dnfof.yml").setSgRoles("sg_roles_itt1635.yml"), settings);
         
@@ -656,7 +656,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
     @Test
     public void testRestImpersonation() throws Exception {
         final Settings settings = Settings.builder()
-                .putList(ConfigConstants.SEARCHGUARD_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "someotherusernotininternalusersfile")
+                .putList(ConfigConstants.OPENDISTROSECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "someotherusernotininternalusersfile")
                 .build();
         setup(Settings.EMPTY, new DynamicSgConfig().setSgConfig("sg_config_rest_impersonation.yml"), settings);
         final RestHelper rh = nonSslRestHelper();

@@ -23,7 +23,7 @@ import org.elasticsearch.client.ElasticsearchClient;
 public class ConfigUpdateAction extends Action<ConfigUpdateRequest, ConfigUpdateResponse, ConfigUpdateRequestBuilder> {
 
     public static final ConfigUpdateAction INSTANCE = new ConfigUpdateAction();
-    public static final String NAME = "cluster:admin/searchguard/config/update";
+    public static final String NAME = "cluster:admin/opendistrosecurity/config/update";
 
     protected ConfigUpdateAction() {
         super(NAME);

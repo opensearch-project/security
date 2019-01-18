@@ -201,11 +201,11 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     }
 
     private static boolean isDisabled(final Settings settings) {
-        return settings.getAsBoolean(ConfigConstants.SEARCHGUARD_DISABLED, false);
+        return settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_DISABLED, false);
     }
     
     private static boolean isSslOnlyMode(final Settings settings) {
-        return settings.getAsBoolean(ConfigConstants.SEARCHGUARD_SSL_ONLY, false);
+        return settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_SSL_ONLY, false);
     }
     
     public OpenDistroSecurityPlugin(final Settings settings, final Path configPath) {
@@ -269,7 +269,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             }
         });
 
-        enterpriseModulesEnabled = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_ENTERPRISE_MODULES_ENABLED, true);
+        enterpriseModulesEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_ENTERPRISE_MODULES_ENABLED, true);
         ReflectionHelper.init(enterpriseModulesEnabled);
         
         ReflectionHelper.registerMngtRestApiHandler(settings);
@@ -329,7 +329,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             }
         }
 
-        if(!client && !tribeNodeClient && !settings.getAsBoolean(ConfigConstants.SEARCHGUARD_ALLOW_UNSAFE_DEMOCERTIFICATES, false)) {
+        if(!client && !tribeNodeClient && !settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES, false)) {
             //check for demo certificates
             final List<String> files = AccessController.doPrivileged(new PrivilegedAction<List<String>>() {
                 @Override
@@ -354,7 +354,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             if(files != null) {
                 demoCertHashes.retainAll(files);
                 if(!demoCertHashes.isEmpty()) {
-                    log.error("Demo certificates found but "+ConfigConstants.SEARCHGUARD_ALLOW_UNSAFE_DEMOCERTIFICATES+" is set to false."
+                    log.error("Demo certificates found but "+ConfigConstants.OPENDISTROSECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES+" is set to false."
                             + "See http://docs.search-guard.com/latest/demo-installer-generated-artefacts#allow-demo-certificates-and-auto-initialization");
                     throw new RuntimeException("Demo certificates found "+demoCertHashes);
                 }
@@ -841,135 +841,135 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         List<Setting<?>> settings = new ArrayList<Setting<?>>();
         settings.addAll(super.getSettings());
         
-        settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_SSL_ONLY, false, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting(ConfigConstants.OPENDISTROSECURITY_SSL_ONLY, false, Property.NodeScope, Property.Filtered));
 
         if(!sslOnly) {
-            settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_AUTHCZ_ADMIN_DN, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
+            settings.add(Setting.listSetting(ConfigConstants.OPENDISTROSECURITY_AUTHCZ_ADMIN_DN, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
     
-            settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_CONFIG_INDEX_NAME, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.groupSetting(ConfigConstants.SEARCHGUARD_AUTHCZ_IMPERSONATION_DN+".", Property.NodeScope)); //not filtered here
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTROSECURITY_CONFIG_INDEX_NAME, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.groupSetting(ConfigConstants.OPENDISTROSECURITY_AUTHCZ_IMPERSONATION_DN+".", Property.NodeScope)); //not filtered here
     
-            settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_CERT_OID, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTROSECURITY_CERT_OID, Property.NodeScope, Property.Filtered));
     
-            settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_CERT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_NODES_DN, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTROSECURITY_CERT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.listSetting(ConfigConstants.OPENDISTROSECURITY_NODES_DN, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
     
-            settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE, ConfigConstants.SG_DEFAULT_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE,
+            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTROSECURITY_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE, ConfigConstants.SG_DEFAULT_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE,
                     Property.NodeScope, Property.Filtered));
-            settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES, ConfigConstants.SG_DEFAULT_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES,
+            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTROSECURITY_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES, ConfigConstants.SG_DEFAULT_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES,
                     Property.NodeScope, Property.Filtered));
     
-            settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_DISABLED, false, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTROSECURITY_DISABLED, false, Property.NodeScope, Property.Filtered));
     
-            settings.add(Setting.intSetting(ConfigConstants.SEARCHGUARD_CACHE_TTL_MINUTES, 60, 0, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.intSetting(ConfigConstants.OPENDISTROSECURITY_CACHE_TTL_MINUTES, 60, 0, Property.NodeScope, Property.Filtered));
     
             //SG6
-            settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_ENTERPRISE_MODULES_ENABLED, true, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_ALLOW_UNSAFE_DEMOCERTIFICATES, false, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_ALLOW_DEFAULT_INIT_SGINDEX, false, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTROSECURITY_ENTERPRISE_MODULES_ENABLED, true, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTROSECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES, false, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTROSECURITY_ALLOW_DEFAULT_INIT_SGINDEX, false, Property.NodeScope, Property.Filtered));
     
-            settings.add(Setting.groupSetting(ConfigConstants.SEARCHGUARD_AUTHCZ_REST_IMPERSONATION_USERS+".", Property.NodeScope)); //not filtered here
+            settings.add(Setting.groupSetting(ConfigConstants.OPENDISTROSECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".", Property.NodeScope)); //not filtered here
     
-            settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_ROLES_MAPPING_RESOLUTION, Property.NodeScope, Property.Filtered));
-            //settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_DISABLE_TYPE_SECURITY, false, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTROSECURITY_ROLES_MAPPING_RESOLUTION, Property.NodeScope, Property.Filtered));
+            //settings.add(Setting.boolSetting(ConfigConstants.OPENDISTROSECURITY_DISABLE_TYPE_SECURITY, false, Property.NodeScope, Property.Filtered));
     
-            //TODO remove searchguard.tribe.clustername?
-            //settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_TRIBE_CLUSTERNAME, Property.NodeScope, Property.Filtered));
+            //TODO remove opendistrosecurity.tribe.clustername?
+            //settings.add(Setting.simpleString(ConfigConstants.OPENDISTROSECURITY_TRIBE_CLUSTERNAME, Property.NodeScope, Property.Filtered));
     
             // SG6 - Audit        
-            settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_TYPE_DEFAULT, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.groupSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_ROUTES + ".", Property.NodeScope)); 
-            settings.add(Setting.groupSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_ENDPOINTS + ".",  Property.NodeScope)); 
-            settings.add(Setting.intSetting(ConfigConstants.SEARCHGUARD_AUDIT_THREADPOOL_SIZE, 10, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.intSetting(ConfigConstants.SEARCHGUARD_AUDIT_THREADPOOL_MAX_QUEUE_LEN, 100*1000, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_LOG_REQUEST_BODY, true, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_RESOLVE_INDICES, true, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_ENABLE_REST, true, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_ENABLE_TRANSPORT, true, Property.NodeScope, Property.Filtered));        
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTROSECURITY_AUDIT_TYPE_DEFAULT, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.groupSetting(ConfigConstants.OPENDISTROSECURITY_AUDIT_CONFIG_ROUTES + ".", Property.NodeScope));
+            settings.add(Setting.groupSetting(ConfigConstants.OPENDISTROSECURITY_AUDIT_CONFIG_ENDPOINTS + ".",  Property.NodeScope));
+            settings.add(Setting.intSetting(ConfigConstants.OPENDISTROSECURITY_AUDIT_THREADPOOL_SIZE, 10, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.intSetting(ConfigConstants.OPENDISTROSECURITY_AUDIT_THREADPOOL_MAX_QUEUE_LEN, 100*1000, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTROSECURITY_AUDIT_LOG_REQUEST_BODY, true, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTROSECURITY_AUDIT_RESOLVE_INDICES, true, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTROSECURITY_AUDIT_ENABLE_REST, true, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTROSECURITY_AUDIT_ENABLE_TRANSPORT, true, Property.NodeScope, Property.Filtered));
             final List<String> disabledCategories = new ArrayList<String>(2);
             disabledCategories.add("AUTHENTICATED");
             disabledCategories.add("GRANTED_PRIVILEGES");
-            settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, disabledCategories, Function.identity(), Property.NodeScope)); //not filtered here
-            settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, disabledCategories, Function.identity(), Property.NodeScope)); //not filtered here
+            settings.add(Setting.listSetting(ConfigConstants.OPENDISTROSECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, disabledCategories, Function.identity(), Property.NodeScope)); //not filtered here
+            settings.add(Setting.listSetting(ConfigConstants.OPENDISTROSECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, disabledCategories, Function.identity(), Property.NodeScope)); //not filtered here
             final List<String> ignoredUsers = new ArrayList<String>(2);
             ignoredUsers.add("kibanaserver");
-            settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_AUDIT_IGNORE_USERS, ignoredUsers, Function.identity(), Property.NodeScope)); //not filtered here
-            settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_AUDIT_IGNORE_REQUESTS, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
-            settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_RESOLVE_BULK_REQUESTS, false, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_EXCLUDE_SENSITIVE_HEADERS, true, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.listSetting(ConfigConstants.OPENDISTROSECURITY_AUDIT_IGNORE_USERS, ignoredUsers, Function.identity(), Property.NodeScope)); //not filtered here
+            settings.add(Setting.listSetting(ConfigConstants.OPENDISTROSECURITY_AUDIT_IGNORE_REQUESTS, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
+            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTROSECURITY_AUDIT_RESOLVE_BULK_REQUESTS, false, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTROSECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS, true, Property.NodeScope, Property.Filtered));
     
             
             // SG6 - Audit - Sink
-            settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_ES_INDEX, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_ES_TYPE, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTROSECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTROSECURITY_AUDIT_ES_INDEX, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTROSECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTROSECURITY_AUDIT_ES_TYPE, Property.NodeScope, Property.Filtered));
     
             // External ES
-            settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_EXTERNAL_ES_HTTP_ENDPOINTS, Lists.newArrayList("localhost:9200"), Function.identity(), Property.NodeScope)); //not filtered here
-            settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_EXTERNAL_ES_USERNAME, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_EXTERNAL_ES_PASSWORD, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_EXTERNAL_ES_ENABLE_SSL, false, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_EXTERNAL_ES_VERIFY_HOSTNAMES, true, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_EXTERNAL_ES_ENABLE_SSL_CLIENT_AUTH, false, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_EXTERNAL_ES_PEMCERT_CONTENT, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_EXTERNAL_ES_PEMCERT_FILEPATH, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_EXTERNAL_ES_PEMKEY_CONTENT, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_EXTERNAL_ES_PEMKEY_FILEPATH, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_EXTERNAL_ES_PEMKEY_PASSWORD, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_EXTERNAL_ES_PEMTRUSTEDCAS_CONTENT, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_EXTERNAL_ES_PEMTRUSTEDCAS_FILEPATH, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_EXTERNAL_ES_JKS_CERT_ALIAS, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_EXTERNAL_ES_ENABLED_SSL_CIPHERS, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
-            settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_EXTERNAL_ES_ENABLED_SSL_PROTOCOLS, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
+            settings.add(Setting.listSetting(ConfigConstants.OPENDISTROSECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTROSECURITY_AUDIT_EXTERNAL_ES_HTTP_ENDPOINTS, Lists.newArrayList("localhost:9200"), Function.identity(), Property.NodeScope)); //not filtered here
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTROSECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTROSECURITY_AUDIT_EXTERNAL_ES_USERNAME, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTROSECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTROSECURITY_AUDIT_EXTERNAL_ES_PASSWORD, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTROSECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTROSECURITY_AUDIT_EXTERNAL_ES_ENABLE_SSL, false, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTROSECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTROSECURITY_AUDIT_EXTERNAL_ES_VERIFY_HOSTNAMES, true, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTROSECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTROSECURITY_AUDIT_EXTERNAL_ES_ENABLE_SSL_CLIENT_AUTH, false, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTROSECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTROSECURITY_AUDIT_EXTERNAL_ES_PEMCERT_CONTENT, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTROSECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTROSECURITY_AUDIT_EXTERNAL_ES_PEMCERT_FILEPATH, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTROSECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTROSECURITY_AUDIT_EXTERNAL_ES_PEMKEY_CONTENT, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTROSECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTROSECURITY_AUDIT_EXTERNAL_ES_PEMKEY_FILEPATH, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTROSECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTROSECURITY_AUDIT_EXTERNAL_ES_PEMKEY_PASSWORD, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTROSECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTROSECURITY_AUDIT_EXTERNAL_ES_PEMTRUSTEDCAS_CONTENT, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTROSECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTROSECURITY_AUDIT_EXTERNAL_ES_PEMTRUSTEDCAS_FILEPATH, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTROSECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTROSECURITY_AUDIT_EXTERNAL_ES_JKS_CERT_ALIAS, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.listSetting(ConfigConstants.OPENDISTROSECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTROSECURITY_AUDIT_EXTERNAL_ES_ENABLED_SSL_CIPHERS, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
+            settings.add(Setting.listSetting(ConfigConstants.OPENDISTROSECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTROSECURITY_AUDIT_EXTERNAL_ES_ENABLED_SSL_PROTOCOLS, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
     
             // Webhooks
-            settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_WEBHOOK_URL, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_WEBHOOK_FORMAT, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_WEBHOOK_SSL_VERIFY, true, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_WEBHOOK_PEMTRUSTEDCAS_FILEPATH, Property.NodeScope, Property.Filtered));             
-            settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_WEBHOOK_PEMTRUSTEDCAS_CONTENT, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTROSECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTROSECURITY_AUDIT_WEBHOOK_URL, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTROSECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTROSECURITY_AUDIT_WEBHOOK_FORMAT, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTROSECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTROSECURITY_AUDIT_WEBHOOK_SSL_VERIFY, true, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTROSECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTROSECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_FILEPATH, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTROSECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTROSECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_CONTENT, Property.NodeScope, Property.Filtered));
             
             // Log4j
-            settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_LOG4J_LOGGER_NAME, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_LOG4J_LEVEL, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTROSECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTROSECURITY_AUDIT_LOG4J_LOGGER_NAME, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTROSECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTROSECURITY_AUDIT_LOG4J_LEVEL, Property.NodeScope, Property.Filtered));
             
     
             // Kerberos
-            settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_KERBEROS_KRB5_FILEPATH, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_KERBEROS_ACCEPTOR_KEYTAB_FILEPATH, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_KERBEROS_ACCEPTOR_PRINCIPAL, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTROSECURITY_KERBEROS_KRB5_FILEPATH, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTROSECURITY_KERBEROS_ACCEPTOR_KEYTAB_FILEPATH, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTROSECURITY_KERBEROS_ACCEPTOR_PRINCIPAL, Property.NodeScope, Property.Filtered));
     
     
             // SG6 - REST API
-            settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_RESTAPI_ROLES_ENABLED, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
-            settings.add(Setting.groupSetting(ConfigConstants.SEARCHGUARD_RESTAPI_ENDPOINTS_DISABLED + ".", Property.NodeScope));
-            settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_UNSUPPORTED_RESTAPI_ACCEPT_INVALID_LICENSE, false, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.listSetting(ConfigConstants.OPENDISTROSECURITY_RESTAPI_ROLES_ENABLED, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
+            settings.add(Setting.groupSetting(ConfigConstants.OPENDISTROSECURITY_RESTAPI_ENDPOINTS_DISABLED + ".", Property.NodeScope));
+            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTROSECURITY_UNSUPPORTED_RESTAPI_ACCEPT_INVALID_LICENSE, false, Property.NodeScope, Property.Filtered));
     
-            settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_RESTAPI_PASSWORD_VALIDATION_REGEX, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTROSECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTROSECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE, Property.NodeScope, Property.Filtered));
 
             
             // Compliance
-            settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
-            settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
-            settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_WRITE_METADATA_ONLY, false, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_READ_METADATA_ONLY, false, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS, false, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED, false, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_READ_IGNORE_USERS, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
-            settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
-            settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_COMPLIANCE_DISABLE_ANONYMOUS_AUTHENTICATION, false, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.listSetting(ConfigConstants.SEARCHGUARD_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
-            settings.add(Setting.simpleString(ConfigConstants.SEARCHGUARD_COMPLIANCE_SALT, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, false, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.listSetting(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
+            settings.add(Setting.listSetting(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
+            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_HISTORY_WRITE_METADATA_ONLY, false, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_HISTORY_READ_METADATA_ONLY, false, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS, false, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED, false, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.listSetting(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
+            settings.add(Setting.listSetting(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
+            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_DISABLE_ANONYMOUS_AUTHENTICATION, false, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.listSetting(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_SALT, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, false, Property.NodeScope, Property.Filtered));
     
             //compat
-            settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_UNSUPPORTED_DISABLE_INTERTRANSPORT_AUTH_INITIALLY, false, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_UNSUPPORTED_DISABLE_REST_AUTH_INITIALLY, false, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTROSECURITY_UNSUPPORTED_DISABLE_INTERTRANSPORT_AUTH_INITIALLY, false, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTROSECURITY_UNSUPPORTED_DISABLE_REST_AUTH_INITIALLY, false, Property.NodeScope, Property.Filtered));
 
             // system integration
-            settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_UNSUPPORTED_RESTORE_SGINDEX_ENABLED, false, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_UNSUPPORTED_INJECT_USER_ENABLED, false, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.boolSetting(ConfigConstants.SEARCHGUARD_UNSUPPORTED_INJECT_ADMIN_USER_ENABLED, false, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTROSECURITY_UNSUPPORTED_RESTORE_SGINDEX_ENABLED, false, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTROSECURITY_UNSUPPORTED_INJECT_USER_ENABLED, false, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTROSECURITY_UNSUPPORTED_INJECT_ADMIN_USER_ENABLED, false, Property.NodeScope, Property.Filtered));
         }
         
         return settings;
@@ -983,7 +983,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             return settingsFilter;
         }
 
-        settingsFilter.add("searchguard.*");
+        settingsFilter.add("opendistrosecurity.*");
         return settingsFilter;
     }
     

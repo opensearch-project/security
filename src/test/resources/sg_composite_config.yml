@@ -16,7 +16,7 @@
 
 
 
-searchguard:
+opendistrosecurity:
   dynamic:
     composite_enabled: true
     http:

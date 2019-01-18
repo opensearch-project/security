@@ -75,7 +75,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
     private static final Pattern DLS_PATTERN = Pattern.compile(".+\\.indices\\..+\\._dls_=.+", Pattern.DOTALL);
     private static final Pattern FLS_PATTERN = Pattern.compile(".+\\.indices\\..+\\._fls_\\.[0-9]+=.+", Pattern.DOTALL);
 
-    private final String searchguardIndex;
+    private final String opendistrosecurityIndex;
     private final Client client;
     private final ConcurrentMap<String, Settings> typeToConfig;
     private final Multimap<String, ConfigurationChangeListener> configTypeToChancheListener;
@@ -91,7 +91,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
 
     private IndexBaseConfigurationRepository(Settings settings, final Path configPath, ThreadPool threadPool, 
             Client client, ClusterService clusterService, AuditLog auditLog, ComplianceConfig complianceConfig) {
-        this.searchguardIndex = settings.get(ConfigConstants.SEARCHGUARD_CONFIG_INDEX_NAME, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
+        this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTROSECURITY_CONFIG_INDEX_NAME, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
         this.settings = settings;
         this.client = client;
         this.threadPool = threadPool;
@@ -127,21 +127,21 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                                         final ThreadContext threadContext = threadPool.getThreadContext();
                                         try(StoredContext ctx = threadContext.stashContext()) {
                                             threadContext.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true");
-                                            LOGGER.info("Will create {} index so we can apply default config", searchguardIndex);
+                                            LOGGER.info("Will create {} index so we can apply default config", opendistrosecurityIndex);
 
                                             Map<String, Object> indexSettings = new HashMap<>();
                                             indexSettings.put("index.number_of_shards", 1);
                                             indexSettings.put("index.auto_expand_replicas", "0-all");
 
-                                            boolean ok = client.admin().indices().create(new CreateIndexRequest(searchguardIndex)
+                                            boolean ok = client.admin().indices().create(new CreateIndexRequest(opendistrosecurityIndex)
                                             .settings(indexSettings))
                                             .actionGet().isAcknowledged();
                                             if(ok) {
-                                                ConfigHelper.uploadFile(client, cd+"sg_config.yml", searchguardIndex, "config");
-                                                ConfigHelper.uploadFile(client, cd+"sg_roles.yml", searchguardIndex, "roles");
-                                                ConfigHelper.uploadFile(client, cd+"sg_roles_mapping.yml", searchguardIndex, "rolesmapping");
-                                                ConfigHelper.uploadFile(client, cd+"sg_internal_users.yml", searchguardIndex, "internalusers");
-                                                ConfigHelper.uploadFile(client, cd+"sg_action_groups.yml", searchguardIndex, "actiongroups");
+                                                ConfigHelper.uploadFile(client, cd+"sg_config.yml", opendistrosecurityIndex, "config");
+                                                ConfigHelper.uploadFile(client, cd+"sg_roles.yml", opendistrosecurityIndex, "roles");
+                                                ConfigHelper.uploadFile(client, cd+"sg_roles_mapping.yml", opendistrosecurityIndex, "rolesmapping");
+                                                ConfigHelper.uploadFile(client, cd+"sg_internal_users.yml", opendistrosecurityIndex, "internalusers");
+                                                ConfigHelper.uploadFile(client, cd+"sg_action_groups.yml", opendistrosecurityIndex, "actiongroups");
                                                 LOGGER.info("Default config applied");
                                             }
                                         }
@@ -156,13 +156,13 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                             LOGGER.debug("Node started, try to initialize it. Wait for at least yellow cluster state....");
                             ClusterHealthResponse response = null;
                             try {
-                                response = client.admin().cluster().health(new ClusterHealthRequest(searchguardIndex).waitForYellowStatus()).actionGet();
+                                response = client.admin().cluster().health(new ClusterHealthRequest(opendistrosecurityIndex).waitForYellowStatus()).actionGet();
                             } catch (Exception e1) {
                                 LOGGER.debug("Catched a {} but we just try again ...", e1.toString());
                             }
 
                             while(response == null || response.isTimedOut() || response.getStatus() == ClusterHealthStatus.RED) {
-                                LOGGER.debug("index '{}' not healthy yet, we try again ... (Reason: {})", searchguardIndex, response==null?"no response":(response.isTimedOut()?"timeout":"other, maybe red cluster"));
+                                LOGGER.debug("index '{}' not healthy yet, we try again ... (Reason: {})", opendistrosecurityIndex, response==null?"no response":(response.isTimedOut()?"timeout":"other, maybe red cluster"));
                                 try {
                                     Thread.sleep(500);
                                 } catch (InterruptedException e1) {
@@ -170,7 +170,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                                     Thread.currentThread().interrupt();
                                 }
                                 try {
-                                    response = client.admin().cluster().health(new ClusterHealthRequest(searchguardIndex).waitForYellowStatus()).actionGet();
+                                    response = client.admin().cluster().health(new ClusterHealthRequest(opendistrosecurityIndex).waitForYellowStatus()).actionGet();
                                 } catch (Exception e1) {
                                     LOGGER.debug("Catched again a {} but we just try again ...", e1.toString());
                                 }
@@ -202,11 +202,11 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                     }
                 });
 
-                LOGGER.info("Check if "+searchguardIndex+" index exists ...");
+                LOGGER.info("Check if "+opendistrosecurityIndex+" index exists ...");
 
                 try {
 
-                    IndicesExistsRequest ier = new IndicesExistsRequest(searchguardIndex)
+                    IndicesExistsRequest ier = new IndicesExistsRequest(opendistrosecurityIndex)
                     .masterNodeTimeout(TimeValue.timeValueMinutes(1));
 
                     final ThreadContext threadContext = threadPool.getThreadContext();
@@ -222,16 +222,16 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                                    bgThread.start();
                                 } else {
                                     if(settings.get("tribe.name", null) == null && settings.getByPrefix("tribe").size() > 0) {
-                                        LOGGER.info("{} index does not exist yet, but we are a tribe node. So we will load the config anyhow until we got it ...", searchguardIndex);
+                                        LOGGER.info("{} index does not exist yet, but we are a tribe node. So we will load the config anyhow until we got it ...", opendistrosecurityIndex);
                                         bgThread.start();
                                     } else {
 
-                                        if(settings.getAsBoolean(ConfigConstants.SEARCHGUARD_ALLOW_DEFAULT_INIT_SGINDEX, false)){
-                                            LOGGER.info("{} index does not exist yet, so we create a default config", searchguardIndex);
+                                        if(settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_ALLOW_DEFAULT_INIT_SGINDEX, false)){
+                                            LOGGER.info("{} index does not exist yet, so we create a default config", opendistrosecurityIndex);
                                             installDefaultConfig.set(true);
                                             bgThread.start();
                                         } else {
-                                            LOGGER.info("{} index does not exist yet, so no need to load config on node startup. Use sgadmin to initialize cluster", searchguardIndex);
+                                            LOGGER.info("{} index does not exist yet, so no need to load config on node startup. Use sgadmin to initialize cluster", opendistrosecurityIndex);
                                         }
                                     }
                                 }
@@ -239,7 +239,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
 
                             @Override
                             public void onFailure(Exception e) {
-                                LOGGER.error("Failure while checking {} index {}",e, searchguardIndex, e);
+                                LOGGER.error("Failure while checking {} index {}",e, opendistrosecurityIndex, e);
                                 bgThread.start();
                             }
                         });
@@ -268,7 +268,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
             if(triggerComplianceWhenCached && complianceConfig.isEnabled()) {
                 Map<String, String> fields = new HashMap<String, String>();
                 fields.put(configurationType, Strings.toString(result));
-                auditLog.logDocumentRead(this.searchguardIndex, configurationType, null, fields, complianceConfig);
+                auditLog.logDocumentRead(this.opendistrosecurityIndex, configurationType, null, fields, complianceConfig);
             }
             return result;
         }
@@ -406,10 +406,10 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
             try(StoredContext ctx = threadContext.stashContext()) {
                 threadContext.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true");
 
-                boolean searchGuardIndexExists = clusterService.state().metaData().hasConcreteIndex(this.searchguardIndex);
+                boolean searchGuardIndexExists = clusterService.state().metaData().hasConcreteIndex(this.opendistrosecurityIndex);
 
                 if(searchGuardIndexExists) {
-                    if(clusterService.state().metaData().index(this.searchguardIndex).mapping("config") != null) {
+                    if(clusterService.state().metaData().index(this.opendistrosecurityIndex).mapping("config") != null) {
                         //legacy layout
                         LOGGER.debug("sg index exists and was created before ES 6 (legacy layout)");
                         retVal.putAll(validate(legacycl.loadLegacy(configTypes.toArray(new String[0]), 5, TimeUnit.SECONDS), configTypes.size()));
@@ -470,13 +470,13 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
     public OpenDistroSecurityLicense getLicense() {
 
         //TODO check spoof with cluster settings and elasticsearch.yml without node restart
-        boolean enterpriseModulesEnabled = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_ENTERPRISE_MODULES_ENABLED, true);
+        boolean enterpriseModulesEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_ENTERPRISE_MODULES_ENABLED, true);
 
         if(!enterpriseModulesEnabled) {
             return null;
         }
 
-        String licenseText = getConfiguration("config", false).get("searchguard.dynamic.license");
+        String licenseText = getConfiguration("config", false).get("opendistrosecurity.dynamic.license");
 
         if(licenseText == null || licenseText.isEmpty()) {
             if(effectiveLicense != null) {
@@ -506,12 +506,12 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
 
         try(StoredContext ctx = threadContext.stashContext()) {
             threadContext.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true");
-            GetResponse get = client.prepareGet(searchguardIndex, "sg", "tattr").get();
+            GetResponse get = client.prepareGet(opendistrosecurityIndex, "sg", "tattr").get();
             if(get.isExists()) {
                 created = (long) get.getSource().get("val");
             } else {
                 try {
-                    client.index(new IndexRequest(searchguardIndex)
+                    client.index(new IndexRequest(opendistrosecurityIndex)
                     .type("sg")
                     .id("tattr")
                     .setRefreshPolicy(RefreshPolicy.IMMEDIATE)

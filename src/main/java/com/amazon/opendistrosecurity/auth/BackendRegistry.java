@@ -164,7 +164,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
         authImplMap.put("openid_h", "com.amazon.dlic.auth.http.jwt.keybyoidc.HTTPJwtKeyByOpenIdConnectAuthenticator");
         authImplMap.put("saml_h", "com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator");
 
-        this.ttlInMin = settings.getAsInt(ConfigConstants.SEARCHGUARD_CACHE_TTL_MINUTES, 60);
+        this.ttlInMin = settings.getAsInt(ConfigConstants.OPENDISTROSECURITY_CACHE_TTL_MINUTES, 60);
                 
         createCaches();
     }
@@ -190,11 +190,11 @@ public class BackendRegistry implements ConfigurationChangeListener {
         transportAuthorizers.clear();
         invalidateCache();
         destroyDestroyables();
-        transportUsernameAttribute = settings.get("searchguard.dynamic.transport_userrname_attribute", null);
-        anonymousAuthEnabled = settings.getAsBoolean("searchguard.dynamic.http.anonymous_auth_enabled", false)
-                && !esSettings.getAsBoolean(ConfigConstants.SEARCHGUARD_COMPLIANCE_DISABLE_ANONYMOUS_AUTHENTICATION, false);
+        transportUsernameAttribute = settings.get("opendistrosecurity.dynamic.transport_userrname_attribute", null);
+        anonymousAuthEnabled = settings.getAsBoolean("opendistrosecurity.dynamic.http.anonymous_auth_enabled", false)
+                && !esSettings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_DISABLE_ANONYMOUS_AUTHENTICATION, false);
 
-        final Map<String, Settings> authzDyn = settings.getGroups("searchguard.dynamic.authz");
+        final Map<String, Settings> authzDyn = settings.getGroups("opendistrosecurity.dynamic.authz");
 
         for (final String ad : authzDyn.keySet()) {
             final Settings ads = authzDyn.get(ad);
@@ -237,7 +237,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
             }
         }
 
-        final Map<String, Settings> dyn = settings.getGroups("searchguard.dynamic.authc");
+        final Map<String, Settings> dyn = settings.getGroups("opendistrosecurity.dynamic.authc");
 
         for (final String ad : dyn.keySet()) {
             final Settings ads = dyn.get(ad);

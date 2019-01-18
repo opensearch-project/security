@@ -173,7 +173,7 @@ echo "Elasticsearch lib dir: $ES_LIB_PATH"
 echo "Detected Elasticsearch Version: $ES_VERSION"
 echo "Detected Search Guard Version: $SG_VERSION"
 
-if $SUDO_CMD grep --quiet -i searchguard "$ES_CONF_FILE"; then
+if $SUDO_CMD grep --quiet -i opendistrosecurity "$ES_CONF_FILE"; then
   echo "$ES_CONF_FILE seems to be already configured for Search Guard. Quit."
   exit -1
 fi
@@ -348,17 +348,17 @@ echo "opendistrosecurity.ssl.http.enabled: true" | $SUDO_CMD tee -a "$ES_CONF_FI
 echo "opendistrosecurity.ssl.http.pemcert_filepath: esnode.pem" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
 echo "opendistrosecurity.ssl.http.pemkey_filepath: esnode-key.pem" | $SUDO_CMD tee -a  "$ES_CONF_FILE" > /dev/null
 echo "opendistrosecurity.ssl.http.pemtrustedcas_filepath: root-ca.pem" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
-echo "searchguard.allow_unsafe_democertificates: true" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
+echo "opendistrosecurity.allow_unsafe_democertificates: true" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
 if [ "$initsg" == 1 ]; then
-    echo "searchguard.allow_default_init_sgindex: true" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
+    echo "opendistrosecurity.allow_default_init_sgindex: true" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
 fi
-echo "searchguard.authcz.admin_dn:" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null 
+echo "opendistrosecurity.authcz.admin_dn:" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
 echo "  - CN=kirk,OU=client,O=client,L=test, C=de" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null 
 echo "" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null 
-echo "searchguard.audit.type: internal_elasticsearch" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
-echo "searchguard.enable_snapshot_restore_privilege: true" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
-echo "searchguard.check_snapshot_restore_write_privileges: true" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
-echo 'searchguard.restapi.roles_enabled: ["sg_all_access"]' | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
+echo "opendistrosecurity.audit.type: internal_elasticsearch" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
+echo "opendistrosecurity.enable_snapshot_restore_privilege: true" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
+echo "opendistrosecurity.check_snapshot_restore_write_privileges: true" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
+echo 'opendistrosecurity.restapi.roles_enabled: ["sg_all_access"]' | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
 
 #cluster.routing.allocation.disk.threshold_enabled
 if $SUDO_CMD grep --quiet -i "^cluster.routing.allocation.disk.threshold_enabled" "$ES_CONF_FILE"; then
@@ -371,7 +371,7 @@ fi
 if $SUDO_CMD grep --quiet -i "^cluster.name" "$ES_CONF_FILE"; then
 	: #already present
 else
-    echo "cluster.name: searchguard_demo" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null 
+    echo "cluster.name: opendistrosecurity_demo" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
 fi
 
 #network.host

@@ -249,7 +249,7 @@ public class TracingTests extends SingleClusterTest {
         });
 
     final Settings settings = Settings.builder()
-            .putList(ConfigConstants.SEARCHGUARD_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "knuddel","nonexists")
+            .putList(ConfigConstants.OPENDISTROSECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "knuddel","nonexists")
             .build();
     setup(settings);
     final RestHelper rh = nonSslRestHelper();
@@ -315,7 +315,7 @@ public class TracingTests extends SingleClusterTest {
         });
 
     final Settings settings = Settings.builder()
-            .putList(ConfigConstants.SEARCHGUARD_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "knuddel","nonexists")
+            .putList(ConfigConstants.OPENDISTROSECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "knuddel","nonexists")
             .build();
     setup(settings);
     final RestHelper rh = nonSslRestHelper();

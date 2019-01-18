@@ -34,16 +34,16 @@ public class SnapshotRestoreEvaluator {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
     private final boolean enableSnapshotRestorePrivilege;
-    private final String searchguardIndex;
+    private final String opendistrosecurityIndex;
     private final AuditLog auditLog;
     private final boolean restoreSgIndexEnabled;
     
     public SnapshotRestoreEvaluator(final Settings settings, AuditLog auditLog) {
-        this.enableSnapshotRestorePrivilege = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE,
+        this.enableSnapshotRestorePrivilege = settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE,
                 ConfigConstants.SG_DEFAULT_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE);
-        this.restoreSgIndexEnabled = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_UNSUPPORTED_RESTORE_SGINDEX_ENABLED, false);
+        this.restoreSgIndexEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_UNSUPPORTED_RESTORE_SGINDEX_ENABLED, false);
 
-        this.searchguardIndex = settings.get(ConfigConstants.SEARCHGUARD_CONFIG_INDEX_NAME, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
+        this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTROSECURITY_CONFIG_INDEX_NAME, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
         this.auditLog = auditLog;
     }
 
@@ -86,9 +86,9 @@ public class SnapshotRestoreEvaluator {
 
         final List<String> rs = SnapshotRestoreHelper.resolveOriginalIndices(restoreRequest);
 
-        if (rs != null && (rs.contains(searchguardIndex) || rs.contains("_all") || rs.contains("*"))) {
+        if (rs != null && (rs.contains(opendistrosecurityIndex) || rs.contains("_all") || rs.contains("*"))) {
             auditLog.logSgIndexAttempt(request, action, task);
-            log.warn(action + " for '{}' as source index is not allowed", searchguardIndex);
+            log.warn(action + " for '{}' as source index is not allowed", opendistrosecurityIndex);
             presponse.allowed = false;
             return presponse.markComplete();            
         }

@@ -36,7 +36,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
     public void testInjectedUserMalformed() throws Exception {
     
         final Settings settings = Settings.builder()                
-                .put(ConfigConstants.SEARCHGUARD_UNSUPPORTED_INJECT_USER_ENABLED, true)
+                .put(ConfigConstants.OPENDISTROSECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true)
                 .put("http.type", "com.amazon.opendistrosecurity.http.UserInjectingServerTransport")
                 .build();
                       
@@ -80,7 +80,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
     public void testInjectedUser() throws Exception {
     
         final Settings settings = Settings.builder()                
-                .put(ConfigConstants.SEARCHGUARD_UNSUPPORTED_INJECT_USER_ENABLED, true)
+                .put(ConfigConstants.OPENDISTROSECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true)
                 .put("http.type", "com.amazon.opendistrosecurity.http.UserInjectingServerTransport")
                 .build();
                       
@@ -196,9 +196,9 @@ public class SystemIntegratorsTests extends SingleClusterTest {
   public void testInjectedAdminUser() throws Exception {
   
       final Settings settings = Settings.builder()                
-              .put(ConfigConstants.SEARCHGUARD_UNSUPPORTED_INJECT_USER_ENABLED, true)
-              .put(ConfigConstants.SEARCHGUARD_UNSUPPORTED_INJECT_ADMIN_USER_ENABLED, true)
-              .putList(ConfigConstants.SEARCHGUARD_AUTHCZ_ADMIN_DN, Lists.newArrayList("CN=kirk,OU=client,O=client,L=Test,C=DE","injectedadmin"))
+              .put(ConfigConstants.OPENDISTROSECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true)
+              .put(ConfigConstants.OPENDISTROSECURITY_UNSUPPORTED_INJECT_ADMIN_USER_ENABLED, true)
+              .putList(ConfigConstants.OPENDISTROSECURITY_AUTHCZ_ADMIN_DN, Lists.newArrayList("CN=kirk,OU=client,O=client,L=Test,C=DE","injectedadmin"))
               .put("http.type", "com.amazon.opendistrosecurity.http.UserInjectingServerTransport")
               .build();
                     
@@ -208,7 +208,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
       HttpResponse resc;
       
       // injected user is admin, access to SG index must be allowed
-      resc = rh.executeGetRequest("searchguard/_search?pretty", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "injectedadmin|role1|127.0.0:80|key1,value1"));
+      resc = rh.executeGetRequest("opendistrosecurity/_search?pretty", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "injectedadmin|role1|127.0.0:80|key1,value1"));
       Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
       Assert.assertTrue(resc.getBody().contains("\"_id\" : \"config\""));
       Assert.assertTrue(resc.getBody().contains("\"_id\" : \"roles\""));
@@ -216,7 +216,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
       Assert.assertTrue(resc.getBody().contains("\"_id\" : \"tattr\""));
       Assert.assertTrue(resc.getBody().contains("\"total\" : 6"));
       
-      resc = rh.executeGetRequest("searchguard/_search?pretty", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "wrongadmin|role1|127.0.0:80|key1,value1"));
+      resc = rh.executeGetRequest("opendistrosecurity/_search?pretty", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "wrongadmin|role1|127.0.0:80|key1,value1"));
       Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
       
   }
@@ -225,8 +225,8 @@ public class SystemIntegratorsTests extends SingleClusterTest {
     public void testInjectedAdminUserAdminInjectionDisabled() throws Exception {
     
         final Settings settings = Settings.builder()                
-                .put(ConfigConstants.SEARCHGUARD_UNSUPPORTED_INJECT_USER_ENABLED, true)
-                .putList(ConfigConstants.SEARCHGUARD_AUTHCZ_ADMIN_DN, Lists.newArrayList("CN=kirk,OU=client,O=client,L=Test,C=DE","injectedadmin"))
+                .put(ConfigConstants.OPENDISTROSECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true)
+                .putList(ConfigConstants.OPENDISTROSECURITY_AUTHCZ_ADMIN_DN, Lists.newArrayList("CN=kirk,OU=client,O=client,L=Test,C=DE","injectedadmin"))
                 .put("http.type", "com.amazon.opendistrosecurity.http.UserInjectingServerTransport")
                 .build();
                       
@@ -236,7 +236,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
         HttpResponse resc;
         
         // injected user is admin, access to SG index must be allowed
-        resc = rh.executeGetRequest("searchguard/_search?pretty", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "injectedadmin|role1|127.0.0:80|key1,value1"));
+        resc = rh.executeGetRequest("opendistrosecurity/_search?pretty", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "injectedadmin|role1|127.0.0:80|key1,value1"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
         Assert.assertFalse(resc.getBody().contains("\"_id\" : \"config\""));
         Assert.assertFalse(resc.getBody().contains("\"_id\" : \"roles\""));

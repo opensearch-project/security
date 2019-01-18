@@ -165,7 +165,7 @@ public abstract class AbstractSGUnitTest {
                     tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
 
             try {
-                tc.admin().indices().create(new CreateIndexRequest("searchguard")).actionGet();
+                tc.admin().indices().create(new CreateIndexRequest("opendistrosecurity")).actionGet();
             } catch (Exception e) {
                 //ignore
             }
@@ -179,19 +179,19 @@ public abstract class AbstractSGUnitTest {
                     .actionGet();
             Assert.assertEquals(info.numNodes, cur.getNodes().size());
             
-            SearchResponse sr = tc.search(new SearchRequest("searchguard")).actionGet();
+            SearchResponse sr = tc.search(new SearchRequest("opendistrosecurity")).actionGet();
             //Assert.assertEquals(5L, sr.getHits().getTotalHits());
             
-            sr = tc.search(new SearchRequest("searchguard")).actionGet();
+            sr = tc.search(new SearchRequest("opendistrosecurity")).actionGet();
             //Assert.assertEquals(5L, sr.getHits().getTotalHits());
 
-            Assert.assertTrue(tc.get(new GetRequest("searchguard", "sg", "config")).actionGet().isExists());
-            Assert.assertTrue(tc.get(new GetRequest("searchguard","sg","internalusers")).actionGet().isExists());
-            Assert.assertTrue(tc.get(new GetRequest("searchguard","sg","roles")).actionGet().isExists());
-            Assert.assertTrue(tc.get(new GetRequest("searchguard","sg","rolesmapping")).actionGet().isExists());
-            Assert.assertTrue(tc.get(new GetRequest("searchguard","sg","actiongroups")).actionGet().isExists());
-            Assert.assertFalse(tc.get(new GetRequest("searchguard","sg","rolesmapping_xcvdnghtu165759i99465")).actionGet().isExists());
-            Assert.assertTrue(tc.get(new GetRequest("searchguard","sg","config")).actionGet().isExists());
+            Assert.assertTrue(tc.get(new GetRequest("opendistrosecurity", "sg", "config")).actionGet().isExists());
+            Assert.assertTrue(tc.get(new GetRequest("opendistrosecurity","sg","internalusers")).actionGet().isExists());
+            Assert.assertTrue(tc.get(new GetRequest("opendistrosecurity","sg","roles")).actionGet().isExists());
+            Assert.assertTrue(tc.get(new GetRequest("opendistrosecurity","sg","rolesmapping")).actionGet().isExists());
+            Assert.assertTrue(tc.get(new GetRequest("opendistrosecurity","sg","actiongroups")).actionGet().isExists());
+            Assert.assertFalse(tc.get(new GetRequest("opendistrosecurity","sg","rolesmapping_xcvdnghtu165759i99465")).actionGet().isExists());
+            Assert.assertTrue(tc.get(new GetRequest("opendistrosecurity","sg","config")).actionGet().isExists());
         }
     }
     
@@ -201,7 +201,7 @@ public abstract class AbstractSGUnitTest {
         
         return Settings.builder()
                 //.put("opendistrosecurity.ssl.transport.enabled", true)
-                 //.put("searchguard.no_default_init", true)
+                 //.put("opendistrosecurity.no_default_init", true)
                 //.put("opendistrosecurity.ssl.http.enable_openssl_if_available", false)
                 //.put("opendistrosecurity.ssl.transport.enable_openssl_if_available", false)
                 .put(SSLConfigConstants.OPENDISTROSECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
@@ -212,7 +212,7 @@ public abstract class AbstractSGUnitTest {
                 .put("opendistrosecurity.ssl.transport.truststore_filepath",
                         FileHelper.getAbsoluteFilePathFromClassPath(prefix+"truststore.jks"))
                 .put("opendistrosecurity.ssl.transport.enforce_hostname_verification", false)
-                .putList("searchguard.authcz.admin_dn", "CN=kirk,OU=client,O=client,l=tEst, C=De");
+                .putList("opendistrosecurity.authcz.admin_dn", "CN=kirk,OU=client,O=client,l=tEst, C=De");
                 //.put(other==null?Settings.EMPTY:other);
     }
     

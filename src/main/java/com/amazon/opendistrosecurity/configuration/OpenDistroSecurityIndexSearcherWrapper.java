@@ -39,14 +39,14 @@ public class OpenDistroSecurityIndexSearcherWrapper extends IndexSearcherWrapper
     protected final Logger log = LogManager.getLogger(this.getClass());
     protected final ThreadContext threadContext;
     protected final Index index;
-    protected final String searchguardIndex;
+    protected final String opendistrosecurityIndex;
     private final AdminDNs adminDns;
 
     //constructor is called per index, so avoid costly operations here
 	public OpenDistroSecurityIndexSearcherWrapper(final IndexService indexService, final Settings settings, final AdminDNs adminDNs) {
 	    index = indexService.index();
 	    threadContext = indexService.getThreadPool().getThreadContext();
-        this.searchguardIndex = settings.get(ConfigConstants.SEARCHGUARD_CONFIG_INDEX_NAME, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
+        this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTROSECURITY_CONFIG_INDEX_NAME, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
         this.adminDns = adminDNs;
 	}
 
@@ -90,6 +90,6 @@ public class OpenDistroSecurityIndexSearcherWrapper extends IndexSearcherWrapper
     }
 
     protected final boolean isSearchGuardIndexRequest() {
-        return index.getName().equals(searchguardIndex);
+        return index.getName().equals(opendistrosecurityIndex);
     }
 }

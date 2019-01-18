@@ -44,7 +44,7 @@ public class CompatConfig implements ConfigurationChangeListener {
     
     //true is default
     public boolean restAuthEnabled() {
-        final boolean restInitiallyDisabled = staticSettings.getAsBoolean(ConfigConstants.SEARCHGUARD_UNSUPPORTED_DISABLE_REST_AUTH_INITIALLY, false);
+        final boolean restInitiallyDisabled = staticSettings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_UNSUPPORTED_DISABLE_REST_AUTH_INITIALLY, false);
         
         if(restInitiallyDisabled) {
             if(dynamicSgConfig == null) {
@@ -53,9 +53,9 @@ public class CompatConfig implements ConfigurationChangeListener {
                 }
                 return false;
             } else {
-                final boolean restDynamicallyDisabled = dynamicSgConfig.getAsBoolean("searchguard.dynamic.disable_rest_auth", false);
+                final boolean restDynamicallyDisabled = dynamicSgConfig.getAsBoolean("opendistrosecurity.dynamic.disable_rest_auth", false);
                 if(log.isTraceEnabled()) {
-                    log.trace("searchguard.dynamic.disable_rest_auth {}", restDynamicallyDisabled);
+                    log.trace("opendistrosecurity.dynamic.disable_rest_auth {}", restDynamicallyDisabled);
                 }
                 return !restDynamicallyDisabled;
             }
@@ -67,7 +67,7 @@ public class CompatConfig implements ConfigurationChangeListener {
     
     //true is default
     public boolean transportInterClusterAuthEnabled() {
-        final boolean interClusterAuthInitiallyDisabled = staticSettings.getAsBoolean(ConfigConstants.SEARCHGUARD_UNSUPPORTED_DISABLE_INTERTRANSPORT_AUTH_INITIALLY, false);
+        final boolean interClusterAuthInitiallyDisabled = staticSettings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_UNSUPPORTED_DISABLE_INTERTRANSPORT_AUTH_INITIALLY, false);
         
         if(interClusterAuthInitiallyDisabled) {
             if(dynamicSgConfig == null) {
@@ -76,9 +76,9 @@ public class CompatConfig implements ConfigurationChangeListener {
                 }
                 return false;
             } else {
-                final boolean interClusterAuthDynamicallyDisabled = dynamicSgConfig.getAsBoolean("searchguard.dynamic.disable_intertransport_auth", false);
+                final boolean interClusterAuthDynamicallyDisabled = dynamicSgConfig.getAsBoolean("opendistrosecurity.dynamic.disable_intertransport_auth", false);
                 if(log.isTraceEnabled()) {
-                    log.trace("searchguard.dynamic.disable_intertransport_auth {}", interClusterAuthDynamicallyDisabled);
+                    log.trace("opendistrosecurity.dynamic.disable_intertransport_auth {}", interClusterAuthDynamicallyDisabled);
                 }
                 return !interClusterAuthDynamicallyDisabled;
             }

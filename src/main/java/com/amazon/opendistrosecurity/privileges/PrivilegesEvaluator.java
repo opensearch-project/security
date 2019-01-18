@@ -117,17 +117,17 @@ public class PrivilegesEvaluator {
         this.privilegesInterceptor = privilegesInterceptor;
 
         try {
-            rolesMappingResolution = ConfigConstants.RolesMappingResolution.valueOf(settings.get(ConfigConstants.SEARCHGUARD_ROLES_MAPPING_RESOLUTION, ConfigConstants.RolesMappingResolution.MAPPING_ONLY.toString()).toUpperCase());
+            rolesMappingResolution = ConfigConstants.RolesMappingResolution.valueOf(settings.get(ConfigConstants.OPENDISTROSECURITY_ROLES_MAPPING_RESOLUTION, ConfigConstants.RolesMappingResolution.MAPPING_ONLY.toString()).toUpperCase());
         } catch (Exception e) {
             log.error("Cannot apply roles mapping resolution",e);
             rolesMappingResolution =  ConfigConstants.RolesMappingResolution.MAPPING_ONLY;
         }
 
-        this.checkSnapshotRestoreWritePrivileges = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES,
+        this.checkSnapshotRestoreWritePrivileges = settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES,
                 ConfigConstants.SG_DEFAULT_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES);
                 
         this.clusterInfoHolder = clusterInfoHolder;
-        //this.typeSecurityDisabled = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_DISABLE_TYPE_SECURITY, false);
+        //this.typeSecurityDisabled = settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_DISABLE_TYPE_SECURITY, false);
         configModel = new ConfigModel(ah, configurationRepository);
         irr = new IndexResolverReplacer(resolver, clusterService, clusterInfoHolder);
         snapshotRestoreEvaluator = new SnapshotRestoreEvaluator(settings, auditLog);
@@ -203,8 +203,8 @@ public class PrivilegesEvaluator {
         }        
 
         final boolean dnfofEnabled =
-                getConfigSettings().getAsBoolean("searchguard.dynamic.kibana.do_not_fail_on_forbidden", false)
-                || getConfigSettings().getAsBoolean("searchguard.dynamic.do_not_fail_on_forbidden", false);
+                getConfigSettings().getAsBoolean("opendistrosecurity.dynamic.kibana.do_not_fail_on_forbidden", false)
+                || getConfigSettings().getAsBoolean("opendistrosecurity.dynamic.do_not_fail_on_forbidden", false);
         
         if(log.isTraceEnabled()) {
             log.trace("dnfof enabled? {}", dnfofEnabled);
@@ -359,7 +359,7 @@ public class PrivilegesEvaluator {
         //not bulk, mget, etc request here
         boolean permGiven = false;
 
-        if (config.getAsBoolean("searchguard.dynamic.multi_rolespan_enabled", false)) {
+        if (config.getAsBoolean("opendistrosecurity.dynamic.multi_rolespan_enabled", false)) {
             permGiven = sgRoles.impliesTypePermGlobal(requestedResolved, user, allIndexPermsRequiredA, resolver, clusterService);
         }  else {
             permGiven = sgRoles.get(requestedResolved, user, allIndexPermsRequiredA, resolver, clusterService);
@@ -438,7 +438,7 @@ public class PrivilegesEvaluator {
                         continue;
                     }
     
-                    final String hostResolverMode = getConfigSettings().get("searchguard.dynamic.hosts_resolver_mode","ip-only");
+                    final String hostResolverMode = getConfigSettings().get("opendistrosecurity.dynamic.hosts_resolver_mode","ip-only");
                     
                     if(caller.address() != null && (hostResolverMode.equalsIgnoreCase("ip-hostname") || hostResolverMode.equalsIgnoreCase("ip-hostname-lookup"))){
                         final String hostName = caller.address().getHostString();
@@ -523,20 +523,20 @@ public class PrivilegesEvaluator {
 
     public boolean multitenancyEnabled() {
         return privilegesInterceptor.getClass() != PrivilegesInterceptor.class
-                && getConfigSettings().getAsBoolean("searchguard.dynamic.kibana.multitenancy_enabled", true);
+                && getConfigSettings().getAsBoolean("opendistrosecurity.dynamic.kibana.multitenancy_enabled", true);
     }
 
     public boolean notFailOnForbiddenEnabled() {
         return privilegesInterceptor.getClass() != PrivilegesInterceptor.class
-                && getConfigSettings().getAsBoolean("searchguard.dynamic.kibana.do_not_fail_on_forbidden", false);
+                && getConfigSettings().getAsBoolean("opendistrosecurity.dynamic.kibana.do_not_fail_on_forbidden", false);
     }
 
     public String kibanaIndex() {
-        return getConfigSettings().get("searchguard.dynamic.kibana.index",".kibana");
+        return getConfigSettings().get("opendistrosecurity.dynamic.kibana.index",".kibana");
     }
 
     public String kibanaServerUsername() {
-        return getConfigSettings().get("searchguard.dynamic.kibana.server_username","kibanaserver");
+        return getConfigSettings().get("opendistrosecurity.dynamic.kibana.server_username","kibanaserver");
     }
 
     private Set<String> evaluateAdditionalIndexPermissions(final ActionRequest request, final String originalAction) {
@@ -658,7 +658,7 @@ public class PrivilegesEvaluator {
 
             if(filteredAliases.size() > 1 && WildcardMatcher.match("indices:data/read/*search*", action)) {
                 //TODO add queries as dls queries (works only if dls module is installed)
-                final String faMode = getConfigSettings().get("searchguard.dynamic.filtered_alias_mode","warn");
+                final String faMode = getConfigSettings().get("opendistrosecurity.dynamic.filtered_alias_mode","warn");
 
                 if(faMode.equals("warn")) {
                     log.warn("More than one ({}) filtered alias found for same index ({}). This is currently not recommended. Aliases: {}", filteredAliases.size(), requestAliasOrIndex, toString(filteredAliases));

@@ -29,7 +29,7 @@ import com.amazon.opendistrosecurity.test.helper.file.FileHelper;
 
 public class DynamicSgConfig {
     
-    private String searchGuardIndexName = "searchguard";
+    private String searchGuardIndexName = "opendistrosecurity";
     private String sgConfig = "sg_config.yml";
     private String sgRoles = "sg_roles.yml";
     private String sgRolesMapping = "sg_roles_mapping.yml";

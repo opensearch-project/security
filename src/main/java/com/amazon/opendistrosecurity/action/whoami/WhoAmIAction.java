@@ -23,7 +23,7 @@ import org.elasticsearch.client.ElasticsearchClient;
 public class WhoAmIAction extends Action<WhoAmIRequest, WhoAmIResponse, WhoAmIRequestBuilder> {
 
     public static final WhoAmIAction INSTANCE = new WhoAmIAction();
-    public static final String NAME = "cluster:admin/searchguard/whoami";
+    public static final String NAME = "cluster:admin/opendistrosecurity/whoami";
 
     protected WhoAmIAction() {
         super(NAME);

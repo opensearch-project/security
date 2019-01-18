@@ -81,13 +81,13 @@ public class XFFResolver implements ConfigurationChangeListener {
 
     @Override
     public void onChange(final Settings settings) {
-        enabled = settings.getAsBoolean("searchguard.dynamic.http.xff.enabled", true);
+        enabled = settings.getAsBoolean("opendistrosecurity.dynamic.http.xff.enabled", true);
         if(enabled) {
             detector = new RemoteIpDetector();
-            detector.setInternalProxies(settings.get("searchguard.dynamic.http.xff.internalProxies", detector.getInternalProxies()));
-            detector.setProxiesHeader(settings.get("searchguard.dynamic.http.xff.proxiesHeader", detector.getProxiesHeader()));
-            detector.setRemoteIpHeader(settings.get("searchguard.dynamic.http.xff.remoteIpHeader", detector.getRemoteIpHeader()));
-            detector.setTrustedProxies(settings.get("searchguard.dynamic.http.xff.trustedProxies", detector.getTrustedProxies()));
+            detector.setInternalProxies(settings.get("opendistrosecurity.dynamic.http.xff.internalProxies", detector.getInternalProxies()));
+            detector.setProxiesHeader(settings.get("opendistrosecurity.dynamic.http.xff.proxiesHeader", detector.getProxiesHeader()));
+            detector.setRemoteIpHeader(settings.get("opendistrosecurity.dynamic.http.xff.remoteIpHeader", detector.getRemoteIpHeader()));
+            detector.setTrustedProxies(settings.get("opendistrosecurity.dynamic.http.xff.trustedProxies", detector.getTrustedProxies()));
         } else {
             detector = null;
         }

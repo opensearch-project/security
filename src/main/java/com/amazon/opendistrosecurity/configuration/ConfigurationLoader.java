@@ -52,14 +52,14 @@ class ConfigurationLoader {
     protected final Logger log = LogManager.getLogger(this.getClass());
     private final Client client;
 	//private final ThreadContext threadContext;
-    private final String searchguardIndex;
+    private final String opendistrosecurityIndex;
     
     ConfigurationLoader(final Client client, ThreadPool threadPool, final Settings settings) {
         super();
         this.client = client;
         //this.threadContext = threadPool.getThreadContext();
-        this.searchguardIndex = settings.get(ConfigConstants.SEARCHGUARD_CONFIG_INDEX_NAME, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
-        log.debug("Index is: {}", searchguardIndex);
+        this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTROSECURITY_CONFIG_INDEX_NAME, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
+        log.debug("Index is: {}", opendistrosecurityIndex);
     }
     
     Map<String, Settings> load(final String[] events, long timeout, TimeUnit timeUnit) throws InterruptedException, TimeoutException {
@@ -71,7 +71,7 @@ class ConfigurationLoader {
             @Override
             public void success(String id, Settings settings) {
                 if(latch.getCount() <= 0) {
-                    log.error("Latch already counted down (for {} of {})  (index={})", id, Arrays.toString(events), searchguardIndex);
+                    log.error("Latch already counted down (for {} of {})  (index={})", id, Arrays.toString(events), opendistrosecurityIndex);
                 }
                 
                 rs.put(id, settings);
@@ -83,23 +83,23 @@ class ConfigurationLoader {
             
             @Override
             public void singleFailure(Failure failure) {
-                log.error("Failure {} retrieving configuration for {} (index={})", failure==null?null:failure.getMessage(), Arrays.toString(events), searchguardIndex);
+                log.error("Failure {} retrieving configuration for {} (index={})", failure==null?null:failure.getMessage(), Arrays.toString(events), opendistrosecurityIndex);
             }
             
             @Override
             public void noData(String id) {
-                log.warn("No data for {} while retrieving configuration for {}  (index={})", id, Arrays.toString(events), searchguardIndex);
+                log.warn("No data for {} while retrieving configuration for {}  (index={})", id, Arrays.toString(events), opendistrosecurityIndex);
             }
             
             @Override
             public void failure(Throwable t) {
-                log.error("Exception {} while retrieving configuration for {}  (index={})",t,t.toString(), Arrays.toString(events), searchguardIndex);
+                log.error("Exception {} while retrieving configuration for {}  (index={})",t,t.toString(), Arrays.toString(events), opendistrosecurityIndex);
             }
         });
         
         if(!latch.await(timeout, timeUnit)) {
             //timeout
-            throw new TimeoutException("Timeout after "+timeout+""+timeUnit+" while retrieving configuration for "+Arrays.toString(events)+ "(index="+searchguardIndex+")");
+            throw new TimeoutException("Timeout after "+timeout+""+timeUnit+" while retrieving configuration for "+Arrays.toString(events)+ "(index="+opendistrosecurityIndex+")");
         }
         
         return rs;
@@ -115,7 +115,7 @@ class ConfigurationLoader {
 
         for (int i = 0; i < events.length; i++) {
             final String event = events[i];
-            mget.add(searchguardIndex, "sg", event);
+            mget.add(opendistrosecurityIndex, "sg", event);
         }
         
         mget.refresh(true);

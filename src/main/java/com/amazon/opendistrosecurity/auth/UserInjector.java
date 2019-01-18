@@ -49,7 +49,7 @@ public class UserInjector {
         this.threadPool = threadPool;
         this.auditLog = auditLog;
         this.xffResolver = xffResolver;
-        this.injectUserEnabled = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_UNSUPPORTED_INJECT_USER_ENABLED, false);
+        this.injectUserEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_UNSUPPORTED_INJECT_USER_ENABLED, false);
 
     }
 

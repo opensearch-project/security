@@ -23,7 +23,7 @@ import org.elasticsearch.client.ElasticsearchClient;
 public class LicenseInfoAction extends Action<LicenseInfoRequest, LicenseInfoResponse, LicenseInfoRequestBuilder> {
 
     public static final LicenseInfoAction INSTANCE = new LicenseInfoAction();
-    public static final String NAME = "cluster:admin/searchguard/license/info";
+    public static final String NAME = "cluster:admin/opendistrosecurity/license/info";
 
     protected LicenseInfoAction() {
         super(NAME);

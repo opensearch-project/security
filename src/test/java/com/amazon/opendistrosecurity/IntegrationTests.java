@@ -70,7 +70,7 @@ public class IntegrationTests extends SingleClusterTest {
         });
         
     final Settings settings = Settings.builder()
-            .putList(ConfigConstants.SEARCHGUARD_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "knuddel","nonexists")
+            .putList(ConfigConstants.OPENDISTROSECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "knuddel","nonexists")
             .build();
     setup(settings);
     final RestHelper rh = nonSslRestHelper();
@@ -184,9 +184,9 @@ public class IntegrationTests extends SingleClusterTest {
                 .put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("node-untspec5-keystore.p12"))
                 .put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "1")
                 .put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, "PKCS12")
-                .putList("searchguard.nodes_dn", "EMAILADDRESS=unt@tst.com,CN=node-untspec5.example.com,OU=SSL,O=Te\\, st,L=Test,C=DE")
-                .putList("searchguard.authcz.admin_dn", "EMAILADDRESS=unt@xxx.com,CN=node-untspec6.example.com,OU=SSL,O=Te\\, st,L=Test,C=DE")
-                .put("searchguard.cert.oid","1.2.3.4.5.6")
+                .putList("opendistrosecurity.nodes_dn", "EMAILADDRESS=unt@tst.com,CN=node-untspec5.example.com,OU=SSL,O=Te\\, st,L=Test,C=DE")
+                .putList("opendistrosecurity.authcz.admin_dn", "EMAILADDRESS=unt@xxx.com,CN=node-untspec6.example.com,OU=SSL,O=Te\\, st,L=Test,C=DE")
+                .put("opendistrosecurity.cert.oid","1.2.3.4.5.6")
                 .build();
         
         
@@ -210,9 +210,9 @@ public class IntegrationTests extends SingleClusterTest {
                 .put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("node-untspec5-keystore.p12"))
                 .put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "1")
                 .put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, "PKCS12")
-                .putList("searchguard.nodes_dn", "EMAILADDRESS=unt@tst.com,CN=node-untspec5.example.com,OU=SSL,O=Te\\, st,L=Test,C=DE")
-                .putList("searchguard.authcz.admin_dn", "EMAILADDREss=unt@xxx.com,  cn=node-untspec6.example.com, OU=SSL,O=Te\\, st,L=Test, c=DE")
-                .put("searchguard.cert.oid","1.2.3.4.5.6")
+                .putList("opendistrosecurity.nodes_dn", "EMAILADDRESS=unt@tst.com,CN=node-untspec5.example.com,OU=SSL,O=Te\\, st,L=Test,C=DE")
+                .putList("opendistrosecurity.authcz.admin_dn", "EMAILADDREss=unt@xxx.com,  cn=node-untspec6.example.com, OU=SSL,O=Te\\, st,L=Test, c=DE")
+                .put("opendistrosecurity.cert.oid","1.2.3.4.5.6")
                 .build();
         
         
@@ -274,7 +274,7 @@ public class IntegrationTests extends SingleClusterTest {
     public void testRestImpersonation() throws Exception {
     
         final Settings settings = Settings.builder()
-                 .putList(ConfigConstants.SEARCHGUARD_AUTHCZ_REST_IMPERSONATION_USERS+".spock", "knuddel","userwhonotexists").build();
+                 .putList(ConfigConstants.OPENDISTROSECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".spock", "knuddel","userwhonotexists").build();
  
         setup(settings);
         
@@ -387,7 +387,7 @@ public class IntegrationTests extends SingleClusterTest {
         Assert.assertFalse(res.getBody().contains("\"content\":2"));
         
         try (TransportClient tc = getInternalTransportClient()) {                                       
-            tc.index(new IndexRequest("searchguard").type("sg").id("config").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("config", FileHelper.readYamlContent("sg_config_multirolespan.yml"))).actionGet();
+            tc.index(new IndexRequest("opendistrosecurity").type("sg").id("config").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("config", FileHelper.readYamlContent("sg_config_multirolespan.yml"))).actionGet();
    
             ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config"})).actionGet();
             Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());
@@ -463,7 +463,7 @@ public class IntegrationTests extends SingleClusterTest {
     @Test
     public void testUpdate() throws Exception {
         final Settings settings = Settings.builder()
-                .put(ConfigConstants.SEARCHGUARD_ROLES_MAPPING_RESOLUTION, "BOTH")
+                .put(ConfigConstants.OPENDISTROSECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
                 .build();
         setup(settings);
         final RestHelper rh = nonSslRestHelper();
@@ -485,7 +485,7 @@ public class IntegrationTests extends SingleClusterTest {
     public void testDnfof() throws Exception {
 
         final Settings settings = Settings.builder()
-                .put(ConfigConstants.SEARCHGUARD_ROLES_MAPPING_RESOLUTION, "BOTH")
+                .put(ConfigConstants.OPENDISTROSECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
                 .build();
 
         setup(Settings.EMPTY, new DynamicSgConfig().setSgConfig("sg_config_dnfof.yml"), settings);
@@ -660,7 +660,7 @@ public class IntegrationTests extends SingleClusterTest {
     public void testNoDnfof() throws Exception {
 
         final Settings settings = Settings.builder()
-                .put(ConfigConstants.SEARCHGUARD_ROLES_MAPPING_RESOLUTION, "BOTH")
+                .put(ConfigConstants.OPENDISTROSECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
                 .build();
 
         setup(Settings.EMPTY, new DynamicSgConfig(), settings);

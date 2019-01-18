@@ -16,7 +16,7 @@
 
 
 
-searchguard:
+opendistrosecurity:
   dynamic:
     multi_rolespan_enabled: true
     filtered_alias_mode: disallow

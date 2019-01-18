@@ -16,7 +16,7 @@
 
 
 
-searchguard:
+opendistrosecurity:
   dynamic:
     filtered_alias_mode: disallow
     http:

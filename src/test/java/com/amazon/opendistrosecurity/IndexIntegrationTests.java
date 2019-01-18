@@ -336,7 +336,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
     public void testAliases() throws Exception {
 
         final Settings settings = Settings.builder()
-                .put(ConfigConstants.SEARCHGUARD_ROLES_MAPPING_RESOLUTION, "BOTH")
+                .put(ConfigConstants.OPENDISTROSECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
                 .build();
 
         setup(settings);
@@ -356,7 +356,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
             tc.index(new IndexRequest("logstash-"+date).type("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
         
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("nopermindex").alias("nopermalias"))).actionGet();
-            tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("searchguard").alias("mysgi"))).actionGet();
+            tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("opendistrosecurity").alias("mysgi"))).actionGet();
         }
         
         RestHelper rh = nonSslRestHelper();

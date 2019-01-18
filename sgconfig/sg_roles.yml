@@ -42,7 +42,7 @@
 # Kibana multitenancy - NOT FREE FOR COMMERCIAL
 # http://docs.search-guard.com/v6/kibana-multi-tenancy
 
-# Allows everything, but no changes to searchguard configuration index
+# Allows everything, but no changes to opendistrosecurity configuration index
 sg_all_access:
   readonly: true
   cluster:

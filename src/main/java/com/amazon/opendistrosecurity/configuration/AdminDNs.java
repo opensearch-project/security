@@ -47,10 +47,10 @@ public class AdminDNs {
     
     public AdminDNs(final Settings settings) {
 
-        this.injectUserEnabled = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_UNSUPPORTED_INJECT_USER_ENABLED, false);
-        this.injectAdminUserEnabled = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_UNSUPPORTED_INJECT_ADMIN_USER_ENABLED, false);
+        this.injectUserEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_UNSUPPORTED_INJECT_USER_ENABLED, false);
+        this.injectAdminUserEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_UNSUPPORTED_INJECT_ADMIN_USER_ENABLED, false);
 
-        final List<String> adminDnsA = settings.getAsList(ConfigConstants.SEARCHGUARD_AUTHCZ_ADMIN_DN, Collections.emptyList());
+        final List<String> adminDnsA = settings.getAsList(ConfigConstants.OPENDISTROSECURITY_AUTHCZ_ADMIN_DN, Collections.emptyList());
         
         for (String dn:adminDnsA) {
             try {
@@ -71,11 +71,11 @@ public class AdminDNs {
        
         log.debug("Loaded {} admin DN's {}",adminDn.size(),  adminDn);
         
-        final Settings impersonationDns = settings.getByPrefix(ConfigConstants.SEARCHGUARD_AUTHCZ_IMPERSONATION_DN+".");
+        final Settings impersonationDns = settings.getByPrefix(ConfigConstants.OPENDISTROSECURITY_AUTHCZ_IMPERSONATION_DN+".");
         
         for (String dnString:impersonationDns.keySet()) {
             try {
-                allowedImpersonations.putAll(new LdapName(dnString), settings.getAsList(ConfigConstants.SEARCHGUARD_AUTHCZ_IMPERSONATION_DN+"."+dnString));
+                allowedImpersonations.putAll(new LdapName(dnString), settings.getAsList(ConfigConstants.OPENDISTROSECURITY_AUTHCZ_IMPERSONATION_DN+"."+dnString));
             } catch (final InvalidNameException e) {
                 log.error("Unable to parse allowedImpersonations dn {}",dnString, e);
             }
@@ -83,10 +83,10 @@ public class AdminDNs {
         
         log.debug("Loaded {} impersonation DN's {}",allowedImpersonations.size(), allowedImpersonations);
         
-        final Settings impersonationUsersRest = settings.getByPrefix(ConfigConstants.SEARCHGUARD_AUTHCZ_REST_IMPERSONATION_USERS+".");
+        final Settings impersonationUsersRest = settings.getByPrefix(ConfigConstants.OPENDISTROSECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".");
 
         for (String user:impersonationUsersRest.keySet()) {
-            allowedRestImpersonations.putAll(user, settings.getAsList(ConfigConstants.SEARCHGUARD_AUTHCZ_REST_IMPERSONATION_USERS+"."+user));
+            allowedRestImpersonations.putAll(user, settings.getAsList(ConfigConstants.OPENDISTROSECURITY_AUTHCZ_REST_IMPERSONATION_USERS+"."+user));
         }
         
         log.debug("Loaded {} impersonation users for REST {}",allowedRestImpersonations.size(), allowedRestImpersonations);

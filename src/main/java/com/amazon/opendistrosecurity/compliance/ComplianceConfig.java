@@ -67,7 +67,7 @@ public class ComplianceConfig implements LicenseChangeListener {
     private final LoadingCache<String, Set<String>> cache;
     private final Set<String> immutableIndicesPatterns;
     private final byte[] salt16;
-    private final String searchguardIndex;
+    private final String opendistrosecurityIndex;
     private final IndexResolverReplacer irr;
     private final Environment environment;
     private final AuditLog auditLog;
@@ -80,35 +80,35 @@ public class ComplianceConfig implements LicenseChangeListener {
         this.environment = environment;
         this.irr = irr;
         this.auditLog = auditLog;
-        final List<String> watchedReadFields = this.settings.getAsList(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS,
+        final List<String> watchedReadFields = this.settings.getAsList(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS,
                 Collections.emptyList(), false);
 
-        watchedWriteIndices = settings.getAsList(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, Collections.emptyList());
-        logDiffsForWrite = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS, false);
-        logWriteMetadataOnly = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_WRITE_METADATA_ONLY, false);
-        logReadMetadataOnly = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_READ_METADATA_ONLY, false);
-        logExternalConfig = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED, false);
-        logInternalConfig = settings.getAsBoolean(ConfigConstants.SEARCHGUARD_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, false);
-        immutableIndicesPatterns = new HashSet<String>(settings.getAsList(ConfigConstants.SEARCHGUARD_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList()));
-        final String saltAsString = settings.get(ConfigConstants.SEARCHGUARD_COMPLIANCE_SALT, ConfigConstants.SEARCHGUARD_COMPLIANCE_SALT_DEFAULT);
+        watchedWriteIndices = settings.getAsList(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, Collections.emptyList());
+        logDiffsForWrite = settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS, false);
+        logWriteMetadataOnly = settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_HISTORY_WRITE_METADATA_ONLY, false);
+        logReadMetadataOnly = settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_HISTORY_READ_METADATA_ONLY, false);
+        logExternalConfig = settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED, false);
+        logInternalConfig = settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, false);
+        immutableIndicesPatterns = new HashSet<String>(settings.getAsList(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList()));
+        final String saltAsString = settings.get(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_SALT, ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_SALT_DEFAULT);
         final byte[] saltAsBytes = saltAsString.getBytes(StandardCharsets.UTF_8);
 
-        if(saltAsString.equals(ConfigConstants.SEARCHGUARD_COMPLIANCE_SALT_DEFAULT)) {
-            log.warn("If you plan to use field masking pls configure "+ConfigConstants.SEARCHGUARD_COMPLIANCE_SALT+" to be a random string of 16 chars length identical on all nodes");
+        if(saltAsString.equals(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_SALT_DEFAULT)) {
+            log.warn("If you plan to use field masking pls configure "+ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_SALT+" to be a random string of 16 chars length identical on all nodes");
         }
         
         if(saltAsBytes.length < 16) {
-            throw new ElasticsearchException(ConfigConstants.SEARCHGUARD_COMPLIANCE_SALT+" must at least contain 16 bytes");
+            throw new ElasticsearchException(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_SALT+" must at least contain 16 bytes");
         }
         
         if(saltAsBytes.length > 16) {
-            log.warn(ConfigConstants.SEARCHGUARD_COMPLIANCE_SALT+" is greater than 16 bytes. Only the first 16 bytes are used for salting");
+            log.warn(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_SALT+" is greater than 16 bytes. Only the first 16 bytes are used for salting");
         }
         
         salt16 = Arrays.copyOf(saltAsBytes, 16);
-        this.searchguardIndex = settings.get(ConfigConstants.SEARCHGUARD_CONFIG_INDEX_NAME, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
+        this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTROSECURITY_CONFIG_INDEX_NAME, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
         
-        //searchguard.compliance.pii_fields:
+        //opendistrosecurity.compliance.pii_fields:
         //  - indexpattern,fieldpattern,fieldpattern,....
         for(String watchedReadField: watchedReadFields) {
             final List<String> split = new ArrayList<>(Arrays.asList(watchedReadField.split(",")));
@@ -122,9 +122,9 @@ public class ComplianceConfig implements LicenseChangeListener {
             }
         }
 
-        final String type = settings.get(ConfigConstants.SEARCHGUARD_AUDIT_TYPE_DEFAULT, null);
+        final String type = settings.get(ConfigConstants.OPENDISTROSECURITY_AUDIT_TYPE_DEFAULT, null);
         if("internal_elasticsearch".equalsIgnoreCase(type)) {
-            final String index = settings.get(ConfigConstants.SEARCHGUARD_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SEARCHGUARD_AUDIT_ES_INDEX,"'sg6-auditlog-'YYYY.MM.dd");
+            final String index = settings.get(ConfigConstants.OPENDISTROSECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTROSECURITY_AUDIT_ES_INDEX,"'sg6-auditlog-'YYYY.MM.dd");
             try {
                 auditLogPattern = DateTimeFormat.forPattern(index); //throws IllegalArgumentException if no pattern
             } catch (IllegalArgumentException e) {
@@ -215,7 +215,7 @@ public class ComplianceConfig implements LicenseChangeListener {
             return false;
         }
         
-        if(searchguardIndex.equals(index)) {
+        if(opendistrosecurityIndex.equals(index)) {
             return logInternalConfig;
         }
 
@@ -240,7 +240,7 @@ public class ComplianceConfig implements LicenseChangeListener {
             return false;
         }
         
-        if(searchguardIndex.equals(index)) {
+        if(opendistrosecurityIndex.equals(index)) {
             return logInternalConfig;
         }
         
@@ -260,7 +260,7 @@ public class ComplianceConfig implements LicenseChangeListener {
             return false;
         }
         
-        if(searchguardIndex.equals(index)) {
+        if(opendistrosecurityIndex.equals(index)) {
             return logInternalConfig;
         }
         

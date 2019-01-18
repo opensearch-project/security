@@ -114,7 +114,7 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
         String licenseText = null;
         
         if(setn.get("config") != null) {
-            licenseText = setn.get("config").get("searchguard.dynamic.license");
+            licenseText = setn.get("config").get("opendistrosecurity.dynamic.license");
         }
         
         if(licenseText != null && !licenseText.isEmpty()) {

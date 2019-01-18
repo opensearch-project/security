@@ -1,4 +1,4 @@
-searchguard:
+opendistrosecurity:
   dynamic:
     http:
       anonymous_auth_enabled: true
