@@ -162,7 +162,7 @@ public class PrivilegesEvaluator {
     public PrivilegesEvaluatorResponse evaluate(final User user, String action0, final ActionRequest request, Task task) {
 
         if (!isInitialized()) {
-            throw new ElasticsearchSecurityException("Search Guard is not initialized.");
+            throw new ElasticsearchSecurityException("Open Distro Security is not initialized.");
         }
 
         if(action0.startsWith("internal:indices/admin/upgrade")) {

@@ -398,7 +398,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
         
         if (!isInitialized()) {
             log.error("Not yet initialized (you may need to run sgadmin)");
-            channel.sendResponse(new BytesRestResponse(RestStatus.SERVICE_UNAVAILABLE, "Search Guard not initialized (SG11). See http://docs.search-guard.com/v6/sgadmin"));
+            channel.sendResponse(new BytesRestResponse(RestStatus.SERVICE_UNAVAILABLE, "Open Distro Security not initialized (SG11). See http://docs.search-guard.com/v6/sgadmin"));
             return false;
         }
         
@@ -651,7 +651,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
         }
 
         if (!isInitialized()) {
-            throw new ElasticsearchSecurityException("Could not check for impersonation because Search Guard is not yet initialized");
+            throw new ElasticsearchSecurityException("Could not check for impersonation because Open Distro Security is not yet initialized");
         }
 
         if (origPKIuser == null) {
@@ -690,7 +690,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
         }
 
         if (!isInitialized()) {
-            throw new ElasticsearchSecurityException("Could not check for impersonation because Search Guard is not yet initialized");
+            throw new ElasticsearchSecurityException("Could not check for impersonation because Open Distro Security is not yet initialized");
         }
 
         if (adminDns.isAdminDN(impersonatedUserHeader)) {

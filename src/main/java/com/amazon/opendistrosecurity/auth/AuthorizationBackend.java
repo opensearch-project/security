@@ -23,7 +23,7 @@ import com.amazon.opendistrosecurity.user.AuthCredentials;
 import com.amazon.opendistrosecurity.user.User;
 
 /**
- * Search Guard custom authorization backends need to implement this interface.
+ * Open Distro Security custom authorization backends need to implement this interface.
  * <p/>
  * Authorization backends populate a prior authenticated {@link User} with roles who's the user is a member of.
  * <p/>

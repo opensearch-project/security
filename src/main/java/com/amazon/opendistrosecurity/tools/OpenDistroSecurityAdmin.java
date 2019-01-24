@@ -129,7 +129,7 @@ public class OpenDistroSecurityAdmin {
             System.exit(-1);
         } 
         catch (IndexNotFoundException e) {
-            System.out.println("ERR: No Search Guard configuartion index found. Please execute sgadmin with different command line parameters");
+            System.out.println("ERR: No Open Distro Security configuartion index found. Please execute sgadmin with different command line parameters");
             System.out.println("When you run it for the first time do not specify -us, -era, -dra or -rl");
             System.out.println("For more information please look here: http://docs.search-guard.com/v6/troubleshooting-sgadmin");
             System.out.println();
@@ -157,7 +157,7 @@ public class OpenDistroSecurityAdmin {
 
     private static void main0(final String[] args) throws Exception {
         
-        System.out.println("Search Guard Admin v6");
+        System.out.println("Open Distro Security Admin v6");
         System.setProperty("sg.nowarn.client","true");
         System.setProperty("jdk.tls.rejectClientInitiatedRenegotiation","true");
 
@@ -185,11 +185,11 @@ public class OpenDistroSecurityAdmin {
         options.addOption(Option.builder("ec").longOpt("enabled-ciphers").hasArg().argName("cipers").desc("Comma separated list of enabled TLS ciphers").build());
         options.addOption(Option.builder("ep").longOpt("enabled-protocols").hasArg().argName("protocols").desc("Comma separated list of enabled TLS protocols").build());
         //TODO mark as deprecated and replace it with "era" if "era" is mature enough
-        options.addOption(Option.builder("us").longOpt("update_settings").hasArg().argName("number of replicas").desc("Update the number of Search Guard index replicas, reload configuration on all nodes and exit").build());
-        options.addOption(Option.builder("i").longOpt("index").hasArg().argName("indexname").desc("The index Search Guard uses to store the configuration").build());
+        options.addOption(Option.builder("us").longOpt("update_settings").hasArg().argName("number of replicas").desc("Update the number of Open Distro Security index replicas, reload configuration on all nodes and exit").build());
+        options.addOption(Option.builder("i").longOpt("index").hasArg().argName("indexname").desc("The index Open Distro Security uses to store the configuration").build());
         options.addOption(Option.builder("era").longOpt("enable-replica-autoexpand").desc("Enable replica auto expand and exit").build());
         options.addOption(Option.builder("dra").longOpt("disable-replica-autoexpand").desc("Disable replica auto expand and exit").build());
-        options.addOption(Option.builder("rl").longOpt("reload").desc("Reload the configuration on all nodes, flush all Search Guard caches and exit").build());
+        options.addOption(Option.builder("rl").longOpt("reload").desc("Reload the configuration on all nodes, flush all Open Distro Security caches and exit").build());
         options.addOption(Option.builder("ff").longOpt("fail-fast").desc("fail-fast if something goes wrong").build());
         options.addOption(Option.builder("dg").longOpt("diagnose").desc("Log diagnostic trace into a file").build());
         options.addOption(Option.builder("dci").longOpt("delete-config-index").desc("Delete 'opendistrosecurity' config index and exit.").build());
@@ -469,7 +469,7 @@ public class OpenDistroSecurityAdmin {
                 System.exit(-1);
             } else if(whoAmIRes.isNodeCertificateRequest()) {
                 System.out.println("ERR: Seems you use a node certificate which is also an admin certificate");
-                System.out.println("     That may have worked with older Search Guard versions but it indicates");
+                System.out.println("     That may have worked with older Open Distro Security versions but it indicates");
                 System.out.println("     a configuration error and is therefore forbidden now.");
                 System.out.println("     Pls refer to http://docs.search-guard.com/latest/tls-in-production");
                 
@@ -1042,7 +1042,7 @@ public class OpenDistroSecurityAdmin {
         if(nir.getNodes().size() > 0) {
             List<PluginInfo> pluginInfos = nir.getNodes().get(0).getPlugins().getPluginInfos();
             String sgVersion = pluginInfos.stream().filter(p->p.getClassname().equals("com.amazon.opendistrosecurity.OpenDistroSecurityPlugin")).map(p->p.getVersion()).findFirst().orElse("<unknown>");
-            System.out.println("Search Guard Version: "+sgVersion);
+            System.out.println("Open Distro Security Version: "+sgVersion);
         }
     }
 }

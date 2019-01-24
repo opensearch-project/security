@@ -333,21 +333,21 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
         notifyAboutLicenseChanges(sgLicense);
         
         final String license = sgLicense==null?"No license needed because enterprise modules are not enabled" :sgLicense.toString();
-        LOGGER.info("Search Guard License Info: "+license);
+        LOGGER.info("Open Distro Security License Info: "+license);
 
         if (sgLicense != null) {
-        	LOGGER.info("Search Guard License Type: "+sgLicense.getType()+", " + (sgLicense.isValid() ? "valid" : "invalid"));
+        	LOGGER.info("Open Distro Security License Type: "+sgLicense.getType()+", " + (sgLicense.isValid() ? "valid" : "invalid"));
 
         	if (sgLicense.getExpiresInDays() <= 30 && sgLicense.isValid()) {
-            	LOGGER.warn("Your Search Guard license expires in " + sgLicense.getExpiresInDays() + " days.");
-            	System.out.println("Your Search Guard license expires in " + sgLicense.getExpiresInDays() + " days.");
+            	LOGGER.warn("Your Open Distro Security license expires in " + sgLicense.getExpiresInDays() + " days.");
+            	System.out.println("Your Open Distro Security license expires in " + sgLicense.getExpiresInDays() + " days.");
             }
 
         	if (!sgLicense.isValid()) {
             	final String reasons = String.join("; ", sgLicense.getMsgs());
-            	LOGGER.error("You are running an unlicensed version of Search Guard. Reason(s): " + reasons);
-            	System.out.println("You are running an unlicensed version of Search Guard. Reason(s): " + reasons);
-            	System.err.println("You are running an unlicensed version of Search Guard. Reason(s): " + reasons);
+            	LOGGER.error("You are running an unlicensed version of Open Distro Security. Reason(s): " + reasons);
+            	System.out.println("You are running an unlicensed version of Open Distro Security. Reason(s): " + reasons);
+            	System.err.println("You are running an unlicensed version of Open Distro Security. Reason(s): " + reasons);
             }
         }
 

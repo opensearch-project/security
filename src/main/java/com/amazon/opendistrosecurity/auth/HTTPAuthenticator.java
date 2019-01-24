@@ -25,7 +25,7 @@ import org.elasticsearch.rest.RestRequest;
 import com.amazon.opendistrosecurity.user.AuthCredentials;
 
 /**
- * Search Guard custom HTTP authenticators need to implement this interface.
+ * Open Distro Security custom HTTP authenticators need to implement this interface.
  * <p/>
  * A HTTP authenticator extracts {@link AuthCredentials} from a {@link RestRequest}
  * <p/>

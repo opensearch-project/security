@@ -160,9 +160,9 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
 
             if ((principal = getThreadContext().getTransient(ConfigConstants.SG_SSL_TRANSPORT_PRINCIPAL)) == null) {
                 Exception ex = new ElasticsearchSecurityException(
-                        "No SSL client certificates found for transport type "+transportChannel.getChannelType()+". Search Guard needs the Search Guard SSL plugin to be installed");
+                        "No SSL client certificates found for transport type "+transportChannel.getChannelType()+". Open Distro Security needs the Open Distro Security SSL plugin to be installed");
                 auditLog.logSSLException(request, ex, task.getAction(), task);
-                log.error("No SSL client certificates found for transport type "+transportChannel.getChannelType()+". Search Guard needs the Search Guard SSL plugin to be installed");
+                log.error("No SSL client certificates found for transport type "+transportChannel.getChannelType()+". Open Distro Security needs the Open Distro Security SSL plugin to be installed");
                 transportChannel.sendResponse(ex);
                 return;
             } else {

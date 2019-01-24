@@ -1,5 +1,5 @@
-# In this file users, backendroles and hosts can be mapped to Search Guard roles.
-# Permissions for Search Guard roles are configured in sg_roles.yml
+# In this file users, backendroles and hosts can be mapped to Open Distro Security roles.
+# Permissions for Open Distro Security roles are configured in sg_roles.yml
 
 sg_all_access:
   readonly: true

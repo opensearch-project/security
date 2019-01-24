@@ -229,8 +229,8 @@ public class OpenDistroSecurityFilter implements ActionFilter {
             final PrivilegesEvaluator eval = evalp;
 
             if (!eval.isInitialized()) {
-                log.error("Search Guard not initialized (SG11) for {}", action);
-                listener.onFailure(new ElasticsearchSecurityException("Search Guard not initialized (SG11) for "
+                log.error("Open Distro Security not initialized (SG11) for {}", action);
+                listener.onFailure(new ElasticsearchSecurityException("Open Distro Security not initialized (SG11) for "
                 + action+". See http://docs.search-guard.com/v6/sgadmin", RestStatus.SERVICE_UNAVAILABLE));
                 return;
             }

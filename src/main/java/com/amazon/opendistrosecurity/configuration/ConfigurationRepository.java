@@ -24,7 +24,7 @@ import java.util.Map;
 import org.elasticsearch.common.settings.Settings;
 
 /**
- * Abstraction layer over search guard configuration repository
+ * Abstraction layer over Open Distro Security configuration repository
  */
 public interface ConfigurationRepository {
 

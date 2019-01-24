@@ -90,7 +90,7 @@ public class OpenDistroSecurityHealthAction extends BaseRestHandler {
 
     @Override
     public String getName() {
-        return "Search Guard Health Check";
+        return "Open Distro Security Health Check";
     }
 
 }

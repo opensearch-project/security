@@ -83,7 +83,7 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Aut
         
         final Settings cfg = getConfigSettings();
         if (cfg == null) {
-            throw new ElasticsearchSecurityException("Internal authentication backend not configured. May be Search Guard is not initialized. See http://docs.search-guard.com/v6/sgadmin");
+            throw new ElasticsearchSecurityException("Internal authentication backend not configured. May be Open Distro Security is not initialized. See http://docs.search-guard.com/v6/sgadmin");
 
         }
 
@@ -152,7 +152,7 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Aut
     public void fillRoles(User user, AuthCredentials credentials) throws ElasticsearchSecurityException {
         final Settings cfg = getConfigSettings();
         if (cfg == null) {
-            throw new ElasticsearchSecurityException("Internal authentication backend not configured. May be Search Guard is not initialized. See http://docs.search-guard.com/v6/sgadmin");
+            throw new ElasticsearchSecurityException("Internal authentication backend not configured. May be Open Distro Security is not initialized. See http://docs.search-guard.com/v6/sgadmin");
 
         }
         final List<String> roles = cfg.getAsList(credentials.getUsername() + ".roles", Collections.emptyList());

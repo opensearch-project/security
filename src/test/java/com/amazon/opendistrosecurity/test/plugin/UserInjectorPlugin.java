@@ -42,7 +42,7 @@ import com.amazon.opendistrosecurity.support.ConfigConstants;
 
 /**
  * Mimics the behavior of system integrators that run their own plugins (i.e. server transports)
- * in front of Search Guard. This transport just copies the user string from the
+ * in front of Open Distro Security. This transport just copies the user string from the
  * REST headers to the ThreadContext to test user injection.
  * @author jkressin
  */

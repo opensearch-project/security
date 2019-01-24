@@ -220,7 +220,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             this.enterpriseModulesEnabled = false;
             this.sslOnly = false;
             complianceConfig = null;
-            log.warn("Search Guard plugin installed but disabled. This can expose your configuration (including passwords) to the public.");
+            log.warn("Open Distro Security plugin installed but disabled. This can expose your configuration (including passwords) to the public.");
             return;
         }
         
@@ -232,7 +232,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             this.dlsFlsConstructor = null;
             this.enterpriseModulesEnabled = false;
             complianceConfig = null;
-            log.warn("Search Guard plugin run in ssl only mode. No authentication or authorization is performed");
+            log.warn("Open Distro Security plugin run in ssl only mode. No authentication or authorization is performed");
             return;
         }
         
@@ -990,7 +990,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     @Override
     public void onNodeStarted() {
         final Set<ModuleInfo> sgModules = ReflectionHelper.getModulesLoaded();
-        log.info("{} Search Guard modules loaded so far: {}", sgModules.size(), sgModules);
+        log.info("{} Open Distro Security modules loaded so far: {}", sgModules.size(), sgModules);
     }
 
     //below is a hack because it seems not possible to access RepositoriesService from a non guice class

@@ -48,7 +48,7 @@ public class OpenDistroSecurityLicenseAction extends BaseRestHandler {
 
     @Override
     public String getName() {
-        return "Search Guard License Info";
+        return "Open Distro Security License Info";
     }
 
 }

@@ -125,6 +125,6 @@ public class OpenDistroSecurityInfoAction extends BaseRestHandler {
     
     @Override
     public String getName() {
-        return "Search Guard Info Action";
+        return "Open Distro Security Info Action";
     }
 }
