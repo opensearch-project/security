@@ -52,7 +52,6 @@ import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import com.amazon.opendistrosecurity.action.licenseinfo.LicenseInfoAction;
 import com.amazon.opendistrosecurity.action.whoami.WhoAmIAction;
 import com.amazon.opendistrosecurity.auditlog.AuditLog;
 import com.amazon.opendistrosecurity.auditlog.AuditLog.Origin;
@@ -127,8 +126,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
             final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadContext);
             final boolean trustedClusterRequest = HeaderHelper.isTrustedClusterRequest(threadContext);
             final boolean confRequest = "true".equals(HeaderHelper.getSafeFromHeader(threadContext, ConfigConstants.SG_CONF_REQUEST_HEADER));
-            final boolean passThroughRequest = action.equals(LicenseInfoAction.NAME)
-                    || action.startsWith("indices:admin/seq_no")
+            final boolean passThroughRequest = action.startsWith("indices:admin/seq_no")
                     || action.equals(WhoAmIAction.NAME);
 
             final boolean internalRequest =

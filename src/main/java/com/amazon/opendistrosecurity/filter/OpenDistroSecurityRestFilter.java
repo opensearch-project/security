@@ -129,7 +129,6 @@ public class OpenDistroSecurityRestFilter {
         }
 
         if(request.method() != Method.OPTIONS 
-                && !"/_opendistrosecurity/license".equals(request.path())
                 && !"/_opendistrosecurity/health".equals(request.path())) {
             if (!registry.authenticate(request, channel, threadContext)) {
                 // another roundtrip

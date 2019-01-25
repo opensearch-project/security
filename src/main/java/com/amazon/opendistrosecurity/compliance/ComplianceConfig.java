@@ -39,9 +39,6 @@ import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
 import com.amazon.opendistrosecurity.auditlog.AuditLog;
-import com.amazon.opendistrosecurity.configuration.LicenseChangeListener;
-import com.amazon.opendistrosecurity.configuration.OpenDistroSecurityLicense;
-import com.amazon.opendistrosecurity.configuration.OpenDistroSecurityLicense.Feature;
 import com.amazon.opendistrosecurity.resolver.IndexResolverReplacer;
 import com.amazon.opendistrosecurity.resolver.IndexResolverReplacer.Resolved;
 import com.amazon.opendistrosecurity.support.ConfigConstants;
@@ -51,7 +48,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 
 
-public class ComplianceConfig implements LicenseChangeListener {
+public class ComplianceConfig {
 
     private final Logger log = LogManager.getLogger(getClass());
     private final Settings settings;
@@ -89,6 +86,10 @@ public class ComplianceConfig implements LicenseChangeListener {
         logReadMetadataOnly = settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_HISTORY_READ_METADATA_ONLY, false);
         logExternalConfig = settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED, false);
         logInternalConfig = settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, false);
+        if(this.enabled && logExternalConfig && !externalConfigLogged) {
+            auditLog.logExternalConfig(settings, environment);
+            externalConfigLogged = true;
+        }
         immutableIndicesPatterns = new HashSet<String>(settings.getAsList(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList()));
         final String saltAsString = settings.get(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_SALT, ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_SALT_DEFAULT);
         final byte[] saltAsBytes = saltAsString.getBytes(StandardCharsets.UTF_8);
@@ -146,28 +147,6 @@ public class ComplianceConfig implements LicenseChangeListener {
                         return getFieldsForIndex0(index);
                     }
                 });
-    }
-    
-    @Override
-    public void onChange(OpenDistroSecurityLicense license) {
-        
-        if(license == null) {
-            this.enabled = false;
-        } else {
-            if(license.hasFeature(Feature.COMPLIANCE)) {
-                this.enabled = true;
-            } else {
-                this.enabled = false;
-            }
-        }
-        
-        log.info("Compliance features are "+(this.enabled?"enabled":"disabled. To enable them you need a special license. Please contact support for this."));
-        
-        //only on node startup?
-        if(this.enabled && logExternalConfig && !externalConfigLogged) {
-            auditLog.logExternalConfig(settings, environment);
-            externalConfigLogged = true;
-        }
     }
 
     public boolean isEnabled() {

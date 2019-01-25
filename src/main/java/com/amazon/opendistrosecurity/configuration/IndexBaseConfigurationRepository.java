@@ -65,7 +65,6 @@ import com.amazon.opendistrosecurity.compliance.ComplianceConfig;
 import com.amazon.opendistrosecurity.ssl.util.ExceptionUtils;
 import com.amazon.opendistrosecurity.support.ConfigConstants;
 import com.amazon.opendistrosecurity.support.ConfigHelper;
-import com.amazon.opendistrosecurity.support.LicenseHelper;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -79,7 +78,6 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
     private final Client client;
     private final ConcurrentMap<String, Settings> typeToConfig;
     private final Multimap<String, ConfigurationChangeListener> configTypeToChancheListener;
-    private final List<LicenseChangeListener> licenseChangeListener;
     private final ConfigurationLoader cl;
     private final LegacyConfigurationLoader legacycl;
     private final Settings settings;
@@ -87,7 +85,6 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
     private final AuditLog auditLog;
     private final ComplianceConfig complianceConfig;
     private ThreadPool threadPool;
-    private volatile OpenDistroSecurityLicense effectiveLicense;
 
     private IndexBaseConfigurationRepository(Settings settings, final Path configPath, ThreadPool threadPool, 
             Client client, ClusterService clusterService, AuditLog auditLog, ComplianceConfig complianceConfig) {
@@ -100,7 +97,6 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
         this.complianceConfig = complianceConfig;
         this.typeToConfig = Maps.newConcurrentMap();
         this.configTypeToChancheListener = ArrayListMultimap.create();
-        this.licenseChangeListener = new ArrayList<LicenseChangeListener>();
         cl = new ConfigurationLoader(client, threadPool, settings);
         legacycl = new LegacyConfigurationLoader(client, threadPool, settings);
 
@@ -328,29 +324,6 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
         typeToConfig.putAll(loaded);
         notifyAboutChanges(loaded);
 
-        final OpenDistroSecurityLicense sgLicense = getLicense();
-        
-        notifyAboutLicenseChanges(sgLicense);
-        
-        final String license = sgLicense==null?"No license needed because enterprise modules are not enabled" :sgLicense.toString();
-        LOGGER.info("Open Distro Security License Info: "+license);
-
-        if (sgLicense != null) {
-        	LOGGER.info("Open Distro Security License Type: "+sgLicense.getType()+", " + (sgLicense.isValid() ? "valid" : "invalid"));
-
-        	if (sgLicense.getExpiresInDays() <= 30 && sgLicense.isValid()) {
-            	LOGGER.warn("Your Open Distro Security license expires in " + sgLicense.getExpiresInDays() + " days.");
-            	System.out.println("Your Open Distro Security license expires in " + sgLicense.getExpiresInDays() + " days.");
-            }
-
-        	if (!sgLicense.isValid()) {
-            	final String reasons = String.join("; ", sgLicense.getMsgs());
-            	LOGGER.error("You are running an unlicensed version of Open Distro Security. Reason(s): " + reasons);
-            	System.out.println("You are running an unlicensed version of Open Distro Security. Reason(s): " + reasons);
-            	System.err.println("You are running an unlicensed version of Open Distro Security. Reason(s): " + reasons);
-            }
-        }
-
         return loaded;
     }
 
@@ -366,19 +339,6 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
         configTypeToChancheListener.put(configurationType, listener);
     }
     
-    //@Override
-    public synchronized void subscribeOnLicenseChange(LicenseChangeListener licenseChangeListener) {
-        if(licenseChangeListener != null) {
-            this.licenseChangeListener.add(licenseChangeListener);
-        }
-    }
-
-    private synchronized void notifyAboutLicenseChanges(OpenDistroSecurityLicense license) {
-        for(LicenseChangeListener listener: this.licenseChangeListener) {
-            listener.onChange(license);
-        }
-    }
-
     private synchronized void notifyAboutChanges(Map<String, Settings> typeToConfig) {
         for (Map.Entry<String, ConfigurationChangeListener> entry : configTypeToChancheListener.entries()) {
             String type = entry.getKey();
@@ -463,68 +423,4 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
         return new SimpleDateFormat("yyyy-MM-dd").format(new Date(date));
     }
 
-    /**
-     *
-     * @return null if no license is needed
-     */
-    public OpenDistroSecurityLicense getLicense() {
-
-        //TODO check spoof with cluster settings and elasticsearch.yml without node restart
-        boolean enterpriseModulesEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_ENTERPRISE_MODULES_ENABLED, true);
-
-        if(!enterpriseModulesEnabled) {
-            return null;
-        }
-
-        String licenseText = getConfiguration("config", false).get("opendistrosecurity.dynamic.license");
-
-        if(licenseText == null || licenseText.isEmpty()) {
-            if(effectiveLicense != null) {
-                return effectiveLicense;
-            }
-            return createOrGetTrial(null);
-        } else {
-            try {
-                licenseText = LicenseHelper.validateLicense(licenseText);
-                OpenDistroSecurityLicense retVal = new OpenDistroSecurityLicense(XContentHelper.convertToMap(XContentType.JSON.xContent(), licenseText, true), clusterService);
-                effectiveLicense = retVal;
-                return retVal;
-            } catch (Exception e) {
-                LOGGER.error("Unable to verify license", e);
-                if(effectiveLicense != null) {
-                    return effectiveLicense;
-                }
-                return createOrGetTrial("Unable to verify license due to "+ExceptionUtils.getRootCause(e));
-            }
-        }
-
-    }
-
-    private OpenDistroSecurityLicense createOrGetTrial(String msg) {
-        long created = System.currentTimeMillis();
-        ThreadContext threadContext = threadPool.getThreadContext();
-
-        try(StoredContext ctx = threadContext.stashContext()) {
-            threadContext.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true");
-            GetResponse get = client.prepareGet(opendistrosecurityIndex, "sg", "tattr").get();
-            if(get.isExists()) {
-                created = (long) get.getSource().get("val");
-            } else {
-                try {
-                    client.index(new IndexRequest(opendistrosecurityIndex)
-                    .type("sg")
-                    .id("tattr")
-                    .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                    .create(true)
-                    .source("{\"val\": "+System.currentTimeMillis()+"}", XContentType.JSON)).actionGet();
-                } catch (VersionConflictEngineException e) {
-                    //ignore
-                } catch (Exception e) {
-                    LOGGER.error("Unable to index tattr", e);
-                }
-            }
-        }
-
-        return OpenDistroSecurityLicense.createTrialLicense(formatDate(created), clusterService, msg);
-    }
 }

@@ -111,8 +111,6 @@ import org.elasticsearch.watcher.ResourceWatcherService;
 
 import com.amazon.opendistrosecurity.action.configupdate.ConfigUpdateAction;
 import com.amazon.opendistrosecurity.action.configupdate.TransportConfigUpdateAction;
-import com.amazon.opendistrosecurity.action.licenseinfo.LicenseInfoAction;
-import com.amazon.opendistrosecurity.action.licenseinfo.TransportLicenseInfoAction;
 import com.amazon.opendistrosecurity.action.whoami.TransportWhoAmIAction;
 import com.amazon.opendistrosecurity.action.whoami.WhoAmIAction;
 import com.amazon.opendistrosecurity.auditlog.AuditLog;
@@ -142,7 +140,6 @@ import com.amazon.opendistrosecurity.resolver.IndexResolverReplacer;
 import com.amazon.opendistrosecurity.rest.KibanaInfoAction;
 import com.amazon.opendistrosecurity.rest.OpenDistroSecurityHealthAction;
 import com.amazon.opendistrosecurity.rest.OpenDistroSecurityInfoAction;
-import com.amazon.opendistrosecurity.rest.OpenDistroSecurityLicenseAction;
 import com.amazon.opendistrosecurity.rest.TenantInfoAction;
 import com.amazon.opendistrosecurity.ssl.OpenDistroSecuritySSLPlugin;
 import com.amazon.opendistrosecurity.ssl.SslExceptionHandler;
@@ -448,7 +445,6 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             if(!sslOnly) {
                 handlers.add(new OpenDistroSecurityInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool)));
                 handlers.add(new KibanaInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool)));
-                handlers.add(new OpenDistroSecurityLicenseAction(settings, restController));
                 handlers.add(new OpenDistroSecurityHealthAction(settings, restController, Objects.requireNonNull(backendRegistry)));
                 handlers.add(new TenantInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool), 
                 		Objects.requireNonNull(cs), Objects.requireNonNull(adminDns)));    
@@ -478,7 +474,6 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> actions = new ArrayList<>(1);
         if(!tribeNodeClient && !disabled && !sslOnly) {
             actions.add(new ActionHandler<>(ConfigUpdateAction.INSTANCE, TransportConfigUpdateAction.class));
-            actions.add(new ActionHandler<>(LicenseInfoAction.INSTANCE, TransportLicenseInfoAction.class));
             actions.add(new ActionHandler<>(WhoAmIAction.INSTANCE, TransportWhoAmIAction.class));
         }
         return actions;
@@ -768,7 +763,6 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         adminDns = new AdminDNs(settings);
         //final PrincipalExtractor pe = new DefaultPrincipalExtractor();
         cr = (IndexBaseConfigurationRepository) IndexBaseConfigurationRepository.create(settings, this.configPath, threadPool, localClient, clusterService, auditLog, complianceConfig);
-        cr.subscribeOnLicenseChange(complianceConfig);
         final InternalAuthenticationBackend iab = new InternalAuthenticationBackend(cr);
         final XFFResolver xffResolver = new XFFResolver(threadPool);
         cr.subscribeOnChange(ConfigConstants.CONFIGNAME_CONFIG, xffResolver);
@@ -942,8 +936,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             // SG6 - REST API
             settings.add(Setting.listSetting(ConfigConstants.OPENDISTROSECURITY_RESTAPI_ROLES_ENABLED, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
             settings.add(Setting.groupSetting(ConfigConstants.OPENDISTROSECURITY_RESTAPI_ENDPOINTS_DISABLED + ".", Property.NodeScope));
-            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTROSECURITY_UNSUPPORTED_RESTAPI_ACCEPT_INVALID_LICENSE, false, Property.NodeScope, Property.Filtered));
-    
+            
             settings.add(Setting.simpleString(ConfigConstants.OPENDISTROSECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX, Property.NodeScope, Property.Filtered));
             settings.add(Setting.simpleString(ConfigConstants.OPENDISTROSECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE, Property.NodeScope, Property.Filtered));
 

@@ -221,7 +221,6 @@ public class ConfigConstants {
 
 
     // Illegal Opcodes from here on
-    public static final String OPENDISTROSECURITY_UNSUPPORTED_RESTAPI_ACCEPT_INVALID_LICENSE = "opendistrosecurity.unsupported.restapi.accept_invalid_license";
     public static final String OPENDISTROSECURITY_UNSUPPORTED_DISABLE_REST_AUTH_INITIALLY = "opendistrosecurity.unsupported.disable_rest_auth_initially";
     public static final String OPENDISTROSECURITY_UNSUPPORTED_DISABLE_INTERTRANSPORT_AUTH_INITIALLY = "opendistrosecurity.unsupported.disable_intertransport_auth_initially";
     public static final String OPENDISTROSECURITY_UNSUPPORTED_RESTORE_SGINDEX_ENABLED = "opendistrosecurity.unsupported.restore.sgindex.enabled";

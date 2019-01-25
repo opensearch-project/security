@@ -190,19 +190,4 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         Assert.assertEquals(ClusterHealthStatus.GREEN, clusterHelper.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus());
     }
 
-    @Test
-    public void testDefaultInit() throws Exception {
-        
-        Settings b = Settings.builder().put(ConfigConstants.OPENDISTROSECURITY_ALLOW_DEFAULT_INIT_SGINDEX, true).build();
-        setup(Settings.EMPTY, new DynamicSgConfig(), b, false);
-        
-        RestHelper rh = nonSslRestHelper();
-        HttpResponse res;
-        Thread.sleep(5000);
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistrosecurity/license?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode());
-        System.out.println(res.getBody());
-        assertContains(res, "*TRIAL*");
-        assertNotContains(res, "*FULL*");
-    }
-
 }

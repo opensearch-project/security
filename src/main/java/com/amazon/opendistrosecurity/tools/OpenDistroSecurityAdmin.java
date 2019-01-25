@@ -95,9 +95,6 @@ import com.amazon.opendistrosecurity.action.configupdate.ConfigUpdateAction;
 import com.amazon.opendistrosecurity.action.configupdate.ConfigUpdateNodeResponse;
 import com.amazon.opendistrosecurity.action.configupdate.ConfigUpdateRequest;
 import com.amazon.opendistrosecurity.action.configupdate.ConfigUpdateResponse;
-import com.amazon.opendistrosecurity.action.licenseinfo.LicenseInfoAction;
-import com.amazon.opendistrosecurity.action.licenseinfo.LicenseInfoRequest;
-import com.amazon.opendistrosecurity.action.licenseinfo.LicenseInfoResponse;
 import com.amazon.opendistrosecurity.action.whoami.WhoAmIAction;
 import com.amazon.opendistrosecurity.action.whoami.WhoAmIRequest;
 import com.amazon.opendistrosecurity.action.whoami.WhoAmIResponse;
@@ -495,8 +492,6 @@ public class OpenDistroSecurityAdmin {
             }
             
             if(si) { 
-                LicenseInfoResponse res = tc.execute(LicenseInfoAction.INSTANCE, new LicenseInfoRequest()).actionGet();                
-                System.out.println(res.toString());
                 System.exit(0);
             }
             
@@ -918,15 +913,6 @@ public class OpenDistroSecurityAdmin {
         } catch (Exception e1) {
             sb.append(ExceptionsHelper.stackTrace(e1));
         }
-        
-        try {
-            sb.append("License:"+System.lineSeparator());
-            LicenseInfoResponse res = tc.execute(LicenseInfoAction.INSTANCE, new LicenseInfoRequest()).actionGet();
-            sb.append(Strings.toString(res,true, true));
-        } catch (Exception e1) {
-            sb.append(ExceptionsHelper.stackTrace(e1));
-        }
-        
         
         try {
             sb.append("ClusterHealthRequest:"+System.lineSeparator());
