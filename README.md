@@ -66,7 +66,7 @@ Please refer to the [Official documentation] for detailed information on install
 
 * ``cd`` into ``<ES directory>/plugins/search-guard-<version>/tools``
 
-* Execute ``./install_demo_configuration.sh``, ``chmod`` the script first if necessary. This will generate all required TLS certificates and add the Search Guard configuration to your ``elasticsearch.yml`` file. 
+* Execute ``./install_demo_configuration.sh``, ``chmod`` the script first if necessary. This will generate all required TLS certificates and add the Security Plugin Configurationto your ``elasticsearch.yml`` file. 
 
 * Start Elasticsearch
 
@@ -78,7 +78,7 @@ Please refer to the [Official documentation] for detailed information on install
 
 ## Config hot reloading
 
-The Search Guard configuration is stored in a dedicated index in Elasticsearch itself. Changes to the configuration are pushed to this index via the [sgadmin command line tool](). This will trigger a reload of the configuration on all nodes automatically. This has several advantages over configuration via elasticsearch.yml:
+The Security Plugin Configurationis stored in a dedicated index in Elasticsearch itself. Changes to the configuration are pushed to this index via the [sgadmin command line tool](). This will trigger a reload of the configuration on all nodes automatically. This has several advantages over configuration via elasticsearch.yml:
 
 * Configuration is stored in a central place
 * No configuration files on the nodes necessary
