@@ -423,14 +423,14 @@ if [ "$initsg" == 0 ]; then
 	echo "### After the whole cluster is up execute: "
 	$SUDO_CMD cat sgadmin_demo.sh | tail -1
 	echo "### or run ./sgadmin_demo.sh"
-    echo "### After that you can also use the Search Guard Configuration GUI, see http://docs.search-guard.com/v6/configuration-gui"	
+    echo "### After that you can also use the Search Guard Configuration GUI"
 else
     echo "### Search Guard will be automatically initialized."
     echo "### If you like to change the runtime configuration "
     echo "### change the files in ../sgconfig and execute: "
 	$SUDO_CMD cat sgadmin_demo.sh | tail -1
 	echo "### or run ./sgadmin_demo.sh"
-	echo "### To use the Search Guard Configuration GUI see http://docs.search-guard.com/v6/configuration-gui"
+	echo "### To use the Search Guard Configuration GUI"
 fi
 
 echo "### To access your Search Guard secured cluster open https://<hostname>:<HTTP port> and log in with admin/admin."

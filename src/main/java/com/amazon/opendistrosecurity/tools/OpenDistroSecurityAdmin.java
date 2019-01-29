@@ -141,7 +141,6 @@ public class OpenDistroSecurityAdmin {
         catch (IndexNotFoundException e) {
             System.out.println("ERR: No Open Distro Security configuartion index found. Please execute sgadmin with different command line parameters");
             System.out.println("When you run it for the first time do not specify -us, -era, -dra or -rl");
-            System.out.println("For more information please look here: http://docs.search-guard.com/v6/troubleshooting-sgadmin");
             System.out.println();
             System.exit(-1);
         }
@@ -152,7 +151,6 @@ public class OpenDistroSecurityAdmin {
                     && e.getMessage().contains("no permissions")) {
 
                 System.out.println("ERR: You try to connect with a TLS node certificate instead of an admin client certificate");                
-                System.out.println("For more information please look here: http://docs.search-guard.com/v6/troubleshooting-sgadmin");
                 System.out.println();
                 System.exit(-1);
             }
@@ -481,8 +479,6 @@ public class OpenDistroSecurityAdmin {
                 System.out.println("ERR: Seems you use a node certificate which is also an admin certificate");
                 System.out.println("     That may have worked with older Open Distro Security versions but it indicates");
                 System.out.println("     a configuration error and is therefore forbidden now.");
-                System.out.println("     Pls refer to http://docs.search-guard.com/latest/tls-in-production");
-                
                 if(failFast) {
                     System.exit(-1);
                 }
@@ -692,7 +688,6 @@ public class OpenDistroSecurityAdmin {
             
             if(legacy) {
                 System.out.println("Legacy index '"+index+"' detected.");
-                System.out.println("See http://docs.search-guard.com/v6/upgrading-5-6 for more details.");
             }
             
             if(retrieve) {

@@ -33,15 +33,6 @@
 # Workaround: Just configure something like '?kibana' instead of '.kibana' or 'my?index' instead of 'my.index'
 # This limitation will likely removed with Search Guard 6
 
-# DLS (Document level security) - NOT FREE FOR COMMERCIAL
-# http://docs.search-guard.com/v6/document-level-security
-
-# FLS (Field level security) - NOT FREE FOR COMMERCIAL
-# http://docs.search-guard.com/v6/field-level-security
-
-# Kibana multitenancy - NOT FREE FOR COMMERCIAL
-# http://docs.search-guard.com/v6/kibana-multi-tenancy
-
 # Allows everything, but no changes to opendistrosecurity configuration index
 sg_all_access:
   readonly: true
