@@ -50,9 +50,6 @@ import com.amazon.opendistrosecurity.user.User;
  * {@code private final Logger log = LogManager.getLogger(this.getClass());}
  *
  * <p/>
- * <b>Custom authorizers is a commercial feature. To make them work you need to obtain a license here:
- * https://floragunn.com
- * </b>
  */
 public interface AuthorizationBackend {
 

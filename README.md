@@ -51,13 +51,13 @@ You can test all enterprise modules for 60 days. A trial license is automaticall
 
 ## Documentation
 
-Please refer to the [Official documentation](http://docs.search-guard.com) for detailed information on installing and configuring Search Guard.
+Please refer to the [Official documentation] for detailed information on installing and configuring Search Guard.
 
 ## Quick Start
 
 * Install Elasticsearch
 
-* Install the Search Guard plugin for your [Elasticsearch version](https://docs.search-guard.com/latest/search-guard-versions), e.g.:
+* Install the Search Guard plugin for your [Elasticsearch version](), e.g.:
 
 ```
 <ES directory>/bin/elasticsearch-plugin install \
@@ -66,7 +66,7 @@ Please refer to the [Official documentation](http://docs.search-guard.com) for d
 
 * ``cd`` into ``<ES directory>/plugins/search-guard-<version>/tools``
 
-* Execute ``./install_demo_configuration.sh``, ``chmod`` the script first if necessary. This will generate all required TLS certificates and add the Search Guard configuration to your ``elasticsearch.yml`` file. 
+* Execute ``./install_demo_configuration.sh``, ``chmod`` the script first if necessary. This will generate all required TLS certificates and add the Security Plugin Configurationto your ``elasticsearch.yml`` file. 
 
 * Start Elasticsearch
 
@@ -74,11 +74,11 @@ Please refer to the [Official documentation](http://docs.search-guard.com) for d
 
 * Display information about the currently logged in user by visiting ``https://localhost:9200/_opendistrosecurity/authinfo``.
 
-* Deep dive into all Search Guard features by reading the [Search Guard documentation](http://docs.search-guard.com)
+* Deep dive into all Search Guard features by reading the [Search Guard documentation]
 
 ## Config hot reloading
 
-The Search Guard configuration is stored in a dedicated index in Elasticsearch itself. Changes to the configuration are pushed to this index via the [sgadmin command line tool](https://docs.search-guard.com/latest/sgadmin). This will trigger a reload of the configuration on all nodes automatically. This has several advantages over configuration via elasticsearch.yml:
+The Security Plugin Configurationis stored in a dedicated index in Elasticsearch itself. Changes to the configuration are pushed to this index via the [sgadmin command line tool](). This will trigger a reload of the configuration on all nodes automatically. This has several advantages over configuration via elasticsearch.yml:
 
 * Configuration is stored in a central place
 * No configuration files on the nodes necessary

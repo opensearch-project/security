@@ -171,7 +171,6 @@ opendistrosecurity.audit.type: internal_elasticsearch
 #opendistrosecurity.config_index_name: opendistrosecurity
 
 # This defines the OID of server node certificates
-# See http://docs.search-guard.com/v6/tls-in-production
 #opendistrosecurity.cert.oid: '1.2.3.4.5.5'
 
 # This specifies the implementation of com.amazon.opendistrosecurity.transport.InterClusterRequestEvaluator

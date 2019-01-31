@@ -364,8 +364,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             if(files != null) {
                 demoCertHashes.retainAll(files);
                 if(!demoCertHashes.isEmpty()) {
-                    log.error("Demo certificates found but "+ConfigConstants.OPENDISTROSECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES+" is set to false."
-                            + "See http://docs.search-guard.com/latest/demo-installer-generated-artefacts#allow-demo-certificates-and-auto-initialization");
+                    log.error("Demo certificates found but "+ConfigConstants.OPENDISTROSECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES+" is set to false.");
                     throw new RuntimeException("Demo certificates found "+demoCertHashes);
                 }
             } else {
