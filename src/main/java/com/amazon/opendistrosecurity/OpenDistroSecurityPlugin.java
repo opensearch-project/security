@@ -997,6 +997,11 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     public void onNodeStarted() {
         final Set<ModuleInfo> sgModules = ReflectionHelper.getModulesLoaded();
         log.info("{} Open Distro Security modules loaded so far: {}", sgModules.size(), sgModules);
+        if(complianceConfig != null && complianceConfig.isEnabled() && complianceConfig.isLogExternalConfig() && !complianceConfig.isExternalConfigLogged()) {
+        	log.info("logging external config");
+        	auditLog.logExternalConfig(complianceConfig.getSettings(), complianceConfig.getEnvironment());
+            complianceConfig.setExternalConfigLogged(true);
+        }
     }
 
     //below is a hack because it seems not possible to access RepositoriesService from a non guice class

@@ -65,7 +65,7 @@ public class ComplianceConfig {
 
     private final Logger log = LogManager.getLogger(getClass());
     private final Settings settings;
-    private final Map<String, Set<String>> readEnabledFields = new HashMap<>(100);
+	private final Map<String, Set<String>> readEnabledFields = new HashMap<>(100);
     private final List<String> watchedWriteIndices;
     private DateTimeFormatter auditLogPattern = null;
     private String auditLogIndex = null;
@@ -99,10 +99,6 @@ public class ComplianceConfig {
         logReadMetadataOnly = settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_HISTORY_READ_METADATA_ONLY, false);
         logExternalConfig = settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED, false);
         logInternalConfig = settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, false);
-        if(this.enabled && logExternalConfig && !externalConfigLogged) {
-            auditLog.logExternalConfig(settings, environment);
-            externalConfigLogged = true;
-        }
         immutableIndicesPatterns = new HashSet<String>(settings.getAsList(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList()));
         final String saltAsString = settings.get(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_SALT, ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_SALT_DEFAULT);
         final byte[] saltAsBytes = saltAsString.getBytes(StandardCharsets.UTF_8);
@@ -162,7 +158,19 @@ public class ComplianceConfig {
                 });
     }
 
-    public boolean isEnabled() {
+    public boolean isLogExternalConfig() {
+		return logExternalConfig;
+	}
+
+	public boolean isExternalConfigLogged() {
+		return externalConfigLogged;
+	}
+
+	public void setExternalConfigLogged(boolean externalConfigLogged) {
+		this.externalConfigLogged = externalConfigLogged;
+	}
+
+	public boolean isEnabled() {
         return this.enabled;
     }
 
@@ -280,6 +288,15 @@ public class ComplianceConfig {
     public boolean logReadMetadataOnly() {
         return logReadMetadataOnly;
     }
+    
+    public Settings getSettings() {
+		return settings;
+	}
+
+	public Environment getEnvironment() {
+		return environment;
+	}
+
 
     //check for isEnabled
     public boolean isIndexImmutable(Object request) {
