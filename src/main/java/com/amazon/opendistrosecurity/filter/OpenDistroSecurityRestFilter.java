@@ -142,7 +142,7 @@ public class OpenDistroSecurityRestFilter {
         }
 
         if(request.method() != Method.OPTIONS 
-                && !"/_opendistrosecurity/health".equals(request.path())) {
+                && !"/_opendistro/_security/health".equals(request.path())) {
             if (!registry.authenticate(request, channel, threadContext)) {
                 // another roundtrip
                 org.apache.logging.log4j.ThreadContext.remove("user");

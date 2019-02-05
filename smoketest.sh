@@ -41,7 +41,7 @@ done
 
 sleep 10
 
-RES="$(curl -Ss --insecure -XGET -u admin:admin 'https://127.0.0.1:9200/_opendistrosecurity/authinfo' -H'Content-Type: application/json' | grep roles)"
+RES="$(curl -Ss --insecure -XGET -u admin:admin 'https://127.0.0.1:9200/_opendistro/_security/authinfo' -H'Content-Type: application/json' | grep roles)"
 
 if [ -z "$RES" ]; then
   echo "failed"

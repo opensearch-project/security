@@ -72,8 +72,8 @@ public class TenantInfoAction extends BaseRestHandler {
         this.evaluator = evaluator;
         this.clusterService = clusterService;
         this.adminDns = adminDns;
-        controller.registerHandler(GET, "/_opendistrosecurity/tenantinfo", this);
-        controller.registerHandler(POST, "/_opendistrosecurity/tenantinfo", this);
+        controller.registerHandler(GET, "/_opendistro/_security/tenantinfo", this);
+        controller.registerHandler(POST, "/_opendistro/_security/tenantinfo", this);
     }
 
     @Override

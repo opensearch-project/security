@@ -48,13 +48,13 @@ public class HealthTests extends SingleClusterTest {
         
         RestHelper rh = nonSslRestHelper();
         HttpResponse res;
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistrosecurity/health?pretty&mode=lenient")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistro/_security/health?pretty&mode=lenient")).getStatusCode());
         System.out.println(res.getBody());
         assertContains(res, "*UP*");
         assertNotContains(res, "*DOWN*");
         assertNotContains(res, "*strict*");
         
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistrosecurity/health?pretty")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
         System.out.println(res.getBody());
         assertContains(res, "*UP*");
         assertContains(res, "*strict*");
@@ -67,13 +67,13 @@ public class HealthTests extends SingleClusterTest {
         
         RestHelper rh = nonSslRestHelper();
         HttpResponse res;
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistrosecurity/health?pretty&mode=lenient")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistro/_security/health?pretty&mode=lenient")).getStatusCode());
         System.out.println(res.getBody());
         assertContains(res, "*UP*");
         assertNotContains(res, "*DOWN*");
         assertNotContains(res, "*strict*");
         
-        Assert.assertEquals(HttpStatus.SC_SERVICE_UNAVAILABLE, (res = rh.executeGetRequest("_opendistrosecurity/health?pretty")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_SERVICE_UNAVAILABLE, (res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
         System.out.println(res.getBody());
         assertContains(res, "*DOWN*");
         assertContains(res, "*strict*");

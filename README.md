@@ -72,7 +72,7 @@ Please refer to the [Official documentation] for detailed information on install
 
 * Test the installation by visiting ``https://localhost:9200``. When prompted, use admin/admin as username and password. This user has full access to the cluster.
 
-* Display information about the currently logged in user by visiting ``https://localhost:9200/_opendistrosecurity/authinfo``.
+* Display information about the currently logged in user by visiting ``https://localhost:9200/_opendistro/_security/authinfo``.
 
 * Deep dive into all Search Guard features by reading the [Search Guard documentation]
 
