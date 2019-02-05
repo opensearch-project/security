@@ -45,37 +45,37 @@ public abstract class SingleClusterTest extends AbstractSGUnitTest {
     protected ClusterInfo clusterInfo;
     
     protected void setup(Settings nodeOverride) throws Exception {    
-        setup(Settings.EMPTY, new DynamicSgConfig(), nodeOverride, true);
+        setup(Settings.EMPTY, new DynamicSecurityConfig(), nodeOverride, true);
     }
     
     protected void setup(Settings nodeOverride, ClusterConfiguration clusterConfiguration) throws Exception {    
-        setup(Settings.EMPTY, new DynamicSgConfig(), nodeOverride, true, clusterConfiguration);
+        setup(Settings.EMPTY, new DynamicSecurityConfig(), nodeOverride, true, clusterConfiguration);
     }
     
     protected void setup() throws Exception {    
-        setup(Settings.EMPTY, new DynamicSgConfig(), Settings.EMPTY, true);
+        setup(Settings.EMPTY, new DynamicSecurityConfig(), Settings.EMPTY, true);
     }
     
-    protected void setup(Settings initTransportClientSettings, DynamicSgConfig dynamicSgSettings, Settings nodeOverride) throws Exception {    
-        setup(initTransportClientSettings, dynamicSgSettings, nodeOverride, true);
+    protected void setup(Settings initTransportClientSettings, DynamicSecurityConfig dynamicSecuritySettings, Settings nodeOverride) throws Exception {
+        setup(initTransportClientSettings, dynamicSecuritySettings, nodeOverride, true);
     }
     
-    protected void setup(Settings initTransportClientSettings, DynamicSgConfig dynamicSgSettings, Settings nodeOverride, boolean initSeachGuardIndex) throws Exception {    
-        setup(initTransportClientSettings, dynamicSgSettings, nodeOverride, initSeachGuardIndex, ClusterConfiguration.DEFAULT);
+    protected void setup(Settings initTransportClientSettings, DynamicSecurityConfig dynamicSecuritySettings, Settings nodeOverride, boolean initSeachGuardIndex) throws Exception {
+        setup(initTransportClientSettings, dynamicSecuritySettings, nodeOverride, initSeachGuardIndex, ClusterConfiguration.DEFAULT);
     }
     
-    protected void setup(Settings initTransportClientSettings, DynamicSgConfig dynamicSgSettings, Settings nodeOverride, boolean initSeachGuardIndex, ClusterConfiguration clusterConfiguration) throws Exception {    
-        clusterInfo = clusterHelper.startCluster(minimumSearchGuardSettings(nodeOverride), clusterConfiguration);
-        if(initSeachGuardIndex && dynamicSgSettings != null) {
-            initialize(clusterInfo, initTransportClientSettings, dynamicSgSettings);
+    protected void setup(Settings initTransportClientSettings, DynamicSecurityConfig dynamicSecuritySettings, Settings nodeOverride, boolean initSeachGuardIndex, ClusterConfiguration clusterConfiguration) throws Exception {
+        clusterInfo = clusterHelper.startCluster(minimumSecuritySettings(nodeOverride), clusterConfiguration);
+        if(initSeachGuardIndex && dynamicSecuritySettings != null) {
+            initialize(clusterInfo, initTransportClientSettings, dynamicSecuritySettings);
         }
     }
     
-    protected void setup(Settings initTransportClientSettings, DynamicSgConfig dynamicSgSettings, Settings nodeOverride
+    protected void setup(Settings initTransportClientSettings, DynamicSecurityConfig dynamicSecuritySettings, Settings nodeOverride
             , boolean initSeachGuardIndex, ClusterConfiguration clusterConfiguration, int timeout, Integer nodes) throws Exception {    
-        clusterInfo = clusterHelper.startCluster(minimumSearchGuardSettings(nodeOverride), clusterConfiguration, timeout, nodes);
+        clusterInfo = clusterHelper.startCluster(minimumSecuritySettings(nodeOverride), clusterConfiguration, timeout, nodes);
         if(initSeachGuardIndex) {
-            initialize(clusterInfo, initTransportClientSettings, dynamicSgSettings);
+            initialize(clusterInfo, initTransportClientSettings, dynamicSecuritySettings);
         }
     }
     

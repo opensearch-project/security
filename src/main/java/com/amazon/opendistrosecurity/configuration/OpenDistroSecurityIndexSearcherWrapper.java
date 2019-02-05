@@ -66,7 +66,7 @@ public class OpenDistroSecurityIndexSearcherWrapper extends IndexSearcherWrapper
     @Override
     public final DirectoryReader wrap(final DirectoryReader reader) throws IOException {
 
-        if (isSearchGuardIndexRequest() && !isAdminAuthenticatedOrInternalRequest()) {
+        if (isSecurityIndexRequest() && !isAdminAuthenticatedOrInternalRequest()) {
             return new EmptyFilterLeafReader.EmptyDirectoryReader(reader);
         }
 
@@ -102,7 +102,7 @@ public class OpenDistroSecurityIndexSearcherWrapper extends IndexSearcherWrapper
         return false;
     }
 
-    protected final boolean isSearchGuardIndexRequest() {
+    protected final boolean isSecurityIndexRequest() {
         return index.getName().equals(opendistrosecurityIndex);
     }
 }

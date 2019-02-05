@@ -169,7 +169,7 @@ public abstract class AbstractSGUnitTest {
         return tc;
     }
     
-    protected void initialize(ClusterInfo info, Settings initTransportClientSettings, DynamicSgConfig sgconfig) {
+    protected void initialize(ClusterInfo info, Settings initTransportClientSettings, DynamicSecurityConfig sgconfig) {
 
         try (TransportClient tc = getInternalTransportClient(info, initTransportClientSettings)) {
 
@@ -208,7 +208,7 @@ public abstract class AbstractSGUnitTest {
         }
     }
     
-    protected Settings.Builder minimumSearchGuardSettingsBuilder(int node) {
+    protected Settings.Builder minimumSecuritySettingsBuilder(int node) {
         
         final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
         
@@ -229,17 +229,17 @@ public abstract class AbstractSGUnitTest {
                 //.put(other==null?Settings.EMPTY:other);
     }
     
-    protected NodeSettingsSupplier minimumSearchGuardSettings(Settings other) {
+    protected NodeSettingsSupplier minimumSecuritySettings(Settings other) {
         return new NodeSettingsSupplier() {
             @Override
             public Settings get(int i) {
-                return minimumSearchGuardSettingsBuilder(i).put(other).build();
+                return minimumSecuritySettingsBuilder(i).put(other).build();
             }
         };
     }
     
     protected void initialize(ClusterInfo info) {
-        initialize(info, Settings.EMPTY, new DynamicSgConfig());
+        initialize(info, Settings.EMPTY, new DynamicSecurityConfig());
     }
     
     protected final void assertContains(HttpResponse res, String pattern) {

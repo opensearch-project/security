@@ -47,7 +47,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import com.amazon.opendistrosecurity.support.ConfigConstants;
-import com.amazon.opendistrosecurity.test.DynamicSgConfig;
+import com.amazon.opendistrosecurity.test.DynamicSecurityConfig;
 import com.amazon.opendistrosecurity.test.SingleClusterTest;
 import com.amazon.opendistrosecurity.test.helper.cluster.ClusterConfiguration;
 import com.amazon.opendistrosecurity.test.helper.file.FileHelper;
@@ -59,7 +59,7 @@ public class TracingTests extends SingleClusterTest {
 
     @Test
     public void testAdvancedMapping() throws Exception {
-        setup(Settings.EMPTY, new DynamicSgConfig(), Settings.EMPTY, true, ClusterConfiguration.DEFAULT);
+        setup(Settings.EMPTY, new DynamicSecurityConfig(), Settings.EMPTY, true, ClusterConfiguration.DEFAULT);
 
         try (TransportClient tc = getInternalTransportClient(this.clusterInfo, Settings.EMPTY)) {
             tc.admin().indices().create(new CreateIndexRequest("myindex1")
@@ -96,7 +96,7 @@ public class TracingTests extends SingleClusterTest {
     @Test
     public void testHTTPTraceNoSource() throws Exception {
 
-        setup(Settings.EMPTY, new DynamicSgConfig(), Settings.EMPTY, true, ClusterConfiguration.DEFAULT);
+        setup(Settings.EMPTY, new DynamicSecurityConfig(), Settings.EMPTY, true, ClusterConfiguration.DEFAULT);
 
         try (TransportClient tc = getInternalTransportClient(this.clusterInfo, Settings.EMPTY)) {
             tc.admin().indices().create(new CreateIndexRequest("a")).actionGet();
@@ -359,7 +359,7 @@ public class TracingTests extends SingleClusterTest {
     @Test
     public void testHTTPTrace() throws Exception {
 
-        setup(Settings.EMPTY, new DynamicSgConfig(), Settings.EMPTY, true, ClusterConfiguration.DEFAULT);
+        setup(Settings.EMPTY, new DynamicSecurityConfig(), Settings.EMPTY, true, ClusterConfiguration.DEFAULT);
 
         try (TransportClient tc = getInternalTransportClient(this.clusterInfo, Settings.EMPTY)) {
 

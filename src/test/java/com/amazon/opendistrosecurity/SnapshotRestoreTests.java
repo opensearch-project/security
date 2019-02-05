@@ -51,7 +51,7 @@ import org.junit.runners.Parameterized.Parameters;
 import com.amazon.opendistrosecurity.action.configupdate.ConfigUpdateAction;
 import com.amazon.opendistrosecurity.action.configupdate.ConfigUpdateRequest;
 import com.amazon.opendistrosecurity.action.configupdate.ConfigUpdateResponse;
-import com.amazon.opendistrosecurity.test.DynamicSgConfig;
+import com.amazon.opendistrosecurity.test.DynamicSecurityConfig;
 import com.amazon.opendistrosecurity.test.SingleClusterTest;
 import com.amazon.opendistrosecurity.test.helper.cluster.ClusterConfiguration;
 import com.amazon.opendistrosecurity.test.helper.rest.RestHelper;
@@ -70,7 +70,7 @@ public class SnapshotRestoreTests extends SingleClusterTest {
     public ClusterConfiguration currentClusterConfig;
 
     @Test
-    public void testSnapshotEnableSgIndexRestore() throws Exception {
+    public void testSnapshotEnableSecurityIndexRestore() throws Exception {
     
         final Settings settings = Settings.builder()
                 .putList("path.repo", repositoryPath.getRoot().getAbsolutePath())
@@ -262,7 +262,7 @@ public class SnapshotRestoreTests extends SingleClusterTest {
                 .put("opendistrosecurity.check_snapshot_restore_write_privileges", true)
                 .build();
     
-        setup(Settings.EMPTY, new DynamicSgConfig().setSgActionGroups("sg_action_groups_packaged.yml"), settings, true, currentClusterConfig);
+        setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityActionGroups("sg_action_groups_packaged.yml"), settings, true, currentClusterConfig);
     
         try (TransportClient tc = getInternalTransportClient()) {    
             tc.index(new IndexRequest("testsnap1").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();

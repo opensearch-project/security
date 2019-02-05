@@ -58,12 +58,12 @@ public class CrossClusterSearchTests extends AbstractSGUnitTest{
         
         System.setProperty("sg.display_lic_none","true");
         
-        cl2Info = cl2.startCluster(minimumSearchGuardSettings(Settings.EMPTY), ClusterConfiguration.DEFAULT);
+        cl2Info = cl2.startCluster(minimumSecuritySettings(Settings.EMPTY), ClusterConfiguration.DEFAULT);
         initialize(cl2Info);
         System.out.println("### cl2 complete ###");
         
         //cl1 is coordinating
-        cl1Info = cl1.startCluster(minimumSearchGuardSettings(crossClusterNodeSettings(cl2Info)), ClusterConfiguration.DEFAULT);
+        cl1Info = cl1.startCluster(minimumSecuritySettings(crossClusterNodeSettings(cl2Info)), ClusterConfiguration.DEFAULT);
         System.out.println("### cl1 start ###");
         initialize(cl1Info);
         System.out.println("### cl1 initialized ###");

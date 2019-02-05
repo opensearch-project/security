@@ -601,13 +601,13 @@ public class OpenDistroSecurityAdmin {
             System.out.println("Number of nodes: "+chr.getNumberOfNodes());
             System.out.println("Number of data nodes: "+chr.getNumberOfDataNodes());
             
-            GetIndexResponse sgIndex = null;
+            GetIndexResponse securityIndex = null;
             try {
-                sgIndex = tc.admin().indices().getIndex(new GetIndexRequest().indices(index).addFeatures(Feature.MAPPINGS)).actionGet();
+                securityIndex = tc.admin().indices().getIndex(new GetIndexRequest().indices(index).addFeatures(Feature.MAPPINGS)).actionGet();
             } catch (IndexNotFoundException e1) {
                 //ignore
             }
-            final boolean indexExists = sgIndex != null;
+            final boolean indexExists = securityIndex != null;
             
             final NodesInfoResponse nodesInfo = tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet();
 
@@ -682,9 +682,9 @@ public class OpenDistroSecurityAdmin {
             }
             
             final boolean legacy = indexExists 
-                    && sgIndex.getMappings() != null
-                    && sgIndex.getMappings().get(index) != null
-                    && sgIndex.getMappings().get(index).containsKey("config");
+                    && securityIndex.getMappings() != null
+                    && securityIndex.getMappings().get(index) != null
+                    && securityIndex.getMappings().get(index).containsKey("config");
             
             if(legacy) {
                 System.out.println("Legacy index '"+index+"' detected.");

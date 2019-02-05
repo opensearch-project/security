@@ -80,7 +80,7 @@ import com.amazon.opendistrosecurity.configuration.ConfigurationRepository;
 import com.amazon.opendistrosecurity.resolver.IndexResolverReplacer;
 import com.amazon.opendistrosecurity.resolver.IndexResolverReplacer.Resolved;
 import com.amazon.opendistrosecurity.sgconf.ConfigModel;
-import com.amazon.opendistrosecurity.sgconf.ConfigModel.SgRoles;
+import com.amazon.opendistrosecurity.sgconf.ConfigModel.SecurityRoles;
 import com.amazon.opendistrosecurity.support.ConfigConstants;
 import com.amazon.opendistrosecurity.support.WildcardMatcher;
 import com.amazon.opendistrosecurity.user.User;
@@ -110,7 +110,7 @@ public class PrivilegesEvaluator {
     private final ConfigModel configModel;
     private final IndexResolverReplacer irr;
     private final SnapshotRestoreEvaluator snapshotRestoreEvaluator;
-    private final OpenDistroSecurityIndexAccessEvaluator sgIndexAccessEvaluator;
+    private final OpenDistroSecurityIndexAccessEvaluator securityIndexAccessEvaluator;
     private final TermsAggregationEvaluator termsAggregationEvaluator;
     
     private final DlsFlsEvaluator dlsFlsEvaluator;
@@ -144,7 +144,7 @@ public class PrivilegesEvaluator {
         configModel = new ConfigModel(ah, configurationRepository);
         irr = new IndexResolverReplacer(resolver, clusterService, clusterInfoHolder);
         snapshotRestoreEvaluator = new SnapshotRestoreEvaluator(settings, auditLog);
-        sgIndexAccessEvaluator = new OpenDistroSecurityIndexAccessEvaluator(settings, auditLog);
+        securityIndexAccessEvaluator = new OpenDistroSecurityIndexAccessEvaluator(settings, auditLog);
         dlsFlsEvaluator = new DlsFlsEvaluator(settings, threadPool);
         termsAggregationEvaluator = new TermsAggregationEvaluator();
     }
@@ -162,8 +162,8 @@ public class PrivilegesEvaluator {
     }
 
     //TODO: optimize, recreate only if changed
-    private SgRoles getSgRoles(final User user, final TransportAddress caller) {
-        Set<String> roles = mapSgRoles(user, caller);
+    private SecurityRoles getSecurityRoles(final User user, final TransportAddress caller) {
+        Set<String> roles = mapSecurityRoles(user, caller);
         return configModel.load().filter(roles);
     }
 
@@ -183,7 +183,7 @@ public class PrivilegesEvaluator {
         }
 
         final TransportAddress caller = Objects.requireNonNull((TransportAddress) this.threadContext.getTransient(ConfigConstants.SG_REMOTE_ADDRESS));
-        final SgRoles sgRoles = getSgRoles(user, caller);
+        final SecurityRoles securityRoles = getSecurityRoles(user, caller);
 
         final PrivilegesEvaluatorResponse presponse = new PrivilegesEvaluatorResponse();
 
@@ -201,7 +201,7 @@ public class PrivilegesEvaluator {
 
         
         // check snapshot/restore requests 
-        if (dlsFlsEvaluator.evaluate(clusterService, resolver, requestedResolved, user, sgRoles, presponse).isComplete()) {
+        if (dlsFlsEvaluator.evaluate(clusterService, resolver, requestedResolved, user, securityRoles, presponse).isComplete()) {
             return presponse;
         }
         
@@ -211,7 +211,7 @@ public class PrivilegesEvaluator {
         }
 
         // SG index access
-        if (sgIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved, presponse).isComplete()) {
+        if (securityIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved, presponse).isComplete()) {
             return presponse;
         }        
 
@@ -226,10 +226,10 @@ public class PrivilegesEvaluator {
         final Settings config = getConfigSettings();
         
         if (isClusterPerm(action0)) {
-            if(!sgRoles.impliesClusterPermissionPermission(action0)) {
+            if(!securityRoles.impliesClusterPermissionPermission(action0)) {
                 presponse.missingPrivileges.add(action0);
                 presponse.allowed = false;
-                log.info("No {}-level perm match for {} {} [Action [{}]] [RolesChecked {}]", "cluster" , user, requestedResolved, action0, sgRoles.getRoles().stream().map(r->r.getName()).toArray());
+                log.info("No {}-level perm match for {} {} [Action [{}]] [RolesChecked {}]", "cluster" , user, requestedResolved, action0, securityRoles.getRoles().stream().map(r->r.getName()).toArray());
                 log.info("No permissions for {}", presponse.missingPrivileges);
                 return presponse;
             } else {
@@ -272,7 +272,7 @@ public class PrivilegesEvaluator {
                         }
 
                         
-                        Set<String> reduced = sgRoles.reduce(requestedResolved, user, new String[]{action0}, resolver, clusterService);
+                        Set<String> reduced = securityRoles.reduce(requestedResolved, user, new String[]{action0}, resolver, clusterService);
 
                         if(reduced.isEmpty()) {
                             presponse.allowed = false;
@@ -298,7 +298,7 @@ public class PrivilegesEvaluator {
         }
 
         // term aggregations
-        if (termsAggregationEvaluator.evaluate(request, clusterService, user, sgRoles, resolver, presponse) .isComplete()) {
+        if (termsAggregationEvaluator.evaluate(request, clusterService, user, securityRoles, resolver, presponse) .isComplete()) {
             return presponse;
         }        
 
@@ -317,7 +317,7 @@ public class PrivilegesEvaluator {
         }
 
         if (log.isDebugEnabled()) {
-            log.debug("sgr: {}", sgRoles.getRoles().stream().map(d->d.getName()).toArray());
+            log.debug("sgr: {}", securityRoles.getRoles().stream().map(d->d.getName()).toArray());
         }
 
 
@@ -353,7 +353,7 @@ public class PrivilegesEvaluator {
             }
             
             
-            Set<String> reduced = sgRoles.reduce(requestedResolved, user, allIndexPermsRequiredA, resolver, clusterService);
+            Set<String> reduced = securityRoles.reduce(requestedResolved, user, allIndexPermsRequiredA, resolver, clusterService);
 
             if(reduced.isEmpty()) {
                 presponse.allowed = false;
@@ -373,14 +373,14 @@ public class PrivilegesEvaluator {
         boolean permGiven = false;
 
         if (config.getAsBoolean("opendistrosecurity.dynamic.multi_rolespan_enabled", false)) {
-            permGiven = sgRoles.impliesTypePermGlobal(requestedResolved, user, allIndexPermsRequiredA, resolver, clusterService);
+            permGiven = securityRoles.impliesTypePermGlobal(requestedResolved, user, allIndexPermsRequiredA, resolver, clusterService);
         }  else {
-            permGiven = sgRoles.get(requestedResolved, user, allIndexPermsRequiredA, resolver, clusterService);
+            permGiven = securityRoles.get(requestedResolved, user, allIndexPermsRequiredA, resolver, clusterService);
 
         }
 
          if (!permGiven) {
-            log.info("No {}-level perm match for {} {} [Action [{}]] [RolesChecked {}]", "index" , user, requestedResolved, action0, sgRoles.getRoles().stream().map(r->r.getName()).toArray());
+            log.info("No {}-level perm match for {} {} [Action [{}]] [RolesChecked {}]", "index" , user, requestedResolved, action0, securityRoles.getRoles().stream().map(r->r.getName()).toArray());
             log.info("No permissions for {}", presponse.missingPrivileges);
         } else {
 
@@ -398,10 +398,10 @@ public class PrivilegesEvaluator {
         return presponse;
 
     }
-    public Set<String> mapSgRoles(final User user, final TransportAddress caller) {
+    public Set<String> mapSecurityRoles(final User user, final TransportAddress caller) {
 
         final Settings rolesMapping = getRolesMappingSettings();
-        final Set<String> sgRoles = new TreeSet<String>();
+        final Set<String> securityRoles = new TreeSet<String>();
 
         if(user == null) {
             return Collections.emptySet();
@@ -412,7 +412,7 @@ public class PrivilegesEvaluator {
             if(log.isDebugEnabled()) {
                 log.debug("Pass backendroles from {}", user);
             }
-            sgRoles.addAll(user.getRoles());
+            securityRoles.addAll(user.getRoles());
         }
 
         if(rolesMapping != null && ((rolesMappingResolution == ConfigConstants.RolesMappingResolution.BOTH
@@ -421,17 +421,17 @@ public class PrivilegesEvaluator {
                 final Settings roleMapSettings = rolesMapping.getByPrefix(roleMap);
 
                 if (WildcardMatcher.allPatternsMatched(roleMapSettings.getAsList(".and_backendroles", Collections.emptyList()).toArray(new String[0]), user.getRoles().toArray(new String[0]))) {
-                    sgRoles.add(roleMap);
+                    securityRoles.add(roleMap);
                     continue;
                 }
 
                 if (WildcardMatcher.matchAny(roleMapSettings.getAsList(".backendroles", Collections.emptyList()).toArray(new String[0]), user.getRoles().toArray(new String[0]))) {
-                    sgRoles.add(roleMap);
+                    securityRoles.add(roleMap);
                     continue;
                 }
 
                 if (WildcardMatcher.matchAny(roleMapSettings.getAsList(".users"), user.getName())) {
-                    sgRoles.add(roleMap);
+                    securityRoles.add(roleMap);
                     continue;
                 }
                 
@@ -447,7 +447,7 @@ public class PrivilegesEvaluator {
                     //IPV4 or IPv6 (compressed and without scope identifiers)
                     final String ipAddress = caller.getAddress();
                     if (WildcardMatcher.matchAny(roleMapSettings.getAsList(".hosts"), ipAddress)) {
-                        sgRoles.add(roleMap);
+                        securityRoles.add(roleMap);
                         continue;
                     }
     
@@ -457,7 +457,7 @@ public class PrivilegesEvaluator {
                         final String hostName = caller.address().getHostString();
         
                         if (WildcardMatcher.matchAny(roleMapSettings.getAsList(".hosts"), hostName)) {
-                            sgRoles.add(roleMap);
+                            securityRoles.add(roleMap);
                             continue;
                         }
                     }
@@ -467,7 +467,7 @@ public class PrivilegesEvaluator {
                         final String resolvedHostName = caller.address().getHostName();
              
                         if (WildcardMatcher.matchAny(roleMapSettings.getAsList(".hosts"), resolvedHostName)) {
-                            sgRoles.add(roleMap);
+                            securityRoles.add(roleMap);
                             continue;
                         }
                     }
@@ -475,7 +475,7 @@ public class PrivilegesEvaluator {
             }
         }
 
-        return Collections.unmodifiableSet(sgRoles);
+        return Collections.unmodifiableSet(securityRoles);
 
     }
 
@@ -488,8 +488,8 @@ public class PrivilegesEvaluator {
         final Map<String, Boolean> result = new HashMap<>();
         result.put(user.getName(), true);
 
-        for(String sgRole: mapSgRoles(user, caller)) {
-            Settings tenants = getRolesSettings().getByPrefix(sgRole+".tenants.");
+        for(String securityRole: mapSecurityRoles(user, caller)) {
+            Settings tenants = getRolesSettings().getByPrefix(securityRole+".tenants.");
 
             if(tenants != null) {
                 for(String tenant: tenants.names()) {
@@ -522,8 +522,8 @@ public class PrivilegesEvaluator {
     	}
     	
     	final Set<String> configuredTenants = new HashSet<>();
-    	for(String sgRole: roles.names()) {
-            Settings tenants = roles.getByPrefix(sgRole+".tenants.");
+    	for(String securityRole: roles.names()) {
+            Settings tenants = roles.getByPrefix(securityRole+".tenants.");
 
             if(tenants != null) {
                 configuredTenants.addAll(tenants.names());

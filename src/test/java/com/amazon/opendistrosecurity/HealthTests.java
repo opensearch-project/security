@@ -35,7 +35,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.amazon.opendistrosecurity.test.DynamicSgConfig;
+import com.amazon.opendistrosecurity.test.DynamicSecurityConfig;
 import com.amazon.opendistrosecurity.test.SingleClusterTest;
 import com.amazon.opendistrosecurity.test.helper.rest.RestHelper;
 import com.amazon.opendistrosecurity.test.helper.rest.RestHelper.HttpResponse;
@@ -44,7 +44,7 @@ public class HealthTests extends SingleClusterTest {
     
     @Test
     public void testHealth() throws Exception {
-        setup(Settings.EMPTY, new DynamicSgConfig(), Settings.EMPTY);
+        setup(Settings.EMPTY, new DynamicSecurityConfig(), Settings.EMPTY);
         
         RestHelper rh = nonSslRestHelper();
         HttpResponse res;

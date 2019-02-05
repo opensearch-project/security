@@ -73,23 +73,23 @@ public class ConfigModel {
         this.configurationRepository = configurationRepository;
     }
 
-    public SgRoles load() {
+    public SecurityRoles load() {
         final Settings settings = configurationRepository.getConfiguration("roles", false);
-        SgRoles _sgRoles = new SgRoles();
-        Set<String> sgRoles = settings.names();
-        for(String sgRole: sgRoles) {
+        SecurityRoles _securityRoles = new SecurityRoles();
+        Set<String> securityRoles = settings.names();
+        for(String securityRole: securityRoles) {
 
-            SgRole _sgRole = new SgRole(sgRole);
+            SecurityRole _securityRole = new SecurityRole(securityRole);
 
-            final Settings sgRoleSettings = settings.getByPrefix(sgRole);
-            if (sgRoleSettings.names().isEmpty()) {
+            final Settings securityRoleSettings = settings.getByPrefix(securityRole);
+            if (securityRoleSettings.names().isEmpty()) {
                 continue;
             }
 
-            final Set<String> permittedClusterActions = ah.resolvedActions(sgRoleSettings.getAsList(".cluster", Collections.emptyList()));
-            _sgRole.addClusterPerms(permittedClusterActions);
+            final Set<String> permittedClusterActions = ah.resolvedActions(securityRoleSettings.getAsList(".cluster", Collections.emptyList()));
+            _securityRole.addClusterPerms(permittedClusterActions);
 
-            Settings tenants = settings.getByPrefix(sgRole+".tenants.");
+            Settings tenants = settings.getByPrefix(securityRole+".tenants.");
 
             if(tenants != null) {
                 for(String tenant: tenants.names()) {
@@ -99,22 +99,22 @@ public class ConfigModel {
                     //}
 
                     if("RW".equalsIgnoreCase(tenants.get(tenant, "RO"))) {
-                        _sgRole.addTenant(new Tenant(tenant, true));
+                        _securityRole.addTenant(new Tenant(tenant, true));
                     } else {
-                        _sgRole.addTenant(new Tenant(tenant, false));
-                        //if(_sgRole.tenants.stream().filter(t->t.tenant.equals(tenant)).count() > 0) { //RW outperforms RO
-                        //    _sgRole.addTenant(new Tenant(tenant, false));
+                        _securityRole.addTenant(new Tenant(tenant, false));
+                        //if(_securityRole.tenants.stream().filter(t->t.tenant.equals(tenant)).count() > 0) { //RW outperforms RO
+                        //    _securityRole.addTenant(new Tenant(tenant, false));
                         //}
                     }
                 }
             }
 
 
-            final Map<String, Settings> permittedAliasesIndices = sgRoleSettings.getGroups(".indices");
+            final Map<String, Settings> permittedAliasesIndices = securityRoleSettings.getGroups(".indices");
 
             for (final String permittedAliasesIndex : permittedAliasesIndices.keySet()) {
 
-                final String resolvedRole = sgRole;
+                final String resolvedRole = securityRole;
                 final String indexPattern = permittedAliasesIndex;
 
                 final String dls = settings.get(resolvedRole+".indices."+indexPattern+"._dls_");
@@ -138,29 +138,29 @@ public class ConfigModel {
                     _indexPattern.addTypePerms(typePerm);
                 }
 
-                _sgRole.addIndexPattern(_indexPattern);
+                _securityRole.addIndexPattern(_indexPattern);
 
             }
-            _sgRoles.addSgRole(_sgRole);
+            _securityRoles.addSecurityRole(_securityRole);
         }
 
-        return _sgRoles;
+        return _securityRoles;
     }
 
     //beans
 
-    public static class SgRoles {
+    public static class SecurityRoles {
 
         protected final Logger log = LogManager.getLogger(this.getClass());
         
-        final Set<SgRole> roles = new HashSet<>(100);
+        final Set<SecurityRole> roles = new HashSet<>(100);
 
-        private SgRoles() {
+        private SecurityRoles() {
         }
 
-        private SgRoles addSgRole(SgRole sgRole) {
-            if(sgRole != null) {
-                this.roles.add(sgRole);
+        private SecurityRoles addSecurityRole(SecurityRole securityRole) {
+            if(securityRole != null) {
+                this.roles.add(securityRole);
             }
             return this;
         }
@@ -181,7 +181,7 @@ public class ConfigModel {
                 return false;
             if (getClass() != obj.getClass())
                 return false;
-            SgRoles other = (SgRoles) obj;
+            SecurityRoles other = (SecurityRoles) obj;
             if (roles == null) {
                 if (other.roles != null)
                     return false;
@@ -195,15 +195,15 @@ public class ConfigModel {
             return "roles=" + roles;
         }
 
-        public Set<SgRole> getRoles() {
+        public Set<SecurityRole> getRoles() {
             return Collections.unmodifiableSet(roles);
         }
 
-        public SgRoles filter(Set<String> keep) {
-            final SgRoles retVal = new SgRoles();
-            for(SgRole sgr: roles) {
+        public SecurityRoles filter(Set<String> keep) {
+            final SecurityRoles retVal = new SecurityRoles();
+            for(SecurityRole sgr: roles) {
                 if(keep.contains(sgr.getName())) {
-                    retVal.addSgRole(sgr);
+                    retVal.addSecurityRole(sgr);
                 }
             }
             return retVal;
@@ -212,7 +212,7 @@ public class ConfigModel {
         public Map<String,Set<String>> getMaskedFields(User user, IndexNameExpressionResolver resolver, ClusterService cs) {
             final Map<String,Set<String>> maskedFieldsMap = new HashMap<String, Set<String>>();
             
-            for(SgRole sgr: roles) {
+            for(SecurityRole sgr: roles) {
                 for(IndexPattern ip: sgr.getIpatterns()) {
                     final Set<String> maskedFields = ip.getMaskedFields();
                     final String indexPattern = ip.getUnresolvedIndexPattern(user);
@@ -251,7 +251,7 @@ public class ConfigModel {
             final Map<String,Set<String>> dlsQueries = new HashMap<String, Set<String>>();
             final Map<String,Set<String>> flsFields = new HashMap<String, Set<String>>();
 
-            for(SgRole sgr: roles) {
+            for(SecurityRole sgr: roles) {
                 for(IndexPattern ip: sgr.getIpatterns()) {
                     final Set<String> fls = ip.getFls();
                     final String dls = ip.getDlsQuery(user);
@@ -313,7 +313,7 @@ public class ConfigModel {
         //kibana special only
         public Set<String> getAllPermittedIndices(User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
             Set<String> retVal = new HashSet<>();
-            for(SgRole sgr: roles) {
+            for(SecurityRole sgr: roles) {
                 retVal.addAll(sgr.getAllResolvedPermittedIndices(Resolved._ALL, user, actions, resolver, cs));
             }
             return Collections.unmodifiableSet(retVal);
@@ -322,7 +322,7 @@ public class ConfigModel {
         //dnfof only
         public Set<String> reduce(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
             Set<String> retVal = new HashSet<>();
-            for(SgRole sgr: roles) {
+            for(SecurityRole sgr: roles) {
                 retVal.addAll(sgr.getAllResolvedPermittedIndices(resolved, user, actions, resolver, cs));
             }
             if(log.isDebugEnabled()) {
@@ -333,7 +333,7 @@ public class ConfigModel {
 
         //return true on success
         public boolean get(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
-            for(SgRole sgr: roles) {
+            for(SecurityRole sgr: roles) {
                 if(ConfigModel.impliesTypePerm(sgr.getIpatterns(), resolved, user, actions, resolver, cs)) {
                     return true;
                 }
@@ -354,14 +354,14 @@ public class ConfigModel {
         }  
     }
 
-    public static class SgRole {
+    public static class SecurityRole {
 
         private final String name;
         private final Set<Tenant> tenants = new HashSet<>();
         private final Set<IndexPattern> ipatterns = new HashSet<>();
         private final Set<String> clusterPerms = new HashSet<>();
 
-        private SgRole(String name) {
+        private SecurityRole(String name) {
             super();
             this.name = Objects.requireNonNull(name);
         }
@@ -413,21 +413,21 @@ public class ConfigModel {
 
         
 
-        private SgRole addTenant(Tenant tenant) {
+        private SecurityRole addTenant(Tenant tenant) {
             if(tenant != null) {
                 this.tenants.add(tenant);
             }
             return this;
         }
 
-        private SgRole addIndexPattern(IndexPattern indexPattern) {
+        private SecurityRole addIndexPattern(IndexPattern indexPattern) {
             if(indexPattern != null) {
                 this.ipatterns.add(indexPattern);
             }
             return this;
         }
 
-        private SgRole addClusterPerms(Collection<String> clusterPerms) {
+        private SecurityRole addClusterPerms(Collection<String> clusterPerms) {
             if(clusterPerms != null) {
                 this.clusterPerms.addAll(clusterPerms);
             }
@@ -454,7 +454,7 @@ public class ConfigModel {
                 return false;
             if (getClass() != obj.getClass())
                 return false;
-            SgRole other = (SgRole) obj;
+            SecurityRole other = (SecurityRole) obj;
             if (clusterPerms == null) {
                 if (other.clusterPerms != null)
                     return false;

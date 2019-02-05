@@ -40,51 +40,51 @@ import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
 import com.amazon.opendistrosecurity.support.ConfigConstants;
 import com.amazon.opendistrosecurity.test.helper.file.FileHelper;
 
-public class DynamicSgConfig {
+public class DynamicSecurityConfig {
     
-    private String searchGuardIndexName = "opendistrosecurity";
-    private String sgConfig = "sg_config.yml";
-    private String sgRoles = "sg_roles.yml";
-    private String sgRolesMapping = "sg_roles_mapping.yml";
-    private String sgInternalUsers = "sg_internal_users.yml";
-    private String sgActionGroups = "sg_action_groups.yml";
-    private String sgConfigAsYamlString = null;
+    private String securityIndexName = "opendistrosecurity";
+    private String securityConfig = "sg_config.yml";
+    private String securityRoles = "sg_roles.yml";
+    private String securityRolesMapping = "sg_roles_mapping.yml";
+    private String securityInternalUsers = "sg_internal_users.yml";
+    private String securityActionGroups = "sg_action_groups.yml";
+    private String securityConfigAsYamlString = null;
 
-    public String getSearchGuardIndexName() {
-        return searchGuardIndexName;
+    public String getSecurityIndexName() {
+        return securityIndexName;
     }
-    public DynamicSgConfig setSearchGuardIndexName(String searchGuardIndexName) {
-        this.searchGuardIndexName = searchGuardIndexName;
+    public DynamicSecurityConfig setSecurityIndexName(String securityIndexName) {
+        this.securityIndexName = securityIndexName;
         return this;
     }
 
-    public DynamicSgConfig setSgConfig(String sgConfig) {
-        this.sgConfig = sgConfig;
+    public DynamicSecurityConfig setSgConfig(String securityConfig) {
+        this.securityConfig = securityConfig;
         return this;
     }
 
-    public DynamicSgConfig setSgConfigAsYamlString(String sgConfigAsYamlString) {
-        this.sgConfigAsYamlString = sgConfigAsYamlString;
+    public DynamicSecurityConfig setSgConfigAsYamlString(String securityConfigAsYamlString) {
+        this.securityConfigAsYamlString = securityConfigAsYamlString;
         return this;
     }
 
-    public DynamicSgConfig setSgRoles(String sgRoles) {
-        this.sgRoles = sgRoles;
+    public DynamicSecurityConfig setSecurityRoles(String securityRoles) {
+        this.securityRoles = securityRoles;
         return this;
     }
 
-    public DynamicSgConfig setSgRolesMapping(String sgRolesMapping) {
-        this.sgRolesMapping = sgRolesMapping;
+    public DynamicSecurityConfig setSecurityRolesMapping(String securityRolesMapping) {
+        this.securityRolesMapping = securityRolesMapping;
         return this;
     }
 
-    public DynamicSgConfig setSgInternalUsers(String sgInternalUsers) {
-        this.sgInternalUsers = sgInternalUsers;
+    public DynamicSecurityConfig setSecurityInternalUsers(String securityInternalUsers) {
+        this.securityInternalUsers = securityInternalUsers;
         return this;
     }
 
-    public DynamicSgConfig setSgActionGroups(String sgActionGroups) {
-        this.sgActionGroups = sgActionGroups;
+    public DynamicSecurityConfig setSecurityActionGroups(String securityActionGroups) {
+        this.securityActionGroups = securityActionGroups;
         return this;
     }
     
@@ -94,35 +94,35 @@ public class DynamicSgConfig {
         
         List<IndexRequest> ret = new ArrayList<IndexRequest>();
         
-        ret.add(new IndexRequest(searchGuardIndexName)
+        ret.add(new IndexRequest(securityIndexName)
                .type("sg")
                .id(ConfigConstants.CONFIGNAME_CONFIG)
                .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-               .source(ConfigConstants.CONFIGNAME_CONFIG, sgConfigAsYamlString==null?FileHelper.readYamlContent(prefix+sgConfig):FileHelper.readYamlContentFromString(sgConfigAsYamlString)));
+               .source(ConfigConstants.CONFIGNAME_CONFIG, securityConfigAsYamlString==null?FileHelper.readYamlContent(prefix+securityConfig):FileHelper.readYamlContentFromString(securityConfigAsYamlString)));
         
-        ret.add(new IndexRequest(searchGuardIndexName)
+        ret.add(new IndexRequest(securityIndexName)
         .type("sg")
         .id(ConfigConstants.CONFIGNAME_ACTION_GROUPS)
         .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-        .source(ConfigConstants.CONFIGNAME_ACTION_GROUPS, FileHelper.readYamlContent(prefix+sgActionGroups)));
+        .source(ConfigConstants.CONFIGNAME_ACTION_GROUPS, FileHelper.readYamlContent(prefix+securityActionGroups)));
  
-        ret.add(new IndexRequest(searchGuardIndexName)
+        ret.add(new IndexRequest(securityIndexName)
         .type("sg")
         .id(ConfigConstants.CONFIGNAME_INTERNAL_USERS)
         .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-        .source(ConfigConstants.CONFIGNAME_INTERNAL_USERS, FileHelper.readYamlContent(prefix+sgInternalUsers)));
+        .source(ConfigConstants.CONFIGNAME_INTERNAL_USERS, FileHelper.readYamlContent(prefix+securityInternalUsers)));
  
-        ret.add(new IndexRequest(searchGuardIndexName)
+        ret.add(new IndexRequest(securityIndexName)
         .type("sg")
         .id(ConfigConstants.CONFIGNAME_ROLES)
         .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-        .source(ConfigConstants.CONFIGNAME_ROLES, FileHelper.readYamlContent(prefix+sgRoles)));
+        .source(ConfigConstants.CONFIGNAME_ROLES, FileHelper.readYamlContent(prefix+securityRoles)));
  
-        ret.add(new IndexRequest(searchGuardIndexName)
+        ret.add(new IndexRequest(securityIndexName)
         .type("sg")
         .id(ConfigConstants.CONFIGNAME_ROLES_MAPPING)
         .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-        .source(ConfigConstants.CONFIGNAME_ROLES_MAPPING, FileHelper.readYamlContent(prefix+sgRolesMapping)));
+        .source(ConfigConstants.CONFIGNAME_ROLES_MAPPING, FileHelper.readYamlContent(prefix+securityRolesMapping)));
  
         
         return Collections.unmodifiableList(ret);

@@ -50,12 +50,12 @@ public class SnapshotRestoreEvaluator {
     private final boolean enableSnapshotRestorePrivilege;
     private final String opendistrosecurityIndex;
     private final AuditLog auditLog;
-    private final boolean restoreSgIndexEnabled;
+    private final boolean restoreSecurityIndexEnabled;
     
     public SnapshotRestoreEvaluator(final Settings settings, AuditLog auditLog) {
         this.enableSnapshotRestorePrivilege = settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE,
                 ConfigConstants.SG_DEFAULT_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE);
-        this.restoreSgIndexEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_UNSUPPORTED_RESTORE_SGINDEX_ENABLED, false);
+        this.restoreSecurityIndexEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_UNSUPPORTED_RESTORE_SGINDEX_ENABLED, false);
 
         this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTROSECURITY_CONFIG_INDEX_NAME, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
         this.auditLog = auditLog;
@@ -77,7 +77,7 @@ public class SnapshotRestoreEvaluator {
 
         // if this feature is enabled, users can also snapshot and restore
         // the SG index and the global state
-        if (restoreSgIndexEnabled) {
+        if (restoreSecurityIndexEnabled) {
             presponse.allowed = true;
             return presponse;            
         }
@@ -92,7 +92,7 @@ public class SnapshotRestoreEvaluator {
 
         // Do not allow restore of global state
         if (restoreRequest.includeGlobalState()) {
-            auditLog.logSgIndexAttempt(request, action, task);
+            auditLog.logSecurityIndexAttempt(request, action, task);
             log.warn(action + " with 'include_global_state' enabled is not allowed");
             presponse.allowed = false;
             return presponse.markComplete();            
@@ -101,7 +101,7 @@ public class SnapshotRestoreEvaluator {
         final List<String> rs = SnapshotRestoreHelper.resolveOriginalIndices(restoreRequest);
 
         if (rs != null && (rs.contains(opendistrosecurityIndex) || rs.contains("_all") || rs.contains("*"))) {
-            auditLog.logSgIndexAttempt(request, action, task);
+            auditLog.logSecurityIndexAttempt(request, action, task);
             log.warn(action + " for '{}' as source index is not allowed", opendistrosecurityIndex);
             presponse.allowed = false;
             return presponse.markComplete();            

@@ -55,7 +55,7 @@ import com.amazon.opendistrosecurity.action.whoami.WhoAmIRequest;
 import com.amazon.opendistrosecurity.action.whoami.WhoAmIResponse;
 import com.amazon.opendistrosecurity.ssl.util.SSLConfigConstants;
 import com.amazon.opendistrosecurity.support.ConfigConstants;
-import com.amazon.opendistrosecurity.test.DynamicSgConfig;
+import com.amazon.opendistrosecurity.test.DynamicSecurityConfig;
 import com.amazon.opendistrosecurity.test.SingleClusterTest;
 import com.amazon.opendistrosecurity.test.helper.file.FileHelper;
 import com.amazon.opendistrosecurity.test.helper.rest.RestHelper;
@@ -94,8 +94,8 @@ public class InitializationIntegrationTests extends SingleClusterTest {
 
     @Test
     public void testWhoAmI() throws Exception {
-        setup(Settings.EMPTY, new DynamicSgConfig().setSgInternalUsers("sg_internal_empty.yml")
-                .setSgRoles("sg_roles_deny.yml"), Settings.EMPTY, true);
+        setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityInternalUsers("sg_internal_empty.yml")
+                .setSecurityRoles("sg_roles_deny.yml"), Settings.EMPTY, true);
         
         try (TransportClient tc = getUserTransportClient(clusterInfo, "spock-keystore.jks", Settings.EMPTY)) {  
             WhoAmIResponse wres = tc.execute(WhoAmIAction.INSTANCE, new WhoAmIRequest()).actionGet();  

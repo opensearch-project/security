@@ -42,7 +42,7 @@ public class CompatConfig implements ConfigurationChangeListener {
 
     private final Logger log = LogManager.getLogger(getClass());
     private final Settings staticSettings;
-    private Settings dynamicSgConfig;
+    private Settings dynamicSecurityConfig;
 
     public CompatConfig(final Environment environment) {
         super();
@@ -50,9 +50,9 @@ public class CompatConfig implements ConfigurationChangeListener {
     }
     
     @Override
-    public void onChange(final Settings dynamicSgConfig) {
-        this.dynamicSgConfig = dynamicSgConfig;
-        log.debug("dynamicSgConfig updated?: {}", (dynamicSgConfig != null));
+    public void onChange(final Settings dynamicSecurityConfig) {
+        this.dynamicSecurityConfig = dynamicSecurityConfig;
+        log.debug("dynamicSecurityConfig updated?: {}", (dynamicSecurityConfig != null));
     }
     
     //true is default
@@ -60,13 +60,13 @@ public class CompatConfig implements ConfigurationChangeListener {
         final boolean restInitiallyDisabled = staticSettings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_UNSUPPORTED_DISABLE_REST_AUTH_INITIALLY, false);
         
         if(restInitiallyDisabled) {
-            if(dynamicSgConfig == null) {
+            if(dynamicSecurityConfig == null) {
                 if(log.isTraceEnabled()) {
-                    log.trace("dynamicSgConfig is null, initially static restDisabled");
+                    log.trace("dynamicSecurityConfig is null, initially static restDisabled");
                 }
                 return false;
             } else {
-                final boolean restDynamicallyDisabled = dynamicSgConfig.getAsBoolean("opendistrosecurity.dynamic.disable_rest_auth", false);
+                final boolean restDynamicallyDisabled = dynamicSecurityConfig.getAsBoolean("opendistrosecurity.dynamic.disable_rest_auth", false);
                 if(log.isTraceEnabled()) {
                     log.trace("opendistrosecurity.dynamic.disable_rest_auth {}", restDynamicallyDisabled);
                 }
@@ -83,13 +83,13 @@ public class CompatConfig implements ConfigurationChangeListener {
         final boolean interClusterAuthInitiallyDisabled = staticSettings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_UNSUPPORTED_DISABLE_INTERTRANSPORT_AUTH_INITIALLY, false);
         
         if(interClusterAuthInitiallyDisabled) {
-            if(dynamicSgConfig == null) {
+            if(dynamicSecurityConfig == null) {
                 if(log.isTraceEnabled()) {
-                    log.trace("dynamicSgConfig is null, initially static interClusterAuthDisabled");
+                    log.trace("dynamicSecurityConfig is null, initially static interClusterAuthDisabled");
                 }
                 return false;
             } else {
-                final boolean interClusterAuthDynamicallyDisabled = dynamicSgConfig.getAsBoolean("opendistrosecurity.dynamic.disable_intertransport_auth", false);
+                final boolean interClusterAuthDynamicallyDisabled = dynamicSecurityConfig.getAsBoolean("opendistrosecurity.dynamic.disable_intertransport_auth", false);
                 if(log.isTraceEnabled()) {
                     log.trace("opendistrosecurity.dynamic.disable_intertransport_auth {}", interClusterAuthDynamicallyDisabled);
                 }

@@ -52,7 +52,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import com.amazon.opendistrosecurity.support.ConfigConstants;
-import com.amazon.opendistrosecurity.test.DynamicSgConfig;
+import com.amazon.opendistrosecurity.test.DynamicSecurityConfig;
 import com.amazon.opendistrosecurity.test.SingleClusterTest;
 import com.amazon.opendistrosecurity.test.helper.rest.RestHelper;
 import com.amazon.opendistrosecurity.test.helper.rest.RestHelper.HttpResponse;
@@ -62,7 +62,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
     @Test
     public void testComposite() throws Exception {
     
-        setup(Settings.EMPTY, new DynamicSgConfig().setSgConfig("sg_composite_config.yml").setSgRoles("sg_roles_composite.yml"), Settings.EMPTY, true);
+        setup(Settings.EMPTY, new DynamicSecurityConfig().setSgConfig("sg_composite_config.yml").setSecurityRoles("sg_roles_composite.yml"), Settings.EMPTY, true);
         final RestHelper rh = nonSslRestHelper();
     
         try (TransportClient tc = getInternalTransportClient()) {                
@@ -91,7 +91,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
     @Test
     public void testBulkShards() throws Exception {
     
-        setup(Settings.EMPTY, new DynamicSgConfig().setSgRoles("sg_roles_bs.yml"), Settings.EMPTY, true);
+        setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityRoles("sg_roles_bs.yml"), Settings.EMPTY, true);
         final RestHelper rh = nonSslRestHelper();
         
         try (TransportClient tc = getInternalTransportClient()) {               

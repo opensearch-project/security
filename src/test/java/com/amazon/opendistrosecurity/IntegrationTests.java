@@ -62,7 +62,7 @@ import com.amazon.opendistrosecurity.action.whoami.WhoAmIResponse;
 import com.amazon.opendistrosecurity.http.HTTPClientCertAuthenticator;
 import com.amazon.opendistrosecurity.ssl.util.SSLConfigConstants;
 import com.amazon.opendistrosecurity.support.ConfigConstants;
-import com.amazon.opendistrosecurity.test.DynamicSgConfig;
+import com.amazon.opendistrosecurity.test.DynamicSecurityConfig;
 import com.amazon.opendistrosecurity.test.SingleClusterTest;
 import com.amazon.opendistrosecurity.test.helper.file.FileHelper;
 import com.amazon.opendistrosecurity.test.helper.rest.RestHelper;
@@ -113,7 +113,7 @@ public class IntegrationTests extends SingleClusterTest {
     
     @Test
     public void testNotInsecure() throws Exception {
-        setup(Settings.EMPTY, new DynamicSgConfig().setSgRoles("sg_roles_deny.yml"), Settings.EMPTY, true);
+        setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityRoles("sg_roles_deny.yml"), Settings.EMPTY, true);
         final RestHelper rh = nonSslRestHelper();
         
         try (TransportClient tc = getInternalTransportClient()) {               
@@ -208,7 +208,7 @@ public class IntegrationTests extends SingleClusterTest {
                 .put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, "PKCS12")
                 .build();
         
-        setup(tcSettings, new DynamicSgConfig(), settings, true);
+        setup(tcSettings, new DynamicSecurityConfig(), settings, true);
         RestHelper rh = nonSslRestHelper();
         
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest("").getStatusCode());
@@ -234,7 +234,7 @@ public class IntegrationTests extends SingleClusterTest {
                 .put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, "PKCS12")
                 .build();
         
-        setup(tcSettings, new DynamicSgConfig(), settings, true);
+        setup(tcSettings, new DynamicSecurityConfig(), settings, true);
         RestHelper rh = nonSslRestHelper();
         
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest("").getStatusCode());
@@ -354,7 +354,7 @@ public class IntegrationTests extends SingleClusterTest {
     @Test
     public void testXff() throws Exception {
     
-        setup(Settings.EMPTY, new DynamicSgConfig().setSgConfig("sg_config_xff.yml"), Settings.EMPTY, true);
+        setup(Settings.EMPTY, new DynamicSecurityConfig().setSgConfig("sg_config_xff.yml"), Settings.EMPTY, true);
         RestHelper rh = nonSslRestHelper();
         HttpResponse resc = rh.executeGetRequest("_opendistrosecurity/authinfo", new BasicHeader("x-forwarded-for", "10.0.0.7"), encodeBasicHeader("worf", "worf"));
         Assert.assertEquals(200, resc.getStatusCode());
@@ -364,7 +364,7 @@ public class IntegrationTests extends SingleClusterTest {
     @Test
     public void testRegexExcludes() throws Exception {
         
-        setup(Settings.EMPTY, new DynamicSgConfig(), Settings.EMPTY);
+        setup(Settings.EMPTY, new DynamicSecurityConfig(), Settings.EMPTY);
 
         try (TransportClient tc = getInternalTransportClient(this.clusterInfo, Settings.EMPTY)) {
             tc.index(new IndexRequest("indexa").type("type01").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"indexa\":1}", XContentType.JSON)).actionGet();
@@ -417,7 +417,7 @@ public class IntegrationTests extends SingleClusterTest {
     @Test
     public void testMultiRoleSpan2() throws Exception {
         
-        setup(Settings.EMPTY, new DynamicSgConfig().setSgConfig("sg_config_multirolespan.yml"), Settings.EMPTY);
+        setup(Settings.EMPTY, new DynamicSecurityConfig().setSgConfig("sg_config_multirolespan.yml"), Settings.EMPTY);
         final RestHelper rh = nonSslRestHelper();
 
         try (TransportClient tc = getInternalTransportClient()) {                                       
@@ -458,7 +458,7 @@ public class IntegrationTests extends SingleClusterTest {
     @Test
     public void testDeleteByQueryDnfof() throws Exception {
 
-        setup(Settings.EMPTY, new DynamicSgConfig().setSgConfig("sg_config_dnfof.yml"), Settings.EMPTY);
+        setup(Settings.EMPTY, new DynamicSecurityConfig().setSgConfig("sg_config_dnfof.yml"), Settings.EMPTY);
 
         try (TransportClient tc = getInternalTransportClient()) {                    
             for(int i=0; i<3; i++) {
@@ -501,7 +501,7 @@ public class IntegrationTests extends SingleClusterTest {
                 .put(ConfigConstants.OPENDISTROSECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
                 .build();
 
-        setup(Settings.EMPTY, new DynamicSgConfig().setSgConfig("sg_config_dnfof.yml"), settings);
+        setup(Settings.EMPTY, new DynamicSecurityConfig().setSgConfig("sg_config_dnfof.yml"), settings);
         final RestHelper rh = nonSslRestHelper();
 
         try (TransportClient tc = getInternalTransportClient()) {
@@ -676,7 +676,7 @@ public class IntegrationTests extends SingleClusterTest {
                 .put(ConfigConstants.OPENDISTROSECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
                 .build();
 
-        setup(Settings.EMPTY, new DynamicSgConfig(), settings);
+        setup(Settings.EMPTY, new DynamicSecurityConfig(), settings);
         final RestHelper rh = nonSslRestHelper();
 
         try (TransportClient tc = getInternalTransportClient()) {

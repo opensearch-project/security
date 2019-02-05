@@ -55,37 +55,37 @@ public class OpenDistroSecurityIndexAccessEvaluator {
     private final String[] sgDeniedActionPatternsAll;
     private final String[] sgDeniedActionPatternsSnapshotRestoreAllowed;
 
-    private final boolean restoreSgIndexEnabled;
+    private final boolean restoreSecurityIndexEnabled;
     
     public OpenDistroSecurityIndexAccessEvaluator(final Settings settings, AuditLog auditLog) {
         this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTROSECURITY_CONFIG_INDEX_NAME, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
         this.auditLog = auditLog;
         
-        final List<String> sgIndexdeniedActionPatternsListAll = new ArrayList<String>();
-        sgIndexdeniedActionPatternsListAll.add("indices:data/write*");
-        sgIndexdeniedActionPatternsListAll.add("indices:admin/close");
-        sgIndexdeniedActionPatternsListAll.add("indices:admin/delete");
-        sgIndexdeniedActionPatternsListAll.add("cluster:admin/snapshot/restore");
+        final List<String> securityIndexdeniedActionPatternsListAll = new ArrayList<String>();
+        securityIndexdeniedActionPatternsListAll.add("indices:data/write*");
+        securityIndexdeniedActionPatternsListAll.add("indices:admin/close");
+        securityIndexdeniedActionPatternsListAll.add("indices:admin/delete");
+        securityIndexdeniedActionPatternsListAll.add("cluster:admin/snapshot/restore");
 
-        sgDeniedActionPatternsAll = sgIndexdeniedActionPatternsListAll.toArray(new String[0]);
+        sgDeniedActionPatternsAll = securityIndexdeniedActionPatternsListAll.toArray(new String[0]);
 
-        final List<String> sgIndexdeniedActionPatternsListSnapshotRestoreAllowed = new ArrayList<String>();
-        sgIndexdeniedActionPatternsListAll.add("indices:data/write*");
-        sgIndexdeniedActionPatternsListAll.add("indices:admin/delete");
+        final List<String> securityIndexdeniedActionPatternsListSnapshotRestoreAllowed = new ArrayList<String>();
+        securityIndexdeniedActionPatternsListAll.add("indices:data/write*");
+        securityIndexdeniedActionPatternsListAll.add("indices:admin/delete");
               
-        sgDeniedActionPatternsSnapshotRestoreAllowed = sgIndexdeniedActionPatternsListSnapshotRestoreAllowed.toArray(new String[0]);
+        sgDeniedActionPatternsSnapshotRestoreAllowed = securityIndexdeniedActionPatternsListSnapshotRestoreAllowed.toArray(new String[0]);
         
-        this.restoreSgIndexEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_UNSUPPORTED_RESTORE_SGINDEX_ENABLED, false);
+        this.restoreSecurityIndexEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_UNSUPPORTED_RESTORE_SGINDEX_ENABLED, false);
     }
     
     public PrivilegesEvaluatorResponse evaluate(final ActionRequest request, final Task task, final String action, final Resolved requestedResolved,
             final PrivilegesEvaluatorResponse presponse)  {
         
-        final String[] sgDeniedActionPatterns = this.restoreSgIndexEnabled? sgDeniedActionPatternsSnapshotRestoreAllowed : sgDeniedActionPatternsAll;
+        final String[] sgDeniedActionPatterns = this.restoreSecurityIndexEnabled? sgDeniedActionPatternsSnapshotRestoreAllowed : sgDeniedActionPatternsAll;
         
         if (requestedResolved.getAllIndices().contains(opendistrosecurityIndex)
                 && WildcardMatcher.matchAny(sgDeniedActionPatterns, action)) {
-            auditLog.logSgIndexAttempt(request, action, task);
+            auditLog.logSecurityIndexAttempt(request, action, task);
             log.warn(action + " for '{}' index is not allowed for a regular user", opendistrosecurityIndex);
             presponse.allowed = false;
             return presponse.markComplete();
@@ -94,7 +94,7 @@ public class OpenDistroSecurityIndexAccessEvaluator {
         //TODO: newpeval: check if isAll() is all (contains("_all" or "*"))
         if (requestedResolved.isAll()
                 && WildcardMatcher.matchAny(sgDeniedActionPatterns, action)) {
-            auditLog.logSgIndexAttempt(request, action, task);
+            auditLog.logSecurityIndexAttempt(request, action, task);
             log.warn(action + " for '_all' indices is not allowed for a regular user");
             presponse.allowed = false;
             return presponse.markComplete();

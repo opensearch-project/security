@@ -98,7 +98,7 @@ public class OpenDistroSecurityInfoAction extends BaseRestHandler {
                     builder.field("remote_address", remoteAddress);
                     builder.field("backend_roles", user==null?null:user.getRoles());
                     builder.field("custom_attribute_names", user==null?null:user.getCustomAttributesMap().keySet());
-                    builder.field("sg_roles", evaluator.mapSgRoles(user, remoteAddress));
+                    builder.field("sg_roles", evaluator.mapSecurityRoles(user, remoteAddress));
                     builder.field("sg_tenants", evaluator.mapTenants(user, remoteAddress));
                     builder.field("principal", (String)threadContext.getTransient(ConfigConstants.SG_SSL_PRINCIPAL));
                     builder.field("peer_certificates", certs != null && certs.length > 0 ? certs.length + "" : "0");

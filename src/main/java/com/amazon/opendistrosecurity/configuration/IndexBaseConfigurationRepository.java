@@ -379,9 +379,9 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
             try(StoredContext ctx = threadContext.stashContext()) {
                 threadContext.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true");
 
-                boolean searchGuardIndexExists = clusterService.state().metaData().hasConcreteIndex(this.opendistrosecurityIndex);
+                boolean securityIndexExists = clusterService.state().metaData().hasConcreteIndex(this.opendistrosecurityIndex);
 
-                if(searchGuardIndexExists) {
+                if(securityIndexExists) {
                     if(clusterService.state().metaData().index(this.opendistrosecurityIndex).mapping("config") != null) {
                         //legacy layout
                         LOGGER.debug("sg index exists and was created before ES 6 (legacy layout)");

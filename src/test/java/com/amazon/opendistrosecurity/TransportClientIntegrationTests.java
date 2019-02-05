@@ -56,7 +56,7 @@ import com.amazon.opendistrosecurity.action.configupdate.ConfigUpdateResponse;
 import com.amazon.opendistrosecurity.ssl.util.ExceptionUtils;
 import com.amazon.opendistrosecurity.ssl.util.SSLConfigConstants;
 import com.amazon.opendistrosecurity.support.ConfigConstants;
-import com.amazon.opendistrosecurity.test.DynamicSgConfig;
+import com.amazon.opendistrosecurity.test.DynamicSecurityConfig;
 import com.amazon.opendistrosecurity.test.SingleClusterTest;
 import com.amazon.opendistrosecurity.test.helper.file.FileHelper;
 
@@ -424,9 +424,9 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 				.put("discovery.initial_state_timeout","8s")
 				.build();
 		
-		setup(Settings.EMPTY, new DynamicSgConfig().setSgConfig("sg_config_transport_username.yml")
-				.setSgRolesMapping("sg_roles_mapping_transport_username.yml")
-				.setSgInternalUsers("sg_internal_users_transport_username.yml")
+		setup(Settings.EMPTY, new DynamicSecurityConfig().setSgConfig("sg_config_transport_username.yml")
+				.setSecurityRolesMapping("sg_roles_mapping_transport_username.yml")
+				.setSecurityInternalUsers("sg_internal_users_transport_username.yml")
 				, settings);
 		
 		try (TransportClient tc = getInternalTransportClient()) {                    
@@ -726,9 +726,9 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 				.build();
 
 
-		setup(Settings.EMPTY, new DynamicSgConfig().setSgConfig("sg_config_transport_username.yml")
-				.setSgRolesMapping("sg_roles_mapping_transport_username.yml")
-				.setSgInternalUsers("sg_internal_users_transport_username.yml")
+		setup(Settings.EMPTY, new DynamicSecurityConfig().setSgConfig("sg_config_transport_username.yml")
+				.setSecurityRolesMapping("sg_roles_mapping_transport_username.yml")
+				.setSecurityInternalUsers("sg_internal_users_transport_username.yml")
 				, settings);
 
 		try (TransportClient tc = getInternalTransportClient()) {
@@ -759,9 +759,9 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 				.putList("opendistrosecurity.authcz.impersonation_dn.CN=spock,OU=client,O=client,L=Test,C=DE", "*")
 				.build();
 
-		setup(Settings.EMPTY, new DynamicSgConfig().setSgConfig("sg_config_transport_username.yml")
-				.setSgRolesMapping("sg_roles_mapping_transport_username.yml")
-				.setSgInternalUsers("sg_internal_users_transport_username.yml")
+		setup(Settings.EMPTY, new DynamicSecurityConfig().setSgConfig("sg_config_transport_username.yml")
+				.setSecurityRolesMapping("sg_roles_mapping_transport_username.yml")
+				.setSecurityInternalUsers("sg_internal_users_transport_username.yml")
 				, settings);
 		
 		Settings tcSettings = Settings.builder()
