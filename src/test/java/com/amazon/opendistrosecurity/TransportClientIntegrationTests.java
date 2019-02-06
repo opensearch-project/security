@@ -424,7 +424,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 				.put("discovery.initial_state_timeout","8s")
 				.build();
 		
-		setup(Settings.EMPTY, new DynamicSecurityConfig().setSgConfig("sg_config_transport_username.yml")
+		setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("sg_config_transport_username.yml")
 				.setSecurityRolesMapping("sg_roles_mapping_transport_username.yml")
 				.setSecurityInternalUsers("sg_internal_users_transport_username.yml")
 				, settings);
@@ -726,7 +726,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 				.build();
 
 
-		setup(Settings.EMPTY, new DynamicSecurityConfig().setSgConfig("sg_config_transport_username.yml")
+		setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("sg_config_transport_username.yml")
 				.setSecurityRolesMapping("sg_roles_mapping_transport_username.yml")
 				.setSecurityInternalUsers("sg_internal_users_transport_username.yml")
 				, settings);
@@ -759,7 +759,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 				.putList("opendistrosecurity.authcz.impersonation_dn.CN=spock,OU=client,O=client,L=Test,C=DE", "*")
 				.build();
 
-		setup(Settings.EMPTY, new DynamicSecurityConfig().setSgConfig("sg_config_transport_username.yml")
+		setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("sg_config_transport_username.yml")
 				.setSecurityRolesMapping("sg_roles_mapping_transport_username.yml")
 				.setSecurityInternalUsers("sg_internal_users_transport_username.yml")
 				, settings);

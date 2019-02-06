@@ -416,7 +416,7 @@ echo "### Success"
 echo "### Execute this script now on all your nodes and then start all nodes"
 #Generate sgadmin_demo.sh
 echo "#!/bin/bash" | $SUDO_CMD tee sgadmin_demo.sh > /dev/null 
-echo $SUDO_CMD \""$ES_PLUGINS_DIR/search-guard-6/tools/sgadmin.sh"\" -cd \""$ES_PLUGINS_DIR/search-guard-6/sgconfig"\" -icl -key \""$ES_CONF_DIR/kirk-key.pem"\" -cert \""$ES_CONF_DIR/kirk.pem"\" -cacert \""$ES_CONF_DIR/root-ca.pem"\" -nhnv | $SUDO_CMD tee -a sgadmin_demo.sh > /dev/null
+echo $SUDO_CMD \""$ES_PLUGINS_DIR/search-guard-6/tools/sgadmin.sh"\" -cd \""$ES_PLUGINS_DIR/search-guard-6/config"\" -icl -key \""$ES_CONF_DIR/kirk-key.pem"\" -cert \""$ES_CONF_DIR/kirk.pem"\" -cacert \""$ES_CONF_DIR/root-ca.pem"\" -nhnv | $SUDO_CMD tee -a sgadmin_demo.sh > /dev/null
 $SUDO_CMD chmod +x sgadmin_demo.sh
 
 if [ "$initsg" == 0 ]; then
@@ -427,7 +427,7 @@ if [ "$initsg" == 0 ]; then
 else
     echo "### Search Guard will be automatically initialized."
     echo "### If you like to change the runtime configuration "
-    echo "### change the files in ../sgconfig and execute: "
+    echo "### change the files in ../config and execute: "
 	$SUDO_CMD cat sgadmin_demo.sh | tail -1
 	echo "### or run ./sgadmin_demo.sh"
 	echo "### To use the Security Plugin ConfigurationGUI"

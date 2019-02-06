@@ -58,12 +58,12 @@ public class DynamicSecurityConfig {
         return this;
     }
 
-    public DynamicSecurityConfig setSgConfig(String securityConfig) {
+    public DynamicSecurityConfig setConfig(String securityConfig) {
         this.securityConfig = securityConfig;
         return this;
     }
 
-    public DynamicSecurityConfig setSgConfigAsYamlString(String securityConfigAsYamlString) {
+    public DynamicSecurityConfig setConfigAsYamlString(String securityConfigAsYamlString) {
         this.securityConfigAsYamlString = securityConfigAsYamlString;
         return this;
     }

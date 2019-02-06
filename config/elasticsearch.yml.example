@@ -46,8 +46,7 @@ opendistrosecurity.roles_mapping_resolution: MAPPING_ONLY
 # The following endpoints exist:
 # ACTIONGROUPS
 # CACHE
-# SGCONFIG
-# LICENSE
+# CONFIG
 # ROLES
 # ROLESMAPPING
 # INTERNALUSERS
@@ -151,7 +150,7 @@ opendistrosecurity.audit.type: internal_elasticsearch
 #    - martin
 
 # If this is set to true Open Distro Security will automatically initialize the configuration index
-# with the files in the sgconfig directory if the index does not exist.
+# with the files in the config directory if the index does not exist.
 # WARNING: This will use well-known default passwords.
 #          Use only in a private network/environment.
 #opendistrosecurity.allow_default_init_sgindex: false

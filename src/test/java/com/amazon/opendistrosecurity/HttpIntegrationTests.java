@@ -301,7 +301,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
     @Test
     public void testHTTPAnon() throws Exception {
     
-            setup(Settings.EMPTY, new DynamicSecurityConfig().setSgConfig("sg_config_anon.yml"), Settings.EMPTY, true);
+            setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("sg_config_anon.yml"), Settings.EMPTY, true);
             
             RestHelper rh = nonSslRestHelper();
     
@@ -352,7 +352,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
                 .putList(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256")
                 .build();
         
-        setup(Settings.EMPTY, new DynamicSecurityConfig().setSgConfig("sg_config_clientcert.yml"), settings, true);
+        setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("sg_config_clientcert.yml"), settings, true);
     
         try (TransportClient tc = getInternalTransportClient()) {
 
@@ -400,7 +400,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
 
     @Test
     public void testHTTPProxyDefault() throws Exception {
-        setup(Settings.EMPTY, new DynamicSecurityConfig().setSgConfig("sg_config_proxy.yml"), Settings.EMPTY, true);
+        setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("sg_config_proxy.yml"), Settings.EMPTY, true);
         RestHelper rh = nonSslRestHelper();
     
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest("").getStatusCode());
@@ -417,7 +417,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
 
     @Test
     public void testHTTPProxyRolesSeparator() throws Exception {
-        setup(Settings.EMPTY, new DynamicSecurityConfig().setSgConfig("sg_config_proxy_custom.yml"), Settings.EMPTY, true);
+        setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("sg_config_proxy_custom.yml"), Settings.EMPTY, true);
         RestHelper rh = nonSslRestHelper();
         // separator is configured as ";" so separating roles with "," leads to one (wrong) backend role
         HttpResponse res = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("x-forwarded-for", "localhost,192.168.0.1,10.0.0.2"),new BasicHeader("user", "scotty"),new BasicHeader("roles", "starfleet,engineer"));
@@ -577,7 +577,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
         final Settings settings = Settings.builder()
                 .put(ConfigConstants.OPENDISTROSECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
                 .build();
-        setup(Settings.EMPTY, new DynamicSecurityConfig().setSgConfig("sg_config_dnfof.yml").setSecurityRoles("sg_roles_itt1635.yml"), settings);
+        setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("sg_config_dnfof.yml").setSecurityRoles("sg_roles_itt1635.yml"), settings);
         
         try (TransportClient tc = getInternalTransportClient(this.clusterInfo, Settings.EMPTY)) {
                         
@@ -671,7 +671,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
         final Settings settings = Settings.builder()
                 .putList(ConfigConstants.OPENDISTROSECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "someotherusernotininternalusersfile")
                 .build();
-        setup(Settings.EMPTY, new DynamicSecurityConfig().setSgConfig("sg_config_rest_impersonation.yml"), settings);
+        setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("sg_config_rest_impersonation.yml"), settings);
         final RestHelper rh = nonSslRestHelper();
         
         //rest impersonation

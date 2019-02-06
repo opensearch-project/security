@@ -27,7 +27,7 @@
             <outputDirectory>${file.separator}</outputDirectory>
             <includes>
                 <include>tools/**</include>
-                <include>sgconfig/**</include>
+                <include>config/**</include>
             </includes>
             <fileMode>0755</fileMode>
         </fileSet>

@@ -130,7 +130,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
 
                                 try {
                                     String lookupDir = System.getProperty("sg.default_init.dir");
-                                    final String cd = lookupDir != null? (lookupDir+"/") : new Environment(settings, configPath).pluginsFile().toAbsolutePath().toString()+"/search-guard-6/sgconfig/";
+                                    final String cd = lookupDir != null? (lookupDir+"/") : new Environment(settings, configPath).pluginsFile().toAbsolutePath().toString()+"/search-guard-6/config/";
                                     File confFile = new File(cd+"sg_config.yml");
                                     if(confFile.exists()) {
                                         final ThreadContext threadContext = threadPool.getThreadContext();

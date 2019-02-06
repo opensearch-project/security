@@ -19,7 +19,7 @@
       <directory>${project.basedir}</directory>
       <outputDirectory>${file.separator}deps</outputDirectory>
       <includes>
-        <include>sgconfig/**</include>
+        <include>config/**</include>
       </includes>
       <fileMode>0755</fileMode>
     </fileSet>

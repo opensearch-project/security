@@ -172,7 +172,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
     @Test
     public void testDefaultConfig() throws Exception {
         
-        System.setProperty("sg.default_init.dir", new File("./sgconfig").getAbsolutePath());
+        System.setProperty("sg.default_init.dir", new File("./config").getAbsolutePath());
         final Settings settings = Settings.builder()
                 .put(ConfigConstants.OPENDISTROSECURITY_ALLOW_DEFAULT_INIT_SGINDEX, true)
                 .build();

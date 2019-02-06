@@ -169,7 +169,7 @@ public abstract class AbstractSGUnitTest {
         return tc;
     }
     
-    protected void initialize(ClusterInfo info, Settings initTransportClientSettings, DynamicSecurityConfig sgconfig) {
+    protected void initialize(ClusterInfo info, Settings initTransportClientSettings, DynamicSecurityConfig config) {
 
         try (TransportClient tc = getInternalTransportClient(info, initTransportClientSettings)) {
 
@@ -183,7 +183,7 @@ public abstract class AbstractSGUnitTest {
                 //ignore
             }
 
-            for(IndexRequest ir: sgconfig.getDynamicConfig(getResourceFolder())) {
+            for(IndexRequest ir: config.getDynamicConfig(getResourceFolder())) {
                 tc.index(ir).actionGet();
             }
 
