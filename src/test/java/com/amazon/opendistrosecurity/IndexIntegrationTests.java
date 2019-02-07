@@ -62,7 +62,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
     @Test
     public void testComposite() throws Exception {
     
-        setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("sg_composite_config.yml").setSecurityRoles("sg_roles_composite.yml"), Settings.EMPTY, true);
+        setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("composite_config.yml").setSecurityRoles("roles_composite.yml"), Settings.EMPTY, true);
         final RestHelper rh = nonSslRestHelper();
     
         try (TransportClient tc = getInternalTransportClient()) {                
@@ -91,7 +91,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
     @Test
     public void testBulkShards() throws Exception {
     
-        setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityRoles("sg_roles_bs.yml"), Settings.EMPTY, true);
+        setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityRoles("roles_bs.yml"), Settings.EMPTY, true);
         final RestHelper rh = nonSslRestHelper();
         
         try (TransportClient tc = getInternalTransportClient()) {               

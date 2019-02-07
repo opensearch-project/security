@@ -26,22 +26,22 @@ opendistrosecurity.authcz.admin_dn:
   - "CN=kirk,OU=client,O=client,l=tEst, C=De"
 
 # Define how backend roles should be mapped to Open Distro Security roles
-# MAPPING_ONLY - mappings must be configured explicitely in sg_roles_mapping.yml (default)
-# BACKENDROLES_ONLY - backend roles are mapped to Open Distro Security rules directly. Settings in sg_roles_mapping.yml have no effect.
-# BOTH - backend roles are mapped to Open Distro Security roles mapped directly and via sg_roles_mapping.yml in addition
+# MAPPING_ONLY - mappings must be configured explicitely in roles_mapping.yml (default)
+# BACKENDROLES_ONLY - backend roles are mapped to Open Distro Security rules directly. Settings in roles_mapping.yml have no effect.
+# BOTH - backend roles are mapped to Open Distro Security roles mapped directly and via roles_mapping.yml in addition
 opendistrosecurity.roles_mapping_resolution: MAPPING_ONLY
 
 ############## REST Management API configuration settings ##############
 # Enable or disable role based access to the REST management API
 # Default is that no role is allowed to access the REST management API.
-#opendistrosecurity.restapi.roles_enabled: ["sg_all_access","sg_xyz_role"]
+#opendistrosecurity.restapi.roles_enabled: ["all_access","xyz_role"]
 
 # Disable particular endpoints and their HTTP methods for roles. 
 # By default all endpoints/methods are allowed.
 #opendistrosecurity.restapi.endpoints_disabled.<role>.<endpoint>: <array of http methods>
 # Example:
-#opendistrosecurity.restapi.endpoints_disabled.sg_all_access.ACTIONGROUPS: ["PUT","POST","DELETE"]
-#opendistrosecurity.restapi.endpoints_disabled.sg_xyz_role.LICENSE: ["DELETE"]
+#opendistrosecurity.restapi.endpoints_disabled.all_access.ACTIONGROUPS: ["PUT","POST","DELETE"]
+#opendistrosecurity.restapi.endpoints_disabled.xyz_role.LICENSE: ["DELETE"]
 
 # The following endpoints exist:
 # ACTIONGROUPS
@@ -153,7 +153,7 @@ opendistrosecurity.audit.type: internal_elasticsearch
 # with the files in the config directory if the index does not exist.
 # WARNING: This will use well-known default passwords.
 #          Use only in a private network/environment.
-#opendistrosecurity.allow_default_init_sgindex: false
+#opendistrosecurity.allow_default_init_opendistrosecurityindex: false
 
 # If this is set to true then allow to startup with demo certificates.
 # These are certificates issued by floragunn GmbH for demo purposes.

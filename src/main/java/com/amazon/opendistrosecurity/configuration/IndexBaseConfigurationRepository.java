@@ -131,7 +131,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                                 try {
                                     String lookupDir = System.getProperty("sg.default_init.dir");
                                     final String cd = lookupDir != null? (lookupDir+"/") : new Environment(settings, configPath).pluginsFile().toAbsolutePath().toString()+"/search-guard-6/config/";
-                                    File confFile = new File(cd+"sg_config.yml");
+                                    File confFile = new File(cd+"config.yml");
                                     if(confFile.exists()) {
                                         final ThreadContext threadContext = threadPool.getThreadContext();
                                         try(StoredContext ctx = threadContext.stashContext()) {
@@ -146,11 +146,11 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                                             .settings(indexSettings))
                                             .actionGet().isAcknowledged();
                                             if(ok) {
-                                                ConfigHelper.uploadFile(client, cd+"sg_config.yml", opendistrosecurityIndex, "config");
-                                                ConfigHelper.uploadFile(client, cd+"sg_roles.yml", opendistrosecurityIndex, "roles");
-                                                ConfigHelper.uploadFile(client, cd+"sg_roles_mapping.yml", opendistrosecurityIndex, "rolesmapping");
-                                                ConfigHelper.uploadFile(client, cd+"sg_internal_users.yml", opendistrosecurityIndex, "internalusers");
-                                                ConfigHelper.uploadFile(client, cd+"sg_action_groups.yml", opendistrosecurityIndex, "actiongroups");
+                                                ConfigHelper.uploadFile(client, cd+"config.yml", opendistrosecurityIndex, "config");
+                                                ConfigHelper.uploadFile(client, cd+"roles.yml", opendistrosecurityIndex, "roles");
+                                                ConfigHelper.uploadFile(client, cd+"roles_mapping.yml", opendistrosecurityIndex, "rolesmapping");
+                                                ConfigHelper.uploadFile(client, cd+"internal_users.yml", opendistrosecurityIndex, "internalusers");
+                                                ConfigHelper.uploadFile(client, cd+"action_groups.yml", opendistrosecurityIndex, "actiongroups");
                                                 LOGGER.info("Default config applied");
                                             }
                                         }

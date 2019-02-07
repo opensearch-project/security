@@ -113,7 +113,7 @@ public class IntegrationTests extends SingleClusterTest {
     
     @Test
     public void testNotInsecure() throws Exception {
-        setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityRoles("sg_roles_deny.yml"), Settings.EMPTY, true);
+        setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityRoles("roles_deny.yml"), Settings.EMPTY, true);
         final RestHelper rh = nonSslRestHelper();
         
         try (TransportClient tc = getInternalTransportClient()) {               
@@ -354,7 +354,7 @@ public class IntegrationTests extends SingleClusterTest {
     @Test
     public void testXff() throws Exception {
     
-        setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("sg_config_xff.yml"), Settings.EMPTY, true);
+        setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_xff.yml"), Settings.EMPTY, true);
         RestHelper rh = nonSslRestHelper();
         HttpResponse resc = rh.executeGetRequest("_opendistro/_security/authinfo", new BasicHeader("x-forwarded-for", "10.0.0.7"), encodeBasicHeader("worf", "worf"));
         Assert.assertEquals(200, resc.getStatusCode());
@@ -400,7 +400,7 @@ public class IntegrationTests extends SingleClusterTest {
         Assert.assertFalse(res.getBody().contains("\"content\":2"));
         
         try (TransportClient tc = getInternalTransportClient()) {                                       
-            tc.index(new IndexRequest("opendistrosecurity").type("sg").id("config").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("config", FileHelper.readYamlContent("sg_config_multirolespan.yml"))).actionGet();
+            tc.index(new IndexRequest("opendistrosecurity").type("sg").id("config").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("config", FileHelper.readYamlContent("config_multirolespan.yml"))).actionGet();
    
             ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config"})).actionGet();
             Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());
@@ -417,7 +417,7 @@ public class IntegrationTests extends SingleClusterTest {
     @Test
     public void testMultiRoleSpan2() throws Exception {
         
-        setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("sg_config_multirolespan.yml"), Settings.EMPTY);
+        setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_multirolespan.yml"), Settings.EMPTY);
         final RestHelper rh = nonSslRestHelper();
 
         try (TransportClient tc = getInternalTransportClient()) {                                       
@@ -458,7 +458,7 @@ public class IntegrationTests extends SingleClusterTest {
     @Test
     public void testDeleteByQueryDnfof() throws Exception {
 
-        setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("sg_config_dnfof.yml"), Settings.EMPTY);
+        setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_dnfof.yml"), Settings.EMPTY);
 
         try (TransportClient tc = getInternalTransportClient()) {                    
             for(int i=0; i<3; i++) {
@@ -501,7 +501,7 @@ public class IntegrationTests extends SingleClusterTest {
                 .put(ConfigConstants.OPENDISTROSECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
                 .build();
 
-        setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("sg_config_dnfof.yml"), settings);
+        setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_dnfof.yml"), settings);
         final RestHelper rh = nonSslRestHelper();
 
         try (TransportClient tc = getInternalTransportClient()) {

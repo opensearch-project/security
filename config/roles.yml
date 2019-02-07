@@ -1,4 +1,4 @@
-#<sg_role_name>:
+#<role_name>:
 #  cluster:
 #    - '<permission>'
 #  indices:
@@ -34,7 +34,7 @@
 # This limitation will likely removed with Search Guard 6
 
 # Allows everything, but no changes to opendistrosecurity configuration index
-sg_all_access:
+all_access:
   readonly: true
   cluster:
     - UNLIMITED
@@ -46,7 +46,7 @@ sg_all_access:
     admin_tenant: RW
 
 # Read all, but no write permissions
-sg_readall:
+readall:
   readonly: true
   cluster:
     - CLUSTER_COMPOSITE_OPS_RO
@@ -56,7 +56,7 @@ sg_readall:
         - READ
 
 # Read all and monitor, but no write permissions 
-sg_readall_and_monitor:
+readall_and_monitor:
   cluster:
     - CLUSTER_MONITOR
     - CLUSTER_COMPOSITE_OPS_RO
@@ -66,7 +66,7 @@ sg_readall_and_monitor:
         - READ
 
 # For users which use kibana, access to indices must be granted separately
-sg_kibana_user:
+kibana_user:
   readonly: true
   cluster:
     - INDICES_MONITOR
@@ -104,7 +104,7 @@ sg_kibana_user:
         - indices:admin/get
 
 # For the kibana server
-sg_kibana_server:
+kibana_server:
   readonly: true
   cluster:
       - CLUSTER_MONITOR
@@ -139,7 +139,7 @@ sg_kibana_server:
         - "indices:admin/aliases*"
 
 # For logstash and beats
-sg_logstash:  
+logstash:  
   cluster:
     - CLUSTER_MONITOR
     - CLUSTER_COMPOSITE_OPS
@@ -156,7 +156,7 @@ sg_logstash:
         - CREATE_INDEX
 
 # Allows adding and modifying repositories and creating and restoring snapshots
-sg_manage_snapshots:
+manage_snapshots:
   cluster:
     - MANAGE_SNAPSHOTS
   indices:
@@ -166,122 +166,10 @@ sg_manage_snapshots:
         - "indices:admin/create"
 
 # Allows each user to access own named index
-sg_own_index:
+own_index:
   cluster:
     - CLUSTER_COMPOSITE_OPS
   indices:
     '${user_name}':
       '*':
         - INDICES_ALL
-
-### X-Pack COMPATIBILITY
-sg_xp_monitoring:
-  readonly: true
-  cluster:
-    - cluster:monitor/xpack/info
-    - cluster:monitor/main
-    - cluster:admin/xpack/monitoring/bulk
-  indices:
-    '?monitor*':
-      '*':
-        - INDICES_ALL
-
-sg_xp_alerting:
-  readonly: true
-  cluster:
-    - indices:data/read/scroll
-    - cluster:admin/xpack/watcher*
-    - cluster:monitor/xpack/watcher*
-  indices:
-    '?watches*':
-      '*':
-        - INDICES_ALL
-    '?watcher-history-*':
-      '*':
-        - INDICES_ALL
-    '?triggered_watches':
-      '*':
-        - INDICES_ALL
-    '*':
-      '*':
-        - READ
-        - indices:admin/aliases/get
-
-sg_xp_machine_learning:
-  readonly: true
-  cluster:
-    - cluster:admin/persistent*
-    - cluster:internal/xpack/ml*
-    - indices:data/read/scroll*
-    - cluster:admin/xpack/ml*
-    - cluster:monitor/xpack/ml*
-  indices:
-    '*':
-      '*':
-        - READ
-        - indices:admin/get*
-    '?ml-*':
-      '*':
-        - "*"
-
-
-### LEGACY ROLES, FOR COMPATIBILITY ONLY
-### WILL BE REMOVED IN SG7, DO NOT USE ANYMORE
-
-sg_readonly_and_monitor:
-  cluster:
-    - CLUSTER_MONITOR
-    - CLUSTER_COMPOSITE_OPS_RO
-  indices:
-    '*':
-      '*':
-        - READ
-
-# Make xpack monitoring work
-sg_monitor:
-  cluster:
-    - cluster:admin/xpack/monitoring/*
-    - cluster:admin/ingest/pipeline/put       
-    - cluster:admin/ingest/pipeline/get
-    - indices:admin/template/get
-    - indices:admin/template/put
-    - CLUSTER_MONITOR
-    - CLUSTER_COMPOSITE_OPS
-  indices:
-    '?monitor*':
-      '*':
-        - INDICES_ALL
-    '?marvel*':
-      '*':
-        - INDICES_ALL
-    '?kibana*':
-      '*':
-        - READ
-    '*':
-      '*':
-        - indices:data/read/field_caps
-
-# Make xpack alerting work
-sg_alerting:
-  cluster:
-    - indices:data/read/scroll
-    - cluster:admin/xpack/watcher/watch/put
-    - cluster:admin/xpack/watcher*
-    - CLUSTER_MONITOR
-    - CLUSTER_COMPOSITE_OPS
-  indices:
-    '?kibana*':
-      '*':
-        - READ
-    '?watches*':
-      '*':
-        - INDICES_ALL
-    '?watcher-history-*':
-      '*':
-        - INDICES_ALL
-    '?triggered_watches':
-      '*':
-        - INDICES_ALL
-    '*':
-      '*':
-        - READ

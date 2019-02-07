@@ -693,11 +693,11 @@ public class OpenDistroSecurityAdmin {
             if(retrieve) {
                 String date = DATE_FORMAT.format(new Date());
                 
-                boolean success = retrieveFile(tc, cd+"sg_config_"+date+".yml", index, "config", legacy);
-                success = retrieveFile(tc, cd+"sg_roles_"+date+".yml", index, "roles", legacy) && success;
-                success = retrieveFile(tc, cd+"sg_roles_mapping_"+date+".yml", index, "rolesmapping", legacy) && success;
-                success = retrieveFile(tc, cd+"sg_internal_users_"+date+".yml", index, "internalusers", legacy) && success;
-                success = retrieveFile(tc, cd+"sg_action_groups_"+date+".yml", index, "actiongroups", legacy) && success;
+                boolean success = retrieveFile(tc, cd+"config_"+date+".yml", index, "config", legacy);
+                success = retrieveFile(tc, cd+"roles_"+date+".yml", index, "roles", legacy) && success;
+                success = retrieveFile(tc, cd+"roles_mapping_"+date+".yml", index, "rolesmapping", legacy) && success;
+                success = retrieveFile(tc, cd+"internal_users_"+date+".yml", index, "internalusers", legacy) && success;
+                success = retrieveFile(tc, cd+"action_groups_"+date+".yml", index, "actiongroups", legacy) && success;
                 System.exit(success?0:-1);
             }
             
@@ -725,11 +725,11 @@ public class OpenDistroSecurityAdmin {
                 System.exit(success?0:-1);
             }
 
-            boolean success = uploadFile(tc, cd+"sg_config.yml", index, "config", legacy);
-            success = uploadFile(tc, cd+"sg_roles.yml", index, "roles", legacy) && success;
-            success = uploadFile(tc, cd+"sg_roles_mapping.yml", index, "rolesmapping", legacy) && success;
-            success = uploadFile(tc, cd+"sg_internal_users.yml", index, "internalusers", legacy) && success;
-            success = uploadFile(tc, cd+"sg_action_groups.yml", index, "actiongroups", legacy) && success;
+            boolean success = uploadFile(tc, cd+"config.yml", index, "config", legacy);
+            success = uploadFile(tc, cd+"roles.yml", index, "roles", legacy) && success;
+            success = uploadFile(tc, cd+"roles_mapping.yml", index, "rolesmapping", legacy) && success;
+            success = uploadFile(tc, cd+"internal_users.yml", index, "internalusers", legacy) && success;
+            success = uploadFile(tc, cd+"action_groups.yml", index, "actiongroups", legacy) && success;
             
             if(failFast && !success) {
                 System.out.println("ERR: cannot upload configuration, see errors above");

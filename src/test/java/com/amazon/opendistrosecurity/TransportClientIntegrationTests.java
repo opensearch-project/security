@@ -130,7 +130,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			System.out.println("------- 9 ---------");
 
 			try {
-				tc.index(new IndexRequest("opendistrosecurity").type("sg").id("config").source("config", FileHelper.readYamlContent("sg_config.yml"))).actionGet();
+				tc.index(new IndexRequest("opendistrosecurity").type("sg").id("config").source("config", FileHelper.readYamlContent("config.yml"))).actionGet();
 				Assert.fail();
 			} catch (Exception e) {
 				System.out.println(e.getMessage());
@@ -424,9 +424,9 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 				.put("discovery.initial_state_timeout","8s")
 				.build();
 		
-		setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("sg_config_transport_username.yml")
-				.setSecurityRolesMapping("sg_roles_mapping_transport_username.yml")
-				.setSecurityInternalUsers("sg_internal_users_transport_username.yml")
+		setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_transport_username.yml")
+				.setSecurityRolesMapping("roles_mapping_transport_username.yml")
+				.setSecurityInternalUsers("internal_users_transport_username.yml")
 				, settings);
 		
 		try (TransportClient tc = getInternalTransportClient()) {                    
@@ -488,7 +488,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			System.out.println("------- 9 ---------");
 
 			try {
-				tc.index(new IndexRequest("opendistrosecurity").type("sg").id("config").source("config", FileHelper.readYamlContent("sg_config.yml"))).actionGet();
+				tc.index(new IndexRequest("opendistrosecurity").type("sg").id("config").source("config", FileHelper.readYamlContent("config.yml"))).actionGet();
 				Assert.fail();
 			} catch (Exception e) {
 				System.out.println(e.getMessage());
@@ -726,9 +726,9 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 				.build();
 
 
-		setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("sg_config_transport_username.yml")
-				.setSecurityRolesMapping("sg_roles_mapping_transport_username.yml")
-				.setSecurityInternalUsers("sg_internal_users_transport_username.yml")
+		setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_transport_username.yml")
+				.setSecurityRolesMapping("roles_mapping_transport_username.yml")
+				.setSecurityInternalUsers("internal_users_transport_username.yml")
 				, settings);
 
 		try (TransportClient tc = getInternalTransportClient()) {
@@ -759,9 +759,9 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 				.putList("opendistrosecurity.authcz.impersonation_dn.CN=spock,OU=client,O=client,L=Test,C=DE", "*")
 				.build();
 
-		setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("sg_config_transport_username.yml")
-				.setSecurityRolesMapping("sg_roles_mapping_transport_username.yml")
-				.setSecurityInternalUsers("sg_internal_users_transport_username.yml")
+		setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_transport_username.yml")
+				.setSecurityRolesMapping("roles_mapping_transport_username.yml")
+				.setSecurityInternalUsers("internal_users_transport_username.yml")
 				, settings);
 		
 		Settings tcSettings = Settings.builder()

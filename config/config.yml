@@ -20,8 +20,8 @@
 #
 # For HTTP it is possible to allow anonymous authentication. If that is the case then the HTTP authenticators try to
 # find user credentials in the HTTP request. If credentials are found then the user gets regularly authenticated.
-# If none can be found the user will be authenticated as an "anonymous" user. This user has always the username "sg_anonymous"
-# and one role named "sg_anonymous_backendrole". 
+# If none can be found the user will be authenticated as an "anonymous" user. This user has always the username "anonymous"
+# and one role named "anonymous_backendrole". 
 # If you enable anonymous authentication all HTTP authenticators will not challenge.
 # 
 #
@@ -41,7 +41,7 @@
 #   clientcert (not challenging, needs https)
 #   jwt (not challenging) NOT FREE FOR COMMERCIAL
 #   host (not challenging) #DEPRECATED, will be removed in a future version.
-#                           host based authentication is configurable in sg_roles_mapping
+#                           host based authentication is configurable in roles_mapping
 
 # Authc
 #   internal

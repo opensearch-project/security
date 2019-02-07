@@ -43,11 +43,11 @@ import com.amazon.opendistrosecurity.test.helper.file.FileHelper;
 public class DynamicSecurityConfig {
     
     private String securityIndexName = "opendistrosecurity";
-    private String securityConfig = "sg_config.yml";
-    private String securityRoles = "sg_roles.yml";
-    private String securityRolesMapping = "sg_roles_mapping.yml";
-    private String securityInternalUsers = "sg_internal_users.yml";
-    private String securityActionGroups = "sg_action_groups.yml";
+    private String securityConfig = "config.yml";
+    private String securityRoles = "roles.yml";
+    private String securityRolesMapping = "roles_mapping.yml";
+    private String securityInternalUsers = "internal_users.yml";
+    private String securityActionGroups = "action_groups.yml";
     private String securityConfigAsYamlString = null;
 
     public String getSecurityIndexName() {

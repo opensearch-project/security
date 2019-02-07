@@ -94,8 +94,8 @@ public class InitializationIntegrationTests extends SingleClusterTest {
 
     @Test
     public void testWhoAmI() throws Exception {
-        setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityInternalUsers("sg_internal_empty.yml")
-                .setSecurityRoles("sg_roles_deny.yml"), Settings.EMPTY, true);
+        setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityInternalUsers("internal_empty.yml")
+                .setSecurityRoles("roles_deny.yml"), Settings.EMPTY, true);
         
         try (TransportClient tc = getUserTransportClient(clusterInfo, "spock-keystore.jks", Settings.EMPTY)) {  
             WhoAmIResponse wres = tc.execute(WhoAmIAction.INSTANCE, new WhoAmIRequest()).actionGet();  
@@ -135,7 +135,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         
         try (TransportClient tc = getInternalTransportClient()) {   
             Assert.assertEquals(clusterInfo.numNodes, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
-            tc.index(new IndexRequest("opendistrosecurity").type("sg").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("internalusers").source("internalusers", FileHelper.readYamlContent("sg_internal_users_spock_add_roles.yml"))).actionGet();
+            tc.index(new IndexRequest("opendistrosecurity").type("sg").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("internalusers").source("internalusers", FileHelper.readYamlContent("internal_users_spock_add_roles.yml"))).actionGet();
             ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
             Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());   
         } 
@@ -152,7 +152,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         
         try (TransportClient tc = getInternalTransportClient()) {    
             Assert.assertEquals(clusterInfo.numNodes, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
-            tc.index(new IndexRequest("opendistrosecurity").type("sg").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("config").source("config", FileHelper.readYamlContent("sg_config_anon.yml"))).actionGet();
+            tc.index(new IndexRequest("opendistrosecurity").type("sg").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("config").source("config", FileHelper.readYamlContent("config_anon.yml"))).actionGet();
             ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config"})).actionGet();
             Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());   
         }

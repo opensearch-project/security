@@ -141,7 +141,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
         Assert.assertTrue(resc.getBody().contains("\"remote_address\":\"8.8.8.8:8\""));
         Assert.assertTrue(resc.getBody().contains("\"backend_roles\":[\"role1\",\"role2\"]"));
         // mapped by username
-        Assert.assertTrue(resc.getBody().contains("\"sg_roles\":[\"sg_all_access\""));
+        Assert.assertTrue(resc.getBody().contains("\"roles\":[\"sg_all_access\""));
         Assert.assertTrue(resc.getBody().contains("\"custom_attribute_names\":[\"key1\",\"key2\"]"));
         
         resc = rh.executeGetRequest("_opendistro/_security/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "myuser|role1,vulcanadmin|8.8.8.8:8|key1,value1,key2,value2"));
@@ -151,7 +151,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
         Assert.assertTrue(resc.getBody().contains("\"remote_address\":\"8.8.8.8:8\""));
         Assert.assertTrue(resc.getBody().contains("\"backend_roles\":[\"role1\",\"vulcanadmin\"]"));
         // mapped by backend role "twitter"
-        Assert.assertTrue(resc.getBody().contains("\"sg_roles\":[\"sg_public\",\"sg_role_vulcans_admin\"]"));
+        Assert.assertTrue(resc.getBody().contains("\"roles\":[\"sg_public\",\"sg_role_vulcans_admin\"]"));
         Assert.assertTrue(resc.getBody().contains("\"custom_attribute_names\":[\"key1\",\"key2\"]"));
         
         // add requested tenant
@@ -162,7 +162,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
         Assert.assertTrue(resc.getBody().contains("\"remote_address\":\"8.8.8.8:8\""));
         Assert.assertTrue(resc.getBody().contains("\"backend_roles\":[\"role1\",\"vulcanadmin\"]"));
         // mapped by backend role "twitter"
-        Assert.assertTrue(resc.getBody().contains("\"sg_roles\":[\"sg_public\",\"sg_role_vulcans_admin\"]"));
+        Assert.assertTrue(resc.getBody().contains("\"roles\":[\"sg_public\",\"sg_role_vulcans_admin\"]"));
         Assert.assertTrue(resc.getBody().contains("\"custom_attribute_names\":[\"key1\",\"key2\"]"));
 
         resc = rh.executeGetRequest("_opendistro/_security/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "myuser|role1,vulcanadmin|8.8.8.8:8|key1,value1,key2,value2|mytenant"));
@@ -172,7 +172,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
         Assert.assertTrue(resc.getBody().contains("\"remote_address\":\"8.8.8.8:8\""));
         Assert.assertTrue(resc.getBody().contains("\"backend_roles\":[\"role1\",\"vulcanadmin\"]"));
         // mapped by backend role "twitter"
-        Assert.assertTrue(resc.getBody().contains("\"sg_roles\":[\"sg_public\",\"sg_role_vulcans_admin\"]"));
+        Assert.assertTrue(resc.getBody().contains("\"roles\":[\"sg_public\",\"sg_role_vulcans_admin\"]"));
         Assert.assertTrue(resc.getBody().contains("\"custom_attribute_names\":[\"key1\",\"key2\"]"));
 
         resc = rh.executeGetRequest("_opendistro/_security/authinfo", new BasicHeader(ConfigConstants.SG_INJECTED_USER, "myuser|role1,vulcanadmin|8.8.8.8:8||mytenant with whitespace"));
@@ -182,7 +182,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
         Assert.assertTrue(resc.getBody().contains("\"remote_address\":\"8.8.8.8:8\""));
         Assert.assertTrue(resc.getBody().contains("\"backend_roles\":[\"role1\",\"vulcanadmin\"]"));
         // mapped by backend role "twitter"
-        Assert.assertTrue(resc.getBody().contains("\"sg_roles\":[\"sg_public\",\"sg_role_vulcans_admin\"]"));
+        Assert.assertTrue(resc.getBody().contains("\"roles\":[\"sg_public\",\"sg_role_vulcans_admin\"]"));
         
 
     }    

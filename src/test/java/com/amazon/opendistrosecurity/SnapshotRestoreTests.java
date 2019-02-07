@@ -262,7 +262,7 @@ public class SnapshotRestoreTests extends SingleClusterTest {
                 .put("opendistrosecurity.check_snapshot_restore_write_privileges", true)
                 .build();
     
-        setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityActionGroups("sg_action_groups_packaged.yml"), settings, true, currentClusterConfig);
+        setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityActionGroups("action_groups_packaged.yml"), settings, true, currentClusterConfig);
     
         try (TransportClient tc = getInternalTransportClient()) {    
             tc.index(new IndexRequest("testsnap1").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
