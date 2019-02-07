@@ -1,14 +1,11 @@
-# Search Guard - Security for Elasticsearch
+#Security for Open Distro Elasticsearch
 
-![Logo](https://raw.githubusercontent.com/floragunncom/sg-assets/master/logo/sg_dlic_small.png) 
 
-Search Guard(®) is an Elasticsearch plugin that offers encryption, authentication, authorization. It supports authentication via Active Directory, LDAP, Kerberos, JSON web tokens, SAML, OpenID and many more. It includes fine grained role-based access control to indices, documents and fields. Enjoy true multi tenancy in Kibana, and stay compliant with GDPR, HIPAA, PCI, SOX and ISO by using audit and compliance logging. 
+opendistro-security is an Elasticsearch plugin that offers encryption, authentication, authorization. It supports authentication via Active Directory, LDAP, Kerberos, JSON web tokens, SAML, OpenID and many more. It includes fine grained role-based access control to indices, documents and fields. Enjoy true multi tenancy in Kibana, and stay compliant with GDPR, HIPAA, PCI, SOX and ISO by using audit and compliance logging. 
 
-Search Guard supports **OpenSSL** for maximum performance and security. The complete code is **Open Source**.
+opendistro-security supports **OpenSSL** for maximum performance and security. The complete code is **Open Source**.
 
-## Community Edition
-
-Search Guard offers all basic security features for free. The Community Edition of Search Guard can be used for all projects, including commercial projects, at absolutely no cost. The Community Edition includes:
+## Basic features
 
 * Full data in transit encryption
 * Node-to-node encryption
@@ -22,12 +19,11 @@ Search Guard offers all basic security features for free. The Community Edition 
 * Proxy authentication
 * User Impersonation
 
+.
 
-Please see [here for a feature comparison](https://search-guard.com/product#feature-comparison).
+## Advance features
 
-## Enterprise and Compliance Edition
-
-The Enterprise Edition on Search Guard adds:
+The Enterprise Edition on opendistro-security  adds:
 
 * Active Directory / LDAP
 * Kerberos / SPNEGO
@@ -41,30 +37,23 @@ The Enterprise Edition on Search Guard adds:
 * True Kibana multi-tenancy
 * REST management API
 
-Please see [here for a feature comparison](https://search-guard.com/product#feature-comparison).
-
-If you want to use our enterprise features in production, you need to obtain a license. We offer a [very flexible licensing model](https://search-guard.com/licensing/), based on productive clusters with an **unlimited number of nodes**. Non-productive systems like Development, Staging or QA are covered by the license at no additional cost.
-
-## Trial license
-
-You can test all enterprise modules for 60 days. A trial license is automatically created when you first install Search Guard. You do not have to install the trial license manually. Just install Search Guard and you're good to go! 
 
 ## Documentation
 
-Please refer to the [Official documentation] for detailed information on installing and configuring Search Guard.
+Please refer to the [Official documentation] for detailed information on installing and configuring opendistro-security plugin.
 
 ## Quick Start
 
 * Install Elasticsearch
 
-* Install the Search Guard plugin for your [Elasticsearch version](), e.g.:
+* Install the opendistro-security plugin for your Elasticsearch version 6.5.4, e.g.:
 
 ```
 <ES directory>/bin/elasticsearch-plugin install \
-  -b com.floragunn:search-guard-6:6.4.0-23.0
+  -b com.amazon:opendistro_security:6.5.4
 ```
 
-* ``cd`` into ``<ES directory>/plugins/search-guard-<version>/tools``
+* ``cd`` into ``<ES directory>/plugins/opendistro_security/tools``
 
 * Execute ``./install_demo_configuration.sh``, ``chmod`` the script first if necessary. This will generate all required TLS certificates and add the Security Plugin Configurationto your ``elasticsearch.yml`` file. 
 
@@ -78,7 +67,7 @@ Please refer to the [Official documentation] for detailed information on install
 
 ## Config hot reloading
 
-The Security Plugin Configurationis stored in a dedicated index in Elasticsearch itself. Changes to the configuration are pushed to this index via the [sgadmin command line tool](). This will trigger a reload of the configuration on all nodes automatically. This has several advantages over configuration via elasticsearch.yml:
+The Security Plugin Configuration is stored in a dedicated index in Elasticsearch itself. Changes to the configuration are pushed to this index via the command line tool. This will trigger a reload of the configuration on all nodes automatically. This has several advantages over configuration via elasticsearch.yml:
 
 * Configuration is stored in a central place
 * No configuration files on the nodes necessary
@@ -86,14 +75,8 @@ The Security Plugin Configurationis stored in a dedicated index in Elasticsearch
 * Configuration changes take effect immediately
 
 ## Support
-* Commercial support available through [floragunn GmbH](https://search-guard.com)
-* Community support available via [google groups](https://groups.google.com/forum/#!forum/search-guard)
-* Follow us on twitter [@opendistrosecurity](https://twitter.com/opendistrosecurity)
+
 
 ## Legal 
 
-Search Guard is a trademark of floragunn GmbH, registered in the U.S. and in other countries.
 
-Elasticsearch, Kibana and Logstash are trademarks of Elasticsearch BV, registered in the U.S. and in other countries. 
-
-floragunn GmbH is not affiliated with Elasticsearch BV.
