@@ -89,7 +89,7 @@ public class PrivilegesEvaluator {
 
 
     protected final Logger log = LogManager.getLogger(this.getClass());
-    protected final Logger actionTrace = LogManager.getLogger("sg_action_trace");
+    protected final Logger actionTrace = LogManager.getLogger("opendistrosecurity_action_trace");
     private final ClusterService clusterService;
 
     private final IndexNameExpressionResolver resolver;
@@ -137,7 +137,7 @@ public class PrivilegesEvaluator {
         }
 
         this.checkSnapshotRestoreWritePrivileges = settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES,
-                ConfigConstants.SG_DEFAULT_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES);
+                ConfigConstants.OPENDISTROSECURITY_DEFAULT_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES);
                 
         this.clusterInfoHolder = clusterInfoHolder;
         //this.typeSecurityDisabled = settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_DISABLE_TYPE_SECURITY, false);
@@ -182,7 +182,7 @@ public class PrivilegesEvaluator {
             action0 = "indices:admin/upgrade";
         }
 
-        final TransportAddress caller = Objects.requireNonNull((TransportAddress) this.threadContext.getTransient(ConfigConstants.SG_REMOTE_ADDRESS));
+        final TransportAddress caller = Objects.requireNonNull((TransportAddress) this.threadContext.getTransient(ConfigConstants.OPENDISTROSECURITY_REMOTE_ADDRESS));
         final SecurityRoles securityRoles = getSecurityRoles(user, caller);
 
         final PrivilegesEvaluatorResponse presponse = new PrivilegesEvaluatorResponse();
@@ -601,7 +601,7 @@ public class PrivilegesEvaluator {
         }
 
         if(request instanceof RestoreSnapshotRequest && checkSnapshotRestoreWritePrivileges) {
-            additionalPermissionsRequired.addAll(ConfigConstants.SG_SNAPSHOT_RESTORE_NEEDED_WRITE_PRIVILEGES);
+            additionalPermissionsRequired.addAll(ConfigConstants.OPENDISTROSECURITY_SNAPSHOT_RESTORE_NEEDED_WRITE_PRIVILEGES);
         }
 
         if(actionTrace.isTraceEnabled() && additionalPermissionsRequired.size() > 1) {

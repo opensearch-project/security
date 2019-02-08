@@ -116,7 +116,7 @@ public class ComplianceConfig {
         }
         
         salt16 = Arrays.copyOf(saltAsBytes, 16);
-        this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTROSECURITY_CONFIG_INDEX_NAME, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
+        this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTROSECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTROSECURITY_DEFAULT_CONFIG_INDEX);
         
         //opendistrosecurity.compliance.pii_fields:
         //  - indexpattern,fieldpattern,fieldpattern,....

@@ -87,9 +87,9 @@ public class OpenDistroSecurityInfoAction extends BaseRestHandler {
                     
                     final boolean verbose = request.paramAsBoolean("verbose", false);
                     
-                    final X509Certificate[] certs = threadContext.getTransient(ConfigConstants.SG_SSL_PEER_CERTIFICATES);
-                    final User user = (User)threadContext.getTransient(ConfigConstants.SG_USER);
-                    final TransportAddress remoteAddress = (TransportAddress) threadContext.getTransient(ConfigConstants.SG_REMOTE_ADDRESS);
+                    final X509Certificate[] certs = threadContext.getTransient(ConfigConstants.OPENDISTROSECURITY_SSL_PEER_CERTIFICATES);
+                    final User user = (User)threadContext.getTransient(ConfigConstants.OPENDISTROSECURITY_USER);
+                    final TransportAddress remoteAddress = (TransportAddress) threadContext.getTransient(ConfigConstants.OPENDISTROSECURITY_REMOTE_ADDRESS);
 
                     builder.startObject();
                     builder.field("user", user==null?null:user.toString());
@@ -100,7 +100,7 @@ public class OpenDistroSecurityInfoAction extends BaseRestHandler {
                     builder.field("custom_attribute_names", user==null?null:user.getCustomAttributesMap().keySet());
                     builder.field("roles", evaluator.mapSecurityRoles(user, remoteAddress));
                     builder.field("tenants", evaluator.mapTenants(user, remoteAddress));
-                    builder.field("principal", (String)threadContext.getTransient(ConfigConstants.SG_SSL_PRINCIPAL));
+                    builder.field("principal", (String)threadContext.getTransient(ConfigConstants.OPENDISTROSECURITY_SSL_PRINCIPAL));
                     builder.field("peer_certificates", certs != null && certs.length > 0 ? certs.length + "" : "0");
                     builder.field("sso_logout_url", (String)threadContext.getTransient(ConfigConstants.SSO_LOGOUT_URL));
                     

@@ -58,7 +58,7 @@ public class HTTPProxyAuthenticator implements HTTPAuthenticator {
     @Override
     public AuthCredentials extractCredentials(final RestRequest request, ThreadContext context) {
     	
-        if(context.getTransient(ConfigConstants.SG_XFF_DONE) !=  Boolean.TRUE) {
+        if(context.getTransient(ConfigConstants.OPENDISTROSECURITY_XFF_DONE) !=  Boolean.TRUE) {
             throw new ElasticsearchSecurityException("xff not done");
         }
         

@@ -1,6 +1,6 @@
-#sg_public, sg_role_host1, sg_role_klingons1, sg_role_klingons2, sg_role_starfleet, sg_role_starfleet_library, sg_user1
+#opendistrosecurity_public, opendistrosecurity_role_host1, opendistrosecurity_role_klingons1, opendistrosecurity_role_klingons2, opendistrosecurity_role_starfleet, opendistrosecurity_role_starfleet_library, opendistrosecurity_user1
 
-sg_role_klingons1:
+opendistrosecurity_role_klingons1:
   cluster:
     - indices:data/read/msearch
   indices:
@@ -8,13 +8,13 @@ sg_role_klingons1:
       ships:  
         - READ
 
-sg_role_klingons2:
+opendistrosecurity_role_klingons2:
   indices:
     klingonempire:
       praxis:  
         - READ
 
-sg_role_starfleet:
+opendistrosecurity_role_starfleet:
   indices:
     sf:
        ships:  
@@ -34,7 +34,7 @@ sg_role_starfleet:
     - 'cluster:monitor*'
     - indices:data/read/scroll
 
-sg_user1:
+opendistrosecurity_user1:
   indices:
     'alias1':
       '*':

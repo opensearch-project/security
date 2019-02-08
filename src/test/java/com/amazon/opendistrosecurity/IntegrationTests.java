@@ -186,7 +186,7 @@ public class IntegrationTests extends SingleClusterTest {
     
     private ThreadContext newThreadContext(String sslPrincipal) {
         ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
-        threadContext.putTransient(ConfigConstants.SG_SSL_PRINCIPAL, sslPrincipal);
+        threadContext.putTransient(ConfigConstants.OPENDISTROSECURITY_SSL_PRINCIPAL, sslPrincipal);
         return threadContext;
     }
 
@@ -257,7 +257,7 @@ public class IntegrationTests extends SingleClusterTest {
             tc.index(new IndexRequest("mindex2").type("type").id("2").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":2}", XContentType.JSON)).actionGet();
         }
     
-        //sg_multiget -> picard
+        //opendistrosecurity_multiget -> picard
         
         
             String mgetBody = "{"+
@@ -297,19 +297,19 @@ public class IntegrationTests extends SingleClusterTest {
         //    hash: _rest_impersonation_only_
     
         HttpResponse resp;
-        resp = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("sg_impersonate_as", "knuddel"), encodeBasicHeader("worf", "worf"));
+        resp = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("opendistrosecurity_impersonate_as", "knuddel"), encodeBasicHeader("worf", "worf"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resp.getStatusCode());
     
-        resp = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("sg_impersonate_as", "knuddel"), encodeBasicHeader("spock", "spock"));
+        resp = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("opendistrosecurity_impersonate_as", "knuddel"), encodeBasicHeader("spock", "spock"));
         Assert.assertEquals(HttpStatus.SC_OK, resp.getStatusCode());
         Assert.assertTrue(resp.getBody().contains("name=knuddel"));
         Assert.assertFalse(resp.getBody().contains("spock"));
         
-        resp = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("sg_impersonate_as", "userwhonotexists"), encodeBasicHeader("spock", "spock"));
+        resp = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("opendistrosecurity_impersonate_as", "userwhonotexists"), encodeBasicHeader("spock", "spock"));
         System.out.println(resp.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resp.getStatusCode());
     
-        resp = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("sg_impersonate_as", "invalid"), encodeBasicHeader("spock", "spock"));
+        resp = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("opendistrosecurity_impersonate_as", "invalid"), encodeBasicHeader("spock", "spock"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resp.getStatusCode());
     }
 
@@ -326,7 +326,7 @@ public class IntegrationTests extends SingleClusterTest {
         }
     
         RestHelper rh = nonSslRestHelper();
-        //sg_shakespeare -> picard
+        //opendistrosecurity_shakespeare -> picard
     
         HttpResponse resc = rh.executeGetRequest("shakespeare/_search", encodeBasicHeader("picard", "picard"));
         System.out.println(resc.getBody());

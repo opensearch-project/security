@@ -83,7 +83,7 @@ import com.amazon.opendistrosecurity.user.User;
 public class OpenDistroSecurityFilter implements ActionFilter {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
-    protected final Logger actionTrace = LogManager.getLogger("sg_action_trace");
+    protected final Logger actionTrace = LogManager.getLogger("opendistrosecurity_action_trace");
     private final PrivilegesEvaluator evalp;
     private final AdminDNs adminDns;
     private DlsFlsRequestValve dlsFlsValve;
@@ -126,19 +126,19 @@ public class OpenDistroSecurityFilter implements ActionFilter {
         
         try {
 
-            if(threadContext.getTransient(ConfigConstants.SG_ORIGIN) == null) {
-                threadContext.putTransient(ConfigConstants.SG_ORIGIN, Origin.LOCAL.toString());
+            if(threadContext.getTransient(ConfigConstants.OPENDISTROSECURITY_ORIGIN) == null) {
+                threadContext.putTransient(ConfigConstants.OPENDISTROSECURITY_ORIGIN, Origin.LOCAL.toString());
             }
             
             if(complianceConfig != null && complianceConfig.isEnabled()) {
                 attachSourceFieldContext(request);
             }
 
-            final User user = threadContext.getTransient(ConfigConstants.SG_USER);
+            final User user = threadContext.getTransient(ConfigConstants.OPENDISTROSECURITY_USER);
             final boolean userIsAdmin = isUserAdmin(user, adminDns);
             final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadContext);
             final boolean trustedClusterRequest = HeaderHelper.isTrustedClusterRequest(threadContext);
-            final boolean confRequest = "true".equals(HeaderHelper.getSafeFromHeader(threadContext, ConfigConstants.SG_CONF_REQUEST_HEADER));
+            final boolean confRequest = "true".equals(HeaderHelper.getSafeFromHeader(threadContext, ConfigConstants.OPENDISTROSECURITY_CONF_REQUEST_HEADER));
             final boolean passThroughRequest = action.startsWith("indices:admin/seq_no")
                     || action.equals(WhoAmIAction.NAME);
 
@@ -167,11 +167,11 @@ public class OpenDistroSecurityFilter implements ActionFilter {
                 }
 
                 actionTrace.trace("Node "+cs.localNode().getName()+" -> "+action+" ("+count+"): userIsAdmin="+userIsAdmin+"/conRequest="+confRequest+"/internalRequest="+internalRequest
-                        +"origin="+threadContext.getTransient(ConfigConstants.SG_ORIGIN)+"/directRequest="+HeaderHelper.isDirectRequest(threadContext)+"/remoteAddress="+request.remoteAddress());
+                        +"origin="+threadContext.getTransient(ConfigConstants.OPENDISTROSECURITY_ORIGIN)+"/directRequest="+HeaderHelper.isDirectRequest(threadContext)+"/remoteAddress="+request.remoteAddress());
 
 
-                threadContext.putHeader("_sg_trace"+System.currentTimeMillis()+"#"+UUID.randomUUID().toString(), Thread.currentThread().getName()+" FILTER -> "+"Node "+cs.localNode().getName()+" -> "+action+" userIsAdmin="+userIsAdmin+"/conRequest="+confRequest+"/internalRequest="+internalRequest
-                        +"origin="+threadContext.getTransient(ConfigConstants.SG_ORIGIN)+"/directRequest="+HeaderHelper.isDirectRequest(threadContext)+"/remoteAddress="+request.remoteAddress()+" "+threadContext.getHeaders().entrySet().stream().filter(p->!p.getKey().startsWith("_sg_trace")).collect(Collectors.toMap(p -> p.getKey(), p -> p.getValue())));
+                threadContext.putHeader("_opendistrosecurity_trace"+System.currentTimeMillis()+"#"+UUID.randomUUID().toString(), Thread.currentThread().getName()+" FILTER -> "+"Node "+cs.localNode().getName()+" -> "+action+" userIsAdmin="+userIsAdmin+"/conRequest="+confRequest+"/internalRequest="+internalRequest
+                        +"origin="+threadContext.getTransient(ConfigConstants.OPENDISTROSECURITY_ORIGIN)+"/directRequest="+HeaderHelper.isDirectRequest(threadContext)+"/remoteAddress="+request.remoteAddress()+" "+threadContext.getHeaders().entrySet().stream().filter(p->!p.getKey().startsWith("_opendistrosecurity_trace")).collect(Collectors.toMap(p -> p.getKey(), p -> p.getValue())));
 
 
             }
@@ -212,7 +212,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
 
             }
 
-            if(Origin.LOCAL.toString().equals(threadContext.getTransient(ConfigConstants.SG_ORIGIN))
+            if(Origin.LOCAL.toString().equals(threadContext.getTransient(ConfigConstants.OPENDISTROSECURITY_ORIGIN))
                     && (interClusterRequest || HeaderHelper.isDirectRequest(threadContext))
                     ) {
 
@@ -232,7 +232,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
                     return;
                 }
 
-                log.error("No user found for "+ action+" from "+request.remoteAddress()+" "+threadContext.getTransient(ConfigConstants.SG_ORIGIN)+" via "+threadContext.getTransient(ConfigConstants.SG_CHANNEL_TYPE)+" "+threadContext.getHeaders());
+                log.error("No user found for "+ action+" from "+request.remoteAddress()+" "+threadContext.getTransient(ConfigConstants.OPENDISTROSECURITY_ORIGIN)+" via "+threadContext.getTransient(ConfigConstants.OPENDISTROSECURITY_CHANNEL_TYPE)+" "+threadContext.getHeaders());
                 listener.onFailure(new ElasticsearchSecurityException("No user found for "+action, RestStatus.INTERNAL_SERVER_ERROR));
                 return;
             }
@@ -287,14 +287,14 @@ public class OpenDistroSecurityFilter implements ActionFilter {
     private void attachSourceFieldContext(ActionRequest request) {
         
         if(request instanceof SearchRequest && SourceFieldsContext.isNeeded((SearchRequest) request)) {            
-            if(threadContext.getHeader("_sg_source_field_context") == null) {
+            if(threadContext.getHeader("_opendistrosecurity_source_field_context") == null) {
                 final String serializedSourceFieldContext = Base64Helper.serializeObject(new SourceFieldsContext((SearchRequest) request));
-                threadContext.putHeader("_sg_source_field_context", serializedSourceFieldContext);
+                threadContext.putHeader("_opendistrosecurity_source_field_context", serializedSourceFieldContext);
             }
         } else if (request instanceof GetRequest && SourceFieldsContext.isNeeded((GetRequest) request)) {
-            if(threadContext.getHeader("_sg_source_field_context") == null) {
+            if(threadContext.getHeader("_opendistrosecurity_source_field_context") == null) {
                 final String serializedSourceFieldContext = Base64Helper.serializeObject(new SourceFieldsContext((GetRequest) request));
-                threadContext.putHeader("_sg_source_field_context", serializedSourceFieldContext);
+                threadContext.putHeader("_opendistrosecurity_source_field_context", serializedSourceFieldContext);
             }
         }
     }

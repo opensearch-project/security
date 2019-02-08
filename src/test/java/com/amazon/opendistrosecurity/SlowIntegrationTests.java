@@ -53,7 +53,7 @@ public class SlowIntegrationTests extends SingleClusterTest {
     public void testCustomInterclusterRequestEvaluator() throws Exception {
         
         final Settings settings = Settings.builder()
-                .put(ConfigConstants.SG_INTERCLUSTER_REQUEST_EVALUATOR_CLASS, "com.amazon.opendistrosecurity.AlwaysFalseInterClusterRequestEvaluator")
+                .put(ConfigConstants.OPENDISTROSECURITY_INTERCLUSTER_REQUEST_EVALUATOR_CLASS, "com.amazon.opendistrosecurity.AlwaysFalseInterClusterRequestEvaluator")
                 .put("discovery.initial_state_timeout","8s")
                 .build();
         setup(Settings.EMPTY, null, settings, false,ClusterConfiguration.DEFAULT ,5,1);

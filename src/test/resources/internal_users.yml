@@ -115,24 +115,24 @@ aliasmngt:
   hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
   #password is: nagilum
   roles:
-    - sg_aliasmngt
+    - opendistrosecurity_aliasmngt
 
 user_a:
   hash: $2a$04$NDy7mGbRNrmPMh9nSnIB.OTMFkcioEd69A04ReSGkJDd7QHxnCcVC
   #password is: user_a
   roles:
-    - sg_ua
+    - opendistrosecurity_ua
   
 user_b:
   hash: $2a$04$idGSEpNOhFbyiRL6toGPT.orh7ENOEU8kAqwkRFaXWRdA6wVgyqUu
   #password is: user_b
   roles:
-    - sg_ub
+    - opendistrosecurity_ub
 user_c:
   hash: $2a$04$jQcEXpODnTFoGDuA7DPdSevA84CuH/7MOYkb80M3XZIrH76YMWS9G
   #password is: user_c
   roles:
-    - sg_uc
+    - opendistrosecurity_uc
 
 custattr:
   hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
@@ -164,19 +164,19 @@ bulk:
   hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
   #password is: nagilum
   roles:
-    - sg_bulk
+    - opendistrosecurity_bulk
 557:
   hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
   #password is: nagilum
   roles:
-    - sg_557
+    - opendistrosecurity_557
 itt1635:
   hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
   #password is: nagilum
   roles:
-    - sg_esb_1
-    - sg_esb_3
-    - sg_esb_5
+    - opendistrosecurity_esb_1
+    - opendistrosecurity_esb_3
+    - opendistrosecurity_esb_5
 #password is: kibanaserver  
 kibanaserver:
   readonly: true

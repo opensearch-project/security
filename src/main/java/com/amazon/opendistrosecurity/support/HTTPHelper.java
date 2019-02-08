@@ -95,7 +95,7 @@ public class HTTPHelper {
         if (request != null && ( headers = request.getHeaders()) != null) {
             for (final String key: headers.keySet()) {
                 if (    key != null 
-                        && key.trim().toLowerCase().startsWith(ConfigConstants.SG_CONFIG_PREFIX.toLowerCase())) {
+                        && key.trim().toLowerCase().startsWith(ConfigConstants.OPENDISTROSECURITY_CONFIG_PREFIX.toLowerCase())) {
                     return true;
                 }
             }

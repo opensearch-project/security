@@ -54,10 +54,10 @@ public class SnapshotRestoreEvaluator {
     
     public SnapshotRestoreEvaluator(final Settings settings, AuditLog auditLog) {
         this.enableSnapshotRestorePrivilege = settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE,
-                ConfigConstants.SG_DEFAULT_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE);
+                ConfigConstants.OPENDISTROSECURITY_DEFAULT_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE);
         this.restoreSecurityIndexEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_UNSUPPORTED_RESTORE_SGINDEX_ENABLED, false);
 
-        this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTROSECURITY_CONFIG_INDEX_NAME, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
+        this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTROSECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTROSECURITY_DEFAULT_CONFIG_INDEX);
         this.auditLog = auditLog;
     }
 

@@ -549,14 +549,14 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                     @Override
                     public Weight doCache(Weight weight, QueryCachingPolicy policy) {
                         final Map<String, Set<String>> allowedFlsFields = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadPool.getThreadContext(),
-                                ConfigConstants.SG_FLS_FIELDS_HEADER);
+                                ConfigConstants.OPENDISTROSECURITY_FLS_FIELDS_HEADER);
                         
                         if(OpenDistroSecurityUtils.evalMap(allowedFlsFields, index().getName()) != null) {
                             return weight;
                         } else {
                             
                             final Map<String, Set<String>> maskedFieldsMap = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadPool.getThreadContext(),
-                                    ConfigConstants.SG_MASKED_FIELD_HEADER);
+                                    ConfigConstants.OPENDISTROSECURITY_MASKED_FIELD_HEADER);
                             
                             if(OpenDistroSecurityUtils.evalMap(maskedFieldsMap, index().getName()) != null) {
                                 return weight;
@@ -585,15 +585,15 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                     if(scrollContext != null) {
 
                         final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadPool.getThreadContext());
-                        if(Origin.LOCAL.toString().equals(threadPool.getThreadContext().getTransient(ConfigConstants.SG_ORIGIN))
+                        if(Origin.LOCAL.toString().equals(threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTROSECURITY_ORIGIN))
                                 && (interClusterRequest || HeaderHelper.isDirectRequest(threadPool.getThreadContext()))
 
                         ){
-                            scrollContext.putInContext("_sg_scroll_auth_local", Boolean.TRUE);
+                            scrollContext.putInContext("_opendistrosecurity_scroll_auth_local", Boolean.TRUE);
 
                         } else {
-                            scrollContext.putInContext("_sg_scroll_auth", threadPool.getThreadContext()
-                                    .getTransient(ConfigConstants.SG_USER));
+                            scrollContext.putInContext("_opendistrosecurity_scroll_auth", threadPool.getThreadContext()
+                                    .getTransient(ConfigConstants.OPENDISTROSECURITY_USER));
                         }
                     }
                 }
@@ -603,12 +603,12 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
 
                     final ScrollContext scrollContext = context.scrollContext();
                     if(scrollContext != null) {
-                        final Object _isLocal = scrollContext.getFromContext("_sg_scroll_auth_local");
-                        final Object _user = scrollContext.getFromContext("_sg_scroll_auth");
+                        final Object _isLocal = scrollContext.getFromContext("_opendistrosecurity_scroll_auth_local");
+                        final Object _user = scrollContext.getFromContext("_opendistrosecurity_scroll_auth");
                         if(_user != null && (_user instanceof User)) {
                             final User scrollUser = (User) _user;
                             final User currentUser = threadPool.getThreadContext()
-                                    .getTransient(ConfigConstants.SG_USER);
+                                    .getTransient(ConfigConstants.OPENDISTROSECURITY_USER);
                             if(!scrollUser.equals(currentUser)) {
                                 auditLog.logMissingPrivileges(SearchScrollAction.NAME, transportRequest, context.getTask());
                                 log.error("Wrong user {} in scroll context, expected {}", scrollUser, currentUser);
@@ -763,7 +763,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         InterClusterRequestEvaluator interClusterRequestEvaluator = new DefaultInterClusterRequestEvaluator(settings);
 
 
-        final String className = settings.get(ConfigConstants.SG_INTERCLUSTER_REQUEST_EVALUATOR_CLASS,
+        final String className = settings.get(ConfigConstants.OPENDISTROSECURITY_INTERCLUSTER_REQUEST_EVALUATOR_CLASS,
                 DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS);
         log.debug("Using {} as intercluster request evaluator class", className);
         if (!DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS.equals(className)) {
@@ -860,9 +860,9 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             settings.add(Setting.simpleString(ConfigConstants.OPENDISTROSECURITY_CERT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS, Property.NodeScope, Property.Filtered));
             settings.add(Setting.listSetting(ConfigConstants.OPENDISTROSECURITY_NODES_DN, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
     
-            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTROSECURITY_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE, ConfigConstants.SG_DEFAULT_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE,
+            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTROSECURITY_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE, ConfigConstants.OPENDISTROSECURITY_DEFAULT_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE,
                     Property.NodeScope, Property.Filtered));
-            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTROSECURITY_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES, ConfigConstants.SG_DEFAULT_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES,
+            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTROSECURITY_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES, ConfigConstants.OPENDISTROSECURITY_DEFAULT_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES,
                     Property.NodeScope, Property.Filtered));
     
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTROSECURITY_DISABLED, false, Property.NodeScope, Property.Filtered));
@@ -1023,7 +1023,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     public Function<String, Predicate<String>> getFieldFilter() {
         return index -> {
             final Map<String, Set<String>> allowedFlsFields = (Map<String, Set<String>>) HeaderHelper
-                    .deserializeSafeFromHeader(threadPool.getThreadContext(), ConfigConstants.SG_FLS_FIELDS_HEADER);
+                    .deserializeSafeFromHeader(threadPool.getThreadContext(), ConfigConstants.OPENDISTROSECURITY_FLS_FIELDS_HEADER);
 
             final String eval = OpenDistroSecurityUtils.evalMap(allowedFlsFields, index);
 

@@ -98,7 +98,7 @@ public class UserInjectorPlugin extends Plugin implements NetworkPlugin {
 
         @Override
         public void dispatchRequest(RestRequest request, RestChannel channel, ThreadContext threadContext) {
-            threadContext.putTransient(ConfigConstants.SG_INJECTED_USER, request.header(ConfigConstants.SG_INJECTED_USER));
+            threadContext.putTransient(ConfigConstants.OPENDISTROSECURITY_INJECTED_USER, request.header(ConfigConstants.OPENDISTROSECURITY_INJECTED_USER));
             originalDispatcher.dispatchRequest(request, channel, threadContext);
             
         }
@@ -106,7 +106,7 @@ public class UserInjectorPlugin extends Plugin implements NetworkPlugin {
         @Override
         public void dispatchBadRequest(RestRequest request, RestChannel channel, ThreadContext threadContext,
                 Throwable cause) {
-            threadContext.putTransient(ConfigConstants.SG_INJECTED_USER, request.header(ConfigConstants.SG_INJECTED_USER));
+            threadContext.putTransient(ConfigConstants.OPENDISTROSECURITY_INJECTED_USER, request.header(ConfigConstants.OPENDISTROSECURITY_INJECTED_USER));
             originalDispatcher.dispatchBadRequest(request, channel, threadContext, cause);
             
         }

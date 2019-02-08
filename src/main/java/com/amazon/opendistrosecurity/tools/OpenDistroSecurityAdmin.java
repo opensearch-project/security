@@ -119,9 +119,9 @@ import com.google.common.io.Files;
 
 public class OpenDistroSecurityAdmin {
     
-    private static final String SG_TS_PASS = "SG_TS_PASS";
-    private static final String SG_KS_PASS = "SG_KS_PASS";
-    private static final String SG_KEYPASS = "SG_KEYPASS";
+    private static final String OPENDISTROSECURITY_TS_PASS = "OPENDISTROSECURITY_TS_PASS";
+    private static final String OPENDISTROSECURITY_KS_PASS = "OPENDISTROSECURITY_KS_PASS";
+    private static final String OPENDISTROSECURITY_KEYPASS = "OPENDISTROSECURITY_KEYPASS";
     //not used in multithreaded fashion, so it's okay to define it as a constant here
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MMM-dd_HH-mm-ss", Locale.ENGLISH); //NOSONAR
     private static final Settings ENABLE_ALL_ALLOCATIONS_SETTINGS = Settings.builder()
@@ -224,8 +224,8 @@ public class OpenDistroSecurityAdmin {
         
         String hostname = "localhost";
         int port = 9300;
-        String kspass = System.getenv(SG_KS_PASS);
-        String tspass = System.getenv(SG_TS_PASS);
+        String kspass = System.getenv(OPENDISTROSECURITY_KS_PASS);
+        String tspass = System.getenv(OPENDISTROSECURITY_TS_PASS);
         String cd = ".";
         String ks = null;
         String ts = null;
@@ -244,7 +244,7 @@ public class OpenDistroSecurityAdmin {
         String[] enabledProtocols = new String[0];
         String[] enabledCiphers = new String[0];
         Integer updateSettings = null;
-        String index = ConfigConstants.SG_DEFAULT_CONFIG_INDEX;
+        String index = ConfigConstants.OPENDISTROSECURITY_DEFAULT_CONFIG_INDEX;
         Boolean replicaAutoExpand = null;
         boolean reload = false;
         boolean failFast = false;
@@ -253,7 +253,7 @@ public class OpenDistroSecurityAdmin {
         boolean enableShardAllocation = false;
         boolean acceptRedCluster = false;
         
-        String keypass = System.getenv(SG_KEYPASS);
+        String keypass = System.getenv(OPENDISTROSECURITY_KEYPASS);
         boolean useOpenSSLIfAvailable = true;
         //boolean simpleAuth = false;
         String cacert = null;
@@ -406,7 +406,7 @@ public class OpenDistroSecurityAdmin {
                     settingsBuilder.put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, kst==null?(ks.endsWith(".jks")?"JKS":"PKCS12"):kst);
                     
                     if(kspass == null && promptForPassword) {
-                        kspass = promptForPassword("Keystore", "kspass", SG_KS_PASS);
+                        kspass = promptForPassword("Keystore", "kspass", OPENDISTROSECURITY_KS_PASS);
                     }
                     
                     if(kspass != null) {
@@ -419,7 +419,7 @@ public class OpenDistroSecurityAdmin {
                     settingsBuilder.put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE, tst==null?(ts.endsWith(".jks")?"JKS":"PKCS12"):tst);
                     
                     if(tspass == null && promptForPassword) {
-                        tspass = promptForPassword("Truststore", "tspass", SG_TS_PASS);
+                        tspass = promptForPassword("Truststore", "tspass", OPENDISTROSECURITY_TS_PASS);
                     }
                     
                     if(tspass != null) {
@@ -439,7 +439,7 @@ public class OpenDistroSecurityAdmin {
                     settingsBuilder.put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH, key);
                     
                     if(keypass == null && promptForPassword) {
-                        keypass = promptForPassword("Pemkey", "keypass", SG_KEYPASS);
+                        keypass = promptForPassword("Pemkey", "keypass", OPENDISTROSECURITY_KEYPASS);
                     }
                     
                     if(keypass != null) {

@@ -1,4 +1,4 @@
-sg_bulk:
+opendistrosecurity_bulk:
   cluster:
     - indices:data/write/bulk
   indices:

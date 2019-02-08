@@ -395,11 +395,11 @@ public class BackendRegistry implements ConfigurationChangeListener {
      */
     public boolean authenticate(final RestRequest request, final RestChannel channel, final ThreadContext threadContext) {
 
-        final String sslPrincipal = (String) threadPool.getThreadContext().getTransient(ConfigConstants.SG_SSL_PRINCIPAL);
+        final String sslPrincipal = (String) threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTROSECURITY_SSL_PRINCIPAL);
 
         if(adminDns.isAdminDN(sslPrincipal)) {
             //PKI authenticated REST call
-            threadPool.getThreadContext().putTransient(ConfigConstants.SG_USER, new User(sslPrincipal));
+            threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTROSECURITY_USER, new User(sslPrincipal));
             auditLog.logSucceededLogin(sslPrincipal, true, null, request);
             return true;
         }
@@ -421,7 +421,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
     		log.debug("Rest authentication request from {} [original: {}]", remoteAddress, request.getRemoteAddress());
     	}
 
-        threadContext.putTransient(ConfigConstants.SG_REMOTE_ADDRESS, remoteAddress);
+        threadContext.putTransient(ConfigConstants.OPENDISTROSECURITY_REMOTE_ADDRESS, remoteAddress);
 
         boolean authenticated = false;
 
@@ -501,7 +501,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
                 return false;
             }
 
-            final String tenant = Utils.coalesce(request.header("sgtenant"), request.header("sg_tenant"));
+            final String tenant = Utils.coalesce(request.header("sgtenant"), request.header("opendistrosecurity_tenant"));
 
             if(log.isDebugEnabled()) {
                 log.debug("User '{}' is authenticated", authenticatedUser);
@@ -516,7 +516,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
 
         if(authenticated) {
             final User impersonatedUser = impersonate(request, authenticatedUser);
-            threadContext.putTransient(ConfigConstants.SG_USER, impersonatedUser==null?authenticatedUser:impersonatedUser);
+            threadContext.putTransient(ConfigConstants.OPENDISTROSECURITY_USER, impersonatedUser==null?authenticatedUser:impersonatedUser);
             auditLog.logSucceededLogin((impersonatedUser==null?authenticatedUser:impersonatedUser).getName(), false, authenticatedUser.getName(), request);
         } else {
             if(log.isDebugEnabled()) {
@@ -524,7 +524,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
             }
 
             if(authCredenetials == null && anonymousAuthEnabled) {
-            	threadContext.putTransient(ConfigConstants.SG_USER, User.ANONYMOUS);
+            	threadContext.putTransient(ConfigConstants.OPENDISTROSECURITY_USER, User.ANONYMOUS);
             	auditLog.logSucceededLogin(User.ANONYMOUS.getName(), false, null, request);
                 if(log.isDebugEnabled()) {
                     log.debug("Anonymous User is authenticated");
@@ -657,7 +657,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
 
     private User impersonate(final TransportRequest tr, final User origPKIuser) throws ElasticsearchSecurityException {
 
-        final String impersonatedUser = threadPool.getThreadContext().getHeader("sg_impersonate_as");
+        final String impersonatedUser = threadPool.getThreadContext().getHeader("opendistrosecurity_impersonate_as");
 
         if(Strings.isNullOrEmpty(impersonatedUser)) {
             return null; //nothing to do
@@ -696,7 +696,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
 
     private User impersonate(final RestRequest request, final User originalUser) throws ElasticsearchSecurityException {
 
-        final String impersonatedUserHeader = request.header("sg_impersonate_as");
+        final String impersonatedUserHeader = request.header("opendistrosecurity_impersonate_as");
 
         if (Strings.isNullOrEmpty(impersonatedUserHeader) || originalUser == null) {
             return null; // nothing to do

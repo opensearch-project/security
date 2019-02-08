@@ -58,7 +58,7 @@ public class OpenDistroSecurityIndexAccessEvaluator {
     private final boolean restoreSecurityIndexEnabled;
     
     public OpenDistroSecurityIndexAccessEvaluator(final Settings settings, AuditLog auditLog) {
-        this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTROSECURITY_CONFIG_INDEX_NAME, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
+        this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTROSECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTROSECURITY_DEFAULT_CONFIG_INDEX);
         this.auditLog = auditLog;
         
         final List<String> securityIndexdeniedActionPatternsListAll = new ArrayList<String>();

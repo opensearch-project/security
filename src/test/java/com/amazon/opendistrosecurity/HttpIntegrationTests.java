@@ -194,7 +194,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
             Assert.assertTrue(res.getBody().contains("\"errors\":false"));
             Assert.assertTrue(res.getBody().contains("\"status\":201"));  
             
-            res = rh.executeGetRequest("_opendistro/_security/authinfo", new BasicHeader("sg_tenant", "unittesttenant"), encodeBasicHeader("worf", "worf"));
+            res = rh.executeGetRequest("_opendistro/_security/authinfo", new BasicHeader("opendistrosecurity_tenant", "unittesttenant"), encodeBasicHeader("worf", "worf"));
             Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
             Assert.assertTrue(res.getBody().contains("tenants"));
             Assert.assertTrue(res.getBody().contains("unittesttenant"));
@@ -243,15 +243,15 @@ public class HttpIntegrationTests extends SingleClusterTest {
             Assert.assertTrue(res.getBody().contains("\"failures\" : [ ]"));
             
             //rest impersonation
-            res = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("sg_impersonate_as","knuddel"), encodeBasicHeader("worf", "worf"));
+            res = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("opendistrosecurity_impersonate_as","knuddel"), encodeBasicHeader("worf", "worf"));
             Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
             Assert.assertTrue(res.getBody().contains("name=knuddel"));
             Assert.assertFalse(res.getBody().contains("worf"));
             
-            res = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("sg_impersonate_as","nonexists"), encodeBasicHeader("worf", "worf"));
+            res = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("opendistrosecurity_impersonate_as","nonexists"), encodeBasicHeader("worf", "worf"));
             Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
             
-            res = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("sg_impersonate_as","notallowed"), encodeBasicHeader("worf", "worf"));
+            res = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("opendistrosecurity_impersonate_as","notallowed"), encodeBasicHeader("worf", "worf"));
             Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
         }
 
@@ -311,7 +311,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
     
             HttpResponse resc = rh.executeGetRequest("_opendistro/_security/authinfo");
             System.out.println(resc.getBody());
-            Assert.assertTrue(resc.getBody().contains("sg_anonymous"));
+            Assert.assertTrue(resc.getBody().contains("opendistrosecurity_anonymous"));
             Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
             
             resc = rh.executeGetRequest("_opendistro/_security/authinfo?pretty=true");
@@ -322,7 +322,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
             resc = rh.executeGetRequest("_opendistro/_security/authinfo", encodeBasicHeader("nagilum", "nagilum"));
             System.out.println(resc.getBody());
             Assert.assertTrue(resc.getBody().contains("nagilum"));
-            Assert.assertFalse(resc.getBody().contains("sg_anonymous"));
+            Assert.assertFalse(resc.getBody().contains("opendistrosecurity_anonymous"));
             Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
             
             try (TransportClient tc = getInternalTransportClient()) {    
@@ -675,7 +675,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
         final RestHelper rh = nonSslRestHelper();
         
         //rest impersonation
-        HttpResponse res = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("sg_impersonate_as","someotherusernotininternalusersfile"), encodeBasicHeader("worf", "worf"));
+        HttpResponse res = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("opendistrosecurity_impersonate_as","someotherusernotininternalusersfile"), encodeBasicHeader("worf", "worf"));
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         Assert.assertTrue(res.getBody().contains("name=someotherusernotininternalusersfile"));
         Assert.assertFalse(res.getBody().contains("worf"));

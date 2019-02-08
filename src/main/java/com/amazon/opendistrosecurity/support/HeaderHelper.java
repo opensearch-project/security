@@ -40,13 +40,13 @@ import com.google.common.base.Strings;
 public class HeaderHelper {
 
     public static boolean isInterClusterRequest(final ThreadContext context) {
-        return context.getTransient(ConfigConstants.SG_SSL_TRANSPORT_INTERCLUSTER_REQUEST) == Boolean.TRUE;
+        return context.getTransient(ConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_INTERCLUSTER_REQUEST) == Boolean.TRUE;
     }
 
     public static boolean isDirectRequest(final ThreadContext context) {
         
-        return  "direct".equals(context.getTransient(ConfigConstants.SG_CHANNEL_TYPE))
-                  || context.getTransient(ConfigConstants.SG_CHANNEL_TYPE) == null;
+        return  "direct".equals(context.getTransient(ConfigConstants.OPENDISTROSECURITY_CHANNEL_TYPE))
+                  || context.getTransient(ConfigConstants.OPENDISTROSECURITY_CHANNEL_TYPE) == null;
     }
     
     
@@ -82,6 +82,6 @@ public class HeaderHelper {
     }
     
     public static boolean isTrustedClusterRequest(final ThreadContext context) {
-        return context.getTransient(ConfigConstants.SG_SSL_TRANSPORT_TRUSTED_CLUSTER_REQUEST) == Boolean.TRUE;
+        return context.getTransient(ConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_TRUSTED_CLUSTER_REQUEST) == Boolean.TRUE;
     }
 }

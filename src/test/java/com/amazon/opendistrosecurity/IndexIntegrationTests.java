@@ -179,8 +179,8 @@ public class IndexIntegrationTests extends SingleClusterTest {
         
         RestHelper rh = nonSslRestHelper();
     
-        //sg_user1 -> worf
-        //sg_user2 -> picard
+        //opendistrosecurity_user1 -> worf
+        //opendistrosecurity_user2 -> picard
         
         HttpResponse resc = rh.executeGetRequest("alias*/_search", encodeBasicHeader("worf", "worf"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());

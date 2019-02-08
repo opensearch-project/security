@@ -73,7 +73,7 @@ public class XFFResolver implements ConfigurationChangeListener {
                 
              
             if(log.isTraceEnabled()) {
-                if(threadContext.getTransient(ConfigConstants.SG_XFF_DONE) == Boolean.TRUE) {
+                if(threadContext.getTransient(ConfigConstants.OPENDISTROSECURITY_XFF_DONE) == Boolean.TRUE) {
                     log.trace("xff resolved {} to {}", request.getRemoteAddress(), isa);
                 } else {
                     log.trace("no xff done for {}",request.getClass());

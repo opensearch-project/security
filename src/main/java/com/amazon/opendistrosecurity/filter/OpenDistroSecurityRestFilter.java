@@ -99,7 +99,7 @@ public class OpenDistroSecurityRestFilter {
 
     private boolean checkAndAuthenticateRequest(RestRequest request, RestChannel channel, NodeClient client) throws Exception {
 
-        threadContext.putTransient(ConfigConstants.SG_ORIGIN, Origin.REST.toString());
+        threadContext.putTransient(ConfigConstants.OPENDISTROSECURITY_ORIGIN, Origin.REST.toString());
         
         if(HTTPHelper.containsBadHeader(request)) {
             final ElasticsearchException exception = ExceptionUtils.createBadHeaderException();
@@ -109,7 +109,7 @@ public class OpenDistroSecurityRestFilter {
             return true;
         }
         
-        if(SSLRequestHelper.containsBadHeader(threadContext, ConfigConstants.SG_CONFIG_PREFIX)) {
+        if(SSLRequestHelper.containsBadHeader(threadContext, ConfigConstants.OPENDISTROSECURITY_CONFIG_PREFIX)) {
             final ElasticsearchException exception = ExceptionUtils.createBadHeaderException();
             log.error(exception);
             auditLog.logBadHeaders(request);
@@ -121,14 +121,14 @@ public class OpenDistroSecurityRestFilter {
         try {
             if((sslInfo = SSLRequestHelper.getSSLInfo(settings, configPath, request, principalExtractor)) != null) {
                 if(sslInfo.getPrincipal() != null) {
-                    threadContext.putTransient("_sg_ssl_principal", sslInfo.getPrincipal());
+                    threadContext.putTransient("_opendistrosecurity_ssl_principal", sslInfo.getPrincipal());
                 }
                 
                 if(sslInfo.getX509Certs() != null) {
-                     threadContext.putTransient("_sg_ssl_peer_certificates", sslInfo.getX509Certs());
+                     threadContext.putTransient("_opendistrosecurity_ssl_peer_certificates", sslInfo.getX509Certs());
                 }
-                threadContext.putTransient("_sg_ssl_protocol", sslInfo.getProtocol());
-                threadContext.putTransient("_sg_ssl_cipher", sslInfo.getCipher());
+                threadContext.putTransient("_opendistrosecurity_ssl_protocol", sslInfo.getProtocol());
+                threadContext.putTransient("_opendistrosecurity_ssl_cipher", sslInfo.getCipher());
             }
         } catch (SSLPeerUnverifiedException e) {
             log.error("No ssl info", e);
@@ -149,7 +149,7 @@ public class OpenDistroSecurityRestFilter {
                 return true;
             } else {
                 // make it possible to filter logs by username
-                org.apache.logging.log4j.ThreadContext.put("user", ((User)threadContext.getTransient(ConfigConstants.SG_USER)).getName());
+                org.apache.logging.log4j.ThreadContext.put("user", ((User)threadContext.getTransient(ConfigConstants.OPENDISTROSECURITY_USER)).getName());
             }
         }
         

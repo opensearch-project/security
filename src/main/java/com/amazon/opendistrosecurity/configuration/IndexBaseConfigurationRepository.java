@@ -101,7 +101,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
 
     private IndexBaseConfigurationRepository(Settings settings, final Path configPath, ThreadPool threadPool, 
             Client client, ClusterService clusterService, AuditLog auditLog, ComplianceConfig complianceConfig) {
-        this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTROSECURITY_CONFIG_INDEX_NAME, ConfigConstants.SG_DEFAULT_CONFIG_INDEX);
+        this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTROSECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTROSECURITY_DEFAULT_CONFIG_INDEX);
         this.settings = settings;
         this.client = client;
         this.threadPool = threadPool;
@@ -135,7 +135,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                                     if(confFile.exists()) {
                                         final ThreadContext threadContext = threadPool.getThreadContext();
                                         try(StoredContext ctx = threadContext.stashContext()) {
-                                            threadContext.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true");
+                                            threadContext.putHeader(ConfigConstants.OPENDISTROSECURITY_CONF_REQUEST_HEADER, "true");
                                             LOGGER.info("Will create {} index so we can apply default config", opendistrosecurityIndex);
 
                                             Map<String, Object> indexSettings = new HashMap<>();
@@ -221,7 +221,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                     final ThreadContext threadContext = threadPool.getThreadContext();
 
                     try(StoredContext ctx = threadContext.stashContext()) {
-                        threadContext.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true");
+                        threadContext.putHeader(ConfigConstants.OPENDISTROSECURITY_CONF_REQUEST_HEADER, "true");
 
                         client.admin().indices().exists(ier, new ActionListener<IndicesExistsResponse>() {
 
@@ -377,7 +377,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
            // final CountDownLatch latch = new CountDownLatch(1);
 
             try(StoredContext ctx = threadContext.stashContext()) {
-                threadContext.putHeader(ConfigConstants.SG_CONF_REQUEST_HEADER, "true");
+                threadContext.putHeader(ConfigConstants.OPENDISTROSECURITY_CONF_REQUEST_HEADER, "true");
 
                 boolean securityIndexExists = clusterService.state().metaData().hasConcreteIndex(this.opendistrosecurityIndex);
 

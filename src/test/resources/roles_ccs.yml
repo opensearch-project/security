@@ -1,9 +1,9 @@
-sg_public:
+opendistrosecurity_public:
   cluster:
     - 'cluster:monitor/main'
     #- CLUSTER_COMPOSITE_OPS_RO
 
-sg_all_access:
+opendistrosecurity_all_access:
   cluster:
     - cluster:monitor/main
   indices:

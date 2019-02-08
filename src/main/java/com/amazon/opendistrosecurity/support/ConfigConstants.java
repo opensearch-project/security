@@ -39,68 +39,68 @@ import java.util.Set;
 public class ConfigConstants {
 
 
-    public static final String SG_CONFIG_PREFIX = "_sg_";
+    public static final String OPENDISTROSECURITY_CONFIG_PREFIX = "_opendistrosecurity_";
 
-    public static final String SG_CHANNEL_TYPE = SG_CONFIG_PREFIX+"channel_type";
+    public static final String OPENDISTROSECURITY_CHANNEL_TYPE = OPENDISTROSECURITY_CONFIG_PREFIX+"channel_type";
 
-    public static final String SG_ORIGIN = SG_CONFIG_PREFIX+"origin";
-    public static final String SG_ORIGIN_HEADER = SG_CONFIG_PREFIX+"origin_header";
+    public static final String OPENDISTROSECURITY_ORIGIN = OPENDISTROSECURITY_CONFIG_PREFIX+"origin";
+    public static final String OPENDISTROSECURITY_ORIGIN_HEADER = OPENDISTROSECURITY_CONFIG_PREFIX+"origin_header";
 
-    public static final String SG_DLS_QUERY_HEADER = SG_CONFIG_PREFIX+"dls_query";
+    public static final String OPENDISTROSECURITY_DLS_QUERY_HEADER = OPENDISTROSECURITY_CONFIG_PREFIX+"dls_query";
 
-    public static final String SG_FLS_FIELDS_HEADER = SG_CONFIG_PREFIX+"fls_fields";
+    public static final String OPENDISTROSECURITY_FLS_FIELDS_HEADER = OPENDISTROSECURITY_CONFIG_PREFIX+"fls_fields";
     
-    public static final String SG_MASKED_FIELD_HEADER = SG_CONFIG_PREFIX+"masked_fields";
+    public static final String OPENDISTROSECURITY_MASKED_FIELD_HEADER = OPENDISTROSECURITY_CONFIG_PREFIX+"masked_fields";
 
-    public static final String SG_CONF_REQUEST_HEADER = SG_CONFIG_PREFIX+"conf_request";
+    public static final String OPENDISTROSECURITY_CONF_REQUEST_HEADER = OPENDISTROSECURITY_CONFIG_PREFIX+"conf_request";
 
-    public static final String SG_REMOTE_ADDRESS = SG_CONFIG_PREFIX+"remote_address";
-    public static final String SG_REMOTE_ADDRESS_HEADER = SG_CONFIG_PREFIX+"remote_address_header";
+    public static final String OPENDISTROSECURITY_REMOTE_ADDRESS = OPENDISTROSECURITY_CONFIG_PREFIX+"remote_address";
+    public static final String OPENDISTROSECURITY_REMOTE_ADDRESS_HEADER = OPENDISTROSECURITY_CONFIG_PREFIX+"remote_address_header";
     
-    public static final String SG_INITIAL_ACTION_CLASS_HEADER = SG_CONFIG_PREFIX+"initial_action_class_header";
+    public static final String OPENDISTROSECURITY_INITIAL_ACTION_CLASS_HEADER = OPENDISTROSECURITY_CONFIG_PREFIX+"initial_action_class_header";
 
     /**
      * Set by SSL plugin for https requests only
      */
-    public static final String SG_SSL_PEER_CERTIFICATES = SG_CONFIG_PREFIX+"ssl_peer_certificates";
+    public static final String OPENDISTROSECURITY_SSL_PEER_CERTIFICATES = OPENDISTROSECURITY_CONFIG_PREFIX+"ssl_peer_certificates";
 
     /**
      * Set by SSL plugin for https requests only
      */
-    public static final String SG_SSL_PRINCIPAL = SG_CONFIG_PREFIX+"ssl_principal";
+    public static final String OPENDISTROSECURITY_SSL_PRINCIPAL = OPENDISTROSECURITY_CONFIG_PREFIX+"ssl_principal";
 
     /**
      * If this is set to TRUE then the request comes from a Server Node (fully trust)
-     * Its expected that there is a _sg_user attached as header
+     * Its expected that there is a _opendistrosecurity_user attached as header
      */
-    public static final String SG_SSL_TRANSPORT_INTERCLUSTER_REQUEST = SG_CONFIG_PREFIX+"ssl_transport_intercluster_request";
+    public static final String OPENDISTROSECURITY_SSL_TRANSPORT_INTERCLUSTER_REQUEST = OPENDISTROSECURITY_CONFIG_PREFIX+"ssl_transport_intercluster_request";
 
-    public static final String SG_SSL_TRANSPORT_TRUSTED_CLUSTER_REQUEST = SG_CONFIG_PREFIX+"ssl_transport_trustedcluster_request";
+    public static final String OPENDISTROSECURITY_SSL_TRANSPORT_TRUSTED_CLUSTER_REQUEST = OPENDISTROSECURITY_CONFIG_PREFIX+"ssl_transport_trustedcluster_request";
 
 
     /**
      * Set by the SSL plugin, this is the peer node certificate on the transport layer
      */
-    public static final String SG_SSL_TRANSPORT_PRINCIPAL = SG_CONFIG_PREFIX+"ssl_transport_principal";
+    public static final String OPENDISTROSECURITY_SSL_TRANSPORT_PRINCIPAL = OPENDISTROSECURITY_CONFIG_PREFIX+"ssl_transport_principal";
 
-    public static final String SG_USER = SG_CONFIG_PREFIX+"user";
-    public static final String SG_USER_HEADER = SG_CONFIG_PREFIX+"user_header";
+    public static final String OPENDISTROSECURITY_USER = OPENDISTROSECURITY_CONFIG_PREFIX+"user";
+    public static final String OPENDISTROSECURITY_USER_HEADER = OPENDISTROSECURITY_CONFIG_PREFIX+"user_header";
 
-    public static final String SG_INJECTED_USER = "injected_user";
+    public static final String OPENDISTROSECURITY_INJECTED_USER = "injected_user";
     
-    public static final String SG_XFF_DONE = SG_CONFIG_PREFIX+"xff_done";
+    public static final String OPENDISTROSECURITY_XFF_DONE = OPENDISTROSECURITY_CONFIG_PREFIX+"xff_done";
 
-    public static final String SSO_LOGOUT_URL = SG_CONFIG_PREFIX+"sso_logout_url";
+    public static final String SSO_LOGOUT_URL = OPENDISTROSECURITY_CONFIG_PREFIX+"sso_logout_url";
 
     
-    public static final String SG_DEFAULT_CONFIG_INDEX = "opendistrosecurity";
+    public static final String OPENDISTROSECURITY_DEFAULT_CONFIG_INDEX = "opendistrosecurity";
 
     public static final String OPENDISTROSECURITY_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE = "opendistrosecurity.enable_snapshot_restore_privilege";
-    public static final boolean SG_DEFAULT_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE = false;
+    public static final boolean OPENDISTROSECURITY_DEFAULT_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE = false;
 
     public static final String OPENDISTROSECURITY_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES = "opendistrosecurity.check_snapshot_restore_write_privileges";
-    public static final boolean SG_DEFAULT_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES = true;
-    public static final Set<String> SG_SNAPSHOT_RESTORE_NEEDED_WRITE_PRIVILEGES = Collections.unmodifiableSet(
+    public static final boolean OPENDISTROSECURITY_DEFAULT_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES = true;
+    public static final Set<String> OPENDISTROSECURITY_SNAPSHOT_RESTORE_NEEDED_WRITE_PRIVILEGES = Collections.unmodifiableSet(
             new HashSet<String>(Arrays.asList(
                     "indices:admin/create",
                     "indices:data/write/index"
@@ -118,8 +118,8 @@ public class ConfigConstants {
 
     public final static List<String> CONFIG_NAMES = Collections.unmodifiableList(Arrays.asList(new String[] {CONFIGNAME_ROLES, CONFIGNAME_ROLES_MAPPING,
             CONFIGNAME_ACTION_GROUPS, CONFIGNAME_INTERNAL_USERS, CONFIGNAME_CONFIG}));
-    public static final String SG_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = "opendistrosecurity.cert.intercluster_request_evaluator_class";
-    public static final String SG_ACTION_NAME = SG_CONFIG_PREFIX+"action_name";
+    public static final String OPENDISTROSECURITY_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = "opendistrosecurity.cert.intercluster_request_evaluator_class";
+    public static final String OPENDISTROSECURITY_ACTION_NAME = OPENDISTROSECURITY_CONFIG_PREFIX+"action_name";
 
 
     public static final String OPENDISTROSECURITY_AUTHCZ_ADMIN_DN = "opendistrosecurity.authcz.admin_dn";
