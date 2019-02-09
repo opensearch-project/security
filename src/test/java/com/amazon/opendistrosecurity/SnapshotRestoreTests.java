@@ -101,13 +101,13 @@ public class SnapshotRestoreTests extends SingleClusterTest {
         Assert.assertEquals(HttpStatus.SC_OK, rh.executePostRequest("_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true","{ \"include_global_state\": true, \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_with_global_state_$1\" }", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
         // worf not allowed to restore vulcangov index
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true","", encodeBasicHeader("worf", "worf")).getStatusCode());
-        // Try to restore vulcangov index as opendistrosecurity index, not possible since SG index is open
+        // Try to restore vulcangov index as opendistrosecurity index, not possible since Security index is open
         Assert.assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, rh.executePostRequest("_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true","{ \"indices\": \"vulcangov\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"opendistrosecurity\" }", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
     
         // Try to restore opendistrosecurity index.
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_snapshot/opendistrosecurity", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_snapshot/opendistrosecurity/opendistrosecurity_1", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
-        // 500 because SG index is open
+        // 500 because Security index is open
         Assert.assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, rh.executePostRequest("_snapshot/opendistrosecurity/opendistrosecurity_1/_restore?wait_for_completion=true","", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
         // Try to restore opendistrosecurity index as serchguard_copy index
         Assert.assertEquals(HttpStatus.SC_OK, rh.executePostRequest("_snapshot/opendistrosecurity/opendistrosecurity_1/_restore?wait_for_completion=true","{ \"indices\": \"opendistrosecurity\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"opendistrosecurity_copy\" }", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
@@ -115,9 +115,9 @@ public class SnapshotRestoreTests extends SingleClusterTest {
         // Try to restore all indices.
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_snapshot/all", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_snapshot/all/all_1", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
-        // 500 because SG index is open
+        // 500 because Security index is open
         Assert.assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true","", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
-        // Try to restore vulcangov index as opendistrosecurity index -> 500 because SG index is open
+        // Try to restore vulcangov index as opendistrosecurity index -> 500 because Security index is open
         Assert.assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true","{ \"indices\": \"vulcangov\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"opendistrosecurity\" }", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
         // Try to restore opendistrosecurity index as serchguard_copy index. Delete opendistrosecurity_copy first, was created in test above
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeDeleteRequest("opendistrosecurity_copy", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
@@ -126,7 +126,7 @@ public class SnapshotRestoreTests extends SingleClusterTest {
         // Try to restore a unknown snapshot
         Assert.assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, rh.executePostRequest("_snapshot/all/unknown-snapshot/_restore?wait_for_completion=true", "", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
         
-        // close and restore SG index
+        // close and restore Security index
         Assert.assertEquals(HttpStatus.SC_OK, rh.executePostRequest("opendistrosecurity/_close", "", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_OK, rh.executePostRequest("_snapshot/opendistrosecurity/opendistrosecurity_1/_restore?wait_for_completion=true","", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_OK, rh.executePostRequest("opendistrosecurity/_open", "", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());

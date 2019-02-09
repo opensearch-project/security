@@ -220,7 +220,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
       final RestHelper rh = nonSslRestHelper();
       HttpResponse resc;
       
-      // injected user is admin, access to SG index must be allowed
+      // injected user is admin, access to Security index must be allowed
       resc = rh.executeGetRequest("opendistrosecurity/_search?pretty", new BasicHeader(ConfigConstants.OPENDISTROSECURITY_INJECTED_USER, "injectedadmin|role1|127.0.0:80|key1,value1"));
       Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
       Assert.assertTrue(resc.getBody().contains("\"_id\" : \"config\""));
@@ -247,7 +247,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
         final RestHelper rh = nonSslRestHelper();
         HttpResponse resc;
         
-        // injected user is admin, access to SG index must be allowed
+        // injected user is admin, access to Security index must be allowed
         resc = rh.executeGetRequest("opendistrosecurity/_search?pretty", new BasicHeader(ConfigConstants.OPENDISTROSECURITY_INJECTED_USER, "injectedadmin|role1|127.0.0:80|key1,value1"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
         Assert.assertFalse(resc.getBody().contains("\"_id\" : \"config\""));

@@ -128,7 +128,7 @@ class ConfigurationLoader {
 
         for (int i = 0; i < events.length; i++) {
             final String event = events[i];
-            mget.add(opendistrosecurityIndex, "sg", event);
+            mget.add(opendistrosecurityIndex, "security", event);
         }
         
         mget.refresh(true);

@@ -75,7 +75,7 @@ public class DlsFlsEvaluator {
         if (maskedFieldsMap != null && !maskedFieldsMap.isEmpty()) {
             if (threadContext.getHeader(ConfigConstants.OPENDISTROSECURITY_MASKED_FIELD_HEADER) != null) {
                 if (!maskedFieldsMap.equals(Base64Helper.deserializeObject(threadContext.getHeader(ConfigConstants.OPENDISTROSECURITY_MASKED_FIELD_HEADER)))) {
-                    throw new ElasticsearchSecurityException(ConfigConstants.OPENDISTROSECURITY_MASKED_FIELD_HEADER + " does not match (SG 901D)");
+                    throw new ElasticsearchSecurityException(ConfigConstants.OPENDISTROSECURITY_MASKED_FIELD_HEADER + " does not match (Security 901D)");
                 } else {
                     if (log.isDebugEnabled()) {
                         log.debug(ConfigConstants.OPENDISTROSECURITY_MASKED_FIELD_HEADER + " already set");
@@ -112,7 +112,7 @@ public class DlsFlsEvaluator {
 
             if (threadContext.getHeader(ConfigConstants.OPENDISTROSECURITY_DLS_QUERY_HEADER) != null) {
                 if (!dlsQueries.equals(Base64Helper.deserializeObject(threadContext.getHeader(ConfigConstants.OPENDISTROSECURITY_DLS_QUERY_HEADER)))) {
-                    throw new ElasticsearchSecurityException(ConfigConstants.OPENDISTROSECURITY_DLS_QUERY_HEADER + " does not match (SG 900D)");
+                    throw new ElasticsearchSecurityException(ConfigConstants.OPENDISTROSECURITY_DLS_QUERY_HEADER + " does not match (Security 900D)");
                 }
             } else {
                 threadContext.putHeader(ConfigConstants.OPENDISTROSECURITY_DLS_QUERY_HEADER, Base64Helper.serializeObject((Serializable) dlsQueries));
@@ -138,7 +138,7 @@ public class DlsFlsEvaluator {
 
             if (threadContext.getHeader(ConfigConstants.OPENDISTROSECURITY_FLS_FIELDS_HEADER) != null) {
                 if (!flsFields.equals(Base64Helper.deserializeObject(threadContext.getHeader(ConfigConstants.OPENDISTROSECURITY_FLS_FIELDS_HEADER)))) {
-                    throw new ElasticsearchSecurityException(ConfigConstants.OPENDISTROSECURITY_FLS_FIELDS_HEADER + " does not match (SG 901D)");
+                    throw new ElasticsearchSecurityException(ConfigConstants.OPENDISTROSECURITY_FLS_FIELDS_HEADER + " does not match (Security 901D)");
                 } else {
                     if (log.isDebugEnabled()) {
                         log.debug(ConfigConstants.OPENDISTROSECURITY_FLS_FIELDS_HEADER + " already set");

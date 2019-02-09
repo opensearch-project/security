@@ -76,7 +76,7 @@ public class SnapshotRestoreEvaluator {
         }
 
         // if this feature is enabled, users can also snapshot and restore
-        // the SG index and the global state
+        // the Security index and the global state
         if (restoreSecurityIndexEnabled) {
             presponse.allowed = true;
             return presponse;            

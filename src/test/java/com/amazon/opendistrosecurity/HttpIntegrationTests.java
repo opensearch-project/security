@@ -151,7 +151,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
             Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("starfleet/ships/_search?pretty", encodeBasicHeader("worf", "worf")).getStatusCode());
     
             try (TransportClient tc = getInternalTransportClient()) {       
-                tc.index(new IndexRequest("opendistrosecurity").type("sg").id("roles").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("roles", FileHelper.readYamlContent("roles_deny.yml"))).actionGet();
+                tc.index(new IndexRequest("opendistrosecurity").type("security").id("roles").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("roles", FileHelper.readYamlContent("roles_deny.yml"))).actionGet();
                 ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"roles"})).actionGet();
                 Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());
             }
@@ -159,7 +159,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
             Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest("starfleet/ships/_search?pretty", encodeBasicHeader("worf", "worf")).getStatusCode());
     
             try (TransportClient tc = getInternalTransportClient()) {
-                tc.index(new IndexRequest("opendistrosecurity").type("sg").id("roles").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("roles", FileHelper.readYamlContent("roles.yml"))).actionGet();
+                tc.index(new IndexRequest("opendistrosecurity").type("security").id("roles").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("roles", FileHelper.readYamlContent("roles.yml"))).actionGet();
                 ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"roles"})).actionGet();
                 Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());
             }
@@ -326,8 +326,8 @@ public class HttpIntegrationTests extends SingleClusterTest {
             Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
             
             try (TransportClient tc = getInternalTransportClient()) {    
-                tc.index(new IndexRequest("opendistrosecurity").type("sg").id("config").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("config", FileHelper.readYamlContent("config.yml"))).actionGet();
-                tc.index(new IndexRequest("opendistrosecurity").type("sg").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("internalusers").source("internalusers", FileHelper.readYamlContent("internal_users.yml"))).actionGet();
+                tc.index(new IndexRequest("opendistrosecurity").type("security").id("config").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("config", FileHelper.readYamlContent("config.yml"))).actionGet();
+                tc.index(new IndexRequest("opendistrosecurity").type("security").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("internalusers").source("internalusers", FileHelper.readYamlContent("internal_users.yml"))).actionGet();
                 ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
                 Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());
              }
@@ -369,10 +369,10 @@ public class HttpIntegrationTests extends SingleClusterTest {
         rh.sendHTTPClientCertificate = true;
         rh.keystore = "spock-keystore.jks";
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_search").getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest("opendistrosecurity/sg/x", "{}").getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest("opendistrosecurity/security/x", "{}").getStatusCode());
         
         rh.keystore = "kirk-keystore.jks";
-        Assert.assertEquals(HttpStatus.SC_CREATED, rh.executePutRequest("opendistrosecurity/sg/y", "{}").getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_CREATED, rh.executePutRequest("opendistrosecurity/security/y", "{}").getStatusCode());
         HttpResponse res;
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistro/_security/authinfo")).getStatusCode());
         System.out.println(res.getBody());

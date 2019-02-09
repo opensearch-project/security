@@ -57,7 +57,7 @@ public class ConfigHelper {
         try (Reader reader = new FileReader(filepath)) {
 
             final String res = tc
-                    .index(new IndexRequest(index).type("sg").id(id).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .index(new IndexRequest(index).type("security").id(id).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                             .source(id, readXContent(reader, XContentType.YAML))).actionGet().getId();
 
             if (!id.equals(res)) {

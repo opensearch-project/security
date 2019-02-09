@@ -358,7 +358,7 @@ echo "" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
 echo "opendistrosecurity.audit.type: internal_elasticsearch" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
 echo "opendistrosecurity.enable_snapshot_restore_privilege: true" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
 echo "opendistrosecurity.check_snapshot_restore_write_privileges: true" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
-echo 'opendistrosecurity.restapi.roles_enabled: ["sg_all_access"]' | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
+echo 'opendistrosecurity.restapi.roles_enabled: ["opendistrosecurity_all_access"]' | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
 
 #cluster.routing.allocation.disk.threshold_enabled
 if $SUDO_CMD grep --quiet -i "^cluster.routing.allocation.disk.threshold_enabled" "$ES_CONF_FILE"; then

@@ -52,8 +52,8 @@ public class OpenDistroSecurityIndexAccessEvaluator {
     
     private final String opendistrosecurityIndex;
     private final AuditLog auditLog;
-    private final String[] sgDeniedActionPatternsAll;
-    private final String[] sgDeniedActionPatternsSnapshotRestoreAllowed;
+    private final String[] securityDeniedActionPatternsAll;
+    private final String[] securityDeniedActionPatternsSnapshotRestoreAllowed;
 
     private final boolean restoreSecurityIndexEnabled;
     
@@ -67,13 +67,13 @@ public class OpenDistroSecurityIndexAccessEvaluator {
         securityIndexdeniedActionPatternsListAll.add("indices:admin/delete");
         securityIndexdeniedActionPatternsListAll.add("cluster:admin/snapshot/restore");
 
-        sgDeniedActionPatternsAll = securityIndexdeniedActionPatternsListAll.toArray(new String[0]);
+        securityDeniedActionPatternsAll = securityIndexdeniedActionPatternsListAll.toArray(new String[0]);
 
         final List<String> securityIndexdeniedActionPatternsListSnapshotRestoreAllowed = new ArrayList<String>();
         securityIndexdeniedActionPatternsListAll.add("indices:data/write*");
         securityIndexdeniedActionPatternsListAll.add("indices:admin/delete");
               
-        sgDeniedActionPatternsSnapshotRestoreAllowed = securityIndexdeniedActionPatternsListSnapshotRestoreAllowed.toArray(new String[0]);
+        securityDeniedActionPatternsSnapshotRestoreAllowed = securityIndexdeniedActionPatternsListSnapshotRestoreAllowed.toArray(new String[0]);
         
         this.restoreSecurityIndexEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_UNSUPPORTED_RESTORE_SGINDEX_ENABLED, false);
     }
@@ -81,10 +81,10 @@ public class OpenDistroSecurityIndexAccessEvaluator {
     public PrivilegesEvaluatorResponse evaluate(final ActionRequest request, final Task task, final String action, final Resolved requestedResolved,
             final PrivilegesEvaluatorResponse presponse)  {
         
-        final String[] sgDeniedActionPatterns = this.restoreSecurityIndexEnabled? sgDeniedActionPatternsSnapshotRestoreAllowed : sgDeniedActionPatternsAll;
+        final String[] securityDeniedActionPatterns = this.restoreSecurityIndexEnabled? securityDeniedActionPatternsSnapshotRestoreAllowed : securityDeniedActionPatternsAll;
         
         if (requestedResolved.getAllIndices().contains(opendistrosecurityIndex)
-                && WildcardMatcher.matchAny(sgDeniedActionPatterns, action)) {
+                && WildcardMatcher.matchAny(securityDeniedActionPatterns, action)) {
             auditLog.logSecurityIndexAttempt(request, action, task);
             log.warn(action + " for '{}' index is not allowed for a regular user", opendistrosecurityIndex);
             presponse.allowed = false;
@@ -93,7 +93,7 @@ public class OpenDistroSecurityIndexAccessEvaluator {
 
         //TODO: newpeval: check if isAll() is all (contains("_all" or "*"))
         if (requestedResolved.isAll()
-                && WildcardMatcher.matchAny(sgDeniedActionPatterns, action)) {
+                && WildcardMatcher.matchAny(securityDeniedActionPatterns, action)) {
             auditLog.logSecurityIndexAttempt(request, action, task);
             log.warn(action + " for '_all' indices is not allowed for a regular user");
             presponse.allowed = false;

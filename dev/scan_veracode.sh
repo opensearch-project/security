@@ -19,7 +19,7 @@ fi
 echo "App Id: $APPID"
 echo "Sandbox Id: $SANDBOXID"
 
-echo "Build SG ..."
+echo "Build Security ..."
 mvn clean package -Pveracode -DskipTests > /dev/null 2>&1
 PLUGIN_FILE=($DIR/../target/veracode/search-guard*.zip)
 

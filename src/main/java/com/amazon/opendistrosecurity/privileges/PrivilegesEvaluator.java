@@ -210,7 +210,7 @@ public class PrivilegesEvaluator {
             return presponse;
         }
 
-        // SG index access
+        // Security index access
         if (securityIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved, presponse).isComplete()) {
             return presponse;
         }        
@@ -321,7 +321,7 @@ public class PrivilegesEvaluator {
         }
 
 
-        //TODO exclude sg index
+        //TODO exclude Security index
 
         if(privilegesInterceptor.getClass() != PrivilegesInterceptor.class) {
 

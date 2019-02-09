@@ -95,31 +95,31 @@ public class DynamicSecurityConfig {
         List<IndexRequest> ret = new ArrayList<IndexRequest>();
         
         ret.add(new IndexRequest(securityIndexName)
-               .type("sg")
+               .type("security")
                .id(ConfigConstants.CONFIGNAME_CONFIG)
                .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                .source(ConfigConstants.CONFIGNAME_CONFIG, securityConfigAsYamlString==null?FileHelper.readYamlContent(prefix+securityConfig):FileHelper.readYamlContentFromString(securityConfigAsYamlString)));
         
         ret.add(new IndexRequest(securityIndexName)
-        .type("sg")
+        .type("security")
         .id(ConfigConstants.CONFIGNAME_ACTION_GROUPS)
         .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
         .source(ConfigConstants.CONFIGNAME_ACTION_GROUPS, FileHelper.readYamlContent(prefix+securityActionGroups)));
  
         ret.add(new IndexRequest(securityIndexName)
-        .type("sg")
+        .type("security")
         .id(ConfigConstants.CONFIGNAME_INTERNAL_USERS)
         .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
         .source(ConfigConstants.CONFIGNAME_INTERNAL_USERS, FileHelper.readYamlContent(prefix+securityInternalUsers)));
  
         ret.add(new IndexRequest(securityIndexName)
-        .type("sg")
+        .type("security")
         .id(ConfigConstants.CONFIGNAME_ROLES)
         .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
         .source(ConfigConstants.CONFIGNAME_ROLES, FileHelper.readYamlContent(prefix+securityRoles)));
  
         ret.add(new IndexRequest(securityIndexName)
-        .type("sg")
+        .type("security")
         .id(ConfigConstants.CONFIGNAME_ROLES_MAPPING)
         .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
         .source(ConfigConstants.CONFIGNAME_ROLES_MAPPING, FileHelper.readYamlContent(prefix+securityRolesMapping)));

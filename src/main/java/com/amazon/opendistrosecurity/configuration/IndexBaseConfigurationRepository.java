@@ -384,15 +384,15 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                 if(securityIndexExists) {
                     if(clusterService.state().metaData().index(this.opendistrosecurityIndex).mapping("config") != null) {
                         //legacy layout
-                        LOGGER.debug("sg index exists and was created before ES 6 (legacy layout)");
+                        LOGGER.debug("security index  exists and was created before ES 6 (legacy layout)");
                         retVal.putAll(validate(legacycl.loadLegacy(configTypes.toArray(new String[0]), 5, TimeUnit.SECONDS), configTypes.size()));
                     } else {
-                        LOGGER.debug("sg index exists and was created with ES 6 (new layout)");
+                        LOGGER.debug("security index  exists and was created with ES 6 (new layout)");
                         retVal.putAll(validate(cl.load(configTypes.toArray(new String[0]), 5, TimeUnit.SECONDS), configTypes.size()));
                     }
                 } else {
                     //wait (and use new layout)
-                    LOGGER.debug("sg index not exists (yet)");
+                    LOGGER.debug("security index  not exists (yet)");
                     retVal.putAll(validate(cl.load(configTypes.toArray(new String[0]), 30, TimeUnit.SECONDS), configTypes.size()));
                 }
 

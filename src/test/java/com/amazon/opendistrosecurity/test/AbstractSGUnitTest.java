@@ -198,13 +198,13 @@ public abstract class AbstractSGUnitTest {
             sr = tc.search(new SearchRequest("opendistrosecurity")).actionGet();
             //Assert.assertEquals(5L, sr.getHits().getTotalHits());
 
-            Assert.assertTrue(tc.get(new GetRequest("opendistrosecurity", "sg", "config")).actionGet().isExists());
-            Assert.assertTrue(tc.get(new GetRequest("opendistrosecurity","sg","internalusers")).actionGet().isExists());
-            Assert.assertTrue(tc.get(new GetRequest("opendistrosecurity","sg","roles")).actionGet().isExists());
-            Assert.assertTrue(tc.get(new GetRequest("opendistrosecurity","sg","rolesmapping")).actionGet().isExists());
-            Assert.assertTrue(tc.get(new GetRequest("opendistrosecurity","sg","actiongroups")).actionGet().isExists());
-            Assert.assertFalse(tc.get(new GetRequest("opendistrosecurity","sg","rolesmapping_xcvdnghtu165759i99465")).actionGet().isExists());
-            Assert.assertTrue(tc.get(new GetRequest("opendistrosecurity","sg","config")).actionGet().isExists());
+            Assert.assertTrue(tc.get(new GetRequest("opendistrosecurity", "security", "config")).actionGet().isExists());
+            Assert.assertTrue(tc.get(new GetRequest("opendistrosecurity","security","internalusers")).actionGet().isExists());
+            Assert.assertTrue(tc.get(new GetRequest("opendistrosecurity","security","roles")).actionGet().isExists());
+            Assert.assertTrue(tc.get(new GetRequest("opendistrosecurity","security","rolesmapping")).actionGet().isExists());
+            Assert.assertTrue(tc.get(new GetRequest("opendistrosecurity","security","actiongroups")).actionGet().isExists());
+            Assert.assertFalse(tc.get(new GetRequest("opendistrosecurity","security","rolesmapping_xcvdnghtu165759i99465")).actionGet().isExists());
+            Assert.assertTrue(tc.get(new GetRequest("opendistrosecurity","security","config")).actionGet().isExists());
         }
     }
     

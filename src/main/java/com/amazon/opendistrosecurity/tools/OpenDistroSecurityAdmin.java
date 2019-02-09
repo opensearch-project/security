@@ -780,7 +780,7 @@ public class OpenDistroSecurityAdmin {
     
     private static boolean uploadFile(final Client tc, final String filepath, final String index, final String _id, final boolean legacy) {
         
-        String type = "sg";
+        String type = "security";
         String id = _id;
                 
         if(legacy) {
@@ -812,7 +812,7 @@ public class OpenDistroSecurityAdmin {
     
     private static boolean retrieveFile(final Client tc, final String filepath, final String index, final String _id, final boolean legacy) {
         
-        String type = "sg";
+        String type = "security";
         String id = _id;
                 
         if(legacy) {

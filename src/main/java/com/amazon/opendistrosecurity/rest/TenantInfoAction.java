@@ -153,7 +153,7 @@ public class TenantInfoAction extends BaseRestHandler {
 
 			return "__private__";
 		} catch (NumberFormatException e) {
-			log.warn("Index "+index+" looks like a SG tenant index but we cannot parse the hashcode so we ignore it.");
+			log.warn("Index "+index+" looks like a Security tenant index but we cannot parse the hashcode so we ignore it.");
 			return null;
 		}
     }
