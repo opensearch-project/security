@@ -32,18 +32,18 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>com.floragunn</groupId>
-    <artifactId>search-guard-parent</artifactId>
+    <groupId>com.amazon.opendistroforelasticsearch</groupId>
+    <artifactId>elasticsearch-security-parent</artifactId>
     <version>6.22.1</version>
   </parent>
 
-  <artifactId>search-guard-6</artifactId>
+  <artifactId>elasticsearch-security</artifactId>
   <packaging>jar</packaging>
   <!-- 6.x.y-a.b-->
   <version>6.5.4-24.0</version>
-  <name>Search Guard</name>
+  <name>Elasticsearch Security</name>
   <description>Provide access control related features for Elasticsearch 6</description>
-  <url>https://github.com/floragunncom/search-guard</url>
+  <url>https://github.com/mauve-hedgehog/opendistro-elasticsearch-security</url>
   <inceptionYear>2015</inceptionYear>
 
   <licenses>
@@ -55,7 +55,7 @@
   </licenses>
 
   <properties>
-    <sgssl.version>6.5.4-25.5</sgssl.version>
+    <elasticsearch-ssl.version>6.5.4-25.5</elasticsearch-ssl.version>
     <enterprise-modules.version>6.5.4-33.0</enterprise-modules.version>
     <elasticsearch.version>6.5.4</elasticsearch.version>
     
@@ -76,23 +76,23 @@
   </properties>
 
   <scm>
-    <url>https://github.com/floragunncom/search-guard</url>
-    <connection>scm:git:git@github.com:floragunncom/search-guard.git</connection>
-    <developerConnection>scm:git:git@github.com:floragunncom/search-guard.git</developerConnection>
+    <url>https://github.com/mauve-hedgehog/opendistro-elasticsearch-security</url>
+    <connection>scm:git:git@github.com:mauve-hedgehog/opendistro-elasticsearch-security.git</connection>
+    <developerConnection>scm:git:git@github.com:mauve-hedgehog/opendistro-elasticsearch-security.git</developerConnection>
     <tag>v6.5.4-24.0</tag>
   </scm>
 
   <issueManagement>
     <system>GitHub</system>
-    <url>https://github.com/floragunncom/search-guard/issues</url>
+    <url>https://github.com/mauve-hedgehog/opendistro-elasticsearch-security/issues</url>
   </issueManagement>
 
   <dependencies>
-    <!-- Search Guard SSL -->
+    <!-- Elastic Search Security SSL -->
     <dependency>
-      <groupId>com.floragunn</groupId>
-      <artifactId>search-guard-ssl</artifactId>
-      <version>${sgssl.version}</version>
+      <groupId>com.amazon.opendistroforelasticsearch</groupId>
+      <artifactId>elasticsearch-security-ssl</artifactId>
+      <version>${elasticsearch-ssl.version}</version>
     </dependency>
 
     <!-- Netty 4 transport -->
@@ -337,8 +337,8 @@
       </build>
       <dependencies>
         <dependency>
-          <groupId>com.floragunn</groupId>
-          <artifactId>dlic-search-guard-enterprise-modules</artifactId>
+          <groupId>com.amazon.opendistroforelasticsearch</groupId>
+          <artifactId>elasticsearch-security-advanced-modules</artifactId>
           <version>${enterprise-modules.version}</version>
           <exclusions>
             <exclusion>
@@ -407,8 +407,8 @@
       </build>
       <dependencies>
         <dependency>
-          <groupId>com.floragunn</groupId>
-          <artifactId>dlic-search-guard-enterprise-modules</artifactId>
+          <groupId>com.amazon.opendistroforelasticsearch</groupId>
+          <artifactId>elasticsearch-security-advanced-modules</artifactId>
           <version>${enterprise-modules.version}</version>
         </dependency>
         <!-- omit  netty-tcnative and conscrypt-openjdk-uber if scan

@@ -502,7 +502,7 @@ public class ConfigModel {
 
     }
 
-    //sg roles
+    //Security roles
     public static class IndexPattern {
         private final String indexPattern;
         private String dlsQuery;
