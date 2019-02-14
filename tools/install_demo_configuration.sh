@@ -152,7 +152,7 @@ fi
 ES_CONF_DIR=$(dirname "${ES_CONF_FILE}")
 ES_CONF_DIR=`cd "$ES_CONF_DIR" ; pwd`
 
-if [ ! -d "$ES_PLUGINS_DIR/search-guard-6" ]; then
+if [ ! -d "$ES_PLUGINS_DIR/opendistro_security" ]; then
   echo "Search Guard plugin not installed. Quit."
   exit -1
 fi
@@ -160,8 +160,8 @@ fi
 ES_VERSION=("$ES_LIB_PATH/elasticsearch-*.jar")
 ES_VERSION=$(echo $ES_VERSION | sed 's/.*elasticsearch-\(.*\)\.jar/\1/')
 
-SG_VERSION=("$ES_PLUGINS_DIR/search-guard-6/search-guard-6-*.jar")
-SG_VERSION=$(echo $SG_VERSION | sed 's/.*search-guard-6-\(.*\)\.jar/\1/')
+SG_VERSION=("$ES_PLUGINS_DIR/opendistro_security/opendistro_security-*.jar")
+SG_VERSION=$(echo $SG_VERSION | sed 's/.*opendistro_security-\(.*\)\.jar/\1/')
 
 OS=$(sb_release -ds 2>/dev/null || cat /etc/*release 2>/dev/null | head -n1 || uname -om)
 echo "Elasticsearch install type: $ES_INSTALL_TYPE on $OS"
@@ -408,7 +408,7 @@ fi
 
 echo "######## End Search Guard Demo Configuration ########" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null 
 
-$SUDO_CMD chmod +x "$ES_PLUGINS_DIR/search-guard-6/tools/sgadmin.sh"
+$SUDO_CMD chmod +x "$ES_PLUGINS_DIR/opendistro_security/tools/sgadmin.sh"
 
 ES_PLUGINS_DIR=`cd "$ES_PLUGINS_DIR" ; pwd`
 
@@ -416,7 +416,7 @@ echo "### Success"
 echo "### Execute this script now on all your nodes and then start all nodes"
 #Generate sgadmin_demo.sh
 echo "#!/bin/bash" | $SUDO_CMD tee sgadmin_demo.sh > /dev/null 
-echo $SUDO_CMD \""$ES_PLUGINS_DIR/search-guard-6/tools/sgadmin.sh"\" -cd \""$ES_PLUGINS_DIR/search-guard-6/config"\" -icl -key \""$ES_CONF_DIR/kirk-key.pem"\" -cert \""$ES_CONF_DIR/kirk.pem"\" -cacert \""$ES_CONF_DIR/root-ca.pem"\" -nhnv | $SUDO_CMD tee -a sgadmin_demo.sh > /dev/null
+echo $SUDO_CMD \""$ES_PLUGINS_DIR/opendistro_security/tools/sgadmin.sh"\" -cd \""$ES_PLUGINS_DIR/opendistro_security/config"\" -icl -key \""$ES_CONF_DIR/kirk-key.pem"\" -cert \""$ES_CONF_DIR/kirk.pem"\" -cacert \""$ES_CONF_DIR/root-ca.pem"\" -nhnv | $SUDO_CMD tee -a sgadmin_demo.sh > /dev/null
 $SUDO_CMD chmod +x sgadmin_demo.sh
 
 if [ "$initsg" == 0 ]; then
