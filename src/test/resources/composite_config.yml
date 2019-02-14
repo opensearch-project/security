@@ -2,16 +2,16 @@
 # HTTP
 #   basic (challenging) PREAUTH?
 #   proxy (not challenging, needs xff)
-#   kerberos (challenging) NOT FREE FOR COMMERCIAL USE PREAUTH?
+#   kerberos (challenging)  PREAUTH?
 #   clientcert (not challenging, needs https)
 
 # Authc
 #   internal
 #   noop
-#   ldap  NOT FREE FOR COMMERCIAL USE
+#   ldap  
 
 # Authz
-#   ldap  NOT FREE FOR COMMERCIAL USE
+#   ldap  
 #   noop
 
 

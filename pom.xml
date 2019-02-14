@@ -261,7 +261,7 @@
   </build>
   <profiles>
     <profile>
-      <id>enterprise</id>
+      <id>advanced</id>
       <build>
         <plugins>
           <plugin>
