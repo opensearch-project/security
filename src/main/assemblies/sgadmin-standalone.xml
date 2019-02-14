@@ -36,7 +36,7 @@
       <useProjectArtifact>true</useProjectArtifact>
       <unpack>false</unpack>
       <excludes>
-        <exclude>com.floragunn:dlic*</exclude>
+        <exclude>com.amazon.opendistroforelasticsearch:dlic*</exclude>
       </excludes>
     </dependencySet>
   </dependencySets>
