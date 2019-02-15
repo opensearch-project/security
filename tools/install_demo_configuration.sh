@@ -1,7 +1,7 @@
 #!/bin/bash
 #install_demo_configuration.sh [-y]
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-echo "Search Guard 6 Demo Installer"
+echo "OpenDistro for Elasticsearch Security Demo Installer"
 echo " ** Warning: Do not use on production or public reachable systems **"
 
 OPTIND=1
@@ -47,7 +47,7 @@ if [ "$assumeyes" == 0 ]; then
 fi
 
 if [ "$initsg" == 0 ] && [ "$assumeyes" == 0 ]; then
-	read -r -p "Initialize Search Guard? [y/N] " response
+	read -r -p "Initialize Security Modules? [y/N] " response
 	case "$response" in
 	    [yY][eE][sS]|[yY]) 
 	        initsg=1
@@ -61,7 +61,6 @@ fi
 if [ "$cluster_mode" == 0 ] && [ "$assumeyes" == 0 ]; then
     echo "Cluster mode requires maybe additional setup of:"
     echo "  - Virtual memory (vm.max_map_count)"
-    echo "    See https://www.elastic.co/guide/en/elasticsearch/reference/current/vm-max-map-count.html"
     echo ""
 	read -r -p "Enable cluster mode? [y/N] " response
 	case "$response" in
@@ -173,14 +172,14 @@ echo "Elasticsearch lib dir: $ES_LIB_PATH"
 echo "Detected Elasticsearch Version: $ES_VERSION"
 echo "Detected Search Guard Version: $SG_VERSION"
 
-if $SUDO_CMD grep --quiet -i opendistrosecurity "$ES_CONF_FILE"; then
-  echo "$ES_CONF_FILE seems to be already configured for Search Guard. Quit."
+if $SUDO_CMD grep --quiet -i opendistro_security "$ES_CONF_FILE"; then
+  echo "$ES_CONF_FILE seems to be already configured for Security. Quit."
   exit -1
 fi
 
 set +e
 
-read -r -d '' SG_ADMIN_CERT << EOM
+read -r -d '' ADMIN_CERT << EOM
 -----BEGIN CERTIFICATE-----
 MIIEdzCCA1+gAwIBAgIGAWLrc1O4MA0GCSqGSIb3DQEBCwUAMIGPMRMwEQYKCZIm
 iZPyLGQBGRYDY29tMRcwFQYKCZImiZPyLGQBGRYHZXhhbXBsZTEZMBcGA1UECgwQ
@@ -209,7 +208,7 @@ kLmXOFLTcxTQpptxSo5xDD3aTpzWGCvjExCKpXQtsITUOYtZc02AGjjPOQ==
 -----END CERTIFICATE-----
 EOM
 
-read -r -d '' SG_ADMIN_CERT_KEY << EOM
+read -r -d '' ADMIN_CERT_KEY << EOM
 -----BEGIN PRIVATE KEY-----
 MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDCwgBOoO88uMM8
 dREJsk58Yt4Jn0zwQ2wUThbvy3ICDiEWhiAhUbg6dTggpS5vWWJto9bvaaqgMVoh
@@ -331,14 +330,14 @@ EOM
 
 set -e
 
-echo "$SG_ADMIN_CERT" | $SUDO_CMD tee "$ES_CONF_DIR/kirk.pem" > /dev/null
+echo "$ADMIN_CERT" | $SUDO_CMD tee "$ES_CONF_DIR/kirk.pem" > /dev/null
 echo "$NODE_CERT" | $SUDO_CMD tee "$ES_CONF_DIR/esnode.pem" > /dev/null 
 echo "$ROOT_CA" | $SUDO_CMD tee "$ES_CONF_DIR/root-ca.pem" > /dev/null
 echo "$NODE_KEY" | $SUDO_CMD tee "$ES_CONF_DIR/esnode-key.pem" > /dev/null
-echo "$SG_ADMIN_CERT_KEY" | $SUDO_CMD tee "$ES_CONF_DIR/kirk-key.pem" > /dev/null
+echo "$ADMIN_CERT_KEY" | $SUDO_CMD tee "$ES_CONF_DIR/kirk-key.pem" > /dev/null
 
 echo "" | $SUDO_CMD tee -a  "$ES_CONF_FILE"
-echo "######## Start Search Guard Demo Configuration ########" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null 
+echo "######## Start OpenDistro for Elasticsearch Security Demo Configuration ########" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null 
 echo "# WARNING: revise all the lines below before you go into production" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null 
 echo "opendistro_security.ssl.transport.pemcert_filepath: esnode.pem" | $SUDO_CMD tee -a  "$ES_CONF_FILE" > /dev/null
 echo "opendistro_security.ssl.transport.pemkey_filepath: esnode-key.pem" | $SUDO_CMD tee -a  "$ES_CONF_FILE" > /dev/null
@@ -358,7 +357,7 @@ echo "" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
 echo "opendistro_security.audit.type: internal_elasticsearch" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
 echo "opendistro_security.enable_snapshot_restore_privilege: true" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
 echo "opendistro_security.check_snapshot_restore_write_privileges: true" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
-echo 'opendistrosecurity.restapi.roles_enabled: ["opendistro_security_all_access"]' | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
+echo 'opendistrosecurity.restapi.roles_enabled: ["all_access"]' | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
 
 #cluster.routing.allocation.disk.threshold_enabled
 if $SUDO_CMD grep --quiet -i "^cluster.routing.allocation.disk.threshold_enabled" "$ES_CONF_FILE"; then
@@ -397,41 +396,34 @@ else
     echo 'node.max_local_storage_nodes: 3' | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
 fi
 
-#xpack.security.enabled
-if $SUDO_CMD grep --quiet -i "^xpack.security.enabled" "$ES_CONF_FILE"; then
-	: #already present
-else
-    if [ -d "$ES_MODULES_DIR/x-pack-security" ];then
-	    echo "xpack.security.enabled: false" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
-    fi
-fi
 
-echo "######## End Search Guard Demo Configuration ########" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null 
 
-$SUDO_CMD chmod +x "$ES_PLUGINS_DIR/opendistro_security/tools/sgadmin.sh"
+echo "######## End OpenDistro for Elasticsearch Security Demo Configuration ########" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null 
+
+$SUDO_CMD chmod +x "$ES_PLUGINS_DIR/opendistro_security/tools/securityadmin.sh"
 
 ES_PLUGINS_DIR=`cd "$ES_PLUGINS_DIR" ; pwd`
 
 echo "### Success"
 echo "### Execute this script now on all your nodes and then start all nodes"
-#Generate sgadmin_demo.sh
-echo "#!/bin/bash" | $SUDO_CMD tee sgadmin_demo.sh > /dev/null 
-echo $SUDO_CMD \""$ES_PLUGINS_DIR/opendistro_security/tools/sgadmin.sh"\" -cd \""$ES_PLUGINS_DIR/opendistro_security/securityconfig"\" -icl -key \""$ES_CONF_DIR/kirk-key.pem"\" -cert \""$ES_CONF_DIR/kirk.pem"\" -cacert \""$ES_CONF_DIR/root-ca.pem"\" -nhnv | $SUDO_CMD tee -a sgadmin_demo.sh > /dev/null
-$SUDO_CMD chmod +x sgadmin_demo.sh
+#Generate securityadmin_demo.sh
+echo "#!/bin/bash" | $SUDO_CMD tee securityadmin_demo.sh > /dev/null 
+echo $SUDO_CMD \""$ES_PLUGINS_DIR/opendistro_security/tools/securityadmin.sh"\" -cd \""$ES_PLUGINS_DIR/opendistro_security/securityconfig"\" -icl -key \""$ES_CONF_DIR/kirk-key.pem"\" -cert \""$ES_CONF_DIR/kirk.pem"\" -cacert \""$ES_CONF_DIR/root-ca.pem"\" -nhnv | $SUDO_CMD tee -a securityadmin_demo.sh > /dev/null
+$SUDO_CMD chmod +x securityadmin_demo.sh
 
 if [ "$initsg" == 0 ]; then
 	echo "### After the whole cluster is up execute: "
-	$SUDO_CMD cat sgadmin_demo.sh | tail -1
-	echo "### or run ./sgadmin_demo.sh"
+	$SUDO_CMD cat securityadmin_demo.sh | tail -1
+	echo "### or run ./securityadmin_demo.sh"
     echo "### After that you can also use the Security Plugin ConfigurationGUI"
 else
     echo "### Search Guard will be automatically initialized."
     echo "### If you like to change the runtime configuration "
     echo "### change the files in ../securityconfig and execute: "
-	$SUDO_CMD cat sgadmin_demo.sh | tail -1
-	echo "### or run ./sgadmin_demo.sh"
+	$SUDO_CMD cat securityadmin_demo.sh | tail -1
+	echo "### or run ./securityadmin_demo.sh"
 	echo "### To use the Security Plugin ConfigurationGUI"
 fi
 
-echo "### To access your Search Guard secured cluster open https://<hostname>:<HTTP port> and log in with admin/admin."
+echo "### To access your secured cluster open https://<hostname>:<HTTP port> and log in with admin/admin."
 echo "### (Ignore the SSL certificate warning because we installed self-signed demo certificates)"
