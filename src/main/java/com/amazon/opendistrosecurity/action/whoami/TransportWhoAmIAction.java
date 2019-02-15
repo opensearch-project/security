@@ -64,8 +64,8 @@ HandledTransportAction<WhoAmIRequest, WhoAmIResponse> {
 
     @Override
     protected void doExecute(WhoAmIRequest request, ActionListener<WhoAmIResponse> listener) {
-        final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTROSECURITY_USER);
-        final String dn = user==null?threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_PRINCIPAL):user.getName();
+        final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        final String dn = user==null?threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PRINCIPAL):user.getName();
         final boolean isAdmin = adminDNs.isAdminDN(dn);
         final boolean isAuthenticated = isAdmin?true: user != null;
         final boolean isNodeCertificateRequest = HeaderHelper.isInterClusterRequest(threadPool.getThreadContext()) || 

@@ -1,4 +1,4 @@
-opendistrosecurity_esb_1:
+opendistro_security_esb_1:
   cluster:
     - CLUSTER_COMPOSITE_OPS
   indices:
@@ -6,7 +6,7 @@ opendistrosecurity_esb_1:
       '*':
         - '*'
 
-opendistrosecurity_esb_3:
+opendistro_security_esb_3:
   cluster:
     - CLUSTER_COMPOSITE_OPS
   indices:
@@ -14,7 +14,7 @@ opendistrosecurity_esb_3:
       '*':
         - '*'
 
-opendistrosecurity_esb_5:
+opendistro_security_esb_5:
   cluster:
     - CLUSTER_COMPOSITE_OPS
   indices:

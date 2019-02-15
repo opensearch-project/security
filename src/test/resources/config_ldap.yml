@@ -1,4 +1,4 @@
-opendistrosecurity:
+opendistro_security:
   dynamic:
     http:
       xff:

@@ -73,16 +73,16 @@ public class DlsFlsEvaluator {
         final Map<String, Set<String>> maskedFieldsMap = securityRoles.getMaskedFields(user, resolver, clusterService);
 
         if (maskedFieldsMap != null && !maskedFieldsMap.isEmpty()) {
-            if (threadContext.getHeader(ConfigConstants.OPENDISTROSECURITY_MASKED_FIELD_HEADER) != null) {
-                if (!maskedFieldsMap.equals(Base64Helper.deserializeObject(threadContext.getHeader(ConfigConstants.OPENDISTROSECURITY_MASKED_FIELD_HEADER)))) {
-                    throw new ElasticsearchSecurityException(ConfigConstants.OPENDISTROSECURITY_MASKED_FIELD_HEADER + " does not match (Security 901D)");
+            if (threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER) != null) {
+                if (!maskedFieldsMap.equals(Base64Helper.deserializeObject(threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER)))) {
+                    throw new ElasticsearchSecurityException(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER + " does not match (Security 901D)");
                 } else {
                     if (log.isDebugEnabled()) {
-                        log.debug(ConfigConstants.OPENDISTROSECURITY_MASKED_FIELD_HEADER + " already set");
+                        log.debug(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER + " already set");
                     }
                 }
             } else {
-                threadContext.putHeader(ConfigConstants.OPENDISTROSECURITY_MASKED_FIELD_HEADER, Base64Helper.serializeObject((Serializable) maskedFieldsMap));
+                threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER, Base64Helper.serializeObject((Serializable) maskedFieldsMap));
                 if (log.isDebugEnabled()) {
                     log.debug("attach masked fields info: {}", maskedFieldsMap);
                 }
@@ -110,12 +110,12 @@ public class DlsFlsEvaluator {
 
         if (!dlsQueries.isEmpty()) {
 
-            if (threadContext.getHeader(ConfigConstants.OPENDISTROSECURITY_DLS_QUERY_HEADER) != null) {
-                if (!dlsQueries.equals(Base64Helper.deserializeObject(threadContext.getHeader(ConfigConstants.OPENDISTROSECURITY_DLS_QUERY_HEADER)))) {
-                    throw new ElasticsearchSecurityException(ConfigConstants.OPENDISTROSECURITY_DLS_QUERY_HEADER + " does not match (Security 900D)");
+            if (threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER) != null) {
+                if (!dlsQueries.equals(Base64Helper.deserializeObject(threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER)))) {
+                    throw new ElasticsearchSecurityException(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER + " does not match (Security 900D)");
                 }
             } else {
-                threadContext.putHeader(ConfigConstants.OPENDISTROSECURITY_DLS_QUERY_HEADER, Base64Helper.serializeObject((Serializable) dlsQueries));
+                threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER, Base64Helper.serializeObject((Serializable) dlsQueries));
                 if (log.isDebugEnabled()) {
                     log.debug("attach DLS info: {}", dlsQueries);
                 }
@@ -136,16 +136,16 @@ public class DlsFlsEvaluator {
 
         if (!flsFields.isEmpty()) {
 
-            if (threadContext.getHeader(ConfigConstants.OPENDISTROSECURITY_FLS_FIELDS_HEADER) != null) {
-                if (!flsFields.equals(Base64Helper.deserializeObject(threadContext.getHeader(ConfigConstants.OPENDISTROSECURITY_FLS_FIELDS_HEADER)))) {
-                    throw new ElasticsearchSecurityException(ConfigConstants.OPENDISTROSECURITY_FLS_FIELDS_HEADER + " does not match (Security 901D)");
+            if (threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER) != null) {
+                if (!flsFields.equals(Base64Helper.deserializeObject(threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER)))) {
+                    throw new ElasticsearchSecurityException(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER + " does not match (Security 901D)");
                 } else {
                     if (log.isDebugEnabled()) {
-                        log.debug(ConfigConstants.OPENDISTROSECURITY_FLS_FIELDS_HEADER + " already set");
+                        log.debug(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER + " already set");
                     }
                 }
             } else {
-                threadContext.putHeader(ConfigConstants.OPENDISTROSECURITY_FLS_FIELDS_HEADER, Base64Helper.serializeObject((Serializable) flsFields));
+                threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER, Base64Helper.serializeObject((Serializable) flsFields));
                 if (log.isDebugEnabled()) {
                     log.debug("attach FLS info: {}", flsFields);
                 }

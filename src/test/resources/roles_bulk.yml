@@ -1,4 +1,4 @@
-opendistrosecurity_bulk:
+opendistro_security_bulk:
   cluster:
     - indices:data/write/bulk
   indices:

@@ -87,7 +87,7 @@ public class TenantInfoAction extends BaseRestHandler {
                 
                 try {
 
-                    final User user = (User)threadContext.getTransient(ConfigConstants.OPENDISTROSECURITY_USER);
+                    final User user = (User)threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
                     
                     //only allowed for admins or the kibanaserveruser
                     if(user == null || 

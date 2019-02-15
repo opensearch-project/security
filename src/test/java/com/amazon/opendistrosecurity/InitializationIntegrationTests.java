@@ -67,10 +67,10 @@ public class InitializationIntegrationTests extends SingleClusterTest {
     public void testEnsureInitViaRestDoesWork() throws Exception {
         
         final Settings settings = Settings.builder()
-                .put(SSLConfigConstants.OPENDISTROSECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
-                .put("opendistrosecurity.ssl.http.enabled",true)
-                .put("opendistrosecurity.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-                .put("opendistrosecurity.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
+                .put("opendistro_security.ssl.http.enabled",true)
+                .put("opendistro_security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+                .put("opendistro_security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
                 .build();
         setup(Settings.EMPTY, null, settings, false);
         final RestHelper rh = restHelper(); //ssl resthelper
@@ -161,10 +161,10 @@ public class InitializationIntegrationTests extends SingleClusterTest {
             TransportAddress TransportAddress = (TransportAddress) iterator.next();
             HttpResponse res = rh.executeRequest(new HttpGet("http://"+TransportAddress.getAddress()+":"+TransportAddress.getPort() + "/" + "_opendistro/_security/authinfo?pretty=true"));
             log.debug(res.getBody());
-            Assert.assertTrue(res.getBody().contains("opendistrosecurity_role_host1"));
-            Assert.assertTrue(res.getBody().contains("opendistrosecurity_anonymous"));
-            Assert.assertTrue(res.getBody().contains("name=opendistrosecurity_anonymous"));
-            Assert.assertTrue(res.getBody().contains("roles=[opendistrosecurity_anonymous_backendrole]"));
+            Assert.assertTrue(res.getBody().contains("opendistro_security_role_host1"));
+            Assert.assertTrue(res.getBody().contains("opendistro_security_anonymous"));
+            Assert.assertTrue(res.getBody().contains("name=opendistro_security_anonymous"));
+            Assert.assertTrue(res.getBody().contains("roles=[opendistro_security_anonymous_backendrole]"));
             Assert.assertEquals(200, res.getStatusCode());
         }
     }
@@ -174,7 +174,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         
         System.setProperty("sg.default_init.dir", new File("./securityconfig").getAbsolutePath());
         final Settings settings = Settings.builder()
-                .put(ConfigConstants.OPENDISTROSECURITY_ALLOW_DEFAULT_INIT_SGINDEX, true)
+                .put(ConfigConstants.OPENDISTRO_SECURITY_ALLOW_DEFAULT_INIT_SGINDEX, true)
                 .build();
         setup(Settings.EMPTY, null, settings, false);
         RestHelper rh = nonSslRestHelper();
@@ -186,7 +186,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
     @Test
     public void testDisabled() throws Exception {
     
-        final Settings settings = Settings.builder().put("opendistrosecurity.disabled", true).build();
+        final Settings settings = Settings.builder().put("opendistro_security.disabled", true).build();
         
         setup(Settings.EMPTY, null, settings, false);
         RestHelper rh = nonSslRestHelper();

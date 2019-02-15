@@ -253,8 +253,8 @@ class RemoteIpDetector {
                 }
                 
                 //TODO check put in thread context
-                threadContext.putTransient(ConfigConstants.OPENDISTROSECURITY_XFF_DONE, Boolean.TRUE);
-                //request.putInContext(ConfigConstants.OPENDISTROSECURITY_XFF_DONE, Boolean.TRUE);
+                threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_XFF_DONE, Boolean.TRUE);
+                //request.putInContext(ConfigConstants.OPENDISTRO_SECURITY_XFF_DONE, Boolean.TRUE);
                 return remoteIp;
                 
             } else {

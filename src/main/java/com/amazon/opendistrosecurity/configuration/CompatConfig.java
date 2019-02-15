@@ -57,7 +57,7 @@ public class CompatConfig implements ConfigurationChangeListener {
     
     //true is default
     public boolean restAuthEnabled() {
-        final boolean restInitiallyDisabled = staticSettings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_UNSUPPORTED_DISABLE_REST_AUTH_INITIALLY, false);
+        final boolean restInitiallyDisabled = staticSettings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_DISABLE_REST_AUTH_INITIALLY, false);
         
         if(restInitiallyDisabled) {
             if(dynamicSecurityConfig == null) {
@@ -66,9 +66,9 @@ public class CompatConfig implements ConfigurationChangeListener {
                 }
                 return false;
             } else {
-                final boolean restDynamicallyDisabled = dynamicSecurityConfig.getAsBoolean("opendistrosecurity.dynamic.disable_rest_auth", false);
+                final boolean restDynamicallyDisabled = dynamicSecurityConfig.getAsBoolean("opendistro_security.dynamic.disable_rest_auth", false);
                 if(log.isTraceEnabled()) {
-                    log.trace("opendistrosecurity.dynamic.disable_rest_auth {}", restDynamicallyDisabled);
+                    log.trace("opendistro_security.dynamic.disable_rest_auth {}", restDynamicallyDisabled);
                 }
                 return !restDynamicallyDisabled;
             }
@@ -80,7 +80,7 @@ public class CompatConfig implements ConfigurationChangeListener {
     
     //true is default
     public boolean transportInterClusterAuthEnabled() {
-        final boolean interClusterAuthInitiallyDisabled = staticSettings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_UNSUPPORTED_DISABLE_INTERTRANSPORT_AUTH_INITIALLY, false);
+        final boolean interClusterAuthInitiallyDisabled = staticSettings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_DISABLE_INTERTRANSPORT_AUTH_INITIALLY, false);
         
         if(interClusterAuthInitiallyDisabled) {
             if(dynamicSecurityConfig == null) {
@@ -89,9 +89,9 @@ public class CompatConfig implements ConfigurationChangeListener {
                 }
                 return false;
             } else {
-                final boolean interClusterAuthDynamicallyDisabled = dynamicSecurityConfig.getAsBoolean("opendistrosecurity.dynamic.disable_intertransport_auth", false);
+                final boolean interClusterAuthDynamicallyDisabled = dynamicSecurityConfig.getAsBoolean("opendistro_security.dynamic.disable_intertransport_auth", false);
                 if(log.isTraceEnabled()) {
-                    log.trace("opendistrosecurity.dynamic.disable_intertransport_auth {}", interClusterAuthDynamicallyDisabled);
+                    log.trace("opendistro_security.dynamic.disable_intertransport_auth {}", interClusterAuthDynamicallyDisabled);
                 }
                 return !interClusterAuthDynamicallyDisabled;
             }

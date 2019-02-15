@@ -16,7 +16,7 @@
 
 
 
-opendistrosecurity:
+opendistro_security:
   dynamic:
     composite_enabled: true
     http:

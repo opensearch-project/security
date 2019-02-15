@@ -54,8 +54,8 @@ public final class DefaultInterClusterRequestEvaluator implements InterClusterRe
     private final List<String> nodesDn;
 
     public DefaultInterClusterRequestEvaluator(final Settings settings) {
-        this.certOid = settings.get(ConfigConstants.OPENDISTROSECURITY_CERT_OID, "1.2.3.4.5.5");
-        this.nodesDn = settings.getAsList(ConfigConstants.OPENDISTROSECURITY_NODES_DN, Collections.emptyList());
+        this.certOid = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CERT_OID, "1.2.3.4.5.5");
+        this.nodesDn = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_NODES_DN, Collections.emptyList());
     }
 
     @Override

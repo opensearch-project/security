@@ -16,7 +16,7 @@
 
 
 
-opendistrosecurity:
+opendistro_security:
   dynamic:
     transport_userrname_attribute: O
     filtered_alias_mode: disallow

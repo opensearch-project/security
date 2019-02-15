@@ -16,7 +16,7 @@
 
 
 
-opendistrosecurity:
+opendistro_security:
   dynamic:
     filtered_alias_mode: disallow
     do_not_fail_on_forbidden: true

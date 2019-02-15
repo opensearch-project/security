@@ -62,7 +62,7 @@ public class UserInjector {
         this.threadPool = threadPool;
         this.auditLog = auditLog;
         this.xffResolver = xffResolver;
-        this.injectUserEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_UNSUPPORTED_INJECT_USER_ENABLED, false);
+        this.injectUserEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, false);
 
     }
 
@@ -72,7 +72,7 @@ public class UserInjector {
             return false;
         }
 
-        String injectedUserString = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTROSECURITY_INJECTED_USER);
+        String injectedUserString = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER);
 
         if (log.isDebugEnabled()) {
             log.debug("Injected user string: {}", injectedUserString);
@@ -132,20 +132,20 @@ public class UserInjector {
                 try {
                     InetAddress iAdress = InetAddress.getByName(ipAndPort[0]);
                     int port = Integer.parseInt(ipAndPort[1]);
-                    threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTROSECURITY_REMOTE_ADDRESS, new TransportAddress(iAdress, port));
+                    threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, new TransportAddress(iAdress, port));
                 } catch (UnknownHostException | NumberFormatException e) {
                     log.error("Cannot parse remote IP or port: {}, user injection failed.", parts[2], e);
                     return false;
                 }
             }
         } else {
-            threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTROSECURITY_REMOTE_ADDRESS, xffResolver.resolve(request));
+            threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, xffResolver.resolve(request));
         }
 
         // mark user injected for proper admin handling
         user.setInjected(true);
 
-        threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTROSECURITY_USER, user);
+        threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
         auditLog.logSucceededLogin(parts[0], true, null, request);
         if (log.isTraceEnabled()) {
             log.trace("Injected user object:{} ", user.toString());

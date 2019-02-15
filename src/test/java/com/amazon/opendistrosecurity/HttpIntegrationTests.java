@@ -64,7 +64,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
     @Test
     public void testHTTPBasic() throws Exception {
         final Settings settings = Settings.builder()
-                .putList(ConfigConstants.OPENDISTROSECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "knuddel","nonexists")
+                .putList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "knuddel","nonexists")
                 .build();
         setup(settings);
         final RestHelper rh = nonSslRestHelper();
@@ -194,7 +194,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
             Assert.assertTrue(res.getBody().contains("\"errors\":false"));
             Assert.assertTrue(res.getBody().contains("\"status\":201"));  
             
-            res = rh.executeGetRequest("_opendistro/_security/authinfo", new BasicHeader("opendistrosecurity_tenant", "unittesttenant"), encodeBasicHeader("worf", "worf"));
+            res = rh.executeGetRequest("_opendistro/_security/authinfo", new BasicHeader("opendistro_security_tenant", "unittesttenant"), encodeBasicHeader("worf", "worf"));
             Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
             Assert.assertTrue(res.getBody().contains("tenants"));
             Assert.assertTrue(res.getBody().contains("unittesttenant"));
@@ -243,24 +243,24 @@ public class HttpIntegrationTests extends SingleClusterTest {
             Assert.assertTrue(res.getBody().contains("\"failures\" : [ ]"));
             
             //rest impersonation
-            res = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("opendistrosecurity_impersonate_as","knuddel"), encodeBasicHeader("worf", "worf"));
+            res = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("opendistro_security_impersonate_as","knuddel"), encodeBasicHeader("worf", "worf"));
             Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
             Assert.assertTrue(res.getBody().contains("name=knuddel"));
             Assert.assertFalse(res.getBody().contains("worf"));
             
-            res = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("opendistrosecurity_impersonate_as","nonexists"), encodeBasicHeader("worf", "worf"));
+            res = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("opendistro_security_impersonate_as","nonexists"), encodeBasicHeader("worf", "worf"));
             Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
             
-            res = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("opendistrosecurity_impersonate_as","notallowed"), encodeBasicHeader("worf", "worf"));
+            res = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("opendistro_security_impersonate_as","notallowed"), encodeBasicHeader("worf", "worf"));
             Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
         }
 
     @Test
     public void testHTTPSCompressionEnabled() throws Exception {
         final Settings settings = Settings.builder()
-                .put("opendistrosecurity.ssl.http.enabled",true)
-                .put("opendistrosecurity.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-                .put("opendistrosecurity.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+                .put("opendistro_security.ssl.http.enabled",true)
+                .put("opendistro_security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+                .put("opendistro_security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
                 .put("http.compression",true)
                 .build();
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings, true);
@@ -280,9 +280,9 @@ public class HttpIntegrationTests extends SingleClusterTest {
     @Test
     public void testHTTPSCompression() throws Exception {
         final Settings settings = Settings.builder()
-                .put("opendistrosecurity.ssl.http.enabled",true)
-                .put("opendistrosecurity.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-                .put("opendistrosecurity.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+                .put("opendistro_security.ssl.http.enabled",true)
+                .put("opendistro_security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+                .put("opendistro_security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
                 .build();
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings, true);
         final RestHelper rh = restHelper(); //ssl resthelper
@@ -311,7 +311,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
     
             HttpResponse resc = rh.executeGetRequest("_opendistro/_security/authinfo");
             System.out.println(resc.getBody());
-            Assert.assertTrue(resc.getBody().contains("opendistrosecurity_anonymous"));
+            Assert.assertTrue(resc.getBody().contains("opendistro_security_anonymous"));
             Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
             
             resc = rh.executeGetRequest("_opendistro/_security/authinfo?pretty=true");
@@ -322,7 +322,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
             resc = rh.executeGetRequest("_opendistro/_security/authinfo", encodeBasicHeader("nagilum", "nagilum"));
             System.out.println(resc.getBody());
             Assert.assertTrue(resc.getBody().contains("nagilum"));
-            Assert.assertFalse(resc.getBody().contains("opendistrosecurity_anonymous"));
+            Assert.assertFalse(resc.getBody().contains("opendistro_security_anonymous"));
             Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
             
             try (TransportClient tc = getInternalTransportClient()) {    
@@ -342,14 +342,14 @@ public class HttpIntegrationTests extends SingleClusterTest {
     @Test
     public void testHTTPClientCert() throws Exception {
         final Settings settings = Settings.builder()
-                .put("opendistrosecurity.ssl.http.clientauth_mode","REQUIRE")
-                .put("opendistrosecurity.ssl.http.enabled",true)
-                .put("opendistrosecurity.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-                .put("opendistrosecurity.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
-                .putList(SSLConfigConstants.OPENDISTROSECURITY_SSL_HTTP_ENABLED_PROTOCOLS, "TLSv1.1","TLSv1.2")
-                .putList(SSLConfigConstants.OPENDISTROSECURITY_SSL_HTTP_ENABLED_CIPHERS, "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256")
-                .putList(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, "TLSv1.1","TLSv1.2")
-                .putList(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256")
+                .put("opendistro_security.ssl.http.clientauth_mode","REQUIRE")
+                .put("opendistro_security.ssl.http.enabled",true)
+                .put("opendistro_security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+                .put("opendistro_security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+                .putList(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLED_PROTOCOLS, "TLSv1.1","TLSv1.2")
+                .putList(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLED_CIPHERS, "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256")
+                .putList(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, "TLSv1.1","TLSv1.2")
+                .putList(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256")
                 .build();
         
         setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_clientcert.yml"), settings, true);
@@ -383,9 +383,9 @@ public class HttpIntegrationTests extends SingleClusterTest {
         
         try {
             final Settings settings = Settings.builder()
-                    .put("opendistrosecurity.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-                    .put("opendistrosecurity.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
-                    .put("opendistrosecurity.ssl.http.enabled", true)
+                    .put("opendistro_security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+                    .put("opendistro_security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+                    .put("opendistro_security.ssl.http.enabled", true)
                     .build();
             setup(settings);
             RestHelper rh = nonSslRestHelper();
@@ -523,7 +523,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
     @Test
     public void testBulk() throws Exception {
         final Settings settings = Settings.builder()
-                .put(ConfigConstants.OPENDISTROSECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
+                .put(ConfigConstants.OPENDISTRO_SECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
                 .build();
         setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityRoles("roles_bulk.yml"), settings);
         final RestHelper rh = nonSslRestHelper();
@@ -544,7 +544,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
     @Test
     public void test557() throws Exception {
         final Settings settings = Settings.builder()
-                .put(ConfigConstants.OPENDISTROSECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
+                .put(ConfigConstants.OPENDISTRO_SECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
                 .build();
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings);
         
@@ -575,7 +575,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
     @Test
     public void testITT1635() throws Exception {
         final Settings settings = Settings.builder()
-                .put(ConfigConstants.OPENDISTROSECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
+                .put(ConfigConstants.OPENDISTRO_SECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
                 .build();
         setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_dnfof.yml").setSecurityRoles("roles_itt1635.yml"), settings);
         
@@ -669,13 +669,13 @@ public class HttpIntegrationTests extends SingleClusterTest {
     @Test
     public void testRestImpersonation() throws Exception {
         final Settings settings = Settings.builder()
-                .putList(ConfigConstants.OPENDISTROSECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "someotherusernotininternalusersfile")
+                .putList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "someotherusernotininternalusersfile")
                 .build();
         setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_rest_impersonation.yml"), settings);
         final RestHelper rh = nonSslRestHelper();
         
         //rest impersonation
-        HttpResponse res = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("opendistrosecurity_impersonate_as","someotherusernotininternalusersfile"), encodeBasicHeader("worf", "worf"));
+        HttpResponse res = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("opendistro_security_impersonate_as","someotherusernotininternalusersfile"), encodeBasicHeader("worf", "worf"));
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         Assert.assertTrue(res.getBody().contains("name=someotherusernotininternalusersfile"));
         Assert.assertFalse(res.getBody().contains("worf"));

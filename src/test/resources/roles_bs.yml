@@ -1,4 +1,4 @@
-opendistrosecurity_public:
+opendistro_security_public:
   cluster:
     - CLUSTER_COMPOSITE_OPS
   indices:
@@ -8,7 +8,7 @@ opendistrosecurity_public:
         - indices:admin/mapping/put
         - indices:data/write/bulk[s]
 
-opendistrosecurity_all_access:
+opendistro_security_all_access:
   cluster:
     - '*'
   indices:
@@ -16,7 +16,7 @@ opendistrosecurity_all_access:
       '*':  
         - ALL
 
-opendistrosecurity_role_klingons1:
+opendistro_security_role_klingons1:
   indices:
     test:
       '*':  

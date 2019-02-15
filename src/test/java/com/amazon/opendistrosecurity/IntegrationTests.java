@@ -83,7 +83,7 @@ public class IntegrationTests extends SingleClusterTest {
         });
         
     final Settings settings = Settings.builder()
-            .putList(ConfigConstants.OPENDISTROSECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "knuddel","nonexists")
+            .putList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "knuddel","nonexists")
             .build();
     setup(settings);
     final RestHelper rh = nonSslRestHelper();
@@ -186,7 +186,7 @@ public class IntegrationTests extends SingleClusterTest {
     
     private ThreadContext newThreadContext(String sslPrincipal) {
         ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
-        threadContext.putTransient(ConfigConstants.OPENDISTROSECURITY_SSL_PRINCIPAL, sslPrincipal);
+        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL, sslPrincipal);
         return threadContext;
     }
 
@@ -194,18 +194,18 @@ public class IntegrationTests extends SingleClusterTest {
     public void testDNSpecials() throws Exception {
     
         final Settings settings = Settings.builder()
-                .put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("node-untspec5-keystore.p12"))
-                .put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "1")
-                .put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, "PKCS12")
-                .putList("opendistrosecurity.nodes_dn", "EMAILADDRESS=unt@tst.com,CN=node-untspec5.example.com,OU=SSL,O=Te\\, st,L=Test,C=DE")
-                .putList("opendistrosecurity.authcz.admin_dn", "EMAILADDRESS=unt@xxx.com,CN=node-untspec6.example.com,OU=SSL,O=Te\\, st,L=Test,C=DE")
-                .put("opendistrosecurity.cert.oid","1.2.3.4.5.6")
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("node-untspec5-keystore.p12"))
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "1")
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, "PKCS12")
+                .putList("opendistro_security.nodes_dn", "EMAILADDRESS=unt@tst.com,CN=node-untspec5.example.com,OU=SSL,O=Te\\, st,L=Test,C=DE")
+                .putList("opendistro_security.authcz.admin_dn", "EMAILADDRESS=unt@xxx.com,CN=node-untspec6.example.com,OU=SSL,O=Te\\, st,L=Test,C=DE")
+                .put("opendistro_security.cert.oid","1.2.3.4.5.6")
                 .build();
         
         
         Settings tcSettings = Settings.builder()
-                .put("opendistrosecurity.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-untspec6-keystore.p12"))
-                .put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, "PKCS12")
+                .put("opendistro_security.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-untspec6-keystore.p12"))
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, "PKCS12")
                 .build();
         
         setup(tcSettings, new DynamicSecurityConfig(), settings, true);
@@ -220,18 +220,18 @@ public class IntegrationTests extends SingleClusterTest {
     public void testDNSpecials1() throws Exception {
     
         final Settings settings = Settings.builder()
-                .put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("node-untspec5-keystore.p12"))
-                .put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "1")
-                .put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, "PKCS12")
-                .putList("opendistrosecurity.nodes_dn", "EMAILADDRESS=unt@tst.com,CN=node-untspec5.example.com,OU=SSL,O=Te\\, st,L=Test,C=DE")
-                .putList("opendistrosecurity.authcz.admin_dn", "EMAILADDREss=unt@xxx.com,  cn=node-untspec6.example.com, OU=SSL,O=Te\\, st,L=Test, c=DE")
-                .put("opendistrosecurity.cert.oid","1.2.3.4.5.6")
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("node-untspec5-keystore.p12"))
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "1")
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, "PKCS12")
+                .putList("opendistro_security.nodes_dn", "EMAILADDRESS=unt@tst.com,CN=node-untspec5.example.com,OU=SSL,O=Te\\, st,L=Test,C=DE")
+                .putList("opendistro_security.authcz.admin_dn", "EMAILADDREss=unt@xxx.com,  cn=node-untspec6.example.com, OU=SSL,O=Te\\, st,L=Test, c=DE")
+                .put("opendistro_security.cert.oid","1.2.3.4.5.6")
                 .build();
         
         
         Settings tcSettings = Settings.builder()
-                .put("opendistrosecurity.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-untspec6-keystore.p12"))
-                .put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, "PKCS12")
+                .put("opendistro_security.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-untspec6-keystore.p12"))
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, "PKCS12")
                 .build();
         
         setup(tcSettings, new DynamicSecurityConfig(), settings, true);
@@ -257,7 +257,7 @@ public class IntegrationTests extends SingleClusterTest {
             tc.index(new IndexRequest("mindex2").type("type").id("2").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":2}", XContentType.JSON)).actionGet();
         }
     
-        //opendistrosecurity_multiget -> picard
+        //opendistro_security_multiget -> picard
         
         
             String mgetBody = "{"+
@@ -287,7 +287,7 @@ public class IntegrationTests extends SingleClusterTest {
     public void testRestImpersonation() throws Exception {
     
         final Settings settings = Settings.builder()
-                 .putList(ConfigConstants.OPENDISTROSECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".spock", "knuddel","userwhonotexists").build();
+                 .putList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".spock", "knuddel","userwhonotexists").build();
  
         setup(settings);
         
@@ -297,19 +297,19 @@ public class IntegrationTests extends SingleClusterTest {
         //    hash: _rest_impersonation_only_
     
         HttpResponse resp;
-        resp = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("opendistrosecurity_impersonate_as", "knuddel"), encodeBasicHeader("worf", "worf"));
+        resp = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("opendistro_security_impersonate_as", "knuddel"), encodeBasicHeader("worf", "worf"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resp.getStatusCode());
     
-        resp = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("opendistrosecurity_impersonate_as", "knuddel"), encodeBasicHeader("spock", "spock"));
+        resp = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("opendistro_security_impersonate_as", "knuddel"), encodeBasicHeader("spock", "spock"));
         Assert.assertEquals(HttpStatus.SC_OK, resp.getStatusCode());
         Assert.assertTrue(resp.getBody().contains("name=knuddel"));
         Assert.assertFalse(resp.getBody().contains("spock"));
         
-        resp = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("opendistrosecurity_impersonate_as", "userwhonotexists"), encodeBasicHeader("spock", "spock"));
+        resp = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("opendistro_security_impersonate_as", "userwhonotexists"), encodeBasicHeader("spock", "spock"));
         System.out.println(resp.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resp.getStatusCode());
     
-        resp = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("opendistrosecurity_impersonate_as", "invalid"), encodeBasicHeader("spock", "spock"));
+        resp = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("opendistro_security_impersonate_as", "invalid"), encodeBasicHeader("spock", "spock"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resp.getStatusCode());
     }
 
@@ -326,7 +326,7 @@ public class IntegrationTests extends SingleClusterTest {
         }
     
         RestHelper rh = nonSslRestHelper();
-        //opendistrosecurity_shakespeare -> picard
+        //opendistro_security_shakespeare -> picard
     
         HttpResponse resc = rh.executeGetRequest("shakespeare/_search", encodeBasicHeader("picard", "picard"));
         System.out.println(resc.getBody());
@@ -476,7 +476,7 @@ public class IntegrationTests extends SingleClusterTest {
     @Test
     public void testUpdate() throws Exception {
         final Settings settings = Settings.builder()
-                .put(ConfigConstants.OPENDISTROSECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
+                .put(ConfigConstants.OPENDISTRO_SECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
                 .build();
         setup(settings);
         final RestHelper rh = nonSslRestHelper();
@@ -498,7 +498,7 @@ public class IntegrationTests extends SingleClusterTest {
     public void testDnfof() throws Exception {
 
         final Settings settings = Settings.builder()
-                .put(ConfigConstants.OPENDISTROSECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
+                .put(ConfigConstants.OPENDISTRO_SECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
                 .build();
 
         setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_dnfof.yml"), settings);
@@ -673,7 +673,7 @@ public class IntegrationTests extends SingleClusterTest {
     public void testNoDnfof() throws Exception {
 
         final Settings settings = Settings.builder()
-                .put(ConfigConstants.OPENDISTROSECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
+                .put(ConfigConstants.OPENDISTRO_SECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
                 .build();
 
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings);

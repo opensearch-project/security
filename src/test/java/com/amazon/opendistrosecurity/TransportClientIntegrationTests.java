@@ -66,7 +66,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 	public void testTransportClient() throws Exception {
 
 		final Settings settings = Settings.builder()
-				.putList(ConfigConstants.OPENDISTROSECURITY_AUTHCZ_IMPERSONATION_DN+".CN=spock,OU=client,O=client,L=Test,C=DE", "worf", "nagilum")
+				.putList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_IMPERSONATION_DN+".CN=spock,OU=client,O=client,L=Test,C=DE", "worf", "nagilum")
 				.put("discovery.initial_state_timeout","8s")
 				.build();
 		setup(settings);
@@ -78,8 +78,8 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 
 		Settings tcSettings = Settings.builder()
 				.put(settings)
-				.put("opendistrosecurity.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("spock-keystore.jks"))
-				.put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS,"spock")
+				.put("opendistro_security.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("spock-keystore.jks"))
+				.put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS,"spock")
 				.build();
 
 		System.out.println("------- 0 ---------");
@@ -143,7 +143,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 
 				StoredContext ctx = tc.threadPool().getThreadContext().stashContext();
 				try {
-					tc.threadPool().getThreadContext().putHeader("opendistrosecurity_impersonate_as", "worf");
+					tc.threadPool().getThreadContext().putHeader("opendistro_security_impersonate_as", "worf");
 					gr = tc.prepareGet("vulcan", "secrets", "s1").get();
 				} finally {
 					ctx.close();
@@ -187,7 +187,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			try {
 				ctx = tc.threadPool().getThreadContext().stashContext();
 				try {
-					tc.threadPool().getThreadContext().putHeader("opendistrosecurity_impersonate_as", "gkar");
+					tc.threadPool().getThreadContext().putHeader("opendistro_security_impersonate_as", "gkar");
 					gr = tc.prepareGet("vulcan", "secrets", "s1").get();
 					Assert.fail();
 				} finally {
@@ -202,7 +202,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
-				tc.threadPool().getThreadContext().putHeader("opendistrosecurity_impersonate_as", "nagilum");
+				tc.threadPool().getThreadContext().putHeader("opendistro_security_impersonate_as", "nagilum");
 				gr = tc.prepareGet("opendistrosecurity", "security", "config").setRealtime(Boolean.TRUE).get();
 				Assert.assertFalse(gr.isExists());
 				Assert.assertTrue(gr.isSourceEmpty());
@@ -213,7 +213,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			System.out.println("------- 13 ---------");
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
-				tc.threadPool().getThreadContext().putHeader("opendistrosecurity_impersonate_as", "nagilum");
+				tc.threadPool().getThreadContext().putHeader("opendistro_security_impersonate_as", "nagilum");
 				gr = tc.prepareGet("opendistrosecurity", "config", "0").setRealtime(Boolean.FALSE).get();
 				Assert.assertFalse(gr.isExists());
 				Assert.assertTrue(gr.isSourceEmpty());
@@ -225,7 +225,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			String scrollId = null;
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
-				tc.threadPool().getThreadContext().putHeader("opendistrosecurity_impersonate_as", "nagilum");
+				tc.threadPool().getThreadContext().putHeader("opendistro_security_impersonate_as", "nagilum");
 				SearchResponse searchRes = tc.prepareSearch("starfleet").setTypes("ships").setScroll(TimeValue.timeValueMinutes(5)).get();
 				scrollId = searchRes.getScrollId();
 			} finally {
@@ -236,7 +236,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
-				tc.threadPool().getThreadContext().putHeader("opendistrosecurity_impersonate_as", "nagilum");
+				tc.threadPool().getThreadContext().putHeader("opendistro_security_impersonate_as", "nagilum");
 				tc.prepareSearchScroll(scrollId).get();
 			} finally {
 				ctx.close();
@@ -248,12 +248,12 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			boolean ok=false;
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
-				tc.threadPool().getThreadContext().putHeader("opendistrosecurity_impersonate_as", "nagilum");
+				tc.threadPool().getThreadContext().putHeader("opendistro_security_impersonate_as", "nagilum");
 				gr = tc.prepareGet("vulcan", "secrets", "s1").get();
 				ok = true;
 				ctx.close();
 				ctx = tc.threadPool().getThreadContext().stashContext();
-				tc.threadPool().getThreadContext().putHeader("opendistrosecurity_impersonate_as", "nagilum");
+				tc.threadPool().getThreadContext().putHeader("opendistro_security_impersonate_as", "nagilum");
 				Header header = encodeBasicHeader("worf", "worf");
 				tc.threadPool().getThreadContext().putHeader(header.getName(), header.getValue());
 				gr = tc.prepareGet("vulcan", "secrets", "s1").get();
@@ -268,7 +268,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			System.out.println("------- 15 ---------");
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
-				tc.threadPool().getThreadContext().putHeader("opendistrosecurity_impersonate_as", "nagilum");
+				tc.threadPool().getThreadContext().putHeader("opendistro_security_impersonate_as", "nagilum");
 				gr = tc.prepareGet("opendistrosecurity", "security", "config").setRealtime(Boolean.TRUE).get();
 				Assert.assertFalse(gr.isExists());
 				Assert.assertTrue(gr.isSourceEmpty());
@@ -309,7 +309,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
-				tc.threadPool().getThreadContext().putHeader("opendistrosecurity_impersonate_as", "nagilum");
+				tc.threadPool().getThreadContext().putHeader("opendistro_security_impersonate_as", "nagilum");
 				gr = tc.prepareGet("opendistrosecurity", "security", "config").setRealtime(Boolean.FALSE).get();
 				Assert.assertFalse(gr.isExists());
 				Assert.assertTrue(gr.isSourceEmpty());
@@ -320,7 +320,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			SearchResponse searchRes = null;
 			try {
-				tc.threadPool().getThreadContext().putHeader("opendistrosecurity_impersonate_as", "nagilum");
+				tc.threadPool().getThreadContext().putHeader("opendistro_security_impersonate_as", "nagilum");
 				searchRes = tc.prepareSearch("starfleet").setTypes("ships").setScroll(TimeValue.timeValueMinutes(5)).get();
 			} finally {
 				ctx.close();
@@ -330,7 +330,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
-				tc.threadPool().getThreadContext().putHeader("opendistrosecurity_impersonate_as", "worf");
+				tc.threadPool().getThreadContext().putHeader("opendistro_security_impersonate_as", "worf");
 				tc.prepareSearchScroll(searchRes.getScrollId()).get(); 
 				Assert.fail();
 			} catch (Exception e) {
@@ -346,7 +346,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			searchRes = null;
 			try {
-				tc.threadPool().getThreadContext().putHeader("opendistrosecurity_impersonate_as", "nagilum");
+				tc.threadPool().getThreadContext().putHeader("opendistro_security_impersonate_as", "nagilum");
 				searchRes = tc.prepareSearch("starfleet").setTypes("ships").setScroll(TimeValue.timeValueMinutes(5)).get();
 				SearchResponse scrollRes = tc.prepareSearchScroll(searchRes.getScrollId()).get();
 				Assert.assertEquals(0, scrollRes.getFailedShards());
@@ -364,7 +364,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 	public void testTransportClientImpersonation() throws Exception {
 
 		final Settings settings = Settings.builder()
-				.putList("opendistrosecurity.authcz.impersonation_dn.CN=spock,OU=client,O=client,L=Test,C=DE", "worf", "nagilum")
+				.putList("opendistro_security.authcz.impersonation_dn.CN=spock,OU=client,O=client,L=Test,C=DE", "worf", "nagilum")
 				.build();
 
 
@@ -379,10 +379,10 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 		}
 
 		Settings tcSettings = Settings.builder()
-				.put("opendistrosecurity.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("spock-keystore.jks"))
-				.put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS,"spock")
+				.put("opendistro_security.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("spock-keystore.jks"))
+				.put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS,"spock")
 				.put("path.home", ".")
-				.put("request.headers.opendistrosecurity_impersonate_as", "worf")
+				.put("request.headers.opendistro_security_impersonate_as", "worf")
 				.build();
 
 		try (TransportClient tc = getInternalTransportClient(clusterInfo, tcSettings)) {            
@@ -395,17 +395,17 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 	public void testTransportClientImpersonationWildcard() throws Exception {
 
 		final Settings settings = Settings.builder()
-				.putList("opendistrosecurity.authcz.impersonation_dn.CN=spock,OU=client,O=client,L=Test,C=DE", "*")
+				.putList("opendistro_security.authcz.impersonation_dn.CN=spock,OU=client,O=client,L=Test,C=DE", "*")
 				.build();
 
 
 		setup(settings);
 
 		Settings tcSettings = Settings.builder()
-				.put("opendistrosecurity.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("spock-keystore.jks"))
-				.put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS,"spock")
+				.put("opendistro_security.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("spock-keystore.jks"))
+				.put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS,"spock")
 				.put("path.home", ".")
-				.put("request.headers.opendistrosecurity_impersonate_as", "worf")
+				.put("request.headers.opendistro_security_impersonate_as", "worf")
 				.build();
 
 		try (TransportClient tc = getInternalTransportClient(clusterInfo, tcSettings)) {
@@ -420,7 +420,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 	public void testTransportClientUsernameAttribute() throws Exception {
 
 		final Settings settings = Settings.builder()
-				.putList(ConfigConstants.OPENDISTROSECURITY_AUTHCZ_IMPERSONATION_DN+".CN=spock,OU=client,O=client,L=Test,C=DE", "worf", "nagilum")
+				.putList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_IMPERSONATION_DN+".CN=spock,OU=client,O=client,L=Test,C=DE", "worf", "nagilum")
 				.put("discovery.initial_state_timeout","8s")
 				.build();
 		
@@ -436,8 +436,8 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 
 		Settings tcSettings = Settings.builder()
 				.put(settings)
-				.put("opendistrosecurity.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("spock-keystore.jks"))
-				.put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS,"spock")
+				.put("opendistro_security.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("spock-keystore.jks"))
+				.put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS,"spock")
 				.build();
 
 		System.out.println("------- 0 ---------");
@@ -501,7 +501,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 
 				StoredContext ctx = tc.threadPool().getThreadContext().stashContext();
 				try {
-					tc.threadPool().getThreadContext().putHeader("opendistrosecurity_impersonate_as", "worf");
+					tc.threadPool().getThreadContext().putHeader("opendistro_security_impersonate_as", "worf");
 					gr = tc.prepareGet("vulcan", "secrets", "s1").get();
 				} finally {
 					ctx.close();
@@ -545,7 +545,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			try {
 				ctx = tc.threadPool().getThreadContext().stashContext();
 				try {
-					tc.threadPool().getThreadContext().putHeader("opendistrosecurity_impersonate_as", "gkar");
+					tc.threadPool().getThreadContext().putHeader("opendistro_security_impersonate_as", "gkar");
 					gr = tc.prepareGet("vulcan", "secrets", "s1").get();
 					Assert.fail();
 				} finally {
@@ -560,7 +560,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
-				tc.threadPool().getThreadContext().putHeader("opendistrosecurity_impersonate_as", "nagilum");
+				tc.threadPool().getThreadContext().putHeader("opendistro_security_impersonate_as", "nagilum");
 				gr = tc.prepareGet("opendistrosecurity", "security", "config").setRealtime(Boolean.TRUE).get();
 				Assert.assertFalse(gr.isExists());
 				Assert.assertTrue(gr.isSourceEmpty());
@@ -571,7 +571,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			System.out.println("------- 13 ---------");
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
-				tc.threadPool().getThreadContext().putHeader("opendistrosecurity_impersonate_as", "nagilum");
+				tc.threadPool().getThreadContext().putHeader("opendistro_security_impersonate_as", "nagilum");
 				gr = tc.prepareGet("opendistrosecurity", "config", "0").setRealtime(Boolean.FALSE).get();
 				Assert.assertFalse(gr.isExists());
 				Assert.assertTrue(gr.isSourceEmpty());
@@ -583,7 +583,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			String scrollId = null;
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
-				tc.threadPool().getThreadContext().putHeader("opendistrosecurity_impersonate_as", "nagilum");
+				tc.threadPool().getThreadContext().putHeader("opendistro_security_impersonate_as", "nagilum");
 				SearchResponse searchRes = tc.prepareSearch("starfleet").setTypes("ships").setScroll(TimeValue.timeValueMinutes(5)).get();
 				scrollId = searchRes.getScrollId();
 			} finally {
@@ -594,7 +594,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
-				tc.threadPool().getThreadContext().putHeader("opendistrosecurity_impersonate_as", "nagilum");
+				tc.threadPool().getThreadContext().putHeader("opendistro_security_impersonate_as", "nagilum");
 				tc.prepareSearchScroll(scrollId).get();
 			} finally {
 				ctx.close();
@@ -606,12 +606,12 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			boolean ok=false;
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
-				tc.threadPool().getThreadContext().putHeader("opendistrosecurity_impersonate_as", "nagilum");
+				tc.threadPool().getThreadContext().putHeader("opendistro_security_impersonate_as", "nagilum");
 				gr = tc.prepareGet("vulcan", "secrets", "s1").get();
 				ok = true;
 				ctx.close();
 				ctx = tc.threadPool().getThreadContext().stashContext();
-				tc.threadPool().getThreadContext().putHeader("opendistrosecurity_impersonate_as", "nagilum");
+				tc.threadPool().getThreadContext().putHeader("opendistro_security_impersonate_as", "nagilum");
 				Header header = encodeBasicHeader("worf", "worf");
 				tc.threadPool().getThreadContext().putHeader(header.getName(), header.getValue());
 				gr = tc.prepareGet("vulcan", "secrets", "s1").get();
@@ -626,7 +626,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			System.out.println("------- 15 ---------");
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
-				tc.threadPool().getThreadContext().putHeader("opendistrosecurity_impersonate_as", "nagilum");
+				tc.threadPool().getThreadContext().putHeader("opendistro_security_impersonate_as", "nagilum");
 				gr = tc.prepareGet("opendistrosecurity", "security", "config").setRealtime(Boolean.TRUE).get();
 				Assert.assertFalse(gr.isExists());
 				Assert.assertTrue(gr.isSourceEmpty());
@@ -667,7 +667,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
-				tc.threadPool().getThreadContext().putHeader("opendistrosecurity_impersonate_as", "nagilum");
+				tc.threadPool().getThreadContext().putHeader("opendistro_security_impersonate_as", "nagilum");
 				gr = tc.prepareGet("opendistrosecurity", "security", "config").setRealtime(Boolean.FALSE).get();
 				Assert.assertFalse(gr.isExists());
 				Assert.assertTrue(gr.isSourceEmpty());
@@ -678,7 +678,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			SearchResponse searchRes = null;
 			try {
-				tc.threadPool().getThreadContext().putHeader("opendistrosecurity_impersonate_as", "nagilum");
+				tc.threadPool().getThreadContext().putHeader("opendistro_security_impersonate_as", "nagilum");
 				searchRes = tc.prepareSearch("starfleet").setTypes("ships").setScroll(TimeValue.timeValueMinutes(5)).get();
 			} finally {
 				ctx.close();
@@ -688,7 +688,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
-				tc.threadPool().getThreadContext().putHeader("opendistrosecurity_impersonate_as", "worf");
+				tc.threadPool().getThreadContext().putHeader("opendistro_security_impersonate_as", "worf");
 				tc.prepareSearchScroll(searchRes.getScrollId()).get(); 
 				Assert.fail();
 			} catch (Exception e) {
@@ -704,7 +704,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			searchRes = null;
 			try {
-				tc.threadPool().getThreadContext().putHeader("opendistrosecurity_impersonate_as", "nagilum");
+				tc.threadPool().getThreadContext().putHeader("opendistro_security_impersonate_as", "nagilum");
 				searchRes = tc.prepareSearch("starfleet").setTypes("ships").setScroll(TimeValue.timeValueMinutes(5)).get();
 				SearchResponse scrollRes = tc.prepareSearchScroll(searchRes.getScrollId()).get();
 				Assert.assertEquals(0, scrollRes.getFailedShards());
@@ -722,7 +722,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 	public void testTransportClientImpersonationUsernameAttribute() throws Exception {
 
 		final Settings settings = Settings.builder()
-				.putList("opendistrosecurity.authcz.impersonation_dn.CN=spock,OU=client,O=client,L=Test,C=DE", "worf", "nagilum")
+				.putList("opendistro_security.authcz.impersonation_dn.CN=spock,OU=client,O=client,L=Test,C=DE", "worf", "nagilum")
 				.build();
 
 
@@ -740,10 +740,10 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 		}
 
 		Settings tcSettings = Settings.builder()
-				.put("opendistrosecurity.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("spock-keystore.jks"))
-				.put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS,"spock")
+				.put("opendistro_security.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("spock-keystore.jks"))
+				.put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS,"spock")
 				.put("path.home", ".")
-				.put("request.headers.opendistrosecurity_impersonate_as", "worf")
+				.put("request.headers.opendistro_security_impersonate_as", "worf")
 				.build();
 
 		try (TransportClient tc = getInternalTransportClient(clusterInfo, tcSettings)) {            
@@ -756,7 +756,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 	public void testTransportClientImpersonationWildcardUsernameAttribute() throws Exception {
 
 		final Settings settings = Settings.builder()
-				.putList("opendistrosecurity.authcz.impersonation_dn.CN=spock,OU=client,O=client,L=Test,C=DE", "*")
+				.putList("opendistro_security.authcz.impersonation_dn.CN=spock,OU=client,O=client,L=Test,C=DE", "*")
 				.build();
 
 		setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_transport_username.yml")
@@ -765,10 +765,10 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 				, settings);
 		
 		Settings tcSettings = Settings.builder()
-				.put("opendistrosecurity.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("spock-keystore.jks"))
-				.put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS,"spock")
+				.put("opendistro_security.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("spock-keystore.jks"))
+				.put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS,"spock")
 				.put("path.home", ".")
-				.put("request.headers.opendistrosecurity_impersonate_as", "worf")
+				.put("request.headers.opendistro_security_impersonate_as", "worf")
 				.build();
 
 		try (TransportClient tc = getInternalTransportClient(clusterInfo, tcSettings)) {

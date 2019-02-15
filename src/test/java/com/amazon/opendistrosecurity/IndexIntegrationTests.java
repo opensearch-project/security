@@ -179,8 +179,8 @@ public class IndexIntegrationTests extends SingleClusterTest {
         
         RestHelper rh = nonSslRestHelper();
     
-        //opendistrosecurity_user1 -> worf
-        //opendistrosecurity_user2 -> picard
+        //opendistro_security_user1 -> worf
+        //opendistro_security_user2 -> picard
         
         HttpResponse resc = rh.executeGetRequest("alias*/_search", encodeBasicHeader("worf", "worf"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
@@ -349,7 +349,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
     public void testAliases() throws Exception {
 
         final Settings settings = Settings.builder()
-                .put(ConfigConstants.OPENDISTROSECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
+                .put(ConfigConstants.OPENDISTRO_SECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
                 .build();
 
         setup(settings);

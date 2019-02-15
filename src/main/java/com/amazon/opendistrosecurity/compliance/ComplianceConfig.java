@@ -90,33 +90,33 @@ public class ComplianceConfig {
         this.environment = environment;
         this.irr = irr;
         this.auditLog = auditLog;
-        final List<String> watchedReadFields = this.settings.getAsList(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS,
+        final List<String> watchedReadFields = this.settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS,
                 Collections.emptyList(), false);
 
-        watchedWriteIndices = settings.getAsList(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, Collections.emptyList());
-        logDiffsForWrite = settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS, false);
-        logWriteMetadataOnly = settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_HISTORY_WRITE_METADATA_ONLY, false);
-        logReadMetadataOnly = settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_HISTORY_READ_METADATA_ONLY, false);
-        logExternalConfig = settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED, false);
-        logInternalConfig = settings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, false);
-        immutableIndicesPatterns = new HashSet<String>(settings.getAsList(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList()));
-        final String saltAsString = settings.get(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_SALT, ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_SALT_DEFAULT);
+        watchedWriteIndices = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, Collections.emptyList());
+        logDiffsForWrite = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS, false);
+        logWriteMetadataOnly = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_METADATA_ONLY, false);
+        logReadMetadataOnly = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_METADATA_ONLY, false);
+        logExternalConfig = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED, false);
+        logInternalConfig = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, false);
+        immutableIndicesPatterns = new HashSet<String>(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList()));
+        final String saltAsString = settings.get(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT, ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT_DEFAULT);
         final byte[] saltAsBytes = saltAsString.getBytes(StandardCharsets.UTF_8);
 
-        if(saltAsString.equals(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_SALT_DEFAULT)) {
-            log.warn("If you plan to use field masking pls configure "+ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_SALT+" to be a random string of 16 chars length identical on all nodes");
+        if(saltAsString.equals(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT_DEFAULT)) {
+            log.warn("If you plan to use field masking pls configure "+ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT+" to be a random string of 16 chars length identical on all nodes");
         }
         
         if(saltAsBytes.length < 16) {
-            throw new ElasticsearchException(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_SALT+" must at least contain 16 bytes");
+            throw new ElasticsearchException(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT+" must at least contain 16 bytes");
         }
         
         if(saltAsBytes.length > 16) {
-            log.warn(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_SALT+" is greater than 16 bytes. Only the first 16 bytes are used for salting");
+            log.warn(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT+" is greater than 16 bytes. Only the first 16 bytes are used for salting");
         }
         
         salt16 = Arrays.copyOf(saltAsBytes, 16);
-        this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTROSECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTROSECURITY_DEFAULT_CONFIG_INDEX);
+        this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
         
         //opendistrosecurity.compliance.pii_fields:
         //  - indexpattern,fieldpattern,fieldpattern,....
@@ -132,9 +132,9 @@ public class ComplianceConfig {
             }
         }
 
-        final String type = settings.get(ConfigConstants.OPENDISTROSECURITY_AUDIT_TYPE_DEFAULT, null);
+        final String type = settings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_TYPE_DEFAULT, null);
         if("internal_elasticsearch".equalsIgnoreCase(type)) {
-            final String index = settings.get(ConfigConstants.OPENDISTROSECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTROSECURITY_AUDIT_ES_INDEX,"'sg6-auditlog-'YYYY.MM.dd");
+            final String index = settings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ES_INDEX,"'sg6-auditlog-'YYYY.MM.dd");
             try {
                 auditLogPattern = DateTimeFormat.forPattern(index); //throws IllegalArgumentException if no pattern
             } catch (IllegalArgumentException e) {

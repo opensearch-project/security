@@ -59,7 +59,7 @@ public class OpenDistroSecurityIndexSearcherWrapper extends IndexSearcherWrapper
 	public OpenDistroSecurityIndexSearcherWrapper(final IndexService indexService, final Settings settings, final AdminDNs adminDNs) {
 	    index = indexService.index();
 	    threadContext = indexService.getThreadPool().getThreadContext();
-        this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTROSECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTROSECURITY_DEFAULT_CONFIG_INDEX);
+        this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
         this.adminDns = adminDNs;
 	}
 
@@ -89,13 +89,13 @@ public class OpenDistroSecurityIndexSearcherWrapper extends IndexSearcherWrapper
 
     protected final boolean isAdminAuthenticatedOrInternalRequest() {
 
-        final User user = (User) threadContext.getTransient(ConfigConstants.OPENDISTROSECURITY_USER);
+        final User user = (User) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
 
         if (user != null && adminDns.isAdmin(user)) {
             return true;
         }
 
-        if ("true".equals(HeaderHelper.getSafeFromHeader(threadContext, ConfigConstants.OPENDISTROSECURITY_CONF_REQUEST_HEADER))) {
+        if ("true".equals(HeaderHelper.getSafeFromHeader(threadContext, ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER))) {
             return true;
         }
 

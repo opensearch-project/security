@@ -119,9 +119,9 @@ import com.google.common.io.Files;
 
 public class OpenDistroSecurityAdmin {
     
-    private static final String OPENDISTROSECURITY_TS_PASS = "OPENDISTROSECURITY_TS_PASS";
-    private static final String OPENDISTROSECURITY_KS_PASS = "OPENDISTROSECURITY_KS_PASS";
-    private static final String OPENDISTROSECURITY_KEYPASS = "OPENDISTROSECURITY_KEYPASS";
+    private static final String OPENDISTRO_SECURITY_TS_PASS = "OPENDISTRO_SECURITY_TS_PASS";
+    private static final String OPENDISTRO_SECURITY_KS_PASS = "OPENDISTRO_SECURITY_KS_PASS";
+    private static final String OPENDISTRO_SECURITY_KEYPASS = "OPENDISTRO_SECURITY_KEYPASS";
     //not used in multithreaded fashion, so it's okay to define it as a constant here
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MMM-dd_HH-mm-ss", Locale.ENGLISH); //NOSONAR
     private static final Settings ENABLE_ALL_ALLOCATIONS_SETTINGS = Settings.builder()
@@ -224,8 +224,8 @@ public class OpenDistroSecurityAdmin {
         
         String hostname = "localhost";
         int port = 9300;
-        String kspass = System.getenv(OPENDISTROSECURITY_KS_PASS);
-        String tspass = System.getenv(OPENDISTROSECURITY_TS_PASS);
+        String kspass = System.getenv(OPENDISTRO_SECURITY_KS_PASS);
+        String tspass = System.getenv(OPENDISTRO_SECURITY_TS_PASS);
         String cd = ".";
         String ks = null;
         String ts = null;
@@ -244,7 +244,7 @@ public class OpenDistroSecurityAdmin {
         String[] enabledProtocols = new String[0];
         String[] enabledCiphers = new String[0];
         Integer updateSettings = null;
-        String index = ConfigConstants.OPENDISTROSECURITY_DEFAULT_CONFIG_INDEX;
+        String index = ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX;
         Boolean replicaAutoExpand = null;
         boolean reload = false;
         boolean failFast = false;
@@ -253,7 +253,7 @@ public class OpenDistroSecurityAdmin {
         boolean enableShardAllocation = false;
         boolean acceptRedCluster = false;
         
-        String keypass = System.getenv(OPENDISTROSECURITY_KEYPASS);
+        String keypass = System.getenv(OPENDISTRO_SECURITY_KEYPASS);
         boolean useOpenSSLIfAvailable = true;
         //boolean simpleAuth = false;
         String cacert = null;
@@ -382,68 +382,68 @@ public class OpenDistroSecurityAdmin {
         
         final Settings.Builder settingsBuilder = Settings
                 .builder()
-                .put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, !nhnv)
-                .put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, !nrhn)
-                .put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_ENABLED, true)
-                .put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, useOpenSSLIfAvailable)
-                .putList(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, enabledCiphers)
-                .putList(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, enabledProtocols)
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, !nhnv)
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, !nrhn)
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLED, true)
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, useOpenSSLIfAvailable)
+                .putList(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, enabledCiphers)
+                .putList(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, enabledProtocols)
                 
                 .put("cluster.name", clustername)
                 .put("client.transport.ignore_cluster_name", icl)
                 .put("client.transport.sniff", sniff);
                 
                 if(ksAlias != null) {
-                    settingsBuilder.put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, ksAlias);
+                    settingsBuilder.put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, ksAlias);
                 }
                 
                 if(tsAlias != null) {
-                    settingsBuilder.put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_TRUSTSTORE_ALIAS, tsAlias);
+                    settingsBuilder.put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_ALIAS, tsAlias);
                 }
                 
                 if(ks != null) {
-                    settingsBuilder.put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, ks);
-                    settingsBuilder.put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, kst==null?(ks.endsWith(".jks")?"JKS":"PKCS12"):kst);
+                    settingsBuilder.put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, ks);
+                    settingsBuilder.put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, kst==null?(ks.endsWith(".jks")?"JKS":"PKCS12"):kst);
                     
                     if(kspass == null && promptForPassword) {
-                        kspass = promptForPassword("Keystore", "kspass", OPENDISTROSECURITY_KS_PASS);
+                        kspass = promptForPassword("Keystore", "kspass", OPENDISTRO_SECURITY_KS_PASS);
                     }
                     
                     if(kspass != null) {
-                        settingsBuilder.put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD, kspass);
+                        settingsBuilder.put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD, kspass);
                     }
                 }
                 
                 if(ts != null) {
-                    settingsBuilder.put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, ts);
-                    settingsBuilder.put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE, tst==null?(ts.endsWith(".jks")?"JKS":"PKCS12"):tst);
+                    settingsBuilder.put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, ts);
+                    settingsBuilder.put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE, tst==null?(ts.endsWith(".jks")?"JKS":"PKCS12"):tst);
                     
                     if(tspass == null && promptForPassword) {
-                        tspass = promptForPassword("Truststore", "tspass", OPENDISTROSECURITY_TS_PASS);
+                        tspass = promptForPassword("Truststore", "tspass", OPENDISTRO_SECURITY_TS_PASS);
                     }
                     
                     if(tspass != null) {
-                        settingsBuilder.put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD, tspass);
+                        settingsBuilder.put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD, tspass);
                     }
                 }            
                 
                 if(cacert != null) {
-                    settingsBuilder.put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH, cacert);
+                    settingsBuilder.put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH, cacert);
                 }
                 
                 if(cert != null) {
-                    settingsBuilder.put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH, cert);
+                    settingsBuilder.put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH, cert);
                 }
                 
                 if(key != null) {
-                    settingsBuilder.put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH, key);
+                    settingsBuilder.put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH, key);
                     
                     if(keypass == null && promptForPassword) {
-                        keypass = promptForPassword("Pemkey", "keypass", OPENDISTROSECURITY_KEYPASS);
+                        keypass = promptForPassword("Pemkey", "keypass", OPENDISTRO_SECURITY_KEYPASS);
                     }
                     
                     if(keypass != null) {
-                        settingsBuilder.put(SSLConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_PEMKEY_PASSWORD, keypass);
+                        settingsBuilder.put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PEMKEY_PASSWORD, keypass);
                     }
                 }
 
@@ -469,7 +469,7 @@ public class OpenDistroSecurityAdmin {
                 if(!whoAmIRes.isNodeCertificateRequest()) {
                 	System.out.println("Seems you use a client certificate but this one is not registered as admin_dn");
                 	System.out.println("Make sure elasticsearch.yml on all nodes contains:");
-                    System.out.println("opendistrosecurity.authcz.admin_dn:"+System.lineSeparator()+
+                    System.out.println("opendistro_security.authcz.admin_dn:"+System.lineSeparator()+
                                        "  - \""+whoAmIRes.getDn()+"\"");
                 } else {
                 	System.out.println("Seems you use a node certificate. This is not permitted, you have to use a client certificate and register it as admin_dn in elasticsearch.yml");

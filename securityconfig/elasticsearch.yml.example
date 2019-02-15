@@ -11,37 +11,37 @@
 # By default enterprise modules are enabled. If you use any of the modules in production you need
 # to obtain a license. If you want to use the free Community Edition, you can switch
 # all enterprise features off by setting the following key to false
-opendistrosecurity.enterprise_modules_enabled: true
+opendistro_security.enterprise_modules_enabled: true
 
 # Specify a list of DNs which denote the other nodes in the cluster.
 # This settings support wildcards and regular expressions
 # This setting only has effect if 'opendistrosecurity.cert.intercluster_request_evaluator_class' is not set.
-opendistrosecurity.nodes_dn:
+opendistro_security.nodes_dn:
   - "CN=*.example.com, OU=SSL, O=Test, L=Test, C=DE"
   - "CN=node.other.com, OU=SSL, O=Test, L=Test, C=DE"
 
 # Defines the DNs (distinguished names) of certificates
 # to which admin privileges should be assigned (mandatory)
-opendistrosecurity.authcz.admin_dn:
+opendistro_security.authcz.admin_dn:
   - "CN=kirk,OU=client,O=client,l=tEst, C=De"
 
 # Define how backend roles should be mapped to Open Distro Security roles
 # MAPPING_ONLY - mappings must be configured explicitely in roles_mapping.yml (default)
 # BACKENDROLES_ONLY - backend roles are mapped to Open Distro Security rules directly. Settings in roles_mapping.yml have no effect.
 # BOTH - backend roles are mapped to Open Distro Security roles mapped directly and via roles_mapping.yml in addition
-opendistrosecurity.roles_mapping_resolution: MAPPING_ONLY
+opendistro_security.roles_mapping_resolution: MAPPING_ONLY
 
 ############## REST Management API configuration settings ##############
 # Enable or disable role based access to the REST management API
 # Default is that no role is allowed to access the REST management API.
-#opendistrosecurity.restapi.roles_enabled: ["all_access","xyz_role"]
+#opendistro_security.restapi.roles_enabled: ["all_access","xyz_role"]
 
 # Disable particular endpoints and their HTTP methods for roles. 
 # By default all endpoints/methods are allowed.
-#opendistrosecurity.restapi.endpoints_disabled.<role>.<endpoint>: <array of http methods>
+#opendistro_security.restapi.endpoints_disabled.<role>.<endpoint>: <array of http methods>
 # Example:
-#opendistrosecurity.restapi.endpoints_disabled.all_access.ACTIONGROUPS: ["PUT","POST","DELETE"]
-#opendistrosecurity.restapi.endpoints_disabled.xyz_role.LICENSE: ["DELETE"]
+#opendistro_security.restapi.endpoints_disabled.all_access.ACTIONGROUPS: ["PUT","POST","DELETE"]
+#opendistro_security.restapi.endpoints_disabled.xyz_role.LICENSE: ["DELETE"]
 
 # The following endpoints exist:
 # ACTIONGROUPS
@@ -57,83 +57,83 @@ opendistrosecurity.roles_mapping_resolution: MAPPING_ONLY
 # General settings
 
 # Enable/disable rest request logging (default: true)
-#opendistrosecurity.audit.enable_rest: true
+#opendistro_security.audit.enable_rest: true
 # Enable/disable transport request logging (default: false)
-#opendistrosecurity.audit.enable_transport: false
+#opendistro_security.audit.enable_transport: false
 # Enable/disable bulk request logging (default: false)
 # If enabled all subrequests in bulk requests will be logged too
-#opendistrosecurity.audit.resolve_bulk_requests: false
+#opendistro_security.audit.resolve_bulk_requests: false
 # Disable some categories
-#opendistrosecurity.audit.config.disabled_categories: ["AUTHENTICATED","GRANTED_PRIVILEGES"]
+#opendistro_security.audit.config.disabled_categories: ["AUTHENTICATED","GRANTED_PRIVILEGES"]
 # Disable some requests (wildcard or regex of actions or rest request paths)
-#opendistrosecurity.audit.ignore_requests: ["indices:data/read/*","*_bulk"]
+#opendistro_security.audit.ignore_requests: ["indices:data/read/*","*_bulk"]
 # Tune threadpool size, default is 10 and 0 means disabled
-#opendistrosecurity.audit.threadpool.size: 0
+#opendistro_security.audit.threadpool.size: 0
 # Tune threadpool max size queue length, default is 100000
-#opendistrosecurity.audit.threadpool.max_queue_len: 100000
+#opendistro_security.audit.threadpool.max_queue_len: 100000
 
 # If enable_request_details is true then the audit log event will also contain
 # details like the search query. Default is false. 
-#opendistrosecurity.audit.enable_request_details: true
+#opendistro_security.audit.enable_request_details: true
 # Ignore users, e.g. do not log audit requests from that users (default: no ignored users)
-#opendistrosecurity.audit.ignore_users: ['kibanaserver','some*user','/also.*regex possible/']"
+#opendistro_security.audit.ignore_users: ['kibanaserver','some*user','/also.*regex possible/']"
 
 # Destination of the auditlog events
-opendistrosecurity.audit.type: internal_elasticsearch
-#opendistrosecurity.audit.type: external_elasticsearch
-#opendistrosecurity.audit.type: debug
-#opendistrosecurity.audit.type: webhook
+opendistro_security.audit.type: internal_elasticsearch
+#opendistro_security.audit.type: external_elasticsearch
+#opendistro_security.audit.type: debug
+#opendistro_security.audit.type: webhook
 
 # external_elasticsearch settings
-#opendistrosecurity.audit.config.http_endpoints: ['localhost:9200','localhost:9201','localhost:9202']"
+#opendistro_security.audit.config.http_endpoints: ['localhost:9200','localhost:9201','localhost:9202']"
 # Auditlog index can be a static one or one with a date pattern (default is 'auditlog6')
-#opendistrosecurity.audit.config.index: auditlog6 # make sure you secure this index properly
-#opendistrosecurity.audit.config.index: "'auditlog6-'YYYY.MM.dd" #rotates index daily - make sure you secure this index properly
-#opendistrosecurity.audit.config.type: auditlog
-#opendistrosecurity.audit.config.username: auditloguser
-#opendistrosecurity.audit.config.password: auditlogpassword
-#opendistrosecurity.audit.config.enable_ssl: false
-#opendistrosecurity.audit.config.verify_hostnames: false
-#opendistrosecurity.audit.config.enable_ssl_client_auth: false
-#opendistrosecurity.audit.config.cert_alias: mycert
-#opendistrosecurity.audit.config.pemkey_filepath: key.pem
-#opendistrosecurity.audit.config.pemkey_content: <...pem base 64 content>
-#opendistrosecurity.audit.config.pemkey_password: secret
-#opendistrosecurity.audit.config.pemcert_filepath: cert.pem
-#opendistrosecurity.audit.config.pemcert_content: <...pem base 64 content>
-#opendistrosecurity.audit.config.pemtrustedcas_filepath: ca.pem
-#opendistrosecurity.audit.config.pemtrustedcas_content: <...pem base 64 content>
+#opendistro_security.audit.config.index: auditlog6 # make sure you secure this index properly
+#opendistro_security.audit.config.index: "'auditlog6-'YYYY.MM.dd" #rotates index daily - make sure you secure this index properly
+#opendistro_security.audit.config.type: auditlog
+#opendistro_security.audit.config.username: auditloguser
+#opendistro_security.audit.config.password: auditlogpassword
+#opendistro_security.audit.config.enable_ssl: false
+#opendistro_security.audit.config.verify_hostnames: false
+#opendistro_security.audit.config.enable_ssl_client_auth: false
+#opendistro_security.audit.config.cert_alias: mycert
+#opendistro_security.audit.config.pemkey_filepath: key.pem
+#opendistro_security.audit.config.pemkey_content: <...pem base 64 content>
+#opendistro_security.audit.config.pemkey_password: secret
+#opendistro_security.audit.config.pemcert_filepath: cert.pem
+#opendistro_security.audit.config.pemcert_content: <...pem base 64 content>
+#opendistro_security.audit.config.pemtrustedcas_filepath: ca.pem
+#opendistro_security.audit.config.pemtrustedcas_content: <...pem base 64 content>
 
 # webhook settings
-#opendistrosecurity.audit.config.webhook.url: "http://mywebhook/endpoint"
+#opendistro_security.audit.config.webhook.url: "http://mywebhook/endpoint"
 # One of URL_PARAMETER_GET,URL_PARAMETER_POST,TEXT,JSON,SLACK
-#opendistrosecurity.audit.config.webhook.format: JSON
-#opendistrosecurity.audit.config.webhook.ssl.verify: false
-#opendistrosecurity.audit.config.webhook.ssl.pemtrustedcas_filepath: ca.pem
-#opendistrosecurity.audit.config.webhook.ssl.pemtrustedcas_content: <...pem base 64 content>
+#opendistro_security.audit.config.webhook.format: JSON
+#opendistro_security.audit.config.webhook.ssl.verify: false
+#opendistro_security.audit.config.webhook.ssl.pemtrustedcas_filepath: ca.pem
+#opendistro_security.audit.config.webhook.ssl.pemtrustedcas_content: <...pem base 64 content>
 
 # log4j settings
-#opendistrosecurity.audit.config.log4j.logger_name: auditlogger
-#opendistrosecurity.audit.config.log4j.level: INFO
+#opendistro_security.audit.config.log4j.logger_name: auditlogger
+#opendistro_security.audit.config.log4j.level: INFO
 
 ############## Kerberos configuration settings ##############
 # If Kerberos authentication should be used you have to configure:
 
 # The Path to the krb5.conf file
 # Can be absolute or relative to the Elasticsearch config directory
-#opendistrosecurity.kerberos.krb5_filepath: '/etc/krb5.conf'
+#opendistro_security.kerberos.krb5_filepath: '/etc/krb5.conf'
             
 # The Path to the keytab where the acceptor_principal credentials are stored.           
 # Must be relative to the Elasticsearch config directory
-#opendistrosecurity.kerberos.acceptor_keytab_filepath: 'eskeytab.tab'
+#opendistro_security.kerberos.acceptor_keytab_filepath: 'eskeytab.tab'
 
 # Acceptor (Server) Principal name, must be present in acceptor_keytab_path file
-#opendistrosecurity.kerberos.acceptor_principal: 'HTTP/localhost'
+#opendistro_security.kerberos.acceptor_principal: 'HTTP/localhost'
 
 ############## Advanced configuration settings ##############
 # Enable transport layer impersonation
 # Allow DNs (distinguished names) to impersonate as other users
-#opendistrosecurity.authcz.impersonation_dn:
+#opendistro_security.authcz.impersonation_dn:
 #  "CN=spock,OU=client,O=client,L=Test,C=DE":
 #    - worf
 #  "cn=webuser,ou=IT,ou=IT,dc=company,dc=com":
@@ -142,7 +142,7 @@ opendistrosecurity.audit.type: internal_elasticsearch
 
 # Enable rest layer impersonation
 # Allow users to impersonate as other users
-#opendistrosecurity.authcz.rest_impersonation_user:
+#opendistro_security.authcz.rest_impersonation_user:
 #  "picard":
 #    - worf
 #  "john":
@@ -153,13 +153,13 @@ opendistrosecurity.audit.type: internal_elasticsearch
 # with the files in the config directory if the index does not exist.
 # WARNING: This will use well-known default passwords.
 #          Use only in a private network/environment.
-#opendistrosecurity.allow_default_init_opendistrosecurityindex: false
+#opendistro_security.allow_default_init_opendistrosecurityindex: false
 
 # If this is set to true then allow to startup with demo certificates.
 # These are certificates issued by floragunn GmbH for demo purposes.
 # WARNING: This certificates are well known and therefore unsafe
 #          Use only in a private network/environment.
-#opendistrosecurity.allow_unsafe_democertificates: false
+#opendistro_security.allow_unsafe_democertificates: false
 
 ############## Expert settings ##############
 # WARNING: Expert settings, do only use if you know what you are doing
@@ -167,16 +167,16 @@ opendistrosecurity.audit.type: internal_elasticsearch
 # or make Open Distro Security stop working
 
 # Name of the index where opendistrosecurity stores its configuration.
-#opendistrosecurity.config_index_name: opendistrosecurity
+#opendistro_security.config_index_name: opendistrosecurity
 
 # This defines the OID of server node certificates
-#opendistrosecurity.cert.oid: '1.2.3.4.5.5'
+#opendistro_security.cert.oid: '1.2.3.4.5.5'
 
 # This specifies the implementation of com.amazon.opendistrosecurity.transport.InterClusterRequestEvaluator
 # that is used to determine inter-cluster request.
 # Instances of com.amazon.opendistrosecurity.transport.InterClusterRequestEvaluator must implement a single argument
 # constructor that takes an org.elasticsearch.common.settings.Settings
-#opendistrosecurity.cert.intercluster_request_evaluator_class: com.amazon.opendistrosecurity.transport.DefaultInterClusterRequestEvaluator
+#opendistro_security.cert.intercluster_request_evaluator_class: com.amazon.opendistrosecurity.transport.DefaultInterClusterRequestEvaluator
 
 # Allow snapshot restore for normal users
 # By default only requests signed by an admin TLS certificate can do this
@@ -186,12 +186,12 @@ opendistrosecurity.audit.type: internal_elasticsearch
 # A snapshot can only be restored when it does not contain global state and does not restore the 'opendistrosecurity' index
 # If 'opendistrosecurity.check_snapshot_restore_write_privileges: false' is set then the additional indices checks are omitted.
 # This makes it less secure.
-#opendistrosecurity.enable_snapshot_restore_privilege: true
-#opendistrosecurity.check_snapshot_restore_write_privileges: false
+#opendistro_security.enable_snapshot_restore_privilege: true
+#opendistro_security.check_snapshot_restore_write_privileges: false
 
 # Authentication cache timeout in minutes (A value of 0 disables caching, default is 60)
-#opendistrosecurity.cache.ttl_minutes: 60
+#opendistro_security.cache.ttl_minutes: 60
 
 # Disable Open Distro Security
 # WARNING: This can expose your configuration (including passwords) to the public.
-#opendistrosecurity.disabled: false
+#opendistro_security.disabled: false

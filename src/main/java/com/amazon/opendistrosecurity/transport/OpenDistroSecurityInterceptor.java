@@ -67,7 +67,7 @@ import com.google.common.collect.Maps;
 
 public class OpenDistroSecurityInterceptor {
 
-    protected final Logger actionTrace = LogManager.getLogger("opendistrosecurity_action_trace");
+    protected final Logger actionTrace = LogManager.getLogger("opendistro_security_action_trace");
     private BackendRegistry backendRegistry;
     private AuditLog auditLog;
     private final ThreadPool threadPool;
@@ -105,37 +105,37 @@ public class OpenDistroSecurityInterceptor {
             TransportRequest request, TransportRequestOptions options, TransportResponseHandler<T> handler) {
 
         final Map<String, String> origHeaders0 = getThreadContext().getHeaders();
-        final User user0 = getThreadContext().getTransient(ConfigConstants.OPENDISTROSECURITY_USER);
-        final String origin0 = getThreadContext().getTransient(ConfigConstants.OPENDISTROSECURITY_ORIGIN);
-        final Object remoteAdress0 = getThreadContext().getTransient(ConfigConstants.OPENDISTROSECURITY_REMOTE_ADDRESS);
+        final User user0 = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        final String origin0 = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN);
+        final Object remoteAdress0 = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
 
         try (ThreadContext.StoredContext stashedContext = getThreadContext().stashContext()) {
             final RestoringTransportResponseHandler<T> restoringHandler = new RestoringTransportResponseHandler<T>(handler, stashedContext);
-            getThreadContext().putHeader("_opendistrosecurity_remotecn", cs.getClusterName().value());
+            getThreadContext().putHeader("_opendistro_security_remotecn", cs.getClusterName().value());
 
             if(this.settings.get("tribe.name", null) == null
                     && settings.getByPrefix("tribe").size() > 0) {
-                getThreadContext().putHeader("_opendistrosecurity_header_tn", "true");
+                getThreadContext().putHeader("_opendistro_security_header_tn", "true");
             }
 
             getThreadContext().putHeader(
                     Maps.filterKeys(origHeaders0, k->k!=null && (
-                            k.equals(ConfigConstants.OPENDISTROSECURITY_CONF_REQUEST_HEADER)
-                            || k.equals(ConfigConstants.OPENDISTROSECURITY_ORIGIN_HEADER)
-                            || k.equals(ConfigConstants.OPENDISTROSECURITY_REMOTE_ADDRESS_HEADER)
-                            || k.equals(ConfigConstants.OPENDISTROSECURITY_USER_HEADER)
-                            || k.equals(ConfigConstants.OPENDISTROSECURITY_DLS_QUERY_HEADER)
-                            || k.equals(ConfigConstants.OPENDISTROSECURITY_FLS_FIELDS_HEADER)
-                            || k.equals(ConfigConstants.OPENDISTROSECURITY_MASKED_FIELD_HEADER)
-                            || (k.equals("_opendistrosecurity_source_field_context") && ! (request instanceof SearchRequest) && !(request instanceof GetRequest))
-                            || k.startsWith("_opendistrosecurity_trace")
-                            || k.startsWith(ConfigConstants.OPENDISTROSECURITY_INITIAL_ACTION_CLASS_HEADER)
+                            k.equals(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER)
+                            || k.equals(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER)
+                            || k.equals(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER)
+                            || k.equals(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER)
+                            || k.equals(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER)
+                            || k.equals(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER)
+                            || k.equals(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER)
+                            || (k.equals("_opendistro_security_source_field_context") && ! (request instanceof SearchRequest) && !(request instanceof GetRequest))
+                            || k.startsWith("_opendistro_security_trace")
+                            || k.startsWith(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER)
                             )));
 
             ensureCorrectHeaders(remoteAdress0, user0, origin0);
 
             if(actionTrace.isTraceEnabled()) {
-                getThreadContext().putHeader("_opendistrosecurity_trace"+System.currentTimeMillis()+"#"+UUID.randomUUID().toString(), Thread.currentThread().getName()+" IC -> "+action+" "+getThreadContext().getHeaders().entrySet().stream().filter(p->!p.getKey().startsWith("_opendistrosecurity_trace")).collect(Collectors.toMap(p -> p.getKey(), p -> p.getValue())));
+                getThreadContext().putHeader("_opendistro_security_trace"+System.currentTimeMillis()+"#"+UUID.randomUUID().toString(), Thread.currentThread().getName()+" IC -> "+action+" "+getThreadContext().getHeaders().entrySet().stream().filter(p->!p.getKey().startsWith("_opendistro_security_trace")).collect(Collectors.toMap(p -> p.getKey(), p -> p.getValue())));
             }
 
 
@@ -146,20 +146,20 @@ public class OpenDistroSecurityInterceptor {
     private void ensureCorrectHeaders(final Object remoteAdr, final User origUser, final String origin) {
         // keep original address
 
-        if(origin != null && !origin.isEmpty() /*&& !Origin.LOCAL.toString().equalsIgnoreCase(origin)*/ && getThreadContext().getHeader(ConfigConstants.OPENDISTROSECURITY_ORIGIN_HEADER) == null) {
-            getThreadContext().putHeader(ConfigConstants.OPENDISTROSECURITY_ORIGIN_HEADER, origin);
+        if(origin != null && !origin.isEmpty() /*&& !Origin.LOCAL.toString().equalsIgnoreCase(origin)*/ && getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER) == null) {
+            getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER, origin);
         }
 
-        if(origin == null && getThreadContext().getHeader(ConfigConstants.OPENDISTROSECURITY_ORIGIN_HEADER) == null) {
-            getThreadContext().putHeader(ConfigConstants.OPENDISTROSECURITY_ORIGIN_HEADER, Origin.LOCAL.toString());
+        if(origin == null && getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER) == null) {
+            getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER, Origin.LOCAL.toString());
         }
 
         if (remoteAdr != null && remoteAdr instanceof TransportAddress) {
 
-            String remoteAddressHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTROSECURITY_REMOTE_ADDRESS_HEADER);
+            String remoteAddressHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER);
 
             if(remoteAddressHeader == null) {
-                getThreadContext().putHeader(ConfigConstants.OPENDISTROSECURITY_REMOTE_ADDRESS_HEADER, Base64Helper.serializeObject(((TransportAddress) remoteAdr).address()));
+                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER, Base64Helper.serializeObject(((TransportAddress) remoteAdr).address()));
             } /*else {
                 if(!((InetSocketAddress)Base64Helper.deserializeObject(remoteAddressHeader)).equals(((TransportAddress) remoteAdr).address())) {
                     throw new RuntimeException("remote address mismatch "+Base64Helper.deserializeObject(remoteAddressHeader)+"!="+((TransportAddress) remoteAdr).address());
@@ -168,10 +168,10 @@ public class OpenDistroSecurityInterceptor {
         }
 
         if(origUser != null) {
-            String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTROSECURITY_USER_HEADER);
+            String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
 
             if(userHeader == null) {
-                getThreadContext().putHeader(ConfigConstants.OPENDISTROSECURITY_USER_HEADER, Base64Helper.serializeObject(origUser));
+                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER, Base64Helper.serializeObject(origUser));
             } /*else {
                 if(!((User)Base64Helper.deserializeObject(userHeader)).getName().equals(origUser.getName())) {
                     throw new RuntimeException("user mismatch "+Base64Helper.deserializeObject(userHeader)+"!="+origUser);

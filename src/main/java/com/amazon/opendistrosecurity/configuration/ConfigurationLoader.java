@@ -71,7 +71,7 @@ class ConfigurationLoader {
         super();
         this.client = client;
         //this.threadContext = threadPool.getThreadContext();
-        this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTROSECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTROSECURITY_DEFAULT_CONFIG_INDEX);
+        this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
         log.debug("Index is: {}", opendistrosecurityIndex);
     }
     
@@ -135,7 +135,7 @@ class ConfigurationLoader {
         mget.realtime(true);
         
         //try(StoredContext ctx = threadContext.stashContext()) {
-        //    threadContext.putHeader(ConfigConstants.OPENDISTROSECURITY_CONF_REQUEST_HEADER, "true");
+        //    threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
         {
             client.multiGet(mget, new ActionListener<MultiGetResponse>() {
                 @Override

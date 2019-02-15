@@ -68,7 +68,7 @@ import com.google.common.base.Strings;
 
 public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extends OpenDistroSecuritySSLRequestHandler<T> {
 
-    protected final Logger actionTrace = LogManager.getLogger("opendistrosecurity_action_trace");
+    protected final Logger actionTrace = LogManager.getLogger("opendistro_security_action_trace");
     private final BackendRegistry backendRegistry;
     private final AuditLog auditLog;
     private final InterClusterRequestEvaluator requestEvalProvider;
@@ -106,14 +106,14 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
             resolvedActionClass = ((ConcreteShardRequest) request).getRequest().getClass().getSimpleName();
         }
                 
-        String initialActionClassValue = getThreadContext().getHeader(ConfigConstants.OPENDISTROSECURITY_INITIAL_ACTION_CLASS_HEADER);
+        String initialActionClassValue = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER);
         
         final ThreadContext.StoredContext sgContext = getThreadContext().newStoredContext(false);
 
-        final String originHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTROSECURITY_ORIGIN_HEADER);
+        final String originHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER);
 
         if(!Strings.isNullOrEmpty(originHeader)) {
-            getThreadContext().putTransient(ConfigConstants.OPENDISTROSECURITY_ORIGIN, originHeader);
+            getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, originHeader);
         }
 
         try {
@@ -126,25 +126,25 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
                throw new RuntimeException("Unknown channel type "+transportChannel.getChannelType());
            }
 
-           getThreadContext().putTransient(ConfigConstants.OPENDISTROSECURITY_CHANNEL_TYPE, transportChannel.getChannelType());
-           getThreadContext().putTransient(ConfigConstants.OPENDISTROSECURITY_ACTION_NAME, task.getAction());
+           getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_CHANNEL_TYPE, transportChannel.getChannelType());
+           getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_ACTION_NAME, task.getAction());
 
             //bypass non-netty requests
             if(transportChannel.getChannelType().equals("direct")) {
-                final String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTROSECURITY_USER_HEADER);
+                final String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
 
                 if(!Strings.isNullOrEmpty(userHeader)) {
-                    getThreadContext().putTransient(ConfigConstants.OPENDISTROSECURITY_USER, Objects.requireNonNull((User) Base64Helper.deserializeObject(userHeader)));
+                    getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, Objects.requireNonNull((User) Base64Helper.deserializeObject(userHeader)));
                 }
 
-                final String originalRemoteAddress = getThreadContext().getHeader(ConfigConstants.OPENDISTROSECURITY_REMOTE_ADDRESS_HEADER);
+                final String originalRemoteAddress = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER);
 
                 if(!Strings.isNullOrEmpty(originalRemoteAddress)) {
-                    getThreadContext().putTransient(ConfigConstants.OPENDISTROSECURITY_REMOTE_ADDRESS, new TransportAddress((InetSocketAddress) Base64Helper.deserializeObject(originalRemoteAddress)));
+                    getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, new TransportAddress((InetSocketAddress) Base64Helper.deserializeObject(originalRemoteAddress)));
                 }
 
                 if(actionTrace.isTraceEnabled()) {
-                    getThreadContext().putHeader("_opendistrosecurity_trace"+System.currentTimeMillis()+"#"+UUID.randomUUID().toString(), Thread.currentThread().getName()+" DIR -> "+transportChannel.getChannelType()+" "+getThreadContext().getHeaders());
+                    getThreadContext().putHeader("_opendistro_security_trace"+System.currentTimeMillis()+"#"+UUID.randomUUID().toString(), Thread.currentThread().getName()+" DIR -> "+transportChannel.getChannelType()+" "+getThreadContext().getHeaders());
                 }
                 
                 putInitialActionClassHeader(initialActionClassValue, resolvedActionClass);
@@ -171,7 +171,7 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
 
             String principal = null;
 
-            if ((principal = getThreadContext().getTransient(ConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_PRINCIPAL)) == null) {
+            if ((principal = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PRINCIPAL)) == null) {
                 Exception ex = new ElasticsearchSecurityException(
                         "No SSL client certificates found for transport type "+transportChannel.getChannelType()+". Open Distro Security needs the Open Distro Security SSL plugin to be installed");
                 auditLog.logSSLException(request, ex, task.getAction(), task);
@@ -180,29 +180,29 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
                 return;
             } else {
 
-                if(getThreadContext().getTransient(ConfigConstants.OPENDISTROSECURITY_ORIGIN) == null) {
-                    getThreadContext().putTransient(ConfigConstants.OPENDISTROSECURITY_ORIGIN, Origin.TRANSPORT.toString());
+                if(getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN) == null) {
+                    getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, Origin.TRANSPORT.toString());
                 }
 
                 //network intercluster request or cross search cluster request
                 if(HeaderHelper.isInterClusterRequest(getThreadContext())
                         || HeaderHelper.isTrustedClusterRequest(getThreadContext())) {
 
-                    final String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTROSECURITY_USER_HEADER);
+                    final String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
 
                     if(Strings.isNullOrEmpty(userHeader)) {
                         //user can be null when a node client wants connect
-                        //getThreadContext().putTransient(ConfigConstants.OPENDISTROSECURITY_USER, User.OPENDISTROSECURITY_INTERNAL);
+                        //getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, User.OPENDISTRO_SECURITY_INTERNAL);
                     } else {
-                        getThreadContext().putTransient(ConfigConstants.OPENDISTROSECURITY_USER, Objects.requireNonNull((User) Base64Helper.deserializeObject(userHeader)));
+                        getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, Objects.requireNonNull((User) Base64Helper.deserializeObject(userHeader)));
                     }
 
-                    String originalRemoteAddress = getThreadContext().getHeader(ConfigConstants.OPENDISTROSECURITY_REMOTE_ADDRESS_HEADER);
+                    String originalRemoteAddress = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER);
 
                     if(!Strings.isNullOrEmpty(originalRemoteAddress)) {
-                        getThreadContext().putTransient(ConfigConstants.OPENDISTROSECURITY_REMOTE_ADDRESS, new TransportAddress((InetSocketAddress) Base64Helper.deserializeObject(originalRemoteAddress)));
+                        getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, new TransportAddress((InetSocketAddress) Base64Helper.deserializeObject(originalRemoteAddress)));
                     } else {
-                        getThreadContext().putTransient(ConfigConstants.OPENDISTROSECURITY_REMOTE_ADDRESS, request.remoteAddress());
+                        getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, request.remoteAddress());
                     }
 
                 } else {
@@ -210,7 +210,7 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
                     //this is a netty request from a non-server node (maybe also be internal: or a shard request)
                     //and therefore issued by a transport client
 
-                    if(SSLRequestHelper.containsBadHeader(getThreadContext(), ConfigConstants.OPENDISTROSECURITY_CONFIG_PREFIX)) {
+                    if(SSLRequestHelper.containsBadHeader(getThreadContext(), ConfigConstants.OPENDISTRO_SECURITY_CONFIG_PREFIX)) {
                         final ElasticsearchException exception = ExceptionUtils.createBadHeaderException();
                         auditLog.logBadHeaders(request, task.getAction(), task);
                         log.error(exception);
@@ -237,8 +237,8 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
                             }
 
 
-                            log.error("Cannot authenticate {} for {}", getThreadContext().getTransient(ConfigConstants.OPENDISTROSECURITY_USER), task.getAction());
-                            transportChannel.sendResponse(new ElasticsearchSecurityException("Cannot authenticate "+getThreadContext().getTransient(ConfigConstants.OPENDISTROSECURITY_USER)));
+                            log.error("Cannot authenticate {} for {}", getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER), task.getAction());
+                            transportChannel.sendResponse(new ElasticsearchSecurityException("Cannot authenticate "+getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER)));
                             return;
                         } else {
                             // make it possible to filter logs by username
@@ -251,11 +251,11 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
                         //return;
                         //}
 
-                    getThreadContext().putTransient(ConfigConstants.OPENDISTROSECURITY_USER, user);
+                    getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
                     TransportAddress originalRemoteAddress = request.remoteAddress();
 
                     if(originalRemoteAddress != null && (originalRemoteAddress instanceof TransportAddress)) {
-                        getThreadContext().putTransient(ConfigConstants.OPENDISTROSECURITY_REMOTE_ADDRESS, originalRemoteAddress);
+                        getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, originalRemoteAddress);
                     } else {
                         log.error("Request has no proper remote address {}", originalRemoteAddress);
                         transportChannel.sendResponse(new ElasticsearchException("Request has no proper remote address"));
@@ -264,7 +264,7 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
                 }
 
                 if(actionTrace.isTraceEnabled()) {
-                    getThreadContext().putHeader("_opendistrosecurity_trace"+System.currentTimeMillis()+"#"+UUID.randomUUID().toString(), Thread.currentThread().getName()+" NETTI -> "+transportChannel.getChannelType()+" "+getThreadContext().getHeaders().entrySet().stream().filter(p->!p.getKey().startsWith("_opendistrosecurity_trace")).collect(Collectors.toMap(p -> p.getKey(), p -> p.getValue())));
+                    getThreadContext().putHeader("_opendistro_security_trace"+System.currentTimeMillis()+"#"+UUID.randomUUID().toString(), Thread.currentThread().getName()+" NETTI -> "+transportChannel.getChannelType()+" "+getThreadContext().getHeaders().entrySet().stream().filter(p->!p.getKey().startsWith("_opendistro_security_trace")).collect(Collectors.toMap(p -> p.getKey(), p -> p.getValue())));
                 }
 
                 
@@ -275,7 +275,7 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
         } finally {
 
             if(actionTrace.isTraceEnabled()) {
-                getThreadContext().putHeader("_opendistrosecurity_trace"+System.currentTimeMillis()+"#"+UUID.randomUUID().toString(), Thread.currentThread().getName()+" FIN -> "+transportChannel.getChannelType()+" "+getThreadContext().getHeaders());
+                getThreadContext().putHeader("_opendistro_security_trace"+System.currentTimeMillis()+"#"+UUID.randomUUID().toString(), Thread.currentThread().getName()+" FIN -> "+transportChannel.getChannelType()+" "+getThreadContext().getHeaders());
             }
 
             if(sgContext != null) {
@@ -286,12 +286,12 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
     
     private void putInitialActionClassHeader(String initialActionClassValue, String resolvedActionClass) {
         if(initialActionClassValue == null) {
-            if(getThreadContext().getHeader(ConfigConstants.OPENDISTROSECURITY_INITIAL_ACTION_CLASS_HEADER) == null) {
-                getThreadContext().putHeader(ConfigConstants.OPENDISTROSECURITY_INITIAL_ACTION_CLASS_HEADER, resolvedActionClass);
+            if(getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER) == null) {
+                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER, resolvedActionClass);
             }
         } else {
-            if(getThreadContext().getHeader(ConfigConstants.OPENDISTROSECURITY_INITIAL_ACTION_CLASS_HEADER) == null) {
-                getThreadContext().putHeader(ConfigConstants.OPENDISTROSECURITY_INITIAL_ACTION_CLASS_HEADER, initialActionClassValue);
+            if(getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER) == null) {
+                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER, initialActionClassValue);
             }
         }
 
@@ -304,16 +304,16 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
         boolean isInterClusterRequest = requestEvalProvider.isInterClusterRequest(request, localCerts, peerCerts, principal);
 
         if (isInterClusterRequest) {
-            boolean fromTn = Boolean.parseBoolean(getThreadContext().getHeader("_opendistrosecurity_header_tn"));
-            if(fromTn || cs.getClusterName().value().equals(getThreadContext().getHeader("_opendistrosecurity_remotecn"))) {
+            boolean fromTn = Boolean.parseBoolean(getThreadContext().getHeader("_opendistro_security_header_tn"));
+            if(fromTn || cs.getClusterName().value().equals(getThreadContext().getHeader("_opendistro_security_remotecn"))) {
 
                 if (log.isTraceEnabled() && !action.startsWith("internal:")) {
                     log.trace("Is inter cluster request ({}/{}/{})", action, request.getClass(), request.remoteAddress());
                 }
 
-                getThreadContext().putTransient(ConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_INTERCLUSTER_REQUEST, Boolean.TRUE);
+                getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_INTERCLUSTER_REQUEST, Boolean.TRUE);
             } else {
-                getThreadContext().putTransient(ConfigConstants.OPENDISTROSECURITY_SSL_TRANSPORT_TRUSTED_CLUSTER_REQUEST, Boolean.TRUE);
+                getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTED_CLUSTER_REQUEST, Boolean.TRUE);
             }
 
         } else {

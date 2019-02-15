@@ -74,9 +74,9 @@ public class SnapshotRestoreTests extends SingleClusterTest {
     
         final Settings settings = Settings.builder()
                 .putList("path.repo", repositoryPath.getRoot().getAbsolutePath())
-                .put("opendistrosecurity.enable_snapshot_restore_privilege", true)
-                .put("opendistrosecurity.check_snapshot_restore_write_privileges", false)
-                .put("opendistrosecurity.unsupported.restore.sgindex.enabled", true)
+                .put("opendistro_security.enable_snapshot_restore_privilege", true)
+                .put("opendistro_security.check_snapshot_restore_write_privileges", false)
+                .put("opendistro_security.unsupported.restore.sgindex.enabled", true)
                 .build();
     
         setup(settings, currentClusterConfig);
@@ -88,7 +88,7 @@ public class SnapshotRestoreTests extends SingleClusterTest {
             tc.admin().cluster().createSnapshot(new CreateSnapshotRequest("vulcangov", "vulcangov_1").indices("vulcangov").includeGlobalState(true).waitForCompletion(true)).actionGet();
     
             tc.admin().cluster().putRepository(new PutRepositoryRequest("opendistrosecurity").type("fs").settings(Settings.builder().put("location", repositoryPath.getRoot().getAbsolutePath() + "/opendistrosecurity"))).actionGet();
-            tc.admin().cluster().createSnapshot(new CreateSnapshotRequest("opendistrosecurity", "opendistrosecurity_1").indices("opendistrosecurity").includeGlobalState(false).waitForCompletion(true)).actionGet();
+            tc.admin().cluster().createSnapshot(new CreateSnapshotRequest("opendistrosecurity", "opendistro_security_1").indices("opendistrosecurity").includeGlobalState(false).waitForCompletion(true)).actionGet();
     
             tc.admin().cluster().putRepository(new PutRepositoryRequest("all").type("fs").settings(Settings.builder().put("location", repositoryPath.getRoot().getAbsolutePath() + "/all"))).actionGet();
             tc.admin().cluster().createSnapshot(new CreateSnapshotRequest("all", "all_1").indices("*").includeGlobalState(false).waitForCompletion(true)).actionGet();
@@ -106,11 +106,11 @@ public class SnapshotRestoreTests extends SingleClusterTest {
     
         // Try to restore opendistrosecurity index.
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_snapshot/opendistrosecurity", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_snapshot/opendistrosecurity/opendistrosecurity_1", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_snapshot/opendistrosecurity/opendistro_security_1", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
         // 500 because Security index is open
-        Assert.assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, rh.executePostRequest("_snapshot/opendistrosecurity/opendistrosecurity_1/_restore?wait_for_completion=true","", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, rh.executePostRequest("_snapshot/opendistrosecurity/opendistro_security_1/_restore?wait_for_completion=true","", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
         // Try to restore opendistrosecurity index as serchguard_copy index
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executePostRequest("_snapshot/opendistrosecurity/opendistrosecurity_1/_restore?wait_for_completion=true","{ \"indices\": \"opendistrosecurity\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"opendistrosecurity_copy\" }", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executePostRequest("_snapshot/opendistrosecurity/opendistro_security_1/_restore?wait_for_completion=true","{ \"indices\": \"opendistrosecurity\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"opendistro_security_copy\" }", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
     
         // Try to restore all indices.
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_snapshot/all", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
@@ -119,16 +119,16 @@ public class SnapshotRestoreTests extends SingleClusterTest {
         Assert.assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true","", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
         // Try to restore vulcangov index as opendistrosecurity index -> 500 because Security index is open
         Assert.assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true","{ \"indices\": \"vulcangov\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"opendistrosecurity\" }", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
-        // Try to restore opendistrosecurity index as serchguard_copy index. Delete opendistrosecurity_copy first, was created in test above
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executeDeleteRequest("opendistrosecurity_copy", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true","{ \"indices\": \"opendistrosecurity\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"opendistrosecurity_copy\" }", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
+        // Try to restore opendistrosecurity index as serchguard_copy index. Delete opendistro_security_copy first, was created in test above
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executeDeleteRequest("opendistro_security_copy", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true","{ \"indices\": \"opendistrosecurity\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"opendistro_security_copy\" }", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
     
         // Try to restore a unknown snapshot
         Assert.assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, rh.executePostRequest("_snapshot/all/unknown-snapshot/_restore?wait_for_completion=true", "", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
         
         // close and restore Security index
         Assert.assertEquals(HttpStatus.SC_OK, rh.executePostRequest("opendistrosecurity/_close", "", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executePostRequest("_snapshot/opendistrosecurity/opendistrosecurity_1/_restore?wait_for_completion=true","", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executePostRequest("_snapshot/opendistrosecurity/opendistro_security_1/_restore?wait_for_completion=true","", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_OK, rh.executePostRequest("opendistrosecurity/_open", "", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
     }
     
@@ -137,8 +137,8 @@ public class SnapshotRestoreTests extends SingleClusterTest {
     
         final Settings settings = Settings.builder()
                 .putList("path.repo", repositoryPath.getRoot().getAbsolutePath())
-                .put("opendistrosecurity.enable_snapshot_restore_privilege", true)
-                .put("opendistrosecurity.check_snapshot_restore_write_privileges", false)
+                .put("opendistro_security.enable_snapshot_restore_privilege", true)
+                .put("opendistro_security.check_snapshot_restore_write_privileges", false)
                 .build();
     
         setup(settings, currentClusterConfig);
@@ -150,7 +150,7 @@ public class SnapshotRestoreTests extends SingleClusterTest {
             tc.admin().cluster().createSnapshot(new CreateSnapshotRequest("vulcangov", "vulcangov_1").indices("vulcangov").includeGlobalState(true).waitForCompletion(true)).actionGet();
     
             tc.admin().cluster().putRepository(new PutRepositoryRequest("opendistrosecurity").type("fs").settings(Settings.builder().put("location", repositoryPath.getRoot().getAbsolutePath() + "/opendistrosecurity"))).actionGet();
-            tc.admin().cluster().createSnapshot(new CreateSnapshotRequest("opendistrosecurity", "opendistrosecurity_1").indices("opendistrosecurity").includeGlobalState(false).waitForCompletion(true)).actionGet();
+            tc.admin().cluster().createSnapshot(new CreateSnapshotRequest("opendistrosecurity", "opendistro_security_1").indices("opendistrosecurity").includeGlobalState(false).waitForCompletion(true)).actionGet();
     
             tc.admin().cluster().putRepository(new PutRepositoryRequest("all").type("fs").settings(Settings.builder().put("location", repositoryPath.getRoot().getAbsolutePath() + "/all"))).actionGet();
             tc.admin().cluster().createSnapshot(new CreateSnapshotRequest("all", "all_1").indices("*").includeGlobalState(false).waitForCompletion(true)).actionGet();
@@ -167,10 +167,10 @@ public class SnapshotRestoreTests extends SingleClusterTest {
     
         // Try to restore opendistrosecurity index.
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_snapshot/opendistrosecurity", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_snapshot/opendistrosecurity/opendistrosecurity_1", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("_snapshot/opendistrosecurity/opendistrosecurity_1/_restore?wait_for_completion=true","", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_snapshot/opendistrosecurity/opendistro_security_1", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("_snapshot/opendistrosecurity/opendistro_security_1/_restore?wait_for_completion=true","", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
         // Try to restore opendistrosecurity index as serchguard_copy index
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("_snapshot/opendistrosecurity/opendistrosecurity_1/_restore?wait_for_completion=true","{ \"indices\": \"opendistrosecurity\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"opendistrosecurity_copy\" }", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("_snapshot/opendistrosecurity/opendistro_security_1/_restore?wait_for_completion=true","{ \"indices\": \"opendistrosecurity\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"opendistro_security_copy\" }", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
     
         // Try to restore all indices.
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_snapshot/all", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
@@ -179,7 +179,7 @@ public class SnapshotRestoreTests extends SingleClusterTest {
         // Try to restore opendistrosecurity index as serchguard_copy index
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true","{ \"indices\": \"vulcangov\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"opendistrosecurity\" }", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
         // Try to restore opendistrosecurity index as serchguard_copy index
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true","{ \"indices\": \"opendistrosecurity\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"opendistrosecurity_copy\" }", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true","{ \"indices\": \"opendistrosecurity\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"opendistro_security_copy\" }", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
     
         // Try to restore a unknown snapshot
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("_snapshot/all/unknown-snapshot/_restore?wait_for_completion=true", "", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
@@ -191,8 +191,8 @@ public class SnapshotRestoreTests extends SingleClusterTest {
     
         final Settings settings = Settings.builder()
                 .putList("path.repo", repositoryPath.getRoot().getAbsolutePath())
-                .put("opendistrosecurity.enable_snapshot_restore_privilege", true)
-                .put("opendistrosecurity.check_snapshot_restore_write_privileges", true)
+                .put("opendistro_security.enable_snapshot_restore_privilege", true)
+                .put("opendistro_security.check_snapshot_restore_write_privileges", true)
                 .build();
     
         setup(settings, currentClusterConfig);
@@ -204,7 +204,7 @@ public class SnapshotRestoreTests extends SingleClusterTest {
             tc.admin().cluster().createSnapshot(new CreateSnapshotRequest("vulcangov", "vulcangov_1").indices("vulcangov").includeGlobalState(true).waitForCompletion(true)).actionGet();
     
             tc.admin().cluster().putRepository(new PutRepositoryRequest("opendistrosecurity").type("fs").settings(Settings.builder().put("location", repositoryPath.getRoot().getAbsolutePath() + "/opendistrosecurity"))).actionGet();
-            tc.admin().cluster().createSnapshot(new CreateSnapshotRequest("opendistrosecurity", "opendistrosecurity_1").indices("opendistrosecurity").includeGlobalState(false).waitForCompletion(true)).actionGet();
+            tc.admin().cluster().createSnapshot(new CreateSnapshotRequest("opendistrosecurity", "opendistro_security_1").indices("opendistrosecurity").includeGlobalState(false).waitForCompletion(true)).actionGet();
     
             tc.admin().cluster().putRepository(new PutRepositoryRequest("all").type("fs").settings(Settings.builder().put("location", repositoryPath.getRoot().getAbsolutePath() + "/all"))).actionGet();
             tc.admin().cluster().createSnapshot(new CreateSnapshotRequest("all", "all_1").indices("*").includeGlobalState(false).waitForCompletion(true)).actionGet();
@@ -225,10 +225,10 @@ public class SnapshotRestoreTests extends SingleClusterTest {
     
         // Try to restore opendistrosecurity index.
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_snapshot/opendistrosecurity", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_snapshot/opendistrosecurity/opendistrosecurity_1", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("_snapshot/opendistrosecurity/opendistrosecurity_1/_restore?wait_for_completion=true","", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_snapshot/opendistrosecurity/opendistro_security_1", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("_snapshot/opendistrosecurity/opendistro_security_1/_restore?wait_for_completion=true","", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
         // Try to restore opendistrosecurity index as serchguard_copy index
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("_snapshot/opendistrosecurity/opendistrosecurity_1/_restore?wait_for_completion=true","{ \"indices\": \"opendistrosecurity\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"opendistrosecurity_copy\" }", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("_snapshot/opendistrosecurity/opendistro_security_1/_restore?wait_for_completion=true","{ \"indices\": \"opendistrosecurity\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"opendistro_security_copy\" }", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
     
         // Try to restore all indices.
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_snapshot/all", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
@@ -237,7 +237,7 @@ public class SnapshotRestoreTests extends SingleClusterTest {
         // Try to restore opendistrosecurity index as serchguard_copy index
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true","{ \"indices\": \"vulcangov\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"opendistrosecurity\" }", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
         // Try to restore opendistrosecurity index as serchguard_copy index
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true","{ \"indices\": \"opendistrosecurity\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"opendistrosecurity_copy\" }", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true","{ \"indices\": \"opendistrosecurity\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"opendistro_security_copy\" }", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
     
         // Try to restore a unknown snapshot
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("_snapshot/all/unknown-snapshot/_restore?wait_for_completion=true", "", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
@@ -258,8 +258,8 @@ public class SnapshotRestoreTests extends SingleClusterTest {
     
         final Settings settings = Settings.builder()
                 .putList("path.repo", repositoryPath.getRoot().getAbsolutePath())
-                .put("opendistrosecurity.enable_snapshot_restore_privilege", true)
-                .put("opendistrosecurity.check_snapshot_restore_write_privileges", true)
+                .put("opendistro_security.enable_snapshot_restore_privilege", true)
+                .put("opendistro_security.check_snapshot_restore_write_privileges", true)
                 .build();
     
         setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityActionGroups("action_groups_packaged.yml"), settings, true, currentClusterConfig);

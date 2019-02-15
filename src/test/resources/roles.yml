@@ -1,4 +1,4 @@
-opendistrosecurity_public:
+opendistro_security_public:
   cluster:
     - 'cluster:monitor/main'
     #- CLUSTER_COMPOSITE_OPS_RO
@@ -7,7 +7,7 @@ opendistrosecurity_public:
       '*':  
         - ALL
 
-opendistrosecurity_all_access:
+opendistro_security_all_access:
   cluster:
     - '*'
   indices:
@@ -26,7 +26,7 @@ role.with.dot:
       'type.with.dot':  
         - ALL
         
-opendistrosecurity_zdummy_all:
+opendistro_security_zdummy_all:
   cluster:
     - 'cluster:*'
   indices:
@@ -37,7 +37,7 @@ opendistrosecurity_zdummy_all:
     admin_1: Rw
     abcdef_2_2: RO
 
-opendistrosecurity_role_klingons1:
+opendistro_security_role_klingons1:
   indices:
     klingonempire:
       ships:  
@@ -46,7 +46,7 @@ opendistrosecurity_role_klingons1:
     kltentrw: Rw
     kltentro: RO
 
-opendistrosecurity_role_klingons2:
+opendistro_security_role_klingons2:
   indices:
     klingonempire:
       praxis:  
@@ -55,7 +55,7 @@ opendistrosecurity_role_klingons2:
     praxisrw: RW
     praxisro: ro
 
-opendistrosecurity_role_starfleet:
+opendistro_security_role_starfleet:
   indices:
     sf:
        ships:  
@@ -75,7 +75,7 @@ opendistrosecurity_role_starfleet:
     - 'cluster:monitor*'
     - indices:data/read/scroll
 
-opendistrosecurity_role_starfleet_captains:
+opendistro_security_role_starfleet_captains:
   indices:
     sf:
        '*':  
@@ -86,7 +86,7 @@ opendistrosecurity_role_starfleet_captains:
   cluster:
     - 'cluster:monitor*'
 
-opendistrosecurity_flsdls:
+opendistro_security_flsdls:
   cluster:
     - '*'
   indices:
@@ -100,7 +100,7 @@ opendistrosecurity_flsdls:
          - field2.b
          - field3.m.*
 
-opendistrosecurity_unittest_1:
+opendistro_security_unittest_1:
   cluster:
     - '*'
   indices:
@@ -108,7 +108,7 @@ opendistrosecurity_unittest_1:
        '*':  
          - '*'
         
-opendistrosecurity_admin:
+opendistro_security_admin:
   cluster:
     - CLUSTER_ALL
   indices:
@@ -116,7 +116,7 @@ opendistrosecurity_admin:
       '*':
         - ALL 
 
-opendistrosecurity_power_user:
+opendistro_security_power_user:
   cluster:
     - CLUSTER_MONITOR
   indices:
@@ -124,19 +124,19 @@ opendistrosecurity_power_user:
       '*':
         - ALL
 
-opendistrosecurity_user:
+opendistro_security_user:
   indices:
     '*':
       '*':
         - READ
 
-opendistrosecurity_transport_client:
+opendistro_security_transport_client:
   cluster:
       - cluster:monitor/nodes/liveness
       #uncomment the following for sniffing
       #- cluster:monitor/state
 
-opendistrosecurity_kibana4:
+opendistro_security_kibana4:
   cluster: 
       - cluster:monitor/nodes/info
       - cluster:monitor/health 
@@ -162,7 +162,7 @@ opendistrosecurity_kibana4:
         - indices:data/write/index
         - indices:data/write/update
 
-opendistrosecurity_kibana4_server:
+opendistro_security_kibana4_server:
   cluster:
       - cluster:monitor/nodes/info
       - cluster:monitor/health
@@ -182,7 +182,7 @@ opendistrosecurity_kibana4_server:
         - indices:data/write/index
         - indices:data/write/update
 
-opendistrosecurity_logstash:
+opendistro_security_logstash:
   cluster:
     - indices:admin/template/get
     - indices:admin/template/put
@@ -194,7 +194,7 @@ opendistrosecurity_logstash:
         - indices:data/read/*
         - CREATE_INDEX
 
-opendistrosecurity_marvel_user:
+opendistro_security_marvel_user:
   indices:
     '?marvel-es-*':
       '*':
@@ -208,7 +208,7 @@ opendistrosecurity_marvel_user:
         - indices:data/read/mget
         - indices:data/read/search
 
-opendistrosecurity_remote_marvel_agent:
+opendistro_security_remote_marvel_agent:
   cluster: 
     - indices:admin/template/put
     - indices:admin/template/get
@@ -217,7 +217,7 @@ opendistrosecurity_remote_marvel_agent:
       '*':
         - ALL
         
-opendistrosecurity_theindex_admin:
+opendistro_security_theindex_admin:
   cluster:
     - CLUSTER_COMPOSITE_OPS
   indices:
@@ -225,18 +225,18 @@ opendistrosecurity_theindex_admin:
       '*':
         - ALL
         
-opendistrosecurity_user1:
+opendistro_security_user1:
   indices:
     'alias1':
       '*':
         - READ
-opendistrosecurity_user2:
+opendistro_security_user2:
   indices:
     'alias2':
       '*':
         - READ
         
-opendistrosecurity_multiget:
+opendistro_security_multiget:
   cluster:
     - indices:data/read/mget
   indices:
@@ -247,7 +247,7 @@ opendistrosecurity_multiget:
       '*':
         - READ
         
-opendistrosecurity_shakespeare:
+opendistro_security_shakespeare:
   cluster:
     - cluster:monitor/nodes/info
     - cluster:monitor/health
@@ -263,13 +263,13 @@ opendistrosecurity_shakespeare:
         - indices:admin/get*
         - indices:data/write/bulk*
 
-opendistrosecurity_own_index:
+opendistro_security_own_index:
   indices:
     '${user_name}':
       '*':
         - ALL
 
-opendistrosecurity_writer:
+opendistro_security_writer:
   cluster:
     - indices:data/write/bulk*
   indices:
@@ -278,7 +278,7 @@ opendistrosecurity_writer:
         - WRITE
         - CREATE_INDEX
 
-opendistrosecurity_dlsnoinvest:
+opendistro_security_dlsnoinvest:
   cluster:
     - ALL
   indices:
@@ -293,7 +293,7 @@ opendistrosecurity_dlsnoinvest:
         - ALL
       _dls_: '{"term" : {"category_code" : "software"}}'
 
-opendistrosecurity_baz:
+opendistro_security_baz:
   cluster: 
     - ALL
   indices:
@@ -304,13 +304,13 @@ opendistrosecurity_baz:
       'baz':
         - READ
 
-opendistrosecurity_role01_role02:
+opendistro_security_role01_role02:
   indices:
     'role01_role02':
       '*':
        - ALL
 
-opendistrosecurity_restore:
+opendistro_security_restore:
   cluster:
     - 'cluster:admin/snapshot/restore'
   indices:
@@ -345,7 +345,7 @@ opendistrosecurity_restore:
       '*':
         - 'indices:admin/create'
 
-opendistrosecurity_snapres:
+opendistro_security_snapres:
   cluster:
     - MANAGE_SNAPSHOTS
   indices:
@@ -354,7 +354,7 @@ opendistrosecurity_snapres:
         - "indices:data/write/index"
         - "indices:admin/create"
         
-opendistrosecurity_twitter:
+opendistro_security_twitter:
   cluster:
     - CLUSTER_COMPOSITE_OPS_RO
   indices:
@@ -362,7 +362,7 @@ opendistrosecurity_twitter:
       '*':
         - '*'
         
-opendistrosecurity_aliasmngt:
+opendistro_security_aliasmngt:
   indices:
     'logstash-*':
       '*':
@@ -371,7 +371,7 @@ opendistrosecurity_aliasmngt:
         - CREATE_INDEX
         - indices:admin/aliases*
         
-opendistrosecurity_ua:
+opendistro_security_ua:
   cluster:
     - '*'
   indices:
@@ -384,7 +384,7 @@ opendistrosecurity_ua:
     '*':
       '*':
         - indices:data/read/field_caps
-opendistrosecurity_ub:
+opendistro_security_ub:
   cluster:
     - '*'
   indices:
@@ -392,7 +392,7 @@ opendistrosecurity_ub:
       '*':
         - '*'
         
-opendistrosecurity_uc:
+opendistro_security_uc:
   cluster:
     - '*'
   indices:
@@ -405,19 +405,19 @@ opendistrosecurity_uc:
         - indices:data/read/*
         - CREATE_INDEX
 
-opendistrosecurity_attr:
+opendistro_security_attr:
   indices:
     '${attr_internal_c2}':
       '*':
         - indices:data/read/*
         
-opendistrosecurity_rexclude:
+opendistro_security_rexclude:
   indices:
     '/(?!special|alsonotallowed)(\S|\s)*/':
       '*':
         - READ
         
-opendistrosecurity_aliastest:
+opendistro_security_aliastest:
   indices:
     '?kibana':
       '*':
@@ -428,35 +428,35 @@ opendistrosecurity_aliastest:
         - indices:data/write/*
         - indices:data/read/*
         
-opendistrosecurity_dummy:
+opendistro_security_dummy:
   cluster:
     - 'cluster:monitor/health'
     
-opendistrosecurity_mindex1:
+opendistro_security_mindex1:
   indices:
     'mindex_1':
       '*':
         - indices:data/read/search
         
-opendistrosecurity_mindex2:
+opendistro_security_mindex2:
   indices:
     'mindex_2':
       '*':
         - indices:data/read/search
         
-opendistrosecurity_mindex3:
+opendistro_security_mindex3:
   indices:
     'mindex_3':
       '*':
         - indices:data/write*
         
-opendistrosecurity_ccsresolv:
+opendistro_security_ccsresolv:
   indices:
     '?abc*':
       '*':
         - 'indices:data/read/*'
 
-opendistrosecurity_ccsresolv1:
+opendistro_security_ccsresolv1:
   indices:
     '?abc*':
       '*':
@@ -468,7 +468,7 @@ opendistrosecurity_ccsresolv1:
       '*':
         - 'indices:data/read/*'
         
-opendistrosecurity_underscore:
+opendistro_security_underscore:
   cluster:
     - '*'
   indices:
@@ -476,7 +476,7 @@ opendistrosecurity_underscore:
       '*':
         - '*'
 
-opendistrosecurity_557:
+opendistro_security_557:
   cluster:
     - '*'
   indices:    
@@ -484,7 +484,7 @@ opendistrosecurity_557:
       '*':
         - READ
         
-opendistrosecurity_kibana_server:
+opendistro_security_kibana_server:
   readonly: true
   cluster:
       - CLUSTER_MONITOR

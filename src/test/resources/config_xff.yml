@@ -16,7 +16,7 @@
 
 
 
-opendistrosecurity:
+opendistro_security:
   dynamic:
     http:
       anonymous_auth_enabled: false

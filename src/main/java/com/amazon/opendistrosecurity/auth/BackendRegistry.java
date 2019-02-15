@@ -177,7 +177,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
         authImplMap.put("openid_h", "com.amazon.dlic.auth.http.jwt.keybyoidc.HTTPJwtKeyByOpenIdConnectAuthenticator");
         authImplMap.put("saml_h", "com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator");
 
-        this.ttlInMin = settings.getAsInt(ConfigConstants.OPENDISTROSECURITY_CACHE_TTL_MINUTES, 60);
+        this.ttlInMin = settings.getAsInt(ConfigConstants.OPENDISTRO_SECURITY_CACHE_TTL_MINUTES, 60);
                 
         createCaches();
     }
@@ -203,11 +203,11 @@ public class BackendRegistry implements ConfigurationChangeListener {
         transportAuthorizers.clear();
         invalidateCache();
         destroyDestroyables();
-        transportUsernameAttribute = settings.get("opendistrosecurity.dynamic.transport_userrname_attribute", null);
-        anonymousAuthEnabled = settings.getAsBoolean("opendistrosecurity.dynamic.http.anonymous_auth_enabled", false)
-                && !esSettings.getAsBoolean(ConfigConstants.OPENDISTROSECURITY_COMPLIANCE_DISABLE_ANONYMOUS_AUTHENTICATION, false);
+        transportUsernameAttribute = settings.get("opendistro_security.dynamic.transport_userrname_attribute", null);
+        anonymousAuthEnabled = settings.getAsBoolean("opendistro_security.dynamic.http.anonymous_auth_enabled", false)
+                && !esSettings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_DISABLE_ANONYMOUS_AUTHENTICATION, false);
 
-        final Map<String, Settings> authzDyn = settings.getGroups("opendistrosecurity.dynamic.authz");
+        final Map<String, Settings> authzDyn = settings.getGroups("opendistro_security.dynamic.authz");
 
         for (final String ad : authzDyn.keySet()) {
             final Settings ads = authzDyn.get(ad);
@@ -250,7 +250,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
             }
         }
 
-        final Map<String, Settings> dyn = settings.getGroups("opendistrosecurity.dynamic.authc");
+        final Map<String, Settings> dyn = settings.getGroups("opendistro_security.dynamic.authc");
 
         for (final String ad : dyn.keySet()) {
             final Settings ads = dyn.get(ad);
@@ -395,11 +395,11 @@ public class BackendRegistry implements ConfigurationChangeListener {
      */
     public boolean authenticate(final RestRequest request, final RestChannel channel, final ThreadContext threadContext) {
 
-        final String sslPrincipal = (String) threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTROSECURITY_SSL_PRINCIPAL);
+        final String sslPrincipal = (String) threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL);
 
         if(adminDns.isAdminDN(sslPrincipal)) {
             //PKI authenticated REST call
-            threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTROSECURITY_USER, new User(sslPrincipal));
+            threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User(sslPrincipal));
             auditLog.logSucceededLogin(sslPrincipal, true, null, request);
             return true;
         }
@@ -421,7 +421,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
     		log.debug("Rest authentication request from {} [original: {}]", remoteAddress, request.getRemoteAddress());
     	}
 
-        threadContext.putTransient(ConfigConstants.OPENDISTROSECURITY_REMOTE_ADDRESS, remoteAddress);
+        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, remoteAddress);
 
         boolean authenticated = false;
 
@@ -501,7 +501,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
                 return false;
             }
 
-            final String tenant = Utils.coalesce(request.header("sgtenant"), request.header("opendistrosecurity_tenant"));
+            final String tenant = Utils.coalesce(request.header("sgtenant"), request.header("opendistro_security_tenant"));
 
             if(log.isDebugEnabled()) {
                 log.debug("User '{}' is authenticated", authenticatedUser);
@@ -516,7 +516,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
 
         if(authenticated) {
             final User impersonatedUser = impersonate(request, authenticatedUser);
-            threadContext.putTransient(ConfigConstants.OPENDISTROSECURITY_USER, impersonatedUser==null?authenticatedUser:impersonatedUser);
+            threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, impersonatedUser==null?authenticatedUser:impersonatedUser);
             auditLog.logSucceededLogin((impersonatedUser==null?authenticatedUser:impersonatedUser).getName(), false, authenticatedUser.getName(), request);
         } else {
             if(log.isDebugEnabled()) {
@@ -524,7 +524,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
             }
 
             if(authCredenetials == null && anonymousAuthEnabled) {
-            	threadContext.putTransient(ConfigConstants.OPENDISTROSECURITY_USER, User.ANONYMOUS);
+            	threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, User.ANONYMOUS);
             	auditLog.logSucceededLogin(User.ANONYMOUS.getName(), false, null, request);
                 if(log.isDebugEnabled()) {
                     log.debug("Anonymous User is authenticated");
@@ -657,7 +657,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
 
     private User impersonate(final TransportRequest tr, final User origPKIuser) throws ElasticsearchSecurityException {
 
-        final String impersonatedUser = threadPool.getThreadContext().getHeader("opendistrosecurity_impersonate_as");
+        final String impersonatedUser = threadPool.getThreadContext().getHeader("opendistro_security_impersonate_as");
 
         if(Strings.isNullOrEmpty(impersonatedUser)) {
             return null; //nothing to do
@@ -696,7 +696,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
 
     private User impersonate(final RestRequest request, final User originalUser) throws ElasticsearchSecurityException {
 
-        final String impersonatedUserHeader = request.header("opendistrosecurity_impersonate_as");
+        final String impersonatedUserHeader = request.header("opendistro_security_impersonate_as");
 
         if (Strings.isNullOrEmpty(impersonatedUserHeader) || originalUser == null) {
             return null; // nothing to do
