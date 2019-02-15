@@ -9,4 +9,4 @@ else
     BIN_PATH="$JAVA_HOME/bin/java"
 fi
 
-"$BIN_PATH" $JAVA_OPTS -cp "$DIR/../../search-guard-ssl/*:$DIR/../*:$DIR/../deps/*:$DIR/../../../lib/*" com.amazon.opendistrosecurity.tools.Hasher "$@"
+"$BIN_PATH" $JAVA_OPTS -cp "$DIR/../../search-guard-ssl/*:$DIR/../*:$DIR/../deps/*:$DIR/../../../lib/*" com.amazon.opendistroforelasticsearch.security.tools.Hasher "$@"
