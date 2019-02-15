@@ -48,7 +48,7 @@ import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import com.amazon.opendistroforelasticsearch.security.resolver.IndexResolverReplacer.Resolved;
-import com.amazon.opendistroforelasticsearch.security.sgconf.ConfigModel.SecurityRoles;
+import com.amazon.opendistroforelasticsearch.security.securityconf.ConfigModel.SecurityRoles;
 import com.amazon.opendistroforelasticsearch.security.support.Base64Helper;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;

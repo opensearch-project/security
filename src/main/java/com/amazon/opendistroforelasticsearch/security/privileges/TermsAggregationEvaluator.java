@@ -44,7 +44,7 @@ import org.elasticsearch.index.query.TermsQueryBuilder;
 import org.elasticsearch.search.aggregations.AggregationBuilder;
 import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 
-import com.amazon.opendistroforelasticsearch.security.sgconf.ConfigModel.SecurityRoles;
+import com.amazon.opendistroforelasticsearch.security.securityconf.ConfigModel.SecurityRoles;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 
 public class TermsAggregationEvaluator {

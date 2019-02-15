@@ -28,7 +28,7 @@
  * permissions and limitations under the License.
  */
 
-package com.amazon.opendistroforelasticsearch.security.sgtest;
+package com.amazon.opendistroforelasticsearch.security.ccstest;
 
 import org.apache.http.HttpStatus;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
