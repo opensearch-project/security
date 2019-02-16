@@ -93,7 +93,7 @@ public class ConfigConstants {
     public static final String SSO_LOGOUT_URL = OPENDISTRO_SECURITY_CONFIG_PREFIX+"sso_logout_url";
 
     
-    public static final String OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX = "opendistrosecurity";
+    public static final String OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX = "opendistro_security";
 
     public static final String OPENDISTRO_SECURITY_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE = "opendistro_security.enable_snapshot_restore_privilege";
     public static final boolean OPENDISTRO_SECURITY_DEFAULT_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE = false;
