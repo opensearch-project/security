@@ -240,7 +240,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                                             installDefaultConfig.set(true);
                                             bgThread.start();
                                         } else {
-                                            LOGGER.info("{} index does not exist yet, so no need to load config on node startup. Use sgadmin to initialize cluster", opendistrosecurityIndex);
+                                            LOGGER.info("{} index does not exist yet, so no need to load config on node startup. Use securityadmin to initialize cluster", opendistrosecurityIndex);
                                         }
                                     }
                                 }

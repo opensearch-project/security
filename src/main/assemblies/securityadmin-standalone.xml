@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <assembly>
-  <id>sgadmin-standalone</id>
+  <id>securityadmin-standalone</id>
   <formats>
     <format>zip</format>
     <format>tar.gz</format>

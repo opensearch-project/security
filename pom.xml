@@ -67,7 +67,7 @@
     
     <!-- assembly descriptors -->
     <elasticsearch.assembly.descriptor>${basedir}/src/main/assemblies/plugin.xml</elasticsearch.assembly.descriptor>
-    <sgstandalone.descriptor>${basedir}/src/main/assemblies/sgadmin-standalone.xml</sgstandalone.descriptor>
+    <sgstandalone.descriptor>${basedir}/src/main/assemblies/securityadmin-standalone.xml</sgstandalone.descriptor>
     <veracode.descriptor>${basedir}/src/main/assemblies/veracode.xml</veracode.descriptor>
     
     <!-- Test only -->
@@ -296,7 +296,7 @@
                 </goals>
               </execution>
               <execution>
-                <id>sgadmin</id>
+                <id>securityadmin</id>
                 <phase>package</phase>
                 <configuration>
                   <appendAssemblyId>true</appendAssemblyId>
@@ -332,7 +332,7 @@
                             <include>*.zip</include>
                         </includes>
                         <excludes>
-                            <exclude>*sgadmin*</exclude>
+                            <exclude>*securityadmin*</exclude>
                         </excludes>
                     </fileSet>
                 </fileSets>

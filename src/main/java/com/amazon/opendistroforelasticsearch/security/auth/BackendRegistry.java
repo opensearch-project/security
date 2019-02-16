@@ -410,7 +410,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
         }
         
         if (!isInitialized()) {
-            log.error("Not yet initialized (you may need to run sgadmin)");
+            log.error("Not yet initialized (you may need to run securityadmin)");
             channel.sendResponse(new BytesRestResponse(RestStatus.SERVICE_UNAVAILABLE, "Open Distro Security not initialized (SG11)."));
             return false;
         }

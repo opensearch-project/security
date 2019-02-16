@@ -139,7 +139,7 @@ public class OpenDistroSecurityAdmin {
             System.exit(-1);
         } 
         catch (IndexNotFoundException e) {
-            System.out.println("ERR: No Open Distro Security configuartion index found. Please execute sgadmin with different command line parameters");
+            System.out.println("ERR: No Open Distro Security configuartion index found. Please execute securityadmin with different command line parameters");
             System.out.println("When you run it for the first time do not specify -us, -era, -dra or -rl");
             System.out.println();
             System.exit(-1);
@@ -350,13 +350,13 @@ public class OpenDistroSecurityAdmin {
         }
         catch( ParseException exp ) {
             System.out.println("ERR: Parsing failed.  Reason: " + exp.getMessage());
-            formatter.printHelp("sgadmin.sh", options, true);
+            formatter.printHelp("securityadmin.sh", options, true);
             return;
         }
         
         if(port < 9300) {
             System.out.println("WARNING: Seems you want connect to the Elasticsearch HTTP port."+System.lineSeparator()
-                             + "         sgadmin connects on the transport port which is normally 9300.");
+                             + "         securityadmin connects on the transport port which is normally 9300.");
         }
         
         System.out.print("Will connect to "+hostname+":"+port);
@@ -564,18 +564,18 @@ public class OpenDistroSecurityAdmin {
                     if(!failFast) {
                         System.out.println("Cannot retrieve cluster state due to: "+e.getMessage()+". This is not an error, will keep on trying ...");
                         System.out.println("  Root cause: "+rootCause+" ("+e.getClass().getName()+"/"+rootCause.getClass().getName()+")");
-                        System.out.println("   * Try running sgadmin.sh with -icl (but no -cl) and -nhnv (If that works you need to check your clustername as well as hostnames in your TLS certificates)");   
+                        System.out.println("   * Try running securityadmin.sh with -icl (but no -cl) and -nhnv (If that works you need to check your clustername as well as hostnames in your TLS certificates)");   
                         System.out.println("   * Make sure that your keystore or PEM certificate is a client certificate (not a node certificate) and configured properly in elasticsearch.yml"); 
-                        System.out.println("   * If this is not working, try running sgadmin.sh with --diagnose and see diagnose trace log file)");
-                        System.out.println("   * Add --accept-red-cluster to allow sgadmin to operate on a red cluster.");
+                        System.out.println("   * If this is not working, try running securityadmin.sh with --diagnose and see diagnose trace log file)");
+                        System.out.println("   * Add --accept-red-cluster to allow securityadmin to operate on a red cluster.");
 
                     } else {
                         System.out.println("ERR: Cannot retrieve cluster state due to: "+e.getMessage()+".");
                         System.out.println("  Root cause: "+rootCause+" ("+e.getClass().getName()+"/"+rootCause.getClass().getName()+")");
-                        System.out.println("   * Try running sgadmin.sh with -icl (but no -cl) and -nhnv (If that works you need to check your clustername as well as hostnames in your TLS certificates)");
+                        System.out.println("   * Try running securityadmin.sh with -icl (but no -cl) and -nhnv (If that works you need to check your clustername as well as hostnames in your TLS certificates)");
                         System.out.println("   * Make also sure that your keystore or PEM certificate is a client certificate (not a node certificate) and configured properly in elasticsearch.yml"); 
-                        System.out.println("   * If this is not working, try running sgadmin.sh with --diagnose and see diagnose trace log file)"); 
-                        System.out.println("   * Add --accept-red-cluster to allow sgadmin to operate on a red cluster.");
+                        System.out.println("   * If this is not working, try running securityadmin.sh with --diagnose and see diagnose trace log file)"); 
+                        System.out.println("   * Add --accept-red-cluster to allow securityadmin to operate on a red cluster.");
 
                         System.exit(-1);
                     }
@@ -589,10 +589,10 @@ public class OpenDistroSecurityAdmin {
             
             if (!acceptRedCluster && timedOut) {
                 System.out.println("ERR: Timed out while waiting for a green or yellow cluster state.");
-                System.out.println("   * Try running sgadmin.sh with -icl (but no -cl) and -nhnv (If that works you need to check your clustername as well as hostnames in your TLS certificates)");
+                System.out.println("   * Try running securityadmin.sh with -icl (but no -cl) and -nhnv (If that works you need to check your clustername as well as hostnames in your TLS certificates)");
                 System.out.println("   * Make also sure that your keystore or PEM certificate is a client certificate (not a node certificate) and configured properly in elasticsearch.yml"); 
-                System.out.println("   * If this is not working, try running sgadmin.sh with --diagnose and see diagnose trace log file)"); 
-                System.out.println("   * Add --accept-red-cluster to allow sgadmin to operate on a red cluster.");
+                System.out.println("   * If this is not working, try running securityadmin.sh with --diagnose and see diagnose trace log file)"); 
+                System.out.println("   * Add --accept-red-cluster to allow securityadmin to operate on a red cluster.");
                 System.exit(-1);
             }
             
@@ -908,7 +908,7 @@ public class OpenDistroSecurityAdmin {
         final String date = DATE_FORMAT.format(new Date());
         
         final StringBuilder sb = new StringBuilder();
-        sb.append("Diagnostic sgadmin trace"+System.lineSeparator());
+        sb.append("Diagnostic securityadmin trace"+System.lineSeparator());
         sb.append("ES client version: "+Version.CURRENT+System.lineSeparator());
         sb.append("Client properties: "+System.getProperties()+System.lineSeparator());
         sb.append(date+System.lineSeparator());
@@ -963,7 +963,7 @@ public class OpenDistroSecurityAdmin {
         }
         
         try {
-            File dfile = new File("sgadmin_diag_trace_"+date+".txt");
+            File dfile = new File("securityadmin_diag_trace_"+date+".txt");
             Files.asCharSink(dfile, StandardCharsets.UTF_8).write(sb);
             System.out.println("Diagnostic trace written to: "+dfile.getAbsolutePath());
         } catch (Exception e1) {
@@ -1026,7 +1026,7 @@ public class OpenDistroSecurityAdmin {
         Version minVersion = nir.getNodes().stream().min((n1,n2) -> n1.getVersion().compareTo(n2.getVersion())).get().getVersion();
         
         if(!maxVersion.equals(minVersion)) {
-            System.out.println("WARNING: Your cluster consists of different node versions. It is not recommended to run sgadmin against a mixed cluster. This may fail.");
+            System.out.println("WARNING: Your cluster consists of different node versions. It is not recommended to run securityadmin against a mixed cluster. This may fail.");
             System.out.println("         Minimum node version is "+minVersion.toString());
             System.out.println("         Maximum node version is "+maxVersion.toString());
         } else {
