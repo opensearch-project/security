@@ -1,9 +1,8 @@
-#Security for Open Distro Elasticsearch
+#Open Distro For Elasticsearch Security
 
+opendistro-elasticsearch-security is an Elasticsearch plugin that offers encryption, authentication, authorization. It supports authentication via Active Directory, LDAP, Kerberos, JSON web tokens, SAML, OpenID and many more. It includes fine grained role-based access control to indices, documents and fields. Enjoy true multi tenancy in Kibana, and stay compliant with GDPR, HIPAA, PCI, SOX and ISO by using audit and compliance logging.
 
-opendistro-security is an Elasticsearch plugin that offers encryption, authentication, authorization. It supports authentication via Active Directory, LDAP, Kerberos, JSON web tokens, SAML, OpenID and many more. It includes fine grained role-based access control to indices, documents and fields. Enjoy true multi tenancy in Kibana, and stay compliant with GDPR, HIPAA, PCI, SOX and ISO by using audit and compliance logging. 
-
-opendistro-security supports **OpenSSL** for maximum performance and security. The complete code is **Open Source**.
+opendistro-elasticsearch-security supports **OpenSSL** for maximum performance and security. The complete code is **Open Source**.
 
 ## Basic features
 
@@ -23,7 +22,7 @@ opendistro-security supports **OpenSSL** for maximum performance and security. T
 
 ## Advance features
 
-The Enterprise Edition on opendistro-security  adds:
+opendistro-elasticsearch-security-advanced-modules adds:
 
 * Active Directory / LDAP
 * Kerberos / SPNEGO
@@ -40,13 +39,13 @@ The Enterprise Edition on opendistro-security  adds:
 
 ## Documentation
 
-Please refer to the [Official documentation] for detailed information on installing and configuring opendistro-security plugin.
+Please refer to the [Official documentation] for detailed information on installing and configuring opendistro-elasticsearch-security plugin.
 
 ## Quick Start
 
 * Install Elasticsearch
 
-* Install the opendistro-security plugin for your Elasticsearch version 6.5.4, e.g.:
+* Install the opendistro-elasticsearch-security plugin for your Elasticsearch version 6.5.4, e.g.:
 
 ```
 <ES directory>/bin/elasticsearch-plugin install \
@@ -78,5 +77,5 @@ The Security Plugin Configuration is stored in a dedicated index in Elasticsearc
 
 
 ## Legal 
-
-
+Open Distro For Elasticsearch Security
+Copyright 2019- Amazon.com, Inc. or its affiliates. All Rights Reserved.
