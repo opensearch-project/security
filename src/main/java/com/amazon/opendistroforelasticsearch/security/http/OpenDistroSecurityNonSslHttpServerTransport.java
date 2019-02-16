@@ -43,7 +43,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 public class OpenDistroSecurityNonSslHttpServerTransport extends Netty4HttpServerTransport {
 
-    //https://github.com/floragunncom/search-guard/issues/256
     private final ThreadContext threadContext;
     
     public OpenDistroSecurityNonSslHttpServerTransport(final Settings settings, final NetworkService networkService, final BigArrays bigArrays,
