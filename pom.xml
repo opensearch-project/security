@@ -34,13 +34,12 @@
   <parent>
     <groupId>com.amazon.opendistroforelasticsearch</groupId>
     <artifactId>elasticsearch-security-parent</artifactId>
-    <version>6.22.1</version>
+    <version>0.0.7.0</version>
   </parent>
 
   <artifactId>elasticsearch-security</artifactId>
   <packaging>jar</packaging>
-  <!-- 6.x.y-a.b-->
-  <version>6.5.4-24.0</version>
+  <version>0.0.7.0</version>
   <name>Elasticsearch Security</name>
   <description>Provide access control related features for Elasticsearch 6</description>
   <url>https://github.com/mauve-hedgehog/opendistro-elasticsearch-security</url>
@@ -55,8 +54,8 @@
   </licenses>
 
   <properties>
-    <elasticsearch-ssl.version>6.5.4-25.5</elasticsearch-ssl.version>
-    <enterprise-modules.version>6.5.4-33.0</enterprise-modules.version>
+    <elasticsearch-ssl.version>0.0.7.0</elasticsearch-ssl.version>
+    <enterprise-modules.version>0.0.7.0</enterprise-modules.version>
     <elasticsearch.version>6.5.4</elasticsearch.version>
     
     <!-- deps -->
@@ -79,7 +78,7 @@
     <url>https://github.com/mauve-hedgehog/opendistro-elasticsearch-security</url>
     <connection>scm:git:git@github.com:mauve-hedgehog/opendistro-elasticsearch-security.git</connection>
     <developerConnection>scm:git:git@github.com:mauve-hedgehog/opendistro-elasticsearch-security.git</developerConnection>
-    <tag>v6.5.4-24.0</tag>
+    <tag>0.0.7.0</tag>
   </scm>
 
   <issueManagement>
