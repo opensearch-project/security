@@ -15,7 +15,7 @@ opendistro_security.enterprise_modules_enabled: true
 
 # Specify a list of DNs which denote the other nodes in the cluster.
 # This settings support wildcards and regular expressions
-# This setting only has effect if 'opendistrosecurity.cert.intercluster_request_evaluator_class' is not set.
+# This setting only has effect if 'opendistro_security.cert.intercluster_request_evaluator_class' is not set.
 opendistro_security.nodes_dn:
   - "CN=*.example.com, OU=SSL, O=Test, L=Test, C=DE"
   - "CN=node.other.com, OU=SSL, O=Test, L=Test, C=DE"
@@ -167,7 +167,7 @@ opendistro_security.audit.type: internal_elasticsearch
 # or make Open Distro Security stop working
 
 # Name of the index where opendistrosecurity stores its configuration.
-#opendistro_security.config_index_name: opendistrosecurity
+#opendistro_security.config_index_name: .opendistro_security
 
 # This defines the OID of server node certificates
 #opendistro_security.cert.oid: '1.2.3.4.5.5'
@@ -180,10 +180,10 @@ opendistro_security.audit.type: internal_elasticsearch
 
 # Allow snapshot restore for normal users
 # By default only requests signed by an admin TLS certificate can do this
-# To enable snapshot restore for normal users set 'opendistrosecurity.enable_snapshot_restore_privilege: true'
+# To enable snapshot restore for normal users set 'opendistro_security.enable_snapshot_restore_privilege: true'
 # The user who wants to restore a snapshot must have the 'cluster:admin/snapshot/restore' privilege and must also have
 # "indices:admin/create" and "indices:data/write/index" for the indices to be restores.
-# A snapshot can only be restored when it does not contain global state and does not restore the 'opendistrosecurity' index
+# A snapshot can only be restored when it does not contain global state and does not restore the '.opendistro_security' index
 # If 'opendistrosecurity.check_snapshot_restore_write_privileges: false' is set then the additional indices checks are omitted.
 # This makes it less secure.
 #opendistro_security.enable_snapshot_restore_privilege: true
