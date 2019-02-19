@@ -42,7 +42,7 @@ import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelpe
 
 public class DynamicSecurityConfig {
     
-    private String securityIndexName = "opendistrosecurity";
+    private String securityIndexName = ".opendistro_security";
     private String securityConfig = "config.yml";
     private String securityRoles = "roles.yml";
     private String securityRolesMapping = "roles_mapping.yml";

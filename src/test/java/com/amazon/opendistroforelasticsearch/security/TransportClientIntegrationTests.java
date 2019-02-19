@@ -114,23 +114,23 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			Assert.assertEquals(1, actionGet.getHits().getHits().length);
 			System.out.println("------- 6 ---------");
 
-			gr =tc.prepareGet("opendistrosecurity", "security", "config").setRealtime(false).get();
+			gr =tc.prepareGet(".opendistro_security", "security", "config").setRealtime(false).get();
 			Assert.assertFalse(gr.isExists());
 
 			System.out.println("------- 7 ---------");
 
-			gr =tc.prepareGet("opendistrosecurity", "security", "config").setRealtime(true).get();
+			gr =tc.prepareGet(".opendistro_security", "security", "config").setRealtime(true).get();
 			Assert.assertFalse(gr.isExists());
 
 			System.out.println("------- 8 ---------");
 
-			actionGet = tc.search(new SearchRequest("opendistrosecurity")).actionGet();
+			actionGet = tc.search(new SearchRequest(".opendistro_security")).actionGet();
 			Assert.assertEquals(0, actionGet.getHits().getHits().length);
 
 			System.out.println("------- 9 ---------");
 
 			try {
-				tc.index(new IndexRequest("opendistrosecurity").type("security").id("config").source("config", FileHelper.readYamlContent("config.yml"))).actionGet();
+				tc.index(new IndexRequest(".opendistro_security").type("security").id("config").source("config", FileHelper.readYamlContent("config.yml"))).actionGet();
 				Assert.fail();
 			} catch (Exception e) {
 				System.out.println(e.getMessage());
@@ -203,7 +203,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
 				tc.threadPool().getThreadContext().putHeader("opendistro_security_impersonate_as", "nagilum");
-				gr = tc.prepareGet("opendistrosecurity", "security", "config").setRealtime(Boolean.TRUE).get();
+				gr = tc.prepareGet(".opendistro_security", "security", "config").setRealtime(Boolean.TRUE).get();
 				Assert.assertFalse(gr.isExists());
 				Assert.assertTrue(gr.isSourceEmpty());
 			} finally {
@@ -214,7 +214,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
 				tc.threadPool().getThreadContext().putHeader("opendistro_security_impersonate_as", "nagilum");
-				gr = tc.prepareGet("opendistrosecurity", "config", "0").setRealtime(Boolean.FALSE).get();
+				gr = tc.prepareGet(".opendistro_security", "config", "0").setRealtime(Boolean.FALSE).get();
 				Assert.assertFalse(gr.isExists());
 				Assert.assertTrue(gr.isSourceEmpty());
 			} finally {
@@ -269,7 +269,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
 				tc.threadPool().getThreadContext().putHeader("opendistro_security_impersonate_as", "nagilum");
-				gr = tc.prepareGet("opendistrosecurity", "security", "config").setRealtime(Boolean.TRUE).get();
+				gr = tc.prepareGet(".opendistro_security", "security", "config").setRealtime(Boolean.TRUE).get();
 				Assert.assertFalse(gr.isExists());
 				Assert.assertTrue(gr.isSourceEmpty());
 			} finally {
@@ -282,7 +282,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			try {
 				Header header = encodeBasicHeader("worf", "worf");
 				tc.threadPool().getThreadContext().putHeader(header.getName(), header.getValue());
-				gr = tc.prepareGet("opendistrosecurity", "security", "config").setRealtime(Boolean.TRUE).get();
+				gr = tc.prepareGet(".opendistro_security", "security", "config").setRealtime(Boolean.TRUE).get();
 				Assert.fail();
 			} catch (Exception e) {
 				Assert.assertTrue(e.getMessage().contains("no permissions for [indices:data/read/get] and User [name=worf"));
@@ -298,7 +298,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			try {
 				Header header = encodeBasicHeader("nagilum", "nagilum");
 				tc.threadPool().getThreadContext().putHeader(header.getName(), header.getValue());
-				gr = tc.prepareGet("opendistrosecurity", "security", "config").setRealtime(Boolean.TRUE).get();
+				gr = tc.prepareGet(".opendistro_security", "security", "config").setRealtime(Boolean.TRUE).get();
 				Assert.assertFalse(gr.isExists());
 				Assert.assertTrue(gr.isSourceEmpty());
 			} finally {
@@ -310,7 +310,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
 				tc.threadPool().getThreadContext().putHeader("opendistro_security_impersonate_as", "nagilum");
-				gr = tc.prepareGet("opendistrosecurity", "security", "config").setRealtime(Boolean.FALSE).get();
+				gr = tc.prepareGet(".opendistro_security", "security", "config").setRealtime(Boolean.FALSE).get();
 				Assert.assertFalse(gr.isExists());
 				Assert.assertTrue(gr.isSourceEmpty());
 			} finally {
@@ -472,23 +472,23 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			Assert.assertEquals(1, actionGet.getHits().getHits().length);
 			System.out.println("------- 6 ---------");
 
-			gr =tc.prepareGet("opendistrosecurity", "security", "config").setRealtime(false).get();
+			gr =tc.prepareGet(".opendistro_security", "security", "config").setRealtime(false).get();
 			Assert.assertFalse(gr.isExists());
 
 			System.out.println("------- 7 ---------");
 
-			gr =tc.prepareGet("opendistrosecurity", "security", "config").setRealtime(true).get();
+			gr =tc.prepareGet(".opendistro_security", "security", "config").setRealtime(true).get();
 			Assert.assertFalse(gr.isExists());
 
 			System.out.println("------- 8 ---------");
 
-			actionGet = tc.search(new SearchRequest("opendistrosecurity")).actionGet();
+			actionGet = tc.search(new SearchRequest(".opendistro_security")).actionGet();
 			Assert.assertEquals(0, actionGet.getHits().getHits().length);
 
 			System.out.println("------- 9 ---------");
 
 			try {
-				tc.index(new IndexRequest("opendistrosecurity").type("security").id("config").source("config", FileHelper.readYamlContent("config.yml"))).actionGet();
+				tc.index(new IndexRequest(".opendistro_security").type("security").id("config").source("config", FileHelper.readYamlContent("config.yml"))).actionGet();
 				Assert.fail();
 			} catch (Exception e) {
 				System.out.println(e.getMessage());
@@ -561,7 +561,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
 				tc.threadPool().getThreadContext().putHeader("opendistro_security_impersonate_as", "nagilum");
-				gr = tc.prepareGet("opendistrosecurity", "security", "config").setRealtime(Boolean.TRUE).get();
+				gr = tc.prepareGet(".opendistro_security", "security", "config").setRealtime(Boolean.TRUE).get();
 				Assert.assertFalse(gr.isExists());
 				Assert.assertTrue(gr.isSourceEmpty());
 			} finally {
@@ -572,7 +572,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
 				tc.threadPool().getThreadContext().putHeader("opendistro_security_impersonate_as", "nagilum");
-				gr = tc.prepareGet("opendistrosecurity", "config", "0").setRealtime(Boolean.FALSE).get();
+				gr = tc.prepareGet(".opendistro_security", "config", "0").setRealtime(Boolean.FALSE).get();
 				Assert.assertFalse(gr.isExists());
 				Assert.assertTrue(gr.isSourceEmpty());
 			} finally {
@@ -627,7 +627,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
 				tc.threadPool().getThreadContext().putHeader("opendistro_security_impersonate_as", "nagilum");
-				gr = tc.prepareGet("opendistrosecurity", "security", "config").setRealtime(Boolean.TRUE).get();
+				gr = tc.prepareGet(".opendistro_security", "security", "config").setRealtime(Boolean.TRUE).get();
 				Assert.assertFalse(gr.isExists());
 				Assert.assertTrue(gr.isSourceEmpty());
 			} finally {
@@ -640,7 +640,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			try {
 				Header header = encodeBasicHeader("worf", "worf");
 				tc.threadPool().getThreadContext().putHeader(header.getName(), header.getValue());
-				gr = tc.prepareGet("opendistrosecurity", "security", "config").setRealtime(Boolean.TRUE).get();
+				gr = tc.prepareGet(".opendistro_security", "security", "config").setRealtime(Boolean.TRUE).get();
 				Assert.fail();
 			} catch (Exception e) {
 				Assert.assertTrue(e.getMessage().contains("no permissions for [indices:data/read/get] and User [name=worf"));
@@ -656,7 +656,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			try {
 				Header header = encodeBasicHeader("nagilum", "nagilum");
 				tc.threadPool().getThreadContext().putHeader(header.getName(), header.getValue());
-				gr = tc.prepareGet("opendistrosecurity", "security", "config").setRealtime(Boolean.TRUE).get();
+				gr = tc.prepareGet(".opendistro_security", "security", "config").setRealtime(Boolean.TRUE).get();
 				Assert.assertFalse(gr.isExists());
 				Assert.assertTrue(gr.isSourceEmpty());
 			} finally {
@@ -668,7 +668,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
 				tc.threadPool().getThreadContext().putHeader("opendistro_security_impersonate_as", "nagilum");
-				gr = tc.prepareGet("opendistrosecurity", "security", "config").setRealtime(Boolean.FALSE).get();
+				gr = tc.prepareGet(".opendistro_security", "security", "config").setRealtime(Boolean.FALSE).get();
 				Assert.assertFalse(gr.isExists());
 				Assert.assertTrue(gr.isSourceEmpty());
 			} finally {

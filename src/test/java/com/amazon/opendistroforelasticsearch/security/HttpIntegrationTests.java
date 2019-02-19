@@ -96,8 +96,8 @@ public class HttpIntegrationTests extends SingleClusterTest {
             Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
             Assert.assertEquals(HttpStatus.SC_OK, rh.executeDeleteRequest("nonexistentindex*", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
             Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest(".nonexistentindex*", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest("opendistrosecurity/config/2", "{}",encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_NOT_FOUND, rh.executeGetRequest("opendistrosecurity/config/0", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest(".opendistro_security/config/2", "{}",encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_NOT_FOUND, rh.executeGetRequest(".opendistro_security/config/0", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
             Assert.assertEquals(HttpStatus.SC_NOT_FOUND, rh.executeGetRequest("xxxxyyyy/config/0", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
             Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("abc", "abc:abc")).getStatusCode());
             Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest("", encodeBasicHeader("userwithnopassword", "")).getStatusCode());
@@ -122,16 +122,16 @@ public class HttpIntegrationTests extends SingleClusterTest {
             Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest("starfleet/_search", encodeBasicHeader("worf", "worf")).getStatusCode());
             Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest("_search", encodeBasicHeader("worf", "worf")).getStatusCode());
             Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("starfleet/ships/_search?pretty", encodeBasicHeader("worf", "worf")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeDeleteRequest("opendistrosecurity/", encodeBasicHeader("worf", "worf")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("/opendistrosecurity/_close", null,encodeBasicHeader("worf", "worf")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("/opendistrosecurity/_upgrade", null,encodeBasicHeader("worf", "worf")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest("/opendistrosecurity/_mapping/config","{}",encodeBasicHeader("worf", "worf")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeDeleteRequest(".opendistro_security/", encodeBasicHeader("worf", "worf")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("/.opendistro_security/_close", null,encodeBasicHeader("worf", "worf")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("/.opendistro_security/_upgrade", null,encodeBasicHeader("worf", "worf")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest("/.opendistro_security/_mapping/config","{}",encodeBasicHeader("worf", "worf")).getStatusCode());
     
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest("opendistrosecurity/", encodeBasicHeader("worf", "worf")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest("opendistrosecurity/config/2", "{}",encodeBasicHeader("worf", "worf")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest("opendistrosecurity/config/0",encodeBasicHeader("worf", "worf")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeDeleteRequest("opendistrosecurity/config/0",encodeBasicHeader("worf", "worf")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest("opendistrosecurity/config/0","{}",encodeBasicHeader("worf", "worf")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest(".opendistro_security/", encodeBasicHeader("worf", "worf")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest(".opendistro_security/config/2", "{}",encodeBasicHeader("worf", "worf")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest(".opendistro_security/config/0",encodeBasicHeader("worf", "worf")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeDeleteRequest(".opendistro_security/config/0",encodeBasicHeader("worf", "worf")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest(".opendistro_security/config/0","{}",encodeBasicHeader("worf", "worf")).getStatusCode());
             
             HttpResponse resc = rh.executeGetRequest("_cat/indices/public?v",encodeBasicHeader("bug108", "nagilum"));
             Assert.assertTrue(resc.getBody().contains("green"));
@@ -146,12 +146,12 @@ public class HttpIntegrationTests extends SingleClusterTest {
 
     //all  
             Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest("_mapping/config","{\"i\" : [\"4\"]}",encodeBasicHeader("worf", "worf")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("opendistrosecurity/_mget","{\"ids\" : [\"0\"]}",encodeBasicHeader("worf", "worf")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest(".opendistro_security/_mget","{\"ids\" : [\"0\"]}",encodeBasicHeader("worf", "worf")).getStatusCode());
             
             Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("starfleet/ships/_search?pretty", encodeBasicHeader("worf", "worf")).getStatusCode());
     
             try (TransportClient tc = getInternalTransportClient()) {       
-                tc.index(new IndexRequest("opendistrosecurity").type("security").id("roles").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("roles", FileHelper.readYamlContent("roles_deny.yml"))).actionGet();
+                tc.index(new IndexRequest(".opendistro_security").type("security").id("roles").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("roles", FileHelper.readYamlContent("roles_deny.yml"))).actionGet();
                 ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"roles"})).actionGet();
                 Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());
             }
@@ -159,7 +159,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
             Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest("starfleet/ships/_search?pretty", encodeBasicHeader("worf", "worf")).getStatusCode());
     
             try (TransportClient tc = getInternalTransportClient()) {
-                tc.index(new IndexRequest("opendistrosecurity").type("security").id("roles").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("roles", FileHelper.readYamlContent("roles.yml"))).actionGet();
+                tc.index(new IndexRequest(".opendistro_security").type("security").id("roles").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("roles", FileHelper.readYamlContent("roles.yml"))).actionGet();
                 ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"roles"})).actionGet();
                 Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());
             }
@@ -168,7 +168,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
             HttpResponse res = rh.executeGetRequest("_search?pretty", encodeBasicHeader("nagilum", "nagilum"));
             Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
             Assert.assertTrue(res.getBody().contains("\"total\" : 11"));
-            Assert.assertTrue(!res.getBody().contains("opendistrosecurity"));
+            Assert.assertTrue(!res.getBody().contains(".opendistro_security"));
             
             res = rh.executeGetRequest("_nodes/stats?pretty", encodeBasicHeader("nagilum", "nagilum"));
             Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
@@ -326,8 +326,8 @@ public class HttpIntegrationTests extends SingleClusterTest {
             Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
             
             try (TransportClient tc = getInternalTransportClient()) {    
-                tc.index(new IndexRequest("opendistrosecurity").type("security").id("config").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("config", FileHelper.readYamlContent("config.yml"))).actionGet();
-                tc.index(new IndexRequest("opendistrosecurity").type("security").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("internalusers").source("internalusers", FileHelper.readYamlContent("internal_users.yml"))).actionGet();
+                tc.index(new IndexRequest(".opendistro_security").type("security").id("config").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("config", FileHelper.readYamlContent("config.yml"))).actionGet();
+                tc.index(new IndexRequest(".opendistro_security").type("security").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("internalusers").source("internalusers", FileHelper.readYamlContent("internal_users.yml"))).actionGet();
                 ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
                 Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());
              }
@@ -369,10 +369,10 @@ public class HttpIntegrationTests extends SingleClusterTest {
         rh.sendHTTPClientCertificate = true;
         rh.keystore = "spock-keystore.jks";
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_search").getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest("opendistrosecurity/security/x", "{}").getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest(".opendistro_security/security/x", "{}").getStatusCode());
         
         rh.keystore = "kirk-keystore.jks";
-        Assert.assertEquals(HttpStatus.SC_CREATED, rh.executePutRequest("opendistrosecurity/security/y", "{}").getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_CREATED, rh.executePutRequest(".opendistro_security/security/y", "{}").getStatusCode());
         HttpResponse res;
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistro/_security/authinfo")).getStatusCode());
         System.out.println(res.getBody());
@@ -465,8 +465,8 @@ public class HttpIntegrationTests extends SingleClusterTest {
             Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
             Assert.assertEquals(HttpStatus.SC_OK, rh.executeDeleteRequest("nonexistentindex*", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
             Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest(".nonexistentindex*", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest("opendistrosecurity/config/2", "{}",encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_NOT_FOUND, rh.executeGetRequest("opendistrosecurity/config/0", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest(".opendistro_security/config/2", "{}",encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_NOT_FOUND, rh.executeGetRequest(".opendistro_security/config/0", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
             Assert.assertEquals(HttpStatus.SC_NOT_FOUND, rh.executeGetRequest("xxxxyyyy/config/0", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
             Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("abc", "abc:abc")).getStatusCode());
             Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest("", encodeBasicHeader("userwithnopassword", "")).getStatusCode());
@@ -491,16 +491,16 @@ public class HttpIntegrationTests extends SingleClusterTest {
             Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest("starfleet/_search", encodeBasicHeader("worf", "worf")).getStatusCode());
             Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest("_search", encodeBasicHeader("worf", "worf")).getStatusCode());
             Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("starfleet/ships/_search?pretty", encodeBasicHeader("worf", "worf")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeDeleteRequest("opendistrosecurity/", encodeBasicHeader("worf", "worf")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("/opendistrosecurity/_close", null,encodeBasicHeader("worf", "worf")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("/opendistrosecurity/_upgrade", null,encodeBasicHeader("worf", "worf")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest("/opendistrosecurity/_mapping/config","{}",encodeBasicHeader("worf", "worf")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeDeleteRequest(".opendistro_security/", encodeBasicHeader("worf", "worf")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("/.opendistro_security/_close", null,encodeBasicHeader("worf", "worf")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("/.opendistro_security/_upgrade", null,encodeBasicHeader("worf", "worf")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest("/.opendistro_security/_mapping/config","{}",encodeBasicHeader("worf", "worf")).getStatusCode());
     
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest("opendistrosecurity/", encodeBasicHeader("worf", "worf")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest("opendistrosecurity/config/2", "{}",encodeBasicHeader("worf", "worf")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest("opendistrosecurity/config/0",encodeBasicHeader("worf", "worf")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeDeleteRequest("opendistrosecurity/config/0",encodeBasicHeader("worf", "worf")).getStatusCode());
-            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest("opendistrosecurity/config/0","{}",encodeBasicHeader("worf", "worf")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest(".opendistro_security/", encodeBasicHeader("worf", "worf")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest(".opendistro_security/config/2", "{}",encodeBasicHeader("worf", "worf")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest(".opendistro_security/config/0",encodeBasicHeader("worf", "worf")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeDeleteRequest(".opendistro_security/config/0",encodeBasicHeader("worf", "worf")).getStatusCode());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest(".opendistro_security/config/0","{}",encodeBasicHeader("worf", "worf")).getStatusCode());
             
             HttpResponse resc = rh.executeGetRequest("_cat/indices/public",encodeBasicHeader("bug108", "nagilum"));
             System.out.println(resc.getBody());

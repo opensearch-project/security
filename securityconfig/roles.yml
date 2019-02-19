@@ -33,7 +33,7 @@
 # Workaround: Just configure something like '?kibana' instead of '.kibana' or 'my?index' instead of 'my.index'
 # This limitation will likely removed with Search Guard 6
 
-# Allows everything, but no changes to opendistrosecurity configuration index
+# Allows everything, but no changes to .opendistro_security configuration index
 all_access:
   readonly: true
   cluster:

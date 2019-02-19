@@ -29,7 +29,7 @@ jobs:
             #echo "${TESTFILES// /,}"
             cd ~/circleci-sg
             mvn -U -Pcoverage verify -Dtest="$TESTFILES"
-      #- run: mvn -Pcoverage verify mvn test -Dtest="com/floragunn/opendistrosecurity/HealthTests.java"
+      #- run: mvn -Pcoverage verify mvn test -Dtest="com/amazon/opendistroforelasticsearch/security/HealthTests.java"
       - store_test_results:
           path: target/surefire-reports
       - store_artifacts:

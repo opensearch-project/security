@@ -118,7 +118,7 @@ public class ComplianceConfig {
         salt16 = Arrays.copyOf(saltAsBytes, 16);
         this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
         
-        //opendistrosecurity.compliance.pii_fields:
+        //opendistro_security.compliance.pii_fields:
         //  - indexpattern,fieldpattern,fieldpattern,....
         for(String watchedReadField: watchedReadFields) {
             final List<String> split = new ArrayList<>(Arrays.asList(watchedReadField.split(",")));

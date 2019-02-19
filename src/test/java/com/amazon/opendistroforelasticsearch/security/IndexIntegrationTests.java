@@ -369,7 +369,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
             tc.index(new IndexRequest("logstash-"+date).type("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
         
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("nopermindex").alias("nopermalias"))).actionGet();
-            tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("opendistrosecurity").alias("mysgi"))).actionGet();
+            tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices(".opendistro_security").alias("mysgi"))).actionGet();
         }
         
         RestHelper rh = nonSslRestHelper();

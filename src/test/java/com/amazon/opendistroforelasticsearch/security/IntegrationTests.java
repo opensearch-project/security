@@ -400,7 +400,7 @@ public class IntegrationTests extends SingleClusterTest {
         Assert.assertFalse(res.getBody().contains("\"content\":2"));
         
         try (TransportClient tc = getInternalTransportClient()) {                                       
-            tc.index(new IndexRequest("opendistrosecurity").type("security").id("config").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("config", FileHelper.readYamlContent("config_multirolespan.yml"))).actionGet();
+            tc.index(new IndexRequest(".opendistro_security").type("security").id("config").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("config", FileHelper.readYamlContent("config_multirolespan.yml"))).actionGet();
    
             ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config"})).actionGet();
             Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());

@@ -200,7 +200,7 @@ public class OpenDistroSecurityAdmin {
         options.addOption(Option.builder("rl").longOpt("reload").desc("Reload the configuration on all nodes, flush all Open Distro Security caches and exit").build());
         options.addOption(Option.builder("ff").longOpt("fail-fast").desc("fail-fast if something goes wrong").build());
         options.addOption(Option.builder("dg").longOpt("diagnose").desc("Log diagnostic trace into a file").build());
-        options.addOption(Option.builder("dci").longOpt("delete-config-index").desc("Delete 'opendistrosecurity' config index and exit.").build());
+        options.addOption(Option.builder("dci").longOpt("delete-config-index").desc("Delete '.opendistro_security' config index and exit.").build());
         options.addOption(Option.builder("esa").longOpt("enable-shard-allocation").desc("Enable all shard allocation and exit.").build());
         options.addOption(Option.builder("arc").longOpt("accept-red-cluster").desc("Also operate on a red cluster. If not specified the cluster state has to be at least yellow.").build());
 
@@ -217,7 +217,7 @@ public class OpenDistroSecurityAdmin {
 
         options.addOption(Option.builder("prompt").longOpt("prompt-for-password").desc("Prompt for password if not supplied").build());
 
-        options.addOption(Option.builder("er").longOpt("explicit-replicas").hasArg().argName("number of replicas").desc("Set explicit number of replicas or autoexpand expression for opendistrosecurity index").build());
+        options.addOption(Option.builder("er").longOpt("explicit-replicas").hasArg().argName("number of replicas").desc("Set explicit number of replicas or autoexpand expression for .opendistro_security index").build());
 
         
         //when adding new options also adjust validate(CommandLine line)
@@ -743,7 +743,7 @@ public class OpenDistroSecurityAdmin {
             System.out.println("Done with "+(success?"success":"failures"));
             System.exit(success?0:-1);
         }
-        // TODO audit changes to opendistrosecurity index
+        // TODO audit changes to .opendistro_security index
     }
 
     private static boolean checkConfigUpdateResponse(ConfigUpdateResponse response, NodesInfoResponse nir, int expectedConfigCount) {

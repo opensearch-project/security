@@ -879,7 +879,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_ROLES_MAPPING_RESOLUTION, Property.NodeScope, Property.Filtered));
             //settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_DISABLE_TYPE_SECURITY, false, Property.NodeScope, Property.Filtered));
     
-            //TODO remove opendistrosecurity.tribe.clustername?
+            //TODO remove opendistro_security.tribe.clustername?
             //settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_TRIBE_CLUSTERNAME, Property.NodeScope, Property.Filtered));
     
             // SG6 - Audit        

@@ -221,14 +221,14 @@ public class SystemIntegratorsTests extends SingleClusterTest {
       HttpResponse resc;
       
       // injected user is admin, access to Security index must be allowed
-      resc = rh.executeGetRequest("opendistrosecurity/_search?pretty", new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "injectedadmin|role1|127.0.0:80|key1,value1"));
+      resc = rh.executeGetRequest(".opendistro_security/_search?pretty", new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "injectedadmin|role1|127.0.0:80|key1,value1"));
       Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
       Assert.assertTrue(resc.getBody().contains("\"_id\" : \"config\""));
       Assert.assertTrue(resc.getBody().contains("\"_id\" : \"roles\""));
       Assert.assertTrue(resc.getBody().contains("\"_id\" : \"internalusers\""));
       Assert.assertTrue(resc.getBody().contains("\"total\" : 5"));
       
-      resc = rh.executeGetRequest("opendistrosecurity/_search?pretty", new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "wrongadmin|role1|127.0.0:80|key1,value1"));
+      resc = rh.executeGetRequest(".opendistro_security/_search?pretty", new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "wrongadmin|role1|127.0.0:80|key1,value1"));
       Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
       
   }
@@ -248,7 +248,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
         HttpResponse resc;
         
         // injected user is admin, access to Security index must be allowed
-        resc = rh.executeGetRequest("opendistrosecurity/_search?pretty", new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "injectedadmin|role1|127.0.0:80|key1,value1"));
+        resc = rh.executeGetRequest(".opendistro_security/_search?pretty", new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "injectedadmin|role1|127.0.0:80|key1,value1"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
         Assert.assertFalse(resc.getBody().contains("\"_id\" : \"config\""));
         Assert.assertFalse(resc.getBody().contains("\"_id\" : \"roles\""));
