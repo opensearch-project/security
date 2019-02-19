@@ -49,7 +49,7 @@ Please refer to the [Official documentation] for detailed information on install
 
 ```
 <ES directory>/bin/elasticsearch-plugin install \
-  -b com.amazon.opendistroforelasticsearch:elasticsearch-security:0.0.7.0
+  -b com.amazon.opendistroforelasticsearch:elasticsearch-security:0.7.0.0
 ```
 
 * ``cd`` into ``<ES directory>/plugins/opendistro_security/tools``
