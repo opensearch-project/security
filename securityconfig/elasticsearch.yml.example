@@ -167,6 +167,7 @@ opendistro_security.audit.type: internal_elasticsearch
 # or make Open Distro Security stop working
 
 # Name of the index where .opendistro_security stores its configuration.
+
 #opendistro_security.config_index_name: .opendistro_security
 
 # This defines the OID of server node certificates
@@ -185,6 +186,7 @@ opendistro_security.audit.type: internal_elasticsearch
 # "indices:admin/create" and "indices:data/write/index" for the indices to be restores.
 # A snapshot can only be restored when it does not contain global state and does not restore the '.opendistro_security' index
 # If 'opendistro_security.check_snapshot_restore_write_privileges: false' is set then the additional indices checks are omitted.
+
 # This makes it less secure.
 #opendistro_security.enable_snapshot_restore_privilege: true
 #opendistro_security.check_snapshot_restore_write_privileges: false
