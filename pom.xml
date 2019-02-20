@@ -96,7 +96,7 @@
 
     <!-- Netty 4 transport -->
     <dependency>
-      <groupId>com.amazonaws.opendistro.elasticsearch.plugin</groupId>
+      <groupId>com.amazon.opendistroforelasticsearch.plugin</groupId>
       <artifactId>transport-netty4-client</artifactId>
       <version>${elasticsearch.version}</version>
       <exclusions>
@@ -142,7 +142,7 @@
 
     <!-- provided scoped deps -->
     <dependency>
-      <groupId>com.amazonaws.opendistro.elasticsearch</groupId>
+      <groupId>com.amazon.opendistroforelasticsearch</groupId>
       <artifactId>elasticsearch</artifactId>
       <version>${elasticsearch.version}</version>
       <scope>provided</scope>
@@ -184,35 +184,35 @@
     </dependency>
 
     <dependency>
-      <groupId>com.amazonaws.opendistro.elasticsearch.plugin</groupId>
+      <groupId>com.amazon.opendistroforelasticsearch.plugin</groupId>
       <artifactId>reindex-client</artifactId>
       <version>${elasticsearch.version}</version>
       <scope>test</scope>
     </dependency>
 
     <dependency>
-      <groupId>com.amazonaws.opendistro.elasticsearch.plugin</groupId>
+      <groupId>com.amazon.opendistroforelasticsearch.plugin</groupId>
       <artifactId>percolator-client</artifactId>
       <version>${elasticsearch.version}</version>
       <scope>test</scope>
     </dependency>
 
     <dependency>
-      <groupId>com.amazonaws.opendistro.elasticsearch.plugin</groupId>
+      <groupId>com.amazon.opendistroforelasticsearch.plugin</groupId>
       <artifactId>lang-mustache-client</artifactId>
       <version>${elasticsearch.version}</version>
       <scope>test</scope>
     </dependency>
 
     <dependency>
-      <groupId>com.amazonaws.opendistro.elasticsearch.plugin</groupId>
+      <groupId>com.amazon.opendistroforelasticsearch.plugin</groupId>
       <artifactId>parent-join-client</artifactId>
       <version>${elasticsearch.version}</version>
       <scope>test</scope>
     </dependency>
 
     <dependency>
-      <groupId>com.amazonaws.opendistro.elasticsearch.plugin</groupId>
+      <groupId>com.amazon.opendistroforelasticsearch.plugin</groupId>
       <artifactId>aggs-matrix-stats-client</artifactId>
       <version>${elasticsearch.version}</version>
       <scope>test</scope>
@@ -229,7 +229,7 @@
     <repository>
       <id>opendistro_elasticsearch</id>
       <name>internal-releases</name>
-      <url>s3://artifacts.opendistro.amazonaws.com/maven</url>
+      <url>s3://artifacts.opendistroforelasticsearch.amazon.com/maven</url>
     </repository>
   </repositories>
   <build>
@@ -372,19 +372,19 @@
           </exclusions>
           </dependency>
           <dependency>	
-            <groupId>com.amazonaws.opendistro.elasticsearch.plugin</groupId>
+            <groupId>com.amazon.opendistroforelasticsearch.plugin</groupId>
               <artifactId>lang-mustache-client</artifactId>	
               <version>${elasticsearch.version}</version>	
             </dependency>	
       	
             <dependency>	
-              <groupId>com.amazonaws.opendistro.elasticsearch.plugin</groupId>
+              <groupId>com.amazon.opendistroforelasticsearch.plugin</groupId>
               <artifactId>parent-join-client</artifactId>	
               <version>${elasticsearch.version}</version>	
             </dependency>	
         	
             <dependency>	
-              <groupId>com.amazonaws.opendistro.elasticsearch.plugin</groupId>
+              <groupId>com.amazon.opendistroforelasticsearch.plugin</groupId>
               <artifactId>aggs-matrix-stats-client</artifactId>	
               <version>${elasticsearch.version}</version>	
             </dependency>
