@@ -55,7 +55,7 @@
 
   <properties>
     <elasticsearch-ssl.version>0.7.0.0</elasticsearch-ssl.version>
-    <enterprise-modules.version>0.7.0</enterprise-modules.version>
+    <enterprise-modules.version>0.7.0.0</enterprise-modules.version>
     <elasticsearch.version>6.5.4</elasticsearch.version>
     
     <!-- deps -->
@@ -78,7 +78,7 @@
     <url>https://github.com/mauve-hedgehog/opendistro-elasticsearch-security</url>
     <connection>scm:git:git@github.com:mauve-hedgehog/opendistro-elasticsearch-security.git</connection>
     <developerConnection>scm:git:git@github.com:mauve-hedgehog/opendistro-elasticsearch-security.git</developerConnection>
-    <tag>0.7.0</tag>
+    <tag>0.7.0.0</tag>
   </scm>
 
   <issueManagement>
