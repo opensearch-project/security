@@ -8,16 +8,18 @@ OPTIND=1
 assumeyes=0
 initsg=0
 cluster_mode=0
+skip_updates=-1
 
 function show_help() {
     echo "install_demo_configuration.sh [-y] [-i] [-c]"
     echo "  -h show help"
     echo "  -y confirm all installation dialogues automatically"
-    echo "  -i initialize Search Guard with default configuration (default is to ask if -y is not given)"
+    echo "  -i initialize Security plugin with default configuration (default is to ask if -y is not given)"
     echo "  -c enable cluster mode by binding to all network interfaces (default is to ask if -y is not given)"
+    echo "  -s skip updates if config is already applied to elasticsearch.yml"
 }
 
-while getopts "h?yic" opt; do
+while getopts "h?yics" opt; do
     case "$opt" in
     h|\?)
         show_help
@@ -28,6 +30,8 @@ while getopts "h?yic" opt; do
     i)  initsg=1
         ;;
     c)  cluster_mode=1
+        ;;
+    s)  skip_updates=0
     esac
 done
 
@@ -174,7 +178,7 @@ echo "Detected Search Guard Version: $SG_VERSION"
 
 if $SUDO_CMD grep --quiet -i opendistro_security "$ES_CONF_FILE"; then
   echo "$ES_CONF_FILE seems to be already configured for Security. Quit."
-  exit -1
+  exit $skip_updates
 fi
 
 set +e
