@@ -404,8 +404,6 @@ fi
 
 echo "######## End OpenDistro for Elasticsearch Security Demo Configuration ########" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null 
 
-$SUDO_CMD chmod +x "$ES_PLUGINS_DIR/opendistro_security/tools/securityadmin.sh"
-
 ES_PLUGINS_DIR=`cd "$ES_PLUGINS_DIR" ; pwd`
 
 echo "### Success"
@@ -413,7 +411,6 @@ echo "### Execute this script now on all your nodes and then start all nodes"
 #Generate securityadmin_demo.sh
 echo "#!/bin/bash" | $SUDO_CMD tee securityadmin_demo.sh > /dev/null 
 echo $SUDO_CMD \""$ES_PLUGINS_DIR/opendistro_security/tools/securityadmin.sh"\" -cd \""$ES_PLUGINS_DIR/opendistro_security/securityconfig"\" -icl -key \""$ES_CONF_DIR/kirk-key.pem"\" -cert \""$ES_CONF_DIR/kirk.pem"\" -cacert \""$ES_CONF_DIR/root-ca.pem"\" -nhnv | $SUDO_CMD tee -a securityadmin_demo.sh > /dev/null
-$SUDO_CMD chmod +x securityadmin_demo.sh
 
 if [ "$initsg" == 0 ]; then
 	echo "### After the whole cluster is up execute: "
