@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<assembly>
+    <id>plugin</id>
+    <formats>
+        <format>zip</format>
+    </formats>
+    <includeBaseDirectory>false</includeBaseDirectory>
+    <dependencySets>
+        <dependencySet>
+            <useStrictFiltering>true</useStrictFiltering>
+            <outputDirectory>${file.separator}</outputDirectory>
+            <useProjectArtifact>true</useProjectArtifact>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+        </dependencySet>
+    </dependencySets>
+    <fileSets>
+        <fileSet>
+            <directory>${basedir}/src/main/assemblies/</directory>
+            <outputDirectory>${file.separator}</outputDirectory>
+            <filtered>false</filtered>
+            <includes>
+                <include>LICENSE</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}</directory>
+            <outputDirectory>${file.separator}</outputDirectory>
+            <includes>
+                <include>tools/**</include>
+                <include>securityconfig/**</include>
+            </includes>
+            <fileMode>0755</fileMode>
+        </fileSet>
+        <fileSet>
+            <outputDirectory>${file.separator}</outputDirectory>
+            <includes>
+                <include>plugin-descriptor.properties</include>
+                <include>plugin-security.policy</include>
+            </includes>
+        </fileSet>
+    </fileSets>
+</assembly>
+

@@ -1,0 +1,436 @@
+<?xml version="1.0" encoding="UTF-8"?><!--
+  ~ Copyright 2015-2018 _floragunn_ GmbH
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~ http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<!--
+  ~ Portions Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License").
+  ~ You may not use this file except in compliance with the License.
+  ~ A copy of the License is located at
+  ~
+  ~ http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ or in the "license" file accompanying this file. This file is distributed
+  ~ on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+  ~ express or implied. See the License for the specific language governing
+  ~ permissions and limitations under the License.
+  -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.amazon.opendistroforelasticsearch</groupId>
+    <artifactId>opendistro_security_parent</artifactId>
+    <version>0.7.0.0</version>
+  </parent>
+
+  <artifactId>opendistro_security</artifactId>
+  <packaging>jar</packaging>
+  <version>0.7.0.0</version>
+  <name>Open Distro Security for Elasticsearch</name>
+  <description>Provide access control related features for Elasticsearch 6</description>
+  <url>https://github.com/mauve-hedgehog/opendistro-elasticsearch-security</url>
+  <inceptionYear>2015</inceptionYear>
+
+  <licenses>
+    <license>
+      <name>The Apache Software License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <properties>
+    <opendistro_security_ssl.version>0.7.0.0</opendistro_security_ssl.version>
+    <opendistro_security_advanced_modules.version>0.7.0.0</opendistro_security_advanced_modules.version>
+    <elasticsearch.version>6.5.4</elasticsearch.version>
+    
+    <!-- deps -->
+    <netty-native.version>2.0.15.Final</netty-native.version>
+    <bc.version>1.60</bc.version>
+    <log4j.version>2.11.1</log4j.version>
+    <guava.version>25.1-jre</guava.version>
+    <commons.cli.version>1.3.1</commons.cli.version>
+    
+    <!-- assembly descriptors -->
+    <elasticsearch.assembly.descriptor>${basedir}/src/main/assemblies/plugin.xml</elasticsearch.assembly.descriptor>
+    <securitystandalone.descriptor>${basedir}/src/main/assemblies/securityadmin-standalone.xml</securitystandalone.descriptor>
+    <veracode.descriptor>${basedir}/src/main/assemblies/veracode.xml</veracode.descriptor>
+    
+    <!-- Test only -->
+    <mockito.version>1.10.19</mockito.version>
+  </properties>
+
+  <scm>
+    <url>https://github.com/mauve-hedgehog/opendistro-elasticsearch-security</url>
+    <connection>scm:git:git@github.com:mauve-hedgehog/opendistro-elasticsearch-security.git</connection>
+    <developerConnection>scm:git:git@github.com:mauve-hedgehog/opendistro-elasticsearch-security.git</developerConnection>
+    <tag>0.7.0.0</tag>
+  </scm>
+
+  <issueManagement>
+    <system>GitHub</system>
+    <url>https://github.com/mauve-hedgehog/opendistro-elasticsearch-security/issues</url>
+  </issueManagement>
+
+  <dependencies>
+    <!-- Elastic Search Security SSL -->
+    <dependency>
+      <groupId>com.amazon.opendistroforelasticsearch</groupId>
+      <artifactId>opendistro_security_ssl</artifactId>
+      <version>${opendistro_security_ssl.version}</version>
+    </dependency>
+
+    <!-- Netty 4 transport -->
+    <dependency>
+      <groupId>org.elasticsearch.plugin</groupId>
+      <artifactId>transport-netty4-client</artifactId>
+      <version>${elasticsearch.version}</version>
+      <exclusions>
+        <exclusion>
+          <artifactId>jna</artifactId>
+          <groupId>org.elasticsearch</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>jts</artifactId>
+          <groupId>com.vividsolutions</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>log4j-api</artifactId>
+          <groupId>org.apache.logging.log4j</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>spatial4j</artifactId>
+          <groupId>org.locationtech.spatial4j</groupId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+
+    <!-- Guava -->
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <version>${guava.version}</version>
+    </dependency>
+
+    <!-- Apache commons cli -->
+    <dependency>
+      <groupId>commons-cli</groupId>
+      <artifactId>commons-cli</artifactId>
+      <version>${commons.cli.version}</version>
+    </dependency>
+
+    <!-- Bouncycastle -->
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcpg-jdk15on</artifactId>
+      <version>${bc.version}</version>
+    </dependency>
+
+    <!-- provided scoped deps -->
+    <dependency>
+      <groupId>org.elasticsearch</groupId>
+      <artifactId>elasticsearch</artifactId>
+      <version>${elasticsearch.version}</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-core</artifactId>
+      <version>${log4j.version}</version>
+      <scope>provided</scope>
+    </dependency>
+
+
+    <!-- Only test scoped dependencies hereafter -->
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.hamcrest</groupId>
+      <artifactId>hamcrest-all</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>io.netty</groupId>
+      <artifactId>netty-tcnative</artifactId>
+      <version>${netty-native.version}</version>
+      <classifier>${os.detected.classifier}</classifier>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.elasticsearch.plugin</groupId>
+      <artifactId>reindex-client</artifactId>
+      <version>${elasticsearch.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.elasticsearch.plugin</groupId>
+      <artifactId>percolator-client</artifactId>
+      <version>${elasticsearch.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.elasticsearch.plugin</groupId>
+      <artifactId>lang-mustache-client</artifactId>
+      <version>${elasticsearch.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.elasticsearch.plugin</groupId>
+      <artifactId>parent-join-client</artifactId>
+      <version>${elasticsearch.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.elasticsearch.plugin</groupId>
+      <artifactId>aggs-matrix-stats-client</artifactId>
+      <version>${elasticsearch.version}</version>
+      <scope>test</scope>
+    </dependency>
+    
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-all</artifactId>
+      <version>${mockito.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        
+        <configuration>
+          <forkCount>3</forkCount>
+          <reuseForks>true</reuseForks>
+          <!-- 
+          <parallel>methods</parallel>
+          <threadCount>1</threadCount>
+           -->
+          <systemPropertyVariables>
+              <forkno>fork_${surefire.forkNumber}</forkno>
+          </systemPropertyVariables>
+        
+          <includes>
+              <include>**/*.java</include>
+          </includes>
+        </configuration>
+      </plugin>
+    </plugins>
+    <extensions>
+      <extension>
+        <groupId>com.gkatzioura.maven.cloud</groupId>
+        <artifactId>s3-storage-wagon</artifactId>
+        <version>1.8</version>
+      </extension>
+    </extensions>
+  </build>
+  <profiles>
+    <profile>
+      <id>advanced</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-assembly-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>plugin</id>
+                <phase>package</phase>
+                <configuration>
+                  <appendAssemblyId>false</appendAssemblyId>
+                  <tarLongFileMode>posix</tarLongFileMode>
+                  <outputDirectory>${project.build.directory}/releases/</outputDirectory>
+                  <descriptors>
+                    <descriptor>${elasticsearch.assembly.descriptor}</descriptor>
+                  </descriptors>
+                </configuration>
+                <goals>
+                  <goal>single</goal>
+                </goals>
+              </execution>
+              <execution>
+                <id>securityadmin</id>
+                <phase>package</phase>
+                <configuration>
+                  <appendAssemblyId>true</appendAssemblyId>
+                  <tarLongFileMode>posix</tarLongFileMode>
+                  <outputDirectory>${project.build.directory}/releases/</outputDirectory>
+                  <descriptors>
+                    <descriptor>${securitystandalone.descriptor}</descriptor>
+                  </descriptors>
+                </configuration>
+                <goals>
+                  <goal>single</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>com.floragunn</groupId>
+            <artifactId>checksum-maven-plugin</artifactId>
+            <version>1.7.1</version>
+              <executions>
+                  <execution>
+                      <goals>
+                          <goal>files</goal>
+                      </goals>
+                      <phase>package</phase>
+                  </execution>
+              </executions>
+            <configuration>
+                <fileSets>
+                    <fileSet>
+                        <directory>${project.build.directory}/releases/</directory>
+                        <includes>
+                            <include>*.zip</include>
+                        </includes>
+                        <excludes>
+                            <exclude>*securityadmin*</exclude>
+                        </excludes>
+                    </fileSet>
+                </fileSets>
+                  <algorithms>
+                    <algorithm>SHA-512</algorithm>
+                  </algorithms>
+                  <individualFiles>true</individualFiles>
+                  <appendFilename>true</appendFilename>
+                  <attachChecksums>true</attachChecksums>
+                  <csvSummary>false</csvSummary>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+      <dependencies>
+        <dependency>
+          <groupId>com.amazon.opendistroforelasticsearch</groupId>
+          <artifactId>opendistro_security_advanced_modules</artifactId>
+          <version>${opendistro_security_advanced_modules.version}</version>
+          <exclusions>
+            <exclusion>
+              <artifactId>jna</artifactId>
+              <groupId>org.elasticsearch</groupId>
+            </exclusion>
+            <exclusion>
+              <artifactId>jts</artifactId>
+              <groupId>com.vividsolutions</groupId>
+            </exclusion>
+            <exclusion>
+              <artifactId>log4j-api</artifactId>
+              <groupId>org.apache.logging.log4j</groupId>
+            </exclusion>
+            <exclusion>
+              <artifactId>spatial4j</artifactId>
+              <groupId>org.locationtech.spatial4j</groupId>
+            </exclusion>
+          </exclusions>
+          </dependency>
+          <dependency>
+            <groupId>org.elasticsearch.plugin</groupId>
+              <artifactId>lang-mustache-client</artifactId>	
+              <version>${elasticsearch.version}</version>	
+            </dependency>	
+      	
+            <dependency>	
+              <groupId>org.elasticsearch.plugin</groupId>
+              <artifactId>parent-join-client</artifactId>	
+              <version>${elasticsearch.version}</version>	
+            </dependency>	
+        	
+            <dependency>	
+              <groupId>org.elasticsearch.plugin</groupId>
+              <artifactId>aggs-matrix-stats-client</artifactId>	
+              <version>${elasticsearch.version}</version>	
+            </dependency>
+      </dependencies>
+    </profile>
+    <profile>
+      <id>veracode</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-assembly-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>veracode</id>
+                <phase>package</phase>
+                <configuration>
+                  <appendAssemblyId>true</appendAssemblyId>
+                  <tarLongFileMode>posix</tarLongFileMode>
+                  <outputDirectory>${project.build.directory}/veracode/</outputDirectory>
+                  <descriptors>
+                    <descriptor>${veracode.descriptor}</descriptor>
+                  </descriptors>
+                </configuration>
+                <goals>
+                  <goal>single</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+      <dependencies>
+        <dependency>
+          <groupId>com.amazon.opendistroforelasticsearch</groupId>
+          <artifactId>opendistro_security_advanced_modules</artifactId>
+          <version>${opendistro_security_advanced_modules.version}</version>
+        </dependency>
+        <!-- omit  netty-tcnative and conscrypt-openjdk-uber if scan
+             should be done without natives -->
+        <dependency>
+          <groupId>io.netty</groupId>
+          <artifactId>netty-tcnative</artifactId>
+          <version>${netty-native.version}</version>
+          <classifier>linux-x86_64</classifier>
+        </dependency>
+        <dependency>
+          <groupId>org.conscrypt</groupId>
+          <artifactId>conscrypt-openjdk-uber</artifactId>
+          <version>1.0.0.RC9</version>
+        </dependency>
+      </dependencies>
+    </profile>
+  </profiles>
+</project>

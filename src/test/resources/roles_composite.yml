@@ -1,0 +1,41 @@
+#opendistro_security_public, opendistro_security_role_host1, opendistro_security_role_klingons1, opendistro_security_role_klingons2, opendistro_security_role_starfleet, opendistro_security_role_starfleet_library, opendistro_security_user1
+
+opendistro_security_role_klingons1:
+  cluster:
+    - indices:data/read/msearch
+  indices:
+    klingonempire:
+      ships:  
+        - READ
+
+opendistro_security_role_klingons2:
+  indices:
+    klingonempire:
+      praxis:  
+        - READ
+
+opendistro_security_role_starfleet:
+  indices:
+    sf:
+       ships:  
+         - READ
+       public:  
+         - 'indices:*'
+       students:  
+         - READ
+       alumni:  
+         - READ
+       'admin*':  
+         - READ
+    'pub*':
+       '*':  
+         - READ  
+  cluster:
+    - 'cluster:monitor*'
+    - indices:data/read/scroll
+
+opendistro_security_user1:
+  indices:
+    'alias1':
+      '*':
+        - READ

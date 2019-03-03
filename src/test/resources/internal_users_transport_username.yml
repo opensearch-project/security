@@ -1,0 +1,183 @@
+"\"'+-,;_?*@<>!$%&/()=#":
+  hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
+  #password is: nagilum
+"§ÄÖÜäöüß":
+  hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
+  #password is: nagilum
+bug.99:
+  hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
+bug108:
+  hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
+  #password is: nagilum
+nagilum:
+  hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
+  #password is: nagilum
+  
+'client':
+  #transport login only
+  hash: '_impersonation_only_'
+  roles:
+    - vulcan
+    - starfleet
+  
+spock:
+  hash: $2a$12$GI9JXffO3WUjTsU7Yy3E4.LBxC2ILo66Zg/rr79BpikSL2IIRezQa
+  #password is: spock
+  roles:
+    - vulcan
+    - starfleet
+sarek:
+  hash: $2a$12$Ioo1uXmH.Nq/lS5dUVBEsePSmZ5pSIpVO/xKHaquU/Jvq97I7nAgG
+  #password is: sarek
+kirk:
+  hash: $2a$12$xZOcnwYPYQ3zIadnlQIJ0eNhX1ngwMkTN.oMwkKxoGvDVPn4/6XtO
+  #password is: kirk
+  roles:
+    - captains
+    - starfleet
+picard:
+  hash: $2a$12$wkY2BsRneCU5za1OPYlzsehQit6gu2vprVv/4jHiSEEBv2ThunaTS
+  #password is: picard
+  roles:
+    - captains
+    - starfleet
+worf:
+  hash: $2a$12$A41IxPXV1/Dx46C6i1ufGubv.p3qYX7xVcY46q33sylYbIqQVwTMu
+  #password is: worf
+  roles:
+    - klingon
+    - starfleet
+crusherw:
+  hash: $2a$12$61vXe3cXy32p0cjsW0Y/SeZa7kEVSWuQK0jg98D9d5zOGXfo5NgyC
+  #password is: crusherw
+  roles:
+    - starfleet_academy
+abc:
+  hash: $2a$12$bP0CO5d5nhmaTOj7mGteHugXQQ8jlSV0dxcl5//moZ1xnI.pVPXfe
+  #password is: abc:abc
+  roles:
+    - klingon
+    - starfleet
+userwithnopasswd:
+  hash: null
+  roles:
+    - klingon
+    - starfleet
+userwithblankpasswd:
+  hash: ""
+  roles:
+    - klingon
+    - starfleet
+theindexadmin:
+  hash: "$2a$12$P.QbiwOsnxgz7kLBT10F7u6GhY7//Keyz7Xwf7lNzskRxpo9.zxFS"
+writer:
+  hash: $2a$12$LZvbDVnegkTbEFTu9hHnWO4HIrdB9rGaKcEOID5n0VV4j58cnvyZ.
+dlsnoinvest:
+  hash: $2a$12$9Zr4IgoJRqK6xJq4xjoa6OZAnY4QOQ6xIhcCxeYoQtB/HriMkeJSC
+baz:
+  hash: $2a$12$A41IxPXV1/Dx46C6i1ufGubv.p3qYX7xVcY46q33sylYbIqQVwTMu
+  #password is: worf
+
+user_role01:
+  hash: '$2a$12$XrBfLQh2T8wIzpxE5vzhUOPjjGfONcD8UEjd5IT5KveG8ULZaj04.'
+  # password is: user_role01
+  roles:
+    - role01
+
+user_role01_role02_role03:
+  hash: '$2a$12$6.4Y6L//xeKQ7t8YEG0s6OH4F4q9gMw0J8E0GjmUMNZeyIWu1IRWS'
+  # password is: user_role01_role02_role03
+  roles:
+    - role01
+    - role02
+    - role03
+
+restoreuser:
+  hash: "$2a$12$JU2QjYVTlI24Q/enEOpf2uTLCPGchN.eXWCsrBiieUcRoeh53NB0y"
+  #password is: restoreuser
+  
+snapresuser:
+  hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
+  #password is: nagilum
+  
+logstash:
+  hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
+  #password is: nagilum
+  
+knuddel:
+  hash: _imponly_
+
+twitter:
+  hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
+  #password is: nagilum
+  
+aliasmngt:
+  hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
+  #password is: nagilum
+  roles:
+    - opendistro_security_aliasmngt
+
+user_a:
+  hash: $2a$04$NDy7mGbRNrmPMh9nSnIB.OTMFkcioEd69A04ReSGkJDd7QHxnCcVC
+  #password is: user_a
+  roles:
+    - opendistro_security_ua
+  
+user_b:
+  hash: $2a$04$idGSEpNOhFbyiRL6toGPT.orh7ENOEU8kAqwkRFaXWRdA6wVgyqUu
+  #password is: user_b
+  roles:
+    - opendistro_security_ub
+user_c:
+  hash: $2a$04$jQcEXpODnTFoGDuA7DPdSevA84CuH/7MOYkb80M3XZIrH76YMWS9G
+  #password is: user_c
+  roles:
+    - opendistro_security_uc
+
+custattr:
+  hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
+  #password is: nagilum
+  attributes:
+    c1: v1
+    c2: v2
+    c3.c4.cd: test1
+    'c4.c4.cd': test2
+    'c5': null
+    null: abc
+
+rexclude:
+  hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
+  #password is: nagilum
+  
+aliastest:
+  hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
+mindex12:
+  hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
+  #password is: nagilum
+ccsresolv:
+  hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
+  #password is: nagilum
+underscore:
+  hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
+  #password is: nagilum
+bulk:
+  hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
+  #password is: nagilum
+  roles:
+    - opendistro_security_bulk
+557:
+  hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
+  #password is: nagilum
+  roles:
+    - opendistro_security_557
+itt1635:
+  hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
+  #password is: nagilum
+  roles:
+    - opendistro_security_esb_1
+    - opendistro_security_esb_3
+    - opendistro_security_esb_5
+#password is: kibanaserver  
+kibanaserver:
+  readonly: true
+  hash: $2a$12$4AcgAt3xwOWadA5s5blL6ev39OXDNhmOesEoo33eZtrq2N0YrU3H.

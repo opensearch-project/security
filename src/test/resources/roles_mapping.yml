@@ -1,0 +1,166 @@
+opendistro_security_role_starfleet:
+  backendroles:
+    - starfleet
+    - captains
+    - defectors
+  hosts:
+    - "*.starfleetintranet.com"
+  users:
+    - nagilum
+
+opendistro_security_role_starfleet_captains:
+  backendroles:
+    - captains
+
+opendistro_security_role_starfleet_library:
+  backendroles:
+    - 'starfleet*'
+    - ambassador
+
+opendistro_security_role_vulcans:
+  backendroles:
+    - vulcangov
+  users:
+    - kirk
+
+opendistro_security_role_vulcans_admin:
+  backendroles:
+    - vulcanadmin
+    
+opendistro_security_role_klingons1:
+  backendroles:
+    - klingon
+
+opendistro_security_role_klingons2:
+  backendroles:
+    - klingon
+
+
+opendistro_security_all_access:
+  users:
+    - nagilum
+    
+opendistro_security_public:
+  users:
+    - '*'
+opendistro_security_flsdls:
+  users:
+    - sarek
+
+opendistro_security_kibana4:
+  users:
+    - bug108
+    
+opendistro_security_zdummy_all:
+  users:
+    - bug108
+
+opendistro_security_unittest_1:
+  users:
+    - 'CN=spock,OU=client,O=client,L=Test,C=DE'
+    
+opendistro_security_role_host1:
+  hosts:
+    - 127.0.0.1
+    - localhost
+    
+opendistro_security_role_host2:
+  users:
+    - opendistro_security_host_127.0.0.1
+    - opendistro_security_host_localhost
+
+opendistro_security_theindex_admin:
+  users:
+    - theindexadmin
+    
+opendistro_security_user1:
+  users:
+    - worf
+     
+opendistro_security_user2:
+  users:
+    - picard
+    
+opendistro_security_multiget:
+  users:
+    - picard
+    
+opendistro_security_shakespeare:
+  users:
+    - picard
+
+opendistro_security_own_index:
+  users:
+    - spock
+    - kirk
+
+opendistro_security_writer:
+  users:
+    - writer
+
+opendistro_security_dlsnoinvest:
+  users:
+    - dlsnoinvest
+
+opendistro_security_baz:
+  users:
+    - baz
+
+opendistro_security_role01_role02:
+  and_backendroles:
+    - role01
+    - role02
+
+opendistro_security_restore:
+  users:
+    - restoreuser
+    
+opendistro_security_snapres:
+  users:
+    - snapresuser
+    
+opendistro_security_logstash:
+  users:
+    - logstash
+
+opendistro_security_twitter:
+  users:
+    - twitter
+    
+opendistro_security_attr:
+  users:
+    - custattr
+    
+opendistro_security_rexclude:
+  users:
+    - rexclude
+    
+opendistro_security_aliastest:
+  users:
+    - aliastest
+    - dummy
+    
+opendistro_security_mindex1:
+  users:
+    - mindex12
+
+opendistro_security_mindex2:
+  users:
+    - mindex12
+    
+opendistro_security_mindex3:
+  users:
+    - mindex12
+    
+opendistro_security_ccsresolv:
+  users:
+    - ccsresolv
+
+opendistro_security_underscore:
+  users:
+    - underscore
+    
+opendistro_security_kibana_server:
+  readonly: true
+  users:
+    - kibanaserver

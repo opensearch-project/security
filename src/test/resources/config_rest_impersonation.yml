@@ -1,0 +1,20 @@
+opendistro_security:
+  dynamic:
+    http:
+      xff:
+        enabled: false
+    authc:
+      authentication_domain_basic_internal:
+        enabled: true
+        order: 0
+        http_authenticator:
+          type: basic
+        authentication_backend:
+          type: intern
+      authentication_domain_basic_noop:
+        enabled: true
+        order: 1
+        http_authenticator:
+          type: basic
+        authentication_backend:
+          type: noop

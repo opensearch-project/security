@@ -1,0 +1,12 @@
+opendistro_security_bulk:
+  cluster:
+    - indices:data/write/bulk
+  indices:
+    '*':
+      '*':  
+        - indices:admin/create
+        - indices:data/write/index
+        - indices:data/write/bulk[s]
+        - indices:admin/mapping/put
+
+        

@@ -1,0 +1,28 @@
+opendistro_security:
+  dynamic:
+    http:
+      xff:
+        enabled: true
+        internalProxies: '.*'
+        #remoteIpHeader: "x-forwarded-for"
+        #proxiesHeader: "x-forwarded-by"
+        #trustedProxies: "proxy1|proxy2"
+    authc:
+      authentication_domain_proxy:
+        enabled: true
+        order: 0
+        challenge: false
+        http_authenticator:
+          type: proxy
+          config:
+            user_header: "x-proxy-user"
+            roles_header: "x-proxy-roles"
+        authentication_backend:
+          type: noop
+      authentication_domain_basic_internal:
+        enabled: true
+        order: 1
+        http_authenticator:
+          type: basic
+        authentication_backend:
+          type: intern

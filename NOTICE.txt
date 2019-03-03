@@ -1,0 +1,11 @@
+Copyright 2015-2017 floragunn GmbH
+
+Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+
+This product includes software developed by The Apache Software
+Foundation (http://www.apache.org/).
+
+This product includes software developed by The Legion of the Bouncy Castle Inc.
+(http://www.bouncycastle.org)
+
+See THIRD-PARTY.txt for additional third party licenses used by this product.

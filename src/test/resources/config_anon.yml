@@ -1,0 +1,18 @@
+opendistro_security:
+  dynamic:
+    http:
+      anonymous_auth_enabled: true
+      xff:
+        enabled: false
+        internalProxies: 192\.168\.0\.10|192\.168\.0\.11
+        remoteIpHeader: "x-forwarded-for"
+        proxiesHeader: "x-forwarded-by"
+        trustedProxies: "proxy1|proxy2"
+    authc:
+      authentication_domain_basic_internal:
+        enabled: true
+        order: 0
+        http_authenticator:
+          type: basic
+        authentication_backend:
+          type: intern

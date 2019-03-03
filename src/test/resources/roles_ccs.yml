@@ -1,0 +1,13 @@
+opendistro_security_public:
+  cluster:
+    - 'cluster:monitor/main'
+    #- CLUSTER_COMPOSITE_OPS_RO
+
+opendistro_security_all_access:
+  cluster:
+    - cluster:monitor/main
+  indices:
+    '*':
+      '*':  
+        - indices:data/read/search
+        - indices:admin/shards/search_shards

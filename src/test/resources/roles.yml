@@ -1,0 +1,516 @@
+opendistro_security_public:
+  cluster:
+    - 'cluster:monitor/main'
+    #- CLUSTER_COMPOSITE_OPS_RO
+  indices:
+    '.notexistingindexcvnjl9809991':
+      '*':  
+        - ALL
+
+opendistro_security_all_access:
+  cluster:
+    - '*'
+  indices:
+    '*':
+      '*':  
+        - ALL
+    '.notexistingindexcvnjl9809991':
+      '*':  
+        - ALL
+        
+role.with.dot:
+  cluster:
+    - '*'
+  indices:
+    'index.with.dot':
+      'type.with.dot':  
+        - ALL
+        
+opendistro_security_zdummy_all:
+  cluster:
+    - 'cluster:*'
+  indices:
+    '*':
+      '*':  
+        - ALL
+  tenants:
+    admin_1: Rw
+    abcdef_2_2: RO
+
+opendistro_security_role_klingons1:
+  indices:
+    klingonempire:
+      ships:  
+        - READ
+  tenants:
+    kltentrw: Rw
+    kltentro: RO
+
+opendistro_security_role_klingons2:
+  indices:
+    klingonempire:
+      praxis:  
+        - READ
+  tenants:
+    praxisrw: RW
+    praxisro: ro
+
+opendistro_security_role_starfleet:
+  indices:
+    sf:
+       ships:  
+         - READ
+       public:  
+         - 'indices:*'
+       students:  
+         - READ
+       alumni:  
+         - READ
+       'admin*':  
+         - READ
+    'pub*':
+       '*':  
+         - READ  
+  cluster:
+    - 'cluster:monitor*'
+    - indices:data/read/scroll
+
+opendistro_security_role_starfleet_captains:
+  indices:
+    sf:
+       '*':  
+         - CRUD
+    public:
+       '*':  
+         - CRUD 
+  cluster:
+    - 'cluster:monitor*'
+
+opendistro_security_flsdls:
+  cluster:
+    - '*'
+  indices:
+    '*':
+       '*':  
+         - '*'
+       #_dls_: '{"term" : {"${user.name}" : "12"}}'
+       _dls_: '{"term" : {"_type" : "legends"}}'
+       _fls_:
+         - fieldx
+         - field2.b
+         - field3.m.*
+
+opendistro_security_unittest_1:
+  cluster:
+    - '*'
+  indices:
+    '*':
+       '*':  
+         - '*'
+        
+opendistro_security_admin:
+  cluster:
+    - CLUSTER_ALL
+  indices:
+    '*':
+      '*':
+        - ALL 
+
+opendistro_security_power_user:
+  cluster:
+    - CLUSTER_MONITOR
+  indices:
+    '*':
+      '*':
+        - ALL
+
+opendistro_security_user:
+  indices:
+    '*':
+      '*':
+        - READ
+
+opendistro_security_transport_client:
+  cluster:
+      - cluster:monitor/nodes/liveness
+      #uncomment the following for sniffing
+      #- cluster:monitor/state
+
+opendistro_security_kibana4:
+  cluster: 
+      - cluster:monitor/nodes/info
+      - cluster:monitor/health 
+  indices:
+    '*':
+      '*':
+        - indices:admin/mappings/fields/get
+        - indices:admin/validate/query
+        - indices:data/read/search-
+        - indices:data/read/msearch
+        - indices:admin/get
+    '?kibana':
+      '*':
+        - indices:admin/exists
+        - indices:admin/mapping/put
+        - indices:admin/mappings/fields/get
+        - indices:admin/refresh
+        - indices:admin/validate/query
+        - indices:data/read/get
+        - indices:data/read/mget
+        - indices:data/read/search
+        - indices:data/write/delete
+        - indices:data/write/index
+        - indices:data/write/update
+
+opendistro_security_kibana4_server:
+  cluster:
+      - cluster:monitor/nodes/info
+      - cluster:monitor/health
+  indices:
+    '?kibana':
+      '*':
+        - indices:admin/create
+        - indices:admin/exists
+        - indices:admin/mapping/put
+        - indices:admin/mappings/fields/get
+        - indices:admin/refresh
+        - indices:admin/validate/query
+        - indices:data/read/get
+        - indices:data/read/mget
+        - indices:data/read/search
+        - indices:data/write/delete
+        - indices:data/write/index
+        - indices:data/write/update
+
+opendistro_security_logstash:
+  cluster:
+    - indices:admin/template/get
+    - indices:admin/template/put
+    - indices:data/write*
+  indices:
+    'logstash-*':
+      '*':
+        - indices:data/write/*
+        - indices:data/read/*
+        - CREATE_INDEX
+
+opendistro_security_marvel_user:
+  indices:
+    '?marvel-es-*':
+      '*':
+        - READ
+    '?kibana':
+      '*':
+        - indices:admin/exists
+        - indices:admin/mappings/fields/get
+        - indices:admin/validate/query
+        - indices:data/read/get
+        - indices:data/read/mget
+        - indices:data/read/search
+
+opendistro_security_remote_marvel_agent:
+  cluster: 
+    - indices:admin/template/put
+    - indices:admin/template/get
+  indices:
+    '?marvel-es-*':
+      '*':
+        - ALL
+        
+opendistro_security_theindex_admin:
+  cluster:
+    - CLUSTER_COMPOSITE_OPS
+  indices:
+    theindex:
+      '*':
+        - ALL
+        
+opendistro_security_user1:
+  indices:
+    'alias1':
+      '*':
+        - READ
+opendistro_security_user2:
+  indices:
+    'alias2':
+      '*':
+        - READ
+        
+opendistro_security_multiget:
+  cluster:
+    - indices:data/read/mget
+  indices:
+    'mindex1':
+      '*':
+        - READ
+    'mindex2':
+      '*':
+        - READ
+        
+opendistro_security_shakespeare:
+  cluster:
+    - cluster:monitor/nodes/info
+    - cluster:monitor/health
+    - indices:admin/template/get
+    - indices:admin/exists 
+  indices:
+    'shakespeare':
+      '*':
+        - READ
+        - indices:admin/exists
+        - indices:admin/mappings/fields/get*
+        - indices:admin/validate/query*
+        - indices:admin/get*
+        - indices:data/write/bulk*
+
+opendistro_security_own_index:
+  indices:
+    '${user_name}':
+      '*':
+        - ALL
+
+opendistro_security_writer:
+  cluster:
+    - indices:data/write/bulk*
+  indices:
+    '*':
+      '*':
+        - WRITE
+        - CREATE_INDEX
+
+opendistro_security_dlsnoinvest:
+  cluster:
+    - ALL
+  indices:
+    'article':
+      '*':
+        - ALL
+    'investment':
+      '*':
+        - ALL
+    'company':
+      '*':
+        - ALL
+      _dls_: '{"term" : {"category_code" : "software"}}'
+
+opendistro_security_baz:
+  cluster: 
+    - ALL
+  indices:
+    'foo*':
+      'bar':
+        - READ
+    'foo':
+      'baz':
+        - READ
+
+opendistro_security_role01_role02:
+  indices:
+    'role01_role02':
+      '*':
+       - ALL
+
+opendistro_security_restore:
+  cluster:
+    - 'cluster:admin/snapshot/restore'
+  indices:
+    # everything set on one index definition
+    'vulcangov_restore_1':
+      '*':
+        - 'indices:admin/create'
+        - 'indices:data/write/index'
+    # combined rights lead to the allowance of the restore for 2a
+    'vulcangov_restore_2a':
+      '*':
+        - 'indices:admin/create'
+    'vulcangov_restore_2*':
+      '*':
+        - 'indices:data/write/index'
+    # type is not '*'
+    'vulcangov_no_restore_1':
+      'planet':
+        - 'indices:admin/create'
+        - 'indices:data/write/index'
+    # type is not '*'
+    'vulcangov_no_restore_2':
+      'p*':
+        - 'indices:admin/create'
+        - 'indices:data/write/index'
+    # permission indices:admin/create missing
+    'vulcangov_no_restore_3':
+      '*':
+        - 'indices:data/write/index'
+    # permission indices:data/write/index missing
+    'vulcangov_no_restore_4':
+      '*':
+        - 'indices:admin/create'
+
+opendistro_security_snapres:
+  cluster:
+    - MANAGE_SNAPSHOTS
+  indices:
+    '*':
+      '*':
+        - "indices:data/write/index"
+        - "indices:admin/create"
+        
+opendistro_security_twitter:
+  cluster:
+    - CLUSTER_COMPOSITE_OPS_RO
+  indices:
+    'twitter':
+      '*':
+        - '*'
+        
+opendistro_security_aliasmngt:
+  indices:
+    'logstash-*':
+      '*':
+        - indices:data/write/*
+        - indices:data/read/*
+        - CREATE_INDEX
+        - indices:admin/aliases*
+        
+opendistro_security_ua:
+  cluster:
+    - '*'
+  indices:
+    'indexa*':
+      '*':
+        - '*'
+    'permitnotexistentindex*':
+      '*':
+        - '*'
+    '*':
+      '*':
+        - indices:data/read/field_caps
+opendistro_security_ub:
+  cluster:
+    - '*'
+  indices:
+    'indexb':
+      '*':
+        - '*'
+        
+opendistro_security_uc:
+  cluster:
+    - '*'
+  indices:
+    'indexc':
+      'typec':
+        - '*'
+    'beats-*':
+      '*':
+        - indices:data/write/*
+        - indices:data/read/*
+        - CREATE_INDEX
+
+opendistro_security_attr:
+  indices:
+    '${attr_internal_c2}':
+      '*':
+        - indices:data/read/*
+        
+opendistro_security_rexclude:
+  indices:
+    '/(?!special|alsonotallowed)(\S|\s)*/':
+      '*':
+        - READ
+        
+opendistro_security_aliastest:
+  indices:
+    '?kibana':
+      '*':
+        - indices:data/write/*
+        - indices:data/read/*
+    'calias-1':
+      '*':
+        - indices:data/write/*
+        - indices:data/read/*
+        
+opendistro_security_dummy:
+  cluster:
+    - 'cluster:monitor/health'
+    
+opendistro_security_mindex1:
+  indices:
+    'mindex_1':
+      '*':
+        - indices:data/read/search
+        
+opendistro_security_mindex2:
+  indices:
+    'mindex_2':
+      '*':
+        - indices:data/read/search
+        
+opendistro_security_mindex3:
+  indices:
+    'mindex_3':
+      '*':
+        - indices:data/write*
+        
+opendistro_security_ccsresolv:
+  indices:
+    '?abc*':
+      '*':
+        - 'indices:data/read/*'
+
+opendistro_security_ccsresolv1:
+  indices:
+    '?abc*':
+      '*':
+        - 'indices:data/read/*'
+    'xyz':
+      '*':
+        - 'indices:data/read/*'
+    '*noexist':
+      '*':
+        - 'indices:data/read/*'
+        
+opendistro_security_underscore:
+  cluster:
+    - '*'
+  indices:
+    '*abc_xyz_*':
+      '*':
+        - '*'
+
+opendistro_security_557:
+  cluster:
+    - '*'
+  indices:    
+    '/\S*/':
+      '*':
+        - READ
+        
+opendistro_security_kibana_server:
+  readonly: true
+  cluster:
+      - CLUSTER_MONITOR
+      - CLUSTER_COMPOSITE_OPS
+      - cluster:admin/xpack/monitoring*
+      - indices:admin/template*
+      - indices:data/read/scroll*
+  indices:
+    '?kibana':
+      '*':
+        - INDICES_ALL
+    '?kibana-6':
+      '*':
+        - INDICES_ALL
+    '?kibana_*':
+      '*':
+        - INDICES_ALL
+    '?reporting*':
+      '*':
+        - INDICES_ALL
+    '?monitoring*':
+      '*':
+        - INDICES_ALL
+    '?tasks':
+      '*':
+        - INDICES_ALL
+    '*':
+      '*':
+        - "indices:admin/aliases*"

@@ -1,0 +1,27 @@
+opendistro_security:
+  dynamic:
+    http:
+      xff:
+        enabled: false
+        internalProxies: 192\.168\.0\.10|192\.168\.0\.11
+        remoteIpHeader: "x-forwarded-for"
+        proxiesHeader: "x-forwarded-by"
+        trustedProxies: "proxy1|proxy2"
+      authenticator:  
+        type: com.amazon.opendistroforelasticsearch.security.http.HTTPBasicAuthenticator
+    authcz:
+      authentication_domain_basic_internal:
+        enabled: true
+        order: 1
+        authentication_backend:
+          type: ldap
+          config:
+            host: "localhost:40622"
+            usersearch: "(uid={0})"
+        authorization_backend:
+          type: ldap
+          config:
+            rolesearch: "(uniqueMember={0})"
+            resolve_nested_roles: true
+            rolebase: "ou=groups,o=TEST"
+            rolename: cn
