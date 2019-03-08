@@ -31,6 +31,7 @@
 package com.amazon.opendistroforelasticsearch.security.transport;
 
 import java.net.InetSocketAddress;
+import java.lang.reflect.Method;
 import java.security.cert.X509Certificate;
 import java.util.Objects;
 import java.util.UUID;
@@ -126,12 +127,20 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
               && !transportChannel.getChannelType().equals("PerformanceAnalyzerTransportChannelType")) {
                throw new RuntimeException("Unknown channel type "+transportChannel.getChannelType());
            }
+           String channelType = transportChannel.getChannelType();
 
-           getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_CHANNEL_TYPE, transportChannel.getChannelType());
+           if(transportChannel.getChannelType().equals("PerformanceAnalyzerTransportChannelType")) {
+               Class patc = transportChannel.getClass();
+               Method getInnerChannel = patc.getMethod("getInnerChannel", null);
+               TransportChannel innerChannel = (TransportChannel)(getInnerChannel.invoke(transportChannel));
+               channelType = innerChannel.getChannelType();
+           }
+
+           getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_CHANNEL_TYPE, channelType);
            getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_ACTION_NAME, task.getAction());
 
             //bypass non-netty requests
-            if(transportChannel.getChannelType().equals("direct")) {
+            if(channelType.equals("direct")) {
                 final String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
 
                 if(!Strings.isNullOrEmpty(userHeader)) {
