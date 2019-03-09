@@ -17,9 +17,7 @@ Open Distro for Elasticsearch Security is an Elasticsearch plugin that offers en
 * User Impersonation
 
 
-## Advance features
-
-opendistro-elasticsearch-security-advanced-modules adds:
+## Advance features included in Security Advanced Modules:
 
 * Active Directory / LDAP
 * Kerberos / SPNEGO
