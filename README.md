@@ -36,7 +36,7 @@ opendistro-elasticsearch-security-advanced-modules adds:
 
 ## Documentation
 
-Please refer to the [Official documentation] for detailed information on installing and configuring opendistro-elasticsearch-security plugin.
+Please refer to the [technical documentation](https://opendistro.github.io/for-elasticsearch-docs) for detailed information on installing and configuring opendistro-elasticsearch-security plugin.
 
 ## Quick Start
 
