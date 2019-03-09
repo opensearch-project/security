@@ -67,9 +67,12 @@ The Security Plugin Configuration is stored in a dedicated index in Elasticsearc
 * Configuration changes do not require a restart
 * Configuration changes take effect immediately
 
-## Support
 
+## License
 
-## Legal 
-Open Distro For Elasticsearch Security
-Copyright 2019- Amazon.com, Inc. or its affiliates. All Rights Reserved.
+This code is licensed under the Apache 2.0 License. 
+
+## Copyright
+
+Open Distro For Elasticsearch Security Copyright 2019- Amazon.com, Inc. or its affiliates. All Rights Reserved.
+
