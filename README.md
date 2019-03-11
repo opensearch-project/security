@@ -22,7 +22,7 @@ Open Distro for Elasticsearch Security is an Elasticsearch plugin that offers en
 * Active Directory / LDAP
 * Kerberos / SPNEGO
 * JSON web token (JWT)
-* OpenID
+* OpenID Connect (OIDC)
 * SAML
 * Document-level security
 * Field-level security
