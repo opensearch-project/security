@@ -42,7 +42,7 @@
   <version>0.7.0.0</version>
   <name>Open Distro Security for Elasticsearch</name>
   <description>Provide access control related features for Elasticsearch 6</description>
-  <url>https://github.com/mauve-hedgehog/opendistro-elasticsearch-security</url>
+  <url>https://github.com/opendistro-for-elasticsearch/security</url>
   <inceptionYear>2015</inceptionYear>
 
   <licenses>
@@ -75,15 +75,15 @@
   </properties>
 
   <scm>
-    <url>https://github.com/mauve-hedgehog/opendistro-elasticsearch-security</url>
-    <connection>scm:git:git@github.com:mauve-hedgehog/opendistro-elasticsearch-security.git</connection>
-    <developerConnection>scm:git:git@github.com:mauve-hedgehog/opendistro-elasticsearch-security.git</developerConnection>
+    <url>https://github.com/opendistro-for-elasticsearch/security</url>
+    <connection>scm:git:git@github.com:opendistro-for-elasticsearch/security.git</connection>
+    <developerConnection>scm:git:git@github.com:opendistro-for-elasticsearch/security.git</developerConnection>
     <tag>0.7.0.0</tag>
   </scm>
 
   <issueManagement>
     <system>GitHub</system>
-    <url>https://github.com/mauve-hedgehog/opendistro-elasticsearch-security/issues</url>
+    <url>https://github.com/opendistro-for-elasticsearch/security/issues</url>
   </issueManagement>
 
   <dependencies>
