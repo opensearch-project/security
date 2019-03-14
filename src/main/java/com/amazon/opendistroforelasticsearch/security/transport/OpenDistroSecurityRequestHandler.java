@@ -94,21 +94,21 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
     @Override
     protected void messageReceivedDecorate(final T request, final TransportRequestHandler<T> handler,
             final TransportChannel transportChannel, Task task) throws Exception {
-        
+
         String resolvedActionClass = request.getClass().getSimpleName();
-        
+
         if(request instanceof BulkShardRequest) {
             if(((BulkShardRequest) request).items().length == 1) {
                 resolvedActionClass = ((BulkShardRequest) request).items()[0].request().getClass().getSimpleName();
             }
         }
-        
+
         if(request instanceof ConcreteShardRequest) {
             resolvedActionClass = ((ConcreteShardRequest) request).getRequest().getClass().getSimpleName();
         }
-                
+
         String initialActionClassValue = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER);
-        
+
         final ThreadContext.StoredContext sgContext = getThreadContext().newStoredContext(false);
 
         final String originHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER);
@@ -119,25 +119,26 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
 
         try {
 
-           if(transportChannel.getChannelType() == null) {
-               throw new RuntimeException("Can not determine channel type (null)");
-           }
+            if(transportChannel.getChannelType() == null) {
+                throw new RuntimeException("Can not determine channel type (null)");
+            }
 
-           if(!transportChannel.getChannelType().equals("direct") && !transportChannel.getChannelType().equals("netty") 
-              && !transportChannel.getChannelType().equals("PerformanceAnalyzerTransportChannelType")) {
-               throw new RuntimeException("Unknown channel type "+transportChannel.getChannelType());
-           }
-           String channelType = transportChannel.getChannelType();
+            String channelType = transportChannel.getChannelType();
 
-           if(transportChannel.getChannelType().equals("PerformanceAnalyzerTransportChannelType")) {
-               Class patc = transportChannel.getClass();
-               Method getInnerChannel = patc.getMethod("getInnerChannel", null);
-               TransportChannel innerChannel = (TransportChannel)(getInnerChannel.invoke(transportChannel));
-               channelType = innerChannel.getChannelType();
-           }
+            if(!transportChannel.getChannelType().equals("direct") && !transportChannel.getChannelType().equals("netty")) {
+                Class wrappedChannelCls = transportChannel.getClass();
 
-           getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_CHANNEL_TYPE, channelType);
-           getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_ACTION_NAME, task.getAction());
+                try {
+                    Method getInnerChannel = wrappedChannelCls.getMethod("getInnerChannel", null);
+                    TransportChannel innerChannel = (TransportChannel)(getInnerChannel.invoke(transportChannel));
+                    channelType = innerChannel.getChannelType();
+                } catch (NoSuchMethodException ex) {
+                    throw new RuntimeException("Unknown channel type " + transportChannel.getChannelType() + "does not implement getInnerChannel method.");
+                }
+            }
+
+            getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_CHANNEL_TYPE, channelType);
+            getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_ACTION_NAME, task.getAction());
 
             //bypass non-netty requests
             if(channelType.equals("direct")) {
@@ -156,7 +157,7 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
                 if(actionTrace.isTraceEnabled()) {
                     getThreadContext().putHeader("_opendistro_security_trace"+System.currentTimeMillis()+"#"+UUID.randomUUID().toString(), Thread.currentThread().getName()+" DIR -> "+transportChannel.getChannelType()+" "+getThreadContext().getHeaders());
                 }
-                
+
                 putInitialActionClassHeader(initialActionClassValue, resolvedActionClass);
 
                 super.messageReceivedDecorate(request, handler, transportChannel, task);
@@ -174,9 +175,9 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
                 auditLog.logMissingPrivileges(task.getAction(), request, task);
                 log.error("Internal or shard requests ("+task.getAction()+") not allowed from a non-server node for transport type "+transportChannel.getChannelType());
                 transportChannel.sendResponse(new ElasticsearchSecurityException(
-                        "Internal or shard requests not allowed from a non-server node for transport type "+transportChannel.getChannelType()));
+                            "Internal or shard requests not allowed from a non-server node for transport type "+transportChannel.getChannelType()));
                 return;
-            }
+                    }
 
 
             String principal = null;
@@ -232,34 +233,34 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
 
                     User user;
                     //try {
-                        if((user = backendRegistry.authenticate(request, principal, task, task.getAction())) == null) {
-                            org.apache.logging.log4j.ThreadContext.remove("user");
-                           
-                            if(task.getAction().equals(WhoAmIAction.NAME)) {
-                                super.messageReceivedDecorate(request, handler, transportChannel, task);
-                                return;
-                            }
+                    if((user = backendRegistry.authenticate(request, principal, task, task.getAction())) == null) {
+                        org.apache.logging.log4j.ThreadContext.remove("user");
 
-                            if(task.getAction().equals("cluster:monitor/nodes/liveness")
-                                    || task.getAction().equals("internal:transport/handshake")) {
-                                super.messageReceivedDecorate(request, handler, transportChannel, task);
-                                return;
-                            }
-
-
-                            log.error("Cannot authenticate {} for {}", getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER), task.getAction());
-                            transportChannel.sendResponse(new ElasticsearchSecurityException("Cannot authenticate "+getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER)));
+                        if(task.getAction().equals(WhoAmIAction.NAME)) {
+                            super.messageReceivedDecorate(request, handler, transportChannel, task);
                             return;
-                        } else {
-                            // make it possible to filter logs by username
-                            org.apache.logging.log4j.ThreadContext.put("user", user.getName());
                         }
+
+                        if(task.getAction().equals("cluster:monitor/nodes/liveness")
+                                || task.getAction().equals("internal:transport/handshake")) {
+                            super.messageReceivedDecorate(request, handler, transportChannel, task);
+                            return;
+                                }
+
+
+                        log.error("Cannot authenticate {} for {}", getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER), task.getAction());
+                        transportChannel.sendResponse(new ElasticsearchSecurityException("Cannot authenticate "+getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER)));
+                        return;
+                    } else {
+                        // make it possible to filter logs by username
+                        org.apache.logging.log4j.ThreadContext.put("user", user.getName());
+                    }
                     //} catch (Exception e) {
-                        //    log.error("Error authentication transport user "+e, e);
-                        //auditLog.logFailedLogin(principal, false, null, request);
-                        //transportChannel.sendResponse(ExceptionsHelper.convertToElastic(e));
-                        //return;
-                        //}
+                    //    log.error("Error authentication transport user "+e, e);
+                    //auditLog.logFailedLogin(principal, false, null, request);
+                    //transportChannel.sendResponse(ExceptionsHelper.convertToElastic(e));
+                    //return;
+                    //}
 
                     getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
                     TransportAddress originalRemoteAddress = request.remoteAddress();
@@ -277,9 +278,9 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
                     getThreadContext().putHeader("_opendistro_security_trace"+System.currentTimeMillis()+"#"+UUID.randomUUID().toString(), Thread.currentThread().getName()+" NETTI -> "+transportChannel.getChannelType()+" "+getThreadContext().getHeaders().entrySet().stream().filter(p->!p.getKey().startsWith("_opendistro_security_trace")).collect(Collectors.toMap(p -> p.getKey(), p -> p.getValue())));
                 }
 
-                
+
                 putInitialActionClassHeader(initialActionClassValue, resolvedActionClass);
-                
+
                 super.messageReceivedDecorate(request, handler, transportChannel, task);
             }
         } finally {
