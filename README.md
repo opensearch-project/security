@@ -1,8 +1,8 @@
 # Open Distro for Elasticsearch Security
 
-Open Distro for Elasticsearch Security is an Elasticsearch plugin that offers encryption, authentication, and authorization. It supports authentication via Active Directory, LDAP, Kerberos, JSON web tokens, SAML, OpenID and more. It includes fine grained role-based access control to indices, documents and fields. It also provides multi-tenancy support in Kibana.
+Open Distro for Elasticsearch Security is an Elasticsearch plugin that offers encryption, authentication, and authorization. When combined with Open Distro for Elasticsearch Security-Advanced Modules, it supports authentication via Active Directory, LDAP, Kerberos, JSON web tokens, SAML, OpenID and more. It includes fine grained role-based access control to indices, documents and fields. It also provides multi-tenancy support in Kibana.
 
-## Basic features
+## Basic features provided by Security
 
 * Full data in transit encryption
 * Node-to-node encryption
@@ -17,14 +17,12 @@ Open Distro for Elasticsearch Security is an Elasticsearch plugin that offers en
 * User Impersonation
 
 
-## Advance features
-
-opendistro-elasticsearch-security-advanced-modules adds:
+## Advance features included in Security Advanced Modules:
 
 * Active Directory / LDAP
 * Kerberos / SPNEGO
 * JSON web token (JWT)
-* OpenID
+* OpenID Connect (OIDC)
 * SAML
 * Document-level security
 * Field-level security
@@ -36,7 +34,7 @@ opendistro-elasticsearch-security-advanced-modules adds:
 
 ## Documentation
 
-Please refer to the [Official documentation] for detailed information on installing and configuring opendistro-elasticsearch-security plugin.
+Please refer to the [technical documentation](https://opendistro.github.io/for-elasticsearch-docs) for detailed information on installing and configuring opendistro-elasticsearch-security plugin.
 
 ## Quick Start
 
@@ -69,9 +67,12 @@ The Security Plugin Configuration is stored in a dedicated index in Elasticsearc
 * Configuration changes do not require a restart
 * Configuration changes take effect immediately
 
-## Support
 
+## License
 
-## Legal 
-Open Distro For Elasticsearch Security
-Copyright 2019- Amazon.com, Inc. or its affiliates. All Rights Reserved.
+This code is licensed under the Apache 2.0 License. 
+
+## Copyright
+
+Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+
