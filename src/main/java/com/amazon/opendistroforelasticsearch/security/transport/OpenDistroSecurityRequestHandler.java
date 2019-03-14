@@ -125,7 +125,7 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
 
             String channelType = transportChannel.getChannelType();
 
-            if(!transportChannel.getChannelType().equals("direct") && !transportChannel.getChannelType().equals("netty")) {
+            if(!channelType.equals("direct") && !channelType.equals("netty")) {
                 Class wrappedChannelCls = transportChannel.getClass();
 
                 try {
@@ -133,7 +133,7 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
                     TransportChannel innerChannel = (TransportChannel)(getInnerChannel.invoke(transportChannel));
                     channelType = innerChannel.getChannelType();
                 } catch (NoSuchMethodException ex) {
-                    throw new RuntimeException("Unknown channel type " + transportChannel.getChannelType() + "does not implement getInnerChannel method.");
+                    throw new RuntimeException("Unknown channel type " + channelType + " does not implement getInnerChannel method.");
                 }
             }
 
