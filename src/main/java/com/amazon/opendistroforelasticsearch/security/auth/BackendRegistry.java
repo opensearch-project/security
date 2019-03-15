@@ -740,19 +740,19 @@ public class BackendRegistry implements ConfigurationChangeListener {
     private <T> T newInstance(final String clazzOrShortcut, String type, final Settings settings, final Path configPath) {
 
         String clazz = clazzOrShortcut;
-        boolean isEnterprise = false;
+        boolean isAdvancedModule = false;
 
         if(authImplMap.containsKey(clazz+"_"+type)) {
             clazz = authImplMap.get(clazz+"_"+type);
         } else {
-            isEnterprise = true;
+            isAdvancedModule = true;
         }
 
-        if(ReflectionHelper.isEnterpriseAAAModule(clazz)) {
-            isEnterprise = true;
+        if(ReflectionHelper.isAdvancedModuleAAAModule(clazz)) {
+            isAdvancedModule = true;
         }
 
-        return ReflectionHelper.instantiateAAA(clazz, settings, configPath, isEnterprise);
+        return ReflectionHelper.instantiateAAA(clazz, settings, configPath, isAdvancedModule);
     }
     
     private void destroyDestroyables() {

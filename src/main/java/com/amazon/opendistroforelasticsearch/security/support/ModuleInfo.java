@@ -94,7 +94,7 @@ public class ModuleInfo implements Serializable, Writeable{
 		Map<String, String> infoMap = new HashMap<>();
 		infoMap.put("type", moduleType.name());
 		infoMap.put("description", moduleType.getDescription());
-		infoMap.put("is_enterprise", moduleType.isEnterprise().toString());
+		infoMap.put("is_advanced_module", moduleType.isAdvancedModule().toString());
 		infoMap.put("default_implementation", moduleType.getDefaultImplClass());
 		infoMap.put("actual_implementation", this.classname);
 		//infoMap.put("classpath", this.classpath); //this can disclose file locations

@@ -7,11 +7,10 @@
 
 ############## Common configuration settings ##############
 
-# Enable or disable the Open Distro Security enterprise modules
-# By default enterprise modules are enabled. If you use any of the modules in production you need
-# to obtain a license. If you want to use the free Community Edition, you can switch
-# all enterprise features off by setting the following key to false
-opendistro_security.enterprise_modules_enabled: true
+# Enable or disable the Open Distro Security advanced modules
+# By default advanced modules are enabled, you can switch
+# all advanced features off by setting the following key to false
+opendistro_security.advanced_modules_enabled: true
 
 # Specify a list of DNs which denote the other nodes in the cluster.
 # This settings support wildcards and regular expressions

@@ -74,7 +74,7 @@ public enum ModuleType implements Serializable {
 
 	private String description;
 	private String defaultImplClass;
-	private Boolean isEnterprise = Boolean.TRUE;
+	private Boolean isAdvancedModule = Boolean.TRUE;
 	private static Map<String, ModuleType> modulesMap = new HashMap<>();
 
 	static{
@@ -85,10 +85,10 @@ public enum ModuleType implements Serializable {
 		}
 	}
 
-	private ModuleType(String description, String defaultImplClass, Boolean isEnterprise) {
+	private ModuleType(String description, String defaultImplClass, Boolean isAdvancedModule) {
 		this.description = description;
 		this.defaultImplClass = defaultImplClass;
-		this.isEnterprise = isEnterprise;
+		this.isAdvancedModule = isAdvancedModule;
 	}
 
 	public static ModuleType getByDefaultImplClass(Class<?> clazz) {
@@ -132,8 +132,8 @@ public enum ModuleType implements Serializable {
 		return defaultImplClass;
 	}
 
-	public Boolean isEnterprise() {
-		return isEnterprise;
+	public Boolean isAdvancedModule() {
+		return isAdvancedModule;
 	}
 
 

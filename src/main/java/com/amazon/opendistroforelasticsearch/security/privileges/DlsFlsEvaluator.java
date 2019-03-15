@@ -103,7 +103,7 @@ public class DlsFlsEvaluator {
         
 
         // attach dls/fls map if not already done
-        // TODO do this only if enterprise module are loaded
+        // TODO do this only if advanced module are loaded
         final Tuple<Map<String, Set<String>>, Map<String, Set<String>>> dlsFls = securityRoles.getDlsFls(user, resolver, clusterService);
         final Map<String, Set<String>> dlsQueries = dlsFls.v1();
         final Map<String, Set<String>> flsFields = dlsFls.v2();

@@ -191,7 +191,7 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_KERBEROS_ACCEPTOR_PRINCIPAL = "opendistro_security.kerberos.acceptor_principal";
     public static final String OPENDISTRO_SECURITY_CERT_OID = "opendistro_security.cert.oid";
     public static final String OPENDISTRO_SECURITY_CERT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = "opendistro_security.cert.intercluster_request_evaluator_class";
-    public static final String OPENDISTRO_SECURITY_ENTERPRISE_MODULES_ENABLED = "opendistro_security.enterprise_modules_enabled";
+    public static final String OPENDISTRO_SECURITY_ADVANCED_MODULES_ENABLED = "opendistro_security.advanced_modules_enabled";
     public static final String OPENDISTRO_SECURITY_NODES_DN = "opendistro_security.nodes_dn";
     public static final String OPENDISTRO_SECURITY_DISABLED = "opendistro_security.disabled";
     public static final String OPENDISTRO_SECURITY_CACHE_TTL_MINUTES = "opendistro_security.cache.ttl_minutes";

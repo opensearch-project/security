@@ -97,7 +97,7 @@ public abstract class AbstractSecurityUnitTest {
 	
     //TODO Test Matrix
     protected boolean allowOpenSSL = false; //disabled, we test this already in SSL Plugin
-    //enable//disable enterprise modules
+    //enable//disable advanced modules
     //1node and 3 node
     
 	@Rule

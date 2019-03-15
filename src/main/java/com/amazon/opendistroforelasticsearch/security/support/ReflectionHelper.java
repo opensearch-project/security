@@ -77,13 +77,13 @@ public class ReflectionHelper {
         return Collections.unmodifiableSet(modulesLoaded);
     }
 
-    private static boolean enterpriseModulesDisabled() {
-        return !enterpriseModulesEnabled;
+    private static boolean advancedModulesDisabled() {
+        return !advancedModulesEnabled;
     }
 
     public static void registerMngtRestApiHandler(final Settings settings) {
 
-        if (enterpriseModulesDisabled()) {
+        if (advancedModulesDisabled()) {
             return;
         }
         
@@ -106,7 +106,7 @@ public class ReflectionHelper {
             final Client localClient, final AdminDNs adminDns, final IndexBaseConfigurationRepository cr, final ClusterService cs, final PrincipalExtractor principalExtractor,
             final PrivilegesEvaluator evaluator, final ThreadPool threadPool, final AuditLog auditlog) {
 
-        if (enterpriseModulesDisabled()) {
+        if (advancedModulesDisabled()) {
             return Collections.emptyList();
         }
 
@@ -130,7 +130,7 @@ public class ReflectionHelper {
     @SuppressWarnings("rawtypes")
     public static Constructor instantiateDlsFlsConstructor() {
 
-        if (enterpriseModulesDisabled()) {
+        if (advancedModulesDisabled()) {
             return null;
         }
 
@@ -152,7 +152,7 @@ public class ReflectionHelper {
 
     public static DlsFlsRequestValve instantiateDlsFlsValve() {
 
-        if (enterpriseModulesDisabled()) {
+        if (advancedModulesDisabled()) {
             return new DlsFlsRequestValve.NoopDlsFlsRequestValve();
         }
 
@@ -172,7 +172,7 @@ public class ReflectionHelper {
     public static AuditLog instantiateAuditLog(final Settings settings, final Path configPath, final Client localClient, final ThreadPool threadPool,
             final IndexNameExpressionResolver resolver, final ClusterService clusterService) {
 
-        if (enterpriseModulesDisabled()) {
+        if (advancedModulesDisabled()) {
             return new NullAuditLog();
         }
 
@@ -194,7 +194,7 @@ public class ReflectionHelper {
 
     public static ComplianceIndexingOperationListener instantiateComplianceListener(ComplianceConfig complianceConfig, AuditLog auditlog) {
 
-        if (enterpriseModulesDisabled()) {
+        if (advancedModulesDisabled()) {
             return new ComplianceIndexingOperationListener();
         }
 
@@ -226,7 +226,7 @@ public class ReflectionHelper {
 
         final PrivilegesInterceptor noop = new PrivilegesInterceptor(resolver, clusterService, localClient, threadPool);
 
-        if (enterpriseModulesDisabled()) {
+        if (advancedModulesDisabled()) {
             return noop;
         }
 
@@ -248,8 +248,8 @@ public class ReflectionHelper {
     @SuppressWarnings("unchecked")
     public static <T> T instantiateAAA(final String clazz, final Settings settings, final Path configPath, final boolean checkEnterprise) {
 
-        if (checkEnterprise && enterpriseModulesDisabled()) {
-            throw new ElasticsearchException("Can not load '{}' because enterprise modules are disabled", clazz);
+        if (checkEnterprise && advancedModulesDisabled()) {
+            throw new ElasticsearchException("Can not load '{}' because advanced modules are disabled", clazz);
         }
 
         try {
@@ -301,34 +301,34 @@ public class ReflectionHelper {
         }
     }
 
-    public static boolean isEnterpriseAAAModule(final String clazz) {
-        boolean enterpriseModuleInstalled = false;
+    public static boolean isAdvancedModuleAAAModule(final String clazz) {
+        boolean advancedModuleInstalled = false;
 
         if (clazz.equalsIgnoreCase("com.amazon.dlic.auth.ldap.backend.LDAPAuthorizationBackend")) {
-            enterpriseModuleInstalled = true;
+            advancedModuleInstalled = true;
         }
 
         if (clazz.equalsIgnoreCase("com.amazon.dlic.auth.ldap.backend.LDAPAuthenticationBackend")) {
-            enterpriseModuleInstalled = true;
+            advancedModuleInstalled = true;
         }
 
         if (clazz.equalsIgnoreCase("com.amazon.dlic.auth.http.jwt.HTTPJwtAuthenticator")) {
-            enterpriseModuleInstalled = true;
+            advancedModuleInstalled = true;
         }
         
         if (clazz.equalsIgnoreCase("com.amazon.dlic.auth.http.jwt.keybyoidc.HTTPJwtKeyByOpenIdConnectAuthenticator")) {
-            enterpriseModuleInstalled = true;
+            advancedModuleInstalled = true;
         }
 
         if (clazz.equalsIgnoreCase("com.amazon.dlic.auth.http.kerberos.HTTPSpnegoAuthenticator")) {
-            enterpriseModuleInstalled = true;
+            advancedModuleInstalled = true;
         }
         
         if (clazz.equalsIgnoreCase("com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator")) {
-            enterpriseModuleInstalled = true;
+            advancedModuleInstalled = true;
         }
 
-        return enterpriseModuleInstalled;
+        return advancedModuleInstalled;
     }
 
     public static boolean addLoadedModule(Class<?> clazz) {
@@ -339,11 +339,11 @@ public class ReflectionHelper {
         return modulesLoaded.add(moduleInfo);
     }
 
-    private static boolean enterpriseModulesEnabled;
+    private static boolean advancedModulesEnabled;
 
     // TODO static hack
-    public static void init(final boolean enterpriseModulesEnabled) {
-        ReflectionHelper.enterpriseModulesEnabled = enterpriseModulesEnabled;
+    public static void init(final boolean advancedModulesEnabled) {
+        ReflectionHelper.advancedModulesEnabled = advancedModulesEnabled;
     }
 
     private static ModuleInfo getModuleInfo(final Class<?> impl) {

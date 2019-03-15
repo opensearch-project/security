@@ -189,7 +189,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     private volatile SslExceptionHandler sslExceptionHandler;
     private volatile Client localClient;
     private final boolean disabled;
-    private final boolean enterpriseModulesEnabled;
+    private final boolean advancedModulesEnabled;
     private final boolean sslOnly;
     private final List<String> demoCertHashes = new ArrayList<String>(3);
     private volatile OpenDistroSecurityFilter odsf;
@@ -227,7 +227,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             this.tribeNodeClient = false;
             this.dlsFlsAvailable = false;
             this.dlsFlsConstructor = null;
-            this.enterpriseModulesEnabled = false;
+            this.advancedModulesEnabled = false;
             this.sslOnly = false;
             complianceConfig = null;
             log.warn("Open Distro Security plugin installed but disabled. This can expose your configuration (including passwords) to the public.");
@@ -240,7 +240,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             this.tribeNodeClient = false;
             this.dlsFlsAvailable = false;
             this.dlsFlsConstructor = null;
-            this.enterpriseModulesEnabled = false;
+            this.advancedModulesEnabled = false;
             complianceConfig = null;
             log.warn("Open Distro Security plugin run in ssl only mode. No authentication or authorization is performed");
             return;
@@ -279,8 +279,8 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             }
         });
 
-        enterpriseModulesEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_ENTERPRISE_MODULES_ENABLED, true);
-        ReflectionHelper.init(enterpriseModulesEnabled);
+        advancedModulesEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_ADVANCED_MODULES_ENABLED, true);
+        ReflectionHelper.init(advancedModulesEnabled);
         
         ReflectionHelper.registerMngtRestApiHandler(settings);
 
@@ -870,7 +870,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             settings.add(Setting.intSetting(ConfigConstants.OPENDISTRO_SECURITY_CACHE_TTL_MINUTES, 60, 0, Property.NodeScope, Property.Filtered));
     
             //Security
-            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_ENTERPRISE_MODULES_ENABLED, true, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_ADVANCED_MODULES_ENABLED, true, Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES, false, Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, false, Property.NodeScope, Property.Filtered));
     

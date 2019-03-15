@@ -60,21 +60,21 @@ public abstract class SingleClusterTest extends AbstractSecurityUnitTest {
         setup(initTransportClientSettings, dynamicSecuritySettings, nodeOverride, true);
     }
     
-    protected void setup(Settings initTransportClientSettings, DynamicSecurityConfig dynamicSecuritySettings, Settings nodeOverride, boolean initSeachGuardIndex) throws Exception {
-        setup(initTransportClientSettings, dynamicSecuritySettings, nodeOverride, initSeachGuardIndex, ClusterConfiguration.DEFAULT);
+    protected void setup(Settings initTransportClientSettings, DynamicSecurityConfig dynamicSecuritySettings, Settings nodeOverride, boolean initOpendistroSecurityIndex) throws Exception {
+        setup(initTransportClientSettings, dynamicSecuritySettings, nodeOverride, initOpendistroSecurityIndex, ClusterConfiguration.DEFAULT);
     }
     
-    protected void setup(Settings initTransportClientSettings, DynamicSecurityConfig dynamicSecuritySettings, Settings nodeOverride, boolean initSeachGuardIndex, ClusterConfiguration clusterConfiguration) throws Exception {
+    protected void setup(Settings initTransportClientSettings, DynamicSecurityConfig dynamicSecuritySettings, Settings nodeOverride, boolean initOpendistroSecurityIndex, ClusterConfiguration clusterConfiguration) throws Exception {
         clusterInfo = clusterHelper.startCluster(minimumSecuritySettings(nodeOverride), clusterConfiguration);
-        if(initSeachGuardIndex && dynamicSecuritySettings != null) {
+        if(initOpendistroSecurityIndex && dynamicSecuritySettings != null) {
             initialize(clusterInfo, initTransportClientSettings, dynamicSecuritySettings);
         }
     }
     
     protected void setup(Settings initTransportClientSettings, DynamicSecurityConfig dynamicSecuritySettings, Settings nodeOverride
-            , boolean initSeachGuardIndex, ClusterConfiguration clusterConfiguration, int timeout, Integer nodes) throws Exception {    
+            , boolean initOpendistroSecurityIndex, ClusterConfiguration clusterConfiguration, int timeout, Integer nodes) throws Exception {
         clusterInfo = clusterHelper.startCluster(minimumSecuritySettings(nodeOverride), clusterConfiguration, timeout, nodes);
-        if(initSeachGuardIndex) {
+        if(initOpendistroSecurityIndex) {
             initialize(clusterInfo, initTransportClientSettings, dynamicSecuritySettings);
         }
     }
