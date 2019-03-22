@@ -49,7 +49,7 @@ Please refer to the [technical documentation](https://opendistro.github.io/for-e
 
 * ``cd`` into ``<ES directory>/plugins/opendistro_security/tools``
 
-* Execute ``./install_demo_configuration.sh``, ``chmod`` the script first if necessary. This will generate all required TLS certificates and add the Security Plugin Configurationto your ``elasticsearch.yml`` file. 
+* Execute ``./install_demo_configuration.sh``, ``chmod`` the script first if necessary. This will generate all required TLS certificates and add the Security Plugin Configuration to your ``elasticsearch.yml`` file. 
 
 * Start Elasticsearch
 
