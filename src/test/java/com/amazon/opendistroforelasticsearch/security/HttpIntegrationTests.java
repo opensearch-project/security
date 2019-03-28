@@ -30,12 +30,13 @@
 
 package com.amazon.opendistroforelasticsearch.security;
 
-import java.io.File;
-import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpStatus;
+import org.apache.http.NoHttpResponseException;
 import org.apache.http.message.BasicHeader;
+import org.apache.logging.log4j.core.LogEvent;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
@@ -45,6 +46,7 @@ import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.amazon.opendistroforelasticsearch.security.action.configupdate.ConfigUpdateAction;
@@ -379,6 +381,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
     }
 
     @Test
+    @Ignore
     public void testHTTPPlaintextErrMsg() throws Exception {
         
         try {
@@ -391,11 +394,20 @@ public class HttpIntegrationTests extends SingleClusterTest {
             RestHelper rh = nonSslRestHelper();
             rh.executeGetRequest("", encodeBasicHeader("worf", "worf"));
             Assert.fail();
-        } catch (Exception e) {
-            String log = FileUtils.readFileToString(new File("unittest.log"), StandardCharsets.UTF_8);
-            Assert.assertTrue(log.contains("speaks http plaintext instead of ssl, will close the channel"));
+        } catch (NoHttpResponseException e) {
+            clusterHelper.stopCluster();
+            Assert.assertNotNull(appender);
+            List<LogEvent> logEvents = new ArrayList<LogEvent>(appender.getEvents());
+            Assert.assertTrue(logEvents.size() > 0);
+            for(LogEvent evt: logEvents) {
+                System.out.println("--> "+evt.getMessage().getFormattedMessage());
+                if(evt.getMessage().getFormattedMessage().contains("speaks http plaintext instead of ssl, will close the channel"))
+                {
+                    return;
+                }
+            }
+            Assert.fail(logEvents.toString());
         }
-        
       }
 
     @Test
