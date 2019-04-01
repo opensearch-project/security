@@ -30,8 +30,6 @@
 
 package com.amazon.opendistroforelasticsearch.security.test;
 
-import io.netty.handler.ssl.OpenSsl;
-
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -44,6 +42,8 @@ import org.apache.http.Header;
 import org.apache.http.message.BasicHeader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.junit.LoggerContextRule;
+import org.apache.logging.log4j.test.appender.ListAppender;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.get.GetRequest;
@@ -57,10 +57,12 @@ import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.Netty4Plugin;
 import org.junit.Assert;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
-import org.junit.rules.TestWatcher;
 
 import com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin;
 import com.amazon.opendistroforelasticsearch.security.action.configupdate.ConfigUpdateAction;
@@ -72,7 +74,8 @@ import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.amazon.opendistroforelasticsearch.security.test.helper.cluster.ClusterInfo;
 import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper.HttpResponse;
-import com.amazon.opendistroforelasticsearch.security.test.helper.rules.OpenDistroSecurityTestWatcher;
+
+import io.netty.handler.ssl.OpenSsl;
 
 public abstract class AbstractSecurityUnitTest {
     
@@ -106,8 +109,8 @@ public abstract class AbstractSecurityUnitTest {
 	@Rule
     public final TemporaryFolder repositoryPath = new TemporaryFolder();
 
-	@Rule
-	public final TestWatcher testWatcher = new OpenDistroSecurityTestWatcher();
+	//@Rule
+	//public final TestWatcher testWatcher = new OpenDistroSecurityTestWatcher();
 
 	public static Header encodeBasicHeader(final String username, final String password) {
 		return new BasicHeader("Authorization", "Basic "+Base64.getEncoder().encodeToString(
@@ -253,4 +256,27 @@ public abstract class AbstractSecurityUnitTest {
     protected String getResourceFolder() {
         return null;
     }
+
+    protected static ListAppender appender;
+
+    @ClassRule
+    public static LoggerContextRule init = new LoggerContextRule("log4j2-test.properties");
+
+    @BeforeClass
+    public static void setupLogging() {
+        try {
+            appender = init.getListAppender("list");
+        } catch (Throwable e) {
+            //ignore
+        }
+    }
+
+    @Before
+    public void clearAppender() {
+
+        if(appender != null) {
+            appender.clear();
+        }
+    }
+
 }

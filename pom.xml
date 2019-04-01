@@ -34,12 +34,12 @@
   <parent>
     <groupId>com.amazon.opendistroforelasticsearch</groupId>
     <artifactId>opendistro_security_parent</artifactId>
-    <version>0.7.0.1</version>
+    <version>0.8.0.0</version>
   </parent>
 
   <artifactId>opendistro_security</artifactId>
   <packaging>jar</packaging>
-  <version>0.7.0.1</version>
+  <version>0.8.0.0</version>
   <name>Open Distro Security for Elasticsearch</name>
   <description>Provide access control related features for Elasticsearch 6</description>
   <url>https://github.com/opendistro-for-elasticsearch/security</url>
@@ -54,12 +54,12 @@
   </licenses>
 
   <properties>
-    <opendistro_security_ssl.version>0.7.0.1</opendistro_security_ssl.version>
-    <opendistro_security_advanced_modules.version>0.7.0.1</opendistro_security_advanced_modules.version>
-    <elasticsearch.version>6.5.4</elasticsearch.version>
+    <opendistro_security_ssl.version>0.8.0.0</opendistro_security_ssl.version>
+    <opendistro_security_advanced_modules.version>0.8.0.0</opendistro_security_advanced_modules.version>
+    <elasticsearch.version>6.6.2</elasticsearch.version>
     
     <!-- deps -->
-    <netty-native.version>2.0.15.Final</netty-native.version>
+    <netty-native.version>2.0.20.Final</netty-native.version>
     <bc.version>1.60</bc.version>
     <log4j.version>2.11.1</log4j.version>
     <guava.version>25.1-jre</guava.version>
@@ -78,7 +78,7 @@
     <url>https://github.com/opendistro-for-elasticsearch/security</url>
     <connection>scm:git:git@github.com:opendistro-for-elasticsearch/security.git</connection>
     <developerConnection>scm:git:git@github.com:opendistro-for-elasticsearch/security.git</developerConnection>
-    <tag>0.7.0.1</tag>
+    <tag>0.8.0.0</tag>
   </scm>
 
   <issueManagement>
@@ -222,6 +222,14 @@
       <groupId>org.mockito</groupId>
       <artifactId>mockito-all</artifactId>
       <version>${mockito.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-core</artifactId>
+      <version>${log4j.version}</version>
+      <type>test-jar</type>
       <scope>test</scope>
     </dependency>
   </dependencies>
