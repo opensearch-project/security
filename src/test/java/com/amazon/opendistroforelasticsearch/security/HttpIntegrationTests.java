@@ -248,6 +248,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
             res = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("opendistro_security_impersonate_as","knuddel"), encodeBasicHeader("worf", "worf"));
             Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
             Assert.assertTrue(res.getBody().contains("name=knuddel"));
+            Assert.assertTrue(res.getBody().contains("attr.internal.test1"));
             Assert.assertFalse(res.getBody().contains("worf"));
             
             res = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("opendistro_security_impersonate_as","nonexists"), encodeBasicHeader("worf", "worf"));
