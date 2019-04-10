@@ -44,7 +44,7 @@ Please refer to the [technical documentation](https://opendistro.github.io/for-e
 
 ```
 <ES directory>/bin/elasticsearch-plugin install \
-  -b com.amazon.opendistroforelasticsearch:elasticsearch-security:0.8.0.0
+  -b com.amazon.opendistroforelasticsearch:opendistro_security:0.8.0.0
 ```
 
 * ``cd`` into ``<ES directory>/plugins/opendistro_security/tools``
