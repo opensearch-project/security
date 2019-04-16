@@ -41,7 +41,7 @@
   <packaging>jar</packaging>
   <version>0.8.0.0</version>
   <name>Open Distro For Elasticsearch Security</name>
-  <description>Provide access control related features for Open Distro For Elasticsearch</description>
+  <description>Open Distro For Elasticsearch Security</description>
   <url>https://github.com/opendistro-for-elasticsearch/security</url>
   <inceptionYear>2015</inceptionYear>
 
