@@ -37,10 +37,12 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.X509Certificate;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.RamUsageEstimator;
+import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
@@ -91,6 +93,8 @@ public class OpenDistroSecurityInfoAction extends BaseRestHandler {
                     final User user = (User)threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
                     final TransportAddress remoteAddress = (TransportAddress) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
 
+                    final Set<String> securityRoles = evaluator.mapRoles(user, remoteAddress);
+
                     builder.startObject();
                     builder.field("user", user==null?null:user.toString());
                     builder.field("user_name", user==null?null:user.getName());
@@ -98,8 +102,8 @@ public class OpenDistroSecurityInfoAction extends BaseRestHandler {
                     builder.field("remote_address", remoteAddress);
                     builder.field("backend_roles", user==null?null:user.getRoles());
                     builder.field("custom_attribute_names", user==null?null:user.getCustomAttributesMap().keySet());
-                    builder.field("roles", evaluator.mapSecurityRoles(user, remoteAddress));
-                    builder.field("tenants", evaluator.mapTenants(user, remoteAddress));
+                    builder.field("roles", securityRoles);
+                    builder.field("tenants", evaluator.mapTenants(user, securityRoles));
                     builder.field("principal", (String)threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL));
                     builder.field("peer_certificates", certs != null && certs.length > 0 ? certs.length + "" : "0");
                     builder.field("sso_logout_url", (String)threadContext.getTransient(ConfigConstants.SSO_LOGOUT_URL));

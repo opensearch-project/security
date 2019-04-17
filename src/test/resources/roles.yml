@@ -39,6 +39,9 @@ opendistro_security_zdummy_all:
 
 opendistro_security_role_klingons1:
   indices:
+  '*':
+    '*':
+      - indices:admin/shards/search_shards
     klingonempire:
       ships:  
         - READ
@@ -514,3 +517,9 @@ opendistro_security_kibana_server:
     '*':
       '*':
         - "indices:admin/aliases*"
+
+opendistro_security_remote_ccs:
+  indices:
+    '*':
+      '*':
+        - indices:admin/shards/search_shards

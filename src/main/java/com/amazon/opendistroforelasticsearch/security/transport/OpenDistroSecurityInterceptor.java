@@ -31,12 +31,16 @@
 package com.amazon.opendistroforelasticsearch.security.transport;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.action.admin.cluster.shards.ClusterSearchShardsAction;
+import org.elasticsearch.action.admin.cluster.shards.ClusterSearchShardsResponse;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -54,6 +58,7 @@ import org.elasticsearch.transport.TransportRequestOptions;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportResponseHandler;
 
+import com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin;
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog.Origin;
 import com.amazon.opendistroforelasticsearch.security.auth.BackendRegistry;
@@ -68,6 +73,7 @@ import com.google.common.collect.Maps;
 public class OpenDistroSecurityInterceptor {
 
     protected final Logger actionTrace = LogManager.getLogger("opendistro_security_action_trace");
+    protected final Logger log = LogManager.getLogger(getClass());
     private BackendRegistry backendRegistry;
     private AuditLog auditLog;
     private final ThreadPool threadPool;
@@ -76,6 +82,7 @@ public class OpenDistroSecurityInterceptor {
     private final ClusterService cs;
     private final Settings settings;
     private final SslExceptionHandler sslExceptionHandler;
+    private final ClusterInfoHolder clusterInfoHolder;
 
     public OpenDistroSecurityInterceptor(final Settings settings,
             final ThreadPool threadPool, final BackendRegistry backendRegistry,
@@ -92,6 +99,7 @@ public class OpenDistroSecurityInterceptor {
         this.cs = cs;
         this.settings = settings;
         this.sslExceptionHandler = sslExceptionHandler;
+        this.clusterInfoHolder = clusterInfoHolder;
     }
 
     public <T extends TransportRequest> OpenDistroSecurityRequestHandler<T> getHandler(String action,
@@ -107,10 +115,13 @@ public class OpenDistroSecurityInterceptor {
         final Map<String, String> origHeaders0 = getThreadContext().getHeaders();
         final User user0 = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         final String origin0 = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN);
-        final Object remoteAdress0 = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
+        final Object remoteAddress0 = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
+        final String origCCSTransientDls = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_CCS);
+        final String origCCSTransientFls = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_CCS);
+        final String origCCSTransientMf = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_CCS);
 
         try (ThreadContext.StoredContext stashedContext = getThreadContext().stashContext()) {
-            final RestoringTransportResponseHandler<T> restoringHandler = new RestoringTransportResponseHandler<T>(handler, stashedContext);
+            final TransportResponseHandler<T> restoringHandler = new RestoringTransportResponseHandler<T>(handler, stashedContext);
             getThreadContext().putHeader("_opendistro_security_remotecn", cs.getClusterName().value());
 
             if(this.settings.get("tribe.name", null) == null
@@ -118,9 +129,8 @@ public class OpenDistroSecurityInterceptor {
                 getThreadContext().putHeader("_opendistro_security_header_tn", "true");
             }
 
-            getThreadContext().putHeader(
-                    Maps.filterKeys(origHeaders0, k->k!=null && (
-                            k.equals(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER)
+            final Map<String, String> headerMap = new HashMap<>(Maps.filterKeys(origHeaders0, k->k!=null && (
+                    k.equals(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER)
@@ -130,14 +140,48 @@ public class OpenDistroSecurityInterceptor {
                             || (k.equals("_opendistro_security_source_field_context") && ! (request instanceof SearchRequest) && !(request instanceof GetRequest))
                             || k.startsWith("_opendistro_security_trace")
                             || k.startsWith(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER)
-                            )));
+            )));
 
-            ensureCorrectHeaders(remoteAdress0, user0, origin0);
+            if (OpenDistroSecurityPlugin.GuiceHolder.getRemoteClusterService().isCrossClusterSearchEnabled()
+                    && clusterInfoHolder.isInitialized()
+                    && action.startsWith(ClusterSearchShardsAction.NAME)
+                    && !clusterInfoHolder.hasNode(connection.getNode())) {
+                if (log.isDebugEnabled()) {
+                    log.debug("remove dls/fls/mf because we sent a ccs request to a remote cluster");
+                }
+                headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER);
+                headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER);
+                headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER);
+            }
+
+            if (OpenDistroSecurityPlugin.GuiceHolder.getRemoteClusterService().isCrossClusterSearchEnabled()
+                    && clusterInfoHolder.isInitialized()
+                    && !action.startsWith("internal:")
+                    && !action.startsWith(ClusterSearchShardsAction.NAME)
+                    && !clusterInfoHolder.hasNode(connection.getNode())) {
+
+                if (log.isDebugEnabled()) {
+                    log.debug("add dls/fls/mf from transient");
+                }
+
+                if (origCCSTransientDls != null && !origCCSTransientDls.isEmpty()) {
+                    headerMap.put(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER, origCCSTransientDls);
+                }
+                if (origCCSTransientMf != null && !origCCSTransientMf.isEmpty()) {
+                    headerMap.put(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER, origCCSTransientMf);
+                }
+                if (origCCSTransientFls != null && !origCCSTransientFls.isEmpty()) {
+                    headerMap.put(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER, origCCSTransientFls);
+                }
+            }
+
+            getThreadContext().putHeader(headerMap);
+
+            ensureCorrectHeaders(remoteAddress0, user0, origin0);
 
             if(actionTrace.isTraceEnabled()) {
                 getThreadContext().putHeader("_opendistro_security_trace"+System.currentTimeMillis()+"#"+UUID.randomUUID().toString(), Thread.currentThread().getName()+" IC -> "+action+" "+getThreadContext().getHeaders().entrySet().stream().filter(p->!p.getKey().startsWith("_opendistro_security_trace")).collect(Collectors.toMap(p -> p.getKey(), p -> p.getValue())));
             }
-
 
             sender.sendRequest(connection, action, request, options, restoringHandler);
         }
@@ -160,11 +204,7 @@ public class OpenDistroSecurityInterceptor {
 
             if(remoteAddressHeader == null) {
                 getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER, Base64Helper.serializeObject(((TransportAddress) remoteAdr).address()));
-            } /*else {
-                if(!((InetSocketAddress)Base64Helper.deserializeObject(remoteAddressHeader)).equals(((TransportAddress) remoteAdr).address())) {
-                    throw new RuntimeException("remote address mismatch "+Base64Helper.deserializeObject(remoteAddressHeader)+"!="+((TransportAddress) remoteAdr).address());
-                }
-            }*/
+            }
         }
 
         if(origUser != null) {
@@ -172,11 +212,7 @@ public class OpenDistroSecurityInterceptor {
 
             if(userHeader == null) {
                 getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER, Base64Helper.serializeObject(origUser));
-            } /*else {
-                if(!((User)Base64Helper.deserializeObject(userHeader)).getName().equals(origUser.getName())) {
-                    throw new RuntimeException("user mismatch "+Base64Helper.deserializeObject(userHeader)+"!="+origUser);
-                }
-            }*/
+            }
         }
     }
 
@@ -184,10 +220,10 @@ public class OpenDistroSecurityInterceptor {
         return threadPool.getThreadContext();
     }
 
-     //based on
+    //based on
     //org.elasticsearch.transport.TransportService.ContextRestoreResponseHandler<T>
     //which is private scoped
-    private static class RestoringTransportResponseHandler<T extends TransportResponse> implements TransportResponseHandler<T> {
+    private class RestoringTransportResponseHandler<T extends TransportResponse> implements TransportResponseHandler<T> {
 
         private final ThreadContext.StoredContext contextToRestore;
         private final TransportResponseHandler<T> innerHandler;
@@ -204,7 +240,34 @@ public class OpenDistroSecurityInterceptor {
 
         @Override
         public void handleResponse(T response) {
+            final List<String> flsResponseHeader = getThreadContext().getResponseHeaders().get(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER);
+            final List<String> dlsResponseHeader = getThreadContext().getResponseHeaders().get(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER);
+            final List<String> maskedFieldsResponseHeader = getThreadContext().getResponseHeaders().get(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER);
+
             contextToRestore.restore();
+
+            if (response instanceof ClusterSearchShardsResponse && flsResponseHeader != null && !flsResponseHeader.isEmpty()) {
+                if (log.isDebugEnabled()) {
+                    log.debug("add flsResponseHeader as transient");
+                }
+                getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_CCS, flsResponseHeader.get(0));
+            }
+
+            if (response instanceof ClusterSearchShardsResponse && dlsResponseHeader != null && !dlsResponseHeader.isEmpty()) {
+                if (log.isDebugEnabled()) {
+                    log.debug("add dlsResponseHeader as transient");
+                }
+                getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_CCS, dlsResponseHeader.get(0));
+
+            }
+
+            if (response instanceof ClusterSearchShardsResponse && maskedFieldsResponseHeader != null && !maskedFieldsResponseHeader.isEmpty()) {
+                if (log.isDebugEnabled()) {
+                    log.debug("add maskedFieldsResponseHeader as transient");
+                }
+                getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_CCS, maskedFieldsResponseHeader.get(0));
+            }
+
             innerHandler.handleResponse(response);
         }
 

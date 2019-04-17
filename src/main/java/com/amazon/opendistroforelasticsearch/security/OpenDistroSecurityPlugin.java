@@ -62,6 +62,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.SpecialPermission;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.search.SearchScrollAction;
@@ -314,10 +315,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                   final Path confPath = new Environment(settings, configPath).configFile().toAbsolutePath();
                     if(Files.isDirectory(confPath, LinkOption.NOFOLLOW_LINKS)) {
                         try (Stream<Path> s = Files.walk(confPath)) {
-                            return s
-                            .distinct()
-                            .filter(p->checkFilePermissions(p))
-                            .collect(Collectors.toList());
+                            return s.distinct().filter(p -> checkFilePermissions(p)).collect(Collectors.toList());
                         } catch (Exception e) {
                             log.error(e);
                             return null;
@@ -347,10 +345,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                   final Path confPath = new Environment(settings, configPath).configFile().toAbsolutePath();
                     if(Files.isDirectory(confPath, LinkOption.NOFOLLOW_LINKS)) {
                         try (Stream<Path> s = Files.walk(confPath)) {
-                            return s
-                            .distinct()
-                            .map(p->sha256(p))
-                            .collect(Collectors.toList());
+                            return s.distinct().map(p -> sha256(p)).collect(Collectors.toList());
                         } catch (Exception e) {
                             log.error(e);
                             return null;
@@ -420,8 +415,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                 return true;
             }
         } else {
-            if (perms.contains(PosixFilePermission.OWNER_EXECUTE)
-                    || perms.contains(PosixFilePermission.GROUP_EXECUTE)
+            if (perms.contains(PosixFilePermission.OWNER_EXECUTE) || perms.contains(PosixFilePermission.GROUP_EXECUTE)
                     || perms.contains(PosixFilePermission.OTHERS_EXECUTE)) {
                 // no x must be set
                 return true;
@@ -678,18 +672,18 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     }
 
     @Override
-    public Map<String, Supplier<Transport>> getTransports(Settings settings, ThreadPool threadPool, BigArrays bigArrays,
+    public Map<String, Supplier<Transport>> getTransports(Settings settings, ThreadPool threadPool,
             PageCacheRecycler pageCacheRecycler, CircuitBreakerService circuitBreakerService,
             NamedWriteableRegistry namedWriteableRegistry, NetworkService networkService) {
         Map<String, Supplier<Transport>> transports = new HashMap<String, Supplier<Transport>>();
         
         if(sslOnly) {
-            return super.getTransports(settings, threadPool, bigArrays, pageCacheRecycler, circuitBreakerService, namedWriteableRegistry, networkService);
+            return super.getTransports(settings, threadPool, pageCacheRecycler, circuitBreakerService, namedWriteableRegistry, networkService);
         }
         
         if (transportSSLEnabled) {
             transports.put("com.amazon.opendistroforelasticsearch.security.ssl.http.netty.OpenDistroSecuritySSLNettyTransport",
-                    () -> new OpenDistroSecuritySSLNettyTransport(settings, threadPool, networkService, bigArrays, namedWriteableRegistry,
+                    () -> new OpenDistroSecuritySSLNettyTransport(settings, Version.CURRENT, threadPool, networkService, pageCacheRecycler, namedWriteableRegistry,
                             circuitBreakerService, odsks, evaluateSslExceptionHandler()));
         }
         return transports;
@@ -781,7 +775,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         backendRegistry = new BackendRegistry(settings, configPath, adminDns, xffResolver, iab, auditLog, threadPool);
         cr.subscribeOnChange(ConfigConstants.CONFIGNAME_CONFIG, backendRegistry);
         final ActionGroupHolder ah = new ActionGroupHolder(cr);
-        evaluator = new PrivilegesEvaluator(clusterService, threadPool, cr, ah, resolver, auditLog, settings, privilegesInterceptor, cih);
+        evaluator = new PrivilegesEvaluator(clusterService, threadPool, cr, ah, resolver, auditLog, settings, privilegesInterceptor, cih, irr, advancedModulesEnabled);
         
         final CompatConfig compatConfig = new CompatConfig(environment);
         cr.subscribeOnChange(ConfigConstants.CONFIGNAME_CONFIG, compatConfig);
@@ -1022,6 +1016,9 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     @Override
     public Function<String, Predicate<String>> getFieldFilter() {
         return index -> {
+            if (threadPool == null) {
+                return field -> true;
+            }
             final Map<String, Set<String>> allowedFlsFields = (Map<String, Set<String>>) HeaderHelper
                     .deserializeSafeFromHeader(threadPool.getThreadContext(), ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER);
 
@@ -1032,9 +1029,9 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             } else {
 
                 final Set<String> includesExcludes = allowedFlsFields.get(eval);
+                final Set includesSet = new HashSet<>(includesExcludes.size());
+                final Set excludesSet = new HashSet<>(includesExcludes.size());
 
-                final Set<String> includesSet = new HashSet<>(includesExcludes.size());
-                final Set<String> excludesSet = new HashSet<>(includesExcludes.size());
 
                 for (final String incExc : includesExcludes) {
                     final char firstChar = incExc.charAt(0);

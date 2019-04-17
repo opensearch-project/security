@@ -92,7 +92,7 @@ public class OpenDistroSecurityIndexAccessEvaluator {
         }
 
         //TODO: newpeval: check if isAll() is all (contains("_all" or "*"))
-        if (requestedResolved.isAll()
+        if (requestedResolved.isLocalAll()
                 && WildcardMatcher.matchAny(securityDeniedActionPatterns, action)) {
             auditLog.logSecurityIndexAttempt(request, action, task);
             log.warn(action + " for '_all' indices is not allowed for a regular user");
@@ -101,7 +101,7 @@ public class OpenDistroSecurityIndexAccessEvaluator {
         }
 
       //TODO: newpeval: check if isAll() is all (contains("_all" or "*"))
-        if(requestedResolved.getAllIndices().contains(opendistrosecurityIndex) || requestedResolved.isAll()) {
+        if(requestedResolved.getAllIndices().contains(opendistrosecurityIndex) || requestedResolved.isLocalAll()) {
 
             if(request instanceof SearchRequest) {
                 ((SearchRequest)request).requestCache(Boolean.FALSE);

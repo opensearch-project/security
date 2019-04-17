@@ -52,6 +52,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
+import com.amazon.opendistroforelasticsearch.security.support.OpenDistroSecurityUtils;
 import com.amazon.opendistroforelasticsearch.security.test.DynamicSecurityConfig;
 import com.amazon.opendistroforelasticsearch.security.test.SingleClusterTest;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper;
@@ -280,7 +281,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
             tc.index(new IndexRequest("logstash-3").type("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest("logstash-4").type("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
     
-            SimpleDateFormat sdf = new SimpleDateFormat("YYYY.MM.dd");
+            SimpleDateFormat sdf = new SimpleDateFormat("YYYY.MM.dd", OpenDistroSecurityUtils.EN_Locale);
             sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
             
             String date = sdf.format(new Date());
@@ -300,7 +301,10 @@ public class IndexIntegrationTests extends SingleClusterTest {
 
         //nonexistent index without permissions
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executeGetRequest("/does-not-exist-and-no-perm/_search", encodeBasicHeader("logstash", "nagilum"))).getStatusCode());
-    
+
+        //nonexistent and existent index with permissions
+        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, (res = rh.executeGetRequest("/logstash-nonex,logstash-1/_search", encodeBasicHeader("logstash", "nagilum"))).getStatusCode());
+
         //existent index with permissions
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/logstash-1/_search", encodeBasicHeader("logstash", "nagilum"))).getStatusCode());
 
@@ -458,10 +462,14 @@ public class IndexIntegrationTests extends SingleClusterTest {
         try (TransportClient tc = getInternalTransportClient()) {                                       
             tc.index(new IndexRequest(".abc-6").type("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
         }
-        
-        HttpResponse res = rh.executeGetRequest("/*:.abc-6,.abc-6/_search", encodeBasicHeader("ccsresolv", "nagilum"));
-        Assert.assertTrue(res.getBody(),res.getBody().contains("\"content\":1"));
+
+        //ccsresolv has perm for ?abc*
+        HttpResponse res = rh.executeGetRequest("ggg:.abc-6,.abc-6/_search", encodeBasicHeader("ccsresolv", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+
+        res = rh.executeGetRequest("/*:.abc-6,.abc-6/_search", encodeBasicHeader("ccsresolv", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        //TODO: Change for 25.0 to be forbidden (possible bug in ES regarding ccs wildcard)
     }
 
     @Test
@@ -525,5 +533,27 @@ public class IndexIntegrationTests extends SingleClusterTest {
         res = rh.executeGetRequest("/*:noexists/_search", encodeBasicHeader("ccsresolv", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         System.out.println(res.getBody());
+    }
+
+    @Test
+    public void testIndexResolveIgnoreUnavailable() throws Exception {
+
+        setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_respect_indices_options.yml").setSecurityRoles("roles_bs.yml"), Settings.EMPTY, true);
+        final RestHelper rh = nonSslRestHelper();
+
+        try (TransportClient tc = getInternalTransportClient()) {
+            //create indices and mapping upfront
+            tc.index(new IndexRequest("test").type("type1").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"field2\":\"init\"}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest("lorem").type("type1").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"field2\":\"init\"}", XContentType.JSON)).actionGet();
+        }
+
+        String msearchBody =
+                "{\"index\": [\"tes*\",\"-security\",\"-missing\"], \"ignore_unavailable\": true}"+System.lineSeparator()+
+                        "{\"size\":10, \"query\":{\"match_all\":{}}}"+System.lineSeparator();
+
+        HttpResponse resc = rh.executePostRequest("_msearch", msearchBody, encodeBasicHeader("worf", "worf"));
+        Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
+
+        Assert.assertTrue(resc.getBody(), resc.getBody().contains("\"hits\":{\"total\":1"));
     }
 }

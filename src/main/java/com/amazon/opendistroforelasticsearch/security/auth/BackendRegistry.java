@@ -31,6 +31,7 @@
 package com.amazon.opendistroforelasticsearch.security.auth;
 
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -86,11 +87,11 @@ public class BackendRegistry implements ConfigurationChangeListener {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
     private final Map<String, String> authImplMap = new HashMap<>();
-    private final SortedSet<AuthDomain> restAuthDomains = new TreeSet<>();
-    private final Set<AuthorizationBackend> restAuthorizers = new HashSet<>();
-    private final SortedSet<AuthDomain> transportAuthDomains = new TreeSet<>();
-    private final Set<AuthorizationBackend> transportAuthorizers = new HashSet<>();
-    private final List<Destroyable> destroyableComponents = new LinkedList<>();
+    private SortedSet<AuthDomain> restAuthDomains;
+    private Set<AuthorizationBackend> restAuthorizers;
+    private SortedSet<AuthDomain> transportAuthDomains;
+    private Set<AuthorizationBackend> transportAuthorizers;
+    private List<Destroyable> destroyableComponents;
     private volatile boolean initialized;
     private final AdminDNs adminDns;
     private final XFFResolver xffResolver;
@@ -102,11 +103,15 @@ public class BackendRegistry implements ConfigurationChangeListener {
     private final ThreadPool threadPool;
     private final UserInjector userInjector;
     private final int ttlInMin;
-    private Cache<AuthCredentials, User> userCache;
-    private Cache<String, User> userCacheTransport;
-    private Cache<AuthCredentials, User> authenticatedUserCacheTransport;
-    private Cache<String, User> restImpersonationCache;
-    private volatile String transportUsernameAttribute = null; 
+    private Cache<AuthCredentials, User> userCache; //rest standard
+    private Cache<String, User> restImpersonationCache; //used for rest impersonation
+    private Cache<String, User> userCacheTransport; //transport no creds, possibly impersonated
+    private Cache<AuthCredentials, User> authenticatedUserCacheTransport; //transport creds, no impersonation
+
+    private Cache<User, Set<String>> transportRoleCache; //
+    private Cache<User, Set<String>> restRoleCache; //
+
+    private volatile String transportUsernameAttribute = null;
     
     private void createCaches() {
         userCache = CacheBuilder.newBuilder()
@@ -141,6 +146,24 @@ public class BackendRegistry implements ConfigurationChangeListener {
                 .removalListener(new RemovalListener<String, User>() {
                     @Override
                     public void onRemoval(RemovalNotification<String, User> notification) {
+                        log.debug("Clear user cache for {} due to {}", notification.getKey(), notification.getCause());
+                    }
+                }).build();
+
+        transportRoleCache = CacheBuilder.newBuilder()
+                .expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
+                .removalListener(new RemovalListener<User, Set<String>>() {
+                    @Override
+                    public void onRemoval(RemovalNotification<User, Set<String>> notification) {
+                        log.debug("Clear user cache for {} due to {}", notification.getKey(), notification.getCause());
+                    }
+                }).build();
+
+        restRoleCache = CacheBuilder.newBuilder()
+                .expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
+                .removalListener(new RemovalListener<User, Set<String>>() {
+                    @Override
+                    public void onRemoval(RemovalNotification<User, Set<String>> notification) {
                         log.debug("Clear user cache for {} due to {}", notification.getKey(), notification.getCause());
                     }
                 }).build();
@@ -191,22 +214,18 @@ public class BackendRegistry implements ConfigurationChangeListener {
         userCacheTransport.invalidateAll();
         authenticatedUserCacheTransport.invalidateAll();
         restImpersonationCache.invalidateAll();
+        restRoleCache.invalidateAll();
+        transportRoleCache.invalidateAll();
     }
 
     @Override
     public void onChange(final Settings settings) {
 
-        //TODO synchronize via semaphore/atomicref
-        restAuthDomains.clear();
-        transportAuthDomains.clear();
-        restAuthorizers.clear();
-        transportAuthorizers.clear();
-        invalidateCache();
-        destroyDestroyables();
-        transportUsernameAttribute = settings.get("opendistro_security.dynamic.transport_userrname_attribute", null);
-        anonymousAuthEnabled = settings.getAsBoolean("opendistro_security.dynamic.http.anonymous_auth_enabled", false)
-                && !esSettings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_DISABLE_ANONYMOUS_AUTHENTICATION, false);
-
+        final SortedSet<AuthDomain> restAuthDomains0 = new TreeSet<>();
+        final Set<AuthorizationBackend> restAuthorizers0 = new HashSet<>();
+        final SortedSet<AuthDomain> transportAuthDomains0 = new TreeSet<>();
+        final Set<AuthorizationBackend> transportAuthorizers0 = new HashSet<>();
+        final List<Destroyable> destroyableComponents0 = new LinkedList<>();
         final Map<String, Settings> authzDyn = settings.getGroups("opendistro_security.dynamic.authz");
 
         for (final String ad : authzDyn.keySet()) {
@@ -221,7 +240,6 @@ public class BackendRegistry implements ConfigurationChangeListener {
 
                     final String authzBackendClazz = ads.get("authorization_backend.type", "noop");
                     final AuthorizationBackend authorizationBackend;
-                    
                     if(authzBackendClazz.equals(InternalAuthenticationBackend.class.getName()) //NOSONAR
                             || authzBackendClazz.equals("internal")
                             || authzBackendClazz.equals("intern")) {
@@ -234,15 +252,15 @@ public class BackendRegistry implements ConfigurationChangeListener {
                     }
                     
                     if (httpEnabled) {
-                        restAuthorizers.add(authorizationBackend);
+                        restAuthorizers0.add(authorizationBackend);
                     }
 
                     if (transportEnabled) {
-                        transportAuthorizers.add(authorizationBackend);
+                        transportAuthorizers0.add(authorizationBackend);
                     }
                     
                     if (authorizationBackend instanceof Destroyable) {
-                    	this.destroyableComponents.add((Destroyable) authorizationBackend);
+                    	destroyableComponents0.add((Destroyable) authorizationBackend);
                     }
                 } catch (final Exception e) {
                     log.error("Unable to initialize AuthorizationBackend {} due to {}", ad, e.toString(),e);
@@ -281,19 +299,19 @@ public class BackendRegistry implements ConfigurationChangeListener {
                             ads.getAsBoolean("http_authenticator.challenge", true), ads.getAsInt("order", 0));
 
                     if (httpEnabled && _ad.getHttpAuthenticator() != null) {
-                        restAuthDomains.add(_ad);
+                        restAuthDomains0.add(_ad);
                     }
 
                     if (transportEnabled) {
-                        transportAuthDomains.add(_ad);
+                        transportAuthDomains0.add(_ad);
                     }
                     
                     if (httpAuthenticator instanceof Destroyable) {
-                    	this.destroyableComponents.add((Destroyable) httpAuthenticator);
+                    	destroyableComponents0.add((Destroyable) httpAuthenticator);
                     }
                     
                     if (authenticationBackend instanceof Destroyable) {
-                    	this.destroyableComponents.add((Destroyable) authenticationBackend);                    	
+                    	destroyableComponents0.add((Destroyable) authenticationBackend);
                     }
                     
                 } catch (final Exception e) {
@@ -303,8 +321,29 @@ public class BackendRegistry implements ConfigurationChangeListener {
             }
         }
 
+        invalidateCache();
+
+        transportUsernameAttribute = settings.get("opendistro_security.dynamic.transport_userrname_attribute", null);
+        anonymousAuthEnabled = settings.getAsBoolean("opendistro_security.dynamic.http.anonymous_auth_enabled", false)
+                && !esSettings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_DISABLE_ANONYMOUS_AUTHENTICATION, false);
+
+        List<Destroyable> originalDestroyableComponents = destroyableComponents;
+
+        restAuthDomains = Collections.unmodifiableSortedSet(restAuthDomains0);
+        transportAuthDomains = Collections.unmodifiableSortedSet(transportAuthDomains0);
+        restAuthorizers = Collections.unmodifiableSet(restAuthorizers0);
+        transportAuthorizers = Collections.unmodifiableSet(transportAuthorizers0);
+        destroyableComponents = Collections.unmodifiableList(destroyableComponents0);
+
         //Open Distro Security no default authc
         initialized = !restAuthDomains.isEmpty() || anonymousAuthEnabled;
+
+        if(originalDestroyableComponents != null) {
+            destroyDestroyables(originalDestroyableComponents);
+        }
+
+        originalDestroyableComponents = null;
+
     }
 
     public User authenticate(final TransportRequest request, final String sslPrincipal, final Task task, final String action) {
@@ -318,6 +357,11 @@ public class BackendRegistry implements ConfigurationChangeListener {
         if(adminDns.isAdmin(origPKIUser)) {
             auditLog.logSucceededLogin(origPKIUser.getName(), true, null, request, action, task);
             return origPKIUser;
+        }
+
+        if (!isInitialized()) {
+            log.error("Not yet initialized (you may need to run securityadmin)");
+            return null;
         }
 
         final String authorizationHeader = threadPool.getThreadContext().getHeader("Authorization");
@@ -347,7 +391,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
             } else {
                  //auth credentials submitted
                 //impersonation not possible, if requested it will be ignored
-                authenticatedUser = authcz(authenticatedUserCacheTransport, creds, authDomain.getBackend(), transportAuthorizers);
+                authenticatedUser = authcz(authenticatedUserCacheTransport, transportRoleCache, creds, authDomain.getBackend(), transportAuthorizers);
             }
 
             if(authenticatedUser == null) {
@@ -411,14 +455,14 @@ public class BackendRegistry implements ConfigurationChangeListener {
         
         if (!isInitialized()) {
             log.error("Not yet initialized (you may need to run securityadmin)");
-            channel.sendResponse(new BytesRestResponse(RestStatus.SERVICE_UNAVAILABLE, "Open Distro Security not initialized (SG11)."));
+            channel.sendResponse(new BytesRestResponse(RestStatus.SERVICE_UNAVAILABLE, "Open Distro Security not initialized."));
             return false;
         }
         
         final TransportAddress remoteAddress = xffResolver.resolve(request);
         
-        if(log.isDebugEnabled()) {
-    		log.debug("Rest authentication request from {} [original: {}]", remoteAddress, request.getRemoteAddress());
+        if(log.isTraceEnabled()) {
+    		log.trace("Rest authentication request from {} [original: {}]", remoteAddress, request.getRemoteAddress());
     	}
 
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, remoteAddress);
@@ -485,7 +529,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
             }
 
             //http completed       
-            authenticatedUser = authcz(userCache, ac, authDomain.getBackend(), restAuthorizers);
+            authenticatedUser = authcz(userCache, restRoleCache, ac, authDomain.getBackend(), restAuthorizers);
 
             if(authenticatedUser == null) {
                 if(log.isDebugEnabled()) {
@@ -572,23 +616,15 @@ public class BackendRegistry implements ConfigurationChangeListener {
         }
 
         try {
-            return cache.get(user.getName(), new Callable<User>() {
+            return cache.get(user.getName(), new Callable<User>() { //no cache miss in case of noop
                 @Override
                 public User call() throws Exception {
-                    if(log.isDebugEnabled()) {
-                        log.debug(user.getName()+" not cached, return from "+authenticationBackend.getType()+" backend directly");
+                    if(log.isTraceEnabled()) {
+                        log.trace("Credentials for user "+user.getName()+" not cached, return from "+authenticationBackend.getType()+" backend directly");
                     }
                     if(authenticationBackend.exists(user)) {
-                        for (final AuthorizationBackend ab : authorizers) {
-                            try {
-                                ab.fillRoles(user, new AuthCredentials(user.getName()));
-                            } catch (Exception e) {
-                                log.error("Cannot retrieve roles for {} from {} due to {}", user.getName(), ab.getType(), e.toString(), e);
-                            }
-                        }
-
-                    return user;
-
+                        authz(user, null, authorizers); //no role cache because no miss here in case of noop
+                        return user;
                     }
 
                     if(log.isDebugEnabled()) {
@@ -604,6 +640,44 @@ public class BackendRegistry implements ConfigurationChangeListener {
             return null;
         }
     }
+
+    private void authz(User authenticatedUser, Cache<User, Set<String>> roleCache, final Set<AuthorizationBackend> authorizers) {
+
+        if(authenticatedUser == null) {
+            return;
+        }
+
+        if(roleCache != null) {
+
+            final Set<String> cachedBackendRoles = roleCache.getIfPresent(authenticatedUser);
+
+            if(cachedBackendRoles != null) {
+                authenticatedUser.addRoles(new HashSet<String>(cachedBackendRoles));
+                return;
+            }
+        }
+
+        if(authorizers == null || authorizers.isEmpty()) {
+            return;
+        }
+
+        for (final AuthorizationBackend ab : authorizers) {
+            try {
+                if(log.isTraceEnabled()) {
+                    log.trace("Backend roles for "+authenticatedUser.getName()+" not cached, return from "+ab.getType()+" backend directly");
+                }
+                ab.fillRoles(authenticatedUser, new AuthCredentials(authenticatedUser.getName()));
+            } catch (Exception e) {
+                log.error("Cannot retrieve roles for {} from {} due to {}", authenticatedUser, ab.getType(), e.toString(), e);
+            }
+        }
+
+        if(roleCache != null) {
+            roleCache.put(authenticatedUser, new HashSet<String>(authenticatedUser.getRoles()));
+        }
+    }
+
+
     /**
      * no auditlog, throw no exception, does also authz for all authorizers
      *
@@ -612,7 +686,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
      * @param authDomain
      * @return null if user cannot b authenticated
      */
-    private User authcz(final Cache<AuthCredentials, User> cache, final AuthCredentials ac, final AuthenticationBackend authBackend, final Set<AuthorizationBackend> authorizers) {
+    private User authcz(final Cache<AuthCredentials, User> cache, Cache<User, Set<String>> roleCache, final AuthCredentials ac, final AuthenticationBackend authBackend, final Set<AuthorizationBackend> authorizers) {
         if(ac == null) {
             return null;
         }
@@ -630,18 +704,11 @@ public class BackendRegistry implements ConfigurationChangeListener {
             return cache.get(ac, new Callable<User>() {
                 @Override
                 public User call() throws Exception {
-                    if(log.isDebugEnabled()) {
-                        log.debug(ac.getUsername()+" not cached, return from "+authBackend.getType()+" backend directly");
+                    if(log.isTraceEnabled()) {
+                        log.trace("Credentials for user "+ac.getUsername()+" not cached, return from "+authBackend.getType()+" backend directly");
                     }
                     final User authenticatedUser = authBackend.authenticate(ac);
-                    for (final AuthorizationBackend ab : authorizers) {
-                        try {
-                            ab.fillRoles(authenticatedUser, new AuthCredentials(authenticatedUser.getName()));
-                        } catch (Exception e) {
-                            log.error("Cannot retrieve roles for {} from {} due to {}", authenticatedUser, ab.getType(), e.toString(), e);
-                        }
-                    }
-
+                    authz(authenticatedUser, roleCache, authorizers);
                     return authenticatedUser;
                 }
             });
@@ -754,9 +821,9 @@ public class BackendRegistry implements ConfigurationChangeListener {
 
         return ReflectionHelper.instantiateAAA(clazz, settings, configPath, isAdvancedModule);
     }
-    
-    private void destroyDestroyables() {
-    	for (Destroyable destroyable : this.destroyableComponents) {
+
+    private void destroyDestroyables(List<Destroyable> destroyableComponents) {
+        for (Destroyable destroyable : destroyableComponents) {
     		try {
     			destroyable.destroy();
     		} catch (Exception e) {
@@ -764,9 +831,8 @@ public class BackendRegistry implements ConfigurationChangeListener {
     		}
     	}
     	
-    	this.destroyableComponents.clear();
     }
-    
+
     private User resolveTransportUsernameAttribute(User pkiUser) {
     	//#547
         if(transportUsernameAttribute != null && !transportUsernameAttribute.isEmpty()) {
