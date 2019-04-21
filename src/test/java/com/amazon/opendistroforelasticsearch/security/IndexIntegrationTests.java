@@ -551,7 +551,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
                 "{\"index\": [\"tes*\",\"-security\",\"-missing\"], \"ignore_unavailable\": true}"+System.lineSeparator()+
                         "{\"size\":10, \"query\":{\"match_all\":{}}}"+System.lineSeparator();
 
-        HttpResponse resc = rh.executePostRequest("_msearch", msearchBody, encodeBasicHeader("worf", "worf"));
+        HttpResponse resc = rh.executePostRequest("_msearch", msearchBody, encodeBasicHeader("nagilum", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
 
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("\"hits\":{\"total\":1"));

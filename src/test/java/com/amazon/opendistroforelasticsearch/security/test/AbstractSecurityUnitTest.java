@@ -197,10 +197,10 @@ public abstract class AbstractSecurityUnitTest {
                     .actionGet();
             Assert.assertEquals(info.numNodes, cur.getNodes().size());
 
-            SearchResponse sr = tc.search(new SearchRequest("security")).actionGet();
+            SearchResponse sr = tc.search(new SearchRequest(".opendistro_security")).actionGet();
             //Assert.assertEquals(5L, sr.getHits().getTotalHits());
 
-            sr = tc.search(new SearchRequest("security")).actionGet();
+            sr = tc.search(new SearchRequest(".opendistro_security")).actionGet();
             //Assert.assertEquals(5L, sr.getHits().getTotalHits());
 
             Assert.assertTrue(tc.get(new GetRequest(".opendistro_security", "security", "config")).actionGet().isExists());

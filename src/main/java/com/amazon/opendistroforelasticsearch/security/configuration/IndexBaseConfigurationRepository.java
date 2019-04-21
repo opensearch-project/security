@@ -341,30 +341,37 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
 
         final ThreadContext threadContext = threadPool.getThreadContext();
         final Map<String, Tuple<Long, Settings>> retVal = new HashMap<String, Tuple<Long, Settings>>();
-            try(StoredContext ctx = threadContext.stashContext()) {
-                threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
+        try(StoredContext ctx = threadContext.stashContext()) {
+            threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
 
-                boolean securityIndexExists = clusterService.state().metaData().hasConcreteIndex(this.opendistrosecurityIndex);
+            boolean securityIndexExists = clusterService.state().metaData().hasConcreteIndex(this.opendistrosecurityIndex);
 
-                if(securityIndexExists) {
-                    if(clusterService.state().metaData().index(this.opendistrosecurityIndex).mapping("config") != null) {
-                        //legacy layout
-                        LOGGER.debug("security index  exists and was created before ES 6 (legacy layout)");
-                        retVal.putAll(validate(legacycl.loadLegacy(configTypes.toArray(new String[0]), 5, TimeUnit.SECONDS), configTypes.size()));
-                    } else {
-                        LOGGER.debug("security index  exists and was created with ES 6 (new layout)");
-                        retVal.putAll(validate(cl.load(configTypes.toArray(new String[0]), 5, TimeUnit.SECONDS), configTypes.size()));
-                    }
+            if(securityIndexExists) {
+                if(clusterService.state().metaData().index(this.opendistrosecurityIndex).mapping("config") != null) {
+                    //legacy layout
+                    LOGGER.debug("security index  exists and was created before ES 6 (legacy layout)");
+                    retVal.putAll(validate(legacycl.loadLegacy(configTypes.toArray(new String[0]), 5, TimeUnit.SECONDS), configTypes.size()));
                 } else {
-                    //wait (and use new layout)
-                    LOGGER.debug("security index  not exists (yet)");
-                    retVal.putAll(validate(cl.load(configTypes.toArray(new String[0]), 30, TimeUnit.SECONDS), configTypes.size()));
+                    LOGGER.debug("security index  exists and was created with ES 6 (new layout)");
+                    retVal.putAll(validate(cl.load(configTypes.toArray(new String[0]), 5, TimeUnit.SECONDS), configTypes.size()));
                 }
-
-            } catch (Exception e) {
-                throw new ElasticsearchException(e);
+            } else {
+                //wait (and use new layout)
+                LOGGER.debug("security index  not exists (yet)");
+                retVal.putAll(validate(cl.load(configTypes.toArray(new String[0]), 30, TimeUnit.SECONDS), configTypes.size()));
             }
-            return retVal;
+        } catch (Exception e) {
+            throw new ElasticsearchException(e);
+        }
+
+        if (logComplianceEvent && complianceConfig.isEnabled()) {
+            String configurationType = configTypes.iterator().next();
+            Map<String, String> fields = new HashMap<String, String>();
+            fields.put(configurationType, Strings.toString(retVal.get(configurationType).v2()));
+            auditLog.logDocumentRead(this.opendistrosecurityIndex, configurationType, null, fields, complianceConfig);
+        }
+
+        return retVal;
     }
 
     private Map<String, Tuple<Long, Settings>> validate(Map<String, Tuple<Long, Settings>> conf, int expectedSize) throws InvalidConfigException {

@@ -54,9 +54,9 @@
   </licenses>
 
   <properties>
-    <opendistro_security_ssl.version>0.8.0.0</opendistro_security_ssl.version>
-    <opendistro_security_advanced_modules.version>0.8.0.0</opendistro_security_advanced_modules.version>
-    <elasticsearch.version>6.6.2</elasticsearch.version>
+    <opendistro_security_ssl.version>0.8.0.1</opendistro_security_ssl.version>
+    <opendistro_security_advanced_modules.version>0.8.0.1</opendistro_security_advanced_modules.version>
+    <elasticsearch.version>6.7.1</elasticsearch.version>
     
     <!-- deps -->
     <netty-native.version>2.0.20.Final</netty-native.version>
@@ -78,7 +78,7 @@
     <url>https://github.com/opendistro-for-elasticsearch/security</url>
     <connection>scm:git:git@github.com:opendistro-for-elasticsearch/security.git</connection>
     <developerConnection>scm:git:git@github.com:opendistro-for-elasticsearch/security.git</developerConnection>
-    <tag>0.7.0.1</tag>
+    <tag>0.8.0.1</tag>
   </scm>
 
   <issueManagement>

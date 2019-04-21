@@ -695,12 +695,12 @@ public final class IndexResolverReplacer implements ConfigurationChangeListener 
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
-            out.writeStringList(new ArrayList<>(aliases));
-            out.writeStringList(new ArrayList<>(indices));
-            out.writeStringList(new ArrayList<>(allIndices));
-            out.writeStringList(new ArrayList<>(types));
-            out.writeStringList(new ArrayList<>(originalRequested));
-            out.writeStringList(new ArrayList<>(remoteIndices));
+            out.writeStringCollection(new ArrayList<>(aliases));
+            out.writeStringCollection(new ArrayList<>(indices));
+            out.writeStringCollection(new ArrayList<>(allIndices));
+            out.writeStringCollection(new ArrayList<>(types));
+            out.writeStringCollection(new ArrayList<>(originalRequested));
+            out.writeStringCollection(new ArrayList<>(remoteIndices));
         }
     }
 
