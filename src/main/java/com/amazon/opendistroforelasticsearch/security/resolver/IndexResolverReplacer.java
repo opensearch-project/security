@@ -938,7 +938,7 @@ public final class IndexResolverReplacer implements ConfigurationChangeListener 
     }
 
     private IndicesOptions indicesOptionsFrom(Object localRequest) {
-
+        
         if(!respectRequestIndicesOptions) {
             return IndicesOptions.fromOptions(false, true, true, false);
         }
