@@ -35,6 +35,7 @@ import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 
 import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
@@ -88,6 +89,17 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Aut
             user.addRoles(roles);
         }
         
+        final Settings customAttributes = cfg.getAsSettings(user.getName() + ".attributes");
+        HashMap<String, String> attributeMap = new HashMap<String, String>();
+
+        if(customAttributes != null) {
+            for(String attributeName: customAttributes.names()) {
+                attributeMap.put("attr.internal."+attributeName, customAttributes.get(attributeName));
+            }
+        }
+
+        user.addAttributes(attributeMap);
+
         return true;
     }
     
