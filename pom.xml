@@ -34,7 +34,7 @@
   <parent>
     <groupId>com.amazon.opendistroforelasticsearch</groupId>
     <artifactId>opendistro_security_parent</artifactId>
-    <version>0.8.0.0</version>
+    <version>0.8.0.1</version>
   </parent>
 
   <artifactId>opendistro_security</artifactId>

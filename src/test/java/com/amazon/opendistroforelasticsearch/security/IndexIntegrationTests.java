@@ -553,7 +553,6 @@ public class IndexIntegrationTests extends SingleClusterTest {
 
         HttpResponse resc = rh.executePostRequest("_msearch", msearchBody, encodeBasicHeader("nagilum", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
-
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("\"hits\":{\"total\":1"));
     }
 }

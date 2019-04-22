@@ -66,7 +66,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         System.setProperty("security.display_lic_none","true");
         
         cl2Info = cl2.startCluster(minimumSecuritySettings(Settings.EMPTY), ClusterConfiguration.DEFAULT);
-        initialize(cl2Info);
+        initialize(cl2Info, dynamicSecurityConfig);
         System.out.println("### cl2 complete ###");
         
         //cl1 is coordinating
@@ -373,6 +373,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
 
         System.out.println("###################### query 1");
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:*/_search?pretty", encodeBasicHeader("twitter","nagilum"));
+        System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertFalse(ccs.getBody().contains("crl1_"));
         Assert.assertTrue(ccs.getBody().contains("crl2_"));

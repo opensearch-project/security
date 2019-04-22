@@ -80,9 +80,7 @@ public abstract class SingleClusterTest extends AbstractSecurityUnitTest {
 
 
     protected void setup(Settings initTransportClientSettings, DynamicSecurityConfig dynamicSecuritySettings, Settings nodeOverride, boolean initOpendistroSecurityIndex, ClusterConfiguration clusterConfiguration) throws Exception {
-        System.out.println("Point of failure A");
         clusterInfo = clusterHelper.startCluster(minimumSecuritySettings(ccs(nodeOverride)), clusterConfiguration);
-        System.out.println("Point of failure B");
         if(initOpendistroSecurityIndex && dynamicSecuritySettings != null) {
             initialize(clusterInfo, initTransportClientSettings, dynamicSecuritySettings);
         }
