@@ -111,8 +111,8 @@ public abstract class AbstractSecurityUnitTest {
     @Rule
     public final TemporaryFolder repositoryPath = new TemporaryFolder();
 
-    //@Rule
-    //public final TestWatcher testWatcher = new SecurityTestWatcher();
+	//@Rule
+	//public final TestWatcher testWatcher = new OpenDistroSecurityTestWatcher();
 
     public static Header encodeBasicHeader(final String username, final String password) {
         return new BasicHeader("Authorization", "Basic "+Base64.getEncoder().encodeToString(

@@ -106,6 +106,8 @@ logstash:
   
 knuddel:
   hash: _imponly_
+  attributes:
+    test1: test2
 
 twitter:
   hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
