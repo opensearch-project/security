@@ -659,7 +659,7 @@ public class PrivilegesEvaluator implements ConfigurationChangeListener {
             for (final String roleMap : rolesMapping.names()) {
                 final Settings roleMapSettings = rolesMapping.getByPrefix(roleMap);
 
-                if (WildcardMatcher.allPatternsMatched(roleMapSettings.getAsList(".and_backendroles", Collections.emptyList()).toArray(new String[0]), user.getRoles().toArray(new String[0]))) {
+                if (WildcardMatcher.allPatternsMatched(roleMapSettings.getAsList(".and_backendroles", Collections.emptyList()).toArray(new String[0]), userRoles))) {
                     securityRoles.add(roleMap);
                     continue;
                 }
@@ -872,7 +872,6 @@ public class PrivilegesEvaluator implements ConfigurationChangeListener {
             || (action0.equals(MultiGetAction.NAME))
             || (action0.equals(MultiSearchAction.NAME))
             || (action0.equals(MultiTermVectorsAction.NAME))
-            || (action0.equals("indices:data/read/coordinate-msearch"))
             || (action0.equals(ReindexAction.NAME))
 
             ) ;

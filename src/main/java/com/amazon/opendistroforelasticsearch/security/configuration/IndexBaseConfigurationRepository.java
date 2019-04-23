@@ -32,6 +32,7 @@ package com.amazon.opendistroforelasticsearch.security.configuration;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.security.Security;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -405,7 +406,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
     }
 
     private static String formatDate(long date) {
-        return new SimpleDateFormat("yyyy-MM-dd").format(new Date(date));
+        return new SimpleDateFormat("yyyy-MM-dd", OpenDistroSecurityUtils.EN_Locale).format(new Date(date));
     }
 
 }
