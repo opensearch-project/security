@@ -664,7 +664,7 @@ public class PrivilegesEvaluator implements ConfigurationChangeListener {
                     continue;
                 }
 
-                if (WildcardMatcher.matchAny(roleMapSettings.getAsList(".backendroles", Collections.emptyList()).toArray(new String[0]), user.getRoles().toArray(new String[0]))) {
+                if (WildcardMatcher.matchAny(roleMapSettings.getAsList(".backendroles", Collections.emptyList()).toArray(new String[0]), userRoles)) {
                     securityRoles.add(roleMap);
                     continue;
                 }
