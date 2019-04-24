@@ -144,7 +144,7 @@ public class OpenDistroSecurityAdmin {
             System.out.println();
             System.exit(-1);
         }
-        catch (Exception e) {
+        catch (Throwable e) {
             
             if (e instanceof ElasticsearchException 
                     && e.getMessage() != null 
@@ -992,11 +992,7 @@ public class OpenDistroSecurityAdmin {
         if(line.hasOption("cd") && line.hasOption("f")) {
             System.out.println("WARN: It makes no sense to specify -cd as well as -f");
         }
-        
-        if(line.hasOption("cd") && line.hasOption("r")) {
-            System.out.println("WARN: It makes no sense to specify -cd as well as -r");
-        }
-        
+
         if(line.hasOption("cn") && line.hasOption("icl")) {
             throw new ParseException("Only set one of -cn or -icl");
         }

@@ -231,7 +231,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(name);
-        out.writeStringList(new ArrayList<String>(roles));
+        out.writeStringCollection(new ArrayList<String>(roles));
         out.writeString(requestedTenant);
         out.writeMap(attributes, StreamOutput::writeString, StreamOutput::writeString);
     }

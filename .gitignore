@@ -34,3 +34,5 @@ data/
 puppet/.vagrant
 test.sh
 .vagrant/
+.idea/
+*.iml

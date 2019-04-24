@@ -78,46 +78,48 @@ import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelpe
 import io.netty.handler.ssl.OpenSsl;
 
 public abstract class AbstractSecurityUnitTest {
-    
+
     protected static final AtomicLong num = new AtomicLong();
+    protected static boolean withRemoteCluster;
 
-	static {
+    static {
 
-		System.out.println("OS: " + System.getProperty("os.name") + " " + System.getProperty("os.arch") + " "
-				+ System.getProperty("os.version"));
-		System.out.println(
-				"Java Version: " + System.getProperty("java.version") + " " + System.getProperty("java.vendor"));
-		System.out.println("JVM Impl.: " + System.getProperty("java.vm.version") + " "
-				+ System.getProperty("java.vm.vendor") + " " + System.getProperty("java.vm.name"));
-		System.out.println("Open SSL available: " + OpenSsl.isAvailable());
-		System.out.println("Open SSL version: " + OpenSsl.versionString());
-		
-	    //System.setProperty("security.display_lic_none","true");
-	}
-	
-	protected final Logger log = LogManager.getLogger(this.getClass());
+        System.out.println("OS: " + System.getProperty("os.name") + " " + System.getProperty("os.arch") + " "
+                + System.getProperty("os.version"));
+        System.out.println(
+                "Java Version: " + System.getProperty("java.version") + " " + System.getProperty("java.vendor"));
+        System.out.println("JVM Impl.: " + System.getProperty("java.vm.version") + " "
+                + System.getProperty("java.vm.vendor") + " " + System.getProperty("java.vm.name"));
+        System.out.println("Open SSL available: " + OpenSsl.isAvailable());
+        System.out.println("Open SSL version: " + OpenSsl.versionString());
+        withRemoteCluster = Boolean.parseBoolean(System.getenv("OPENDISTRO_SECURITY_TEST_WITH_REMOTE_CLUSTER"));
+        System.out.println("With remote cluster: " + withRemoteCluster);
+        //System.setProperty("security.display_lic_none","true");
+    }
+
+    protected final Logger log = LogManager.getLogger(this.getClass());
     public static final ThreadPool MOCK_POOL = new ThreadPool(Settings.builder().put("node.name",  "mock").build());
-	
+
     //TODO Test Matrix
     protected boolean allowOpenSSL = false; //disabled, we test this already in SSL Plugin
-    //enable//disable advanced modules
+    //enable//disable enterprise modules
     //1node and 3 node
-    
-	@Rule
-	public TestName name = new TestName();
-	
-	@Rule
+
+    @Rule
+    public TestName name = new TestName();
+
+    @Rule
     public final TemporaryFolder repositoryPath = new TemporaryFolder();
 
 	//@Rule
 	//public final TestWatcher testWatcher = new OpenDistroSecurityTestWatcher();
 
-	public static Header encodeBasicHeader(final String username, final String password) {
-		return new BasicHeader("Authorization", "Basic "+Base64.getEncoder().encodeToString(
-				(username + ":" + Objects.requireNonNull(password)).getBytes(StandardCharsets.UTF_8)));
-	}
-	
-	protected static class TransportClientImpl extends TransportClient {
+    public static Header encodeBasicHeader(final String username, final String password) {
+        return new BasicHeader("Authorization", "Basic "+Base64.getEncoder().encodeToString(
+                (username + ":" + Objects.requireNonNull(password)).getBytes(StandardCharsets.UTF_8)));
+    }
+
+    protected static class TransportClientImpl extends TransportClient {
 
         public TransportClientImpl(Settings settings, Collection<Class<? extends Plugin>> plugins) {
             super(settings, plugins);
@@ -125,19 +127,19 @@ public abstract class AbstractSecurityUnitTest {
 
         public TransportClientImpl(Settings settings, Settings defaultSettings, Collection<Class<? extends Plugin>> plugins) {
             super(settings, defaultSettings, plugins, null);
-        }       
+        }
     }
-    
+
     @SafeVarargs
     protected static Collection<Class<? extends Plugin>> asCollection(Class<? extends Plugin>... plugins) {
         return Arrays.asList(plugins);
     }
-    
-    
+
+
     protected TransportClient getInternalTransportClient(ClusterInfo info, Settings initTransportClientSettings) {
-        
+
         final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
-        
+
         Settings tcSettings = Settings.builder()
                 .put("cluster.name", info.clustername)
                 .put("opendistro_security.ssl.transport.truststore_filepath",
@@ -147,16 +149,16 @@ public abstract class AbstractSecurityUnitTest {
                         FileHelper.getAbsoluteFilePathFromClassPath(prefix+"kirk-keystore.jks"))
                 .put(initTransportClientSettings)
                 .build();
-        
+
         TransportClient tc = new TransportClientImpl(tcSettings, asCollection(Netty4Plugin.class, OpenDistroSecurityPlugin.class));
         tc.addTransportAddress(new TransportAddress(new InetSocketAddress(info.nodeHost, info.nodePort)));
         return tc;
     }
-    
+
     protected TransportClient getUserTransportClient(ClusterInfo info, String keyStore, Settings initTransportClientSettings) {
-        
+
         final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
-        
+
         Settings tcSettings = Settings.builder()
                 .put("cluster.name", info.clustername)
                 .put("opendistro_security.ssl.transport.truststore_filepath",
@@ -166,13 +168,13 @@ public abstract class AbstractSecurityUnitTest {
                         FileHelper.getAbsoluteFilePathFromClassPath(prefix+keyStore))
                 .put(initTransportClientSettings)
                 .build();
-        
+
         TransportClient tc = new TransportClientImpl(tcSettings, asCollection(Netty4Plugin.class, OpenDistroSecurityPlugin.class));
         tc.addTransportAddress(new TransportAddress(new InetSocketAddress(info.nodeHost, info.nodePort)));
         return tc;
     }
-    
-    protected void initialize(ClusterInfo info, Settings initTransportClientSettings, DynamicSecurityConfig config) {
+
+    protected void initialize(ClusterInfo info, Settings initTransportClientSettings, DynamicSecurityConfig securityConfig) {
 
         try (TransportClient tc = getInternalTransportClient(info, initTransportClientSettings)) {
 
@@ -181,12 +183,12 @@ public abstract class AbstractSecurityUnitTest {
                     tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
 
             try {
-                tc.admin().indices().create(new CreateIndexRequest(".opendistro_security")).actionGet();
+                tc.admin().indices().create(new CreateIndexRequest("security")).actionGet();
             } catch (Exception e) {
                 //ignore
             }
 
-            for(IndexRequest ir: config.getDynamicConfig(getResourceFolder())) {
+            for(IndexRequest ir: securityConfig.getDynamicConfig(getResourceFolder())) {
                 tc.index(ir).actionGet();
             }
 
@@ -194,10 +196,10 @@ public abstract class AbstractSecurityUnitTest {
                     .execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(ConfigConstants.CONFIG_NAMES.toArray(new String[0])))
                     .actionGet();
             Assert.assertEquals(info.numNodes, cur.getNodes().size());
-            
+
             SearchResponse sr = tc.search(new SearchRequest(".opendistro_security")).actionGet();
             //Assert.assertEquals(5L, sr.getHits().getTotalHits());
-            
+
             sr = tc.search(new SearchRequest(".opendistro_security")).actionGet();
             //Assert.assertEquals(5L, sr.getHits().getTotalHits());
 
@@ -210,14 +212,13 @@ public abstract class AbstractSecurityUnitTest {
             Assert.assertTrue(tc.get(new GetRequest(".opendistro_security","security","config")).actionGet().isExists());
         }
     }
-    
-    protected Settings.Builder minimumSecuritySettingsBuilder(int node) {
-        
+
+    protected Settings.Builder minimumSecuritySettingsBuilder(int node, boolean sslOnly) {
+
         final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
-        
-        return Settings.builder()
+        Settings.Builder builder = Settings.builder()
                 //.put("opendistro_security.ssl.transport.enabled", true)
-                 //.put("opendistro_security.no_default_init", true)
+                //.put("opendistro_security.no_default_init", true)
                 //.put("opendistro_security.ssl.http.enable_openssl_if_available", false)
                 //.put("opendistro_security.ssl.transport.enable_openssl_if_available", false)
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
@@ -227,32 +228,50 @@ public abstract class AbstractSecurityUnitTest {
                         FileHelper.getAbsoluteFilePathFromClassPath(prefix+"node-0-keystore.jks"))
                 .put("opendistro_security.ssl.transport.truststore_filepath",
                         FileHelper.getAbsoluteFilePathFromClassPath(prefix+"truststore.jks"))
-                .put("opendistro_security.ssl.transport.enforce_hostname_verification", false)
-                .putList("opendistro_security.authcz.admin_dn", "CN=kirk,OU=client,O=client,l=tEst, C=De");
-                //.put(other==null?Settings.EMPTY:other);
+                .put("opendistro_security.ssl.transport.enforce_hostname_verification", false);
+
+        if(!sslOnly) {
+            builder.putList("opendistro_security.authcz.admin_dn", "CN=kirk,OU=client,O=client,l=tEst, C=De");
+            //.put(other==null?Settings.EMPTY:other);
+        }
+
+        return builder;
     }
-    
+
     protected NodeSettingsSupplier minimumSecuritySettings(Settings other) {
         return new NodeSettingsSupplier() {
             @Override
             public Settings get(int i) {
-                return minimumSecuritySettingsBuilder(i).put(other).build();
+                return minimumSecuritySettingsBuilder(i, false).put(other).build();
             }
         };
     }
-    
+
+    protected NodeSettingsSupplier minimumSecuritySettingsSslOnly(Settings other) {
+        return new NodeSettingsSupplier() {
+            @Override
+            public Settings get(int i) {
+                return minimumSecuritySettingsBuilder(i, true).put(other).build();
+            }
+        };
+    }
+
     protected void initialize(ClusterInfo info) {
         initialize(info, Settings.EMPTY, new DynamicSecurityConfig());
     }
-    
+
+    protected void initialize(ClusterInfo info, DynamicSecurityConfig dynamicSgConfig) {
+        initialize(info, Settings.EMPTY, dynamicSgConfig);
+    }
+
     protected final void assertContains(HttpResponse res, String pattern) {
         Assert.assertTrue(WildcardMatcher.match(pattern, res.getBody()));
     }
-    
+
     protected final void assertNotContains(HttpResponse res, String pattern) {
         Assert.assertFalse(WildcardMatcher.match(pattern, res.getBody()));
     }
-    
+
     protected String getResourceFolder() {
         return null;
     }
@@ -278,5 +297,4 @@ public abstract class AbstractSecurityUnitTest {
             appender.clear();
         }
     }
-
 }

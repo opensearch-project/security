@@ -170,7 +170,7 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Aut
     }
 
     private Settings getConfigSettings() {
-        return configurationRepository.getConfiguration(ConfigConstants.CONFIGNAME_INTERNAL_USERS, false);
+        return configurationRepository.getConfiguration(ConfigConstants.CONFIGNAME_INTERNAL_USERS);
     }
 
     @Override

@@ -19,7 +19,7 @@ opendistro_security_all_access:
 opendistro_security_role_klingons1:
   indices:
     test:
-      '*':  
+      '*':
         - '*'
     lorem:
       '*':

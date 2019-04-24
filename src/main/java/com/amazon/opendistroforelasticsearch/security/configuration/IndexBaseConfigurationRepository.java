@@ -32,6 +32,7 @@ package com.amazon.opendistroforelasticsearch.security.configuration;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.security.Security;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -45,10 +46,12 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
@@ -59,6 +62,7 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.component.LifecycleListener;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
@@ -72,6 +76,7 @@ import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfi
 import com.amazon.opendistroforelasticsearch.security.ssl.util.ExceptionUtils;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigHelper;
+import com.amazon.opendistroforelasticsearch.security.support.OpenDistroSecurityUtils;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -262,23 +267,17 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
     }
 
     @Override
-    public Settings getConfiguration(String configurationType, boolean triggerComplianceWhenCached) {
+    public Settings getConfiguration(String configurationType) {
 
         Settings result = typeToConfig.get(configurationType);
 
         if (result != null) {
-            
-            if(triggerComplianceWhenCached && complianceConfig.isEnabled()) {
-                Map<String, String> fields = new HashMap<String, String>();
-                fields.put(configurationType, Strings.toString(result));
-                auditLog.logDocumentRead(this.opendistrosecurityIndex, configurationType, null, fields, complianceConfig);
-            }
             return result;
         }
 
-        Map<String, Settings> loaded = loadConfigurations(Collections.singleton(configurationType));
+        Map<String, Tuple<Long, Settings>> loaded = loadConfigurations(Collections.singleton(configurationType), false);
 
-        result = loaded.get(configurationType);
+        result = loaded.get(configurationType).v2();
 
         return putSettingsToCache(configurationType, result);
     }
@@ -292,46 +291,15 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
     }
 
 
-    /*@Override
-    public Map<String, Settings> getConfiguration(Collection<String> configTypes) {
-        List<String> typesToLoad = Lists.newArrayList();
-        Map<String, Settings> result = Maps.newHashMap();
-
-        for (String type : configTypes) {
-            Settings conf = typeToConfig.get(type);
-            if (conf != null) {
-                result.put(type, conf);
-            } else {
-                typesToLoad.add(type);
-            }
-        }
-
-        if (typesToLoad.isEmpty()) {
-            return result;
-        }
-
-        Map<String, Settings> loaded = loadConfigurations(typesToLoad);
-
-        for (Map.Entry<String, Settings> entry : loaded.entrySet()) {
-            Settings conf = putSettingsToCache(entry.getKey(), entry.getValue());
-
-            if (conf != null) {
-                result.put(entry.getKey(), conf);
-            }
-        }
-
-        return result;
-    }*/
-
-
     @Override
     public Map<String, Settings> reloadConfiguration(Collection<String> configTypes) {
-        Map<String, Settings> loaded = loadConfigurations(configTypes);
-        typeToConfig.clear();
-        typeToConfig.putAll(loaded);
-        notifyAboutChanges(loaded);
+        Map<String, Tuple<Long, Settings>> loaded = loadConfigurations(configTypes, false);
+        Map<String, Settings> loaded0 = loaded.entrySet().stream().collect(Collectors.toMap(x -> x.getKey(), x -> x.getValue().v2()));
+        typeToConfig.keySet().removeAll(loaded0.keySet());
+        typeToConfig.putAll(loaded0);
+        notifyAboutChanges(loaded0);
 
-        return loaded;
+        return loaded0;
     }
 
     @Override
@@ -357,55 +325,66 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                 continue;
             }
 
-            LOGGER.debug("Notify {} listener about change configuration with type {}", listener, type);
-            listener.onChange(settings);
+            try {
+                LOGGER.debug("Notify {} listener about change configuration with type {}", listener, type);
+                final long start = LOGGER.isDebugEnabled() ? System.currentTimeMillis() : 0L;
+                listener.onChange(settings);
+                LOGGER.debug("listener {} notified about type {} in {} ms", listener, type, (System.currentTimeMillis() - start));
+            } catch (Exception e) {
+                LOGGER.error("{} listener errored: " + e, listener, e);
+                throw ExceptionsHelper.convertToElastic(e);
+            }
         }
     }
 
 
-    private Map<String, Settings> loadConfigurations(Collection<String> configTypes) {
+    public Map<String, Tuple<Long, Settings>> loadConfigurations(Collection<String> configTypes, boolean logComplianceEvent) {
 
-            final ThreadContext threadContext = threadPool.getThreadContext();
-            final Map<String, Settings> retVal = new HashMap<String, Settings>();
-            //final List<Exception> exception = new ArrayList<Exception>(1);
-           // final CountDownLatch latch = new CountDownLatch(1);
+        final ThreadContext threadContext = threadPool.getThreadContext();
+        final Map<String, Tuple<Long, Settings>> retVal = new HashMap<String, Tuple<Long, Settings>>();
+        try(StoredContext ctx = threadContext.stashContext()) {
+            threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
 
-            try(StoredContext ctx = threadContext.stashContext()) {
-                threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
+            boolean securityIndexExists = clusterService.state().metaData().hasConcreteIndex(this.opendistrosecurityIndex);
 
-                boolean securityIndexExists = clusterService.state().metaData().hasConcreteIndex(this.opendistrosecurityIndex);
-
-                if(securityIndexExists) {
-                    if(clusterService.state().metaData().index(this.opendistrosecurityIndex).mapping("config") != null) {
-                        //legacy layout
-                        LOGGER.debug("security index  exists and was created before ES 6 (legacy layout)");
-                        retVal.putAll(validate(legacycl.loadLegacy(configTypes.toArray(new String[0]), 5, TimeUnit.SECONDS), configTypes.size()));
-                    } else {
-                        LOGGER.debug("security index  exists and was created with ES 6 (new layout)");
-                        retVal.putAll(validate(cl.load(configTypes.toArray(new String[0]), 5, TimeUnit.SECONDS), configTypes.size()));
-                    }
+            if(securityIndexExists) {
+                if(clusterService.state().metaData().index(this.opendistrosecurityIndex).mapping("config") != null) {
+                    //legacy layout
+                    LOGGER.debug("security index  exists and was created before ES 6 (legacy layout)");
+                    retVal.putAll(validate(legacycl.loadLegacy(configTypes.toArray(new String[0]), 5, TimeUnit.SECONDS), configTypes.size()));
                 } else {
-                    //wait (and use new layout)
-                    LOGGER.debug("security index  not exists (yet)");
-                    retVal.putAll(validate(cl.load(configTypes.toArray(new String[0]), 30, TimeUnit.SECONDS), configTypes.size()));
+                    LOGGER.debug("security index  exists and was created with ES 6 (new layout)");
+                    retVal.putAll(validate(cl.load(configTypes.toArray(new String[0]), 5, TimeUnit.SECONDS), configTypes.size()));
                 }
-
-            } catch (Exception e) {
-                throw new ElasticsearchException(e);
+            } else {
+                //wait (and use new layout)
+                LOGGER.debug("security index  not exists (yet)");
+                retVal.putAll(validate(cl.load(configTypes.toArray(new String[0]), 30, TimeUnit.SECONDS), configTypes.size()));
             }
-            return retVal;
+        } catch (Exception e) {
+            throw new ElasticsearchException(e);
+        }
+
+        if (logComplianceEvent && complianceConfig.isEnabled()) {
+            String configurationType = configTypes.iterator().next();
+            Map<String, String> fields = new HashMap<String, String>();
+            fields.put(configurationType, Strings.toString(retVal.get(configurationType).v2()));
+            auditLog.logDocumentRead(this.opendistrosecurityIndex, configurationType, null, fields, complianceConfig);
+        }
+
+        return retVal;
     }
 
-    private Map<String, Settings> validate(Map<String, Settings> conf, int expectedSize) throws InvalidConfigException {
+    private Map<String, Tuple<Long, Settings>> validate(Map<String, Tuple<Long, Settings>> conf, int expectedSize) throws InvalidConfigException {
 
-        if(conf == null || conf.size() != expectedSize) {
+        if (conf == null || conf.size() != expectedSize) {
             throw new InvalidConfigException("Retrieved only partial configuration");
         }
 
-        final Settings roles = conf.get("roles");
+        final Tuple<Long, Settings> roles = conf.get("roles");
         final String rolesDelimited;
 
-        if (roles != null && (rolesDelimited = roles.toDelimitedString('#')) != null) {
+        if (roles != null && roles.v2() != null && (rolesDelimited = roles.v2().toDelimitedString('#')) != null) {
 
             //<role>.indices.<indice>._dls_= OK
             //<role>.indices.<indice>._fls_.<num>= OK
@@ -427,7 +406,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
     }
 
     private static String formatDate(long date) {
-        return new SimpleDateFormat("yyyy-MM-dd").format(new Date(date));
+        return new SimpleDateFormat("yyyy-MM-dd", OpenDistroSecurityUtils.EN_Locale).format(new Date(date));
     }
 
 }

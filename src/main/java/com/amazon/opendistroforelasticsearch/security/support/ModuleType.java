@@ -69,7 +69,7 @@ public enum ModuleType implements Serializable {
 	CUSTOM_AUTHORIZATION_BACKEND("Custom authorization backend", null, Boolean.TRUE),
 	CUSTOM_INTERCLUSTER_REQUEST_EVALUATOR("Intercluster Request Evaluator", null, Boolean.FALSE),
 	CUSTOM_PRINCIPAL_EXTRACTOR("TLS Principal Extractor", null, Boolean.FALSE),
-	COMPLIANCE("Compliance", "com.amazon.opendistroforelasticsearch.security.compliance.ComplianceIndexingOperationListenerImpl", Boolean.TRUE),
+	// COMPLIANCE("Compliance", "com.amazon.opendistroforelasticsearch.security.compliance.ComplianceIndexingOperationListenerImpl", Boolean.TRUE),
 	UNKNOWN("Unknown type", null, Boolean.TRUE);
 
 	private String description;

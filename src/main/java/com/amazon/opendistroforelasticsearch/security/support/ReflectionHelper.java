@@ -91,7 +91,9 @@ public class ReflectionHelper {
     
             try {
                 final Class<?> clazz = Class.forName("com.amazon.opendistroforelasticsearch.security.dlic.rest.api.OpenDistroSecurityRestApiActions");
-                addLoadedModule(clazz);
+                //addLoadedModule(clazz);
+                //no addLoadedModule(clazz) here because its not a typical module
+                //and it is not loaded in every case/on every node
             } catch (final Throwable e) {
                 log.warn("Unable to register Rest Management Api Module due to {}", e.toString());
                 if(log.isDebugEnabled()) {

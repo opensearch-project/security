@@ -92,6 +92,6 @@ public class ActionGroupHolder {
     }
 
     private Settings getSettings() {
-        return configurationRepository.getConfiguration(ConfigConstants.CONFIGNAME_ACTION_GROUPS, false);
+        return configurationRepository.getConfiguration(ConfigConstants.CONFIGNAME_ACTION_GROUPS);
     }
 }

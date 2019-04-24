@@ -164,3 +164,7 @@ opendistro_security_kibana_server:
   readonly: true
   users:
     - kibanaserver
+
+opendistro_security_remote_ccs:
+  users:
+    - crusherw
