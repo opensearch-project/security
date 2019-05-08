@@ -152,7 +152,7 @@ opendistro_security.audit.type: internal_elasticsearch
 # with the files in the config directory if the index does not exist.
 # WARNING: This will use well-known default passwords.
 #          Use only in a private network/environment.
-#opendistro_security.allow_default_init_opendistrosecurityindex: false
+#opendistro_security.allow_default_init_securityindex: false
 
 # If this is set to true then allow to startup with demo certificates.
 # These are certificates issued by floragunn GmbH for demo purposes.
