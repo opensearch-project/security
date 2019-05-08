@@ -40,29 +40,24 @@ import java.util.List;
 
 import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
 import org.elasticsearch.ElasticsearchSecurityException;
-import org.elasticsearch.common.settings.Settings;
 
 import com.amazon.opendistroforelasticsearch.security.auth.AuthenticationBackend;
 import com.amazon.opendistroforelasticsearch.security.auth.AuthorizationBackend;
-import com.amazon.opendistroforelasticsearch.security.configuration.ConfigurationRepository;
-import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
+import com.amazon.opendistroforelasticsearch.security.securityconf.ConfigModel;
+import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigFactory.DCFListener;
+import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigModel;
+import com.amazon.opendistroforelasticsearch.security.securityconf.InternalUsersModel;
 import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 
-public class InternalAuthenticationBackend implements AuthenticationBackend, AuthorizationBackend {
+public class InternalAuthenticationBackend implements AuthenticationBackend, AuthorizationBackend, DCFListener {
 
-    private final ConfigurationRepository configurationRepository;
-
-    public InternalAuthenticationBackend(final ConfigurationRepository configurationRepository) {
-        super();
-        this.configurationRepository = configurationRepository;
-    }
+    private InternalUsersModel internalUsersModel;
 
     @Override
     public boolean exists(User user) {
 
-        final Settings cfg = getConfigSettings();
-        if (cfg == null) {
+        if(user == null || internalUsersModel == null) {
             return false;
         }
         
@@ -143,16 +138,14 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Aut
         Arrays.fill(password, (byte)0);
        
         try {
-            if (OpenBSDBCrypt.checkPassword(hashed, array)) {
-                final List<String> roles = cfg.getAsList(credentials.getUsername() + ".roles", Collections.emptyList());
-                final Settings customAttributes = cfg.getAsSettings(credentials.getUsername() + ".attributes");
-
+            if (OpenBSDBCrypt.checkPassword(internalUsersModel.getHash(credentials.getUsername()), array)) {
+                final List<String> roles = internalUsersModel.getBackenRoles(credentials.getUsername());
+                final Map<String, String> customAttributes = internalUsersModel.getAttributes(credentials.getUsername());
                 if(customAttributes != null) {
-                    for(String attributeName: customAttributes.names()) {
-                        credentials.addAttribute("attr.internal."+attributeName, customAttributes.get(attributeName));
+                    for(Entry<String, String> attributeName: customAttributes.entrySet()) {
+                        credentials.addAttribute("attr.internal."+attributeName.getKey(), attributeName.getValue());
                     }
                 }
-
                 return new User(credentials.getUsername(), roles, credentials);
             } else {
                 throw new ElasticsearchSecurityException("password does not match");
@@ -164,6 +157,9 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Aut
         }
     }
 
+        return false;
+    }
+    
     @Override
     public String getType() {
         return "internal";

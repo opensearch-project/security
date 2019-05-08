@@ -30,10 +30,10 @@
 
 package com.amazon.opendistroforelasticsearch.security.support;
 
-import java.io.ByteArrayInputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
+import java.io.StringReader;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -41,27 +41,33 @@ import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 
+import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SgDynamicConfiguration;
+
 public class ConfigHelper {
     
     private static final Logger LOGGER = LogManager.getLogger(ConfigHelper.class);
     
-    public static void uploadFile(Client tc, String filepath, String index, String id) throws Exception {
-        LOGGER.info("Will update '" + id + "' with " + filepath);
+    public static void uploadFile(Client tc, String filepath, String index, CType cType, int configVersion) throws Exception {
+        LOGGER.info("Will update '" + cType + "' with " + filepath);
+
+        ConfigHelper.fromYamlFile(filepath, cType, configVersion, 0, 0);
+        
         try (Reader reader = new FileReader(filepath)) {
 
             final String res = tc
-                    .index(new IndexRequest(index).type("security").id(id).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                            .source(id, readXContent(reader, XContentType.YAML))).actionGet().getId();
+                    .index(new IndexRequest(index).type(configVersion==1?"security":"_doc").id(cType.toLCString()).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                            .source(cType.toLCString(), readXContent(reader, XContentType.YAML))).actionGet().getId();
 
-            if (!id.equals(res)) {
-                throw new Exception("   FAIL: Configuration for '" + id
+            if (!cType.toLCString().equals(res)) {
+                throw new Exception("   FAIL: Configuration for '" + cType.toLCString()
                         + "' failed for unknown reasons. Pls. consult logfile of elasticsearch");
             }
         } catch (Exception e) {
@@ -83,9 +89,6 @@ public class ConfigHelper {
                 parser.close();
             }
         }
-        
-        //validate
-        Settings.builder().loadFromStream("dummy.json", new ByteArrayInputStream(BytesReference.toBytes(retVal)), true).build();
         return retVal;
     }
 

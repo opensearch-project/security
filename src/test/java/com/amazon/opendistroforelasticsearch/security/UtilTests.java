@@ -30,16 +30,18 @@
 
 package com.amazon.opendistroforelasticsearch.security;
 
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Map;
 
+import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.OpenDistroSecurityUtils;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 
@@ -99,5 +101,62 @@ public class UtilTests {
         assertEquals("value1", map.get("key1"));
         assertEquals("value2", map.get("key2"));
 
+    }
+    
+    @Test
+    public void testEnvReplace() {
+        Settings settings = Settings.EMPTY;
+        Assert.assertEquals("abv${env.MYENV}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env.MYENV}xyz",settings));
+        Assert.assertEquals("abv${envbc.MYENV}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${envbc.MYENV}xyz",settings));
+        Assert.assertEquals("abvtTtxyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz",settings));
+        Assert.assertTrue(OpenBSDBCrypt.checkPassword(OpenDistroSecurityUtils.replaceEnvVars("${envbc.MYENV:-tTt}",settings), "tTt".toCharArray()));
+        Assert.assertEquals("abvtTtxyzxxx", OpenDistroSecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${env.MYENV:-xxx}",settings));
+        Assert.assertTrue(OpenDistroSecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${envbc.MYENV:-xxx}",settings).startsWith("abvtTtxyz$2y$"));
+        Assert.assertEquals("abv${env.MYENV:tTt}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env.MYENV:tTt}xyz",settings));
+        Assert.assertEquals("abv${env.MYENV-tTt}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env.MYENV-tTt}xyz",settings));
+        //Assert.assertEquals("abvabcdefgxyz", OpenDistroSecurityUtils.replaceEnvVars("abv${envbase64.B64TEST}xyz",settings));
+
+        Map<String, String> env = System.getenv();
+        Assert.assertTrue(env.size() > 0);
+        
+        boolean checked = false;
+
+        for(String k: env.keySet()) {
+            String val=System.getenv().get(k);
+            if(val == null || val.isEmpty()) {
+                continue;
+            }
+            Assert.assertEquals("abv"+val+"xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env."+k+"}xyz",settings));
+            Assert.assertEquals("abv${"+k+"}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${"+k+"}xyz",settings));
+            Assert.assertEquals("abv"+val+"xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env."+k+":-k182765ggh}xyz",settings));
+            Assert.assertEquals("abv"+val+"xyzabv"+val+"xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env."+k+"}xyzabv${env."+k+"}xyz",settings));
+            Assert.assertEquals("abv"+val+"xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env."+k+":-k182765ggh}xyz",settings));
+            Assert.assertTrue(OpenBSDBCrypt.checkPassword(OpenDistroSecurityUtils.replaceEnvVars("${envbc."+k+"}",settings), val.toCharArray()));
+            checked = true;
+        }
+        
+        Assert.assertTrue(checked);
+    }
+    
+    @Test
+    public void testNoEnvReplace() {
+        Settings settings = Settings.builder().put(ConfigConstants.OPENDISTRO_SECURITY_DISABLE_ENVVAR_REPLACEMENT, true).build();
+        Assert.assertEquals("abv${env.MYENV}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env.MYENV}xyz",settings));
+        Assert.assertEquals("abv${envbc.MYENV}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${envbc.MYENV}xyz",settings));
+        Assert.assertEquals("abv${env.MYENV:-tTt}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz",settings));
+        Assert.assertEquals("abv${env.MYENV:-tTt}xyz${env.MYENV:-xxx}", OpenDistroSecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${env.MYENV:-xxx}",settings));
+        Assert.assertFalse(OpenDistroSecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${envbc.MYENV:-xxx}",settings).startsWith("abvtTtxyz$2y$"));
+        Assert.assertEquals("abv${env.MYENV:tTt}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env.MYENV:tTt}xyz",settings));
+        Assert.assertEquals("abv${env.MYENV-tTt}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env.MYENV-tTt}xyz",settings));
+        Map<String, String> env = System.getenv();
+        Assert.assertTrue(env.size() > 0);
+        
+        for(String k: env.keySet()) {
+            Assert.assertEquals("abv${env."+k+"}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env."+k+"}xyz",settings));
+            Assert.assertEquals("abv${"+k+"}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${"+k+"}xyz",settings));
+            Assert.assertEquals("abv${env."+k+":-k182765ggh}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env."+k+":-k182765ggh}xyz",settings));
+            Assert.assertEquals("abv${env."+k+"}xyzabv${env."+k+"}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env."+k+"}xyzabv${env."+k+"}xyz",settings));
+            Assert.assertEquals("abv${env."+k+":-k182765ggh}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env."+k+":-k182765ggh}xyz",settings));
+        }
     }
 }

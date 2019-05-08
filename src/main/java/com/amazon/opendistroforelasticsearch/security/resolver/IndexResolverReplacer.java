@@ -46,11 +46,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.DocWriteRequest;
 import org.elasticsearch.action.IndicesRequest;
@@ -61,12 +61,10 @@ import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
-import org.elasticsearch.action.bulk.BulkItemRequest;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkShardRequest;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.fieldcaps.FieldCapabilitiesRequest;
-import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.MultiGetRequest;
 import org.elasticsearch.action.get.MultiGetRequest.Item;
 import org.elasticsearch.action.index.IndexRequest;
@@ -89,7 +87,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.reindex.ReindexRequest;
@@ -100,18 +97,19 @@ import org.elasticsearch.transport.TransportRequest;
 
 import com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin;
 import com.amazon.opendistroforelasticsearch.security.configuration.ClusterInfoHolder;
-import com.amazon.opendistroforelasticsearch.security.configuration.ConfigurationChangeListener;
+import com.amazon.opendistroforelasticsearch.security.securityconf.ConfigModel;
+import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigFactory.DCFListener;
+import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigModel;
+import com.amazon.opendistroforelasticsearch.security.securityconf.InternalUsersModel;
 import com.amazon.opendistroforelasticsearch.security.support.SnapshotRestoreHelper;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 
 
 import com.google.common.collect.Sets;
 
-public final class IndexResolverReplacer implements ConfigurationChangeListener {
+public final class IndexResolverReplacer implements DCFListener {
 
     private static final Set<String> NULL_SET = Sets.newHashSet((String)null);
-    private final Map<Class<?>, Method> typeCache = Collections.synchronizedMap(new HashMap<Class<?>, Method>(100));
-    private final Map<Class<?>, Method> typesCache = Collections.synchronizedMap(new HashMap<Class<?>, Method>(100));
     private final Logger log = LogManager.getLogger(this.getClass());
     private final IndexNameExpressionResolver resolver;
     private final ClusterService clusterService;
@@ -200,6 +198,11 @@ public final class IndexResolverReplacer implements ConfigurationChangeListener 
                     iterator.remove();
                 }
             }
+
+            if (log.isTraceEnabled()) {
+                log.trace("CCS is enabled, we found this local patterns " + localRequestedPatterns + " and this remote patterns: " + remoteIndices);
+            }
+
         } else {
             remoteIndices = Collections.emptySet();
         }
@@ -298,38 +301,8 @@ public final class IndexResolverReplacer implements ConfigurationChangeListener 
 
     }
 
-    @SuppressWarnings("rawtypes")
-    private Set<String> resolveTypes(final Object request) {
-        // check if type security is enabled
-        final Class<?> requestClass = request.getClass();
-        final Set<String> requestTypes = new HashSet<String>();
-
-        if (true) {
-            if (request instanceof BulkShardRequest) {
-                BulkShardRequest bsr = (BulkShardRequest) request;
-                for (BulkItemRequest bir : bsr.items()) {
-                    requestTypes.add(bir.request().type());
-                }
-            } else if (request instanceof DocWriteRequest) {
-                requestTypes.add(((DocWriteRequest) request).type());
-            } else if (request instanceof SearchRequest) {
-                requestTypes.addAll(Arrays.asList(((SearchRequest) request).types()));
-            } else if (request instanceof GetRequest) {
-                requestTypes.add(((GetRequest) request).type());
-            } else {
-
-                Method typeMethod = null;
-                if (typeCache.containsKey(requestClass)) {
-                    typeMethod = typeCache.get(requestClass);
-                } else {
-                    try {
-                        typeMethod = requestClass.getMethod("type");
-                        typeCache.put(requestClass, typeMethod);
-                    } catch (NoSuchMethodException e) {
-                        typeCache.put(requestClass, null);
-                    } catch (SecurityException e) {
-                        log.error("Cannot evaluate type() for {} due to {}", requestClass, e, e);
-                    }
+        return new Resolved.Builder(matchingAliases, matchingIndices, matchingAllIndices, null, requestedPatterns0, remoteIndices)
+                /*.addTypes(resolveTypes(request))*/.build();
 
                 }
 
@@ -490,7 +463,6 @@ public final class IndexResolverReplacer implements ConfigurationChangeListener 
         private static final Set<String> All_SET = Collections.singleton("*");
         private static final long serialVersionUID = 1L;
         public final static Resolved _LOCAL_ALL = new Resolved(All_SET, All_SET, All_SET, All_SET, Collections.emptySet(), Collections.emptySet());
-        private final static Resolved _EMPTY = new Resolved(Collections.emptySet(), Collections.emptySet(), Collections.emptySet(), Collections.emptySet(), Collections.emptySet(), Collections.emptySet());
         private final Set<String> aliases;
         private final Set<String> indices;
         private final Set<String> allIndices;
@@ -511,7 +483,7 @@ public final class IndexResolverReplacer implements ConfigurationChangeListener 
 
             if(!aliases.isEmpty() || !indices.isEmpty() || !allIndices.isEmpty()) {
                 if(types.isEmpty()) {
-                    throw new ElasticsearchException("Empty types for nonempty indices or aliases");
+                    //throw new ElasticsearchException("Empty types for nonempty indices or aliases");
                 }
             }
         }
@@ -616,7 +588,7 @@ public final class IndexResolverReplacer implements ConfigurationChangeListener 
             private final Set<String> aliases = new HashSet<String>();
             private final Set<String> indices = new HashSet<String>();
             private final Set<String> allIndices = new HashSet<String>();
-            private final Set<String> types = new HashSet<String>();
+            //private final Set<String> types = new HashSet<String>();
             private final Set<String> originalRequested = new HashSet<String>();
             private final Set<String> remoteIndices = new HashSet<String>();
 
@@ -640,7 +612,7 @@ public final class IndexResolverReplacer implements ConfigurationChangeListener 
                 }
 
                 if(types != null) {
-                    this.types.addAll(types);
+                    //this.types.addAll(types);
                 }
 
                 if(originalRequested != null) {
@@ -660,7 +632,7 @@ public final class IndexResolverReplacer implements ConfigurationChangeListener 
                     this.types.addAll(types);
                 }
                 return this;
-            }
+            }*/
 
             public Builder add(Resolved r) {
 
@@ -669,7 +641,21 @@ public final class IndexResolverReplacer implements ConfigurationChangeListener 
                 this.allIndices.addAll(r.allIndices);
                 this.originalRequested.addAll(r.originalRequested);
                 this.remoteIndices.addAll(r.remoteIndices);
-                addTypes(r.types);
+                //addTypes(r.types);
+                return this;
+            }
+            
+            public Builder addOriginalRequested(List<String> originalRequested) {
+                if(originalRequested != null) {
+                    this.originalRequested.addAll(originalRequested);
+                }
+                return this;
+            }
+            
+            public Builder addRemoteIndices(Set<String> remoteIndices) {
+                if(remoteIndices != null) {
+                    this.remoteIndices.addAll(remoteIndices);
+                }
                 return this;
             }
 

@@ -35,14 +35,17 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 
+import com.amazon.opendistroforelasticsearch.security.securityconf.ConfigModel;
+import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigModel;
+import com.amazon.opendistroforelasticsearch.security.securityconf.InternalUsersModel;
+import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigFactory.DCFListener;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 
-
-public class CompatConfig implements ConfigurationChangeListener {
+public class CompatConfig implements DCFListener {
 
     private final Logger log = LogManager.getLogger(getClass());
     private final Settings staticSettings;
-    private Settings dynamicSecurityConfig;
+    private DynamicConfigModel dcm;
 
     public CompatConfig(final Environment environment) {
         super();
@@ -50,9 +53,9 @@ public class CompatConfig implements ConfigurationChangeListener {
     }
     
     @Override
-    public void onChange(final Settings dynamicSecurityConfig) {
-        this.dynamicSecurityConfig = dynamicSecurityConfig;
-        log.debug("dynamicSecurityConfig updated?: {}", (dynamicSecurityConfig != null));
+    public void onChanged(ConfigModel cm, DynamicConfigModel dcm, InternalUsersModel ium) {
+        this.dcm = dcm;
+        log.debug("dynamicSecurityConfig updated?: {}", (dcm != null));
     }
     
     //true is default
@@ -60,7 +63,7 @@ public class CompatConfig implements ConfigurationChangeListener {
         final boolean restInitiallyDisabled = staticSettings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_DISABLE_REST_AUTH_INITIALLY, false);
         
         if(restInitiallyDisabled) {
-            if(dynamicSecurityConfig == null) {
+            if(dcm == null) {
                 if(log.isTraceEnabled()) {
                     log.trace("dynamicSecurityConfig is null, initially static restDisabled");
                 }
@@ -83,7 +86,7 @@ public class CompatConfig implements ConfigurationChangeListener {
         final boolean interClusterAuthInitiallyDisabled = staticSettings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_DISABLE_INTERTRANSPORT_AUTH_INITIALLY, false);
         
         if(interClusterAuthInitiallyDisabled) {
-            if(dynamicSecurityConfig == null) {
+            if(dcm == null) {
                 if(log.isTraceEnabled()) {
                     log.trace("dynamicSecurityConfig is null, initially static interClusterAuthDisabled");
                 }

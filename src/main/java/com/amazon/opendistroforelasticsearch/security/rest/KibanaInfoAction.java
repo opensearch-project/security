@@ -39,7 +39,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.rest.BaseRestHandler;
@@ -88,7 +87,6 @@ public class KibanaInfoAction extends BaseRestHandler {
                     builder.field("kibana_mt_enabled", evaluator.multitenancyEnabled());
                     builder.field("kibana_index", evaluator.kibanaIndex());
                     builder.field("kibana_server_user", evaluator.kibanaServerUsername());
-                    //builder.field("kibana_index_readonly", evaluator.kibanaIndexReadonly(user, remoteAddress));
                     builder.endObject();
 
                     response = new BytesRestResponse(RestStatus.OK, builder);

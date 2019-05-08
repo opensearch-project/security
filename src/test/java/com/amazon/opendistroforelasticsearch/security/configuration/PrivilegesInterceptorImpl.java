@@ -37,11 +37,11 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesInterceptor;
 import com.amazon.opendistroforelasticsearch.security.resolver.IndexResolverReplacer.Resolved;
+import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigModel;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 
 public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
@@ -54,7 +54,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
     }
 
     @Override
-    public Boolean replaceKibanaIndex(ActionRequest request, String action, User user, Settings config,
+    public Boolean replaceKibanaIndex(ActionRequest request, String action, User user, DynamicConfigModel config,
     		final Resolved requestedResolved, Map<String, Boolean> tenants) {
         count++;
         return null;

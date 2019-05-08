@@ -35,10 +35,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
-import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.http.HttpServerTransport;
@@ -70,8 +70,8 @@ public class UserInjectorPlugin extends Plugin implements NetworkPlugin {
 
     @Override
     public Map<String, Supplier<HttpServerTransport>> getHttpTransports(Settings settings, ThreadPool threadPool, BigArrays bigArrays,
-            CircuitBreakerService circuitBreakerService, NamedWriteableRegistry namedWriteableRegistry,
-            NamedXContentRegistry xContentRegistry, NetworkService networkService, Dispatcher dispatcher) {
+            PageCacheRecycler pageCacheRecycler, CircuitBreakerService circuitBreakerService, NamedXContentRegistry xContentRegistry,
+            NetworkService networkService, Dispatcher dispatcher) {
 
         Map<String, Supplier<HttpServerTransport>> httpTransports = new HashMap<String, Supplier<HttpServerTransport>>(1);
         final UserInjectingDispatcher validatingDispatcher = new UserInjectingDispatcher(dispatcher);

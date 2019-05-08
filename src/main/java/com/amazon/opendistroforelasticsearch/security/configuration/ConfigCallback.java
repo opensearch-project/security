@@ -31,13 +31,13 @@
 package com.amazon.opendistroforelasticsearch.security.configuration;
 
 import org.elasticsearch.action.get.MultiGetResponse.Failure;
-import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.settings.Settings;
+
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SgDynamicConfiguration;
 
 public interface ConfigCallback {
     
-    void success(String id, Tuple<Long, Settings> settings);
-    void noData(String id);
+    void success(SgDynamicConfiguration<?> dConf);
+    void noData(String id, String type);
     void singleFailure(Failure failure);
     void failure(Throwable t);
 

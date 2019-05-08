@@ -1,1 +1,11 @@
+---
+_meta:
+  type: "roles"
+  config_version: 2
 denyall:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6, was empty"
+  cluster_permissions: []
+  index_permissions: []
+  tenant_permissions: []

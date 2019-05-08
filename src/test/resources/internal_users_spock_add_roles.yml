@@ -1,61 +1,103 @@
-"\"'+-,;_?*@<>!$%&/()=#":
-  hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
-  #password is: nagilum
-"§ÄÖÜäöüß":
-  hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
-  #password is: nagilum
+---
+_meta:
+  type: "internalusers"
+  config_version: 2
 bug.99:
-  hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
-  #password is: nagilum
-bug108:
-  hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
-  #password is: nagilum
-nagilum:
-  hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
-  #password is: nagilum
-  
-'CN=spock,OU=client,O=client,L=Test,C=DE':
-  #transport login only
-  hash: '_impersonation_only_'
-  roles:
-    - vulcan
-    - starfleet  
-  
+  hash: "$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+CN=spock,OU=client,O=client,L=Test,C=DE:
+  hash: "_impersonation_only_"
+  reserved: false
+  hidden: false
+  backend_roles:
+  - "vulcan"
+  - "starfleet"
+  attributes: {}
+  description: "Migrated from v6"
 spock:
-  hash: $2a$12$GI9JXffO3WUjTsU7Yy3E4.LBxC2ILo66Zg/rr79BpikSL2IIRezQa
-  #password is: spock
-  roles:
-    - vulcan
-    - additionalrole1
-    - additionalrole2
-sarek:
-  hash: $2a$12$Ioo1uXmH.Nq/lS5dUVBEsePSmZ5pSIpVO/xKHaquU/Jvq97I7nAgG
-  #password is: sarek
-  roles:
-    - vulcanadmin
-    - vulcan
-    - ambassador
+  hash: "$2a$12$GI9JXffO3WUjTsU7Yy3E4.LBxC2ILo66Zg/rr79BpikSL2IIRezQa"
+  reserved: false
+  hidden: false
+  backend_roles:
+  - "vulcan"
+  - "additionalrole1"
+  - "additionalrole2"
+  attributes: {}
+  description: "Migrated from v6"
 kirk:
-  hash: $2a$12$xZOcnwYPYQ3zIadnlQIJ0eNhX1ngwMkTN.oMwkKxoGvDVPn4/6XtO
-  #password is: kirk
-  roles:
-    - captains
-    - starfleet
-picard:
-  hash: $2a$12$wkY2BsRneCU5za1OPYlzsehQit6gu2vprVv/4jHiSEEBv2ThunaTS
-  #password is: picard
-  roles:
-    - captains
-    - starfleet
-worf:
-  hash: $2a$12$A41IxPXV1/Dx46C6i1ufGubv.p3qYX7xVcY46q33sylYbIqQVwTMu
-  #password is: worf
-  roles:
-    - klingon
-    - starfleet
-    
+  hash: "$2a$12$xZOcnwYPYQ3zIadnlQIJ0eNhX1ngwMkTN.oMwkKxoGvDVPn4/6XtO"
+  reserved: false
+  hidden: false
+  backend_roles:
+  - "captains"
+  - "starfleet"
+  attributes: {}
+  description: "Migrated from v6"
+§ÄÖÜäöüß:
+  hash: "$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+'"''+-,;_?*@<>!$%&/()=#':
+  hash: "$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+sarek:
+  hash: "$2a$12$Ioo1uXmH.Nq/lS5dUVBEsePSmZ5pSIpVO/xKHaquU/Jvq97I7nAgG"
+  reserved: false
+  hidden: false
+  backend_roles:
+  - "vulcanadmin"
+  - "vulcan"
+  - "ambassador"
+  attributes: {}
+  description: "Migrated from v6"
 crusherw:
-  hash: $2a$12$61vXe3cXy32p0cjsW0Y/SeZa7kEVSWuQK0jg98D9d5zOGXfo5NgyC
-  #password is: crusherw
-  roles:
-    - starfleet_academy
+  hash: "$2a$12$61vXe3cXy32p0cjsW0Y/SeZa7kEVSWuQK0jg98D9d5zOGXfo5NgyC"
+  reserved: false
+  hidden: false
+  backend_roles:
+  - "starfleet_academy"
+  attributes: {}
+  description: "Migrated from v6"
+worf:
+  hash: "$2a$12$A41IxPXV1/Dx46C6i1ufGubv.p3qYX7xVcY46q33sylYbIqQVwTMu"
+  reserved: false
+  hidden: false
+  backend_roles:
+  - "klingon"
+  - "starfleet"
+  attributes: {}
+  description: "Migrated from v6"
+picard:
+  hash: "$2a$12$wkY2BsRneCU5za1OPYlzsehQit6gu2vprVv/4jHiSEEBv2ThunaTS"
+  reserved: false
+  hidden: false
+  backend_roles:
+  - "captains"
+  - "starfleet"
+  attributes: {}
+  description: "Migrated from v6"
+bug108:
+  hash: "$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+nagilum:
+  hash: "$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"

@@ -32,25 +32,16 @@ package com.amazon.opendistroforelasticsearch.security.privileges;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.TreeSet;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchSecurityException;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.admin.cluster.shards.ClusterSearchShardsRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
@@ -59,6 +50,7 @@ import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexAction;
+import org.elasticsearch.action.admin.indices.mapping.get.GetFieldMappingsRequest;
 import org.elasticsearch.action.bulk.BulkAction;
 import org.elasticsearch.action.bulk.BulkItemRequest;
 import org.elasticsearch.action.bulk.BulkShardRequest;
@@ -67,7 +59,9 @@ import org.elasticsearch.action.get.MultiGetAction;
 import org.elasticsearch.action.index.IndexAction;
 import org.elasticsearch.action.search.MultiSearchAction;
 import org.elasticsearch.action.search.SearchAction;
+import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchScrollAction;
+import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.termvectors.MultiTermVectorsAction;
 import org.elasticsearch.action.update.UpdateAction;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
@@ -75,7 +69,6 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
@@ -84,9 +77,7 @@ import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
-import com.amazon.opendistroforelasticsearch.security.configuration.ActionGroupHolder;
 import com.amazon.opendistroforelasticsearch.security.configuration.ClusterInfoHolder;
-import com.amazon.opendistroforelasticsearch.security.configuration.ConfigurationChangeListener;
 import com.amazon.opendistroforelasticsearch.security.configuration.ConfigurationRepository;
 import com.amazon.opendistroforelasticsearch.security.resolver.IndexResolverReplacer;
 import com.amazon.opendistroforelasticsearch.security.resolver.IndexResolverReplacer.Resolved;
@@ -119,11 +110,8 @@ public class PrivilegesEvaluator implements ConfigurationChangeListener {
 
     private final boolean checkSnapshotRestoreWritePrivileges;
 
-    private ConfigConstants.RolesMappingResolution rolesMappingResolution;
-
     private final ClusterInfoHolder clusterInfoHolder;
-    //private final boolean typeSecurityDisabled = false;
-    private final ConfigModel configModel;
+    private ConfigModel configModel;
     private final IndexResolverReplacer irr;
     private final SnapshotRestoreEvaluator snapshotRestoreEvaluator;
     private final OpenDistroSecurityIndexAccessEvaluator securityIndexAccessEvaluator;
@@ -141,7 +129,6 @@ public class PrivilegesEvaluator implements ConfigurationChangeListener {
                                final IndexResolverReplacer irr, boolean advancedModulesEnabled) {
 
         super();
-        this.configurationRepository = configurationRepository;
         this.clusterService = clusterService;
         this.resolver = resolver;
         this.auditLog = auditLog;
@@ -160,17 +147,11 @@ public class PrivilegesEvaluator implements ConfigurationChangeListener {
                 ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES);
 
         this.clusterInfoHolder = clusterInfoHolder;
-        //this.typeSecurityDisabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_DISABLE_TYPE_SECURITY, false);
-        configModel = new ConfigModel(ah);
-        configurationRepository.subscribeOnChange("roles", configModel);
-        configurationRepository.subscribeOnChange("rolesmapping", this);
         this.irr = irr;
         snapshotRestoreEvaluator = new SnapshotRestoreEvaluator(settings, auditLog);
         securityIndexAccessEvaluator = new OpenDistroSecurityIndexAccessEvaluator(settings, auditLog);
         dlsFlsEvaluator = new DlsFlsEvaluator(settings, threadPool);
         termsAggregationEvaluator = new TermsAggregationEvaluator();
-        tenantHolder = new TenantHolder();
-        configurationRepository.subscribeOnChange("roles", tenantHolder);
         this.advancedModulesEnabled = advancedModulesEnabled;
     }
 

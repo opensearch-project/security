@@ -58,10 +58,11 @@
     
     <!-- deps -->
     <netty-native.version>2.0.20.Final</netty-native.version>
-    <bc.version>1.60</bc.version>
+    <bc.version>1.61</bc.version>
     <log4j.version>2.11.1</log4j.version>
     <guava.version>25.1-jre</guava.version>
     <commons.cli.version>1.3.1</commons.cli.version>
+    <jackson-databind.version>2.8.11.3</jackson-databind.version>
     
     <!-- assembly descriptors -->
     <elasticsearch.assembly.descriptor>${basedir}/src/main/assemblies/plugin.xml</elasticsearch.assembly.descriptor>
@@ -69,7 +70,7 @@
     <veracode.descriptor>${basedir}/src/main/assemblies/veracode.xml</veracode.descriptor>
     
     <!-- Test only -->
-    <mockito.version>1.10.19</mockito.version>
+    <mockito.version>2.23.0</mockito.version>
   </properties>
 
   <scm>
@@ -174,16 +175,38 @@
     </dependency>
 
     <dependency>
-      <groupId>io.netty</groupId>
-      <artifactId>netty-tcnative</artifactId>
-      <version>${netty-native.version}</version>
-      <classifier>${os.detected.classifier}</classifier>
+      <groupId>org.elasticsearch.plugin</groupId>
+      <artifactId>reindex-client</artifactId>
+      <version>${elasticsearch.version}</version>
       <scope>test</scope>
+      <exclusions>
+      <exclusion>
+      <groupId>org.elasticsearch</groupId>
+      <artifactId>elasticsearch-ssl-config</artifactId>
+      </exclusion>
+      <exclusion>
+        <groupId>org.apache.httpcomponents</groupId>
+        <artifactId>httpclient</artifactId>
+      </exclusion>
+      
+      </exclusions>
     </dependency>
 
     <dependency>
-      <groupId>org.elasticsearch.plugin</groupId>
-      <artifactId>reindex-client</artifactId>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpclient</artifactId>
+      <version>4.5.3</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.apache.httpcomponents</groupId>
+          <artifactId>httpcore</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+
+     <dependency>
+      <groupId>org.elasticsearch</groupId>
+      <artifactId>elasticsearch-ssl-config</artifactId>
       <version>${elasticsearch.version}</version>
       <scope>test</scope>
     </dependency>
@@ -218,7 +241,7 @@
     
     <dependency>
       <groupId>org.mockito</groupId>
-      <artifactId>mockito-all</artifactId>
+      <artifactId>mockito-core</artifactId>
       <version>${mockito.version}</version>
       <scope>test</scope>
     </dependency>
@@ -439,6 +462,43 @@
           <groupId>org.conscrypt</groupId>
           <artifactId>conscrypt-openjdk-uber</artifactId>
           <version>1.0.0.RC9</version>
+        </dependency>
+      </dependencies>
+    </profile>
+    <profile>
+      <id>with-static-openssl-linux-non-fedora</id>
+      <dependencies>
+        <dependency>
+          <groupId>com.floragunn</groupId>
+          <artifactId>search-guard-static-tcnative-beta</artifactId>
+          <version>1.1.1a-${netty-native.version}-non-fedora-linux-x86_64</version>
+          <scope>provided</scope>
+        </dependency>
+      </dependencies>
+    </profile>
+    <profile>
+      <id>with-static-openssl-linux-fedora</id>
+      <dependencies>
+        <dependency>
+          <groupId>com.floragunn</groupId>
+          <artifactId>search-guard-static-tcnative-beta</artifactId>
+          <version>1.1.1a-${netty-native.version}-fedora-linux-x86_64</version>
+          <scope>provided</scope>
+        </dependency>
+      </dependencies>
+    </profile>
+    <profile>
+      <id>with-dynamic-openssl</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <dependencies>
+        <dependency>
+          <groupId>io.netty</groupId>
+          <artifactId>netty-tcnative</artifactId>
+          <version>${netty-native.version}</version>
+          <classifier>${os.detected.classifier}</classifier>
+          <scope>provided</scope>
         </dependency>
       </dependencies>
     </profile>

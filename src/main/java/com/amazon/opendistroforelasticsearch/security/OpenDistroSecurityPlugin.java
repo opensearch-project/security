@@ -132,10 +132,8 @@ import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLogSslExcept
 import com.amazon.opendistroforelasticsearch.security.auditlog.NullAuditLog;
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog.Origin;
 import com.amazon.opendistroforelasticsearch.security.auth.BackendRegistry;
-import com.amazon.opendistroforelasticsearch.security.auth.internal.InternalAuthenticationBackend;
 import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
 import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceIndexingOperationListener;
-import com.amazon.opendistroforelasticsearch.security.configuration.ActionGroupHolder;
 import com.amazon.opendistroforelasticsearch.security.configuration.AdminDNs;
 import com.amazon.opendistroforelasticsearch.security.configuration.ClusterInfoHolder;
 import com.amazon.opendistroforelasticsearch.security.configuration.CompatConfig;
@@ -155,6 +153,7 @@ import com.amazon.opendistroforelasticsearch.security.rest.KibanaInfoAction;
 import com.amazon.opendistroforelasticsearch.security.rest.OpenDistroSecurityHealthAction;
 import com.amazon.opendistroforelasticsearch.security.rest.OpenDistroSecurityInfoAction;
 import com.amazon.opendistroforelasticsearch.security.rest.TenantInfoAction;
+import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigFactory;
 import com.amazon.opendistroforelasticsearch.security.ssl.OpenDistroSecuritySSLPlugin;
 import com.amazon.opendistroforelasticsearch.security.ssl.SslExceptionHandler;
 import com.amazon.opendistroforelasticsearch.security.ssl.http.netty.ValidatingDispatcher;
@@ -175,14 +174,13 @@ import com.google.common.collect.Lists;
 public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin implements ClusterPlugin, MapperPlugin {
 
     private static final String KEYWORD = ".keyword";
-    private final boolean tribeNodeClient;
     private final boolean dlsFlsAvailable;
     private final Constructor<?> dlsFlsConstructor;
     private volatile OpenDistroSecurityRestFilter securityRestHandler;
     private volatile OpenDistroSecurityInterceptor odsi;
     private volatile PrivilegesEvaluator evaluator;
     private volatile ThreadPool threadPool;
-    private volatile IndexBaseConfigurationRepository cr;
+    private volatile ConfigurationRepository cr;
     private volatile AdminDNs adminDns;
     private volatile ClusterService cs;
     private volatile AuditLog auditLog;
@@ -444,7 +442,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
 
         final List<RestHandler> handlers = new ArrayList<RestHandler>(1);
 
-        if (!client && !tribeNodeClient && !disabled) {
+        if (!client && !disabled) {
 
             handlers.addAll(super.getRestHandlers(settings, restController, clusterSettings, indexScopedSettings, settingsFilter, indexNameExpressionResolver, nodesInCluster));
 
@@ -631,7 +629,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     public List<TransportInterceptor> getTransportInterceptors(NamedWriteableRegistry namedWriteableRegistry, ThreadContext threadContext) {
         List<TransportInterceptor> interceptors = new ArrayList<TransportInterceptor>(1);
 
-        if (!client && !tribeNodeClient && !disabled && !sslOnly) {
+        if (!client && !disabled && !sslOnly) {
             interceptors.add(new TransportInterceptor() {
 
                 @Override
@@ -683,8 +681,8 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         
         if (transportSSLEnabled) {
             transports.put("com.amazon.opendistroforelasticsearch.security.ssl.http.netty.OpenDistroSecuritySSLNettyTransport",
-                    () -> new OpenDistroSecuritySSLNettyTransport(settings, Version.CURRENT, threadPool, networkService, pageCacheRecycler, namedWriteableRegistry,
-                            circuitBreakerService, odsks, evaluateSslExceptionHandler()));
+                    () -> new OpenDistroSecuritySSLNettyTransport(settings, Version.CURRENT, threadPool, networkService, pageCacheRecycler,
+                            namedWriteableRegistry, circuitBreakerService, odsks, evaluateSslExceptionHandler()));
         }
         return transports;
     }
@@ -736,7 +734,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
 
         final List<Object> components = new ArrayList<Object>();
 
-        if (client || tribeNodeClient || disabled) {
+        if (client || disabled) {
             return components;
         }
         final ClusterInfoHolder cih = new ClusterInfoHolder();
@@ -744,7 +742,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
 
         DlsFlsRequestValve dlsFlsValve = ReflectionHelper.instantiateDlsFlsValve();
 
-        final IndexNameExpressionResolver resolver = new IndexNameExpressionResolver(settings);
+        final IndexNameExpressionResolver resolver = new IndexNameExpressionResolver();
         irr = new IndexResolverReplacer(resolver, clusterService, cih);
         auditLog = ReflectionHelper.instantiateAuditLog(settings, configPath, localClient, threadPool, resolver, clusterService);
         complianceConfig = (dlsFlsAvailable && (auditLog.getClass() != NullAuditLog.class))?new ComplianceConfig(environment, Objects.requireNonNull(irr), auditLog):null;
@@ -1005,7 +1003,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     @Override
     public Collection<Class<? extends LifecycleComponent>> getGuiceServiceClasses() {
 
-        if (client || tribeNodeClient || disabled || sslOnly) {
+        if (client || disabled || sslOnly) {
             return Collections.emptyList();
         }
 

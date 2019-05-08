@@ -91,7 +91,6 @@ public class OpenDistroSecurityIndexAccessEvaluator {
             return presponse.markComplete();
         }
 
-        //TODO: newpeval: check if isAll() is all (contains("_all" or "*"))
         if (requestedResolved.isLocalAll()
                 && WildcardMatcher.matchAny(securityDeniedActionPatterns, action)) {
             auditLog.logSecurityIndexAttempt(request, action, task);
@@ -100,7 +99,6 @@ public class OpenDistroSecurityIndexAccessEvaluator {
             return presponse.markComplete();
         }
 
-      //TODO: newpeval: check if isAll() is all (contains("_all" or "*"))
         if(requestedResolved.getAllIndices().contains(opendistrosecurityIndex) || requestedResolved.isLocalAll()) {
 
             if(request instanceof SearchRequest) {

@@ -76,6 +76,7 @@ public class SlowIntegrationTests extends SingleClusterTest {
                 .put("node.master", false)
                 .put("node.ingest", false)
                 .put("path.home", "/tmp")
+                .put("node.name", "transportclient")
                 .put("discovery.initial_state_timeout","8s")
                 .putList("discovery.zen.ping.unicast.hosts", clusterInfo.nodeHost+":"+clusterInfo.nodePort)
                 .build();
@@ -83,7 +84,7 @@ public class SlowIntegrationTests extends SingleClusterTest {
         log.debug("Start node client");
         
         try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class, OpenDistroSecurityPlugin.class).start()) {
-            Thread.sleep(50);
+            Assert.assertFalse(node.client().admin().cluster().health(new ClusterHealthRequest().waitForNodes(String.valueOf(clusterInfo.numNodes+1))).actionGet().isTimedOut());
             Assert.assertEquals(clusterInfo.numNodes+1, node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());    
         }
     }
@@ -141,8 +142,10 @@ public class SlowIntegrationTests extends SingleClusterTest {
         log.debug("Start node client");
         
         try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class, OpenDistroSecurityPlugin.class).start()) {
-            Thread.sleep(50);
+            Thread.sleep(10000);
             Assert.assertEquals(1, node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());    
+        } catch (Exception e) {
+            Assert.fail(e.toString());
         }
     }
 

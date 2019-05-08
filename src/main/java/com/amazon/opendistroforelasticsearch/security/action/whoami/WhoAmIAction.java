@@ -31,20 +31,14 @@
 package com.amazon.opendistroforelasticsearch.security.action.whoami;
 
 import org.elasticsearch.action.Action;
-import org.elasticsearch.client.ElasticsearchClient;
 
-public class WhoAmIAction extends Action<WhoAmIRequest, WhoAmIResponse, WhoAmIRequestBuilder> {
+public class WhoAmIAction extends Action<WhoAmIResponse> {
 
     public static final WhoAmIAction INSTANCE = new WhoAmIAction();
     public static final String NAME = "cluster:admin/opendistro_security/whoami";
 
     protected WhoAmIAction() {
         super(NAME);
-    }
-
-    @Override
-    public WhoAmIRequestBuilder newRequestBuilder(final ElasticsearchClient client) {
-        return new WhoAmIRequestBuilder(client, this);
     }
 
     @Override

@@ -222,6 +222,8 @@ public class ConfigConstants {
 
     public static final String OPENDISTRO_SECURITY_SSL_ONLY = "opendistro_security.ssl_only";
     
+    public static final String OPENDISTRO_SECURITY_DISABLE_ENVVAR_REPLACEMENT = "security.disable_envvar_replacement";
+    
     public enum RolesMappingResolution {
         MAPPING_ONLY,
         BACKENDROLES_ONLY,

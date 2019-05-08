@@ -30,16 +30,15 @@
 
 package com.amazon.opendistroforelasticsearch.security.auth;
 
-import java.nio.file.Path;
+
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
-import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
@@ -62,19 +61,17 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportRequest;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
-import com.amazon.opendistroforelasticsearch.security.auth.internal.InternalAuthenticationBackend;
+import com.amazon.opendistroforelasticsearch.security.auth.blocking.ClientBlockRegistry;
 import com.amazon.opendistroforelasticsearch.security.auth.internal.NoOpAuthenticationBackend;
-import com.amazon.opendistroforelasticsearch.security.auth.internal.NoOpAuthorizationBackend;
 import com.amazon.opendistroforelasticsearch.security.configuration.AdminDNs;
-import com.amazon.opendistroforelasticsearch.security.configuration.ConfigurationChangeListener;
-import com.amazon.opendistroforelasticsearch.security.http.HTTPBasicAuthenticator;
-import com.amazon.opendistroforelasticsearch.security.http.HTTPClientCertAuthenticator;
-import com.amazon.opendistroforelasticsearch.security.http.HTTPProxyAuthenticator;
 import com.amazon.opendistroforelasticsearch.security.http.XFFResolver;
+import com.amazon.opendistroforelasticsearch.security.securityconf.ConfigModel;
+import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigFactory.DCFListener;
+import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigModel;
+import com.amazon.opendistroforelasticsearch.security.securityconf.InternalUsersModel;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.Utils;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.HTTPHelper;
-import com.amazon.opendistroforelasticsearch.security.support.ReflectionHelper;
 import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 import com.google.common.base.Strings;
@@ -82,23 +79,27 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
+import com.google.common.collect.Multimap;
 
-public class BackendRegistry implements ConfigurationChangeListener {
+public class BackendRegistry implements DCFListener {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
-    private final Map<String, String> authImplMap = new HashMap<>();
     private SortedSet<AuthDomain> restAuthDomains;
     private Set<AuthorizationBackend> restAuthorizers;
     private SortedSet<AuthDomain> transportAuthDomains;
     private Set<AuthorizationBackend> transportAuthorizers;
-    private List<Destroyable> destroyableComponents;
+
+    private List<AuthFailureListener> ipAuthFailureListeners;
+    private Multimap<String, AuthFailureListener> authBackendFailureListeners;
+    private List<ClientBlockRegistry<InetAddress>> ipClientBlockRegistries;
+    private Multimap<String, ClientBlockRegistry<String>> authBackendClientBlockRegistries;
+
     private volatile boolean initialized;
     private final AdminDNs adminDns;
     private final XFFResolver xffResolver;
     private volatile boolean anonymousAuthEnabled = false;
     private final Settings esSettings;
-    private final Path configPath;
-    private final InternalAuthenticationBackend iab;
+    //private final InternalAuthenticationBackend iab;
     private final AuditLog auditLog;
     private final ThreadPool threadPool;
     private final UserInjector userInjector;
@@ -110,12 +111,12 @@ public class BackendRegistry implements ConfigurationChangeListener {
 
     private Cache<User, Set<String>> transportRoleCache; //
     private Cache<User, Set<String>> restRoleCache; //
+    private Cache<String, User> transportImpersonationCache; //used for transport impersonation
 
     private volatile String transportUsernameAttribute = null;
     
     private void createCaches() {
-        userCache = CacheBuilder.newBuilder()
-                .expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
+        userCache = CacheBuilder.newBuilder().expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
                 .removalListener(new RemovalListener<AuthCredentials, User>() {
                     @Override
                     public void onRemoval(RemovalNotification<AuthCredentials, User> notification) {
@@ -123,8 +124,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
                     }
                 }).build();
 
-        userCacheTransport = CacheBuilder.newBuilder()
-                .expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
+        userCacheTransport = CacheBuilder.newBuilder().expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
                 .removalListener(new RemovalListener<String, User>() {
                     @Override
                     public void onRemoval(RemovalNotification<String, User> notification) {
@@ -132,8 +132,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
                     }
                 }).build();
 
-        authenticatedUserCacheTransport = CacheBuilder.newBuilder()
-                .expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
+        authenticatedUserCacheTransport = CacheBuilder.newBuilder().expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
                 .removalListener(new RemovalListener<AuthCredentials, User>() {
                     @Override
                     public void onRemoval(RemovalNotification<AuthCredentials, User> notification) {
@@ -141,8 +140,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
                     }
                 }).build();
 
-        restImpersonationCache = CacheBuilder.newBuilder()
-                .expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
+        restImpersonationCache = CacheBuilder.newBuilder().expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
                 .removalListener(new RemovalListener<String, User>() {
                     @Override
                     public void onRemoval(RemovalNotification<String, User> notification) {
@@ -159,23 +157,29 @@ public class BackendRegistry implements ConfigurationChangeListener {
                     }
                 }).build();
 
-        restRoleCache = CacheBuilder.newBuilder()
-                .expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
+        restRoleCache = CacheBuilder.newBuilder().expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
                 .removalListener(new RemovalListener<User, Set<String>>() {
                     @Override
                     public void onRemoval(RemovalNotification<User, Set<String>> notification) {
                         log.debug("Clear user cache for {} due to {}", notification.getKey(), notification.getCause());
                     }
                 }).build();
+
+        transportImpersonationCache = CacheBuilder.newBuilder().expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
+                .removalListener(new RemovalListener<String, User>() {
+                    @Override
+                    public void onRemoval(RemovalNotification<String, User> notification) {
+                        log.debug("Clear user cache for {} due to {}", notification.getKey(), notification.getCause());
+                    }
+                }).build();
+
     }
 
-    public BackendRegistry(final Settings settings, final Path configPath, final AdminDNs adminDns,
-            final XFFResolver xffResolver, final InternalAuthenticationBackend iab, final AuditLog auditLog, final ThreadPool threadPool) {
+    public BackendRegistry(final Settings settings, final AdminDNs adminDns,
+            final XFFResolver xffResolver, final AuditLog auditLog, final ThreadPool threadPool) {
         this.adminDns = adminDns;
         this.esSettings = settings;
-        this.configPath = configPath;
         this.xffResolver = xffResolver;
-        this.iab = iab;
         this.auditLog = auditLog;
         this.threadPool = threadPool;
         this.userInjector = new UserInjector(settings, threadPool, auditLog, xffResolver);
@@ -216,6 +220,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
         restImpersonationCache.invalidateAll();
         restRoleCache.invalidateAll();
         transportRoleCache.invalidateAll();
+        transportImpersonationCache.invalidateAll();
     }
 
     @Override
@@ -380,6 +385,11 @@ public class BackendRegistry implements ConfigurationChangeListener {
         //loop over all transport auth domains
         for (final AuthDomain authDomain: transportAuthDomains) {
 
+            
+            if(log.isDebugEnabled()) {
+                log.debug("Check transport authdomain {}/{} or {} in total", authDomain.getBackend().getType(), authDomain.getOrder(), transportAuthDomains.size());
+            }
+            
             User authenticatedUser = null;
 
             if(creds == null) {
@@ -387,7 +397,8 @@ public class BackendRegistry implements ConfigurationChangeListener {
                 //impersonation possible
                 impersonatedTransportUser = impersonate(request, origPKIUser);
                 origPKIUser = resolveTransportUsernameAttribute(origPKIUser);
-                authenticatedUser = checkExistsAndAuthz(userCacheTransport, impersonatedTransportUser==null?origPKIUser:impersonatedTransportUser, authDomain.getBackend(), transportAuthorizers);
+                authenticatedUser = checkExistsAndAuthz(userCacheTransport,
+                        impersonatedTransportUser == null ? origPKIUser : impersonatedTransportUser, authDomain.getBackend(), transportAuthorizers);
             } else {
                  //auth credentials submitted
                 //impersonation not possible, if requested it will be ignored
@@ -402,16 +413,17 @@ public class BackendRegistry implements ConfigurationChangeListener {
             }
 
             if(adminDns.isAdmin(authenticatedUser)) {
-                log.error("Cannot authenticate user because admin user is not permitted to login");
+                log.error("Cannot authenticate transport user because admin user is not permitted to login");
                 auditLog.logFailedLogin(authenticatedUser.getName(), true, null, request, task);
                 return null;
             }
 
             if(log.isDebugEnabled()) {
-                log.debug("User '{}' is authenticated", authenticatedUser);
+                log.debug("Transport user '{}' is authenticated", authenticatedUser);
             }
 
-            auditLog.logSucceededLogin(authenticatedUser.getName(), false, impersonatedTransportUser==null?null:origPKIUser.getName(), request, action, task);
+            auditLog.logSucceededLogin(authenticatedUser.getName(), false, impersonatedTransportUser == null ? null : origPKIUser.getName(), request,
+                    action, task);
 
             return authenticatedUser;
         }//end looping auth domains
@@ -429,7 +441,6 @@ public class BackendRegistry implements ConfigurationChangeListener {
         return null;
     }
 
-
     /**
      *
      * @param request
@@ -438,6 +449,16 @@ public class BackendRegistry implements ConfigurationChangeListener {
      * @throws ElasticsearchSecurityException
      */
     public boolean authenticate(final RestRequest request, final RestChannel channel, final ThreadContext threadContext) {
+
+        if (request.getHttpChannel().getRemoteAddress() instanceof InetSocketAddress && isBlocked(((InetSocketAddress) request.getHttpChannel().getRemoteAddress()).getAddress())) {
+            if (log.isDebugEnabled()) {
+                log.debug("Rejecting REST request because of blocked address: " + request.getHttpChannel().getRemoteAddress());
+            }
+            
+            channel.sendResponse(new BytesRestResponse(RestStatus.UNAUTHORIZED, "Authentication finally failed"));
+
+            return false;
+        }
 
         final String sslPrincipal = (String) threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL);
 
@@ -496,6 +517,15 @@ public class BackendRegistry implements ConfigurationChangeListener {
                 }
                 continue;
             }
+
+            if (ac != null && isBlocked(authDomain.getBackend().getClass().getName(), ac.getUsername())) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Rejecting REST request because of blocked user: " + ac.getUsername() + "; authDomain: " + authDomain);
+                }
+
+                continue;
+            }
+
             authCredenetials = ac;
 
             if (ac == null) {
@@ -600,6 +630,18 @@ public class BackendRegistry implements ConfigurationChangeListener {
         }
 
         return authenticated;
+    }
+
+    private void notifyIpAuthFailureListeners(RestRequest request, AuthCredentials authCredentials) {
+        notifyIpAuthFailureListeners(
+                (request.getHttpChannel().getRemoteAddress() instanceof InetSocketAddress) ? ((InetSocketAddress) request.getHttpChannel().getRemoteAddress()).getAddress() : null,
+                authCredentials, request);
+    }
+
+    private void notifyIpAuthFailureListeners(InetAddress remoteAddress, AuthCredentials authCredentials, Object request) {
+        for (AuthFailureListener authFailureListener : this.ipAuthFailureListeners) {
+            authFailureListener.onAuthFailure(remoteAddress, authCredentials, request);
+        }
     }
 
     /**
@@ -741,7 +783,8 @@ public class BackendRegistry implements ConfigurationChangeListener {
         User aU = origPKIuser;
 
         if (adminDns.isAdminDN(impersonatedUser)) {
-            throw new ElasticsearchSecurityException("'"+origPKIuser.getName() + "' is not allowed to impersonate as an adminuser  '" + impersonatedUser+"'");
+            throw new ElasticsearchSecurityException(
+                    "'" + origPKIuser.getName() + "' is not allowed to impersonate as an adminuser  '" + impersonatedUser + "'");
         }
 
         try {
@@ -779,8 +822,8 @@ public class BackendRegistry implements ConfigurationChangeListener {
         }
 
         if (!adminDns.isRestImpersonationAllowed(originalUser.getName(), impersonatedUserHeader)) {
-            throw new ElasticsearchSecurityException("'" + originalUser.getName() + "' is not allowed to impersonate as '" + impersonatedUserHeader
-                    + "'", RestStatus.FORBIDDEN);
+            throw new ElasticsearchSecurityException(
+                    "'" + originalUser.getName() + "' is not allowed to impersonate as '" + impersonatedUserHeader + "'", RestStatus.FORBIDDEN);
         } else {
             //loop over all http/rest auth domains
             for (final AuthDomain authDomain: restAuthDomains) {
@@ -798,7 +841,8 @@ public class BackendRegistry implements ConfigurationChangeListener {
                 return impersonatedUser;
             }
 
-            log.debug("Unable to impersonate rest user from '{}' to '{}' because the impersonated user does not exists", originalUser.getName(), impersonatedUserHeader);
+            log.debug("Unable to impersonate rest user from '{}' to '{}' because the impersonated user does not exists", originalUser.getName(),
+                    impersonatedUserHeader);
             throw new ElasticsearchSecurityException("No such user:" + impersonatedUserHeader, RestStatus.FORBIDDEN);
         }
 
@@ -850,4 +894,40 @@ public class BackendRegistry implements ConfigurationChangeListener {
         
         return pkiUser;
     }
+
+    private boolean isBlocked(InetAddress address) {
+        if (this.ipClientBlockRegistries == null || this.ipClientBlockRegistries.isEmpty()) {
+            return false;
+        }
+
+        for (ClientBlockRegistry<InetAddress> clientBlockRegistry : ipClientBlockRegistries) {
+            if (clientBlockRegistry.isBlocked(address)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private boolean isBlocked(String authBackend, String userName) {
+
+        if (this.authBackendClientBlockRegistries == null) {
+            return false;
+        }
+
+        Collection<ClientBlockRegistry<String>> clientBlockRegistries = this.authBackendClientBlockRegistries.get(authBackend);
+
+        if (clientBlockRegistries.isEmpty()) {
+            return false;
+        }
+
+        for (ClientBlockRegistry<String> clientBlockRegistry : clientBlockRegistries) {
+            if (clientBlockRegistry.isBlocked(userName)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
 }

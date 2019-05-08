@@ -34,7 +34,7 @@ curl -Ss --fail --compressed -u "$VERA_USER:$VERA_PASSWORD" "https://analysiscen
   -F "app_id=$APPID" \
   -F "file=@$PLUGIN_FILE" \
   -F "sandbox_id=$SANDBOXID" \
-  | xmllint --format - 2>&1 | tee  vera.log
+  | xmllint --format - 2>&1 | sed 's/.*<buildinfo\(.*\)buildinfo>.*/\1/' | tee  vera.log
 
 echo ""
 echo "Start pre scan"
@@ -44,7 +44,7 @@ echo "Start pre scan"
 
 #curl -Ss --fail --compressed -u "$VERA_USER:$VERA_PASSWORD" "https://analysiscenter.veracode.com/api/5.0/beginscan.do" -F "app_id=$APPID" -F "sandbox_id=$SANDBOXID" -F "modules=932413446,932413464,932413518,932413454,932413453"
 
-curl -Ss --fail --compressed -u "$VERA_USER:$VERA_PASSWORD"  https://analysiscenter.veracode.com/api/5.0/beginprescan.do -F "app_id=$APPID" -F "sandbox_id=$SANDBOXID" -F "auto_scan=true" -F "scan_all_nonfatal_top_level_modules=true" | xmllint --format -  2>&1 | tee -a vera.log
+curl -Ss --fail --compressed -u "$VERA_USER:$VERA_PASSWORD"  https://analysiscenter.veracode.com/api/5.0/beginprescan.do -F "app_id=$APPID" -F "sandbox_id=$SANDBOXID" -F "auto_scan=true" -F "scan_all_nonfatal_top_level_modules=true" | xmllint --format -  2>&1 | sed 's/.*<buildinfo\(.*\)buildinfo>.*/\1/' | tee -a vera.log
 
 echo ""
 echo ""

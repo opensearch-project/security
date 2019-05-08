@@ -35,7 +35,7 @@ import org.elasticsearch.client.ClusterAdminClient;
 import org.elasticsearch.client.ElasticsearchClient;
 
 public class WhoAmIRequestBuilder extends
-ActionRequestBuilder<WhoAmIRequest, WhoAmIResponse, WhoAmIRequestBuilder> {    
+ActionRequestBuilder<WhoAmIRequest, WhoAmIResponse> {    
     public WhoAmIRequestBuilder(final ClusterAdminClient client) {
         this(client, WhoAmIAction.INSTANCE);
     }
