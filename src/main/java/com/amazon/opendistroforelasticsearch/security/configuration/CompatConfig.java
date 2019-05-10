@@ -69,7 +69,7 @@ public class CompatConfig implements DCFListener {
                 }
                 return false;
             } else {
-                final boolean restDynamicallyDisabled = dynamicSecurityConfig.getAsBoolean("opendistro_security.dynamic.disable_rest_auth", false);
+                final boolean restDynamicallyDisabled = dcm.isRestAuthDisabled();
                 if(log.isTraceEnabled()) {
                     log.trace("opendistro_security.dynamic.disable_rest_auth {}", restDynamicallyDisabled);
                 }
@@ -92,7 +92,7 @@ public class CompatConfig implements DCFListener {
                 }
                 return false;
             } else {
-                final boolean interClusterAuthDynamicallyDisabled = dynamicSecurityConfig.getAsBoolean("opendistro_security.dynamic.disable_intertransport_auth", false);
+                final boolean interClusterAuthDynamicallyDisabled = dcm.isInterTransportAuthDisabled();
                 if(log.isTraceEnabled()) {
                     log.trace("opendistro_security.dynamic.disable_intertransport_auth {}", interClusterAuthDynamicallyDisabled);
                 }

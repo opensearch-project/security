@@ -52,7 +52,8 @@ import org.elasticsearch.transport.TransportService;
 
 import com.amazon.opendistroforelasticsearch.security.auth.BackendRegistry;
 import com.amazon.opendistroforelasticsearch.security.configuration.ConfigurationRepository;
-import com.amazon.opendistroforelasticsearch.security.configuration.IndexBaseConfigurationRepository;
+import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigFactory;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
 
 public class TransportConfigUpdateAction
 extends
@@ -122,8 +123,8 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
 	
     @Override
     protected ConfigUpdateNodeResponse nodeOperation(final NodeConfigUpdateRequest request) {
-        final Map<String, Settings> setn = configurationRepository.reloadConfiguration(Arrays.asList(request.request.getConfigTypes()));
+        configurationRepository.reloadConfiguration(CType.fromStringValues((request.request.getConfigTypes())));
         backendRegistry.get().invalidateCache();
-        return new ConfigUpdateNodeResponse(clusterService.localNode(), setn.keySet().toArray(new String[0]), null); 
+        return new ConfigUpdateNodeResponse(clusterService.localNode(), request.request.getConfigTypes(), null);
     }
 }

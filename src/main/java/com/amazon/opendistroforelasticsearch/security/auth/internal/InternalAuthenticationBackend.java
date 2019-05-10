@@ -34,9 +34,10 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
 import org.elasticsearch.ElasticsearchSecurityException;
@@ -60,68 +61,40 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Aut
         if(user == null || internalUsersModel == null) {
             return false;
         }
-        
-        String hashed = cfg.get(user.getName() + ".hash");
 
-        if (hashed == null) {
-            
-            for(String username:cfg.names()) {
-                String u = cfg.get(username + ".username");
-                if(user.getName().equals(u)) {
-                    hashed = cfg.get(username+ ".hash");
-                    break;
+        final boolean exists = internalUsersModel.exists(user.getName());
+
+        if (exists) {
+            user.addRoles(internalUsersModel.getBackenRoles(user.getName()));
+            final Map<String, String> customAttributes = internalUsersModel.getAttributes(user.getName());
+            Map<String, String> attributeMap = new HashMap<String, String>();
+
+            if (customAttributes != null) {
+                for (String attributeName : customAttributes.names()) {
+                    attributeMap.put("attr.internal." + attributeName, customAttributes.get(attributeName));
                 }
             }
-            
-            if(hashed == null) {
-                return false;
-            }
-        }
-        
-        final List<String> roles = cfg.getAsList(user.getName() + ".roles", Collections.emptyList());
-        
-        if(roles != null) {
-            user.addRoles(roles);
-        }
-        
-        final Settings customAttributes = cfg.getAsSettings(user.getName() + ".attributes");
-        HashMap<String, String> attributeMap = new HashMap<String, String>();
 
-        if(customAttributes != null) {
-            for(String attributeName: customAttributes.names()) {
-                attributeMap.put("attr.internal."+attributeName, customAttributes.get(attributeName));
-            }
+            user.addAttributes(attributeMap);
+
+            return true;
         }
 
-        user.addAttributes(attributeMap);
-
-        return true;
+        return false;
     }
     
     @Override
     public User authenticate(final AuthCredentials credentials) {
-        
-        final Settings cfg = getConfigSettings();
-        if (cfg == null) {
+
+        if (internalUsersModel == null) {
             throw new ElasticsearchSecurityException("Internal authentication backend not configured. May be Open Distro Security is not initialized");
 
         }
 
         String hashed = cfg.get(credentials.getUsername() + ".hash");
 
-        if (hashed == null) {
-            
-            for(String username:cfg.names()) {
-                String u = cfg.get(username + ".username");
-                if(credentials.getUsername().equals(u)) {
-                    hashed = cfg.get(username+ ".hash");
-                    break;
-                }
-            }
-            
-            if(hashed == null) {
-                throw new ElasticsearchSecurityException(credentials.getUsername() + " not found");
-            }
+        if(!internalUsersModel.exists(credentials.getUsername())) {
+            throw new ElasticsearchSecurityException(credentials.getUsername() + " not found");
         }
         
         final byte[] password = credentials.getPassword();
@@ -156,29 +129,32 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Aut
             Arrays.fill(array, '\0');
         }
     }
-
-        return false;
-    }
     
     @Override
     public String getType() {
         return "internal";
     }
 
-    private Settings getConfigSettings() {
-        return configurationRepository.getConfiguration(ConfigConstants.CONFIGNAME_INTERNAL_USERS);
-    }
-
     @Override
     public void fillRoles(User user, AuthCredentials credentials) throws ElasticsearchSecurityException {
-        final Settings cfg = getConfigSettings();
-        if (cfg == null) {
+
+        if (internalUsersModel == null) {
             throw new ElasticsearchSecurityException("Internal authentication backend not configured. May be Open Distro Security is not initialized.");
 
         }
-        final List<String> roles = cfg.getAsList(credentials.getUsername() + ".roles", Collections.emptyList());
-        if(roles != null && !roles.isEmpty() && user != null) {
-            user.addRoles(roles);
+        if(exists(user)) {
+            final List<String> roles = internalUsersModel.getBackenRoles(user.getName());
+            if (roles != null && !roles.isEmpty() && user != null) {
+                user.addRoles(roles);
+            }
         }
+
     }
+
+    @Override
+    public void onChanged(ConfigModel cf, DynamicConfigModel dcf, InternalUsersModel ium) {
+        this.internalUsersModel = ium;
+    }
+
+
 }
