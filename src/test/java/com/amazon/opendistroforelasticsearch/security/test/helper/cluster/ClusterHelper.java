@@ -138,13 +138,19 @@ public final class ClusterHelper {
 		
 		final AtomicReference<Exception> err = new AtomicReference<Exception>();
 
+		List<NodeSettings> internalMasterNodeSettings = clusterConfiguration.getMasterNodeSettings();
+		List<NodeSettings> internalNonMasterNodeSettings = clusterConfiguration.getNonMasterNodeSettings();
+
+		int nodeNumCounter = internalNodeSettings.size();
+
 		for (int i = 0; i < internalNodeSettings.size(); i++) {
 			NodeSettings setting = internalNodeSettings.get(i);
+			int nodeNum = nodeNumCounter--;
 			
 			
 			PluginAwareNode node = new PluginAwareNode(setting.masterNode,
-					getMinimumNonSgNodeSettingsBuilder(i, setting.masterNode, setting.dataNode, setting.tribeNode, internalNodeSettings.size(), clusterConfiguration.getMasterNodes(), tcpPorts, tcpPortsIt.next(), httpPortsIt.next())
-							.put(nodeSettingsSupplier == null ? Settings.Builder.EMPTY_SETTINGS : nodeSettingsSupplier.get(i)).build(), setting.getPlugins());
+					getMinimumNonSgNodeSettingsBuilder(nodeNum, setting.masterNode, setting.dataNode, internalNodeSettings.size(), tcpMasterPortsOnly, tcpPortsAllIt.next(), httpPortsIt.next())
+							.put(nodeSettingsSupplier == null ? Settings.Builder.EMPTY_SETTINGS : nodeSettingsSupplier.get(nodeNum)).build(), setting.getPlugins());
 			System.out.println(node.settings());
 			
 			new Thread(new Runnable() {
@@ -337,7 +343,7 @@ public final class ClusterHelper {
 
 	// @formatter:off
 	private Settings.Builder getMinimumNonSgNodeSettingsBuilder(final int nodenum, final boolean masterNode,
-			final boolean dataNode, final boolean tribeNode, int nodeCount, int masterCount, SortedSet<Integer> tcpPorts, int tcpPort, int httpPort) {
+																final boolean dataNode, int nodeCount, SortedSet<Integer> masterTcpPorts, /*SortedSet<Integer> nonMasterTcpPorts,*/ int tcpPort, int httpPort) {
 
 		return Settings.builder()
 		        .put("node.name", "node_"+clustername+ "_num" + nodenum)

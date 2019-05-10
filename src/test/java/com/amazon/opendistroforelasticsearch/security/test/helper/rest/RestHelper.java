@@ -269,6 +269,22 @@ public class RestHelper {
 			inner.close();
 		}
 
+		public String getContentType() {
+			Header h = getInner().getFirstHeader("content-type");
+			if(h!= null) {
+				return h.getValue();
+			}
+			return null;
+		}
+
+		public boolean isJsonContentType() {
+			String ct = getContentType();
+			if(ct == null) {
+				return false;
+			}
+			return ct.contains("application/json");
+		}
+
 		public CloseableHttpResponse getInner() {
 			return inner;
 		}

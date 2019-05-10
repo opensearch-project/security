@@ -46,10 +46,6 @@ public class PluginAwareNode extends Node {
         this.masterEligible = masterEligible;
     }
     
-    @Override
-    protected void registerDerivedNodeNameWithLogger(String nodeName) {
-        LogConfigurator.setNodeName(nodeName);
-    }
 
     public boolean isMasterEligible() {
         return masterEligible;

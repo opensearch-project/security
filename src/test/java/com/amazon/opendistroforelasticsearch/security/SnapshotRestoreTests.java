@@ -74,7 +74,6 @@ public class SnapshotRestoreTests extends SingleClusterTest {
     
         final Settings settings = Settings.builder()
                 .putList("path.repo", repositoryPath.getRoot().getAbsolutePath())
-                .put("opendistro_security.enable_snapshot_restore_privilege", true)
                 .put("opendistro_security.check_snapshot_restore_write_privileges", false)
                 .put("opendistro_security.unsupported.restore.securityindex.enabled", true)
                 .build();
@@ -137,7 +136,6 @@ public class SnapshotRestoreTests extends SingleClusterTest {
     
         final Settings settings = Settings.builder()
                 .putList("path.repo", repositoryPath.getRoot().getAbsolutePath())
-                .put("opendistro_security.enable_snapshot_restore_privilege", true)
                 .put("opendistro_security.check_snapshot_restore_write_privileges", false)
                 .build();
     
@@ -191,8 +189,6 @@ public class SnapshotRestoreTests extends SingleClusterTest {
     
         final Settings settings = Settings.builder()
                 .putList("path.repo", repositoryPath.getRoot().getAbsolutePath())
-                .put("opendistro_security.enable_snapshot_restore_privilege", true)
-                .put("opendistro_security.check_snapshot_restore_write_privileges", true)
                 .build();
     
         setup(settings, currentClusterConfig);
@@ -259,8 +255,6 @@ public class SnapshotRestoreTests extends SingleClusterTest {
     
         final Settings settings = Settings.builder()
                 .putList("path.repo", repositoryPath.getRoot().getAbsolutePath())
-                .put("opendistro_security.enable_snapshot_restore_privilege", true)
-                .put("opendistro_security.check_snapshot_restore_write_privileges", true)
                 .build();
     
         setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityActionGroups("action_groups_packaged.yml"), settings, true, currentClusterConfig);

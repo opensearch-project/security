@@ -86,12 +86,6 @@
   </issueManagement>
 
   <dependencies>
-    <!-- Elastic Search Security SSL -->
-    <dependency>
-      <groupId>com.amazon.opendistroforelasticsearch</groupId>
-      <artifactId>opendistro_security_ssl</artifactId>
-      <version>${opendistro_security_ssl.version}</version>
-    </dependency>
 
     <!-- Netty 4 transport -->
     <dependency>
@@ -152,6 +146,18 @@
       <artifactId>log4j-core</artifactId>
       <version>${log4j.version}</version>
       <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>${jackson-databind.version}</version>
+      <exclusions>
+        <exclusion>
+          <artifactId>jackson-core</artifactId>
+          <groupId>com.fasterxml.jackson.core</groupId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
 
@@ -246,15 +252,6 @@
       <scope>test</scope>
     </dependency>
 
-    <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-core</artifactId>
-      <version>${log4j.version}</version>
-      <type>test-jar</type>
-      <scope>test</scope>
-    </dependency>
-  </dependencies>
-
   <build>
     <plugins>
       <plugin>
@@ -269,8 +266,7 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
 
-        <version>3.0.0-M3</version>
-        
+
         <configuration>
           <argLine>-Xmx3072m</argLine>
           <rerunFailingTestsCount>3</rerunFailingTestsCount>
