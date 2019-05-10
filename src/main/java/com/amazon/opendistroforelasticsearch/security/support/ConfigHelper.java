@@ -92,4 +92,22 @@ public class ConfigHelper {
         return retVal;
     }
 
+    public static <T> SgDynamicConfiguration<T> fromYamlReader(Reader yamlReader, CType ctype, int version, long seqNo, long primaryTerm) throws IOException {
+        try {
+            return SgDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(yamlReader), ctype, version, seqNo, primaryTerm);
+        } finally {
+            if(yamlReader != null) {
+                yamlReader.close();
+            }
+        }
+    }
+
+    public static <T> SgDynamicConfiguration<T> fromYamlFile(String filepath, CType ctype, int version, long seqNo, long primaryTerm) throws IOException {
+        return fromYamlReader(new FileReader(filepath), ctype, version, seqNo, primaryTerm);
+    }
+
+    public static <T> SgDynamicConfiguration<T> fromYamlString(String yamlString, CType ctype, int version, long seqNo, long primaryTerm) throws IOException {
+        return fromYamlReader(new StringReader(yamlString), ctype, version, seqNo, primaryTerm);
+    }
+
 }

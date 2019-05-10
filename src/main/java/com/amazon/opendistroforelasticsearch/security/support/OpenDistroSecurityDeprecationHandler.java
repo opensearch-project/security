@@ -50,7 +50,7 @@ public class OpenDistroSecurityDeprecationHandler {
         public void deprecated(String message, Object... params) {
             throw new UnsupportedOperationException(
                     "deprecations are not supported here but got [" + message + "] and " + Arrays.toString(params));
-        }
+        }*/
     };
 
 }

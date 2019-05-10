@@ -43,8 +43,7 @@ import io.netty.channel.ChannelHandler;
 
 public class OpenDistroSecurityNonSslHttpServerTransport extends Netty4HttpServerTransport {
 
-    private final ThreadContext threadContext;
-    
+
     public OpenDistroSecurityNonSslHttpServerTransport(final Settings settings, final NetworkService networkService, final BigArrays bigArrays,
             final ThreadPool threadPool, final NamedXContentRegistry namedXContentRegistry, final Dispatcher dispatcher) {
         super(settings, networkService, bigArrays, threadPool, namedXContentRegistry, dispatcher);

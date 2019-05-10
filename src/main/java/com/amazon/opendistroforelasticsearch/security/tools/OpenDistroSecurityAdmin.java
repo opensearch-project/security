@@ -103,6 +103,8 @@ import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.plugins.PluginInfo;
 import org.elasticsearch.transport.Netty4Plugin;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
 import com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin;
 import com.amazon.opendistroforelasticsearch.security.action.configupdate.ConfigUpdateAction;
 import com.amazon.opendistroforelasticsearch.security.action.configupdate.ConfigUpdateNodeResponse;
@@ -124,11 +126,18 @@ import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.Tenan
 import com.amazon.opendistroforelasticsearch.security.ssl.util.ExceptionUtils;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
+import com.amazon.opendistroforelasticsearch.security.support.ConfigHelper;
 import com.amazon.opendistroforelasticsearch.security.support.OpenDistroSecurityDeprecationHandler;
+import com.amazon.opendistroforelasticsearch.security.support.SgJsonNode;
+import com.amazon.opendistroforelasticsearch.security.support.OpenDistroSecurityUtils;
+import com.google.common.io.CharStreams;
 import com.google.common.io.Files;
 
+@SuppressWarnings("deprecation")
 public class OpenDistroSecurityAdmin {
-    
+
+    private static final boolean CREATE_AS_LEGACY = Boolean.parseBoolean(System.getenv("OPENDISTRO_SECURITY_ADMIN_CREATE_AS_LEGACY"));
+    private static final boolean ALLOW_MIXED = Boolean.parseBoolean(System.getenv("OPENDISTRO_SECURITY_ADMIN_ALLOW_MIXED_CLUSTER"));
     private static final String OPENDISTRO_SECURITY_TS_PASS = "OPENDISTRO_SECURITY_TS_PASS";
     private static final String OPENDISTRO_SECURITY_KS_PASS = "OPENDISTRO_SECURITY_KS_PASS";
     private static final String OPENDISTRO_SECURITY_KEYPASS = "OPENDISTRO_SECURITY_KEYPASS";
@@ -174,9 +183,9 @@ public class OpenDistroSecurityAdmin {
         }
     }
 
-    private static void main0(final String[] args) throws Exception {
+    public static int execute(final String[] args) throws Exception {
         
-        System.out.println("Open Distro Security Admin v6");
+        System.out.println("Open Distro Security Admin v7");
         System.setProperty("security.nowarn.client","true");
         System.setProperty("jdk.tls.rejectClientInitiatedRenegotiation","true");
 
@@ -506,11 +515,6 @@ public class OpenDistroSecurityAdmin {
         TransportClient tc = new TransportClientImpl(settings, asCollection(Netty4Plugin.class, OpenDistroSecurityPlugin.class))
                 .addTransportAddress(new TransportAddress(new InetSocketAddress(hostname, port)))) {
 
-            try {
-                issueWarnings(tc);
-            } catch (Exception e1) {
-                System.out.println("Unable to check whether cluster is sane: "+e1.getMessage());
-            }
             
             final WhoAmIResponse whoAmIRes = tc.execute(WhoAmIAction.INSTANCE, new WhoAmIRequest()).actionGet();
             System.out.println("Connected as "+whoAmIRes.getDn());
@@ -532,15 +536,27 @@ public class OpenDistroSecurityAdmin {
                 System.out.println("ERR: Seems you use a node certificate which is also an admin certificate");
                 System.out.println("     That may have worked with older Open Distro Security versions but it indicates");
                 System.out.println("     a configuration error and is therefore forbidden now.");
-                if(failFast) {
-                    System.exit(-1);
+                if (failFast) {
+                    return (-1);
                 }
 
             }
 
+            try {
+                if(issueWarnings(tc) != 0) {
+                    return (-1);
+                }
+            } catch (Exception e1) {
+                System.out.println("Unable to check whether cluster is sane");
+                throw e1;
+            }
+
             if(updateSettings != null) { 
-                Settings indexSettings = Settings.builder().put("index.number_of_replicas", updateSettings).build();                
-                tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();                
+                Settings indexSettings = Settings.builder().put("index.number_of_replicas", updateSettings).build();
+                ConfigUpdateResponse res = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
+                if(res.hasFailures()) {
+                    System.out.println("ERR: Unabe to reload config due to "+res.failures());
+                }
                 final AcknowledgedResponse response = tc.admin().indices().updateSettings((new UpdateSettingsRequest(index).settings(indexSettings))).actionGet();
                 System.out.println("Reload config on all nodes");
                 System.out.println("Update number of replicas to "+(updateSettings) +" with result: "+response.isAcknowledged());
@@ -557,8 +573,8 @@ public class OpenDistroSecurityAdmin {
                 return 0;
             }
             
-            if(si) { 
-                System.exit(0);
+            if(si) {
+                return (0);
             }
             
             if(whoami) { 
@@ -709,14 +725,20 @@ public class OpenDistroSecurityAdmin {
                     }
                 }
             }
-            
-            final boolean legacy = indexExists 
+
+            final boolean createLegacyMode = !indexExists && CREATE_AS_LEGACY;
+
+            if(createLegacyMode) {
+                System.out.println("We forcibly create the new index in legacy mode so that ES 6 config can be uploaded. To move to v7 configs youneed to migrate.");
+            }
+
+            final boolean legacy = createLegacyMode || (indexExists
                     && securityIndex.getMappings() != null
                     && securityIndex.getMappings().get(index) != null
-                    && securityIndex.getMappings().get(index).containsKey("config");
+                    && securityIndex.getMappings().get(index).containsKey("config"));
             
             if(legacy) {
-                System.out.println("Legacy index '"+index+"' detected.");
+                System.out.println("Legacy index '"+index+"' (ES 6) detected (or forced). You should migrate the configuration!");
             }
             
             if(retrieve) {
@@ -727,65 +749,71 @@ public class OpenDistroSecurityAdmin {
                 success = retrieveFile(tc, cd+"roles_mapping_"+date+".yml", index, "rolesmapping", legacy) && success;
                 success = retrieveFile(tc, cd+"internal_users_"+date+".yml", index, "internalusers", legacy) && success;
                 success = retrieveFile(tc, cd+"action_groups_"+date+".yml", index, "actiongroups", legacy) && success;
-                System.exit(success?0:-1);
+
+                if(!legacy) {
+                    success = retrieveFile(tc, cd+"sg_tenants_"+date+".yml", index, "tenants", legacy) && success;
+                }
+                return (success?0:-1);
             }
-            
+
+            if(backup != null) {
+                return backup(tc, index, new File(backup), legacy);
+            }
+
+            if(migrate != null) {
+                if(!legacy) {
+                    System.out.println("ERR: Seems cluster is already migrated");
+                    return -1;
+                }
+                return migrate(tc, index, new File(migrate), nodesInfo, resolveEnvVars);
+            }
+
             boolean isCdAbs = new File(cd).isAbsolute();
              
             System.out.println("Populate config from "+(isCdAbs?cd:new File(".", cd).getCanonicalPath()));
             
             if(file != null) {
-                if(type == null) {
-                    System.out.println("ERR: type missing");
-                    System.exit(-1);
+                if(type != null) {
+                    System.out.println("Force type: "+type);
+                } else {
+                    type = readTypeFromFile(new File(file));
+                    if(type == null) {
+                        System.out.println("ERR: Unable to read type from file");
+                        return (-1);
+                    }
                 }
-                
-                if(!Arrays.asList(new String[]{"config", "roles", "rolesmapping", "internalusers","actiongroups" }).contains(type)) {
+
+                if(!CType.lcStringValues().contains(type)) {
                     System.out.println("ERR: Invalid type '"+type+"'");
-                    System.exit(-1);
+                    return (-1);
                 }
-                
-                boolean success = uploadFile(tc, file, index, type, legacy);
+
+                boolean success = uploadFile(tc, file, index, type, legacy, resolveEnvVars);
+
+                if(!success) {
+                    System.out.println("ERR: cannot upload configuration, see errors above");
+                    return -1;
+                }
+
                 ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{type})).actionGet();
                 
                 success = checkConfigUpdateResponse(cur, nodesInfo, 1) && success;
                 
                 System.out.println("Done with "+(success?"success":"failures"));
-                System.exit(success?0:-1);
+                return (success?0:-1);
             }
 
-            boolean success = uploadFile(tc, cd+"config.yml", index, "config", legacy);
-            success = uploadFile(tc, cd+"roles.yml", index, "roles", legacy) && success;
-            success = uploadFile(tc, cd+"roles_mapping.yml", index, "rolesmapping", legacy) && success;
-            success = uploadFile(tc, cd+"internal_users.yml", index, "internalusers", legacy) && success;
-            success = uploadFile(tc, cd+"action_groups.yml", index, "actiongroups", legacy) && success;
-            
-            if(failFast && !success) {
-                System.out.println("ERR: cannot upload configuration, see errors above");
-                System.exit(-1);
-            }
-            
-            ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
-            
-            success = checkConfigUpdateResponse(cur, nodesInfo, 5) && success;
-            
-            System.out.println("Done with "+(success?"success":"failures"));
-            System.exit(success?0:-1);
+            return upload(tc, index, cd, legacy, nodesInfo, resolveEnvVars);
         }
         // TODO audit changes to .opendistro_security index
     }
 
     private static boolean checkConfigUpdateResponse(ConfigUpdateResponse response, NodesInfoResponse nir, int expectedConfigCount) {
-        
-        int expectedNodeCount = 0;
-        
-        for(NodeInfo ni: nir.getNodes()) {
-            Settings nodeSettings = ni.getSettings();
-          
-            //do not count tribe clients
-            if(nodeSettings.get("tribe.name", null) == null) {
-                expectedNodeCount++;
-            }           
+
+        final int expectedNodeCount =  nir.getNodes().size();
+
+        if(response.hasFailures()) {
+            System.out.println("FAIL: "+response.failures().size()+" nodes reported failures. First failure is "+response.failures().get(0));
         }
 
         boolean success = response.getNodes().size() == expectedNodeCount;
@@ -802,18 +830,33 @@ public class OpenDistroSecurityAdmin {
             
             success = success && successNode;
         }
-        
-        return success;
+
+        return success && !response.hasFailures();
     }
     
-    private static boolean uploadFile(final Client tc, final String filepath, final String index, final String _id, final boolean legacy) {
+    private static boolean uploadFile(final Client tc, final String filepath, final String index, final String _id, final boolean legacy, boolean resolveEnvVars) {
         
-        String type = "security";
+        String type = "_doc";
         String id = _id;
                 
         if(legacy) {
-            type = _id;
-            id = "0";
+            type = "security";
+            id = _id;
+
+            try {
+                ConfigHelper.fromYamlFile(filepath, CType.fromString(_id), 1, 0, 0);
+            } catch (Exception e) {
+                System.out.println("ERR: Seems "+filepath+" is not in legacy format: "+e);
+                return false;
+            }
+
+        } else {
+            try {
+                ConfigHelper.fromYamlFile(filepath, CType.fromString(_id), 2, 0, 0);
+            } catch (Exception e) {
+                System.out.println("ERR: Seems "+filepath+" is not in Open Distro Security 7 format: "+e);
+                return false;
+            }
         }
         
         System.out.println("Will update '"+type+"/" + id + "' with " + filepath+" "+(legacy?"(legacy mode)":""));
@@ -847,20 +890,6 @@ public class OpenDistroSecurityAdmin {
             type = "security";
             id = _id;
             
-            try {
-                ConfigHelper.fromYamlFile(filepath, CType.fromString(_id), 1, 0, 0);
-            } catch (Exception e) {
-                System.out.println("ERR: Seems "+filepath+" is not in legacy format: "+e);
-                return false;
-            }
-            
-        } else {
-            try {
-                ConfigHelper.fromYamlFile(filepath, CType.fromString(_id), 2, 0, 0);
-            } catch (Exception e) {
-                System.out.println("ERR: Seems "+filepath+" is not in SG 7 format: "+e);
-                return false;
-            }
         }
         
         System.out.println("Will retrieve '"+type+"/" +id+"' into "+filepath+" "+(legacy?"(legacy mode)":""));
@@ -1056,7 +1085,11 @@ public class OpenDistroSecurityAdmin {
             throw new ParseException("Only set one of -cn or -icl");
         }
 
-        if(!line.hasOption("ks") && !line.hasOption("cert") /*&& !line.hasOption("simple-auth")*/) {
+        if(line.hasOption("vc") && !line.hasOption("cd") && !line.hasOption("f")) {
+            throw new ParseException("Specify at least -cd or -f together with vc");
+        }
+
+        if(!line.hasOption("vc") && !line.hasOption("ks") && !line.hasOption("cert") /*&& !line.hasOption("simple-auth")*/) {
             throw new ParseException("Specify at least -ks or -cert");
         }
         
