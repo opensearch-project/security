@@ -310,7 +310,7 @@ public class SnapshotRestoreTests extends SingleClusterTest {
                 .put("security.enable_snapshot_restore_privilege", false)
                 .build();
     
-        setup(Settings.EMPTY, new DynamicSgConfig().setSgActionGroups("action_groups_packaged.yml"), settings, true, currentClusterConfig);
+        setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityActionGroups("action_groups_packaged.yml"), settings, true, currentClusterConfig);
     
         try (TransportClient tc = getInternalTransportClient()) {    
             tc.index(new IndexRequest("testsnap1").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();

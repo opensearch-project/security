@@ -752,7 +752,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         cr = (ConfigurationRepository) ConfigurationRepository.create(settings, this.configPath, threadPool, localClient, clusterService, auditLog,
                 complianceConfig);
 
-        cr.subscribeOnLicenseChange(complianceConfig);
+        //cr.subscribeOnLicenseChange(complianceConfig); TODO : Remove this line post compilation
         final XFFResolver xffResolver = new XFFResolver(threadPool);
         backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool);
         

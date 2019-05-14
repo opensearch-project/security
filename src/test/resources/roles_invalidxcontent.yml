@@ -1,0 +1,10 @@
+opendistro_security_public:
+  cluster:
+    - 'cluster:monitor/main'
+    #- CLUSTER_COMPOSITE_OPS_RO
+  indices:
+  indices:
+    '.notexistingindexcvnjl9809991'
+      '*':  
+        - ALL
+invalid yml

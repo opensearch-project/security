@@ -32,11 +32,11 @@ package com.amazon.opendistroforelasticsearch.security.configuration;
 
 import org.elasticsearch.action.get.MultiGetResponse.Failure;
 
-import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SgDynamicConfiguration;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SecurityDynamicConfiguration;
 
 public interface ConfigCallback {
     
-    void success(SgDynamicConfiguration<?> dConf);
+    void success(SecurityDynamicConfiguration<?> dConf);
     void noData(String id, String type);
     void singleFailure(Failure failure);
     void failure(Throwable t);

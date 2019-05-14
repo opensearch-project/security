@@ -49,7 +49,7 @@ import org.elasticsearch.common.xcontent.XContentType;
 
 import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
-import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SgDynamicConfiguration;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SecurityDynamicConfiguration;
 
 public class ConfigHelper {
     
@@ -92,9 +92,9 @@ public class ConfigHelper {
         return retVal;
     }
 
-    public static <T> SgDynamicConfiguration<T> fromYamlReader(Reader yamlReader, CType ctype, int version, long seqNo, long primaryTerm) throws IOException {
+    public static <T> SecurityDynamicConfiguration<T> fromYamlReader(Reader yamlReader, CType ctype, int version, long seqNo, long primaryTerm) throws IOException {
         try {
-            return SgDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(yamlReader), ctype, version, seqNo, primaryTerm);
+            return SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(yamlReader), ctype, version, seqNo, primaryTerm);
         } finally {
             if(yamlReader != null) {
                 yamlReader.close();
@@ -102,11 +102,11 @@ public class ConfigHelper {
         }
     }
 
-    public static <T> SgDynamicConfiguration<T> fromYamlFile(String filepath, CType ctype, int version, long seqNo, long primaryTerm) throws IOException {
+    public static <T> SecurityDynamicConfiguration<T> fromYamlFile(String filepath, CType ctype, int version, long seqNo, long primaryTerm) throws IOException {
         return fromYamlReader(new FileReader(filepath), ctype, version, seqNo, primaryTerm);
     }
 
-    public static <T> SgDynamicConfiguration<T> fromYamlString(String yamlString, CType ctype, int version, long seqNo, long primaryTerm) throws IOException {
+    public static <T> SecurityDynamicConfiguration<T> fromYamlString(String yamlString, CType ctype, int version, long seqNo, long primaryTerm) throws IOException {
         return fromYamlReader(new StringReader(yamlString), ctype, version, seqNo, primaryTerm);
     }
 

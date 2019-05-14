@@ -30,9 +30,12 @@
 
 package com.amazon.opendistroforelasticsearch.security;
 
+import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpStatus;
 import org.apache.http.NoHttpResponseException;
 import org.apache.http.message.BasicHeader;
@@ -68,6 +71,9 @@ public class HttpIntegrationTests extends SingleClusterTest {
         final Settings settings = Settings.builder()
                 .putList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "knuddel","nonexists")
                 .build();
+        System.out.println(" ================= ");
+        System.out.println(settings.toString());
+        System.out.println(" ================= ");
         setup(settings);
         final RestHelper rh = nonSslRestHelper();
     
@@ -393,22 +399,16 @@ public class HttpIntegrationTests extends SingleClusterTest {
             setup(settings);
             RestHelper rh = nonSslRestHelper();
             rh.executeGetRequest("", encodeBasicHeader("worf", "worf"));
-            Assert.fail();
+            Assert.fail("NoHttpResponseException expected");
         } catch (NoHttpResponseException e) {
-            clusterHelper.stopCluster();
-            Assert.assertNotNull(appender);
-            List<LogEvent> logEvents = new ArrayList<LogEvent>(appender.getEvents());
-            Assert.assertTrue(logEvents.size() > 0);
-            for(LogEvent evt: logEvents) {
-                System.out.println("--> "+evt.getMessage().getFormattedMessage());
-                if(evt.getMessage().getFormattedMessage().contains("speaks http plaintext instead of ssl, will close the channel"))
-                {
-                    return;
-                }
-            }
-            Assert.fail(logEvents.toString());
+            String log = FileUtils.readFileToString(new File("unittest.log"), StandardCharsets.UTF_8);
+            Assert.assertTrue(log, log.contains("speaks http plaintext instead of ssl, will close the channel"));
+        } catch (Exception e) {
+            Assert.fail("NoHttpResponseException expected but was "+e.getClass()+"#"+e.getMessage());
         }
-      }
+
+    }
+
 
     @Test
     public void testHTTPProxyDefault() throws Exception {

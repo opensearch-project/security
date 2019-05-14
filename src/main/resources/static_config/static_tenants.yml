@@ -1,0 +1,10 @@
+---
+_meta:
+  type: "tenants"
+  config_version: 2
+
+GLOBAL_TENANT:
+  reserved: true
+  hidden: false
+  static: true
+  description: "Global tenant"

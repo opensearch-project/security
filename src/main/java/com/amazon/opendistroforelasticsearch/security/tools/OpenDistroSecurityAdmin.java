@@ -115,7 +115,7 @@ import com.amazon.opendistroforelasticsearch.security.action.whoami.WhoAmIReques
 import com.amazon.opendistroforelasticsearch.security.action.whoami.WhoAmIResponse;
 import com.amazon.opendistroforelasticsearch.security.securityconf.Migration;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
-import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SgDynamicConfiguration;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v6.RoleMappingsV6;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.ActionGroupsV7;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.ConfigV7;
@@ -128,7 +128,7 @@ import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConfigConstant
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigHelper;
 import com.amazon.opendistroforelasticsearch.security.support.OpenDistroSecurityDeprecationHandler;
-import com.amazon.opendistroforelasticsearch.security.support.SgJsonNode;
+import com.amazon.opendistroforelasticsearch.security.support.SecurityJsonNode;
 import com.amazon.opendistroforelasticsearch.security.support.OpenDistroSecurityUtils;
 import com.google.common.io.CharStreams;
 import com.google.common.io.Files;
@@ -1238,12 +1238,12 @@ public class OpenDistroSecurityAdmin {
         try {
 
             System.out.println("-> Migrate configuration to new format and store it here: "+v7Dir.getAbsolutePath());
-            SgDynamicConfiguration<ActionGroupsV7> actionGroupsV7 = Migration.migrateActionGroups(SgDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir,"security_action_groups.yml")), CType.ACTIONGROUPS, 1, 0, 0));
-            SgDynamicConfiguration<ConfigV7> configV7 = Migration.migrateConfig(SgDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir,"security_config.yml")), CType.CONFIG, 1, 0, 0));
-            SgDynamicConfiguration<InternalUserV7> internalUsersV7 = Migration.migrateInternalUsers(SgDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir,"security_internal_users.yml")), CType.INTERNALUSERS, 1, 0, 0));
-            SgDynamicConfiguration<RoleMappingsV6> rolesmappingV6 = SgDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir,"security_roles_mapping.yml")), CType.ROLESMAPPING, 1, 0, 0);
-            Tuple<SgDynamicConfiguration<RoleV7>, SgDynamicConfiguration<TenantV7>> rolesTenantsV7 = Migration.migrateRoles(SgDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir,"security_roles.yml")), CType.ROLES, 1, 0, 0), rolesmappingV6);
-            SgDynamicConfiguration<RoleMappingsV7> rolesmappingV7 = Migration.migrateRoleMappings(rolesmappingV6);
+            SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsV7 = Migration.migrateActionGroups(SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir,"security_action_groups.yml")), CType.ACTIONGROUPS, 1, 0, 0));
+            SecurityDynamicConfiguration<ConfigV7> configV7 = Migration.migrateConfig(SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir,"security_config.yml")), CType.CONFIG, 1, 0, 0));
+            SecurityDynamicConfiguration<InternalUserV7> internalUsersV7 = Migration.migrateInternalUsers(SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir,"security_internal_users.yml")), CType.INTERNALUSERS, 1, 0, 0));
+            SecurityDynamicConfiguration<RoleMappingsV6> rolesmappingV6 = SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir,"security_roles_mapping.yml")), CType.ROLESMAPPING, 1, 0, 0);
+            Tuple<SecurityDynamicConfiguration<RoleV7>, SecurityDynamicConfiguration<TenantV7>> rolesTenantsV7 = Migration.migrateRoles(SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir,"security_roles.yml")), CType.ROLES, 1, 0, 0), rolesmappingV6);
+            SecurityDynamicConfiguration<RoleMappingsV7> rolesmappingV7 = Migration.migrateRoleMappings(rolesmappingV6);
             
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/security_action_groups.yml"), actionGroupsV7);
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/security_config.yml"), configV7);
@@ -1282,7 +1282,7 @@ public class OpenDistroSecurityAdmin {
             return null;
         }
         final JsonNode jsonNode = DefaultObjectMapper.YAML_MAPPER.readTree(file);
-        return new SgJsonNode(jsonNode).get("_security_meta").get("type").asString();
+        return new SecurityJsonNode(jsonNode).get("_security_meta").get("type").asString();
     }
 
     private static int validateConfig(String cd, String file, String type, int version) {

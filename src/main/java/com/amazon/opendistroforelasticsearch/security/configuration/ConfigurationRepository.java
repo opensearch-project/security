@@ -74,7 +74,7 @@ import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
 import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
 import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigFactory;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
-import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SgDynamicConfiguration;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.ExceptionUtils;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigHelper;
@@ -87,9 +87,9 @@ public class ConfigurationRepository {
 
     private final String opendistrosecurityIndex;
     private final Client client;
-    private final Cache<CType, SgDynamicConfiguration<?>> configCache;
+    private final Cache<CType, SecurityDynamicConfiguration<?>> configCache;
     private final List<ConfigurationChangeListener> configurationChangedListener;
-    private final ConfigurationLoaderSG7 cl;
+    private final ConfigurationLoaderSecurity7 cl;
     private final Settings settings;
     private final ClusterService clusterService;
     private final AuditLog auditLog;
@@ -110,7 +110,7 @@ public class ConfigurationRepository {
         this.auditLog = auditLog;
         this.complianceConfig = complianceConfig;
         this.configurationChangedListener = new ArrayList<>();
-        cl = new ConfigurationLoaderSG7(client, threadPool, settings, clusterService);
+        cl = new ConfigurationLoaderSecurity7(client, threadPool, settings, clusterService);
 
         configCache = CacheBuilder
                 .newBuilder()
@@ -263,12 +263,12 @@ public class ConfigurationRepository {
      * @param configurationType
      * @return can also return empty in case it was never loaded
      */
-    public SgDynamicConfiguration<?> getConfiguration(CType configurationType) {
-        SgDynamicConfiguration<?> conf=  configCache.getIfPresent(configurationType);
+    public SecurityDynamicConfiguration<?> getConfiguration(CType configurationType) {
+        SecurityDynamicConfiguration<?> conf=  configCache.getIfPresent(configurationType);
         if(conf != null) {
             return conf.deepClone();
         }
-        return SgDynamicConfiguration.empty();
+        return SecurityDynamicConfiguration.empty();
     }
 
     private final Lock LOCK = new ReentrantLock();
@@ -292,7 +292,7 @@ public class ConfigurationRepository {
 
 
     private void reloadConfiguration0(Collection<CType> configTypes) {
-        final Map<CType, SgDynamicConfiguration<?>> loaded = getConfigurationsFromIndex(configTypes, false);
+        final Map<CType, SecurityDynamicConfiguration<?>> loaded = getConfigurationsFromIndex(configTypes, false);
         configCache.putAll(loaded);
         notifyAboutChanges(loaded);
     }
@@ -301,7 +301,7 @@ public class ConfigurationRepository {
         configurationChangedListener.add(listener);
     }
 
-    private synchronized void notifyAboutChanges(Map<CType, SgDynamicConfiguration<?>> typeToConfig) {
+    private synchronized void notifyAboutChanges(Map<CType, SecurityDynamicConfiguration<?>> typeToConfig) {
         for (ConfigurationChangeListener listener : configurationChangedListener) {
             try {
                 LOGGER.debug("Notify {} listener about change configuration with type {}", listener);
@@ -319,10 +319,10 @@ public class ConfigurationRepository {
      * @param logComplianceEvent
      * @return
      */
-    public Map<CType, SgDynamicConfiguration<?>> getConfigurationsFromIndex(Collection<CType> configTypes, boolean logComplianceEvent) {
+    public Map<CType, SecurityDynamicConfiguration<?>> getConfigurationsFromIndex(Collection<CType> configTypes, boolean logComplianceEvent) {
 
         final ThreadContext threadContext = threadPool.getThreadContext();
-        final Map<CType, SgDynamicConfiguration<?>> retVal = new HashMap<>();
+        final Map<CType, SecurityDynamicConfiguration<?>> retVal = new HashMap<>();
 
         try(StoredContext ctx = threadContext.stashContext()) {
             threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
@@ -359,7 +359,7 @@ public class ConfigurationRepository {
         return retVal;
     }
 
-    private Map<CType, SgDynamicConfiguration<?>> validate(Map<CType, SgDynamicConfiguration<?>> conf, int expectedSize) throws InvalidConfigException {
+    private Map<CType, SecurityDynamicConfiguration<?>> validate(Map<CType, SecurityDynamicConfiguration<?>> conf, int expectedSize) throws InvalidConfigException {
 
         if(conf == null || conf.size() != expectedSize) {
             throw new InvalidConfigException("Retrieved only partial configuration");

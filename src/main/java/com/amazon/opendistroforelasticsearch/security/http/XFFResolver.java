@@ -95,7 +95,7 @@ public class XFFResolver implements DCFListener {
     }
 
     @Override
-    public void onChange(ConfigModel cm, DynamicConfigModel dcm, InternalUsersModel ium) {
+    public void onChanged(ConfigModel cm, DynamicConfigModel dcm, InternalUsersModel ium) {
         enabled = dcm.isXffEnabled();
         if(enabled) {
             detector = new RemoteIpDetector();

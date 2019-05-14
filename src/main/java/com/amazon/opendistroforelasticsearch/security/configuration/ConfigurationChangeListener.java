@@ -33,7 +33,7 @@ package com.amazon.opendistroforelasticsearch.security.configuration;
 import java.util.Map;
 
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
-import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SgDynamicConfiguration;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SecurityDynamicConfiguration;
 
 /**
  * Callback function on change particular configuration
@@ -43,5 +43,5 @@ public interface ConfigurationChangeListener {
     /**
      * @param configuration not null updated configuration on that was subscribe current listener
      */
-    void onChange(Map<CType, SgDynamicConfiguration<?>> typeToConfig);
+    void onChange(Map<CType, SecurityDynamicConfiguration<?>> typeToConfig);
 }

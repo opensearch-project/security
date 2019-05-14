@@ -64,41 +64,39 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Aut
 
         final boolean exists = internalUsersModel.exists(user.getName());
 
-        if (exists) {
+        if(exists) {
             user.addRoles(internalUsersModel.getBackenRoles(user.getName()));
+            //FIX https://github.com/opendistro-for-elasticsearch/security/pull/23
+            //Credits to @turettn
             final Map<String, String> customAttributes = internalUsersModel.getAttributes(user.getName());
-            Map<String, String> attributeMap = new HashMap<String, String>();
+            Map<String, String> attributeMap = new HashMap<>();
 
-            if (customAttributes != null) {
-                for (String attributeName : customAttributes.names()) {
-                    attributeMap.put("attr.internal." + attributeName, customAttributes.get(attributeName));
+            if(customAttributes != null) {
+                for(Entry<String, String> attributeEntry: customAttributes.entrySet()) {
+                    attributeMap.put("attr.internal."+attributeEntry.getKey(), attributeEntry.getValue());
                 }
             }
 
             user.addAttributes(attributeMap);
-
             return true;
         }
 
         return false;
     }
-    
+
     @Override
     public User authenticate(final AuthCredentials credentials) {
 
         if (internalUsersModel == null) {
-            throw new ElasticsearchSecurityException("Internal authentication backend not configured. May be Open Distro Security is not initialized");
-
+            throw new ElasticsearchSecurityException("Internal authentication backend not configured. May be Open Distro is not initialized.");
         }
-
-        String hashed = cfg.get(credentials.getUsername() + ".hash");
 
         if(!internalUsersModel.exists(credentials.getUsername())) {
             throw new ElasticsearchSecurityException(credentials.getUsername() + " not found");
         }
-        
+
         final byte[] password = credentials.getPassword();
-        
+
         if(password == null || password.length == 0) {
             throw new ElasticsearchSecurityException("empty passwords not supported");
         }
@@ -107,9 +105,9 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Aut
         CharBuffer buf = StandardCharsets.UTF_8.decode(wrap);
         char[] array = new char[buf.limit()];
         buf.get(array);
-        
+
         Arrays.fill(password, (byte)0);
-       
+
         try {
             if (OpenBSDBCrypt.checkPassword(internalUsersModel.getHash(credentials.getUsername()), array)) {
                 final List<String> roles = internalUsersModel.getBackenRoles(credentials.getUsername());
@@ -129,7 +127,7 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Aut
             Arrays.fill(array, '\0');
         }
     }
-    
+
     @Override
     public String getType() {
         return "internal";
@@ -142,12 +140,14 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Aut
             throw new ElasticsearchSecurityException("Internal authentication backend not configured. May be Open Distro Security is not initialized.");
 
         }
+
         if(exists(user)) {
             final List<String> roles = internalUsersModel.getBackenRoles(user.getName());
-            if (roles != null && !roles.isEmpty() && user != null) {
+            if(roles != null && !roles.isEmpty() && user != null) {
                 user.addRoles(roles);
             }
         }
+
 
     }
 
