@@ -99,9 +99,9 @@ public class ConfigTests {
         JsonNode jsonNode = YAML.readTree(FileUtils.readFileToString(new File(file), "UTF-8"));
         int configVersion = 1;
         
-        if(jsonNode.get("_opendistro_security_meta") != null) {
-            Assert.assertEquals(jsonNode.get("_opendistro_security_meta").get("type").asText(), cType.toLCString());
-            configVersion = jsonNode.get("_opendistro_security_meta").get("config_version").asInt();
+        if(jsonNode.get("_meta") != null) {
+            Assert.assertEquals(jsonNode.get("_meta").get("type").asText(), cType.toLCString());
+            configVersion = jsonNode.get("_meta").get("config_version").asInt();
         }
         
         SecurityDynamicConfiguration<?> dc = load(file, cType);
@@ -117,9 +117,9 @@ public class ConfigTests {
         JsonNode jsonNode = YAML.readTree(FileUtils.readFileToString(new File(file), "UTF-8"));
         int configVersion = 1;
         
-        if(jsonNode.get("_opendistro_security_meta") != null) {
-            Assert.assertEquals(jsonNode.get("_opendistro_security_meta").get("type").asText(), cType.toLCString());
-            configVersion = jsonNode.get("_opendistro_security_meta").get("config_version").asInt();
+        if(jsonNode.get("_meta") != null) {
+            Assert.assertEquals(jsonNode.get("_meta").get("type").asText(), cType.toLCString());
+            configVersion = jsonNode.get("_meta").get("config_version").asInt();
         }
         
         return SecurityDynamicConfiguration.fromNode(jsonNode, cType, configVersion, 0, 0);

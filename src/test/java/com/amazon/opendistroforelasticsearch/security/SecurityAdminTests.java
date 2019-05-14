@@ -52,7 +52,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add("-cn");
         argsAsList.add(clusterInfo.clustername);
         argsAsList.add("-cd");
-        argsAsList.add(new File("./sgconfig").getAbsolutePath());
+        argsAsList.add(new File("./securityconfig").getAbsolutePath());
         argsAsList.add("-nhnv");
         
         
@@ -81,7 +81,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add("-cn");
         argsAsList.add(clusterInfo.clustername);
         argsAsList.add("-cd");
-        argsAsList.add(new File("./legacy/sgconfig_v6").getAbsolutePath());
+        argsAsList.add(new File("./legacy/securityconfig_v6").getAbsolutePath());
         argsAsList.add("-nhnv");
         
         
@@ -114,7 +114,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add("-cn");
         argsAsList.add(clusterInfo.clustername);
         argsAsList.add("-cd");
-        argsAsList.add(new File("./sgconfig").getAbsolutePath());
+        argsAsList.add(new File("./securityconfig").getAbsolutePath());
         argsAsList.add("-nhnv");
         
         
@@ -323,7 +323,7 @@ public class SecurityAdminTests extends SingleClusterTest {
     public void testSgAdminValidateConfig() throws Exception {                
         List<String> argsAsList = new ArrayList<>();
         argsAsList.add("-cd");
-        argsAsList.add(new File("./sgconfig").getAbsolutePath());
+        argsAsList.add(new File("./securityconfig").getAbsolutePath());
         argsAsList.add("-vc");
         
         int returnCode  = OpenDistroSecurityAdmin.execute(argsAsList.toArray(new String[0]));
@@ -373,7 +373,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         
         argsAsList = new ArrayList<>();
         argsAsList.add("-ks");
-        argsAsList.add(new File("./sgconfig").getAbsolutePath());
+        argsAsList.add(new File("./securityconfig").getAbsolutePath());
         argsAsList.add("-vc");
         
         returnCode  = OpenDistroSecurityAdmin.execute(argsAsList.toArray(new String[0]));
@@ -381,7 +381,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         
         argsAsList = new ArrayList<>();
         argsAsList.add("-cd");
-        argsAsList.add(new File("./legacy/sgconfig_v6").getAbsolutePath());
+        argsAsList.add(new File("./legacy/securityconfig_v6").getAbsolutePath());
         argsAsList.add("-vc");
         
         returnCode  = OpenDistroSecurityAdmin.execute(argsAsList.toArray(new String[0]));
@@ -389,7 +389,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         
         argsAsList = new ArrayList<>();
         argsAsList.add("-cd");
-        argsAsList.add(new File("./legacy/sgconfig_v6").getAbsolutePath());
+        argsAsList.add(new File("./legacy/securityconfig_v6").getAbsolutePath());
         argsAsList.add("-vc");
         argsAsList.add("6");
         
@@ -398,7 +398,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         
         argsAsList = new ArrayList<>();
         argsAsList.add("-cd");
-        argsAsList.add(new File("./sgconfig").getAbsolutePath());
+        argsAsList.add(new File("./securityconfig").getAbsolutePath());
         argsAsList.add("-vc");
         argsAsList.add("8");
         

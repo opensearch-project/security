@@ -196,21 +196,6 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         
     }
     
-    public String getLicenseString() {
-        
-        if(!isInitialized()) {
-            throw new RuntimeException("Can not retrieve license because not initialized (yet)");
-        }
-        
-        if(config.getImplementingClass() == ConfigV6.class) {
-            SecurityDynamicConfiguration<ConfigV6> c = (SecurityDynamicConfiguration<ConfigV6>) config;
-            return c.getCEntry("opendistro_security").dynamic.license;
-        } else {
-            SecurityDynamicConfiguration<ConfigV7> c = (SecurityDynamicConfiguration<ConfigV7>) config;
-            return c.getCEntry("sg_config").dynamic.license;
-        }
-    }
-    
     private static ConfigV6 getConfigV6(SecurityDynamicConfiguration<?> sdc) {
         @SuppressWarnings("unchecked")
         SecurityDynamicConfiguration<ConfigV6> c = (SecurityDynamicConfiguration<ConfigV6>) sdc;
@@ -220,7 +205,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     private static ConfigV7 getConfigV7(SecurityDynamicConfiguration<?> sdc) {
         @SuppressWarnings("unchecked")
         SecurityDynamicConfiguration<ConfigV7> c = (SecurityDynamicConfiguration<ConfigV7>) sdc;
-        return c.getCEntry("sg_config");
+        return c.getCEntry("config");
     }
     
     @Override

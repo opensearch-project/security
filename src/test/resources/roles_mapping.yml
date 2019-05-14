@@ -76,7 +76,7 @@ user1:
   - "worf"
   and_backend_roles: []
   description: "Migrated from v6"
-sg_role_vulcans:
+role_vulcans:
   reserved: false
   hidden: false
   backend_roles:
@@ -351,8 +351,8 @@ role_host2:
   backend_roles: []
   hosts: []
   users:
-  - "sg_host_127.0.0.1"
-  - "sg_host_localhost"
+  - "host_127.0.0.1"
+  - "host_localhost"
   and_backend_roles: []
   description: "Migrated from v6"
 twitter:

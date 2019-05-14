@@ -68,7 +68,7 @@ public class ConfigModelV6 extends ConfigModel {
     protected final Logger log = LogManager.getLogger(this.getClass());
     private ConfigConstants.RolesMappingResolution rolesMappingResolution;
     private ActionGroupResolver agr = null;
-    private SecurityRoles sgRoles = null;
+    private SecurityRoles securityRoles = null;
     private TenantHolder tenantHolder;
     private RoleMappingHolder roleMappingHolder;
     private SecurityDynamicConfiguration<RoleV6> roles;
@@ -92,15 +92,15 @@ public class ConfigModelV6 extends ConfigModel {
         }
         
         agr = reloadActionGroups(actiongroups);
-        sgRoles = reload(roles);
+        securityRoles = reload(roles);
         tenantHolder = new TenantHolder(roles);
         roleMappingHolder = new RoleMappingHolder(rolesmapping, dcm.getHostsResolverMode());
     }
     
     public Set<String> getAllConfiguredTenantNames() {
         final Set<String> configuredTenants = new HashSet<>();
-        for (Entry<String, RoleV6> sgRole : roles.getCEntries().entrySet()) {
-            Map<String, String> tenants = sgRole.getValue().getTenants();
+        for (Entry<String, RoleV6> securityRole : roles.getCEntries().entrySet()) {
+            Map<String, String> tenants = securityRole.getValue().getTenants();
 
             if (tenants != null) {
                 configuredTenants.addAll(tenants.keySet());
@@ -112,7 +112,7 @@ public class ConfigModelV6 extends ConfigModel {
     }
     
     public SecurityRoles getSecurityRoles() {
-        return sgRoles;
+        return securityRoles;
     }
     
     private static interface ActionGroupResolver {
@@ -197,23 +197,23 @@ public class ConfigModelV6 extends ConfigModel {
         final Set<Future<SecurityRole>> futures = new HashSet<>(5000);
         final ExecutorService execs = Executors.newFixedThreadPool(10);
 
-        for(Entry<String, RoleV6> sgRole: settings.getCEntries().entrySet()) {
+        for(Entry<String, RoleV6> securityRole: settings.getCEntries().entrySet()) {
 
             Future<SecurityRole> future = execs.submit(new Callable<SecurityRole>() {
 
                 @Override
                 public SecurityRole call() throws Exception {
-                    SecurityRole _securityRole = new SecurityRole(sgRole.getKey());
+                    SecurityRole _securityRole = new SecurityRole(securityRole.getKey());
                     
-                    if(sgRole.getValue() == null) {
+                    if(securityRole.getValue() == null) {
                         return null;
                     }
 
-                    final Set<String> permittedClusterActions = agr.resolvedActions(sgRole.getValue().getCluster());
+                    final Set<String> permittedClusterActions = agr.resolvedActions(securityRole.getValue().getCluster());
                     _securityRole.addClusterPerms(permittedClusterActions);
 
                     //if(tenants != null) {
-                        for(Entry<String, String> tenant: sgRole.getValue().getTenants().entrySet()) {
+                        for(Entry<String, String> tenant: securityRole.getValue().getTenants().entrySet()) {
 
                             //if(tenant.equals(user.getName())) {
                             //    continue;
@@ -231,11 +231,11 @@ public class ConfigModelV6 extends ConfigModel {
                     //}
 
 
-                    //final Map<String, DynamicConfiguration> permittedAliasesIndices = sgRoleSettings.getGroups(DotPath.of("indices"));
+                    //final Map<String, DynamicConfiguration> permittedAliasesIndices = securityRoleSettings.getGroups(DotPath.of("indices"));
 
-                        for (final Entry<String, Index> permittedAliasesIndex : sgRole.getValue().getIndices().entrySet()) {
+                        for (final Entry<String, Index> permittedAliasesIndex : securityRole.getValue().getIndices().entrySet()) {
 
-                            //final String resolvedRole = sgRole;
+                            //final String resolvedRole = securityRole;
                             //final String indexPattern = permittedAliasesIndex;
 
                             final String dls = permittedAliasesIndex.getValue().get_dls_();
@@ -305,9 +305,9 @@ public class ConfigModelV6 extends ConfigModel {
             roles = new HashSet<>(roleCount);
         }
 
-        private SecurityRoles addSecurityRole(SecurityRole sgRole) {
-            if (sgRole != null) {
-                this.roles.add(sgRole);
+        private SecurityRoles addSecurityRole(SecurityRole securityRole) {
+            if (securityRole != null) {
+                this.roles.add(securityRole);
             }
             return this;
         }
@@ -993,9 +993,9 @@ public class ConfigModelV6 extends ConfigModel {
 
             final ExecutorService execs = Executors.newFixedThreadPool(10);
 
-            for(Entry<String, RoleV6> sgRole: roles.getCEntries().entrySet()) {
+            for(Entry<String, RoleV6> securityRole: roles.getCEntries().entrySet()) {
                 
-                if(sgRole.getValue() == null) {
+                if(securityRole.getValue() == null) {
                     continue;
                 }
 
@@ -1003,7 +1003,7 @@ public class ConfigModelV6 extends ConfigModel {
                     @Override
                     public Tuple<String, Set<Tuple<String, Boolean>>> call() throws Exception {
                         final Set<Tuple<String, Boolean>> tuples = new HashSet<>();
-                        final Map<String, String> tenants = sgRole.getValue().getTenants();
+                        final Map<String, String> tenants = securityRole.getValue().getTenants();
 
                         if (tenants != null) {
                             
@@ -1021,7 +1021,7 @@ public class ConfigModelV6 extends ConfigModel {
                             }
                         }
 
-                        return new Tuple<String, Set<Tuple<String, Boolean>>>(sgRole.getKey(), tuples);
+                        return new Tuple<String, Set<Tuple<String, Boolean>>>(securityRole.getKey(), tuples);
                     }
                 });
 
@@ -1133,30 +1133,30 @@ public class ConfigModelV6 extends ConfigModel {
                 return Collections.emptySet();
             }
 
-            final Set<String> sgRoles = new TreeSet<String>();
+            final Set<String> securityRoles = new TreeSet<String>();
 
             if (rolesMappingResolution == ConfigConstants.RolesMappingResolution.BOTH
                     || rolesMappingResolution == ConfigConstants.RolesMappingResolution.BACKENDROLES_ONLY) {
                 if (log.isDebugEnabled()) {
                     log.debug("Pass backendroles from {}", user);
                 }
-                sgRoles.addAll(user.getRoles());
+                securityRoles.addAll(user.getRoles());
             }
 
             if (((rolesMappingResolution == ConfigConstants.RolesMappingResolution.BOTH
                     || rolesMappingResolution == ConfigConstants.RolesMappingResolution.MAPPING_ONLY))) {
 
                 for (String p : WildcardMatcher.getAllMatchingPatterns(users.keySet(), user.getName())) {
-                    sgRoles.addAll(users.get(p));
+                    securityRoles.addAll(users.get(p));
                 }
 
                 for (String p : WildcardMatcher.getAllMatchingPatterns(bars.keySet(), user.getRoles())) {
-                    sgRoles.addAll(bars.get(p));
+                    securityRoles.addAll(bars.get(p));
                 }
 
                 for (Set<String> p : abars.keySet()) {
                     if (WildcardMatcher.allPatternsMatched(p, user.getRoles())) {
-                        sgRoles.addAll(abars.get(p));
+                        securityRoles.addAll(abars.get(p));
                     }
                 }
 
@@ -1165,7 +1165,7 @@ public class ConfigModelV6 extends ConfigModel {
                     final String ipAddress = caller.getAddress();
 
                     for (String p : WildcardMatcher.getAllMatchingPatterns(hosts.keySet(), ipAddress)) {
-                        sgRoles.addAll(hosts.get(p));
+                        securityRoles.addAll(hosts.get(p));
                     }
 
                     if (caller.address() != null
@@ -1173,7 +1173,7 @@ public class ConfigModelV6 extends ConfigModel {
                         final String hostName = caller.address().getHostString();
 
                         for (String p : WildcardMatcher.getAllMatchingPatterns(hosts.keySet(), hostName)) {
-                            sgRoles.addAll(hosts.get(p));
+                            securityRoles.addAll(hosts.get(p));
                         }
                     }
 
@@ -1182,13 +1182,13 @@ public class ConfigModelV6 extends ConfigModel {
                         final String resolvedHostName = caller.address().getHostName();
 
                         for (String p : WildcardMatcher.getAllMatchingPatterns(hosts.keySet(), resolvedHostName)) {
-                            sgRoles.addAll(hosts.get(p));
+                            securityRoles.addAll(hosts.get(p));
                         }
                     }
                 }
             }
 
-            return Collections.unmodifiableSet(sgRoles);
+            return Collections.unmodifiableSet(securityRoles);
 
         }
     }

@@ -66,12 +66,12 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     }
     
     public static void validate(SecurityDynamicConfiguration sdc, int version, CType ctype) throws IOException {
-        if(version < 2 && sdc.get_opendistro_security_meta() != null) {
-            throw new IOException("A version of "+version+" can not have a _opendistro_security_meta key for "+ctype);
+        if(version < 2 && sdc.get_meta() != null) {
+            throw new IOException("A version of "+version+" can not have a _meta key for "+ctype);
         }
         
-        if(version >= 2 && sdc.get_opendistro_security_meta() == null) {
-            throw new IOException("A version of "+version+" must have a _opendistro_security_meta key for "+ctype);
+        if(version >= 2 && sdc.get_meta() == null) {
+            throw new IOException("A version of "+version+" must have a _meta key for "+ctype);
         }
         
         if(version < 2 && ctype == CType.CONFIG && (sdc.getCEntries().size() != 1 || !sdc.getCEntries().keySet().contains("opendistro_security"))) {
@@ -93,14 +93,14 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
         super();
     }
     
-    private Meta _opendistro_security_meta;
+    private Meta _meta;
 
-    public Meta get_opendistro_security_meta() {
-        return _opendistro_security_meta;
+    public Meta get_meta() {
+        return _meta;
     }
 
-    public void set_opendistro_security_meta(Meta _opendistro_security_meta) {
-        this._opendistro_security_meta = _opendistro_security_meta;
+    public void set_meta(Meta _meta) {
+        this._meta = _meta;
     }
 
     

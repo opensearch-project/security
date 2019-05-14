@@ -191,6 +191,11 @@ public abstract class AbstractSecurityUnitTest {
                 tc.index(ir).actionGet();
             }
 
+
+            System.out.println("$$$$$$$");
+            System.out.println("Ctype: "+CType.lcStringValues().toArray(new String[0]));
+            System.out.println("$$$$$$$");
+
             ConfigUpdateResponse cur = tc
                     .execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(CType.lcStringValues().toArray(new String[0])))
                     .actionGet();
@@ -218,6 +223,9 @@ public abstract class AbstractSecurityUnitTest {
     protected Settings.Builder minimumSecuritySettingsBuilder(int node, boolean sslOnly) {
 
         final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
+
+
+
         Settings.Builder builder = Settings.builder()
                 //.put("opendistro_opendistro_security.ssl.transport.enabled", true)
                 //.put("opendistro_security.no_default_init", true)
@@ -251,6 +259,7 @@ public abstract class AbstractSecurityUnitTest {
     }
 
     protected NodeSettingsSupplier minimumSecuritySettingsSslOnly(Settings other) {
+
         return new NodeSettingsSupplier() {
             @Override
             public Settings get(int i) {

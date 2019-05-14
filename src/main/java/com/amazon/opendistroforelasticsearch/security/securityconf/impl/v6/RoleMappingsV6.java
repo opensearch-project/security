@@ -15,14 +15,14 @@ public class RoleMappingsV6 implements Hideable {
     private List<String> hosts= Collections.emptyList();
     private List<String> users= Collections.emptyList();
     private List<String> andBackendroles= Collections.emptyList();
-    
-    
-    
-    
+
+
+
+
     public RoleMappingsV6() {
         super();
     }
-    
+
     public boolean isReadonly() {
         return readonly;
     }
@@ -53,7 +53,7 @@ public class RoleMappingsV6 implements Hideable {
     public void setUsers(List<String> users) {
         this.users = users;
     }
-    
+
     @JsonProperty(value="and_backendroles")
     public List<String> getAndBackendroles() {
         return andBackendroles;

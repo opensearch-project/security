@@ -751,7 +751,7 @@ public class OpenDistroSecurityAdmin {
                 success = retrieveFile(tc, cd+"action_groups_"+date+".yml", index, "actiongroups", legacy) && success;
 
                 if(!legacy) {
-                    success = retrieveFile(tc, cd+"sg_tenants_"+date+".yml", index, "tenants", legacy) && success;
+                    success = retrieveFile(tc, cd+"security_tenants_"+date+".yml", index, "tenants", legacy) && success;
                 }
                 return (success?0:-1);
             }

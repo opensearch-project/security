@@ -21,15 +21,15 @@ public class Migration {
         
         final SecurityDynamicConfiguration<RoleV7> r7 = SecurityDynamicConfiguration.empty();
         r7.setCType(r6cs.getCType());
-        r7.set_opendistro_security_meta(new Meta());
-        r7.get_opendistro_security_meta().setConfig_version(2);
-        r7.get_opendistro_security_meta().setType("roles");
+        r7.set_meta(new Meta());
+        r7.get_meta().setConfig_version(2);
+        r7.get_meta().setType("roles");
         
         final SecurityDynamicConfiguration<TenantV7> t7 = SecurityDynamicConfiguration.empty();
         t7.setCType(CType.TENANTS);
-        t7.set_opendistro_security_meta(new Meta());
-        t7.get_opendistro_security_meta().setConfig_version(2);
-        t7.get_opendistro_security_meta().setType("tenants");
+        t7.set_meta(new Meta());
+        t7.get_meta().setConfig_version(2);
+        t7.get_meta().setType("tenants");
 
         Set<String> dedupTenants = new HashSet<>();
         
@@ -79,9 +79,9 @@ public class Migration {
     public static SecurityDynamicConfiguration<ConfigV7> migrateConfig(SecurityDynamicConfiguration<ConfigV6> r6cs) throws MigrationException {
         final SecurityDynamicConfiguration<ConfigV7> c7 = SecurityDynamicConfiguration.empty();
         c7.setCType(r6cs.getCType());
-        c7.set_opendistro_security_meta(new Meta());
-        c7.get_opendistro_security_meta().setConfig_version(2);
-        c7.get_opendistro_security_meta().setType("config");
+        c7.set_meta(new Meta());
+        c7.get_meta().setConfig_version(2);
+        c7.get_meta().setType("config");
         
         if(r6cs.getCEntries().size() != 1) {
             throw new MigrationException("Unable to migrate config because expected size was 1 but actual size is "+r6cs.getCEntries().size());
@@ -92,7 +92,7 @@ public class Migration {
         }
         
         for(final Entry<String, ConfigV6> r6c: r6cs.getCEntries().entrySet()) {
-            c7.putCEntry("sg_config", new ConfigV7(r6c.getValue()));
+            c7.putCEntry("config", new ConfigV7(r6c.getValue()));
         }
         return c7;
     }
@@ -100,9 +100,9 @@ public class Migration {
     public static SecurityDynamicConfiguration<InternalUserV7>  migrateInternalUsers(SecurityDynamicConfiguration<InternalUserV6> r6is) throws MigrationException {
         final SecurityDynamicConfiguration<InternalUserV7> i7 = SecurityDynamicConfiguration.empty();
         i7.setCType(r6is.getCType());
-        i7.set_opendistro_security_meta(new Meta());
-        i7.get_opendistro_security_meta().setConfig_version(2);
-        i7.get_opendistro_security_meta().setType("internalusers");
+        i7.set_meta(new Meta());
+        i7.get_meta().setConfig_version(2);
+        i7.get_meta().setType("internalusers");
         
         for(final Entry<String, InternalUserV6> r6i: r6is.getCEntries().entrySet()) {
             final  String username = !Strings.isNullOrEmpty(r6i.getValue().getUsername())?r6i.getValue().getUsername():r6i.getKey();
@@ -116,9 +116,9 @@ public class Migration {
         
         final SecurityDynamicConfiguration<ActionGroupsV7> a7 = SecurityDynamicConfiguration.empty();
         a7.setCType(r6as.getCType());
-        a7.set_opendistro_security_meta(new Meta());
-        a7.get_opendistro_security_meta().setConfig_version(2);
-        a7.get_opendistro_security_meta().setType("actiongroups");
+        a7.set_meta(new Meta());
+        a7.get_meta().setConfig_version(2);
+        a7.get_meta().setType("actiongroups");
         
         if(r6as.getImplementingClass().isAssignableFrom(List.class)) {
             for(final Entry<String, ?> r6a: r6as.getCEntries().entrySet()) {
@@ -136,9 +136,9 @@ public class Migration {
     public static SecurityDynamicConfiguration<RoleMappingsV7>  migrateRoleMappings(SecurityDynamicConfiguration<RoleMappingsV6> r6rms) throws MigrationException {
         final SecurityDynamicConfiguration<RoleMappingsV7> rms7 = SecurityDynamicConfiguration.empty();
         rms7.setCType(r6rms.getCType());
-        rms7.set_opendistro_security_meta(new Meta());
-        rms7.get_opendistro_security_meta().setConfig_version(2);
-        rms7.get_opendistro_security_meta().setType("rolesmapping");
+        rms7.set_meta(new Meta());
+        rms7.get_meta().setConfig_version(2);
+        rms7.get_meta().setType("rolesmapping");
         
         for(final Entry<String, RoleMappingsV6> r6m: r6rms.getCEntries().entrySet()) {
             rms7.putCEntry(r6m.getKey(), new RoleMappingsV7(r6m.getValue()));

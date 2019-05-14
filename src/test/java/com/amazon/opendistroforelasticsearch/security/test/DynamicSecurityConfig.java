@@ -93,7 +93,7 @@ public class DynamicSecurityConfig {
 
     public DynamicSecurityConfig setLegacy() {
         this.type = "security";
-        this.legacyConfigFolder = "legacy/sgconfig_v6/";
+        this.legacyConfigFolder = "legacy/securityconfig_v6/";
         return this;
     }
     public String getType() {
