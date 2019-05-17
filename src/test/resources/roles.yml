@@ -338,11 +338,11 @@ zdummy_all:
   - tenant_patterns:
     - "admin_1"
     allowed_actions:
-    - "KIBANA_ALL_WRITE"
+    - "ODS_KIBANA_ALL_WRITE"
   - tenant_patterns:
     - "abcdef_2_2"
     allowed_actions:
-    - "KIBANA_ALL_READ"
+    - "ODS_KIBANA_ALL_READ"
 multiget:
   reserved: false
   hidden: false
@@ -729,11 +729,11 @@ role_klingons1:
   - tenant_patterns:
     - "kltentrw"
     allowed_actions:
-    - "KIBANA_ALL_WRITE"
+    - "ODS_KIBANA_ALL_WRITE"
   - tenant_patterns:
     - "kltentro"
     allowed_actions:
-    - "KIBANA_ALL_READ"
+    - "ODS_KIBANA_ALL_READ"
 snapres:
   reserved: false
   hidden: false
@@ -767,11 +767,11 @@ role_klingons2:
   - tenant_patterns:
     - "praxisrw"
     allowed_actions:
-    - "KIBANA_ALL_WRITE"
+    - "ODS_KIBANA_ALL_WRITE"
   - tenant_patterns:
     - "praxisro"
     allowed_actions:
-    - "KIBANA_ALL_READ"
+    - "ODS_KIBANA_ALL_READ"
 theindex_admin:
   reserved: false
   hidden: false

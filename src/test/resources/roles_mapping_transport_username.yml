@@ -2,7 +2,7 @@
 _meta:
   type: "rolesmapping"
   config_version: 2
-opendistro_security_own_index:
+own_index:
   reserved: false
   hidden: false
   backend_roles: []
@@ -12,7 +12,7 @@ opendistro_security_own_index:
   - "kirk"
   and_backend_roles: []
   description: "Migrated from v6"
-opendistro_security_unittest_1:
+unittest_1:
   reserved: false
   hidden: false
   backend_roles: []
@@ -21,7 +21,7 @@ opendistro_security_unittest_1:
   - "client"
   and_backend_roles: []
   description: "Migrated from v6"
-opendistro_security_rexclude:
+rexclude:
   reserved: false
   hidden: false
   backend_roles: []
@@ -30,7 +30,7 @@ opendistro_security_rexclude:
   - "rexclude"
   and_backend_roles: []
   description: "Migrated from v6"
-opendistro_security_underscore:
+underscore:
   reserved: false
   hidden: false
   backend_roles: []
@@ -39,7 +39,7 @@ opendistro_security_underscore:
   - "underscore"
   and_backend_roles: []
   description: "Migrated from v6"
-opendistro_security_role_vulcans_admin:
+role_vulcans_admin:
   reserved: false
   hidden: false
   backend_roles:
@@ -48,7 +48,7 @@ opendistro_security_role_vulcans_admin:
   users: []
   and_backend_roles: []
   description: "Migrated from v6"
-opendistro_security_shakespeare:
+shakespeare:
   reserved: false
   hidden: false
   backend_roles: []
@@ -57,7 +57,7 @@ opendistro_security_shakespeare:
   - "picard"
   and_backend_roles: []
   description: "Migrated from v6"
-opendistro_security_aliastest:
+aliastest:
   reserved: false
   hidden: false
   backend_roles: []
@@ -67,7 +67,7 @@ opendistro_security_aliastest:
   - "dummy"
   and_backend_roles: []
   description: "Migrated from v6"
-opendistro_security_user1:
+user1:
   reserved: false
   hidden: false
   backend_roles: []
@@ -76,7 +76,7 @@ opendistro_security_user1:
   - "worf"
   and_backend_roles: []
   description: "Migrated from v6"
-opendistro_security_role_vulcans:
+role_vulcans:
   reserved: false
   hidden: false
   backend_roles:
@@ -86,7 +86,7 @@ opendistro_security_role_vulcans:
   - "kirk"
   and_backend_roles: []
   description: "Migrated from v6"
-opendistro_security_flsdls:
+flsdls:
   reserved: false
   hidden: false
   backend_roles: []
@@ -95,7 +95,7 @@ opendistro_security_flsdls:
   - "sarek"
   and_backend_roles: []
   description: "Migrated from v6"
-opendistro_security_ccsresolv:
+ccsresolv:
   reserved: false
   hidden: false
   backend_roles: []
@@ -104,7 +104,7 @@ opendistro_security_ccsresolv:
   - "ccsresolv"
   and_backend_roles: []
   description: "Migrated from v6"
-opendistro_security_user2:
+user2:
   reserved: false
   hidden: false
   backend_roles: []
@@ -113,7 +113,7 @@ opendistro_security_user2:
   - "picard"
   and_backend_roles: []
   description: "Migrated from v6"
-opendistro_security_role_starfleet_captains:
+role_starfleet_captains:
   reserved: false
   hidden: false
   backend_roles:
@@ -122,7 +122,7 @@ opendistro_security_role_starfleet_captains:
   users: []
   and_backend_roles: []
   description: "Migrated from v6"
-opendistro_security_restore:
+restore:
   reserved: false
   hidden: false
   backend_roles: []
@@ -131,7 +131,7 @@ opendistro_security_restore:
   - "restoreuser"
   and_backend_roles: []
   description: "Migrated from v6"
-opendistro_security_attr:
+attr:
   reserved: false
   hidden: false
   backend_roles: []
@@ -140,7 +140,7 @@ opendistro_security_attr:
   - "custattr"
   and_backend_roles: []
   description: "Migrated from v6"
-opendistro_security_mindex3:
+mindex3:
   reserved: false
   hidden: false
   backend_roles: []
@@ -149,7 +149,7 @@ opendistro_security_mindex3:
   - "mindex12"
   and_backend_roles: []
   description: "Migrated from v6"
-opendistro_security_role_starfleet_library:
+role_starfleet_library:
   reserved: false
   hidden: false
   backend_roles:
@@ -159,7 +159,7 @@ opendistro_security_role_starfleet_library:
   users: []
   and_backend_roles: []
   description: "Migrated from v6"
-opendistro_security_baz:
+baz:
   reserved: false
   hidden: false
   backend_roles: []
@@ -168,7 +168,7 @@ opendistro_security_baz:
   - "baz"
   and_backend_roles: []
   description: "Migrated from v6"
-opendistro_security_mindex2:
+mindex2:
   reserved: false
   hidden: false
   backend_roles: []
@@ -177,7 +177,7 @@ opendistro_security_mindex2:
   - "mindex12"
   and_backend_roles: []
   description: "Migrated from v6"
-opendistro_security_mindex1:
+mindex1:
   reserved: false
   hidden: false
   backend_roles: []
@@ -186,7 +186,7 @@ opendistro_security_mindex1:
   - "mindex12"
   and_backend_roles: []
   description: "Migrated from v6"
-opendistro_security_role_klingons1:
+role_klingons1:
   reserved: false
   hidden: false
   backend_roles:
@@ -195,7 +195,7 @@ opendistro_security_role_klingons1:
   users: []
   and_backend_roles: []
   description: "Migrated from v6"
-opendistro_security_snapres:
+snapres:
   reserved: false
   hidden: false
   backend_roles: []
@@ -204,7 +204,7 @@ opendistro_security_snapres:
   - "snapresuser"
   and_backend_roles: []
   description: "Migrated from v6"
-opendistro_security_role_klingons2:
+role_klingons2:
   reserved: false
   hidden: false
   backend_roles:
@@ -213,7 +213,7 @@ opendistro_security_role_klingons2:
   users: []
   and_backend_roles: []
   description: "Migrated from v6"
-opendistro_security_kibana4:
+kibana4:
   reserved: false
   hidden: false
   backend_roles: []
@@ -222,7 +222,7 @@ opendistro_security_kibana4:
   - "bug108"
   and_backend_roles: []
   description: "Migrated from v6"
-opendistro_security_dlsnoinvest:
+dlsnoinvest:
   reserved: false
   hidden: false
   backend_roles: []
@@ -231,7 +231,7 @@ opendistro_security_dlsnoinvest:
   - "dlsnoinvest"
   and_backend_roles: []
   description: "Migrated from v6"
-opendistro_security_theindex_admin:
+theindex_admin:
   reserved: false
   hidden: false
   backend_roles: []
@@ -240,7 +240,7 @@ opendistro_security_theindex_admin:
   - "theindexadmin"
   and_backend_roles: []
   description: "Migrated from v6"
-opendistro_security_zdummy_all:
+zdummy_all:
   reserved: false
   hidden: false
   backend_roles: []
@@ -249,7 +249,7 @@ opendistro_security_zdummy_all:
   - "bug108"
   and_backend_roles: []
   description: "Migrated from v6"
-opendistro_security_multiget:
+multiget:
   reserved: false
   hidden: false
   backend_roles: []
@@ -258,7 +258,7 @@ opendistro_security_multiget:
   - "picard"
   and_backend_roles: []
   description: "Migrated from v6"
-opendistro_security_kibana_server:
+kibana_server:
   reserved: true
   hidden: false
   backend_roles: []
@@ -267,7 +267,7 @@ opendistro_security_kibana_server:
   - "kibanaserver"
   and_backend_roles: []
   description: "Migrated from v6"
-opendistro_security_all_access:
+all_access:
   reserved: false
   hidden: false
   backend_roles: []
@@ -276,7 +276,7 @@ opendistro_security_all_access:
   - "nagilum"
   and_backend_roles: []
   description: "Migrated from v6"
-opendistro_security_public:
+public:
   reserved: false
   hidden: false
   backend_roles: []
@@ -285,7 +285,7 @@ opendistro_security_public:
   - "*"
   and_backend_roles: []
   description: "Migrated from v6"
-opendistro_security_writer:
+writer:
   reserved: false
   hidden: false
   backend_roles: []
@@ -294,7 +294,7 @@ opendistro_security_writer:
   - "writer"
   and_backend_roles: []
   description: "Migrated from v6"
-opendistro_security_logstash:
+logstash:
   reserved: false
   hidden: false
   backend_roles: []
@@ -303,7 +303,7 @@ opendistro_security_logstash:
   - "logstash"
   and_backend_roles: []
   description: "Migrated from v6"
-opendistro_security_role01_role02:
+role01_role02:
   reserved: false
   hidden: false
   backend_roles: []
@@ -313,7 +313,7 @@ opendistro_security_role01_role02:
   - "role01"
   - "role02"
   description: "Migrated from v6"
-opendistro_security_role_starfleet:
+role_starfleet:
   reserved: false
   hidden: false
   backend_roles:
@@ -326,7 +326,7 @@ opendistro_security_role_starfleet:
   - "nagilum"
   and_backend_roles: []
   description: "Migrated from v6"
-opendistro_security_role_host1:
+role_host1:
   reserved: false
   hidden: false
   backend_roles: []
@@ -336,17 +336,17 @@ opendistro_security_role_host1:
   users: []
   and_backend_roles: []
   description: "Migrated from v6"
-opendistro_security_role_host2:
+role_host2:
   reserved: false
   hidden: false
   backend_roles: []
   hosts: []
   users:
-  - "opendistro_security_host_127.0.0.1"
-  - "opendistro_security_host_localhost"
+  - "host_127.0.0.1"
+  - "host_localhost"
   and_backend_roles: []
   description: "Migrated from v6"
-opendistro_security_twitter:
+twitter:
   reserved: false
   hidden: false
   backend_roles: []

@@ -1,4 +1,4 @@
-  +---
+---
 _meta:
   type: "config"
   config_version: 2
@@ -19,8 +19,8 @@ config:
         enabled: false
         internalProxies: "192\\.168\\.0\\.10|192\\.168\\.0\\.11"
         remoteIpHeader: "x-forwarded-for"
-        proxiesHeader: "x-forwarded-by"
-        trustedProxies: "proxy1|proxy2"
+
+
     authc:
       authentication_domain_kerb:
         http_enabled: false
@@ -76,7 +76,6 @@ config:
       roles_from_xxx:
         http_enabled: false
         transport_enabled: false
-        order: 0
         authorization_backend:
           type: "xxx"
           config: {}
@@ -84,7 +83,6 @@ config:
       roles_from_myldap:
         http_enabled: false
         transport_enabled: false
-        order: 0
         authorization_backend:
           type: "ldap"
           config:

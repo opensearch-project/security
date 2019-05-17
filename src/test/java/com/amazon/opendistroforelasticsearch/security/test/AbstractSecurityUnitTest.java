@@ -191,9 +191,11 @@ public abstract class AbstractSecurityUnitTest {
                 tc.index(ir).actionGet();
             }
 
-
             System.out.println("$$$$$$$");
             System.out.println("Ctype: "+CType.lcStringValues().toArray(new String[0]));
+            for(String element: CType.lcStringValues().toArray(new String[0])){
+                System.out.println("Element: " + element);
+            }
             System.out.println("$$$$$$$");
 
             ConfigUpdateResponse cur = tc
@@ -242,6 +244,7 @@ public abstract class AbstractSecurityUnitTest {
 
         if(!sslOnly) {
             builder.putList("opendistro_security.authcz.admin_dn", "CN=kirk,OU=client,O=client,l=tEst, C=De");
+            builder.put(ConfigConstants.OPENDISTRO_SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, false);
 
             //.put(other==null?Settings.EMPTY:other);
         }

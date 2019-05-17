@@ -129,7 +129,7 @@ public class IntegrationTests extends SingleClusterTest {
             Assert.assertFalse(wres.toString(), wres.isNodeCertificateRequest());
         }
         
-        HttpResponse res = rh.executePutRequest("test/_mapping/type1?pretty", "{\"properties\": {\"name\":{\"type\":\"text\"}}}", encodeBasicHeader("writer", "writer"));
+        HttpResponse res = rh.executePutRequest("test/_mapping?pretty", "{\"properties\": {\"name\":{\"type\":\"text\"}}}", encodeBasicHeader("writer", "writer"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());  
         
         res = rh.executePostRequest("_cluster/reroute", "{}", encodeBasicHeader("writer", "writer"));
@@ -400,7 +400,7 @@ public class IntegrationTests extends SingleClusterTest {
         Assert.assertFalse(res.getBody().contains("\"content\":2"));
         
         try (TransportClient tc = getInternalTransportClient()) {                                       
-            tc.index(new IndexRequest(".opendistro_security").type("security").id("config").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("config", FileHelper.readYamlContent("config_multirolespan.yml"))).actionGet();
+            tc.index(new IndexRequest(".opendistro_security").type(getType()).id("config").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("config", FileHelper.readYamlContent("config_multirolespan.yml"))).actionGet();
    
             ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config"})).actionGet();
             Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());
@@ -439,7 +439,7 @@ public class IntegrationTests extends SingleClusterTest {
     }
     
     @Test
-    public void testSGUnderscore() throws Exception {
+    public void testSecurityUnderscore() throws Exception {
         
         setup();
         final RestHelper rh = nonSslRestHelper();
@@ -660,7 +660,7 @@ public class IntegrationTests extends SingleClusterTest {
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (resc=rh.executeGetRequest("starfleet/_search?pretty", encodeBasicHeader("user_a", "user_a"))).getStatusCode());
         System.out.println(resc.getBody());
 
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (resc=rh.executeGetRequest("starfleet/_search?pretty", encodeBasicHeader("worf", "worf"))).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, (resc=rh.executeGetRequest("starfleet/_search?pretty", encodeBasicHeader("worf", "worf"))).getStatusCode());
         System.out.println(resc.getBody());
 
         System.out.println("#### _all/_mapping/field/*");
@@ -819,7 +819,7 @@ public class IntegrationTests extends SingleClusterTest {
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (resc=rh.executeGetRequest("starfleet/_search?pretty", encodeBasicHeader("user_a", "user_a"))).getStatusCode());
         System.out.println(resc.getBody());
 
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (resc=rh.executeGetRequest("starfleet/_search?pretty", encodeBasicHeader("worf", "worf"))).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, (resc=rh.executeGetRequest("starfleet/_search?pretty", encodeBasicHeader("worf", "worf"))).getStatusCode());
         System.out.println(resc.getBody());
 
         System.out.println("#### _all/_mapping/field/*");
@@ -833,4 +833,40 @@ public class IntegrationTests extends SingleClusterTest {
         System.out.println(resc.getBody());
     }
 
+    @Test
+    public void testSecurityIndexSecurity() throws Exception {
+        setup();
+        final RestHelper rh = nonSslRestHelper();
+
+        HttpResponse res = rh.executePutRequest(".opendistro_security/_mapping?pretty", "{\"properties\": {\"name\":{\"type\":\"text\"}}}",
+                encodeBasicHeader("nagilum", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+        res = rh.executePutRequest("*dis*rit*/_mapping?pretty", "{\"properties\": {\"name\":{\"type\":\"text\"}}}",
+                encodeBasicHeader("nagilum", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+        res = rh.executePutRequest("*/_mapping?pretty", "{\"properties\": {\"name\":{\"type\":\"text\"}}}",
+                encodeBasicHeader("nagilum", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+        res = rh.executePutRequest("_all/_mapping?pretty", "{\"properties\": {\"name\":{\"type\":\"text\"}}}",
+                encodeBasicHeader("nagilum", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+        res = rh.executePostRequest(".opendistro_security/_close", "",
+                encodeBasicHeader("nagilum", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+        res = rh.executeDeleteRequest(".opendistro_security",
+                encodeBasicHeader("nagilum", "nagilum"));
+        res = rh.executeDeleteRequest("_all",
+                encodeBasicHeader("nagilum", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+        res = rh.executePutRequest(".opendistro_security/_settings", "{\"index\" : {\"number_of_replicas\" : 2}}",
+                encodeBasicHeader("nagilum", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+        res = rh.executePutRequest(".opendistro_secur*/_settings", "{\"index\" : {\"number_of_replicas\" : 2}}",
+                encodeBasicHeader("nagilum", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+//        res = rh.executePostRequest(".opendistro_security/_freeze", "",
+//                encodeBasicHeader("nagilum", "nagilum"));
+//        Assert.assertTrue(res.getStatusCode() >= 400);
+
+    }
 }

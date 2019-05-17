@@ -2,7 +2,7 @@
 _meta:
   type: "config"
   config_version: 2
-opendistro_security_config:
+config:
   dynamic:
     filtered_alias_mode: disallow
     http:

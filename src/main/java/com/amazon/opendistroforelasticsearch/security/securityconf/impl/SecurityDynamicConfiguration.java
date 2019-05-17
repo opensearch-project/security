@@ -47,10 +47,11 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
             if(implementationClass == null) {
                 throw new IllegalArgumentException("No implementation class found for "+ctype+" and config version "+version);
             }
+            System.out.println("Config Version ABC: "+ version);
             System.out.println("Reading Values: with " + implementationClass.getName());
             sdc = DefaultObjectMapper.readValue(json, DefaultObjectMapper.getTypeFactory().constructParametricType(SecurityDynamicConfiguration.class, implementationClass));
             System.out.println("Done Reading Values: ");
-        
+            System.out.println("Ctype: " + ctype);
             validate(sdc, version, ctype);
         
         } else {
@@ -78,7 +79,10 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
             throw new IOException("A version of "+version+" must have a single toplevel key named 'opendistro_security' for "+ctype);
         }
         
-        if(version >= 2 && ctype == CType.CONFIG && (sdc.getCEntries().size() != 1 || !sdc.getCEntries().keySet().contains("security_config"))) {
+        if(version >= 2 && ctype == CType.CONFIG && (sdc.getCEntries().size() != 1 || !sdc.getCEntries().keySet().contains("config"))) {
+            System.out.println(" =========================== ");
+            System.out.println(sdc.getCEntries().keySet());
+            System.out.println(" =========================== ");
             throw new IOException("A version of "+version+" must have a single toplevel key named 'security_config' for "+ctype);
         }
         

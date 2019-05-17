@@ -37,12 +37,12 @@ import com.amazon.opendistroforelasticsearch.security.tools.OpenDistroSecurityAd
 public class SecurityAdminMigrationTests extends SingleClusterTest {
     
     @Test
-    public void testSgMigrate() throws Exception {        
+    public void testSecurityMigrate() throws Exception {
         final Settings settings = Settings.builder()
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
-                .put("security.ssl.http.enabled",true)
-                .put("security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-                .put("security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+                .put("opendistro_security.ssl.http.enabled",true)
+                .put("opendistro_security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+                .put("opendistro_security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
                 .build();
         setup(Settings.EMPTY, new DynamicSecurityConfig().setLegacy(), settings, true);
         final RestHelper rh = restHelper(); //ssl resthelper
@@ -73,7 +73,7 @@ public class SecurityAdminMigrationTests extends SingleClusterTest {
         
         HttpResponse res;
         
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_searchguard/health?pretty")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
         assertContains(res, "*UP*");
         assertContains(res, "*strict*");
         assertNotContains(res, "*DOWN*");
@@ -83,12 +83,12 @@ public class SecurityAdminMigrationTests extends SingleClusterTest {
     }
     
     @Test
-    public void testSgMigrate2() throws Exception {        
+    public void testSecurityMigrate2() throws Exception {
         final Settings settings = Settings.builder()
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
-                .put("security.ssl.http.enabled",true)
-                .put("security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-                .put("security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+                .put("opendistro_security.ssl.http.enabled",true)
+                .put("opendistro_security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+                .put("opendistro_security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
                 .build();
         setup(Settings.EMPTY, new DynamicSecurityConfig().setLegacy(), settings, true);
         final RestHelper rh = restHelper(); //ssl resthelper
@@ -135,7 +135,7 @@ public class SecurityAdminMigrationTests extends SingleClusterTest {
         
         HttpResponse res;
         
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_searchguard/health?pretty")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
         assertContains(res, "*UP*");
         assertContains(res, "*strict*");
         assertNotContains(res, "*DOWN*");

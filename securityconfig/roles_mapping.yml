@@ -1,34 +1,49 @@
-# In this file users, backendroles and hosts can be mapped to Open Distro Security roles.
-# Permissions for Open Distro Security roles are configured in roles.yml
+---
+# In this file users, backendroles and hosts can be mapped to Search Guard roles.
+# Permissions for Opendistro roles are configured in roles.yml
 
-all_access:
-  readonly: true
-  backendroles:
-    - admin
+_meta:
+  type: "rolesmapping"
+  config_version: 2
 
-logstash:
-  backendroles:
-    - logstash
-    
-kibana_server:
-  readonly: true
+# Define your roles mapping here
+
+## Demo roles mapping
+
+ODS_ALL_ACCESS:
+  reserved: true
+  backend_roles:
+  - "admin"
+  description: "Maps admin to ODS_ALL_ACCESS"
+
+ODS_OWN_INDEX:
+  reserved: false
   users:
-    - kibanaserver
-    
-kibana_user:
-  backendroles:
-    - kibanauser
+  - "*"
+  description: "Allow full access to an index named like the username"
 
-readall:
-  readonly: true
-  backendroles:
-    - readall
+ODS_LOGSTASH:
+  reserved: false
+  backend_roles:
+  - "logstash"
 
-manage_snapshots:
-  readonly: true
-  backendroles:
-    - snapshotrestore
+ODS_KIBANA_USER:
+  reserved: false
+  backend_roles:
+  - "kibanauser"
+  description: "Maps kibanauser to ODS_KIBANA_USER"
 
-own_index:
+ODS_READALL:
+  reserved: true
+  backend_roles:
+  - "readall"
+
+ODS_MANAGE_SNAPSHOTS:
+  reserved: true
+  backend_roles:
+  - "snapshotrestore"
+
+ODS_KIBANA_SERVER:
+  reserved: true
   users:
-    - '*'
+  - "kibanaserver"

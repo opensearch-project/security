@@ -159,7 +159,7 @@ public class OpenDistroSecurityAdmin {
             System.exit(-1);
         } 
         catch (IndexNotFoundException e) {
-            System.out.println("ERR: No Open Distro Security configuartion index found. Please execute securityadmin with different command line parameters");
+            System.out.println("ERR: No Open Distro Security configuration index found. Please execute securityadmin with different command line parameters");
             System.out.println("When you run it for the first time do not specify -us, -era, -dra or -rl");
             System.out.println();
             System.exit(-1);
@@ -735,7 +735,7 @@ public class OpenDistroSecurityAdmin {
             final boolean legacy = createLegacyMode || (indexExists
                     && securityIndex.getMappings() != null
                     && securityIndex.getMappings().get(index) != null
-                    && securityIndex.getMappings().get(index).containsKey("config"));
+                    && securityIndex.getMappings().get(index).containsKey("security"));
             
             if(legacy) {
                 System.out.println("Legacy index '"+index+"' (ES 6) detected (or forced). You should migrate the configuration!");
@@ -1179,31 +1179,31 @@ public class OpenDistroSecurityAdmin {
     private static int backup(TransportClient tc, String index, File backupDir, boolean legacy) {
         backupDir.mkdirs();
         
-        boolean success = retrieveFile(tc, backupDir.getAbsolutePath()+"/security_config.yml", index, "config", legacy);
-        success = retrieveFile(tc, backupDir.getAbsolutePath()+"/security_roles.yml", index, "roles", legacy) && success;
+        boolean success = retrieveFile(tc, backupDir.getAbsolutePath()+"/config.yml", index, "config", legacy);
+        success = retrieveFile(tc, backupDir.getAbsolutePath()+"/roles.yml", index, "roles", legacy) && success;
         
-        success = retrieveFile(tc, backupDir.getAbsolutePath()+"/security_roles_mapping.yml", index, "rolesmapping", legacy) && success;
-        success = retrieveFile(tc, backupDir.getAbsolutePath()+"/security_internal_users.yml", index, "internalusers", legacy) && success;
-        success = retrieveFile(tc, backupDir.getAbsolutePath()+"/security_action_groups.yml", index, "actiongroups", legacy) && success;
+        success = retrieveFile(tc, backupDir.getAbsolutePath()+"/roles_mapping.yml", index, "rolesmapping", legacy) && success;
+        success = retrieveFile(tc, backupDir.getAbsolutePath()+"/internal_users.yml", index, "internalusers", legacy) && success;
+        success = retrieveFile(tc, backupDir.getAbsolutePath()+"/action_groups.yml", index, "actiongroups", legacy) && success;
         
         if(!legacy) {
-            success = retrieveFile(tc, backupDir.getAbsolutePath()+"/security_tenants.yml", index, "tenants", legacy) && success;
+            success = retrieveFile(tc, backupDir.getAbsolutePath()+"/tenants.yml", index, "tenants", legacy) && success;
         }
         
         return success?0:-1;
     }
     
     private static int upload(TransportClient tc, String index, String cd, boolean legacy, NodesInfoResponse nodesInfo, boolean resolveEnvVars) {
-        boolean success = uploadFile(tc, cd+"security_config.yml", index, "config", legacy, resolveEnvVars);
-        success = uploadFile(tc, cd+"security_roles.yml", index, "roles", legacy, resolveEnvVars) && success;
-        success = uploadFile(tc, cd+"security_roles_mapping.yml", index, "rolesmapping", legacy, resolveEnvVars) && success;
+        boolean success = uploadFile(tc, cd+"config.yml", index, "config", legacy, resolveEnvVars);
+        success = uploadFile(tc, cd+"roles.yml", index, "roles", legacy, resolveEnvVars) && success;
+        success = uploadFile(tc, cd+"roles_mapping.yml", index, "rolesmapping", legacy, resolveEnvVars) && success;
         
-        success = uploadFile(tc, cd+"security_internal_users.yml", index, "internalusers", legacy, resolveEnvVars) && success;
-        success = uploadFile(tc, cd+"security_action_groups.yml", index, "actiongroups", legacy, resolveEnvVars) && success;
+        success = uploadFile(tc, cd+"internal_users.yml", index, "internalusers", legacy, resolveEnvVars) && success;
+        success = uploadFile(tc, cd+"action_groups.yml", index, "actiongroups", legacy, resolveEnvVars) && success;
 
         
         if(!legacy) {
-            success = uploadFile(tc, cd+"security_tenants.yml", index, "tenants", legacy, resolveEnvVars) && success;
+            success = uploadFile(tc, cd+"tenants.yml", index, "tenants", legacy, resolveEnvVars) && success;
         }
         
         if(!success) {
@@ -1238,19 +1238,19 @@ public class OpenDistroSecurityAdmin {
         try {
 
             System.out.println("-> Migrate configuration to new format and store it here: "+v7Dir.getAbsolutePath());
-            SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsV7 = Migration.migrateActionGroups(SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir,"security_action_groups.yml")), CType.ACTIONGROUPS, 1, 0, 0));
-            SecurityDynamicConfiguration<ConfigV7> configV7 = Migration.migrateConfig(SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir,"security_config.yml")), CType.CONFIG, 1, 0, 0));
-            SecurityDynamicConfiguration<InternalUserV7> internalUsersV7 = Migration.migrateInternalUsers(SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir,"security_internal_users.yml")), CType.INTERNALUSERS, 1, 0, 0));
-            SecurityDynamicConfiguration<RoleMappingsV6> rolesmappingV6 = SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir,"security_roles_mapping.yml")), CType.ROLESMAPPING, 1, 0, 0);
-            Tuple<SecurityDynamicConfiguration<RoleV7>, SecurityDynamicConfiguration<TenantV7>> rolesTenantsV7 = Migration.migrateRoles(SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir,"security_roles.yml")), CType.ROLES, 1, 0, 0), rolesmappingV6);
+            SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsV7 = Migration.migrateActionGroups(SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir,"action_groups.yml")), CType.ACTIONGROUPS, 1, 0, 0));
+            SecurityDynamicConfiguration<ConfigV7> configV7 = Migration.migrateConfig(SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir,"config.yml")), CType.CONFIG, 1, 0, 0));
+            SecurityDynamicConfiguration<InternalUserV7> internalUsersV7 = Migration.migrateInternalUsers(SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir,"internal_users.yml")), CType.INTERNALUSERS, 1, 0, 0));
+            SecurityDynamicConfiguration<RoleMappingsV6> rolesmappingV6 = SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir,"roles_mapping.yml")), CType.ROLESMAPPING, 1, 0, 0);
+            Tuple<SecurityDynamicConfiguration<RoleV7>, SecurityDynamicConfiguration<TenantV7>> rolesTenantsV7 = Migration.migrateRoles(SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir,"roles.yml")), CType.ROLES, 1, 0, 0), rolesmappingV6);
             SecurityDynamicConfiguration<RoleMappingsV7> rolesmappingV7 = Migration.migrateRoleMappings(rolesmappingV6);
             
-            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/security_action_groups.yml"), actionGroupsV7);
-            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/security_config.yml"), configV7);
-            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/security_internal_users.yml"), internalUsersV7);
-            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/security_roles.yml"), rolesTenantsV7.v1());
-            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/security_tenants.yml"), rolesTenantsV7.v2());
-            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/security_roles_mapping.yml"), rolesmappingV7);
+            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/action_groups.yml"), actionGroupsV7);
+            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/config.yml"), configV7);
+            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/internal_users.yml"), internalUsersV7);
+            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/roles.yml"), rolesTenantsV7.v1());
+            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/tenants.yml"), rolesTenantsV7.v2());
+            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/roles_mapping.yml"), rolesmappingV7);
         } catch (Exception e) {
             System.out.println("ERR: Unable to migrate config files due to "+e);
             e.printStackTrace();
@@ -1282,7 +1282,7 @@ public class OpenDistroSecurityAdmin {
             return null;
         }
         final JsonNode jsonNode = DefaultObjectMapper.YAML_MAPPER.readTree(file);
-        return new SecurityJsonNode(jsonNode).get("_security_meta").get("type").asString();
+        return new SecurityJsonNode(jsonNode).get("_meta").get("type").asString();
     }
 
     private static int validateConfig(String cd, String file, String type, int version) {
@@ -1305,14 +1305,14 @@ public class OpenDistroSecurityAdmin {
                 return -1;
             }
         } else if(cd != null) {
-            boolean success = validateConfigFile(cd+"security_action_groups.yml", CType.ACTIONGROUPS, version);
-            success = validateConfigFile(cd+"security_internal_users.yml", CType.INTERNALUSERS, version) && success;
-            success = validateConfigFile(cd+"security_roles.yml", CType.ROLES, version) && success;
-            success = validateConfigFile(cd+"security_roles_mapping.yml", CType.ROLESMAPPING, version) && success;
-            success = validateConfigFile(cd+"security_config.yml", CType.CONFIG, version) && success;
+            boolean success = validateConfigFile(cd+"action_groups.yml", CType.ACTIONGROUPS, version);
+            success = validateConfigFile(cd+"internal_users.yml", CType.INTERNALUSERS, version) && success;
+            success = validateConfigFile(cd+"roles.yml", CType.ROLES, version) && success;
+            success = validateConfigFile(cd+"roles_mapping.yml", CType.ROLESMAPPING, version) && success;
+            success = validateConfigFile(cd+"config.yml", CType.CONFIG, version) && success;
             
-            if(new File(cd+"security_tenants.yml").exists() && version != 6) {
-                success = validateConfigFile(cd+"security_tenants.yml", CType.TENANTS, version) && success;
+            if(new File(cd+"tenants.yml").exists() && version != 6) {
+                success = validateConfigFile(cd+"tenants.yml", CType.TENANTS, version) && success;
             }
             
             return success?0:-1;

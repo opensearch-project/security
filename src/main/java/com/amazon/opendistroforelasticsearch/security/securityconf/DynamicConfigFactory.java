@@ -144,6 +144,8 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
                 log.debug("Static roles loaded ({})", staticRoles.getCEntries().size());
 
                 if(actionGroups.containsAny(staticActionGroups)) {
+                    System.out.println("static: " + actionGroups.getCEntries());
+                    System.out.println("Static Action Groups:" + staticActionGroups.getCEntries());
                     throw new StaticResourceException("Cannot override static action groups");
                 }
                 if(!actionGroups.add(staticActionGroups)) {

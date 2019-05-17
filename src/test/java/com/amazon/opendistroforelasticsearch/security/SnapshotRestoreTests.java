@@ -307,7 +307,7 @@ public class SnapshotRestoreTests extends SingleClusterTest {
     
         final Settings settings = Settings.builder()
                 .putList("path.repo", repositoryPath.getRoot().getAbsolutePath())
-                .put("security.enable_snapshot_restore_privilege", false)
+                .put("opendistro_security.enable_snapshot_restore_privilege", false)
                 .build();
     
         setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityActionGroups("action_groups_packaged.yml"), settings, true, currentClusterConfig);
@@ -336,7 +336,7 @@ public class SnapshotRestoreTests extends SingleClusterTest {
         
         putSnapshot =
         "{"+
-          "\"indices\": \"opendistro_security\","+
+          "\"indices\": \".opendistro_security\","+
           "\"ignore_unavailable\": false,"+
           "\"include_global_state\": false"+
         "}";

@@ -327,21 +327,25 @@ public class ConfigurationRepository {
         try(StoredContext ctx = threadContext.stashContext()) {
             threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
 
-            IndexMetaData searchGuardMetaData = clusterService.state().metaData().index(this.opendistrosecurityIndex);
-            MappingMetaData mappingMetaData = searchGuardMetaData==null?null:searchGuardMetaData.mapping();
+            IndexMetaData securityMetaData = clusterService.state().metaData().index(this.opendistrosecurityIndex);
+            System.out.println("Security Meta Data: "+securityMetaData.getVersion());
+            MappingMetaData mappingMetaData = securityMetaData==null?null:securityMetaData.mapping();
 
-            if(searchGuardMetaData !=null && mappingMetaData !=null ) {
+            if(securityMetaData !=null && mappingMetaData !=null ) {
                 if("security".equals(mappingMetaData.type())) {
                     LOGGER.debug("security index exists and was created before ES 7 (legacy layout)");
                 } else {
                     LOGGER.debug("security index exists and was created with ES 7 (new layout)");
                 }
-
+                System.out.println("Line 339: "+ configTypes.toArray(new CType[0]));
                 retVal.putAll(validate(cl.load(configTypes.toArray(new CType[0]), 5, TimeUnit.SECONDS), configTypes.size()));
+                System.out.println("RetVal Contents: " + retVal.toString());
+
 
             } else {
                 //wait (and use new layout)
                 LOGGER.debug("security index not exists (yet)");
+                System.out.println("Line 345: "+ configTypes.toArray(new CType[0]));
                 retVal.putAll(validate(cl.load(configTypes.toArray(new CType[0]), 5, TimeUnit.SECONDS), configTypes.size()));
             }
 

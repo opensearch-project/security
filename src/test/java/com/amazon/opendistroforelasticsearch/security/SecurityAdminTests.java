@@ -37,7 +37,7 @@ import com.amazon.opendistroforelasticsearch.security.tools.OpenDistroSecurityAd
 public class SecurityAdminTests extends SingleClusterTest {
     
     @Test
-    public void testSgAdmin() throws Exception {
+    public void testSecurityAdmin() throws Exception {
         setup(Settings.EMPTY, null, Settings.EMPTY, false);
         
         final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
@@ -62,11 +62,11 @@ public class SecurityAdminTests extends SingleClusterTest {
         RestHelper rh = nonSslRestHelper();
         HttpResponse res;
         
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistro_security/health?pretty")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
     }
     
     @Test
-    public void testSgAdminV6Update() throws Exception {
+    public void testSecurityAdminV6Update() throws Exception {
         setup(Settings.EMPTY, null, Settings.EMPTY, false);
         
         final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
@@ -91,7 +91,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         RestHelper rh = nonSslRestHelper();
         HttpResponse res;
         
-        Assert.assertEquals(HttpStatus.SC_SERVICE_UNAVAILABLE, (res = rh.executeGetRequest("_opendistro_security/health?pretty")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_SERVICE_UNAVAILABLE, (res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
         //System.out.println(res.getBody());
         //assertContains(res, "*UP*");
         //assertContains(res, "*strict*");
@@ -99,7 +99,7 @@ public class SecurityAdminTests extends SingleClusterTest {
     }
     
     @Test
-    public void testSgAdminRegularUpdate() throws Exception {
+    public void testSecurityAdminRegularUpdate() throws Exception {
         setup(Settings.EMPTY, new DynamicSecurityConfig(), Settings.EMPTY, true);
         
         final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
@@ -124,7 +124,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         RestHelper rh = nonSslRestHelper();
         HttpResponse res;
         
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistro_security/health?pretty")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
         System.out.println(res.getBody());
         assertContains(res, "*UP*");
         assertContains(res, "*strict*");
@@ -132,7 +132,7 @@ public class SecurityAdminTests extends SingleClusterTest {
     }
     
     @Test
-    public void testSgAdminSingularV7Updates() throws Exception {
+    public void testSecurityAdminSingularV7Updates() throws Exception {
         setup(Settings.EMPTY, new DynamicSecurityConfig(), Settings.EMPTY, true);
         
         final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
@@ -197,7 +197,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         RestHelper rh = nonSslRestHelper();
         HttpResponse res;
         
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistro_security/health?pretty")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
         System.out.println(res.getBody());
         assertContains(res, "*UP*");
         assertContains(res, "*strict*");
@@ -205,7 +205,7 @@ public class SecurityAdminTests extends SingleClusterTest {
     }
     
     @Test
-    public void testSgAdminSingularV6Updates() throws Exception {
+    public void testSecurityAdminSingularV6Updates() throws Exception {
         setup(Settings.EMPTY, new DynamicSecurityConfig(), Settings.EMPTY, true);
         
         final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
@@ -232,7 +232,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         RestHelper rh = nonSslRestHelper();
         HttpResponse res;
         
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistro_security/health?pretty")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
         System.out.println(res.getBody());
         assertContains(res, "*UP*");
         assertContains(res, "*strict*");
@@ -240,7 +240,7 @@ public class SecurityAdminTests extends SingleClusterTest {
     }
     
     @Test
-    public void testSgAdminInvalidYml() throws Exception {
+    public void testSecurityAdminInvalidYml() throws Exception {
         setup(Settings.EMPTY, new DynamicSecurityConfig(), Settings.EMPTY, true);
         
         final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
@@ -267,7 +267,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         RestHelper rh = nonSslRestHelper();
         HttpResponse res;
         
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistro_security/health?pretty")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
         System.out.println(res.getBody());
         assertContains(res, "*UP*");
         assertContains(res, "*strict*");
@@ -275,12 +275,12 @@ public class SecurityAdminTests extends SingleClusterTest {
     }
     
     @Test
-    public void testSgAdminReloadInvalidConfig() throws Exception {        
+    public void testSecurityAdminReloadInvalidConfig() throws Exception {
         final Settings settings = Settings.builder()
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
-                .put("security.ssl.http.enabled",true)
-                .put("security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-                .put("security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+                .put("opendistro_security.ssl.http.enabled",true)
+                .put("opendistro_security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+                .put("opendistro_security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
                 .build();
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings, true);
         final RestHelper rh = restHelper(); //ssl resthelper
@@ -289,8 +289,8 @@ public class SecurityAdminTests extends SingleClusterTest {
         rh.trustHTTPServerCertificate = true;
         rh.sendHTTPClientCertificate = true;
         rh.keystore = "kirk-keystore.jks";
-        System.out.println(rh.executePutRequest("opendistro_security/"+getType()+"/roles", FileHelper.loadFile("roles_invalidxcontent.yml")).getBody());;
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executePutRequest("opendistro_security/"+getType()+"/roles", "{\"roles\":\"dummy\"}").getStatusCode());
+        System.out.println(rh.executePutRequest(".opendistro_security/"+getType()+"/roles", FileHelper.loadFile("roles_invalidxcontent.yml")).getBody());;
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executePutRequest(".opendistro_security/"+getType()+"/roles", "{\"roles\":\"dummy\"}").getStatusCode());
         
         
         final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
@@ -313,14 +313,14 @@ public class SecurityAdminTests extends SingleClusterTest {
         
         HttpResponse res;
         
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistro_security/health?pretty")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
         assertContains(res, "*UP*");
         assertContains(res, "*strict*");
         assertNotContains(res, "*DOWN*");
     }
     
     @Test
-    public void testSgAdminValidateConfig() throws Exception {                
+    public void testSecurityAdminValidateConfig() throws Exception {
         List<String> argsAsList = new ArrayList<>();
         argsAsList.add("-cd");
         argsAsList.add(new File("./securityconfig").getAbsolutePath());

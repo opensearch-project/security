@@ -2,7 +2,7 @@
 _meta:
   type: "roles"
   config_version: 2
-opendistro_security_esb_1:
+esb_1:
   reserved: false
   hidden: false
   description: "Migrated from v6 (all types mapped)"
@@ -17,7 +17,7 @@ opendistro_security_esb_1:
     allowed_actions:
     - "*"
   tenant_permissions: []
-opendistro_security_esb_5:
+esb_5:
   reserved: false
   hidden: false
   description: "Migrated from v6 (all types mapped)"
@@ -32,7 +32,7 @@ opendistro_security_esb_5:
     allowed_actions:
     - "*"
   tenant_permissions: []
-opendistro_security_esb_3:
+esb_3:
   reserved: false
   hidden: false
   description: "Migrated from v6 (all types mapped)"

@@ -269,7 +269,7 @@
 
                 <configuration>
                     <argLine>-Xmx3072m</argLine>
-                    <rerunFailingTestsCount>3</rerunFailingTestsCount>
+                    <rerunFailingTestsCount>0</rerunFailingTestsCount>
                     <forkCount>3</forkCount>
                     <reuseForks>true</reuseForks>
                     <!--

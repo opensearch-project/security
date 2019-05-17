@@ -83,6 +83,7 @@ public class ConfigurationLoaderSecurity7 {
     }
 
     Map<CType, SecurityDynamicConfiguration<?>> load(final CType[] events, long timeout, TimeUnit timeUnit) throws InterruptedException, TimeoutException {
+        System.out.println("Loading:    .........");
         final CountDownLatch latch = new CountDownLatch(events.length);
         final Map<CType, SecurityDynamicConfiguration<?>> rs = new HashMap<>(events.length);
 
@@ -110,8 +111,8 @@ public class ConfigurationLoaderSecurity7 {
             public void noData(String id, String type) {
 
                 //when index was created with ES 6 there are no separate tenants. So we load just empty ones.
-                //when index was created with ES 7 and type not "sg" (ES 6 type) there are no rolemappings anymore.
-                if(cs.state().metaData().index(securityIndex).getCreationVersion().before(Version.V_7_0_0) || "sg".equals(type)) {
+                //when index was created with ES 7 and type not "security" (ES 6 type) there are no rolemappings anymore.
+                if(cs.state().metaData().index(securityIndex).getCreationVersion().before(Version.V_7_0_0) || "security".equals(type)) {
                     //created with SG 6
                     //skip tenants
 
@@ -230,9 +231,12 @@ public class ConfigurationLoaderSecurity7 {
             final JsonNode jsonNode = DefaultObjectMapper.readTree(jsonAsString);
             int configVersion = 1;
 
-            if(jsonNode.get("_meta:") != null) {
-                assert jsonNode.get("_meta:").get("type").asText().equals(id);
-                configVersion = jsonNode.get("_meta:").get("config_version").asInt();
+
+
+            if(jsonNode.get("_meta") != null) {
+                assert jsonNode.get("_meta").get("type").asText().equals(id);
+                configVersion = jsonNode.get("_meta").get("config_version").asInt();
+                System.out.println("@@@Config Version: " + configVersion);
             }
 
             if(log.isDebugEnabled()) {
@@ -241,15 +245,17 @@ public class ConfigurationLoaderSecurity7 {
 
             if (CType.ACTIONGROUPS.toLCString().equals(id)) {
                 try {
+                    System.out.println("fromJson :1");
                     return SecurityDynamicConfiguration.fromJson(jsonAsString, CType.fromString(id), configVersion, seqNo, primaryTerm);
                 } catch (Exception e) {
                     if(log.isDebugEnabled()) {
                         log.debug("Unable to load "+id+" with version "+configVersion+" - Try loading legacy format ...");
                     }
+                    System.out.println("fromJson :2");
                     return SecurityDynamicConfiguration.fromJson(jsonAsString, CType.fromString(id), 0, seqNo, primaryTerm);
                 }
             }
-
+            System.out.println("fromJson :3");
             return SecurityDynamicConfiguration.fromJson(jsonAsString, CType.fromString(id), configVersion, seqNo, primaryTerm);
 
         } finally {

@@ -3,7 +3,7 @@ _meta:
   type: "tenants"
   config_version: 2
 
-GLOBAL_TENANT:
+ODS_GLOBAL_TENANT:
   reserved: true
   hidden: false
   static: true

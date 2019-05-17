@@ -54,6 +54,10 @@ public class ConfigUpdateRequest extends BaseNodesRequest<ConfigUpdateRequest> {
     public void readFrom(final StreamInput in) throws IOException {
         super.readFrom(in);
         this.configTypes = in.readStringArray();
+        System.out.println("Reading");
+        for(String configType: configTypes) {
+            System.out.println("Config Type: "+ configType);
+        }
     }
 
     @Override
