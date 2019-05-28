@@ -83,7 +83,6 @@ public class ConfigurationLoaderSecurity7 {
     }
 
     Map<CType, SecurityDynamicConfiguration<?>> load(final CType[] events, long timeout, TimeUnit timeUnit) throws InterruptedException, TimeoutException {
-        System.out.println("Loading:    .........");
         final CountDownLatch latch = new CountDownLatch(events.length);
         final Map<CType, SecurityDynamicConfiguration<?>> rs = new HashMap<>(events.length);
 
