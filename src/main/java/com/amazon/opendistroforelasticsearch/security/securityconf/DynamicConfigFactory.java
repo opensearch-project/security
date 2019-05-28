@@ -42,20 +42,12 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     
     static {
         try {
-            System.out.println("++++++++++++++++");
             JsonNode staticRolesJsonNode = DefaultObjectMapper.YAML_MAPPER.readTree(DynamicConfigFactory.class.getResourceAsStream("/static_config/static_roles.yml"));
-            System.out.println("+++++ Done 1++++++");
-            System.out.println("++++++++++++++++");
             staticRoles = SecurityDynamicConfiguration.fromNode(staticRolesJsonNode, CType.ROLES, 2, 0, 0);
-            System.out.println("+++++ Done 2++++++");
             JsonNode staticActionGroupsJsonNode = DefaultObjectMapper.YAML_MAPPER.readTree(DynamicConfigFactory.class.getResourceAsStream("/static_config/static_action_groups.yml"));
-            System.out.println("+++++ Done 3++++++");
             staticActionGroups = SecurityDynamicConfiguration.fromNode(staticActionGroupsJsonNode, CType.ACTIONGROUPS, 2, 0, 0);
-            System.out.println("+++++ Done 4++++++");
             JsonNode staticTenantsJsonNode = DefaultObjectMapper.YAML_MAPPER.readTree(DynamicConfigFactory.class.getResourceAsStream("/static_config/static_tenants.yml"));
-            System.out.println("+++++ Done 5++++++");
             staticTenants = SecurityDynamicConfiguration.fromNode(staticTenantsJsonNode, CType.TENANTS, 2, 0, 0);
-            System.out.println("+++++ Done 6++++++");
         } catch (Exception e) {
             throw ExceptionsHelper.convertToRuntime(e);
         }
