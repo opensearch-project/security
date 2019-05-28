@@ -56,6 +56,6 @@ public class ExceptionUtils {
                 + "This means that one node is trying to connect to another with "+System.lineSeparator()
                 + "a non-node certificate (no OID or security.nodes_dn incorrect configured) or that someone "+System.lineSeparator()
                 + "is spoofing requests. Check your TLS certificate setup as described here: "
-                + "See http://docs.search-guard.com/latest/troubleshooting-tls");
+                + "See https://opendistro.github.io/for-elasticsearch-docs/docs/troubleshoot/tls/");
     }
 }

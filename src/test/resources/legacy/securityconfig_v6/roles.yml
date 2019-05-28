@@ -31,16 +31,9 @@
 # Index, alias or type names can not contain dots (.) in the <indexname or alias> or <type> expression.
 # Reason is that we currently parse the config file into a elasticsearch settings object which cannot cope with dots in keys.
 # Workaround: Just configure something like '?kibana' instead of '.kibana' or 'my?index' instead of 'my.index'
-# This limitation will likely removed with Search Guard 6
 
-# DLS (Document level security) - NOT FREE FOR COMMERCIAL
-# http://docs.search-guard.com/v6/document-level-security
-
-# FLS (Field level security) - NOT FREE FOR COMMERCIAL
-# http://docs.search-guard.com/v6/field-level-security
-
-# Kibana multitenancy - NOT FREE FOR COMMERCIAL
-# http://docs.search-guard.com/v6/kibana-multi-tenancy
+# DLS (Document level security)
+# https://opendistro.github.io/for-elasticsearch-docs/docs/security/document-level-security/
 
 # Allows everything, but no changes to opendistro_security configuration index
 opendistro_security_all_access:
