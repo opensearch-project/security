@@ -135,7 +135,6 @@ public class DynamicSecurityConfig {
                 .id(CType.ROLESMAPPING.toLCString())
                 .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source(CType.ROLESMAPPING.toLCString(), FileHelper.readYamlContent(prefix+securityRolesMapping)));
-
         if("".equals(legacyConfigFolder)) {
             ret.add(new IndexRequest(securityIndexName)
                     .type(type)

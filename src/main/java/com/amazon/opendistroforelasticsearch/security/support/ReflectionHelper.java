@@ -250,7 +250,7 @@ public class ReflectionHelper {
     @SuppressWarnings("unchecked")
     public static <T> T instantiateAAA(final String clazz, final Settings settings, final Path configPath, final boolean checkEnterprise) {
 
-        if (checkEnterprise && advancedModulesDisabled()) {
+        if (advancedModulesDisabled()) {
             throw new ElasticsearchException("Can not load '{}' because advanced modules are disabled", clazz);
         }
 

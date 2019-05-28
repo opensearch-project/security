@@ -83,7 +83,7 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
             System.out.println(" =========================== ");
             System.out.println(sdc.getCEntries().keySet());
             System.out.println(" =========================== ");
-            throw new IOException("A version of "+version+" must have a single toplevel key named 'security_config' for "+ctype);
+            throw new IOException("A version of "+version+" must have a single toplevel key named 'config' for "+ctype);
         }
         
     }

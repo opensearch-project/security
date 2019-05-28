@@ -25,7 +25,7 @@ import org.elasticsearch.common.settings.Settings;
 
 public final class SSLConfigConstants {
 
-    public static final String OPENDISTRO_SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE = "opendistro_opendistro_security.ssl.http.enable_openssl_if_available";
+    public static final String OPENDISTRO_SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE = "opendistro_security.ssl.http.enable_openssl_if_available";
     public static final String OPENDISTRO_SECURITY_SSL_HTTP_ENABLED = "opendistro_security.ssl.http.enabled";
     public static final boolean OPENDISTRO_SECURITY_SSL_HTTP_ENABLED_DEFAULT = false;
     public static final String OPENDISTRO_SECURITY_SSL_HTTP_CLIENTAUTH_MODE = "opendistro_security.ssl.http.clientauth_mode";

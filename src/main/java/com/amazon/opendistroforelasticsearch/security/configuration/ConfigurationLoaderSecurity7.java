@@ -236,7 +236,6 @@ public class ConfigurationLoaderSecurity7 {
             if(jsonNode.get("_meta") != null) {
                 assert jsonNode.get("_meta").get("type").asText().equals(id);
                 configVersion = jsonNode.get("_meta").get("config_version").asInt();
-                System.out.println("@@@Config Version: " + configVersion);
             }
 
             if(log.isDebugEnabled()) {
@@ -245,17 +244,14 @@ public class ConfigurationLoaderSecurity7 {
 
             if (CType.ACTIONGROUPS.toLCString().equals(id)) {
                 try {
-                    System.out.println("fromJson :1");
                     return SecurityDynamicConfiguration.fromJson(jsonAsString, CType.fromString(id), configVersion, seqNo, primaryTerm);
                 } catch (Exception e) {
                     if(log.isDebugEnabled()) {
                         log.debug("Unable to load "+id+" with version "+configVersion+" - Try loading legacy format ...");
                     }
-                    System.out.println("fromJson :2");
                     return SecurityDynamicConfiguration.fromJson(jsonAsString, CType.fromString(id), 0, seqNo, primaryTerm);
                 }
             }
-            System.out.println("fromJson :3");
             return SecurityDynamicConfiguration.fromJson(jsonAsString, CType.fromString(id), configVersion, seqNo, primaryTerm);
 
         } finally {

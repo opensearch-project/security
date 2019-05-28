@@ -71,9 +71,6 @@ public class HttpIntegrationTests extends SingleClusterTest {
         final Settings settings = Settings.builder()
                 .putList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "knuddel","nonexists")
                 .build();
-        System.out.println(" ================= ");
-        System.out.println(settings.toString());
-        System.out.println(" ================= ");
         setup(settings);
         final RestHelper rh = nonSslRestHelper();
     

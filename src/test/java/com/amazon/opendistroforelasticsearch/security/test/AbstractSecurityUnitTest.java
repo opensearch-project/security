@@ -191,13 +191,6 @@ public abstract class AbstractSecurityUnitTest {
                 tc.index(ir).actionGet();
             }
 
-            System.out.println("$$$$$$$");
-            System.out.println("Ctype: "+CType.lcStringValues().toArray(new String[0]));
-            for(String element: CType.lcStringValues().toArray(new String[0])){
-                System.out.println("Element: " + element);
-            }
-            System.out.println("$$$$$$$");
-
             ConfigUpdateResponse cur = tc
                     .execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(CType.lcStringValues().toArray(new String[0])))
                     .actionGet();
@@ -229,10 +222,10 @@ public abstract class AbstractSecurityUnitTest {
 
 
         Settings.Builder builder = Settings.builder()
-                //.put("opendistro_opendistro_security.ssl.transport.enabled", true)
+                //.put("opendistro_security.ssl.transport.enabled", true)
                 //.put("opendistro_security.no_default_init", true)
-                //.put("opendistro_opendistro_security.ssl.http.enable_openssl_if_available", false)
-                //.put("opendistro_opendistro_security.ssl.transport.enable_openssl_if_available", false)
+                //.put("opendistro_security.ssl.http.enable_openssl_if_available", false)
+                //.put("opendistro_security.ssl.transport.enable_openssl_if_available", false)
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put("opendistro_security.ssl.transport.keystore_alias", "node-0")
