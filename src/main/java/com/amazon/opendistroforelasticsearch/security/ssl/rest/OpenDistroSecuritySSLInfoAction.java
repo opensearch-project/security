@@ -123,6 +123,6 @@ public class OpenDistroSecuritySSLInfoAction extends BaseRestHandler {
 
     @Override
     public String getName() {
-        return "Search Guard SSL Info";
+        return "Open Distro Security SSL Info";
     }
 }

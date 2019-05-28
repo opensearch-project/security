@@ -1,5 +1,5 @@
 ---
-# In this file users, backendroles and hosts can be mapped to Search Guard roles.
+# In this file users, backendroles and hosts can be mapped to Open Distro Security roles.
 # Permissions for Opendistro roles are configured in roles.yml
 
 _meta:
