@@ -57,21 +57,6 @@ ODS_OWN_INDEX:
     - "${user_name}"
     allowed_actions:
     - "ODS_INDICES_ALL"
-    
-ODS_XP_MONITORING:
-  reserved: true
-  hidden: false
-  static: true
-  description: "Provide the minimum permissions for x-pack monitoring"
-  cluster_permissions:
-  - "cluster:monitor/xpack/info"
-  - "cluster:monitor/main"
-  - "cluster:admin/xpack/monitoring/bulk"
-  index_permissions:
-  - index_patterns:
-    - ".monitor*"
-    allowed_actions:
-    - "ODS_INDICES_ALL"
 
   
 ODS_MANAGE_SNAPSHOTS:
@@ -87,56 +72,6 @@ ODS_MANAGE_SNAPSHOTS:
     allowed_actions:
     - "indices:data/write/index"
     - "indices:admin/create"
-  
-ODS_XP_ALERTING:
-  reserved: true
-  hidden: false
-  static: true
-  description: "Provide the minimum permissions for x-pack alerting"
-  cluster_permissions:
-  - "indices:data/read/scroll"
-  - "cluster:admin/xpack/watcher*"
-  - "cluster:monitor/xpack/watcher*"
-  index_permissions:
-  - index_patterns:
-    - ".watches*"
-    allowed_actions:
-    - "ODS_INDICES_ALL"
-  - index_patterns:
-    - ".watcher-history-*"
-    allowed_actions:
-    - "ODS_INDICES_ALL"
-  - index_patterns:
-    - ".triggered_watches"
-    allowed_actions:
-    - "ODS_INDICES_ALL"
-  - index_patterns:
-    - "*"
-    allowed_actions:
-    - "ODS_READ"
-    - "indices:admin/aliases/get"
-  
-ODS_XP_MACHINE_LEARNING:
-  reserved: true
-  hidden: false
-  static: true
-  description: "Provide the minimum permissions for x-pack machine learning"
-  cluster_permissions:
-  - "cluster:admin/persistent*"
-  - "cluster:internal/xpack/ml*"
-  - "indices:data/read/scroll*"
-  - "cluster:admin/xpack/ml*"
-  - "cluster:monitor/xpack/ml*"
-  index_permissions:
-  - index_patterns:
-    - "*"
-    allowed_actions:
-    - "ODS_READ"
-    - "indices:admin/get*"
-  - index_patterns:
-    - ".ml-*"
-    allowed_actions:
-    - "*"
   
 ODS_KIBANA_SERVER:
   reserved: true
