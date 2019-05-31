@@ -19,7 +19,7 @@ public:
     - "indices:admin/create"
     - "indices:data/write/bulk[s]"
   tenant_permissions: []
-all_access:
+opendistro_security_all_access:
   reserved: false
   hidden: false
   description: "Migrated from v6 (all types mapped)"

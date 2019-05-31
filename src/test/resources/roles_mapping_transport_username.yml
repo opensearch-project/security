@@ -2,7 +2,7 @@
 _meta:
   type: "rolesmapping"
   config_version: 2
-own_index:
+opendistro_security_own_index:
   reserved: false
   hidden: false
   backend_roles: []
@@ -258,7 +258,7 @@ multiget:
   - "picard"
   and_backend_roles: []
   description: "Migrated from v6"
-kibana_server:
+opendistro_security_kibana_server:
   reserved: true
   hidden: false
   backend_roles: []
@@ -267,7 +267,7 @@ kibana_server:
   - "kibanaserver"
   and_backend_roles: []
   description: "Migrated from v6"
-all_access:
+opendistro_security_all_access:
   reserved: false
   hidden: false
   backend_roles: []
@@ -294,7 +294,7 @@ writer:
   - "writer"
   and_backend_roles: []
   description: "Migrated from v6"
-logstash:
+opendistro_security_logstash:
   reserved: false
   hidden: false
   backend_roles: []

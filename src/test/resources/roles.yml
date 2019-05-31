@@ -488,7 +488,7 @@ role_starfleet:
     allowed_actions:
     - "READ"
   tenant_permissions: []
-own_index:
+opendistro_security_own_index:
   reserved: false
   hidden: false
   description: "Migrated from v6 (all types mapped)"
@@ -818,7 +818,7 @@ remote_marvel_agent:
     allowed_actions:
     - "ALL"
   tenant_permissions: []
-kibana_server:
+opendistro_security_kibana_server:
   reserved: true
   hidden: false
   description: "Migrated from v6 (all types mapped)"
@@ -879,7 +879,7 @@ kibana_server:
     allowed_actions:
     - "indices:admin/aliases*"
   tenant_permissions: []
-all_access:
+opendistro_security_all_access:
   reserved: false
   hidden: false
   description: "Migrated from v6 (all types mapped)"
@@ -943,7 +943,7 @@ writer:
     - "CREATE_INDEX"
     - "WRITE"
   tenant_permissions: []
-logstash:
+opendistro_security_logstash:
   reserved: false
   hidden: false
   description: "Migrated from v6 (all types mapped)"

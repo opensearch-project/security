@@ -76,7 +76,7 @@ aliastest:
   backend_roles: []
   attributes: {}
   description: "Migrated from v6"
-logstash:
+opendistro_security_logstash:
   hash: "$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m"
   reserved: false
   hidden: false

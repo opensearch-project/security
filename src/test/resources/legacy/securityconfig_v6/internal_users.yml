@@ -14,7 +14,7 @@ admin:
     attribute3: value3
 
 #password is: logstash
-logstash:
+opendistro_security_logstash:
   hash: $2a$12$u1ShR4l4uBS3Uv59Pa2y5.1uQuZBrZtmNfqB3iM/.jL0XoV9sghS2
   roles:
     - logstash
@@ -32,7 +32,7 @@ kibanaro:
     - readall
 
 #password is: readall
-readall:
+opendistro_security_readall:
   hash: $2a$12$ae4ycwzwvLtZxwZ82RmiEunBbIPiAmGZduBAjKN0TXdwQFtCwARz2
   #password is: readall
   roles:
