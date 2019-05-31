@@ -13,15 +13,15 @@ ALL:
   reserved: false
   hidden: false
   allowed_actions:
-  - "INDICES_ALL"
+  - "OPENDISTRO_SECURITY_INDICES_ALL"
   type: "index"
   description: "Migrated from v6"
 OPENDISTRO_SECURITY_CRUD:
   reserved: false
   hidden: false
   allowed_actions:
-  - "READ"
-  - "WRITE"
+  - "OPENDISTRO_SECURITY_READ"
+  - "OPENDISTRO_SECURITY_WRITE"
   type: "index"
   description: "Migrated from v6"
 OPENDISTRO_SECURITY_SEARCH:
@@ -30,14 +30,14 @@ OPENDISTRO_SECURITY_SEARCH:
   allowed_actions:
   - "indices:data/read/search*"
   - "indices:data/read/msearch*"
-  - "SUGGEST"
+  - "OPENDISTRO_SECURITY_SUGGEST"
   type: "index"
   description: "Migrated from v6"
 MONITOR:
   reserved: false
   hidden: false
   allowed_actions:
-  - "INDICES_MONITOR"
+  - "OPENDISTRO_SECURITY_INDICES_MONITOR"
   type: "index"
   description: "Migrated from v6"
 OPENDISTRO_SECURITY_DATA_ACCESS:
@@ -45,7 +45,7 @@ OPENDISTRO_SECURITY_DATA_ACCESS:
   hidden: false
   allowed_actions:
   - "indices:data/*"
-  - "CRUD"
+  - "OPENDISTRO_SECURITY_CRUD"
   type: "index"
   description: "Migrated from v6"
 OPENDISTRO_SECURITY_CREATE_INDEX:
@@ -99,7 +99,7 @@ OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS:
   allowed_actions:
   - "indices:data/write/bulk"
   - "indices:admin/aliases*"
-  - "CLUSTER_COMPOSITE_OPS_RO"
+  - "OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS_RO"
   type: "cluster"
   description: "Migrated from v6"
 OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS_RO:

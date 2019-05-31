@@ -29,7 +29,7 @@ rexclude:
     fls: null
     masked_fields: null
     allowed_actions:
-    - "READ"
+    - "OPENDISTRO_SECURITY_READ"
   tenant_permissions: []
 underscore:
   reserved: false
@@ -62,7 +62,7 @@ shakespeare:
     fls: null
     masked_fields: null
     allowed_actions:
-    - "READ"
+    - "OPENDISTRO_SECURITY_READ"
     - "indices:data/write/bulk*"
     - "indices:admin/validate/query*"
     - "indices:admin/exists"
@@ -84,7 +84,7 @@ aliasmngt:
     - "indices:admin/aliases*"
     - "indices:data/write/*"
     - "indices:data/read/*"
-    - "CREATE_INDEX"
+    - "OPENDISTRO_SECURITY_CREATE_INDEX"
   tenant_permissions: []
 transport_client:
   reserved: false
@@ -106,7 +106,7 @@ user1:
     fls: null
     masked_fields: null
     allowed_actions:
-    - "READ"
+    - "OPENDISTRO_SECURITY_READ"
   tenant_permissions: []
 ccsresolv:
   reserved: false
@@ -134,7 +134,7 @@ user2:
     fls: null
     masked_fields: null
     allowed_actions:
-    - "READ"
+    - "OPENDISTRO_SECURITY_READ"
   tenant_permissions: []
 role_starfleet_captains:
   reserved: false
@@ -149,14 +149,14 @@ role_starfleet_captains:
     fls: null
     masked_fields: null
     allowed_actions:
-    - "CRUD"
+    - "OPENDISTRO_SECURITY_CRUD"
   - index_patterns:
     - "public"
     dls: null
     fls: null
     masked_fields: null
     allowed_actions:
-    - "CRUD"
+    - "OPENDISTRO_SECURITY_CRUD"
   tenant_permissions: []
 restore:
   reserved: false
@@ -231,14 +231,14 @@ baz:
     fls: null
     masked_fields: null
     allowed_actions:
-    - "READ"
+    - "OPENDISTRO_SECURITY_READ"
   - index_patterns:
     - "foo"
     dls: null
     fls: null
     masked_fields: null
     allowed_actions:
-    - "READ"
+    - "OPENDISTRO_SECURITY_READ"
   tenant_permissions: []
 kibana4:
   reserved: false
@@ -356,14 +356,14 @@ multiget:
     fls: null
     masked_fields: null
     allowed_actions:
-    - "READ"
+    - "OPENDISTRO_SECURITY_READ"
   - index_patterns:
     - "mindex2"
     dls: null
     fls: null
     masked_fields: null
     allowed_actions:
-    - "READ"
+    - "OPENDISTRO_SECURITY_READ"
   tenant_permissions: []
 public:
   reserved: false
@@ -462,7 +462,7 @@ kibana4_server:
     fls: null
     masked_fields: null
     allowed_actions:
-    - "READ"
+    - "OPENDISTRO_SECURITY_READ"
   tenant_permissions: []
 role_starfleet:
   reserved: false
@@ -478,7 +478,7 @@ role_starfleet:
     fls: null
     masked_fields: null
     allowed_actions:
-    - "READ"
+    - "OPENDISTRO_SECURITY_READ"
     - "indices:*"
   - index_patterns:
     - "pub*"
@@ -486,7 +486,7 @@ role_starfleet:
     fls: null
     masked_fields: null
     allowed_actions:
-    - "READ"
+    - "OPENDISTRO_SECURITY_READ"
   tenant_permissions: []
 opendistro_security_own_index:
   reserved: false
@@ -530,7 +530,7 @@ admin:
   hidden: false
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions:
-  - "CLUSTER_ALL"
+  - "OPENDISTRO_SECURITY_CLUSTER_ALL"
   index_permissions:
   - index_patterns:
     - "*"
@@ -624,7 +624,7 @@ uc:
     allowed_actions:
     - "indices:data/write/*"
     - "indices:data/read/*"
-    - "CREATE_INDEX"
+    - "OPENDISTRO_SECURITY_CREATE_INDEX"
   tenant_permissions: []
 dummy:
   reserved: false
@@ -724,7 +724,7 @@ role_klingons1:
     fls: null
     masked_fields: null
     allowed_actions:
-    - "READ"
+    - "OPENDISTRO_SECURITY_READ"
   tenant_permissions:
   - tenant_patterns:
     - "kltentrw"
@@ -739,7 +739,7 @@ snapres:
   hidden: false
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions:
-  - "MANAGE_SNAPSHOTS"
+  - "OPENDISTRO_SECURITY_MANAGE_SNAPSHOTS"
   index_permissions:
   - index_patterns:
     - "*"
@@ -762,7 +762,7 @@ role_klingons2:
     fls: null
     masked_fields: null
     allowed_actions:
-    - "READ"
+    - "OPENDISTRO_SECURITY_READ"
   tenant_permissions:
   - tenant_patterns:
     - "praxisrw"
@@ -777,7 +777,7 @@ theindex_admin:
   hidden: false
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions:
-  - "CLUSTER_COMPOSITE_OPS"
+  - "OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS"
   index_permissions:
   - index_patterns:
     - "theindex"
@@ -792,7 +792,7 @@ power_user:
   hidden: false
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions:
-  - "CLUSTER_MONITOR"
+  - "OPENDISTRO_SECURITY_CLUSTER_MONITOR"
   index_permissions:
   - index_patterns:
     - "*"
@@ -823,8 +823,8 @@ opendistro_security_kibana_server:
   hidden: false
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions:
-  - "CLUSTER_MONITOR"
-  - "CLUSTER_COMPOSITE_OPS"
+  - "OPENDISTRO_SECURITY_CLUSTER_MONITOR"
+  - "OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS"
   - "cluster:admin/xpack/monitoring*"
   - "indices:admin/template*"
   - "indices:data/read/scroll*"
@@ -835,42 +835,42 @@ opendistro_security_kibana_server:
     fls: null
     masked_fields: null
     allowed_actions:
-    - "INDICES_ALL"
+    - "OPENDISTRO_SECURITY_INDICES_ALL"
   - index_patterns:
     - "?kibana-6"
     dls: null
     fls: null
     masked_fields: null
     allowed_actions:
-    - "INDICES_ALL"
+    - "OPENDISTRO_SECURITY_INDICES_ALL"
   - index_patterns:
     - "?kibana_*"
     dls: null
     fls: null
     masked_fields: null
     allowed_actions:
-    - "INDICES_ALL"
+    - "OPENDISTRO_SECURITY_INDICES_ALL"
   - index_patterns:
     - "?reporting*"
     dls: null
     fls: null
     masked_fields: null
     allowed_actions:
-    - "INDICES_ALL"
+    - "OPENDISTRO_SECURITY_INDICES_ALL"
   - index_patterns:
     - "?monitoring*"
     dls: null
     fls: null
     masked_fields: null
     allowed_actions:
-    - "INDICES_ALL"
+    - "OPENDISTRO_SECURITY_INDICES_ALL"
   - index_patterns:
     - "?tasks"
     dls: null
     fls: null
     masked_fields: null
     allowed_actions:
-    - "INDICES_ALL"
+    - "OPENDISTRO_SECURITY_INDICES_ALL"
   - index_patterns:
     - "*"
     dls: null
@@ -913,7 +913,7 @@ marvel_user:
     fls: null
     masked_fields: null
     allowed_actions:
-    - "READ"
+    - "OPENDISTRO_SECURITY_READ"
   - index_patterns:
     - "?kibana"
     dls: null
@@ -940,8 +940,8 @@ writer:
     fls: null
     masked_fields: null
     allowed_actions:
-    - "CREATE_INDEX"
-    - "WRITE"
+    - "OPENDISTRO_SECURITY_CREATE_INDEX"
+    - "OPENDISTRO_SECURITY_WRITE"
   tenant_permissions: []
 opendistro_security_logstash:
   reserved: false
@@ -960,7 +960,7 @@ opendistro_security_logstash:
     allowed_actions:
     - "indices:data/write/*"
     - "indices:data/read/*"
-    - "CREATE_INDEX"
+    - "OPENDISTRO_SECURITY_CREATE_INDEX"
   tenant_permissions: []
 user:
   reserved: false
@@ -974,14 +974,14 @@ user:
     fls: null
     masked_fields: null
     allowed_actions:
-    - "READ"
+    - "OPENDISTRO_SECURITY_READ"
   tenant_permissions: []
 twitter:
   reserved: false
   hidden: false
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions:
-  - "CLUSTER_COMPOSITE_OPS_RO"
+  - "OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS_RO"
   index_permissions:
   - index_patterns:
     - "twitter"
