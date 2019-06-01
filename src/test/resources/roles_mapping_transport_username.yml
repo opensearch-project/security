@@ -300,7 +300,7 @@ opendistro_security_logstash:
   backend_roles: []
   hosts: []
   users:
-  - "logstash"
+  - "opendistro_security_logstash"
   and_backend_roles: []
   description: "Migrated from v6"
 role01_role02:
