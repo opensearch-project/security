@@ -10,40 +10,40 @@ _meta:
 
 ## Demo roles mapping
 
-ODS_ALL_ACCESS:
+ALL_ACCESS:
   reserved: true
   backend_roles:
   - "admin"
-  description: "Maps admin to ODS_ALL_ACCESS"
+  description: "Maps admin to ALL_ACCESS"
 
-ODS_OWN_INDEX:
+OWN_INDEX:
   reserved: false
   users:
   - "*"
   description: "Allow full access to an index named like the username"
 
-ODS_LOGSTASH:
+LOGSTASH:
   reserved: false
   backend_roles:
   - "logstash"
 
-ODS_KIBANA_USER:
+KIBANA_USER:
   reserved: false
   backend_roles:
   - "kibanauser"
-  description: "Maps kibanauser to ODS_KIBANA_USER"
+  description: "Maps kibanauser to KIBANA_USER"
 
-ODS_READALL:
+READALL:
   reserved: true
   backend_roles:
   - "readall"
 
-ODS_MANAGE_SNAPSHOTS:
+MANAGE_SNAPSHOTS:
   reserved: true
   backend_roles:
   - "snapshotrestore"
 
-ODS_KIBANA_SERVER:
+KIBANA_SERVER:
   reserved: true
   users:
   - "kibanaserver"

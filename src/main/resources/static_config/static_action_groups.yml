@@ -2,7 +2,7 @@
 _meta:
   type: "actiongroups"
   config_version: 2
-ODS_KIBANA_ALL_WRITE:
+KIBANA_ALL_WRITE:
   reserved: true
   hidden: false
   static: true
@@ -10,7 +10,7 @@ ODS_KIBANA_ALL_WRITE:
   - "kibana:saved_objects/*/write"
   type: "kibana"
   description: "Allow writing in all kibana apps"
-ODS_KIBANA_ALL_READ:
+KIBANA_ALL_READ:
   reserved: true
   hidden: false
   static: true
@@ -18,7 +18,7 @@ ODS_KIBANA_ALL_READ:
   - "kibana:saved_objects/*/read"
   type: "kibana"
   description: "Allow reading in all kibana apps"
-ODS_CLUSTER_ALL:
+CLUSTER_ALL:
   reserved: true
   hidden: false
   static: true
@@ -26,35 +26,35 @@ ODS_CLUSTER_ALL:
   - "cluster:*"
   type: "cluster"
   description: "Allow everything on cluster level"
-ODS_CRUD:
+CRUD:
   reserved: true
   hidden: false
   static: true
   allowed_actions:
-  - "ODS_READ"
-  - "ODS_WRITE"
+  - "READ"
+  - "WRITE"
   type: "index"
   description: "Allow all read/write operations on data"
-ODS_SEARCH:
+SEARCH:
   reserved: true
   hidden: false
   static: true
   allowed_actions:
   - "indices:data/read/search*"
   - "indices:data/read/msearch*"
-  - "ODS_SUGGEST"
+  - "SUGGEST"
   type: "index"
   description: "Allow searching"
-ODS_DATA_ACCESS:
+DATA_ACCESS:
   reserved: true
   hidden: false
   static: true
   allowed_actions:
   - "indices:data/*"
-  - "ODS_CRUD"
+  - "CRUD"
   type: "index"
   description: "Allow all read/write operations on data"
-ODS_CREATE_INDEX:
+CREATE_INDEX:
   reserved: true
   hidden: false
   static: true
@@ -63,7 +63,7 @@ ODS_CREATE_INDEX:
   - "indices:admin/mapping/put"
   type: "index"
   description: "Allow creating new indices"
-ODS_WRITE:
+WRITE:
   reserved: true
   hidden: false
   static: true
@@ -72,7 +72,7 @@ ODS_WRITE:
   - "indices:admin/mapping/put"
   type: "index"
   description: "Allow writing data"
-ODS_MANAGE_ALIASES:
+MANAGE_ALIASES:
   reserved: true
   hidden: false
   static: true
@@ -80,7 +80,7 @@ ODS_MANAGE_ALIASES:
   - "indices:admin/aliases*"
   type: "index"
   description: "Allow managing index aliases"
-ODS_READ:
+READ:
   reserved: true
   hidden: false
   static: true
@@ -89,7 +89,7 @@ ODS_READ:
   - "indices:admin/mappings/fields/get*"
   type: "index"
   description: "Allow all read operations"
-ODS_INDICES_ALL:
+INDICES_ALL:
   reserved: true
   hidden: false
   static: true
@@ -97,7 +97,7 @@ ODS_INDICES_ALL:
   - "indices:*"
   type: "index"
   description: "Allow readonly everything with indices and data"
-ODS_DELETE:
+DELETE:
   reserved: true
   hidden: false
   static: true
@@ -105,7 +105,7 @@ ODS_DELETE:
   - "indices:data/write/delete*"
   type: "index"
   description: "Allow deleting documents"
-ODS_CLUSTER_COMPOSITE_OPS:
+CLUSTER_COMPOSITE_OPS:
   reserved: true
   hidden: false
   static: true
@@ -113,10 +113,10 @@ ODS_CLUSTER_COMPOSITE_OPS:
   - "indices:data/write/bulk"
   - "indices:admin/aliases*"
   - "indices:data/write/reindex"
-  - "ODS_CLUSTER_COMPOSITE_OPS_RO"
+  - "CLUSTER_COMPOSITE_OPS_RO"
   type: "cluster"
   description: "Allow read/write bulk and m* operations"
-ODS_CLUSTER_COMPOSITE_OPS_RO:
+CLUSTER_COMPOSITE_OPS_RO:
   reserved: true
   hidden: false
   static: true
@@ -129,7 +129,7 @@ ODS_CLUSTER_COMPOSITE_OPS_RO:
   - "indices:data/read/scroll"
   type: "cluster"
   description: "Allow readonly bulk and m* operations"
-ODS_GET:
+GET:
   reserved: true
   hidden: false
   static: true
@@ -138,7 +138,7 @@ ODS_GET:
   - "indices:data/read/mget*"
   type: "index"
   description: "Allow get"
-ODS_MANAGE:
+MANAGE:
   reserved: true
   hidden: false
   static: true
@@ -147,7 +147,7 @@ ODS_MANAGE:
   - "indices:admin/*"
   type: "index"
   description: "Allow indices management"
-ODS_CLUSTER_MONITOR:
+CLUSTER_MONITOR:
   reserved: true
   hidden: false
   static: true
@@ -155,7 +155,7 @@ ODS_CLUSTER_MONITOR:
   - "cluster:monitor/*"
   type: "cluster"
   description: "Allow monitoring the cluster"
-ODS_MANAGE_SNAPSHOTS:
+MANAGE_SNAPSHOTS:
   reserved: true
   hidden: false
   static: true
@@ -164,7 +164,7 @@ ODS_MANAGE_SNAPSHOTS:
   - "cluster:admin/repository/*"
   type: "cluster"
   description: "Allow snapshots"
-ODS_INDEX:
+INDEX:
   reserved: true
   hidden: false
   static: true
@@ -175,7 +175,7 @@ ODS_INDEX:
   - "indices:data/write/bulk*"
   type: "index"
   description: "Allow indexing"
-ODS_UNLIMITED:
+UNLIMITED:
   reserved: true
   hidden: false
   static: true
@@ -183,7 +183,7 @@ ODS_UNLIMITED:
   - "*"
   type: "all"
   description: "Allow all"
-ODS_INDICES_MONITOR:
+INDICES_MONITOR:
   reserved: true
   hidden: false
   static: true
@@ -191,7 +191,7 @@ ODS_INDICES_MONITOR:
   - "indices:monitor/*"
   type: "index"
   description: "Allow monitoring indices"
-ODS_SUGGEST:
+SUGGEST:
   reserved: true
   hidden: false
   static: true
