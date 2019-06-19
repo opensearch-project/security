@@ -31,6 +31,7 @@
 package com.amazon.opendistroforelasticsearch.security.test.helper.cluster;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.elasticsearch.common.transport.TransportAddress;
@@ -43,4 +44,5 @@ public class ClusterInfo {
 	public String nodeHost;
 	public int nodePort;
 	public String clustername;
+    public List<String> tcpMasterPortsOnly;
 }

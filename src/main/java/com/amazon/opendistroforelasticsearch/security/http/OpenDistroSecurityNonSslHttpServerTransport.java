@@ -30,36 +30,34 @@
 
 package com.amazon.opendistroforelasticsearch.security.http;
 
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandler;
-
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.http.HttpHandlingSettings;
 import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandler;
+
 public class OpenDistroSecurityNonSslHttpServerTransport extends Netty4HttpServerTransport {
 
-    private final ThreadContext threadContext;
-    
+
     public OpenDistroSecurityNonSslHttpServerTransport(final Settings settings, final NetworkService networkService, final BigArrays bigArrays,
             final ThreadPool threadPool, final NamedXContentRegistry namedXContentRegistry, final Dispatcher dispatcher) {
         super(settings, networkService, bigArrays, threadPool, namedXContentRegistry, dispatcher);
-        this.threadContext = threadPool.getThreadContext();
     }
 
     @Override
     public ChannelHandler configureServerChannelHandler() {
-        return new NonSslHttpChannelHandler(this);
+        return new NonSslHttpChannelHandler(this, handlingSettings);
     }
 
     protected class NonSslHttpChannelHandler extends Netty4HttpServerTransport.HttpChannelHandler {
         
-        protected NonSslHttpChannelHandler(Netty4HttpServerTransport transport) {
-            super(transport, OpenDistroSecurityNonSslHttpServerTransport.this.detailedErrorsEnabled, OpenDistroSecurityNonSslHttpServerTransport.this.threadContext);
+        protected NonSslHttpChannelHandler(Netty4HttpServerTransport transport, final HttpHandlingSettings handlingSettings) {
+            super(transport, handlingSettings);
         }
 
         @Override

@@ -1,75 +1,97 @@
-#
-# HTTP
-#   basic (challenging) PREAUTH?
-#   proxy (not challenging, needs xff)
-#   kerberos (challenging)  PREAUTH?
-#   clientcert (not challenging, needs https)
-
-# Authc
-#   internal
-#   noop
-#   ldap  
-
-# Authz
-#   ldap  
-#   noop
-
-
-
-opendistro_security:
+---
+_meta:
+  type: "config"
+  config_version: 2
+config:
   dynamic:
-    composite_enabled: true
+    filtered_alias_mode: "warn"
+    disable_rest_auth: false
+    disable_intertransport_auth: false
+    respect_request_indices_options: false
+    license: null
+    kibana:
+      multitenancy_enabled: true
+      server_username: "kibanaserver"
+      index: ".kibana"
     http:
       anonymous_auth_enabled: false
       xff:
         enabled: false
-        internalProxies: 192\.168\.0\.10|192\.168\.0\.11
+        internalProxies: "192\\.168\\.0\\.10|192\\.168\\.0\\.11"
         remoteIpHeader: "x-forwarded-for"
-        proxiesHeader: "x-forwarded-by"
-        trustedProxies: "proxy1|proxy2"
+
+
     authc:
-      authentication_domain_basic_internal:
-        enabled: true
-        order: 0
-        http_authenticator:
-          type: basic
-        authentication_backend:
-          type: intern
-      authentication_domain_clientcert:
-        enabled: false
-        order: 1
-        http_authenticator:
-          type: clientcert
-        authentication_backend:
-          type: noop
-      authentication_domain_proxy:
-        enabled: false
-        order: 2
-        http_authenticator:
-          type: proxy
-          config:
-          user_header: "x-proxy-user"
-          roles_header: "x-proxy-roles"
-        authentication_backend:
-          type: noop
       authentication_domain_kerb:
-        enabled: false
+        http_enabled: false
+        transport_enabled: false
         order: 3
         http_authenticator:
-          type: kerberos
+          challenge: true
+          type: "kerberos"
+          config: {}
         authentication_backend:
-          type: noop
-    authz:    
-      roles_from_myldap:
-        enabled: false
+          type: "noop"
+          config: {}
+        description: "Migrated from v6"
+      authentication_domain_proxy:
+        http_enabled: false
+        transport_enabled: false
+        order: 2
+        http_authenticator:
+          challenge: true
+          type: "proxy"
+          config:
+            user_header: "x-proxy-user"
+            roles_header: "x-proxy-roles"
+        authentication_backend:
+          type: "noop"
+          config: {}
+        description: "Migrated from v6"
+      authentication_domain_clientcert:
+        http_enabled: false
+        transport_enabled: false
+        order: 1
+        http_authenticator:
+          challenge: true
+          type: "clientcert"
+          config: {}
+        authentication_backend:
+          type: "noop"
+          config: {}
+        description: "Migrated from v6"
+      authentication_domain_basic_internal:
+        http_enabled: true
+        transport_enabled: true
+        order: 0
+        http_authenticator:
+          challenge: true
+          type: "basic"
+          config: {}
+        authentication_backend:
+          type: "intern"
+          config: {}
+        description: "Migrated from v6"
+    authz:
+      roles_from_xxx:
+        http_enabled: false
+        transport_enabled: false
         authorization_backend:
-          type: ldap
+          type: "xxx"
+          config: {}
+        description: "Migrated from v6"
+      roles_from_myldap:
+        http_enabled: false
+        transport_enabled: false
+        authorization_backend:
+          type: "ldap"
           config:
             rolesearch: "(uniqueMember={0})"
             resolve_nested_roles: true
             rolebase: "ou=groups,o=TEST"
-            rolename: cn
-      roles_from_xxx:
-        enabled: false
-        authorization_backend:
-          type: xxx
+            rolename: "cn"
+        description: "Migrated from v6"
+    do_not_fail_on_forbidden: false
+    multi_rolespan_enabled: false
+    hosts_resolver_mode: "ip-only"
+    transport_userrname_attribute: null

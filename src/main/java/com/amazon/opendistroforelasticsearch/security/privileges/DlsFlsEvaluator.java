@@ -34,8 +34,8 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -49,9 +49,8 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin;
 import com.amazon.opendistroforelasticsearch.security.resolver.IndexResolverReplacer.Resolved;
-import com.amazon.opendistroforelasticsearch.security.securityconf.ConfigModel.SecurityRoles;
+import com.amazon.opendistroforelasticsearch.security.securityconf.SecurityRoles;
 import com.amazon.opendistroforelasticsearch.security.support.Base64Helper;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
@@ -189,10 +188,6 @@ public class DlsFlsEvaluator {
             }
         }
 
-        /*if (requestedResolved == Resolved._EMPTY) {
-            presponse.allowed = true;
-            return presponse.markComplete();
-        }*/
 
         return presponse;
     }

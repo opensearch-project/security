@@ -1,0 +1,291 @@
+#<opendistro_security_role_name>:
+#  cluster:
+#    - '<permission>'
+#  indices:
+#    '<indexname or alias>':
+#      '<type>':  
+#        - '<permission>'
+#      _dls_: '<dls query>'
+#      _fls_:
+#        - '<field>'
+#        - '<field>'
+
+# When a user make a request to Elasticsearch then the following roles will be evaluated to see if the user has
+# permissions for the request. A request is always associated with an action and is executed against and index (or alias)
+# and a type. If a request is executed against all indices (or all types) then the asterix ('*') is needed.
+# Every role a user has will be examined if it allows the action against an index (or type). At least one role must match
+# for the request to be successful. If no role match then the request will be denied. Currently a match must happen within
+# one single role - that means that permissions can not span multiple roles. 
+
+# For <permission>, <indexname or alias> and <type> simple wildcards and regular expressions are possible. 
+# A asterix (*) will match any character sequence (or an empty sequence)
+# A question mark (?) will match any single character (but NOT empty character)
+# Example: '*my*index' will match 'my_first_index' as well as 'myindex' but not 'myindex1'
+# Example: '?kibana' will match '.kibana' but not 'kibana'
+
+# To use a full blown regex you have to pre- and apend a '/' to use regex instead of simple wildcards
+# '/<java regex>/'
+# Example: '/\S*/' will match any non whitespace characters
+
+# Important: 
+# Index, alias or type names can not contain dots (.) in the <indexname or alias> or <type> expression.
+# Reason is that we currently parse the config file into a elasticsearch settings object which cannot cope with dots in keys.
+# Workaround: Just configure something like '?kibana' instead of '.kibana' or 'my?index' instead of 'my.index'
+# This limitation will likely removed with Open Distro Security 6
+
+# DLS (Document level security)
+# https://opendistro.github.io/for-elasticsearch-docs/docs/security/document-level-security/
+
+
+# Allows everything, but no changes to opendistro_security configuration index
+opendistro_security_all_access:
+  readonly: true
+  cluster:
+    - UNLIMITED
+  indices:
+    '*':
+      '*':
+        - UNLIMITED
+  tenants:
+    admin_tenant: RW
+
+# Read all, but no write permissions
+opendistro_security_readall:
+  readonly: true
+  cluster:
+    - CLUSTER_COMPOSITE_OPS_RO
+  indices:
+    '*':
+      '*':
+        - READ
+
+# Read all and monitor, but no write permissions 
+opendistro_security_readall_and_monitor:
+  cluster:
+    - CLUSTER_MONITOR
+    - CLUSTER_COMPOSITE_OPS_RO
+  indices:
+    '*':
+      '*':
+        - READ
+
+# For users which use kibana, access to indices must be granted separately
+opendistro_security_kibana_user:
+  readonly: true
+  cluster:
+    - INDICES_MONITOR
+    - CLUSTER_COMPOSITE_OPS
+  indices:
+    '?kibana':
+      '*':
+        - MANAGE
+        - INDEX
+        - READ
+        - DELETE
+    '?kibana-6':
+      '*':
+        - MANAGE
+        - INDEX
+        - READ
+        - DELETE
+    '?kibana_*':
+      '*':
+        - MANAGE
+        - INDEX
+        - READ
+        - DELETE
+    '?tasks':
+      '*':
+        - INDICES_ALL
+    '?management-beats':
+      '*':
+        - INDICES_ALL        
+    '*':
+      '*':
+        - indices:data/read/field_caps*
+        - indices:data/read/xpack/rollup*
+        - indices:admin/mappings/get*
+        - indices:admin/get
+
+# For the kibana server
+opendistro_security_kibana_server:
+  readonly: true
+  cluster:
+      - CLUSTER_MONITOR
+      - CLUSTER_COMPOSITE_OPS
+      - cluster:admin/xpack/monitoring*
+      - indices:admin/template*
+      - indices:data/read/scroll*
+  indices:
+    '?kibana':
+      '*':
+        - INDICES_ALL
+    '?kibana-6':
+      '*':
+        - INDICES_ALL
+    '?kibana_*':
+      '*':
+        - INDICES_ALL
+    '?reporting*':
+      '*':
+        - INDICES_ALL
+    '?monitoring*':
+      '*':
+        - INDICES_ALL
+    '?tasks':
+      '*':
+        - INDICES_ALL
+    '?management-beats*':
+      '*':
+        - INDICES_ALL
+    '*':
+      '*':
+        - "indices:admin/aliases*"
+
+# For logstash and beats
+opendistro_security_logstash:  
+  cluster:
+    - CLUSTER_MONITOR
+    - CLUSTER_COMPOSITE_OPS
+    - indices:admin/template/get
+    - indices:admin/template/put
+  indices:
+    'logstash-*':
+      '*':
+        - CRUD
+        - CREATE_INDEX
+    '*beat*':
+      '*':
+        - CRUD
+        - CREATE_INDEX
+
+# Allows adding and modifying repositories and creating and restoring snapshots
+opendistro_security_manage_snapshots:
+  cluster:
+    - MANAGE_SNAPSHOTS
+  indices:
+    '*':
+      '*':
+        - "indices:data/write/index"
+        - "indices:admin/create"
+
+# Allows each user to access own named index
+opendistro_security_own_index:
+  cluster:
+    - CLUSTER_COMPOSITE_OPS
+  indices:
+    '${user_name}':
+      '*':
+        - INDICES_ALL
+
+### X-Pack COMPATIBILITY
+opendistro_security_xp_monitoring:
+  readonly: true
+  cluster:
+    - cluster:monitor/xpack/info
+    - cluster:monitor/main
+    - cluster:admin/xpack/monitoring/bulk
+  indices:
+    '?monitor*':
+      '*':
+        - INDICES_ALL
+
+opendistro_security_xp_alerting:
+  readonly: true
+  cluster:
+    - indices:data/read/scroll
+    - cluster:admin/xpack/watcher*
+    - cluster:monitor/xpack/watcher*
+  indices:
+    '?watches*':
+      '*':
+        - INDICES_ALL
+    '?watcher-history-*':
+      '*':
+        - INDICES_ALL
+    '?triggered_watches':
+      '*':
+        - INDICES_ALL
+    '*':
+      '*':
+        - READ
+        - indices:admin/aliases/get
+
+opendistro_security_xp_machine_learning:
+  readonly: true
+  cluster:
+    - cluster:admin/persistent*
+    - cluster:internal/xpack/ml*
+    - indices:data/read/scroll*
+    - cluster:admin/xpack/ml*
+    - cluster:monitor/xpack/ml*
+  indices:
+    '*':
+      '*':
+        - READ
+        - indices:admin/get*
+    '?ml-*':
+      '*':
+        - "*"
+
+
+### LEGACY ROLES, FOR COMPATIBILITY ONLY
+### WILL BE REMOVED IN SG7, DO NOT USE ANYMORE
+
+opendistro_security_readonly_and_monitor:
+  cluster:
+    - CLUSTER_MONITOR
+    - CLUSTER_COMPOSITE_OPS_RO
+  indices:
+    '*':
+      '*':
+        - READ
+
+# Make xpack monitoring work
+opendistro_security_monitor:
+  cluster:
+    - cluster:admin/xpack/monitoring/*
+    - cluster:admin/ingest/pipeline/put       
+    - cluster:admin/ingest/pipeline/get
+    - indices:admin/template/get
+    - indices:admin/template/put
+    - CLUSTER_MONITOR
+    - CLUSTER_COMPOSITE_OPS
+  indices:
+    '?monitor*':
+      '*':
+        - INDICES_ALL
+    '?marvel*':
+      '*':
+        - INDICES_ALL
+    '?kibana*':
+      '*':
+        - READ
+    '*':
+      '*':
+        - indices:data/read/field_caps
+
+# Make xpack alerting work
+opendistro_security_alerting:
+  cluster:
+    - indices:data/read/scroll
+    - cluster:admin/xpack/watcher/watch/put
+    - cluster:admin/xpack/watcher*
+    - CLUSTER_MONITOR
+    - CLUSTER_COMPOSITE_OPS
+  indices:
+    '?kibana*':
+      '*':
+        - READ
+    '?watches*':
+      '*':
+        - INDICES_ALL
+    '?watcher-history-*':
+      '*':
+        - INDICES_ALL
+    '?triggered_watches':
+      '*':
+        - INDICES_ALL
+    '*':
+      '*':
+        - READ

@@ -30,8 +30,6 @@
 
 package com.amazon.opendistroforelasticsearch.security.support;
 
-import java.util.Arrays;
-
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 
 public class OpenDistroSecurityDeprecationHandler {
@@ -47,11 +45,12 @@ public class OpenDistroSecurityDeprecationHandler {
             throw new UnsupportedOperationException("deprecated fields not supported here but got ["
                     + usedName + "] which has been replaced with [" + modernName + "]");
         }
-        @Override
+        
+        /*@Override
         public void deprecated(String message, Object... params) {
             throw new UnsupportedOperationException(
                     "deprecations are not supported here but got [" + message + "] and " + Arrays.toString(params));
-        }
+        }*/
     };
 
 }

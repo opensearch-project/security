@@ -30,16 +30,15 @@
 
 package com.amazon.opendistroforelasticsearch.security.auth;
 
-import java.nio.file.Path;
+
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
-import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
@@ -62,19 +61,17 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportRequest;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
-import com.amazon.opendistroforelasticsearch.security.auth.internal.InternalAuthenticationBackend;
+import com.amazon.opendistroforelasticsearch.security.auth.blocking.ClientBlockRegistry;
 import com.amazon.opendistroforelasticsearch.security.auth.internal.NoOpAuthenticationBackend;
-import com.amazon.opendistroforelasticsearch.security.auth.internal.NoOpAuthorizationBackend;
 import com.amazon.opendistroforelasticsearch.security.configuration.AdminDNs;
-import com.amazon.opendistroforelasticsearch.security.configuration.ConfigurationChangeListener;
-import com.amazon.opendistroforelasticsearch.security.http.HTTPBasicAuthenticator;
-import com.amazon.opendistroforelasticsearch.security.http.HTTPClientCertAuthenticator;
-import com.amazon.opendistroforelasticsearch.security.http.HTTPProxyAuthenticator;
 import com.amazon.opendistroforelasticsearch.security.http.XFFResolver;
+import com.amazon.opendistroforelasticsearch.security.securityconf.ConfigModel;
+import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigFactory.DCFListener;
+import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigModel;
+import com.amazon.opendistroforelasticsearch.security.securityconf.InternalUsersModel;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.Utils;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.HTTPHelper;
-import com.amazon.opendistroforelasticsearch.security.support.ReflectionHelper;
 import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 import com.google.common.base.Strings;
@@ -82,23 +79,27 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
+import com.google.common.collect.Multimap;
 
-public class BackendRegistry implements ConfigurationChangeListener {
+public class BackendRegistry implements DCFListener {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
-    private final Map<String, String> authImplMap = new HashMap<>();
     private SortedSet<AuthDomain> restAuthDomains;
     private Set<AuthorizationBackend> restAuthorizers;
     private SortedSet<AuthDomain> transportAuthDomains;
     private Set<AuthorizationBackend> transportAuthorizers;
-    private List<Destroyable> destroyableComponents;
+
+    private List<AuthFailureListener> ipAuthFailureListeners;
+    private Multimap<String, AuthFailureListener> authBackendFailureListeners;
+    private List<ClientBlockRegistry<InetAddress>> ipClientBlockRegistries;
+    private Multimap<String, ClientBlockRegistry<String>> authBackendClientBlockRegistries;
+
     private volatile boolean initialized;
     private final AdminDNs adminDns;
     private final XFFResolver xffResolver;
     private volatile boolean anonymousAuthEnabled = false;
     private final Settings esSettings;
-    private final Path configPath;
-    private final InternalAuthenticationBackend iab;
+    //private final InternalAuthenticationBackend iab;
     private final AuditLog auditLog;
     private final ThreadPool threadPool;
     private final UserInjector userInjector;
@@ -110,12 +111,12 @@ public class BackendRegistry implements ConfigurationChangeListener {
 
     private Cache<User, Set<String>> transportRoleCache; //
     private Cache<User, Set<String>> restRoleCache; //
+    private Cache<String, User> transportImpersonationCache; //used for transport impersonation
 
     private volatile String transportUsernameAttribute = null;
     
     private void createCaches() {
-        userCache = CacheBuilder.newBuilder()
-                .expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
+        userCache = CacheBuilder.newBuilder().expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
                 .removalListener(new RemovalListener<AuthCredentials, User>() {
                     @Override
                     public void onRemoval(RemovalNotification<AuthCredentials, User> notification) {
@@ -123,8 +124,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
                     }
                 }).build();
 
-        userCacheTransport = CacheBuilder.newBuilder()
-                .expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
+        userCacheTransport = CacheBuilder.newBuilder().expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
                 .removalListener(new RemovalListener<String, User>() {
                     @Override
                     public void onRemoval(RemovalNotification<String, User> notification) {
@@ -132,8 +132,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
                     }
                 }).build();
 
-        authenticatedUserCacheTransport = CacheBuilder.newBuilder()
-                .expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
+        authenticatedUserCacheTransport = CacheBuilder.newBuilder().expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
                 .removalListener(new RemovalListener<AuthCredentials, User>() {
                     @Override
                     public void onRemoval(RemovalNotification<AuthCredentials, User> notification) {
@@ -141,8 +140,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
                     }
                 }).build();
 
-        restImpersonationCache = CacheBuilder.newBuilder()
-                .expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
+        restImpersonationCache = CacheBuilder.newBuilder().expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
                 .removalListener(new RemovalListener<String, User>() {
                     @Override
                     public void onRemoval(RemovalNotification<String, User> notification) {
@@ -150,8 +148,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
                     }
                 }).build();
 
-        transportRoleCache = CacheBuilder.newBuilder()
-                .expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
+        transportRoleCache = CacheBuilder.newBuilder().expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
                 .removalListener(new RemovalListener<User, Set<String>>() {
                     @Override
                     public void onRemoval(RemovalNotification<User, Set<String>> notification) {
@@ -159,46 +156,33 @@ public class BackendRegistry implements ConfigurationChangeListener {
                     }
                 }).build();
 
-        restRoleCache = CacheBuilder.newBuilder()
-                .expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
+        restRoleCache = CacheBuilder.newBuilder().expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
                 .removalListener(new RemovalListener<User, Set<String>>() {
                     @Override
                     public void onRemoval(RemovalNotification<User, Set<String>> notification) {
                         log.debug("Clear user cache for {} due to {}", notification.getKey(), notification.getCause());
                     }
                 }).build();
+
+        transportImpersonationCache = CacheBuilder.newBuilder().expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
+                .removalListener(new RemovalListener<String, User>() {
+                    @Override
+                    public void onRemoval(RemovalNotification<String, User> notification) {
+                        log.debug("Clear user cache for {} due to {}", notification.getKey(), notification.getCause());
+                    }
+                }).build();
+
     }
 
-    public BackendRegistry(final Settings settings, final Path configPath, final AdminDNs adminDns,
-            final XFFResolver xffResolver, final InternalAuthenticationBackend iab, final AuditLog auditLog, final ThreadPool threadPool) {
+    public BackendRegistry(final Settings settings, final AdminDNs adminDns,
+            final XFFResolver xffResolver, final AuditLog auditLog, final ThreadPool threadPool) {
         this.adminDns = adminDns;
         this.esSettings = settings;
-        this.configPath = configPath;
         this.xffResolver = xffResolver;
-        this.iab = iab;
         this.auditLog = auditLog;
         this.threadPool = threadPool;
         this.userInjector = new UserInjector(settings, threadPool, auditLog, xffResolver);
-        
-        authImplMap.put("intern_c", InternalAuthenticationBackend.class.getName());
-        authImplMap.put("intern_z", NoOpAuthorizationBackend.class.getName());
 
-        authImplMap.put("internal_c", InternalAuthenticationBackend.class.getName());
-        authImplMap.put("internal_z", NoOpAuthorizationBackend.class.getName());
-
-        authImplMap.put("noop_c", NoOpAuthenticationBackend.class.getName());
-        authImplMap.put("noop_z", NoOpAuthorizationBackend.class.getName());
-
-        authImplMap.put("ldap_c", "com.amazon.dlic.auth.ldap.backend.LDAPAuthenticationBackend");
-        authImplMap.put("ldap_z", "com.amazon.dlic.auth.ldap.backend.LDAPAuthorizationBackend");
-
-        authImplMap.put("basic_h", HTTPBasicAuthenticator.class.getName());
-        authImplMap.put("proxy_h", HTTPProxyAuthenticator.class.getName());
-        authImplMap.put("clientcert_h", HTTPClientCertAuthenticator.class.getName());
-        authImplMap.put("kerberos_h", "com.amazon.dlic.auth.http.kerberos.HTTPSpnegoAuthenticator");
-        authImplMap.put("jwt_h", "com.amazon.dlic.auth.http.jwt.HTTPJwtAuthenticator");
-        authImplMap.put("openid_h", "com.amazon.dlic.auth.http.jwt.keybyoidc.HTTPJwtKeyByOpenIdConnectAuthenticator");
-        authImplMap.put("saml_h", "com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator");
 
         this.ttlInMin = settings.getAsInt(ConfigConstants.OPENDISTRO_SECURITY_CACHE_TTL_MINUTES, 60);
                 
@@ -216,134 +200,29 @@ public class BackendRegistry implements ConfigurationChangeListener {
         restImpersonationCache.invalidateAll();
         restRoleCache.invalidateAll();
         transportRoleCache.invalidateAll();
+        transportImpersonationCache.invalidateAll();
     }
 
     @Override
-    public void onChange(final Settings settings) {
-
-        final SortedSet<AuthDomain> restAuthDomains0 = new TreeSet<>();
-        final Set<AuthorizationBackend> restAuthorizers0 = new HashSet<>();
-        final SortedSet<AuthDomain> transportAuthDomains0 = new TreeSet<>();
-        final Set<AuthorizationBackend> transportAuthorizers0 = new HashSet<>();
-        final List<Destroyable> destroyableComponents0 = new LinkedList<>();
-        final Map<String, Settings> authzDyn = settings.getGroups("opendistro_security.dynamic.authz");
-
-        for (final String ad : authzDyn.keySet()) {
-            final Settings ads = authzDyn.get(ad);
-            final boolean enabled = ads.getAsBoolean("enabled", true);
-            final boolean httpEnabled = enabled && ads.getAsBoolean("http_enabled", true);
-            final boolean transportEnabled = enabled && ads.getAsBoolean("transport_enabled", true);
-
-
-            if (httpEnabled || transportEnabled) {
-                try {
-
-                    final String authzBackendClazz = ads.get("authorization_backend.type", "noop");
-                    final AuthorizationBackend authorizationBackend;
-                    if(authzBackendClazz.equals(InternalAuthenticationBackend.class.getName()) //NOSONAR
-                            || authzBackendClazz.equals("internal")
-                            || authzBackendClazz.equals("intern")) {
-                        authorizationBackend = iab;
-                        ReflectionHelper.addLoadedModule(InternalAuthenticationBackend.class);
-                    } else {
-                        authorizationBackend = newInstance(
-                                authzBackendClazz,"z",
-                                Settings.builder().put(esSettings).put(ads.getAsSettings("authorization_backend.config")).build(), configPath);
-                    }
-                    
-                    if (httpEnabled) {
-                        restAuthorizers0.add(authorizationBackend);
-                    }
-
-                    if (transportEnabled) {
-                        transportAuthorizers0.add(authorizationBackend);
-                    }
-                    
-                    if (authorizationBackend instanceof Destroyable) {
-                    	destroyableComponents0.add((Destroyable) authorizationBackend);
-                    }
-                } catch (final Exception e) {
-                    log.error("Unable to initialize AuthorizationBackend {} due to {}", ad, e.toString(),e);
-                }
-            }
-        }
-
-        final Map<String, Settings> dyn = settings.getGroups("opendistro_security.dynamic.authc");
-
-        for (final String ad : dyn.keySet()) {
-            final Settings ads = dyn.get(ad);
-            final boolean enabled = ads.getAsBoolean("enabled", true);
-            final boolean httpEnabled = enabled && ads.getAsBoolean("http_enabled", true);
-            final boolean transportEnabled = enabled && ads.getAsBoolean("transport_enabled", true);
-
-            if (httpEnabled || transportEnabled) {
-                try {
-                    AuthenticationBackend authenticationBackend;
-                    final String authBackendClazz = ads.get("authentication_backend.type", InternalAuthenticationBackend.class.getName());
-                    if(authBackendClazz.equals(InternalAuthenticationBackend.class.getName()) //NOSONAR
-                            || authBackendClazz.equals("internal")
-                            || authBackendClazz.equals("intern")) {
-                        authenticationBackend = iab;
-                        ReflectionHelper.addLoadedModule(InternalAuthenticationBackend.class);
-                    } else {
-                        authenticationBackend = newInstance(
-                                authBackendClazz,"c",
-                                Settings.builder().put(esSettings).put(ads.getAsSettings("authentication_backend.config")).build(), configPath);
-                    }
-
-                    String httpAuthenticatorType = ads.get("http_authenticator.type"); //no default
-                    HTTPAuthenticator httpAuthenticator = httpAuthenticatorType==null?null:  (HTTPAuthenticator) newInstance(httpAuthenticatorType,"h",
-                            Settings.builder().put(esSettings).put(ads.getAsSettings("http_authenticator.config")).build(), configPath);
-
-                    final AuthDomain _ad = new AuthDomain(authenticationBackend, httpAuthenticator,
-                            ads.getAsBoolean("http_authenticator.challenge", true), ads.getAsInt("order", 0));
-
-                    if (httpEnabled && _ad.getHttpAuthenticator() != null) {
-                        restAuthDomains0.add(_ad);
-                    }
-
-                    if (transportEnabled) {
-                        transportAuthDomains0.add(_ad);
-                    }
-                    
-                    if (httpAuthenticator instanceof Destroyable) {
-                    	destroyableComponents0.add((Destroyable) httpAuthenticator);
-                    }
-                    
-                    if (authenticationBackend instanceof Destroyable) {
-                    	destroyableComponents0.add((Destroyable) authenticationBackend);
-                    }
-                    
-                } catch (final Exception e) {
-                    log.error("Unable to initialize auth domain {} due to {}", ad, e.toString(), e);
-                }
-
-            }
-        }
+    public void onChanged(ConfigModel cm, DynamicConfigModel dcm, InternalUsersModel ium) {
 
         invalidateCache();
-
-        transportUsernameAttribute = settings.get("opendistro_security.dynamic.transport_userrname_attribute", null);
-        anonymousAuthEnabled = settings.getAsBoolean("opendistro_security.dynamic.http.anonymous_auth_enabled", false)
+        transportUsernameAttribute = dcm.getTransportUsernameAttribute();// config.dynamic.transport_userrname_attribute;
+        anonymousAuthEnabled = dcm.isAnonymousAuthenticationEnabled()//config.dynamic.http.anonymous_auth_enabled
                 && !esSettings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_DISABLE_ANONYMOUS_AUTHENTICATION, false);
 
-        List<Destroyable> originalDestroyableComponents = destroyableComponents;
+        restAuthDomains = Collections.unmodifiableSortedSet(dcm.getRestAuthDomains());
+        transportAuthDomains = Collections.unmodifiableSortedSet(dcm.getTransportAuthDomains());
+        restAuthorizers = Collections.unmodifiableSet(dcm.getRestAuthorizers());
+        transportAuthorizers = Collections.unmodifiableSet(dcm.getTransportAuthorizers());
 
-        restAuthDomains = Collections.unmodifiableSortedSet(restAuthDomains0);
-        transportAuthDomains = Collections.unmodifiableSortedSet(transportAuthDomains0);
-        restAuthorizers = Collections.unmodifiableSet(restAuthorizers0);
-        transportAuthorizers = Collections.unmodifiableSet(transportAuthorizers0);
-        destroyableComponents = Collections.unmodifiableList(destroyableComponents0);
+        ipAuthFailureListeners = dcm.getIpAuthFailureListeners();
+        authBackendFailureListeners = dcm.getAuthBackendFailureListeners();
+        ipClientBlockRegistries = dcm.getIpClientBlockRegistries();
+        authBackendClientBlockRegistries = dcm.getAuthBackendClientBlockRegistries();
 
         //Open Distro Security no default authc
         initialized = !restAuthDomains.isEmpty() || anonymousAuthEnabled;
-
-        if(originalDestroyableComponents != null) {
-            destroyDestroyables(originalDestroyableComponents);
-        }
-
-        originalDestroyableComponents = null;
-
     }
 
     public User authenticate(final TransportRequest request, final String sslPrincipal, final Task task, final String action) {
@@ -351,7 +230,14 @@ public class BackendRegistry implements ConfigurationChangeListener {
     	  if(log.isDebugEnabled() && request.remoteAddress() != null) {
     		  log.debug("Transport authentication request from {}", request.remoteAddress());
     	  }
-        
+
+    	  if (request.remoteAddress() != null && isBlocked(request.remoteAddress().address().getAddress())) {
+    	      if (log.isDebugEnabled()) {
+    	          log.debug("Rejecting transport request because of blocked address: " + request.remoteAddress());
+    	      }
+    	      return null;
+    	  }
+
         User origPKIUser = new User(sslPrincipal);
         
         if(adminDns.isAdmin(origPKIUser)) {
@@ -380,6 +266,11 @@ public class BackendRegistry implements ConfigurationChangeListener {
         //loop over all transport auth domains
         for (final AuthDomain authDomain: transportAuthDomains) {
 
+            
+            if(log.isDebugEnabled()) {
+                log.debug("Check transport authdomain {}/{} or {} in total", authDomain.getBackend().getType(), authDomain.getOrder(), transportAuthDomains.size());
+            }
+            
             User authenticatedUser = null;
 
             if(creds == null) {
@@ -387,31 +278,38 @@ public class BackendRegistry implements ConfigurationChangeListener {
                 //impersonation possible
                 impersonatedTransportUser = impersonate(request, origPKIUser);
                 origPKIUser = resolveTransportUsernameAttribute(origPKIUser);
-                authenticatedUser = checkExistsAndAuthz(userCacheTransport, impersonatedTransportUser==null?origPKIUser:impersonatedTransportUser, authDomain.getBackend(), transportAuthorizers);
+                authenticatedUser = checkExistsAndAuthz(userCacheTransport,
+                        impersonatedTransportUser == null ? origPKIUser : impersonatedTransportUser, authDomain.getBackend(), transportAuthorizers);
             } else {
                  //auth credentials submitted
                 //impersonation not possible, if requested it will be ignored
                 authenticatedUser = authcz(authenticatedUserCacheTransport, transportRoleCache, creds, authDomain.getBackend(), transportAuthorizers);
             }
 
-            if(authenticatedUser == null) {
-                if(log.isDebugEnabled()) {
-                    log.debug("Cannot authenticate user {} (or add roles) with authdomain {}/{}, try next", creds==null?(impersonatedTransportUser==null?origPKIUser.getName():impersonatedTransportUser.getName()):creds.getUsername(), authDomain.getBackend().getType(), authDomain.getOrder());
+            if (authenticatedUser == null) {
+                for (AuthFailureListener authFailureListener : authBackendFailureListeners.get(authDomain.getBackend().getClass().getName())) {
+                    authFailureListener.onAuthFailure(request.remoteAddress() != null ? request.remoteAddress().address().getAddress() : null, creds,
+                            request);
+                }
+
+                if (log.isDebugEnabled()) {
+                    log.debug("Cannot authenticate transport user {} (or add roles) with authdomain {}/{} of {}, try next", creds==null?(impersonatedTransportUser==null?origPKIUser.getName():impersonatedTransportUser.getName()):creds.getUsername(), authDomain.getBackend().getType(), authDomain.getOrder(), transportAuthDomains.size());
                 }
                 continue;
             }
 
             if(adminDns.isAdmin(authenticatedUser)) {
-                log.error("Cannot authenticate user because admin user is not permitted to login");
+                log.error("Cannot authenticate transport user because admin user is not permitted to login");
                 auditLog.logFailedLogin(authenticatedUser.getName(), true, null, request, task);
                 return null;
             }
 
             if(log.isDebugEnabled()) {
-                log.debug("User '{}' is authenticated", authenticatedUser);
+                log.debug("Transport user '{}' is authenticated", authenticatedUser);
             }
 
-            auditLog.logSucceededLogin(authenticatedUser.getName(), false, impersonatedTransportUser==null?null:origPKIUser.getName(), request, action, task);
+            auditLog.logSucceededLogin(authenticatedUser.getName(), false, impersonatedTransportUser == null ? null : origPKIUser.getName(), request,
+                    action, task);
 
             return authenticatedUser;
         }//end looping auth domains
@@ -419,16 +317,20 @@ public class BackendRegistry implements ConfigurationChangeListener {
 
         //auditlog
         if(creds == null) {
-            auditLog.logFailedLogin(impersonatedTransportUser==null?origPKIUser.getName():impersonatedTransportUser.getName(), false, impersonatedTransportUser==null?null:origPKIUser.getName(), request, task);
+            auditLog.logFailedLogin(impersonatedTransportUser == null ? origPKIUser.getName() : impersonatedTransportUser.getName(), false,
+                    impersonatedTransportUser == null ? null : origPKIUser.getName(), request, task);
         } else {
             auditLog.logFailedLogin(creds.getUsername(), false, null, request, task);
         }
- 
-        log.warn("Transport authentication finally failed for {} from {}", creds == null ? impersonatedTransportUser==null?origPKIUser.getName():impersonatedTransportUser.getName():creds.getUsername(), request.remoteAddress());
+
+        log.warn("Transport authentication finally failed for {} from {}",
+                creds == null ? impersonatedTransportUser == null ? origPKIUser.getName() : impersonatedTransportUser.getName() : creds.getUsername(),
+                request.remoteAddress());
+
+        notifyIpAuthFailureListeners(request.remoteAddress() != null ? request.remoteAddress().address().getAddress() : null, creds, request);
 
         return null;
     }
-
 
     /**
      *
@@ -438,6 +340,16 @@ public class BackendRegistry implements ConfigurationChangeListener {
      * @throws ElasticsearchSecurityException
      */
     public boolean authenticate(final RestRequest request, final RestChannel channel, final ThreadContext threadContext) {
+
+        if (request.getHttpChannel().getRemoteAddress() instanceof InetSocketAddress && isBlocked(((InetSocketAddress) request.getHttpChannel().getRemoteAddress()).getAddress())) {
+            if (log.isDebugEnabled()) {
+                log.debug("Rejecting REST request because of blocked address: " + request.getHttpChannel().getRemoteAddress());
+            }
+            
+            channel.sendResponse(new BytesRestResponse(RestStatus.UNAUTHORIZED, "Authentication finally failed"));
+
+            return false;
+        }
 
         final String sslPrincipal = (String) threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL);
 
@@ -455,14 +367,15 @@ public class BackendRegistry implements ConfigurationChangeListener {
         
         if (!isInitialized()) {
             log.error("Not yet initialized (you may need to run securityadmin)");
-            channel.sendResponse(new BytesRestResponse(RestStatus.SERVICE_UNAVAILABLE, "Open Distro Security not initialized."));
+            channel.sendResponse(new BytesRestResponse(RestStatus.SERVICE_UNAVAILABLE,
+                    "Open Distro Security not initialized."));
             return false;
         }
         
         final TransportAddress remoteAddress = xffResolver.resolve(request);
         
         if(log.isTraceEnabled()) {
-    		log.trace("Rest authentication request from {} [original: {}]", remoteAddress, request.getRemoteAddress());
+            log.trace("Rest authentication request from {} [original: {}]", remoteAddress, request.getHttpChannel().getRemoteAddress());
     	}
 
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, remoteAddress);
@@ -477,6 +390,9 @@ public class BackendRegistry implements ConfigurationChangeListener {
 
         //loop over all http/rest auth domains
         for (final AuthDomain authDomain: restAuthDomains) {
+            if(log.isDebugEnabled()) {
+                log.debug("Check authdomain for rest {}/{} or {} in total", authDomain.getBackend().getType(), authDomain.getOrder(), restAuthDomains.size());
+            }
 
             final HTTPAuthenticator httpAuthenticator = authDomain.getHttpAuthenticator();
 
@@ -496,6 +412,15 @@ public class BackendRegistry implements ConfigurationChangeListener {
                 }
                 continue;
             }
+
+            if (ac != null && isBlocked(authDomain.getBackend().getClass().getName(), ac.getUsername())) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Rejecting REST request because of blocked user: " + ac.getUsername() + "; authDomain: " + authDomain);
+                }
+
+                continue;
+            }
+
             authCredenetials = ac;
 
             if (ac == null) {
@@ -533,22 +458,29 @@ public class BackendRegistry implements ConfigurationChangeListener {
 
             if(authenticatedUser == null) {
                 if(log.isDebugEnabled()) {
-                    log.debug("Cannot authenticate user {} (or add roles) with authdomain {}/{}, try next", ac.getUsername(), authDomain.getBackend().getType(), authDomain.getOrder());
+                    log.debug("Cannot authenticate rest user {} (or add roles) with authdomain {}/{} of {}, try next", ac.getUsername(), authDomain.getBackend().getType(), authDomain.getOrder(), restAuthDomains);
+                }
+                for (AuthFailureListener authFailureListener : this.authBackendFailureListeners.get(authDomain.getBackend().getClass().getName())) {
+                    authFailureListener.onAuthFailure(
+                            (request.getHttpChannel().getRemoteAddress() instanceof InetSocketAddress) ? ((InetSocketAddress) request.getHttpChannel().getRemoteAddress()).getAddress()
+                                    : null,
+                            ac, request);
                 }
                 continue;
             }
 
             if(adminDns.isAdmin(authenticatedUser)) {
-                log.error("Cannot authenticate user because admin user is not permitted to login via HTTP");
+                log.error("Cannot authenticate rest user because admin user is not permitted to login via HTTP");
                 auditLog.logFailedLogin(authenticatedUser.getName(), true, null, request);
-                channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, "Cannot authenticate user because admin user is not permitted to login via HTTP"));
+                channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN,
+                        "Cannot authenticate user because admin user is not permitted to login via HTTP"));
                 return false;
             }
 
             final String tenant = Utils.coalesce(request.header("securitytenant"), request.header("security_tenant"));
 
             if(log.isDebugEnabled()) {
-                log.debug("User '{}' is authenticated", authenticatedUser);
+                log.debug("Rest user '{}' is authenticated", authenticatedUser);
                 log.debug("securitytenant '{}'", tenant);
             }
 
@@ -557,11 +489,11 @@ public class BackendRegistry implements ConfigurationChangeListener {
             break;
         }//end looping auth domains
 
-
         if(authenticated) {
             final User impersonatedUser = impersonate(request, authenticatedUser);
             threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, impersonatedUser==null?authenticatedUser:impersonatedUser);
-            auditLog.logSucceededLogin((impersonatedUser==null?authenticatedUser:impersonatedUser).getName(), false, authenticatedUser.getName(), request);
+            auditLog.logSucceededLogin((impersonatedUser == null ? authenticatedUser : impersonatedUser).getName(), false,
+                    authenticatedUser.getName(), request);
         } else {
             if(log.isDebugEnabled()) {
                 log.debug("User still not authenticated after checking {} auth domains", restAuthDomains.size());
@@ -593,13 +525,29 @@ public class BackendRegistry implements ConfigurationChangeListener {
                 }
             }
 
-            log.warn("Authentication finally failed for {} from {}", authCredenetials == null ? null:authCredenetials.getUsername(), remoteAddress);
+            log.warn("Authentication finally failed for {} from {}", authCredenetials == null ? null : authCredenetials.getUsername(),
+                    remoteAddress);
             auditLog.logFailedLogin(authCredenetials == null ? null:authCredenetials.getUsername(), false, null, request);
+
+            notifyIpAuthFailureListeners(request, authCredenetials);
+
             channel.sendResponse(new BytesRestResponse(RestStatus.UNAUTHORIZED, "Authentication finally failed"));
             return false;
         }
 
         return authenticated;
+    }
+
+    private void notifyIpAuthFailureListeners(RestRequest request, AuthCredentials authCredentials) {
+        notifyIpAuthFailureListeners(
+                (request.getHttpChannel().getRemoteAddress() instanceof InetSocketAddress) ? ((InetSocketAddress) request.getHttpChannel().getRemoteAddress()).getAddress() : null,
+                authCredentials, request);
+    }
+
+    private void notifyIpAuthFailureListeners(InetAddress remoteAddress, AuthCredentials authCredentials, Object request) {
+        for (AuthFailureListener authFailureListener : this.ipAuthFailureListeners) {
+            authFailureListener.onAuthFailure(remoteAddress, authCredentials, request);
+        }
     }
 
     /**
@@ -610,7 +558,8 @@ public class BackendRegistry implements ConfigurationChangeListener {
      * @param authDomain
      * @return null if user cannot b authenticated
      */
-    private User checkExistsAndAuthz(final Cache<String, User> cache, final User user, final AuthenticationBackend authenticationBackend, final Set<AuthorizationBackend> authorizers) {
+    private User checkExistsAndAuthz(final Cache<String, User> cache, final User user, final AuthenticationBackend authenticationBackend,
+                                     final Set<AuthorizationBackend> authorizers) {
         if(user == null) {
             return null;
         }
@@ -620,7 +569,8 @@ public class BackendRegistry implements ConfigurationChangeListener {
                 @Override
                 public User call() throws Exception {
                     if(log.isTraceEnabled()) {
-                        log.trace("Credentials for user "+user.getName()+" not cached, return from "+authenticationBackend.getType()+" backend directly");
+                        log.trace("Credentials for user "+user.getName()+" not cached, return from "+authenticationBackend.getType()
+                                + " backend directly");
                     }
                     if(authenticationBackend.exists(user)) {
                         authz(user, null, authorizers); //no role cache because no miss here in case of noop
@@ -640,7 +590,6 @@ public class BackendRegistry implements ConfigurationChangeListener {
             return null;
         }
     }
-
     private void authz(User authenticatedUser, Cache<User, Set<String>> roleCache, final Set<AuthorizationBackend> authorizers) {
 
         if(authenticatedUser == null) {
@@ -677,7 +626,6 @@ public class BackendRegistry implements ConfigurationChangeListener {
         }
     }
 
-
     /**
      * no auditlog, throw no exception, does also authz for all authorizers
      *
@@ -686,7 +634,8 @@ public class BackendRegistry implements ConfigurationChangeListener {
      * @param authDomain
      * @return null if user cannot b authenticated
      */
-    private User authcz(final Cache<AuthCredentials, User> cache, Cache<User, Set<String>> roleCache, final AuthCredentials ac, final AuthenticationBackend authBackend, final Set<AuthorizationBackend> authorizers) {
+    private User authcz(final Cache<AuthCredentials, User> cache, Cache<User, Set<String>> roleCache, final AuthCredentials ac,
+                        final AuthenticationBackend authBackend, final Set<AuthorizationBackend> authorizers) {
         if(ac == null) {
             return null;
         }
@@ -698,14 +647,13 @@ public class BackendRegistry implements ConfigurationChangeListener {
                 //no cache
                 return authBackend.authenticate(ac);
             }
-        
 
-        
             return cache.get(ac, new Callable<User>() {
                 @Override
                 public User call() throws Exception {
                     if(log.isTraceEnabled()) {
-                        log.trace("Credentials for user "+ac.getUsername()+" not cached, return from "+authBackend.getType()+" backend directly");
+                        log.trace("Credentials for user "+ac.getUsername()+" not cached, return from "+authBackend.getType()
+                                + " backend directly");
                     }
                     final User authenticatedUser = authBackend.authenticate(ac);
                     authz(authenticatedUser, roleCache, authorizers);
@@ -741,21 +689,40 @@ public class BackendRegistry implements ConfigurationChangeListener {
         User aU = origPKIuser;
 
         if (adminDns.isAdminDN(impersonatedUser)) {
-            throw new ElasticsearchSecurityException("'"+origPKIuser.getName() + "' is not allowed to impersonate as an adminuser  '" + impersonatedUser+"'");
+            throw new ElasticsearchSecurityException(
+                    "'" + origPKIuser.getName() + "' is not allowed to impersonate as an adminuser  '" + impersonatedUser + "'");
         }
 
         try {
             if (impersonatedUser != null && !adminDns.isTransportImpersonationAllowed(new LdapName(origPKIuser.getName()), impersonatedUser)) {
-                throw new ElasticsearchSecurityException("'"+origPKIuser.getName() + "' is not allowed to impersonate as '" + impersonatedUser+"'");
+                throw new ElasticsearchSecurityException(
+                        "'"+origPKIuser.getName() + "' is not allowed to impersonate as '" + impersonatedUser+"'");
             } else if (impersonatedUser != null) {
-                aU = new User(impersonatedUser);
-                if(log.isDebugEnabled()) {
-                    log.debug("Impersonate from '{}' to '{}'",origPKIuser.getName(), impersonatedUser);
+                //loop over all transport auth domains
+                for (final AuthDomain authDomain : transportAuthDomains) {
+                    final AuthenticationBackend authenticationBackend = authDomain.getBackend();
+                    final User impersonatedUserObject = checkExistsAndAuthz(transportImpersonationCache, new User(impersonatedUser),
+                            authenticationBackend, transportAuthorizers);
+
+                    if (impersonatedUserObject == null) {
+                        log.debug(
+                                "Unable to impersonate transport user from '{}' to '{}' because the impersonated user does not exists in {}, try next ...",
+                                origPKIuser.getName(), impersonatedUser, authenticationBackend.getType());
+                        continue;
+                    }
+
+                    if (log.isDebugEnabled()) {
+                        log.debug("Impersonate transport user from '{}' to '{}'", origPKIuser.getName(), impersonatedUser);
+                    }
+                    return impersonatedUserObject;
                 }
+
+                log.debug("Unable to impersonate transport user from '{}' to '{}' because the impersonated user does not exists",
+                        origPKIuser.getName(), impersonatedUser);
+                throw new ElasticsearchSecurityException("No such transport user: " + impersonatedUser, RestStatus.FORBIDDEN);
             }
         } catch (final InvalidNameException e1) {
-            throw new ElasticsearchSecurityException("PKI does not have a valid name ('" + origPKIuser.getName() + "'), should never happen",
-                    e1);
+            throw new ElasticsearchSecurityException("PKI does not have a valid name ('" + origPKIuser.getName() + "'), should never happen", e1);
         }
 
         return aU;
@@ -779,16 +746,18 @@ public class BackendRegistry implements ConfigurationChangeListener {
         }
 
         if (!adminDns.isRestImpersonationAllowed(originalUser.getName(), impersonatedUserHeader)) {
-            throw new ElasticsearchSecurityException("'" + originalUser.getName() + "' is not allowed to impersonate as '" + impersonatedUserHeader
-                    + "'", RestStatus.FORBIDDEN);
+            throw new ElasticsearchSecurityException(
+                    "'" + originalUser.getName() + "' is not allowed to impersonate as '" + impersonatedUserHeader + "'", RestStatus.FORBIDDEN);
         } else {
             //loop over all http/rest auth domains
             for (final AuthDomain authDomain: restAuthDomains) {
                 final AuthenticationBackend authenticationBackend = authDomain.getBackend();
-                final User impersonatedUser = checkExistsAndAuthz(restImpersonationCache, new User(impersonatedUserHeader), authenticationBackend, restAuthorizers);
+                final User impersonatedUser = checkExistsAndAuthz(restImpersonationCache, new User(impersonatedUserHeader), authenticationBackend,
+                        restAuthorizers);
 
                 if(impersonatedUser == null) {
-                    log.debug("Unable to impersonate rest user from '{}' to '{}' because the impersonated user does not exists in {}, try next ...", originalUser.getName(), impersonatedUserHeader, authenticationBackend.getType());
+                    log.debug("Unable to impersonate rest user from '{}' to '{}' because the impersonated user does not exists in {}, try next ...",
+                            originalUser.getName(), impersonatedUserHeader, authenticationBackend.getType());
                     continue;
                 }
 
@@ -798,39 +767,11 @@ public class BackendRegistry implements ConfigurationChangeListener {
                 return impersonatedUser;
             }
 
-            log.debug("Unable to impersonate rest user from '{}' to '{}' because the impersonated user does not exists", originalUser.getName(), impersonatedUserHeader);
+            log.debug("Unable to impersonate rest user from '{}' to '{}' because the impersonated user does not exists", originalUser.getName(),
+                    impersonatedUserHeader);
             throw new ElasticsearchSecurityException("No such user:" + impersonatedUserHeader, RestStatus.FORBIDDEN);
         }
 
-    }
-        
-    private <T> T newInstance(final String clazzOrShortcut, String type, final Settings settings, final Path configPath) {
-
-        String clazz = clazzOrShortcut;
-        boolean isAdvancedModule = false;
-
-        if(authImplMap.containsKey(clazz+"_"+type)) {
-            clazz = authImplMap.get(clazz+"_"+type);
-        } else {
-            isAdvancedModule = true;
-        }
-
-        if(ReflectionHelper.isAdvancedModuleAAAModule(clazz)) {
-            isAdvancedModule = true;
-        }
-
-        return ReflectionHelper.instantiateAAA(clazz, settings, configPath, isAdvancedModule);
-    }
-
-    private void destroyDestroyables(List<Destroyable> destroyableComponents) {
-        for (Destroyable destroyable : destroyableComponents) {
-    		try {
-    			destroyable.destroy();
-    		} catch (Exception e) {
-    			log.error("Error while destroying " + destroyable, e);
-    		}
-    	}
-    	
     }
 
     private User resolveTransportUsernameAttribute(User pkiUser) {
@@ -850,4 +791,40 @@ public class BackendRegistry implements ConfigurationChangeListener {
         
         return pkiUser;
     }
+
+    private boolean isBlocked(InetAddress address) {
+        if (this.ipClientBlockRegistries == null || this.ipClientBlockRegistries.isEmpty()) {
+            return false;
+        }
+
+        for (ClientBlockRegistry<InetAddress> clientBlockRegistry : ipClientBlockRegistries) {
+            if (clientBlockRegistry.isBlocked(address)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private boolean isBlocked(String authBackend, String userName) {
+
+        if (this.authBackendClientBlockRegistries == null) {
+            return false;
+        }
+
+        Collection<ClientBlockRegistry<String>> clientBlockRegistries = this.authBackendClientBlockRegistries.get(authBackend);
+
+        if (clientBlockRegistries.isEmpty()) {
+            return false;
+        }
+
+        for (ClientBlockRegistry<String> clientBlockRegistry : clientBlockRegistries) {
+            if (clientBlockRegistry.isBlocked(userName)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
 }

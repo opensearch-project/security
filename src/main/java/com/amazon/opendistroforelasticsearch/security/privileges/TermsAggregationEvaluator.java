@@ -44,7 +44,8 @@ import org.elasticsearch.index.query.TermsQueryBuilder;
 import org.elasticsearch.search.aggregations.AggregationBuilder;
 import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 
-import com.amazon.opendistroforelasticsearch.security.securityconf.ConfigModel.SecurityRoles;
+import com.amazon.opendistroforelasticsearch.security.resolver.IndexResolverReplacer.Resolved;
+import com.amazon.opendistroforelasticsearch.security.securityconf.SecurityRoles;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 
 public class TermsAggregationEvaluator {
@@ -65,7 +66,7 @@ public class TermsAggregationEvaluator {
     public TermsAggregationEvaluator() {
     }
     
-    public PrivilegesEvaluatorResponse evaluate(final ActionRequest request, ClusterService clusterService, User user, SecurityRoles securityRoles,  IndexNameExpressionResolver resolver, PrivilegesEvaluatorResponse presponse) {
+    public PrivilegesEvaluatorResponse evaluate(final Resolved resolved, final ActionRequest request, ClusterService clusterService, User user, SecurityRoles securityRoles,  IndexNameExpressionResolver resolver, PrivilegesEvaluatorResponse presponse) {
         try {
             if(request instanceof SearchRequest) {
                 SearchRequest sr = (SearchRequest) request;
@@ -85,7 +86,7 @@ public class TermsAggregationEvaluator {
                                && ab.getSubAggregations().isEmpty()) {
 
                            
-                           final Set<String> allPermittedIndices = securityRoles.getAllPermittedIndices(user, READ_ACTIONS, resolver, clusterService);
+                           final Set<String> allPermittedIndices = securityRoles.getAllPermittedIndicesForKibana(resolved, user, READ_ACTIONS, resolver, clusterService);
                            if(allPermittedIndices == null || allPermittedIndices.isEmpty()) {
                                sr.source().query(NONE_QUERY);
                            } else {

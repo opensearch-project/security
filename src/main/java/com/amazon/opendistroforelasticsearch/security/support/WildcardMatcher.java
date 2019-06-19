@@ -257,6 +257,19 @@ public class WildcardMatcher {
         return matches;
     }
 
+    public static List<String> getMatchAny(final Collection<String> patterns, Collection<String> candidates) {
+
+        final List<String> matches = new ArrayList<String>(candidates.size());
+
+        for (String string: candidates) {
+            if (matchAny(patterns, string)) {
+                matches.add(string);
+            }
+        }
+
+        return matches;
+    }
+
     public static List<String> getMatchAny(final String pattern, final Collection<String> candidate) {
 
         final List<String> matches = new ArrayList<String>(candidate.size());

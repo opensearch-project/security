@@ -79,11 +79,11 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         rh.trustHTTPServerCertificate = true;
         rh.sendHTTPClientCertificate = true;
         Assert.assertEquals(HttpStatus.SC_SERVICE_UNAVAILABLE, rh.executePutRequest(".opendistro_security/config/0", "{}", encodeBasicHeader("___", "")).getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_SERVICE_UNAVAILABLE, rh.executePutRequest(".opendistro_security/sg/config", "{}", encodeBasicHeader("___", "")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_SERVICE_UNAVAILABLE, rh.executePutRequest(".opendistro_security/"+getType()+"/config", "{}", encodeBasicHeader("___", "")).getStatusCode());
         
         
         rh.keystore = "kirk-keystore.jks";
-        Assert.assertEquals(HttpStatus.SC_CREATED, rh.executePutRequest(".opendistro_security/sg/config", "{}", encodeBasicHeader("___", "")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_CREATED, rh.executePutRequest(".opendistro_security/"+getType()+"/config", "{}", encodeBasicHeader("___", "")).getStatusCode());
     
         Assert.assertFalse(rh.executeSimpleRequest("_nodes/stats?pretty").contains("\"tx_size_in_bytes\" : 0"));
         Assert.assertFalse(rh.executeSimpleRequest("_nodes/stats?pretty").contains("\"rx_count\" : 0"));
@@ -135,7 +135,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         
         try (TransportClient tc = getInternalTransportClient()) {   
             Assert.assertEquals(clusterInfo.numNodes, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
-            tc.index(new IndexRequest(".opendistro_security").type("security").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("internalusers").source("internalusers", FileHelper.readYamlContent("internal_users_spock_add_roles.yml"))).actionGet();
+            tc.index(new IndexRequest(".opendistro_security").type(getType()).setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("internalusers").source("internalusers", FileHelper.readYamlContent("internal_users_spock_add_roles.yml"))).actionGet();
             ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
             Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());   
         } 
@@ -152,7 +152,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         
         try (TransportClient tc = getInternalTransportClient()) {    
             Assert.assertEquals(clusterInfo.numNodes, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
-            tc.index(new IndexRequest(".opendistro_security").type("security").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("config").source("config", FileHelper.readYamlContent("config_anon.yml"))).actionGet();
+            tc.index(new IndexRequest(".opendistro_security").type(getType()).setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("config").source("config", FileHelper.readYamlContent("config_anon.yml"))).actionGet();
             ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config"})).actionGet();
             Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());   
         }
@@ -161,7 +161,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
             TransportAddress TransportAddress = (TransportAddress) iterator.next();
             HttpResponse res = rh.executeRequest(new HttpGet("http://"+TransportAddress.getAddress()+":"+TransportAddress.getPort() + "/" + "_opendistro/_security/authinfo?pretty=true"));
             log.debug(res.getBody());
-            Assert.assertTrue(res.getBody().contains("opendistro_security_role_host1"));
+            Assert.assertTrue(res.getBody().contains("role_host1"));
             Assert.assertTrue(res.getBody().contains("opendistro_security_anonymous"));
             Assert.assertTrue(res.getBody().contains("name=opendistro_security_anonymous"));
             Assert.assertTrue(res.getBody().contains("roles=[opendistro_security_anonymous_backendrole]"));
@@ -171,8 +171,6 @@ public class InitializationIntegrationTests extends SingleClusterTest {
 
     @Test
     public void testDefaultConfig() throws Exception {
-        
-        System.setProperty("security.default_init.dir", new File("./securityconfig").getAbsolutePath());
         final Settings settings = Settings.builder()
                 .put(ConfigConstants.OPENDISTRO_SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true)
                 .build();

@@ -30,6 +30,9 @@
 
 package com.amazon.opendistroforelasticsearch.security.test;
 
+import io.netty.handler.ssl.OpenSsl;
+
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -42,8 +45,6 @@ import org.apache.http.Header;
 import org.apache.http.message.BasicHeader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.junit.LoggerContextRule;
-import org.apache.logging.log4j.test.appender.ListAppender;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.get.GetRequest;
@@ -57,25 +58,23 @@ import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.Netty4Plugin;
 import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
+import org.junit.rules.TestWatcher;
 
 import com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin;
 import com.amazon.opendistroforelasticsearch.security.action.configupdate.ConfigUpdateAction;
 import com.amazon.opendistroforelasticsearch.security.action.configupdate.ConfigUpdateRequest;
 import com.amazon.opendistroforelasticsearch.security.action.configupdate.ConfigUpdateResponse;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.amazon.opendistroforelasticsearch.security.test.helper.cluster.ClusterInfo;
 import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper.HttpResponse;
-
-import io.netty.handler.ssl.OpenSsl;
+import com.amazon.opendistroforelasticsearch.security.test.helper.rules.OpenDistroSecurityTestWatcher;
 
 public abstract class AbstractSecurityUnitTest {
 
@@ -92,7 +91,7 @@ public abstract class AbstractSecurityUnitTest {
                 + System.getProperty("java.vm.vendor") + " " + System.getProperty("java.vm.name"));
         System.out.println("Open SSL available: " + OpenSsl.isAvailable());
         System.out.println("Open SSL version: " + OpenSsl.versionString());
-        withRemoteCluster = Boolean.parseBoolean(System.getenv("OPENDISTRO_SECURITY_TEST_WITH_REMOTE_CLUSTER"));
+        withRemoteCluster = Boolean.parseBoolean(System.getenv("TESTARG_unittests_with_remote_cluster"));
         System.out.println("With remote cluster: " + withRemoteCluster);
         //System.setProperty("security.display_lic_none","true");
     }
@@ -111,8 +110,8 @@ public abstract class AbstractSecurityUnitTest {
     @Rule
     public final TemporaryFolder repositoryPath = new TemporaryFolder();
 
-	//@Rule
-	//public final TestWatcher testWatcher = new OpenDistroSecurityTestWatcher();
+	@Rule
+	public final TestWatcher testWatcher = new OpenDistroSecurityTestWatcher();
 
     public static Header encodeBasicHeader(final String username, final String password) {
         return new BasicHeader("Authorization", "Basic "+Base64.getEncoder().encodeToString(
@@ -193,8 +192,9 @@ public abstract class AbstractSecurityUnitTest {
             }
 
             ConfigUpdateResponse cur = tc
-                    .execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(ConfigConstants.CONFIG_NAMES.toArray(new String[0])))
+                    .execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(CType.lcStringValues().toArray(new String[0])))
                     .actionGet();
+            Assert.assertFalse(cur.failures().toString(), cur.hasFailures());
             Assert.assertEquals(info.numNodes, cur.getNodes().size());
 
             SearchResponse sr = tc.search(new SearchRequest(".opendistro_security")).actionGet();
@@ -203,19 +203,24 @@ public abstract class AbstractSecurityUnitTest {
             sr = tc.search(new SearchRequest(".opendistro_security")).actionGet();
             //Assert.assertEquals(5L, sr.getHits().getTotalHits());
 
-            Assert.assertTrue(tc.get(new GetRequest(".opendistro_security", "security", "config")).actionGet().isExists());
-            Assert.assertTrue(tc.get(new GetRequest(".opendistro_security","security","internalusers")).actionGet().isExists());
-            Assert.assertTrue(tc.get(new GetRequest(".opendistro_security","security","roles")).actionGet().isExists());
-            Assert.assertTrue(tc.get(new GetRequest(".opendistro_security","security","rolesmapping")).actionGet().isExists());
-            Assert.assertTrue(tc.get(new GetRequest(".opendistro_security","security","actiongroups")).actionGet().isExists());
-            Assert.assertFalse(tc.get(new GetRequest(".opendistro_security","security","rolesmapping_xcvdnghtu165759i99465")).actionGet().isExists());
-            Assert.assertTrue(tc.get(new GetRequest(".opendistro_security","security","config")).actionGet().isExists());
+            String type=securityConfig.getType();
+
+            Assert.assertTrue(tc.get(new GetRequest(".opendistro_security", type, "config")).actionGet().isExists());
+            Assert.assertTrue(tc.get(new GetRequest(".opendistro_security", type,"internalusers")).actionGet().isExists());
+            Assert.assertTrue(tc.get(new GetRequest(".opendistro_security", type,"roles")).actionGet().isExists());
+            Assert.assertTrue(tc.get(new GetRequest(".opendistro_security", type,"rolesmapping")).actionGet().isExists());
+            Assert.assertTrue(tc.get(new GetRequest(".opendistro_security", type,"actiongroups")).actionGet().isExists());
+            Assert.assertFalse(tc.get(new GetRequest(".opendistro_security", type,"rolesmapping_xcvdnghtu165759i99465")).actionGet().isExists());
+            Assert.assertTrue(tc.get(new GetRequest(".opendistro_security", type,"config")).actionGet().isExists());
         }
     }
 
     protected Settings.Builder minimumSecuritySettingsBuilder(int node, boolean sslOnly) {
 
         final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
+
+
+
         Settings.Builder builder = Settings.builder()
                 //.put("opendistro_security.ssl.transport.enabled", true)
                 //.put("opendistro_security.no_default_init", true)
@@ -232,6 +237,8 @@ public abstract class AbstractSecurityUnitTest {
 
         if(!sslOnly) {
             builder.putList("opendistro_security.authcz.admin_dn", "CN=kirk,OU=client,O=client,l=tEst, C=De");
+            builder.put(ConfigConstants.OPENDISTRO_SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, false);
+
             //.put(other==null?Settings.EMPTY:other);
         }
 
@@ -248,6 +255,7 @@ public abstract class AbstractSecurityUnitTest {
     }
 
     protected NodeSettingsSupplier minimumSecuritySettingsSslOnly(Settings other) {
+
         return new NodeSettingsSupplier() {
             @Override
             public Settings get(int i) {
@@ -260,8 +268,8 @@ public abstract class AbstractSecurityUnitTest {
         initialize(info, Settings.EMPTY, new DynamicSecurityConfig());
     }
 
-    protected void initialize(ClusterInfo info, DynamicSecurityConfig dynamicSgConfig) {
-        initialize(info, Settings.EMPTY, dynamicSgConfig);
+    protected void initialize(ClusterInfo info, DynamicSecurityConfig DynamicSecurityConfig) {
+        initialize(info, Settings.EMPTY, DynamicSecurityConfig);
     }
 
     protected final void assertContains(HttpResponse res, String pattern) {
@@ -276,25 +284,8 @@ public abstract class AbstractSecurityUnitTest {
         return null;
     }
 
-    protected static ListAppender appender;
 
-    @ClassRule
-    public static LoggerContextRule init = new LoggerContextRule("log4j2-test.properties");
-
-    @BeforeClass
-    public static void setupLogging() {
-        try {
-            appender = init.getListAppender("list");
-        } catch (Throwable e) {
-            //ignore
-        }
-    }
-
-    @Before
-    public void clearAppender() {
-
-        if(appender != null) {
-            appender.clear();
-        }
+    protected String getType() {
+        return "_doc";
     }
 }

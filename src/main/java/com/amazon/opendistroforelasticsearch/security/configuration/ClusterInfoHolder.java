@@ -47,27 +47,27 @@ import org.elasticsearch.index.Index;
 public class ClusterInfoHolder implements ClusterStateListener {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
-    private volatile Boolean has5xNodes = null;
-    private volatile Boolean has5xIndices = null;
+    private volatile Boolean has6xNodes = null;
+    private volatile Boolean has6xIndices = null;
     private volatile DiscoveryNodes nodes = null;
     private volatile Boolean isLocalNodeElectedMaster = null;
     private volatile boolean initialized;
     
     @Override
     public void clusterChanged(ClusterChangedEvent event) {
-        if(has5xNodes == null || event.nodesChanged()) {
-            has5xNodes = Boolean.valueOf(clusterHas5xNodes(event.state()));
+        if(has6xNodes == null || event.nodesChanged()) {
+            has6xNodes = Boolean.valueOf(clusterHas6xNodes(event.state()));
             if(log.isTraceEnabled()) {
-                log.trace("has5xNodes: {}", has5xNodes);
+                log.trace("has6xNodes: {}", has6xNodes);
             }
         }
         
         final List<String> indicesCreated = event.indicesCreated();
         final List<Index> indicesDeleted = event.indicesDeleted();
-        if(has5xIndices == null || !indicesCreated.isEmpty() || !indicesDeleted.isEmpty()) {
-            has5xIndices = Boolean.valueOf(clusterHas5xIndices(event.state()));
+        if(has6xIndices == null || !indicesCreated.isEmpty() || !indicesDeleted.isEmpty()) {
+            has6xIndices = Boolean.valueOf(clusterHas6xIndices(event.state()));
             if(log.isTraceEnabled()) {
-                log.trace("has5xIndices: {}", has5xIndices);
+                log.trace("has6xIndices: {}", has6xIndices);
             }
         }
         
@@ -82,12 +82,12 @@ public class ClusterInfoHolder implements ClusterStateListener {
         isLocalNodeElectedMaster = event.localNodeMaster()?Boolean.TRUE:Boolean.FALSE;
     }
 
-    public Boolean getHas5xNodes() {
-        return has5xNodes;
+    public Boolean getHas6xNodes() {
+        return has6xNodes;
     }
 
-    public Boolean getHas5xIndices() {
-        return has5xIndices;
+    public Boolean getHas6xIndices() {
+        return has6xIndices;
     }
 
     public Boolean isLocalNodeElectedMaster() {
@@ -109,15 +109,15 @@ public class ClusterInfoHolder implements ClusterStateListener {
         return nodes.nodeExists(node)?Boolean.TRUE:Boolean.FALSE;
     }
 
-    private static boolean clusterHas5xNodes(ClusterState state) {
-        return state.nodes().getMinNodeVersion().before(Version.V_6_0_0_alpha1);
+    private static boolean clusterHas6xNodes(ClusterState state) {
+        return state.nodes().getMinNodeVersion().before(Version.V_7_0_0);
     }
     
-    private static boolean clusterHas5xIndices(ClusterState state) {
+    private static boolean clusterHas6xIndices(ClusterState state) {
         final Iterator<IndexMetaData> indices = state.metaData().indices().valuesIt();
         for(;indices.hasNext();) {
             final IndexMetaData indexMetaData = indices.next();
-            if(indexMetaData.getCreationVersion().before(Version.V_6_0_0_alpha1)) {
+            if(indexMetaData.getCreationVersion().before(Version.V_7_0_0)) {
                 return true;
             }
         }

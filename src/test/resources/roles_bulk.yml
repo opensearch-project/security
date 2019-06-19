@@ -1,12 +1,22 @@
-opendistro_security_bulk:
-  cluster:
-    - indices:data/write/bulk
-  indices:
-    '*':
-      '*':  
-        - indices:admin/create
-        - indices:data/write/index
-        - indices:data/write/bulk[s]
-        - indices:admin/mapping/put
-
-        
+---
+_meta:
+  type: "roles"
+  config_version: 2
+bulk:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions:
+  - "indices:data/write/bulk"
+  index_permissions:
+  - index_patterns:
+    - "*"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "indices:data/write/index"
+    - "indices:admin/mapping/put"
+    - "indices:admin/create"
+    - "indices:data/write/bulk[s]"
+  tenant_permissions: []

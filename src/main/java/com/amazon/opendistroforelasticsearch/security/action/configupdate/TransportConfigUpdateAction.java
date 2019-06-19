@@ -31,15 +31,14 @@
 package com.amazon.opendistroforelasticsearch.security.action.configupdate;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.FailedNodeException;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.nodes.BaseNodeRequest;
 import org.elasticsearch.action.support.nodes.TransportNodesAction;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
@@ -53,27 +52,30 @@ import org.elasticsearch.transport.TransportService;
 
 import com.amazon.opendistroforelasticsearch.security.auth.BackendRegistry;
 import com.amazon.opendistroforelasticsearch.security.configuration.ConfigurationRepository;
-import com.amazon.opendistroforelasticsearch.security.configuration.IndexBaseConfigurationRepository;
+import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigFactory;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
 
 public class TransportConfigUpdateAction
 extends
 TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigUpdateAction.NodeConfigUpdateRequest, ConfigUpdateNodeResponse> {
 
+    protected Logger logger = LogManager.getLogger(getClass());
     private final Provider<BackendRegistry> backendRegistry;
     private final ConfigurationRepository configurationRepository;
+    private DynamicConfigFactory dynamicConfigFactory;
     
     @Inject
     public TransportConfigUpdateAction(final Settings settings,
             final ThreadPool threadPool, final ClusterService clusterService, final TransportService transportService,
-            final IndexBaseConfigurationRepository configurationRepository, final ActionFilters actionFilters, final IndexNameExpressionResolver indexNameExpressionResolver,
-            Provider<BackendRegistry> backendRegistry) {
-        
-        super(settings, ConfigUpdateAction.NAME, threadPool, clusterService, transportService, actionFilters,
-                indexNameExpressionResolver, ConfigUpdateRequest::new, TransportConfigUpdateAction.NodeConfigUpdateRequest::new,
+            final ConfigurationRepository configurationRepository, final ActionFilters actionFilters,
+            Provider<BackendRegistry> backendRegistry, DynamicConfigFactory dynamicConfigFactory) {        
+        super(ConfigUpdateAction.NAME, threadPool, clusterService, transportService, actionFilters,
+                ConfigUpdateRequest::new, TransportConfigUpdateAction.NodeConfigUpdateRequest::new,
                 ThreadPool.Names.MANAGEMENT, ConfigUpdateNodeResponse.class);
 
         this.configurationRepository = configurationRepository;
         this.backendRegistry = backendRegistry;
+        this.dynamicConfigFactory = dynamicConfigFactory;
     }
 
     public static class NodeConfigUpdateRequest extends BaseNodeRequest {
@@ -121,8 +123,8 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
 	
     @Override
     protected ConfigUpdateNodeResponse nodeOperation(final NodeConfigUpdateRequest request) {
-        final Map<String, Settings> setn = configurationRepository.reloadConfiguration(Arrays.asList(request.request.getConfigTypes()));
+        configurationRepository.reloadConfiguration(CType.fromStringValues((request.request.getConfigTypes())));
         backendRegistry.get().invalidateCache();
-        return new ConfigUpdateNodeResponse(clusterService.localNode(), setn.keySet().toArray(new String[0]), null); 
+        return new ConfigUpdateNodeResponse(clusterService.localNode(), request.request.getConfigTypes(), null);
     }
 }

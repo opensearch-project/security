@@ -1,91 +1,178 @@
-UNLIMITED:
-  - "*"
-
-###### INDEX LEVEL ######
-
-INDICES_ALL:
-  - "indices:*"
-
-# for backward compatibility
+---
+_meta:
+  type: "actiongroups"
+  config_version: 2
+OPENDISTRO_SECURITY_CLUSTER_ALL:
+  reserved: false
+  hidden: false
+  allowed_actions:
+  - "cluster:*"
+  type: "cluster"
+  description: "Migrated from v6"
 ALL:
-  - INDICES_ALL
-
-MANAGE:
-  - "indices:monitor/*"
-  - "indices:admin/*"
-
-CREATE_INDEX:
-  - "indices:admin/create"
-  - "indices:admin/mapping/put"
-
-MANAGE_ALIASES:
-  - "indices:admin/aliases*"
-
-# for backward compatibility
-MONITOR:
-  - INDICES_MONITOR
-
-INDICES_MONITOR:
-  - "indices:monitor/*"
-
-DATA_ACCESS:
-  - "indices:data/*"
-  - CRUD
-
-WRITE:
-  - "indices:data/write*"
-  - "indices:admin/mapping/put"
-
-READ:
-  - "indices:data/read*"
-  - "indices:admin/mappings/fields/get*"
-
-DELETE:
-  - "indices:data/write/delete*"
-
-CRUD:
-  - READ
-  - WRITE
-
-SEARCH:
+  reserved: false
+  hidden: false
+  allowed_actions:
+  - "OPENDISTRO_SECURITY_INDICES_ALL"
+  type: "index"
+  description: "Migrated from v6"
+OPENDISTRO_SECURITY_CRUD:
+  reserved: false
+  hidden: false
+  allowed_actions:
+  - "OPENDISTRO_SECURITY_READ"
+  - "OPENDISTRO_SECURITY_WRITE"
+  type: "index"
+  description: "Migrated from v6"
+OPENDISTRO_SECURITY_SEARCH:
+  reserved: false
+  hidden: false
+  allowed_actions:
   - "indices:data/read/search*"
   - "indices:data/read/msearch*"
-  - SUGGEST
-
-SUGGEST:
-  - "indices:data/read/suggest*"
-
-INDEX:
-  - "indices:data/write/index*"
-  - "indices:data/write/update*"
+  - "OPENDISTRO_SECURITY_SUGGEST"
+  type: "index"
+  description: "Migrated from v6"
+MONITOR:
+  reserved: false
+  hidden: false
+  allowed_actions:
+  - "OPENDISTRO_SECURITY_INDICES_MONITOR"
+  type: "index"
+  description: "Migrated from v6"
+OPENDISTRO_SECURITY_DATA_ACCESS:
+  reserved: false
+  hidden: false
+  allowed_actions:
+  - "indices:data/*"
+  - "OPENDISTRO_SECURITY_CRUD"
+  type: "index"
+  description: "Migrated from v6"
+OPENDISTRO_SECURITY_CREATE_INDEX:
+  reserved: false
+  hidden: false
+  allowed_actions:
+  - "indices:admin/create"
   - "indices:admin/mapping/put"
-  - "indices:data/write/bulk*"
-
-GET:
-  - "indices:data/read/get*"
-  - "indices:data/read/mget*"
-
-###### CLUSTER LEVEL ######
-
-CLUSTER_ALL:
-  - "cluster:*"
-
-CLUSTER_MONITOR:
-  - "cluster:monitor/*"
-
-CLUSTER_COMPOSITE_OPS_RO:
+  type: "index"
+  description: "Migrated from v6"
+OPENDISTRO_SECURITY_WRITE:
+  reserved: false
+  hidden: false
+  allowed_actions:
+  - "indices:data/write*"
+  - "indices:admin/mapping/put"
+  type: "index"
+  description: "Migrated from v6"
+OPENDISTRO_SECURITY_MANAGE_ALIASES:
+  reserved: false
+  hidden: false
+  allowed_actions:
+  - "indices:admin/aliases*"
+  type: "index"
+  description: "Migrated from v6"
+OPENDISTRO_SECURITY_READ:
+  reserved: false
+  hidden: false
+  allowed_actions:
+  - "indices:data/read*"
+  - "indices:admin/mappings/fields/get*"
+  type: "index"
+  description: "Migrated from v6"
+OPENDISTRO_SECURITY_INDICES_ALL:
+  reserved: false
+  hidden: false
+  allowed_actions:
+  - "indices:*"
+  type: "index"
+  description: "Migrated from v6"
+OPENDISTRO_SECURITY_DELETE:
+  reserved: false
+  hidden: false
+  allowed_actions:
+  - "indices:data/write/delete*"
+  type: "index"
+  description: "Migrated from v6"
+OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS:
+  reserved: false
+  hidden: false
+  allowed_actions:
+  - "indices:data/write/bulk"
+  - "indices:admin/aliases*"
+  - "OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS_RO"
+  type: "cluster"
+  description: "Migrated from v6"
+OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS_RO:
+  reserved: false
+  hidden: false
+  allowed_actions:
   - "indices:data/read/mget"
   - "indices:data/read/msearch"
   - "indices:data/read/mtv"
   - "indices:data/read/coordinate-msearch*"
   - "indices:admin/aliases/exists*"
   - "indices:admin/aliases/get*"
-
-CLUSTER_COMPOSITE_OPS:
-  - "indices:data/write/bulk"
-  - "indices:admin/aliases*"
-  - CLUSTER_COMPOSITE_OPS_RO
-  
-MANAGE_SNAPSHOTS:
+  type: "cluster"
+  description: "Migrated from v6"
+OPENDISTRO_SECURITY_GET:
+  reserved: false
+  hidden: false
+  allowed_actions:
+  - "indices:data/read/get*"
+  - "indices:data/read/mget*"
+  type: "index"
+  description: "Migrated from v6"
+OPENDISTRO_SECURITY_MANAGE:
+  reserved: false
+  hidden: false
+  allowed_actions:
+  - "indices:monitor/*"
+  - "indices:admin/*"
+  type: "index"
+  description: "Migrated from v6"
+OPENDISTRO_SECURITY_CLUSTER_MONITOR:
+  reserved: false
+  hidden: false
+  allowed_actions:
+  - "cluster:monitor/*"
+  type: "cluster"
+  description: "Migrated from v6"
+OPENDISTRO_SECURITY_MANAGE_SNAPSHOTS:
+  reserved: false
+  hidden: false
+  allowed_actions:
   - "cluster:admin/snapshot/*"
   - "cluster:admin/repository/*"
+  type: "index"
+  description: "Migrated from v6"
+OPENDISTRO_SECURITY_INDEX:
+  reserved: false
+  hidden: false
+  allowed_actions:
+  - "indices:data/write/index*"
+  - "indices:data/write/update*"
+  - "indices:admin/mapping/put"
+  - "indices:data/write/bulk*"
+  type: "index"
+  description: "Migrated from v6"
+OPENDISTRO_SECURITY_UNLIMITED:
+  reserved: false
+  hidden: false
+  allowed_actions:
+  - "*"
+  type: "index"
+  description: "Migrated from v6"
+OPENDISTRO_SECURITY_INDICES_MONITOR:
+  reserved: false
+  hidden: false
+  allowed_actions:
+  - "indices:monitor/*"
+  type: "index"
+  description: "Migrated from v6"
+OPENDISTRO_SECURITY_SUGGEST:
+  reserved: false
+  hidden: false
+  allowed_actions:
+  - "indices:data/read/suggest*"
+  type: "index"
+  description: "Migrated from v6"

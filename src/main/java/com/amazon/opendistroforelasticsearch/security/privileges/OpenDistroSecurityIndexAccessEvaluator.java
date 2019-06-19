@@ -52,36 +52,34 @@ public class OpenDistroSecurityIndexAccessEvaluator {
     
     private final String opendistrosecurityIndex;
     private final AuditLog auditLog;
-    private final String[] securityDeniedActionPatternsAll;
-    private final String[] securityDeniedActionPatternsSnapshotRestoreAllowed;
-
-    private final boolean restoreSecurityIndexEnabled;
+    private final String[] securityDeniedActionPatterns;
     
     public OpenDistroSecurityIndexAccessEvaluator(final Settings settings, AuditLog auditLog) {
         this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
         this.auditLog = auditLog;
-        
-        final List<String> securityIndexdeniedActionPatternsListAll = new ArrayList<String>();
-        securityIndexdeniedActionPatternsListAll.add("indices:data/write*");
-        securityIndexdeniedActionPatternsListAll.add("indices:admin/close");
-        securityIndexdeniedActionPatternsListAll.add("indices:admin/delete");
-        securityIndexdeniedActionPatternsListAll.add("cluster:admin/snapshot/restore");
 
-        securityDeniedActionPatternsAll = securityIndexdeniedActionPatternsListAll.toArray(new String[0]);
+        final boolean restoreSgIndexEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_RESTORE_SECURITYINDEX_ENABLED, false);
 
-        final List<String> securityIndexdeniedActionPatternsListSnapshotRestoreAllowed = new ArrayList<String>();
-        securityIndexdeniedActionPatternsListAll.add("indices:data/write*");
-        securityIndexdeniedActionPatternsListAll.add("indices:admin/delete");
-              
-        securityDeniedActionPatternsSnapshotRestoreAllowed = securityIndexdeniedActionPatternsListSnapshotRestoreAllowed.toArray(new String[0]);
-        
-        this.restoreSecurityIndexEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_RESTORE_SECURITYINDEX_ENABLED, false);
+        final List<String> securityIndexDeniedActionPatternsList = new ArrayList<String>();
+        securityIndexDeniedActionPatternsList.add("indices:data/write*");
+        securityIndexDeniedActionPatternsList.add("indices:admin/delete*");
+        securityIndexDeniedActionPatternsList.add("indices:admin/mapping/delete*");
+        securityIndexDeniedActionPatternsList.add("indices:admin/mapping/put*");
+        securityIndexDeniedActionPatternsList.add("indices:admin/freeze*");
+        securityIndexDeniedActionPatternsList.add("indices:admin/settings/update*");
+        securityIndexDeniedActionPatternsList.add("indices:admin/aliases");
+
+        final List<String> securityIndexDeniedActionPatternsListNoSnapshot = new ArrayList<String>();
+        securityIndexDeniedActionPatternsListNoSnapshot.addAll(securityIndexDeniedActionPatternsList);
+        securityIndexDeniedActionPatternsListNoSnapshot.add("indices:admin/close*");
+        securityIndexDeniedActionPatternsListNoSnapshot.add("cluster:admin/snapshot/restore*");
+
+        securityDeniedActionPatterns = (restoreSgIndexEnabled?securityIndexDeniedActionPatternsList:securityIndexDeniedActionPatternsListNoSnapshot).toArray(new String[0]);
     }
     
     public PrivilegesEvaluatorResponse evaluate(final ActionRequest request, final Task task, final String action, final Resolved requestedResolved,
             final PrivilegesEvaluatorResponse presponse)  {
-        
-        final String[] securityDeniedActionPatterns = this.restoreSecurityIndexEnabled? securityDeniedActionPatternsSnapshotRestoreAllowed : securityDeniedActionPatternsAll;
+
         
         if (requestedResolved.getAllIndices().contains(opendistrosecurityIndex)
                 && WildcardMatcher.matchAny(securityDeniedActionPatterns, action)) {
@@ -91,7 +89,6 @@ public class OpenDistroSecurityIndexAccessEvaluator {
             return presponse.markComplete();
         }
 
-        //TODO: newpeval: check if isAll() is all (contains("_all" or "*"))
         if (requestedResolved.isLocalAll()
                 && WildcardMatcher.matchAny(securityDeniedActionPatterns, action)) {
             auditLog.logSecurityIndexAttempt(request, action, task);
@@ -100,7 +97,6 @@ public class OpenDistroSecurityIndexAccessEvaluator {
             return presponse.markComplete();
         }
 
-      //TODO: newpeval: check if isAll() is all (contains("_all" or "*"))
         if(requestedResolved.getAllIndices().contains(opendistrosecurityIndex) || requestedResolved.isLocalAll()) {
 
             if(request instanceof SearchRequest) {

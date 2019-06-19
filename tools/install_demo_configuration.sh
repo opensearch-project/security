@@ -391,15 +391,17 @@ if $SUDO_CMD grep --quiet -i "^network.host" "$ES_CONF_FILE"; then
 else
 	if [ "$cluster_mode" == 1 ]; then
         echo "network.host: 0.0.0.0" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
+        echo "node.name: smoketestnode" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
+        echo "cluster.initial_master_nodes: smoketestnode" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
     fi
 fi
 
 #discovery.zen.minimum_master_nodes
-if $SUDO_CMD grep --quiet -i "^discovery.zen.minimum_master_nodes" "$ES_CONF_FILE"; then
-	: #already present
-else
-    echo "discovery.zen.minimum_master_nodes: 1" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
-fi
+#if $SUDO_CMD grep --quiet -i "^discovery.zen.minimum_master_nodes" "$ES_CONF_FILE"; then
+#	: #already present
+#else
+#    echo "discovery.zen.minimum_master_nodes: 1" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
+#fi
 
 #node.max_local_storage_nodes
 if $SUDO_CMD grep --quiet -i "^node.max_local_storage_nodes" "$ES_CONF_FILE"; then

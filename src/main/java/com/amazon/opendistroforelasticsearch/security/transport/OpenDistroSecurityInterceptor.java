@@ -42,12 +42,14 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.admin.cluster.shards.ClusterSearchShardsAction;
 import org.elasticsearch.action.admin.cluster.shards.ClusterSearchShardsResponse;
 import org.elasticsearch.action.get.GetRequest;
+import org.elasticsearch.action.search.SearchAction;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
+import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.Transport.Connection;
 import org.elasticsearch.transport.TransportException;
@@ -124,11 +126,6 @@ public class OpenDistroSecurityInterceptor {
             final TransportResponseHandler<T> restoringHandler = new RestoringTransportResponseHandler<T>(handler, stashedContext);
             getThreadContext().putHeader("_opendistro_security_remotecn", cs.getClusterName().value());
 
-            if(this.settings.get("tribe.name", null) == null
-                    && settings.getByPrefix("tribe").size() > 0) {
-                getThreadContext().putHeader("_opendistro_security_header_tn", "true");
-            }
-
             final Map<String, String> headerMap = new HashMap<>(Maps.filterKeys(origHeaders0, k->k!=null && (
                     k.equals(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER)
@@ -140,11 +137,14 @@ public class OpenDistroSecurityInterceptor {
                             || (k.equals("_opendistro_security_source_field_context") && ! (request instanceof SearchRequest) && !(request instanceof GetRequest))
                             || k.startsWith("_opendistro_security_trace")
                             || k.startsWith(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER)
+                            || k.equals(Task.X_OPAQUE_ID)
             )));
 
             if (OpenDistroSecurityPlugin.GuiceHolder.getRemoteClusterService().isCrossClusterSearchEnabled()
                     && clusterInfoHolder.isInitialized()
-                    && action.startsWith(ClusterSearchShardsAction.NAME)
+                    && (action.equals(ClusterSearchShardsAction.NAME)
+                    || action.equals(SearchAction.NAME)
+            )
                     && !clusterInfoHolder.hasNode(connection.getNode())) {
                 if (log.isDebugEnabled()) {
                     log.debug("remove dls/fls/mf because we sent a ccs request to a remote cluster");
@@ -157,7 +157,7 @@ public class OpenDistroSecurityInterceptor {
             if (OpenDistroSecurityPlugin.GuiceHolder.getRemoteClusterService().isCrossClusterSearchEnabled()
                     && clusterInfoHolder.isInitialized()
                     && !action.startsWith("internal:")
-                    && !action.startsWith(ClusterSearchShardsAction.NAME)
+                    && !action.equals(ClusterSearchShardsAction.NAME)
                     && !clusterInfoHolder.hasNode(connection.getNode())) {
 
                 if (log.isDebugEnabled()) {

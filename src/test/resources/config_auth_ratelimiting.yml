@@ -1,0 +1,27 @@
+---
+_meta:
+  type: "config"
+  config_version: 2
+config:
+  dynamic:
+    filtered_alias_mode: disallow
+    http:
+      xff:
+        enabled: false
+    authc:
+      authentication_domain_basic_internal:
+        http_enabled: true
+        transport_enabled: true
+        order: 0
+        http_authenticator:
+          type: basic
+        authentication_backend:
+          type: intern
+    auth_failure_listeners:
+      ip_rate_limiting:
+        type: ip
+        allowed_tries: 10
+      internal_authentication_backend_limiting:
+        type: username
+        authentication_backend: intern        
+        allowed_tries: 3

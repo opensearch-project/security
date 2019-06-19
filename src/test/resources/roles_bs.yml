@@ -1,26 +1,57 @@
-opendistro_security_public:
-  cluster:
-    - CLUSTER_COMPOSITE_OPS
-  indices:
-    '*':
-      '*':
-        - indices:admin/create
-        - indices:admin/mapping/put
-        - indices:data/write/bulk[s]
-
+---
+_meta:
+  type: "roles"
+  config_version: 2
+public:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions:
+  - "OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS"
+  index_permissions:
+  - index_patterns:
+    - "*"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "indices:admin/mapping/put"
+    - "indices:admin/create"
+    - "indices:data/write/bulk[s]"
+  tenant_permissions: []
 opendistro_security_all_access:
-  cluster:
-    - '*'
-  indices:
-    '*':
-      '*':  
-        - ALL
-
-opendistro_security_role_klingons1:
-  indices:
-    test:
-      '*':
-        - '*'
-    lorem:
-      '*':
-        - indices:data/write/index
+  reserved: false
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions:
+  - "*"
+  index_permissions:
+  - index_patterns:
+    - "*"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "ALL"
+  tenant_permissions: []
+role_klingons1:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions: []
+  index_permissions:
+  - index_patterns:
+    - "test"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "*"
+  - index_patterns:
+    - "lorem"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "indices:data/write/index"
+  tenant_permissions: []

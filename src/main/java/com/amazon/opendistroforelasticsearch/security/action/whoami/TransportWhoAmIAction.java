@@ -37,6 +37,7 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -50,20 +51,22 @@ extends
 HandledTransportAction<WhoAmIRequest, WhoAmIResponse> {
 
     private final AdminDNs adminDNs;
+    private final ThreadPool threadPool;
 
     @Inject
     public TransportWhoAmIAction(final Settings settings,
             final ThreadPool threadPool, final ClusterService clusterService, final TransportService transportService,
-            final AdminDNs adminDNs, final ActionFilters actionFilters, final IndexNameExpressionResolver indexNameExpressionResolver) {
+            final AdminDNs adminDNs, final ActionFilters actionFilters) {
 
-        super(settings, WhoAmIAction.NAME, threadPool, transportService, actionFilters, indexNameExpressionResolver, WhoAmIRequest::new);
+        super(WhoAmIAction.NAME, transportService, actionFilters, WhoAmIRequest::new);
 
         this.adminDNs = adminDNs;
+        this.threadPool = threadPool;
     }
 
 
     @Override
-    protected void doExecute(WhoAmIRequest request, ActionListener<WhoAmIResponse> listener) {
+    protected void doExecute(Task task, WhoAmIRequest request, ActionListener<WhoAmIResponse> listener) {
         final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         final String dn = user==null?threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PRINCIPAL):user.getName();
         final boolean isAdmin = adminDNs.isAdminDN(dn);

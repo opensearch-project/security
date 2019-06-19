@@ -1,0 +1,71 @@
+diff a/src/test/java/com/amazon/opendistroforelasticsearch/security/test/DynamicSecurityConfig.java b/src/test/java/com/amazon/opendistroforelasticsearch/security/test/DynamicSecurityConfig.java	(rejected hunks)
+@@ -77,5 +80,14 @@ public class DynamicSecurityConfig {
+     
++    public DynamicSecurityConfig setLegacy() {
++        this.type = "security";
++        this.legacyConfigFolder = "legacy/securityconfig_v6/";
++        return this;
++    }
++
++    public String getType() {
++        return type;
++    }
+     public List<IndexRequest> getDynamicConfig(String folder) {
+         
+-        final String prefix = folder == null?"":folder+"/";
++        final String prefix = legacyConfigFolder+(folder == null?"":folder+"/");
+         
+@@ -84,31 +96,38 @@ public class DynamicSecurityConfig {
+         ret.add(new IndexRequest(securityIndexName)
+-               .type("security")
+-               .id(ConfigConstants.CONFIGNAME_CONFIG)
++               .type(type)
++               .id(CType.CONFIG.toLCString())
+                .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+-               .source(ConfigConstants.CONFIGNAME_CONFIG, securityConfigAsYamlString==null?FileHelper.readYamlContent(prefix+securityConfig):FileHelper.readYamlContentFromString(securityConfigAsYamlString)));
++               .source(CType.CONFIG.toLCString(), securityConfigAsYamlString==null?FileHelper.readYamlContent(prefix+securityConfig):FileHelper.readYamlContentFromString(securityConfigAsYamlString)));
+         
+         ret.add(new IndexRequest(securityIndexName)
+-        .type("security")
+-        .id(ConfigConstants.CONFIGNAME_ACTION_GROUPS)
++                .type(type)
++        .id(CType.ACTIONGROUPS.toLCString())
+         .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+-        .source(ConfigConstants.CONFIGNAME_ACTION_GROUPS, FileHelper.readYamlContent(prefix+securityActionGroups)));
++        .source(CType.ACTIONGROUPS.toLCString(), FileHelper.readYamlContent(prefix+securityActionGroups)));
+  
+         ret.add(new IndexRequest(securityIndexName)
+-        .type("security")
+-        .id(ConfigConstants.CONFIGNAME_INTERNAL_USERS)
++                .type(type)
++        .id(CType.INTERNALUSERS.toLCString())
+         .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+-        .source(ConfigConstants.CONFIGNAME_INTERNAL_USERS, FileHelper.readYamlContent(prefix+securityInternalUsers)));
++        .source(CType.INTERNALUSERS.toLCString(), FileHelper.readYamlContent(prefix+securityInternalUsers)));
+  
+         ret.add(new IndexRequest(securityIndexName)
+-        .type("security")
+-        .id(ConfigConstants.CONFIGNAME_ROLES)
++                .type(type)
++        .id(CType.ROLES.toLCString())
+         .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+-        .source(ConfigConstants.CONFIGNAME_ROLES, FileHelper.readYamlContent(prefix+securityRoles)));
++        .source(CType.ROLES.toLCString(), FileHelper.readYamlContent(prefix+securityRoles)));
+  
+         ret.add(new IndexRequest(securityIndexName)
+-        .type("security")
+-        .id(ConfigConstants.CONFIGNAME_ROLES_MAPPING)
++                .type(type)
++        .id(CType.ROLESMAPPING.toLCString())
+         .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+-        .source(ConfigConstants.CONFIGNAME_ROLES_MAPPING, FileHelper.readYamlContent(prefix+securityRolesMapping)));
++        .source(CType.ROLESMAPPING.toLCString(), FileHelper.readYamlContent(prefix+securityRolesMapping)));
+         
++        if("".equals(legacyConfigFolder)) {
++            ret.add(new IndexRequest(securityIndexName)
++                    .type(type)
++            .id(CType.TENANTS.toLCString())
++            .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
++            .source(CType.TENANTS.toLCString(), FileHelper.readYamlContent(prefix+securityTenants)));
++        }
+         

@@ -102,7 +102,7 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX = ".opendistro_security";
 
     public static final String OPENDISTRO_SECURITY_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE = "opendistro_security.enable_snapshot_restore_privilege";
-    public static final boolean OPENDISTRO_SECURITY_DEFAULT_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE = false;
+    public static final boolean OPENDISTRO_SECURITY_DEFAULT_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE = true;
 
     public static final String OPENDISTRO_SECURITY_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES = "opendistro_security.check_snapshot_restore_write_privileges";
     public static final boolean OPENDISTRO_SECURITY_DEFAULT_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES = true;
@@ -113,17 +113,6 @@ public class ConfigConstants {
                     // "indices:data/write/bulk"
               )));
 
-    public final static String CONFIGNAME_ROLES = "roles";
-    public final static String CONFIGNAME_ROLES_MAPPING = "rolesmapping";
-    public final static String CONFIGNAME_ACTION_GROUPS = "actiongroups";
-    public final static String CONFIGNAME_INTERNAL_USERS = "internalusers";
-    public final static String CONFIGNAME_CONFIG = "config";
-    public final static String CONFIGKEY_ACTION_GROUPS_PERMISSIONS = "permissions";
-    public final static String CONFIGKEY_READONLY = "readonly";
-    public final static String CONFIGKEY_HIDDEN = "hidden";
-
-    public final static List<String> CONFIG_NAMES = Collections.unmodifiableList(Arrays.asList(new String[] {CONFIGNAME_ROLES, CONFIGNAME_ROLES_MAPPING,
-            CONFIGNAME_ACTION_GROUPS, CONFIGNAME_INTERNAL_USERS, CONFIGNAME_CONFIG}));
     public static final String OPENDISTRO_SECURITY_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = "opendistro_security.cert.intercluster_request_evaluator_class";
     public static final String OPENDISTRO_SECURITY_ACTION_NAME = OPENDISTRO_SECURITY_CONFIG_PREFIX+"action_name";
 
@@ -203,6 +192,7 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_CACHE_TTL_MINUTES = "opendistro_security.cache.ttl_minutes";
     public static final String OPENDISTRO_SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES = "opendistro_security.allow_unsafe_democertificates";
     public static final String OPENDISTRO_SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX = "opendistro_security.allow_default_init_securityindex";
+    public static final String OPENDISTRO_SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST = "opendistro_security.background_init_if_securityindex_not_exist";
 
     public static final String OPENDISTRO_SECURITY_ROLES_MAPPING_RESOLUTION = "opendistro_security.roles_mapping_resolution";
 
@@ -222,15 +212,14 @@ public class ConfigConstants {
 
     public static final String OPENDISTRO_SECURITY_SSL_ONLY = "opendistro_security.ssl_only";
     
+    public static final String OPENDISTRO_SECURITY_DISABLE_ENVVAR_REPLACEMENT = "opendistro_security.disable_envvar_replacement";
+    
     public enum RolesMappingResolution {
         MAPPING_ONLY,
         BACKENDROLES_ONLY,
         BOTH
     }
 
-
-    //public static final String OPENDISTRO_SECURITY_TRIBE_CLUSTERNAME = "opendistro_security.tribe.clustername";
-    //public static final String OPENDISTRO_SECURITY_DISABLE_TYPE_SECURITY = "opendistro_security.disable_type_security";
 
     // REST API
     public static final String OPENDISTRO_SECURITY_RESTAPI_ROLES_ENABLED = "opendistro_security.restapi.roles_enabled";
@@ -245,4 +234,6 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_UNSUPPORTED_RESTORE_SECURITYINDEX_ENABLED = "opendistro_security.unsupported.restore.securityindex.enabled";
     public static final String OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_USER_ENABLED = "opendistro_security.unsupported.inject_user.enabled";
     public static final String OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_ADMIN_USER_ENABLED = "opendistro_security.unsupported.inject_user.admin.enabled";
+    public static final String OPENDISTRO_SECURITY_UNSUPPORTED_ALLOW_NOW_IN_DLS = "opendistro_security.unsupported.allow_now_in_dls";
+    public static final String OPENDISTRO_SECURITY_UNSUPPORTED_RESTAPI_ALLOW_CONFIG_MODIFICATION = "opendistro_security.unsupported.restapi.allow_config_modification";
 }

@@ -130,7 +130,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			System.out.println("------- 9 ---------");
 
 			try {
-				tc.index(new IndexRequest(".opendistro_security").type("security").id("config").source("config", FileHelper.readYamlContent("config.yml"))).actionGet();
+				tc.index(new IndexRequest(".opendistro_security").type(getType()).id("config").source("config", FileHelper.readYamlContent("config.yml"))).actionGet();
 				Assert.fail();
 			} catch (Exception e) {
 				System.out.println(e.getMessage());
@@ -488,7 +488,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			System.out.println("------- 9 ---------");
 
 			try {
-				tc.index(new IndexRequest(".opendistro_security").type("security").id("config").source("config", FileHelper.readYamlContent("config.yml"))).actionGet();
+				tc.index(new IndexRequest(".opendistro_security").type(getType()).id("config").source("config", FileHelper.readYamlContent("config.yml"))).actionGet();
 				Assert.fail();
 			} catch (Exception e) {
 				System.out.println(e.getMessage());

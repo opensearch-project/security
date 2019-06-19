@@ -1,41 +1,71 @@
-#opendistro_security_public, opendistro_security_role_host1, opendistro_security_role_klingons1, opendistro_security_role_klingons2, opendistro_security_role_starfleet, opendistro_security_role_starfleet_library, opendistro_security_user1
-
-opendistro_security_role_klingons1:
-  cluster:
-    - indices:data/read/msearch
-  indices:
-    klingonempire:
-      ships:  
-        - READ
-
-opendistro_security_role_klingons2:
-  indices:
-    klingonempire:
-      praxis:  
-        - READ
-
-opendistro_security_role_starfleet:
-  indices:
-    sf:
-       ships:  
-         - READ
-       public:  
-         - 'indices:*'
-       students:  
-         - READ
-       alumni:  
-         - READ
-       'admin*':  
-         - READ
-    'pub*':
-       '*':  
-         - READ  
-  cluster:
-    - 'cluster:monitor*'
-    - indices:data/read/scroll
-
-opendistro_security_user1:
-  indices:
-    'alias1':
-      '*':
-        - READ
+---
+_meta:
+  type: "roles"
+  config_version: 2
+user1:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions: []
+  index_permissions:
+  - index_patterns:
+    - "alias1"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "OPENDISTRO_SECURITY_READ"
+  tenant_permissions: []
+role_klingons1:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions:
+  - "indices:data/read/msearch"
+  index_permissions:
+  - index_patterns:
+    - "klingonempire"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "OPENDISTRO_SECURITY_READ"
+  tenant_permissions: []
+role_klingons2:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions: []
+  index_permissions:
+  - index_patterns:
+    - "klingonempire"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "OPENDISTRO_SECURITY_READ"
+  tenant_permissions: []
+role_starfleet:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions:
+  - "cluster:monitor*"
+  - "indices:data/read/scroll"
+  index_permissions:
+  - index_patterns:
+    - "sf"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "OPENDISTRO_SECURITY_READ"
+    - "indices:*"
+  - index_patterns:
+    - "pub*"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "OPENDISTRO_SECURITY_READ"
+  tenant_permissions: []

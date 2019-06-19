@@ -1,0 +1,201 @@
+---
+_meta:
+  type: "actiongroups"
+  config_version: 2
+kibana_all_write:
+  reserved: true
+  hidden: false
+  static: true
+  allowed_actions:
+  - "kibana:saved_objects/*/write"
+  type: "kibana"
+  description: "Allow writing in all kibana apps"
+kibana_all_read:
+  reserved: true
+  hidden: false
+  static: true
+  allowed_actions:
+  - "kibana:saved_objects/*/read"
+  type: "kibana"
+  description: "Allow reading in all kibana apps"
+cluster_all:
+  reserved: true
+  hidden: false
+  static: true
+  allowed_actions:
+  - "cluster:*"
+  type: "cluster"
+  description: "Allow everything on cluster level"
+crud:
+  reserved: true
+  hidden: false
+  static: true
+  allowed_actions:
+  - "read"
+  - "write"
+  type: "index"
+  description: "Allow all read/write operations on data"
+search:
+  reserved: true
+  hidden: false
+  static: true
+  allowed_actions:
+  - "indices:data/read/search*"
+  - "indices:data/read/msearch*"
+  - "suggest"
+  type: "index"
+  description: "Allow searching"
+data_access:
+  reserved: true
+  hidden: false
+  static: true
+  allowed_actions:
+  - "indices:data/*"
+  - "crud"
+  type: "index"
+  description: "Allow all read/write operations on data"
+create_index:
+  reserved: true
+  hidden: false
+  static: true
+  allowed_actions:
+  - "indices:admin/create"
+  - "indices:admin/mapping/put"
+  type: "index"
+  description: "Allow creating new indices"
+write:
+  reserved: true
+  hidden: false
+  static: true
+  allowed_actions:
+  - "indices:data/write*"
+  - "indices:admin/mapping/put"
+  type: "index"
+  description: "Allow writing data"
+manage_aliases:
+  reserved: true
+  hidden: false
+  static: true
+  allowed_actions:
+  - "indices:admin/aliases*"
+  type: "index"
+  description: "Allow managing index aliases"
+read:
+  reserved: true
+  hidden: false
+  static: true
+  allowed_actions:
+  - "indices:data/read*"
+  - "indices:admin/mappings/fields/get*"
+  type: "index"
+  description: "Allow all read operations"
+indices_all:
+  reserved: true
+  hidden: false
+  static: true
+  allowed_actions:
+  - "indices:*"
+  type: "index"
+  description: "Allow readonly everything with indices and data"
+delete:
+  reserved: true
+  hidden: false
+  static: true
+  allowed_actions:
+  - "indices:data/write/delete*"
+  type: "index"
+  description: "Allow deleting documents"
+cluster_composite_ops:
+  reserved: true
+  hidden: false
+  static: true
+  allowed_actions:
+  - "indices:data/write/bulk"
+  - "indices:admin/aliases*"
+  - "indices:data/write/reindex"
+  - "cluster_composite_ops_ro"
+  type: "cluster"
+  description: "Allow read/write bulk and m* operations"
+cluster_composite_ops_ro:
+  reserved: true
+  hidden: false
+  static: true
+  allowed_actions:
+  - "indices:data/read/mget"
+  - "indices:data/read/msearch"
+  - "indices:data/read/mtv"
+  - "indices:admin/aliases/exists*"
+  - "indices:admin/aliases/get*"
+  - "indices:data/read/scroll"
+  type: "cluster"
+  description: "Allow readonly bulk and m* operations"
+get:
+  reserved: true
+  hidden: false
+  static: true
+  allowed_actions:
+  - "indices:data/read/get*"
+  - "indices:data/read/mget*"
+  type: "index"
+  description: "Allow get"
+manage:
+  reserved: true
+  hidden: false
+  static: true
+  allowed_actions:
+  - "indices:monitor/*"
+  - "indices:admin/*"
+  type: "index"
+  description: "Allow indices management"
+cluster_monitor:
+  reserved: true
+  hidden: false
+  static: true
+  allowed_actions:
+  - "cluster:monitor/*"
+  type: "cluster"
+  description: "Allow monitoring the cluster"
+manage_snapshots:
+  reserved: true
+  hidden: false
+  static: true
+  allowed_actions:
+  - "cluster:admin/snapshot/*"
+  - "cluster:admin/repository/*"
+  type: "cluster"
+  description: "Allow snapshots"
+index:
+  reserved: true
+  hidden: false
+  static: true
+  allowed_actions:
+  - "indices:data/write/index*"
+  - "indices:data/write/update*"
+  - "indices:admin/mapping/put"
+  - "indices:data/write/bulk*"
+  type: "index"
+  description: "Allow indexing"
+unlimited:
+  reserved: true
+  hidden: false
+  static: true
+  allowed_actions:
+  - "*"
+  type: "all"
+  description: "Allow all"
+indices_monitor:
+  reserved: true
+  hidden: false
+  static: true
+  allowed_actions:
+  - "indices:monitor/*"
+  type: "index"
+  description: "Allow monitoring indices"
+suggest:
+  reserved: true
+  hidden: false
+  static: true
+  allowed_actions:
+  - "indices:data/read/suggest*"
+  type: "index"
+  description: "Allow suggestions"

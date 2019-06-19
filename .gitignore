@@ -1,4 +1,3 @@
-netty*/
 smoketests/
 target/
 test-output/
@@ -36,3 +35,4 @@ test.sh
 .vagrant/
 .idea/
 *.iml
+IML

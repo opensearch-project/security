@@ -1,29 +1,54 @@
-opendistro_security:
+---
+_meta:
+  type: "config"
+  config_version: 2
+config:
   dynamic:
+    filtered_alias_mode: "warn"
+    disable_rest_auth: false
+    disable_intertransport_auth: false
+    respect_request_indices_options: false
+    license: null
+    kibana:
+      multitenancy_enabled: true
+      server_username: "kibanaserver"
+      index: ".kibana"
     http:
+      anonymous_auth_enabled: false
       xff:
         enabled: true
-        internalProxies: '.*'
-        #remoteIpHeader: "x-forwarded-for"
-        #proxiesHeader: "x-forwarded-by"
-        #trustedProxies: "proxy1|proxy2"
+        internalProxies: ".*"
+        remoteIpHeader: "X-Forwarded-For"
     authc:
       authentication_domain_proxy:
-        enabled: true
+        http_enabled: true
+        transport_enabled: true
         order: 0
-        challenge: false
         http_authenticator:
-          type: proxy
+          challenge: false
+          type: "proxy"
           config:
             user_header: "user"
             roles_header: "roles"
             roles_separator: ";"
         authentication_backend:
-          type: noop
+          type: "noop"
+          config: {}
+        description: "Migrated from v6"
       authentication_domain_basic_internal:
-        enabled: true
+        http_enabled: true
+        transport_enabled: true
         order: 1
         http_authenticator:
-          type: basic
+          challenge: true
+          type: "basic"
+          config: {}
         authentication_backend:
-          type: intern
+          type: "intern"
+          config: {}
+        description: "Migrated from v6"
+    authz: {}
+    do_not_fail_on_forbidden: false
+    multi_rolespan_enabled: false
+    hosts_resolver_mode: "ip-only"
+    transport_userrname_attribute: null

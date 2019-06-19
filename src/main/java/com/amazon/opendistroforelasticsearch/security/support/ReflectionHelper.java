@@ -59,7 +59,7 @@ import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfi
 import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceIndexingOperationListener;
 import com.amazon.opendistroforelasticsearch.security.configuration.AdminDNs;
 import com.amazon.opendistroforelasticsearch.security.configuration.DlsFlsRequestValve;
-import com.amazon.opendistroforelasticsearch.security.configuration.IndexBaseConfigurationRepository;
+import com.amazon.opendistroforelasticsearch.security.configuration.ConfigurationRepository;
 import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvaluator;
 import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesInterceptor;
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.DefaultPrincipalExtractor;
@@ -105,7 +105,7 @@ public class ReflectionHelper {
 
     @SuppressWarnings("unchecked")
     public static Collection<RestHandler> instantiateMngtRestApiHandler(final Settings settings, final Path configPath, final RestController restController,
-            final Client localClient, final AdminDNs adminDns, final IndexBaseConfigurationRepository cr, final ClusterService cs, final PrincipalExtractor principalExtractor,
+            final Client localClient, final AdminDNs adminDns, final ConfigurationRepository cr, final ClusterService cs, final PrincipalExtractor principalExtractor,
             final PrivilegesEvaluator evaluator, final ThreadPool threadPool, final AuditLog auditlog) {
 
         if (advancedModulesDisabled()) {
@@ -115,7 +115,7 @@ public class ReflectionHelper {
         try {
             final Class<?> clazz = Class.forName("com.amazon.opendistroforelasticsearch.security.dlic.rest.api.OpenDistroSecurityRestApiActions");
             final Collection<RestHandler> ret = (Collection<RestHandler>) clazz
-                    .getDeclaredMethod("getHandler", Settings.class, Path.class, RestController.class, Client.class, AdminDNs.class, IndexBaseConfigurationRepository.class,
+                    .getDeclaredMethod("getHandler", Settings.class, Path.class, RestController.class, Client.class, AdminDNs.class, ConfigurationRepository.class,
                             ClusterService.class, PrincipalExtractor.class, PrivilegesEvaluator.class, ThreadPool.class, AuditLog.class)
                     .invoke(null, settings, configPath, restController, localClient, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditlog);
             addLoadedModule(clazz);
@@ -250,7 +250,7 @@ public class ReflectionHelper {
     @SuppressWarnings("unchecked")
     public static <T> T instantiateAAA(final String clazz, final Settings settings, final Path configPath, final boolean checkEnterprise) {
 
-        if (checkEnterprise && advancedModulesDisabled()) {
+        if (advancedModulesDisabled()) {
             throw new ElasticsearchException("Can not load '{}' because advanced modules are disabled", clazz);
         }
 

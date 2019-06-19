@@ -1,0 +1,171 @@
+---
+_meta:
+  type: "roles"
+  config_version: 2
+
+all_access:
+  reserved: true
+  hidden: false
+  static: true
+  description: "Allow full access to all indices and all cluster APIs"
+  cluster_permissions:
+    - "*"
+  index_permissions:
+    - index_patterns:
+        - "*"
+      allowed_actions:
+        - "*"
+  tenant_permissions:
+    - tenant_patterns:
+        - "*"
+      allowed_actions:
+        - "kibana_all_write"
+
+kibana_user:
+  reserved: true
+  hidden: false
+  static: true
+  description: "Provide the minimum permissions for a kibana user"
+  cluster_permissions:
+    - "indices_monitor"
+    - "cluster_composite_ops"
+  index_permissions:
+    - index_patterns:
+        - ".kibana"
+        - ".kibana-6"
+        - ".kibana_*"
+      allowed_actions:
+        - "read"
+        - "delete"
+        - "manage"
+        - "index"
+    - index_patterns:
+        - ".tasks"
+        - ".management-beats"
+      allowed_actions:
+        - "indices_all"
+
+own_index:
+  reserved: true
+  hidden: false
+  static: true
+  description: "Allow all for indices named like the current user"
+  cluster_permissions:
+  - "cluster_composite_ops"
+  index_permissions:
+  - index_patterns:
+    - "${user_name}"
+    allowed_actions:
+    - "indices_all"
+
+  
+manage_snapshots:
+  reserved: true
+  hidden: false
+  static: true
+  description: "Provide the minimum permissions for managing snapshots"
+  cluster_permissions:
+  - "manage_snapshots"
+  index_permissions:
+  - index_patterns:
+    - "*"
+    allowed_actions:
+    - "indices:data/write/index"
+    - "indices:admin/create"
+  
+kibana_server:
+  reserved: true
+  hidden: false
+  static: true
+  description: "Provide the minimum permissions for the Kibana server"
+  cluster_permissions:
+  - "cluster_monitor"
+  - "cluster_composite_ops"
+  - "cluster:admin/xpack/monitoring*"
+  - "indices:admin/template*"
+  - "indices:data/read/scroll*"
+  index_permissions:
+  - index_patterns:
+    - ".kibana"
+    allowed_actions:
+    - "indices_all"
+  - index_patterns:
+    - ".kibana-6"
+    allowed_actions:
+    - "indices_all"
+  - index_patterns:
+    - ".kibana_*"
+    allowed_actions:
+    - "indices_all"
+  - index_patterns:
+    - ".reporting*"
+    allowed_actions:
+    - "indices_all"
+  - index_patterns:
+    - ".monitoring*"
+    allowed_actions:
+    - "indices_all"
+  - index_patterns:
+    - ".tasks"
+    allowed_actions:
+    - "indices_all"
+  - index_patterns:
+    - ".management-beats*"
+    allowed_actions:
+    - "indices_all"
+  - index_patterns:
+    - "*"
+    allowed_actions:
+    - "indices:admin/aliases*"
+
+logstash:
+  reserved: true
+  hidden: false
+  static: true
+  description: "Provide the minimum permissions for logstash and beats"
+  cluster_permissions:
+  - "cluster_monitor"
+  - "cluster_composite_ops"
+  - "indices:admin/template/get"
+  - "indices:admin/template/put"
+  - "cluster:admin/ingest/pipeline/put"
+  - "cluster:admin/ingest/pipeline/get"
+  index_permissions:
+  - index_patterns:
+    - "logstash-*"
+    allowed_actions:
+    - "crud"
+    - "create_index"
+  - index_patterns:
+    - "*beat*"
+    allowed_actions:
+    - "crud"
+    - "create_index"
+  
+readall_and_monitor:
+  reserved: true
+  hidden: false
+  static: true
+  description: "Provide the minimum permissions for to readall indices and monitor the cluster"
+  cluster_permissions:
+  - "cluster_monitor"
+  - "cluster_composite_ops_ro"
+  index_permissions:
+  - index_patterns:
+    - "*"
+    allowed_actions:
+    - "read"
+  
+readall:
+  reserved: true
+  hidden: false
+  static: true
+  description: "Provide the minimum permissions for to readall indices"
+  cluster_permissions:
+  - "cluster_composite_ops_ro"
+  index_permissions:
+  - index_patterns:
+    - "*"
+    allowed_actions:
+    - "read"
+  

@@ -62,7 +62,6 @@ import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
-import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
 import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsRequest;
@@ -89,6 +88,7 @@ import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
@@ -103,6 +103,8 @@ import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.plugins.PluginInfo;
 import org.elasticsearch.transport.Netty4Plugin;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
 import com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin;
 import com.amazon.opendistroforelasticsearch.security.action.configupdate.ConfigUpdateAction;
 import com.amazon.opendistroforelasticsearch.security.action.configupdate.ConfigUpdateNodeResponse;
@@ -111,14 +113,31 @@ import com.amazon.opendistroforelasticsearch.security.action.configupdate.Config
 import com.amazon.opendistroforelasticsearch.security.action.whoami.WhoAmIAction;
 import com.amazon.opendistroforelasticsearch.security.action.whoami.WhoAmIRequest;
 import com.amazon.opendistroforelasticsearch.security.action.whoami.WhoAmIResponse;
+import com.amazon.opendistroforelasticsearch.security.securityconf.Migration;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v6.RoleMappingsV6;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.ActionGroupsV7;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.ConfigV7;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.InternalUserV7;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.RoleMappingsV7;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.RoleV7;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.TenantV7;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.ExceptionUtils;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
+import com.amazon.opendistroforelasticsearch.security.support.ConfigHelper;
 import com.amazon.opendistroforelasticsearch.security.support.OpenDistroSecurityDeprecationHandler;
+import com.amazon.opendistroforelasticsearch.security.support.SecurityJsonNode;
+import com.amazon.opendistroforelasticsearch.security.support.OpenDistroSecurityUtils;
+import com.google.common.io.CharStreams;
 import com.google.common.io.Files;
 
+@SuppressWarnings("deprecation")
 public class OpenDistroSecurityAdmin {
-    
+
+    private static final boolean CREATE_AS_LEGACY = Boolean.parseBoolean(System.getenv("OPENDISTRO_SECURITY_ADMIN_CREATE_AS_LEGACY"));
+    private static final boolean ALLOW_MIXED = Boolean.parseBoolean(System.getenv("OPENDISTRO_SECURITY_ADMIN_ALLOW_MIXED_CLUSTER"));
     private static final String OPENDISTRO_SECURITY_TS_PASS = "OPENDISTRO_SECURITY_TS_PASS";
     private static final String OPENDISTRO_SECURITY_KS_PASS = "OPENDISTRO_SECURITY_KS_PASS";
     private static final String OPENDISTRO_SECURITY_KEYPASS = "OPENDISTRO_SECURITY_KEYPASS";
@@ -130,7 +149,8 @@ public class OpenDistroSecurityAdmin {
     
     public static void main(final String[] args) {
         try {
-            main0(args);
+            final int returnCode = execute(args);
+            System.exit(returnCode);
         } catch (NoNodeAvailableException e) {
             System.out.println("ERR: Cannot connect to Elasticsearch. Please refer to elasticsearch logfile for more information");
             System.out.println("Trace:");
@@ -139,7 +159,7 @@ public class OpenDistroSecurityAdmin {
             System.exit(-1);
         } 
         catch (IndexNotFoundException e) {
-            System.out.println("ERR: No Open Distro Security configuartion index found. Please execute securityadmin with different command line parameters");
+            System.out.println("ERR: No Open Distro Security configuration index found. Please execute securityadmin with different command line parameters");
             System.out.println("When you run it for the first time do not specify -us, -era, -dra or -rl");
             System.out.println();
             System.exit(-1);
@@ -163,9 +183,9 @@ public class OpenDistroSecurityAdmin {
         }
     }
 
-    private static void main0(final String[] args) throws Exception {
+    public static int execute(final String[] args) throws Exception {
         
-        System.out.println("Open Distro Security Admin v6");
+        System.out.println("Open Distro Security Admin v7");
         System.setProperty("security.nowarn.client","true");
         System.setProperty("jdk.tls.rejectClientInitiatedRenegotiation","true");
 
@@ -219,6 +239,16 @@ public class OpenDistroSecurityAdmin {
 
         options.addOption(Option.builder("er").longOpt("explicit-replicas").hasArg().argName("number of replicas").desc("Set explicit number of replicas or autoexpand expression for .opendistro_security index").build());
 
+        options.addOption(Option.builder("backup").hasArg().argName("folder").desc("Backup configuration to folder").build());
+
+        options.addOption(Option.builder("migrate").hasArg().argName("folder").desc("Migrate and use folder to store migrated files").build());
+        
+        options.addOption(Option.builder("rev").longOpt("resolve-env-vars").desc("Resolve/Substitute env vars in config with their value before uploading").build());
+
+        options.addOption(Option.builder("vc").numberOfArgs(1).optionalArg(true).argName("version").longOpt("validate-configs").desc("Validate config for version 6 or 7 (default 7)").build());
+
+        options.addOption(Option.builder("mo").longOpt("migrate-offline").hasArg().argName("folder").desc("Migrate and use folder to store migrated files").build());
+
         
         //when adding new options also adjust validate(CommandLine line)
         
@@ -263,6 +293,11 @@ public class OpenDistroSecurityAdmin {
         boolean whoami;
         final boolean promptForPassword;
         String explicitReplicas = null;
+        String backup = null;
+        String migrate = null;
+        final boolean resolveEnvVars;
+        Integer validateConfig = null;
+        String migrateOffline = null;
         
         CommandLineParser parser = new DefaultParser();
         try {
@@ -347,12 +382,39 @@ public class OpenDistroSecurityAdmin {
             
             explicitReplicas = line.getOptionValue("er", explicitReplicas);
             
+            backup = line.getOptionValue("backup");
+            
+            migrate = line.getOptionValue("migrate");
+            
+            resolveEnvVars = line.hasOption("rev");
+            
+            validateConfig = !line.hasOption("vc")?null:Integer.parseInt(line.getOptionValue("vc", "7"));
+            
+            if(validateConfig != null && validateConfig.intValue() != 6 && validateConfig.intValue() != 7) {
+                throw new ParseException("version must be 6 or 7");
+            }
+            
+            migrateOffline = line.getOptionValue("mo");
+            
         }
         catch( ParseException exp ) {
             System.out.println("ERR: Parsing failed.  Reason: " + exp.getMessage());
             formatter.printHelp("securityadmin.sh", options, true);
-            return;
+            return -1;
         }
+        
+        
+        if(validateConfig != null) {
+            System.out.println("Validate configuration for Version "+validateConfig.intValue());
+            return validateConfig(cd, file, type, validateConfig.intValue());
+        }
+        
+        if(migrateOffline != null) {
+            System.out.println("Migrate "+migrateOffline+" offline");
+            final boolean retVal =  Migrater.migrateDirectory(new File(migrateOffline), true);
+            return retVal?0:-1;
+        }
+        
         
         if(port < 9300) {
             System.out.println("WARNING: Seems you want connect to the Elasticsearch HTTP port."+System.lineSeparator()
@@ -369,7 +431,7 @@ public class OpenDistroSecurityAdmin {
           } catch (java.net.ConnectException ex) {
             System.out.println();
             System.out.println("ERR: Seems there is no Elasticsearch running on "+hostname+":"+port+" - Will exit");
-            System.exit(-1);
+            return (-1);
           } finally {
               try {
                 socket.close();
@@ -453,11 +515,6 @@ public class OpenDistroSecurityAdmin {
         TransportClient tc = new TransportClientImpl(settings, asCollection(Netty4Plugin.class, OpenDistroSecurityPlugin.class))
                 .addTransportAddress(new TransportAddress(new InetSocketAddress(hostname, port)))) {
 
-            try {
-                issueWarnings(tc);
-            } catch (Exception e1) {
-                System.out.println("Unable to check whether cluster is sane: "+e1.getMessage());
-            }
             
             final WhoAmIResponse whoAmIRes = tc.execute(WhoAmIAction.INSTANCE, new WhoAmIRequest()).actionGet();
             System.out.println("Connected as "+whoAmIRes.getDn());
@@ -474,39 +531,55 @@ public class OpenDistroSecurityAdmin {
                 } else {
                 	System.out.println("Seems you use a node certificate. This is not permitted, you have to use a client certificate and register it as admin_dn in elasticsearch.yml");
                 }
-                System.exit(-1);
+                return (-1);
             } else if(whoAmIRes.isNodeCertificateRequest()) {
                 System.out.println("ERR: Seems you use a node certificate which is also an admin certificate");
                 System.out.println("     That may have worked with older Open Distro Security versions but it indicates");
                 System.out.println("     a configuration error and is therefore forbidden now.");
-                if(failFast) {
-                    System.exit(-1);
+                if (failFast) {
+                    return (-1);
                 }
 
             }
 
+            try {
+                if(issueWarnings(tc) != 0) {
+                    return (-1);
+                }
+            } catch (Exception e1) {
+                System.out.println("Unable to check whether cluster is sane");
+                throw e1;
+            }
+
             if(updateSettings != null) { 
-                Settings indexSettings = Settings.builder().put("index.number_of_replicas", updateSettings).build();                
-                tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();                
+                Settings indexSettings = Settings.builder().put("index.number_of_replicas", updateSettings).build();
+                ConfigUpdateResponse res = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
+                if(res.hasFailures()) {
+                    System.out.println("ERR: Unabe to reload config due to "+res.failures());
+                }
                 final AcknowledgedResponse response = tc.admin().indices().updateSettings((new UpdateSettingsRequest(index).settings(indexSettings))).actionGet();
                 System.out.println("Reload config on all nodes");
                 System.out.println("Update number of replicas to "+(updateSettings) +" with result: "+response.isAcknowledged());
-                System.exit(response.isAcknowledged()?0:-1);
+                return ((response.isAcknowledged() && !res.hasFailures())?0:-1);
             }
             
             if(reload) { 
-                tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();                
+                ConfigUpdateResponse res = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(getTypes(false))).actionGet();                
+                if(res.hasFailures()) {
+                    System.out.println("ERR: Unabe to reload config due to "+res.failures());
+                    return -1;
+                }
                 System.out.println("Reload config on all nodes");
-                System.exit(0);
+                return 0;
             }
             
-            if(si) { 
-                System.exit(0);
+            if(si) {
+                return (0);
             }
             
             if(whoami) { 
                 System.out.println(whoAmIRes.toString());
-                System.exit(0);
+                return (0);
             }
             
             
@@ -514,11 +587,14 @@ public class OpenDistroSecurityAdmin {
                 Settings indexSettings = Settings.builder()
                         .put("index.auto_expand_replicas", replicaAutoExpand?"0-all":"false")
                         .build();                
-                tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();                
+                ConfigUpdateResponse res = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(getTypes(false))).actionGet();                
+                if(res.hasFailures()) {
+                    System.out.println("ERR: Unabe to reload config due to "+res.failures());
+                }
                 final AcknowledgedResponse response = tc.admin().indices().updateSettings((new UpdateSettingsRequest(index).settings(indexSettings))).actionGet();
                 System.out.println("Reload config on all nodes");
                 System.out.println("Auto-expand replicas "+(replicaAutoExpand?"enabled":"disabled"));
-                System.exit(response.isAcknowledged()?0:-1);
+                return ((response.isAcknowledged() && !res.hasFailures())?0:-1);
             }   
             
             if(enableShardAllocation) { 
@@ -535,7 +611,7 @@ public class OpenDistroSecurityAdmin {
                     System.out.println("ERR: Unable to enable shard allocation");
                 }
                 
-                System.exit(successful?0:-1);
+                return (successful?0:-1);
             }   
             
             if(failFast) {
@@ -577,7 +653,7 @@ public class OpenDistroSecurityAdmin {
                         System.out.println("   * If this is not working, try running securityadmin.sh with --diagnose and see diagnose trace log file)"); 
                         System.out.println("   * Add --accept-red-cluster to allow securityadmin to operate on a red cluster.");
 
-                        System.exit(-1);
+                        return (-1);
                     }
                     
                     Thread.sleep(3000);
@@ -593,7 +669,7 @@ public class OpenDistroSecurityAdmin {
                 System.out.println("   * Make also sure that your keystore or PEM certificate is a client certificate (not a node certificate) and configured properly in elasticsearch.yml"); 
                 System.out.println("   * If this is not working, try running securityadmin.sh with --diagnose and see diagnose trace log file)"); 
                 System.out.println("   * Add --accept-red-cluster to allow securityadmin to operate on a red cluster.");
-                System.exit(-1);
+                return (-1);
             }
             
             System.out.println("Clustername: "+chr.getClusterName());
@@ -612,45 +688,14 @@ public class OpenDistroSecurityAdmin {
             final NodesInfoResponse nodesInfo = tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet();
 
             if(deleteConfigIndex) {
-                
-                boolean success = true;
-                
-                if(indexExists) {
-                    success = tc.admin().indices().delete(new DeleteIndexRequest(index)).actionGet().isAcknowledged();
-                    System.out.print("Deleted index '"+index+"'");
-                } else {
-                    System.out.print("No index '"+index+"' exists, so no need to delete it");
-                }
-                
-                System.exit(success?0:-1);
+                return deleteConfigIndex(tc, index, indexExists);
             }
                
             if (!indexExists) {
                 System.out.print(index +" index does not exists, attempt to create it ... ");
-                
-                Map<String, Object> indexSettings = new HashMap<>();
-                indexSettings.put("index.number_of_shards", 1);
-                
-                if(explicitReplicas != null) {
-                    if(explicitReplicas.contains("-")) {
-                        indexSettings.put("index.auto_expand_replicas", explicitReplicas);
-                    } else {
-                        indexSettings.put("index.number_of_replicas", Integer.parseInt(explicitReplicas));
-                    }
-                } else {
-                    indexSettings.put("index.auto_expand_replicas", "0-all");
-                }
-
-                final boolean indexCreated = tc.admin().indices().create(new CreateIndexRequest(index)
-                .settings(indexSettings))
-                        .actionGet().isAcknowledged();
-
-                if (indexCreated) {
-                    System.out.println("done ("+(explicitReplicas!=null?explicitReplicas:"0-all")+" replicas)");
-                } else {
-                    System.out.println("failed!");
-                    System.out.println("FAIL: Unable to create the "+index+" index. See elasticsearch logs for more details");
-                    System.exit(-1);
+                final int created = createConfigIndex(tc, index, explicitReplicas);
+                if(created != 0) {
+                    return created;
                 }
 
             } else {
@@ -676,18 +721,24 @@ public class OpenDistroSecurityAdmin {
                         System.out.println("Cannot retrieve "+index+" index state state due to "+e.getMessage()+". This is not an error, will keep on trying ...");
                     } else {
                         System.out.println("ERR: Cannot retrieve "+index+" index state state due to "+e.getMessage()+".");
-                        System.exit(-1);
+                        return (-1);
                     }
                 }
             }
-            
-            final boolean legacy = indexExists 
+
+            final boolean createLegacyMode = !indexExists && CREATE_AS_LEGACY;
+
+            if(createLegacyMode) {
+                System.out.println("We forcibly create the new index in legacy mode so that ES 6 config can be uploaded. To move to v7 configs youneed to migrate.");
+            }
+
+            final boolean legacy = createLegacyMode || (indexExists
                     && securityIndex.getMappings() != null
                     && securityIndex.getMappings().get(index) != null
-                    && securityIndex.getMappings().get(index).containsKey("config");
+                    && securityIndex.getMappings().get(index).containsKey("security"));
             
             if(legacy) {
-                System.out.println("Legacy index '"+index+"' detected.");
+                System.out.println("Legacy index '"+index+"' (ES 6) detected (or forced). You should migrate the configuration!");
             }
             
             if(retrieve) {
@@ -698,103 +749,123 @@ public class OpenDistroSecurityAdmin {
                 success = retrieveFile(tc, cd+"roles_mapping_"+date+".yml", index, "rolesmapping", legacy) && success;
                 success = retrieveFile(tc, cd+"internal_users_"+date+".yml", index, "internalusers", legacy) && success;
                 success = retrieveFile(tc, cd+"action_groups_"+date+".yml", index, "actiongroups", legacy) && success;
-                System.exit(success?0:-1);
+
+                if(!legacy) {
+                    success = retrieveFile(tc, cd+"security_tenants_"+date+".yml", index, "tenants", legacy) && success;
+                }
+                return (success?0:-1);
             }
-            
+
+            if(backup != null) {
+                return backup(tc, index, new File(backup), legacy);
+            }
+
+            if(migrate != null) {
+                if(!legacy) {
+                    System.out.println("ERR: Seems cluster is already migrated");
+                    return -1;
+                }
+                return migrate(tc, index, new File(migrate), nodesInfo, resolveEnvVars);
+            }
+
             boolean isCdAbs = new File(cd).isAbsolute();
              
             System.out.println("Populate config from "+(isCdAbs?cd:new File(".", cd).getCanonicalPath()));
             
             if(file != null) {
-                if(type == null) {
-                    System.out.println("ERR: type missing");
-                    System.exit(-1);
+                if(type != null) {
+                    System.out.println("Force type: "+type);
+                } else {
+                    type = readTypeFromFile(new File(file));
+                    if(type == null) {
+                        System.out.println("ERR: Unable to read type from file");
+                        return (-1);
+                    }
                 }
-                
-                if(!Arrays.asList(new String[]{"config", "roles", "rolesmapping", "internalusers","actiongroups" }).contains(type)) {
+
+                if(!CType.lcStringValues().contains(type)) {
                     System.out.println("ERR: Invalid type '"+type+"'");
-                    System.exit(-1);
+                    return (-1);
                 }
-                
-                boolean success = uploadFile(tc, file, index, type, legacy);
+
+                boolean success = uploadFile(tc, file, index, type, legacy, resolveEnvVars);
+
+                if(!success) {
+                    System.out.println("ERR: cannot upload configuration, see errors above");
+                    return -1;
+                }
+
                 ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{type})).actionGet();
                 
                 success = checkConfigUpdateResponse(cur, nodesInfo, 1) && success;
                 
                 System.out.println("Done with "+(success?"success":"failures"));
-                System.exit(success?0:-1);
+                return (success?0:-1);
             }
 
-            boolean success = uploadFile(tc, cd+"config.yml", index, "config", legacy);
-            success = uploadFile(tc, cd+"roles.yml", index, "roles", legacy) && success;
-            success = uploadFile(tc, cd+"roles_mapping.yml", index, "rolesmapping", legacy) && success;
-            success = uploadFile(tc, cd+"internal_users.yml", index, "internalusers", legacy) && success;
-            success = uploadFile(tc, cd+"action_groups.yml", index, "actiongroups", legacy) && success;
-            
-            if(failFast && !success) {
-                System.out.println("ERR: cannot upload configuration, see errors above");
-                System.exit(-1);
-            }
-            
-            ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
-            
-            success = checkConfigUpdateResponse(cur, nodesInfo, 5) && success;
-            
-            System.out.println("Done with "+(success?"success":"failures"));
-            System.exit(success?0:-1);
+            return upload(tc, index, cd, legacy, nodesInfo, resolveEnvVars);
         }
         // TODO audit changes to .opendistro_security index
     }
 
     private static boolean checkConfigUpdateResponse(ConfigUpdateResponse response, NodesInfoResponse nir, int expectedConfigCount) {
-        
-        int expectedNodeCount = 0;
-        
-        for(NodeInfo ni: nir.getNodes()) {
-            Settings nodeSettings = ni.getSettings();
-          
-            //do not count tribe clients
-            if(nodeSettings.get("tribe.name", null) == null) {
-                expectedNodeCount++;
-            }           
+
+        final int expectedNodeCount =  nir.getNodes().size();
+
+        if(response.hasFailures()) {
+            System.out.println("FAIL: "+response.failures().size()+" nodes reported failures. First failure is "+response.failures().get(0));
         }
 
         boolean success = response.getNodes().size() == expectedNodeCount;
         if(!success) {
-            System.out.println("FAIL: Expected "+expectedNodeCount+" nodes to return response, but got only "+response.getNodes().size());
+            System.out.println("FAIL: Expected "+expectedNodeCount+" nodes to return response, but got "+response.getNodes().size());
         }
         
         for(String nodeId: response.getNodesMap().keySet()) {
             ConfigUpdateNodeResponse node = response.getNodesMap().get(nodeId);
             boolean successNode = (node.getUpdatedConfigTypes() != null && node.getUpdatedConfigTypes().length == expectedConfigCount);
-            
             if(!successNode) {
-                System.out.println("FAIL: Expected "+expectedConfigCount+" config types for node "+nodeId+" but got only "+Arrays.toString(node.getUpdatedConfigTypes()) + " due to: "+node.getMessage()==null?"unknown reason":node.getMessage());
+                System.out.println("FAIL: Expected "+expectedConfigCount+" config types for node "+nodeId+" but got "+node.getUpdatedConfigTypes().length+" ("+Arrays.toString(node.getUpdatedConfigTypes()) + ") due to: "+(node.getMessage()==null?"unknown reason":node.getMessage()));
             }
             
             success = success && successNode;
         }
-        
-        return success;
+
+        return success && !response.hasFailures();
     }
     
-    private static boolean uploadFile(final Client tc, final String filepath, final String index, final String _id, final boolean legacy) {
+    private static boolean uploadFile(final Client tc, final String filepath, final String index, final String _id, final boolean legacy, boolean resolveEnvVars) {
         
-        String type = "security";
+        String type = "_doc";
         String id = _id;
                 
         if(legacy) {
-            type = _id;
-            id = "0";
+            type = "security";
+            id = _id;
+
+            try {
+                ConfigHelper.fromYamlFile(filepath, CType.fromString(_id), 1, 0, 0);
+            } catch (Exception e) {
+                System.out.println("ERR: Seems "+filepath+" is not in legacy format: "+e);
+                return false;
+            }
+
+        } else {
+            try {
+                ConfigHelper.fromYamlFile(filepath, CType.fromString(_id), 2, 0, 0);
+            } catch (Exception e) {
+                System.out.println("ERR: Seems "+filepath+" is not in Open Distro Security 7 format: "+e);
+                return false;
+            }
         }
         
         System.out.println("Will update '"+type+"/" + id + "' with " + filepath+" "+(legacy?"(legacy mode)":""));
         
         try (Reader reader = new FileReader(filepath)) {
-
+            final String content = CharStreams.toString(reader);
             final String res = tc
                     .index(new IndexRequest(index).type(type).id(id).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                            .source(_id, readXContent(reader, XContentType.YAML))).actionGet().getId();
+                            .source(_id, readXContent(resolveEnvVars?OpenDistroSecurityUtils.replaceEnvVars(content, Settings.EMPTY):content, XContentType.YAML))).actionGet().getId();
 
             if (id.equals(res)) {
                 System.out.println("   SUCC: Configuration for '" + _id + "' created or updated");
@@ -812,12 +883,13 @@ public class OpenDistroSecurityAdmin {
     
     private static boolean retrieveFile(final Client tc, final String filepath, final String index, final String _id, final boolean legacy) {
         
-        String type = "security";
+        String type = "_doc";
         String id = _id;
                 
         if(legacy) {
-            type = _id;
-            id = "0";
+            type = "security";
+            id = _id;
+            
         }
         
         System.out.println("Will retrieve '"+type+"/" +id+"' into "+filepath+" "+(legacy?"(legacy mode)":""));
@@ -832,6 +904,23 @@ public class OpenDistroSecurityAdmin {
                 }
                 
                 String yaml = convertToYaml(_id, response.getSourceAsBytesRef(), true);
+                
+                if(legacy) {
+                    try {
+                        ConfigHelper.fromYamlString(yaml, CType.fromString(_id), 1, 0, 0);
+                    } catch (Exception e) {
+                        System.out.println("ERR: Seems "+_id+" from cluster is not in legacy format: "+e);
+                        return false;
+                    }
+                } else {
+                    try {
+                        ConfigHelper.fromYamlString(yaml, CType.fromString(_id), 2, 0, 0);
+                    } catch (Exception e) {
+                        System.out.println("ERR: Seems "+_id+" from cluster is not in SG 7 format: "+e);
+                        return false;
+                    }
+                }
+                
                 writer.write(yaml);
                 System.out.println("   SUCC: Configuration for '"+_id+"' stored in "+filepath);
                 return true;
@@ -845,11 +934,11 @@ public class OpenDistroSecurityAdmin {
         return false;
     }
 
-    private static BytesReference readXContent(final Reader reader, final XContentType xContentType) throws IOException {
+    private static BytesReference readXContent(final String content, final XContentType xContentType) throws IOException {
         BytesReference retVal;
         XContentParser parser = null;
         try {
-            parser = XContentFactory.xContent(xContentType).createParser(NamedXContentRegistry.EMPTY, OpenDistroSecurityDeprecationHandler.INSTANCE, reader);
+            parser = XContentFactory.xContent(xContentType).createParser(NamedXContentRegistry.EMPTY, OpenDistroSecurityDeprecationHandler.INSTANCE, content);
             parser.nextToken();
             final XContentBuilder builder = XContentFactory.jsonBuilder();
             builder.copyCurrentStructure(parser);
@@ -861,7 +950,6 @@ public class OpenDistroSecurityAdmin {
         }
         
         //validate
-        Settings.builder().loadFromStream("dummy.json", new ByteArrayInputStream(BytesReference.toBytes(retVal)), true).build();
         return retVal;
     }
     
@@ -997,11 +1085,16 @@ public class OpenDistroSecurityAdmin {
             throw new ParseException("Only set one of -cn or -icl");
         }
 
-        if(!line.hasOption("ks") && !line.hasOption("cert") /*&& !line.hasOption("simple-auth")*/) {
+        if(line.hasOption("vc") && !line.hasOption("cd") && !line.hasOption("f")) {
+            throw new ParseException("Specify at least -cd or -f together with vc");
+        }
+
+        if(!line.hasOption("vc") && !line.hasOption("ks") && !line.hasOption("cert") /*&& !line.hasOption("simple-auth")*/) {
             throw new ParseException("Specify at least -ks or -cert");
         }
         
-        if(!line.hasOption("ts") && !line.hasOption("cacert") /*&& !line.hasOption("simple-auth")*/) {
+        if(!line.hasOption("vc")  && !line.hasOption("mo") 
+                && !line.hasOption("ts") && !line.hasOption("cacert")) {
             throw new ParseException("Specify at least -ts or -cacert");
         }
         
@@ -1016,15 +1109,19 @@ public class OpenDistroSecurityAdmin {
         return new String(console.readPassword("[%s]", passwordName+" password:"));
     }
     
-    private static void issueWarnings(Client tc) {
+    private static int issueWarnings(Client tc) {
         NodesInfoResponse nir = tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet();
         Version maxVersion = nir.getNodes().stream().max((n1,n2) -> n1.getVersion().compareTo(n2.getVersion())).get().getVersion();
         Version minVersion = nir.getNodes().stream().min((n1,n2) -> n1.getVersion().compareTo(n2.getVersion())).get().getVersion();
         
         if(!maxVersion.equals(minVersion)) {
-            System.out.println("WARNING: Your cluster consists of different node versions. It is not recommended to run securityadmin against a mixed cluster. This may fail.");
+            System.out.println("ERR: Your cluster consists of different node versions. It is not allowed to run securityadmin against a mixed cluster.");
             System.out.println("         Minimum node version is "+minVersion.toString());
             System.out.println("         Maximum node version is "+maxVersion.toString());
+            if(!ALLOW_MIXED) {
+                return -1;
+            }
+           
         } else {
             System.out.println("Elasticsearch Version: "+minVersion.toString());
         }
@@ -1034,5 +1131,212 @@ public class OpenDistroSecurityAdmin {
             String securityVersion = pluginInfos.stream().filter(p->p.getClassname().equals("com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin")).map(p->p.getVersion()).findFirst().orElse("<unknown>");
             System.out.println("Open Distro Security Version: "+securityVersion);
         }
+        
+        return 0;
+    }
+    
+    private static int deleteConfigIndex(TransportClient tc, String index, boolean indexExists) {
+        boolean success = true;
+        
+        if(indexExists) {
+            success = tc.admin().indices().delete(new DeleteIndexRequest(index)).actionGet().isAcknowledged();
+            System.out.print("Deleted index '"+index+"'");
+        } else {
+            System.out.print("No index '"+index+"' exists, so no need to delete it");
+        }
+        
+        return (success?0:-1);
+    }
+    
+    private static int createConfigIndex(TransportClient tc, String index, String explicitReplicas) {
+        Map<String, Object> indexSettings = new HashMap<>();
+        indexSettings.put("index.number_of_shards", 1);
+        
+        if(explicitReplicas != null) {
+            if(explicitReplicas.contains("-")) {
+                indexSettings.put("index.auto_expand_replicas", explicitReplicas);
+            } else {
+                indexSettings.put("index.number_of_replicas", Integer.parseInt(explicitReplicas));
+            }
+        } else {
+            indexSettings.put("index.auto_expand_replicas", "0-all");
+        }
+
+        final boolean indexCreated = tc.admin().indices().create(new CreateIndexRequest(index)
+        .settings(indexSettings))
+                .actionGet().isAcknowledged();
+
+        if (indexCreated) {
+            System.out.println("done ("+(explicitReplicas!=null?explicitReplicas:"0-all")+" replicas)");
+            return 0;
+        } else {
+            System.out.println("failed!");
+            System.out.println("FAIL: Unable to create the "+index+" index. See elasticsearch logs for more details");
+            return (-1);
+        }
+    }
+    
+    private static int backup(TransportClient tc, String index, File backupDir, boolean legacy) {
+        backupDir.mkdirs();
+        
+        boolean success = retrieveFile(tc, backupDir.getAbsolutePath()+"/config.yml", index, "config", legacy);
+        success = retrieveFile(tc, backupDir.getAbsolutePath()+"/roles.yml", index, "roles", legacy) && success;
+        
+        success = retrieveFile(tc, backupDir.getAbsolutePath()+"/roles_mapping.yml", index, "rolesmapping", legacy) && success;
+        success = retrieveFile(tc, backupDir.getAbsolutePath()+"/internal_users.yml", index, "internalusers", legacy) && success;
+        success = retrieveFile(tc, backupDir.getAbsolutePath()+"/action_groups.yml", index, "actiongroups", legacy) && success;
+        
+        if(!legacy) {
+            success = retrieveFile(tc, backupDir.getAbsolutePath()+"/tenants.yml", index, "tenants", legacy) && success;
+        }
+        
+        return success?0:-1;
+    }
+    
+    private static int upload(TransportClient tc, String index, String cd, boolean legacy, NodesInfoResponse nodesInfo, boolean resolveEnvVars) {
+        boolean success = uploadFile(tc, cd+"config.yml", index, "config", legacy, resolveEnvVars);
+        success = uploadFile(tc, cd+"roles.yml", index, "roles", legacy, resolveEnvVars) && success;
+        success = uploadFile(tc, cd+"roles_mapping.yml", index, "rolesmapping", legacy, resolveEnvVars) && success;
+        
+        success = uploadFile(tc, cd+"internal_users.yml", index, "internalusers", legacy, resolveEnvVars) && success;
+        success = uploadFile(tc, cd+"action_groups.yml", index, "actiongroups", legacy, resolveEnvVars) && success;
+
+        
+        if(!legacy) {
+            success = uploadFile(tc, cd+"tenants.yml", index, "tenants", legacy, resolveEnvVars) && success;
+        }
+        
+        if(!success) {
+            System.out.println("ERR: cannot upload configuration, see errors above");
+            return -1;
+        }
+        
+        ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(getTypes(legacy))).actionGet();
+
+        success = checkConfigUpdateResponse(cur, nodesInfo, getTypes(legacy).length) && success;
+
+        System.out.println("Done with "+(success?"success":"failures"));
+        return (success?0:-1);
+    }
+    
+    private static int migrate(TransportClient tc, String index, File backupDir, NodesInfoResponse nodesInfo, boolean resolveEnvVars) {
+        
+        System.out.println("== Migration started ==");
+        System.out.println("=======================");
+        
+        System.out.println("-> Backup current configuration to "+backupDir.getAbsolutePath());
+        
+        if(backup(tc, index, backupDir, true) != 0) {
+            return -1;
+        }
+
+        System.out.println("  done");
+        
+        File v7Dir = new File(backupDir,"v7");
+        v7Dir.mkdirs();
+        
+        try {
+
+            System.out.println("-> Migrate configuration to new format and store it here: "+v7Dir.getAbsolutePath());
+            SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsV7 = Migration.migrateActionGroups(SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir,"action_groups.yml")), CType.ACTIONGROUPS, 1, 0, 0));
+            SecurityDynamicConfiguration<ConfigV7> configV7 = Migration.migrateConfig(SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir,"config.yml")), CType.CONFIG, 1, 0, 0));
+            SecurityDynamicConfiguration<InternalUserV7> internalUsersV7 = Migration.migrateInternalUsers(SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir,"internal_users.yml")), CType.INTERNALUSERS, 1, 0, 0));
+            SecurityDynamicConfiguration<RoleMappingsV6> rolesmappingV6 = SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir,"roles_mapping.yml")), CType.ROLESMAPPING, 1, 0, 0);
+            Tuple<SecurityDynamicConfiguration<RoleV7>, SecurityDynamicConfiguration<TenantV7>> rolesTenantsV7 = Migration.migrateRoles(SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir,"roles.yml")), CType.ROLES, 1, 0, 0), rolesmappingV6);
+            SecurityDynamicConfiguration<RoleMappingsV7> rolesmappingV7 = Migration.migrateRoleMappings(rolesmappingV6);
+            
+            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/action_groups.yml"), actionGroupsV7);
+            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/config.yml"), configV7);
+            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/internal_users.yml"), internalUsersV7);
+            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/roles.yml"), rolesTenantsV7.v1());
+            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/tenants.yml"), rolesTenantsV7.v2());
+            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/roles_mapping.yml"), rolesmappingV7);
+        } catch (Exception e) {
+            System.out.println("ERR: Unable to migrate config files due to "+e);
+            e.printStackTrace();
+            return -1;
+        }
+        
+        System.out.println("  done");
+        
+        System.out.println("-> Delete old "+index+" index");
+        deleteConfigIndex(tc, index, true);
+        System.out.println("  done");
+        
+        System.out.println("-> Upload new configuration into Elasticsearch cluster");
+        
+        int uploadResult = upload(tc, index, v7Dir.getAbsolutePath()+"/", false, nodesInfo, resolveEnvVars);
+        
+        if(uploadResult == 0) {
+            System.out.println("  done");
+        }else {
+            System.out.println("  ERR: unable to upload");
+        }
+        
+        return uploadResult;
+    }
+    
+    private static String readTypeFromFile(File file) throws IOException {
+        if(!file.exists() || !file.isFile()) {
+            System.out.println("ERR: No such file "+file.getAbsolutePath());
+            return null;
+        }
+        final JsonNode jsonNode = DefaultObjectMapper.YAML_MAPPER.readTree(file);
+        return new SecurityJsonNode(jsonNode).get("_meta").get("type").asString();
+    }
+
+    private static int validateConfig(String cd, String file, String type, int version) {
+        if (file != null) {
+            try {
+                
+                if(type == null) {
+                    type = readTypeFromFile(new File(file));
+                }
+                
+                if(type == null) {
+                    System.out.println("ERR: Unable to read type from "+file);
+                    return -1;
+                }
+                
+                ConfigHelper.fromYamlFile(file, CType.fromString(type), version==7?2:1, 0, 0);
+                return 0;
+            } catch (Exception e) {
+                System.out.println("ERR: Seems "+file+" is not in SG "+version+" format: "+e);
+                return -1;
+            }
+        } else if(cd != null) {
+            boolean success = validateConfigFile(cd+"action_groups.yml", CType.ACTIONGROUPS, version);
+            success = validateConfigFile(cd+"internal_users.yml", CType.INTERNALUSERS, version) && success;
+            success = validateConfigFile(cd+"roles.yml", CType.ROLES, version) && success;
+            success = validateConfigFile(cd+"roles_mapping.yml", CType.ROLESMAPPING, version) && success;
+            success = validateConfigFile(cd+"config.yml", CType.CONFIG, version) && success;
+            
+            if(new File(cd+"tenants.yml").exists() && version != 6) {
+                success = validateConfigFile(cd+"tenants.yml", CType.TENANTS, version) && success;
+            }
+            
+            return success?0:-1;
+
+        }
+        
+        return -1;
+    }
+    
+    private static boolean validateConfigFile(String file, CType cType, int version) {
+        try {
+            ConfigHelper.fromYamlFile(file, cType, version==7?2:1, 0, 0);
+            System.out.println(file+" OK" );
+            return true;
+        } catch (Exception e) {
+            System.out.println("ERR: Seems "+file+" is not in SG "+version+" format: "+e);
+            return false;
+        }
+    }
+    
+    private static String[] getTypes(boolean legacy) {
+        if(legacy) {
+            return new String[]{"config","roles","rolesmapping","internalusers","actiongroups"};
+        }
+        return CType.lcStringValues().toArray(new String[0]);
     }
 }

@@ -35,17 +35,19 @@ import java.net.InetSocketAddress;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchSecurityException;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
-import org.elasticsearch.http.netty4.Netty4HttpRequest;
+import org.elasticsearch.http.netty4.Netty4HttpChannel;
 import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import com.amazon.opendistroforelasticsearch.security.configuration.ConfigurationChangeListener;
+import com.amazon.opendistroforelasticsearch.security.securityconf.ConfigModel;
+import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigFactory.DCFListener;
+import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigModel;
+import com.amazon.opendistroforelasticsearch.security.securityconf.InternalUsersModel;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 
-public class XFFResolver implements ConfigurationChangeListener {
+public class XFFResolver implements DCFListener {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
     private volatile boolean enabled;
@@ -60,12 +62,12 @@ public class XFFResolver implements ConfigurationChangeListener {
     public TransportAddress resolve(final RestRequest request) throws ElasticsearchSecurityException {
         
         if(log.isTraceEnabled()) {
-            log.trace("resolve {}", request.getRemoteAddress());
+            log.trace("resolve {}", request.getHttpChannel().getRemoteAddress());
         }
         
-        if(enabled && request.getRemoteAddress() instanceof InetSocketAddress && request instanceof Netty4HttpRequest) {
+        if(enabled && request.getHttpChannel().getRemoteAddress() instanceof InetSocketAddress && request.getHttpChannel() instanceof Netty4HttpChannel) {
 
-            final InetSocketAddress isa = new InetSocketAddress(detector.detect((Netty4HttpRequest) request, threadContext), ((InetSocketAddress)request.getRemoteAddress()).getPort());
+            final InetSocketAddress isa = new InetSocketAddress(detector.detect(request, threadContext), ((InetSocketAddress)request.getHttpChannel().getRemoteAddress()).getPort());
         
             if(isa.isUnresolved()) {           
                 throw new ElasticsearchSecurityException("Cannot resolve address "+isa.getHostString());
@@ -74,33 +76,31 @@ public class XFFResolver implements ConfigurationChangeListener {
              
             if(log.isTraceEnabled()) {
                 if(threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_XFF_DONE) == Boolean.TRUE) {
-                    log.trace("xff resolved {} to {}", request.getRemoteAddress(), isa);
+                    log.trace("xff resolved {} to {}", request.getHttpChannel().getRemoteAddress(), isa);
                 } else {
                     log.trace("no xff done for {}",request.getClass());
                 }
             }
             return new TransportAddress(isa);
-        } else if(request.getRemoteAddress() instanceof InetSocketAddress){
+        } else if(request.getHttpChannel().getRemoteAddress() instanceof InetSocketAddress){
             
             if(log.isTraceEnabled()) {
                 log.trace("no xff done (enabled or no netty request) {},{},{},{}",enabled, request.getClass());
 
             }
-            return new TransportAddress((InetSocketAddress)request.getRemoteAddress());
+            return new TransportAddress((InetSocketAddress)request.getHttpChannel().getRemoteAddress());
         } else {
-            throw new ElasticsearchSecurityException("Cannot handle this request. Remote address is "+request.getRemoteAddress()+" with request class "+request.getClass());
+            throw new ElasticsearchSecurityException("Cannot handle this request. Remote address is "+request.getHttpChannel().getRemoteAddress()+" with request class "+request.getClass());
         }
     }
 
     @Override
-    public void onChange(final Settings settings) {
-        enabled = settings.getAsBoolean("opendistro_security.dynamic.http.xff.enabled", true);
+    public void onChanged(ConfigModel cm, DynamicConfigModel dcm, InternalUsersModel ium) {
+        enabled = dcm.isXffEnabled();
         if(enabled) {
             detector = new RemoteIpDetector();
-            detector.setInternalProxies(settings.get("opendistro_security.dynamic.http.xff.internalProxies", detector.getInternalProxies()));
-            detector.setProxiesHeader(settings.get("opendistro_security.dynamic.http.xff.proxiesHeader", detector.getProxiesHeader()));
-            detector.setRemoteIpHeader(settings.get("opendistro_security.dynamic.http.xff.remoteIpHeader", detector.getRemoteIpHeader()));
-            detector.setTrustedProxies(settings.get("opendistro_security.dynamic.http.xff.trustedProxies", detector.getTrustedProxies()));
+            detector.setInternalProxies(dcm.getInternalProxies());
+            detector.setRemoteIpHeader(dcm.getRemoteIpHeader());
         } else {
             detector = null;
         }
