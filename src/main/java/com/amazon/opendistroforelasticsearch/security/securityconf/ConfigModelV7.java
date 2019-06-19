@@ -1060,13 +1060,13 @@ public class ConfigModelV7 extends ConfigModel {
                 }
             });
             
-            if(!result.containsKey("GLOBAL_TENANT") && (
+            if(!result.containsKey("ODS_GLOBAL_TENANT") && (
                     roles.contains("kibana_user")
-                    || roles.contains("KIBANA_USER")
+                    || roles.contains("ODS_KIBANA_USER")
                     || roles.contains("all_access")
-                    || roles.contains("ALL_ACCESS")
+                    || roles.contains("ODS_ALL_ACCESS")
                     )) {
-                result.put("GLOBAL_TENANT", true);
+                result.put("ODS_GLOBAL_TENANT", true);
             }
 
             return Collections.unmodifiableMap(result);
