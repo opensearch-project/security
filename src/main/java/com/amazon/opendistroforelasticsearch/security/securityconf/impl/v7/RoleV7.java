@@ -45,7 +45,7 @@ public class RoleV7 implements Hideable, StaticDefinable {
         
         if(rwTenants != null && !rwTenants.isEmpty()) {
             Tenant t = new Tenant();
-            t.setAllowed_actions(Collections.singletonList("ODS_KIBANA_ALL_WRITE"));
+            t.setAllowed_actions(Collections.singletonList("kibana_all_write"));
             t.setTenant_patterns(rwTenants);
             tenant_permissions.add(t);
         }
@@ -55,7 +55,7 @@ public class RoleV7 implements Hideable, StaticDefinable {
         
         if(roTenants != null && !roTenants.isEmpty()) {
             Tenant t = new Tenant();
-            t.setAllowed_actions(Collections.singletonList("ODS_KIBANA_ALL_READ"));
+            t.setAllowed_actions(Collections.singletonList("kibana_all_read"));
             t.setTenant_patterns(roTenants);
             tenant_permissions.add(t);
         }

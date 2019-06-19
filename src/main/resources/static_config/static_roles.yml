@@ -3,7 +3,7 @@ _meta:
   type: "roles"
   config_version: 2
 
-ODS_ALL_ACCESS:
+all_access:
   reserved: true
   hidden: false
   static: true
@@ -19,53 +19,53 @@ ODS_ALL_ACCESS:
     - tenant_patterns:
         - "*"
       allowed_actions:
-        - "ODS_KIBANA_ALL_WRITE"
+        - "kibana_all_write"
 
-ODS_KIBANA_USER:
+kibana_user:
   reserved: true
   hidden: false
   static: true
   description: "Provide the minimum permissions for a kibana user"
   cluster_permissions:
-    - "ODS_INDICES_MONITOR"
-    - "ODS_CLUSTER_COMPOSITE_OPS"
+    - "indices_monitor"
+    - "cluster_composite_ops"
   index_permissions:
     - index_patterns:
         - ".kibana"
         - ".kibana-6"
         - ".kibana_*"
       allowed_actions:
-        - "ODS_READ"
-        - "ODS_DELETE"
-        - "ODS_MANAGE"
-        - "ODS_INDEX"
+        - "read"
+        - "delete"
+        - "manage"
+        - "index"
     - index_patterns:
         - ".tasks"
         - ".management-beats"
       allowed_actions:
-        - "ODS_INDICES_ALL"
+        - "indices_all"
 
-ODS_OWN_INDEX:
+own_index:
   reserved: true
   hidden: false
   static: true
   description: "Allow all for indices named like the current user"
   cluster_permissions:
-  - "ODS_CLUSTER_COMPOSITE_OPS"
+  - "cluster_composite_ops"
   index_permissions:
   - index_patterns:
     - "${user_name}"
     allowed_actions:
-    - "ODS_INDICES_ALL"
+    - "indices_all"
 
   
-ODS_MANAGE_SNAPSHOTS:
+manage_snapshots:
   reserved: true
   hidden: false
   static: true
   description: "Provide the minimum permissions for managing snapshots"
   cluster_permissions:
-  - "ODS_MANAGE_SNAPSHOTS"
+  - "manage_snapshots"
   index_permissions:
   - index_patterns:
     - "*"
@@ -73,14 +73,14 @@ ODS_MANAGE_SNAPSHOTS:
     - "indices:data/write/index"
     - "indices:admin/create"
   
-ODS_KIBANA_SERVER:
+kibana_server:
   reserved: true
   hidden: false
   static: true
   description: "Provide the minimum permissions for the Kibana server"
   cluster_permissions:
-  - "ODS_CLUSTER_MONITOR"
-  - "ODS_CLUSTER_COMPOSITE_OPS"
+  - "cluster_monitor"
+  - "cluster_composite_ops"
   - "cluster:admin/xpack/monitoring*"
   - "indices:admin/template*"
   - "indices:data/read/scroll*"
@@ -88,44 +88,44 @@ ODS_KIBANA_SERVER:
   - index_patterns:
     - ".kibana"
     allowed_actions:
-    - "ODS_INDICES_ALL"
+    - "indices_all"
   - index_patterns:
     - ".kibana-6"
     allowed_actions:
-    - "ODS_INDICES_ALL"
+    - "indices_all"
   - index_patterns:
     - ".kibana_*"
     allowed_actions:
-    - "ODS_INDICES_ALL"
+    - "indices_all"
   - index_patterns:
     - ".reporting*"
     allowed_actions:
-    - "ODS_INDICES_ALL"
+    - "indices_all"
   - index_patterns:
     - ".monitoring*"
     allowed_actions:
-    - "ODS_INDICES_ALL"
+    - "indices_all"
   - index_patterns:
     - ".tasks"
     allowed_actions:
-    - "ODS_INDICES_ALL"
+    - "indices_all"
   - index_patterns:
     - ".management-beats*"
     allowed_actions:
-    - "ODS_INDICES_ALL"
+    - "indices_all"
   - index_patterns:
     - "*"
     allowed_actions:
     - "indices:admin/aliases*"
 
-ODS_LOGSTASH:
+logstash:
   reserved: true
   hidden: false
   static: true
   description: "Provide the minimum permissions for logstash and beats"
   cluster_permissions:
-  - "ODS_CLUSTER_MONITOR"
-  - "ODS_CLUSTER_COMPOSITE_OPS"
+  - "cluster_monitor"
+  - "cluster_composite_ops"
   - "indices:admin/template/get"
   - "indices:admin/template/put"
   - "cluster:admin/ingest/pipeline/put"
@@ -134,38 +134,38 @@ ODS_LOGSTASH:
   - index_patterns:
     - "logstash-*"
     allowed_actions:
-    - "ODS_CRUD"
-    - "ODS_CREATE_INDEX"
+    - "crud"
+    - "create_index"
   - index_patterns:
     - "*beat*"
     allowed_actions:
-    - "ODS_CRUD"
-    - "ODS_CREATE_INDEX"
+    - "crud"
+    - "create_index"
   
-ODS_READALL_AND_MONITOR:
+readall_and_monitor:
   reserved: true
   hidden: false
   static: true
   description: "Provide the minimum permissions for to readall indices and monitor the cluster"
   cluster_permissions:
-  - "ODS_CLUSTER_MONITOR"
-  - "ODS_CLUSTER_COMPOSITE_OPS_RO"
+  - "cluster_monitor"
+  - "cluster_composite_ops_ro"
   index_permissions:
   - index_patterns:
     - "*"
     allowed_actions:
-    - "ODS_READ"
+    - "read"
   
-ODS_READALL:
+readall:
   reserved: true
   hidden: false
   static: true
   description: "Provide the minimum permissions for to readall indices"
   cluster_permissions:
-  - "ODS_CLUSTER_COMPOSITE_OPS_RO"
+  - "cluster_composite_ops_ro"
   index_permissions:
   - index_patterns:
     - "*"
     allowed_actions:
-    - "ODS_READ"
+    - "read"
   
