@@ -76,7 +76,7 @@
     <url>https://github.com/opendistro-for-elasticsearch/security</url>
     <connection>scm:git:git@github.com:opendistro-for-elasticsearch/security.git</connection>
     <developerConnection>scm:git:git@github.com:opendistro-for-elasticsearch/security.git</developerConnection>
-    <tag>0.9.0.0</tag>
+    <tag>1.0.0.0</tag>
   </scm>
 
   <issueManagement>
