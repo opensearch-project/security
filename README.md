@@ -58,6 +58,12 @@ Please refer to the [technical documentation](https://opendistro.github.io/for-e
 * Display information about the currently logged in user by visiting ``https://localhost:9200/_opendistro/_security/authinfo``.
 
 
+## Build
+
+* Source build instructions can be found here : 
+
+https://github.com/opendistro-for-elasticsearch/security-parent/blob/master/README.md
+
 ## Config hot reloading
 
 The Security Plugin Configuration is stored in a dedicated index in Elasticsearch itself. Changes to the configuration are pushed to this index via the command line tool. This will trigger a reload of the configuration on all nodes automatically. This has several advantages over configuration via elasticsearch.yml:
