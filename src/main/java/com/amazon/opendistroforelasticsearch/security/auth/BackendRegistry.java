@@ -431,6 +431,7 @@ public class BackendRegistry implements DCFListener {
 
                 if(authDomain.isChallenge() && httpAuthenticator.reRequestAuthentication(channel, null)) {
                     auditLog.logFailedLogin("<NONE>", false, null, request);
+                    log.warn("The first challenge authentication method is {}, other methods with lower order may not work.",httpAuthenticator.getType());
                     log.trace("No 'Authorization' header, send 401 and 'WWW-Authenticate Basic'");
                     return false;
                 } else {
