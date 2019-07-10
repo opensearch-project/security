@@ -1,0 +1,14 @@
+diff a/src/main/java/com/amazon/opendistroforelasticsearch/security/configuration/ConfigurationLoader.java b/src/main/java/com/amazon/opendistroforelasticsearch/security/configuration/ConfigurationLoader.java	(rejected hunks)
+@@ -170,2 +174,3 @@ class ConfigurationLoader {
+         
++        
+         XContentParser parser = null;
+@@ -184,5 +189,5 @@ class ConfigurationLoader {
+             
+-            return new Tuple<Long, Settings>(version, Settings.builder().loadFromStream("dummy.json", new ByteArrayInputStream(parser.binaryValue()), true).build());
+-        } catch (final IOException e) {
+-            throw ExceptionsHelper.convertToElastic(e);
++            final byte[] content = parser.binaryValue();
++
++            return new Tuple<Long, Settings>(version, Settings.builder().loadFromSource(OpenDistroSecurityUtils.replaceEnvVars(new String(content, StandardCharsets.UTF_8), settings), XContentType.JSON).build());
+         } finally {

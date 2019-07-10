@@ -1,0 +1,155 @@
+diff a/src/main/java/com/amazon/opendistroforelasticsearch/security/auth/BackendRegistry.java b/src/main/java/com/amazon/opendistroforelasticsearch/security/auth/BackendRegistry.java	(rejected hunks)
+@@ -217,2 +237,6 @@ public class BackendRegistry implements ConfigurationChangeListener {
+         final List<Destroyable> destroyableComponents0 = new LinkedList<>();
++        final List<AuthFailureListener> ipAuthFailureListeners0 = new ArrayList<>();
++        final Multimap<String, AuthFailureListener> authBackendFailureListeners0 = ArrayListMultimap.create();
++        final List<ClientBlockRegistry<InetAddress>> ipClientBlockRegistries0 = new ArrayList<>();
++        final Multimap<String, ClientBlockRegistry<String>> authBackendClientBlockRegistries0 = ArrayListMultimap.create();
+ 
+@@ -234,4 +257,3 @@ public class BackendRegistry implements ConfigurationChangeListener {
+                     if (authzBackendClazz.equals(InternalAuthenticationBackend.class.getName()) //NOSONAR
+-                            || authzBackendClazz.equals("internal")
+-                            || authzBackendClazz.equals("intern")) {
++                            || authzBackendClazz.equals("internal") || authzBackendClazz.equals("intern")) {
+                         authorizationBackend = iab;
+@@ -274,4 +295,3 @@ public class BackendRegistry implements ConfigurationChangeListener {
+                     if (authBackendClazz.equals(InternalAuthenticationBackend.class.getName()) //NOSONAR
+-                            || authBackendClazz.equals("internal")
+-                            || authBackendClazz.equals("intern")) {
++                            || authBackendClazz.equals("internal") || authBackendClazz.equals("intern")) {
+                         authenticationBackend = iab;
+@@ -345,2 +424,9 @@ public class BackendRegistry implements ConfigurationChangeListener {
+ 
++        if (request.remoteAddress() != null && isBlocked(request.remoteAddress().address().getAddress())) {
++            if (log.isDebugEnabled()) {
++                log.debug("Rejecting transport request because of blocked address: " + request.remoteAddress());
++            }
++            return null;
++        }
++
+         User origPKIUser = new User(sslPrincipal);
+@@ -388,4 +475,12 @@ public class BackendRegistry implements ConfigurationChangeListener {
+             if (authenticatedUser == null) {
++                for (AuthFailureListener authFailureListener : authBackendFailureListeners.get(authDomain.getBackend().getClass().getName())) {
++                    authFailureListener.onAuthFailure(request.remoteAddress() != null ? request.remoteAddress().address().getAddress() : null, creds,
++                            request);
++                }
++
+                 if (log.isDebugEnabled()) {
+-                    log.debug("Cannot authenticate user {} (or add roles) with authdomain {}/{}, try next", creds==null?(impersonatedTransportUser==null?origPKIUser.getName():impersonatedTransportUser.getName()):creds.getUsername(), authDomain.getBackend().getType(), authDomain.getOrder());
++                    log.debug("Cannot authenticate user {} (or add roles) with authdomain {}/{}, try next",
++                            creds == null ? (impersonatedTransportUser == null ? origPKIUser.getName() : impersonatedTransportUser.getName())
++                                    : creds.getUsername(),
++                            authDomain.getBackend().getType(), authDomain.getOrder());
+                 }
+@@ -409,6 +505,6 @@ public class BackendRegistry implements ConfigurationChangeListener {
+ 
+-
+         //auditlog
+         if (creds == null) {
+-            auditLog.logFailedLogin(impersonatedTransportUser==null?origPKIUser.getName():impersonatedTransportUser.getName(), false, impersonatedTransportUser==null?null:origPKIUser.getName(), request, task);
++            auditLog.logFailedLogin(impersonatedTransportUser == null ? origPKIUser.getName() : impersonatedTransportUser.getName(), false,
++                    impersonatedTransportUser == null ? null : origPKIUser.getName(), request, task);
+         } else {
+@@ -417,3 +513,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
+ 
+-        log.warn("Transport authentication finally failed for {} from {}", creds == null ? impersonatedTransportUser==null?origPKIUser.getName():impersonatedTransportUser.getName():creds.getUsername(), request.remoteAddress());
++        log.warn("Transport authentication finally failed for {} from {}",
++                creds == null ? impersonatedTransportUser == null ? origPKIUser.getName() : impersonatedTransportUser.getName() : creds.getUsername(),
++                request.remoteAddress());
++
++        notifyIpAuthFailureListeners(request.remoteAddress() != null ? request.remoteAddress().address().getAddress() : null, creds, request);
+ 
+@@ -448,3 +557,4 @@ public class BackendRegistry implements ConfigurationChangeListener {
+             log.error("Not yet initialized (you may need to run securityadmin)");
+-            channel.sendResponse(new BytesRestResponse(RestStatus.SERVICE_UNAVAILABLE, "Open Distro Security not initialized (Open Distro Security11). See http://docs.search-guard.com/v6/securityadmin"));
++            channel.sendResponse(new BytesRestResponse(RestStatus.SERVICE_UNAVAILABLE,
++                    "Open Distro Security not initialized (Open Distro Security11). See http://docs.search-guard.com/v6/securityadmin"));
+             return false;
+@@ -526,3 +645,11 @@ public class BackendRegistry implements ConfigurationChangeListener {
+                 if (log.isDebugEnabled()) {
+-                    log.debug("Cannot authenticate user {} (or add roles) with authdomain {}/{}, try next", ac.getUsername(), authDomain.getBackend().getType(), authDomain.getOrder());
++                    log.debug("Cannot authenticate user {} (or add roles) with authdomain {}/{}, try next", ac.getUsername(),
++                            authDomain.getBackend().getType(), authDomain.getOrder());
++                }
++
++                for (AuthFailureListener authFailureListener : this.authBackendFailureListeners.get(authDomain.getBackend().getClass().getName())) {
++                    authFailureListener.onAuthFailure(
++                            (request.getRemoteAddress() instanceof InetSocketAddress) ? ((InetSocketAddress) request.getRemoteAddress()).getAddress()
++                                    : null,
++                            ac, request);
+                 }
+@@ -550,3 +678,2 @@ public class BackendRegistry implements ConfigurationChangeListener {
+ 
+-
+         if (authenticated) {
+@@ -554,3 +681,4 @@ public class BackendRegistry implements ConfigurationChangeListener {
+             threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, impersonatedUser == null ? authenticatedUser : impersonatedUser);
+-            auditLog.logSucceededLogin((impersonatedUser==null?authenticatedUser:impersonatedUser).getName(), false, authenticatedUser.getName(), request);
++            auditLog.logSucceededLogin((impersonatedUser == null ? authenticatedUser : impersonatedUser).getName(), false,
++                    authenticatedUser.getName(), request);
+         } else {
+@@ -580,4 +708,8 @@ public class BackendRegistry implements ConfigurationChangeListener {
+ 
+-                    log.warn("Authentication finally failed for {} from {}", authCredenetials == null ? null:authCredenetials.getUsername(), remoteAddress);
++                    log.warn("Authentication finally failed for {} from {}", authCredenetials == null ? null : authCredenetials.getUsername(),
++                            remoteAddress);
+                     auditLog.logFailedLogin(authCredenetials == null ? null : authCredenetials.getUsername(), false, null, request);
++
++                    notifyIpAuthFailureListeners(request, authCredenetials);
++
+                     return false;
+@@ -588,2 +720,5 @@ public class BackendRegistry implements ConfigurationChangeListener {
+             auditLog.logFailedLogin(authCredenetials == null ? null : authCredenetials.getUsername(), false, null, request);
++
++            notifyIpAuthFailureListeners(request, authCredenetials);
++
+             channel.sendResponse(new BytesRestResponse(RestStatus.UNAUTHORIZED, "Authentication finally failed"));
+@@ -603,3 +750,4 @@ public class BackendRegistry implements ConfigurationChangeListener {
+      */
+-    private User checkExistsAndAuthz(final Cache<String, User> cache, final User user, final AuthenticationBackend authenticationBackend, final Set<AuthorizationBackend> authorizers) {
++    private User checkExistsAndAuthz(final Cache<String, User> cache, final User user, final AuthenticationBackend authenticationBackend,
++            final Set<AuthorizationBackend> authorizers) {
+         if (user == null) {
+@@ -613,3 +761,4 @@ public class BackendRegistry implements ConfigurationChangeListener {
+                     if (log.isTraceEnabled()) {
+-                        log.trace("Credentials for user "+user.getName()+" not cached, return from "+authenticationBackend.getType()+" backend directly");
++                        log.trace("Credentials for user " + user.getName() + " not cached, return from " + authenticationBackend.getType()
++                                + " backend directly");
+                     }
+@@ -634,3 +783,2 @@ public class BackendRegistry implements ConfigurationChangeListener {
+ 
+-    
+     private void authz(User authenticatedUser, Cache<User, Set<String>> roleCache, final Set<AuthorizationBackend> authorizers) {
+@@ -671,3 +819,2 @@ public class BackendRegistry implements ConfigurationChangeListener {
+ 
+-    
+     /**
+@@ -680,3 +827,4 @@ public class BackendRegistry implements ConfigurationChangeListener {
+      */
+-    private User authcz(final Cache<AuthCredentials, User> cache, Cache<User, Set<String>> roleCache, final AuthCredentials ac, final AuthenticationBackend authBackend, final Set<AuthorizationBackend> authorizers) {
++    private User authcz(final Cache<AuthCredentials, User> cache, Cache<User, Set<String>> roleCache, final AuthCredentials ac,
++            final AuthenticationBackend authBackend, final Set<AuthorizationBackend> authorizers) {
+         if (ac == null) {
+@@ -693,4 +841,2 @@ public class BackendRegistry implements ConfigurationChangeListener {
+ 
+-
+-        
+             return cache.get(ac, new Callable<User>() {
+@@ -699,3 +845,4 @@ public class BackendRegistry implements ConfigurationChangeListener {
+                     if (log.isTraceEnabled()) {
+-                        log.trace("Credentials for user "+ac.getUsername()+" not cached, return from "+authBackend.getType()+" backend directly");
++                        log.trace("Credentials for user " + ac.getUsername() + " not cached, return from " + authBackend.getType()
++                                + " backend directly");
+                     }
+@@ -780,6 +946,8 @@ public class BackendRegistry implements ConfigurationChangeListener {
+                 final AuthenticationBackend authenticationBackend = authDomain.getBackend();
+-                final User impersonatedUser = checkExistsAndAuthz(restImpersonationCache, new User(impersonatedUserHeader), authenticationBackend, restAuthorizers);
++                final User impersonatedUser = checkExistsAndAuthz(restImpersonationCache, new User(impersonatedUserHeader), authenticationBackend,
++                        restAuthorizers);
+ 
+                 if (impersonatedUser == null) {
+-                    log.debug("Unable to impersonate rest user from '{}' to '{}' because the impersonated user does not exists in {}, try next ...", originalUser.getName(), impersonatedUserHeader, authenticationBackend.getType());
++                    log.debug("Unable to impersonate rest user from '{}' to '{}' because the impersonated user does not exists in {}, try next ...",
++                            originalUser.getName(), impersonatedUserHeader, authenticationBackend.getType());
+                     continue;

@@ -195,7 +195,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 				}
 
 			} catch (ElasticsearchSecurityException e) {
-				Assert.assertEquals("'CN=spock,OU=client,O=client,L=Test,C=DE' is not allowed to impersonate as 'gkar'", e.getMessage());
+				Assert.assertEquals("'CN=spock,OU=client,O=client,L=Test,C=DE' is not allowed to impersonate as transport user 'gkar'", e.getMessage());
 			}
 
 			System.out.println("------- 12 ---------");
@@ -374,6 +374,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			tc.index(new IndexRequest("starfleet").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
 
 			ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
+			Assert.assertFalse(cur.hasFailures());
 			Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());
 
 		}
@@ -420,7 +421,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 	public void testTransportClientUsernameAttribute() throws Exception {
 
 		final Settings settings = Settings.builder()
-				.putList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_IMPERSONATION_DN+".CN=spock,OU=client,O=client,L=Test,C=DE", "worf", "nagilum")
+				.putList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_IMPERSONATION_DN+".CN=spock,OU=client,O=client,L=Test,C=DE", "worf", "nagilum", "nonexist")
 				.put("discovery.initial_state_timeout","8s")
 				.build();
 		
@@ -553,7 +554,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 				}
 
 			} catch (ElasticsearchSecurityException e) {
-				Assert.assertEquals("'CN=spock,OU=client,O=client,L=Test,C=DE' is not allowed to impersonate as 'gkar'", e.getMessage());
+				Assert.assertEquals("'CN=spock,OU=client,O=client,L=Test,C=DE' is not allowed to impersonate as transport user 'gkar'", e.getMessage());
 			}
 
 			System.out.println("------- 12 ---------");
@@ -711,6 +712,19 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			} finally {
 				ctx.close();
 			}
+			ctx = tc.threadPool().getThreadContext().stashContext();
+			searchRes = null;
+			try {
+				tc.threadPool().getThreadContext().putHeader("impersonate_as", "nonexist");
+				searchRes = tc.prepareSearch("starfleet").setTypes("ships").setScroll(TimeValue.timeValueMinutes(5)).get();
+				SearchResponse scrollRes = tc.prepareSearchScroll(searchRes.getScrollId()).get();
+				Assert.assertEquals(0, scrollRes.getFailedShards());
+			} catch (Exception e) {
+				Throwable root = ExceptionUtils.getRootCause(e);
+				Assert.assertTrue(root.getMessage(),root.getMessage().contains("No such transport user: nonexist"));
+			} finally {
+				ctx.close();
+			}
 
 			System.out.println("------- TRC end ---------");
 		}
@@ -735,6 +749,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			tc.index(new IndexRequest("starfleet").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
 
 			ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
+			Assert.assertFalse(cur.hasFailures());
 			Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());
 
 		}

@@ -58,7 +58,7 @@
     
     <!-- deps -->
     <netty-native.version>2.0.20.Final</netty-native.version>
-    <bc.version>1.60</bc.version>
+    <bc.version>1.61</bc.version>
     <log4j.version>2.11.1</log4j.version>
     <guava.version>25.1-jre</guava.version>
     <commons.cli.version>1.3.1</commons.cli.version>
@@ -250,7 +250,7 @@
         
         <configuration>
           <argLine>-Xmx3072m</argLine>
-          <rerunFailingTestsCount>3</rerunFailingTestsCount>
+          <rerunFailingTestsCount>1</rerunFailingTestsCount>
           <forkCount>3</forkCount>
           <reuseForks>true</reuseForks>
           <!-- 

@@ -1,0 +1,47 @@
+diff a/src/main/java/com/amazon/opendistroforelasticsearch/security/privileges/OpenDistroSecurityIndexAccessEvaluator.java b/src/main/java/com/amazon/opendistroforelasticsearch/security/privileges/OpenDistroSecurityIndexAccessEvaluator.java	(rejected hunks)
+@@ -41,6 +41,3 @@ public class OpenDistroSecurityIndexAccessEvaluator {
+     private final AuditLog auditLog;
+-    private final String[] sgDeniedActionPatternsAll;
+-    private final String[] sgDeniedActionPatternsSnapshotRestoreAllowed;
+-
+-    private final boolean restoreSgIndexEnabled;
++    private final String[] sgDeniedActionPatterns;
+     
+@@ -50,17 +47,20 @@ public class OpenDistroSecurityIndexAccessEvaluator {
+         
+-        final List<String> securityIndexdeniedActionPatternsListAll = new ArrayList<String>();
+-        securityIndexdeniedActionPatternsListAll.add("indices:data/write*");
+-        securityIndexdeniedActionPatternsListAll.add("indices:admin/close");
+-        securityIndexdeniedActionPatternsListAll.add("indices:admin/delete");
+-        securityIndexdeniedActionPatternsListAll.add("cluster:admin/snapshot/restore");
++        final boolean restoreSgIndexEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_RESTORE_SECURITYINDEX_ENABLED, false);
+         
+-        securityDeniedActionPatternsAll = securityIndexdeniedActionPatternsListAll.toArray(new String[0]);
++        final List<String> securityIndexDeniedActionPatternsList = new ArrayList<String>();
++        securityIndexDeniedActionPatternsList.add("indices:data/write*");
++        securityIndexDeniedActionPatternsList.add("indices:admin/delete*");
++        securityIndexDeniedActionPatternsList.add("indices:admin/mapping/delete*");
++        securityIndexDeniedActionPatternsList.add("indices:admin/mapping/put*");
++        //securityIndexDeniedActionPatternsList.add("indices:admin/template/*");
++        securityIndexDeniedActionPatternsList.add("indices:admin/freeze*");
++        securityIndexDeniedActionPatternsList.add("indices:admin/settings/update*");
++        securityIndexDeniedActionPatternsList.add("indices:admin/aliases");
+ 
+-        final List<String> securityIndexdeniedActionPatternsListSnapshotRestoreAllowed = new ArrayList<String>();
+-        securityIndexdeniedActionPatternsListAll.add("indices:data/write*");
+-        securityIndexdeniedActionPatternsListAll.add("indices:admin/delete");
++        final List<String> securityIndexDeniedActionPatternsListNoSnapshot = new ArrayList<String>();
++        securityIndexDeniedActionPatternsListNoSnapshot.addAll(securityIndexDeniedActionPatternsList);
++        securityIndexDeniedActionPatternsListNoSnapshot.add("indices:admin/close*");
++        securityIndexDeniedActionPatternsListNoSnapshot.add("cluster:admin/snapshot/restore*");
+ 
+-        securityDeniedActionPatternsSnapshotRestoreAllowed = securityIndexdeniedActionPatternsListSnapshotRestoreAllowed.toArray(new String[0]);
+-        
+-        this.restoreSgIndexEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_RESTORE_SECURITYINDEX_ENABLED, false);
++        securityDeniedActionPatterns = (restoreSgIndexEnabled?securityIndexDeniedActionPatternsList:securityIndexDeniedActionPatternsListNoSnapshot).toArray(new String[0]);
+     }
+@@ -70,4 +70,2 @@ public class OpenDistroSecurityIndexAccessEvaluator {
+                 
+-        final String[] sgDeniedActionPatterns = this.restoreSgIndexEnabled? sgDeniedActionPatternsSnapshotRestoreAllowed : sgDeniedActionPatternsAll;
+-        
+         if (requestedResolved.getAllIndices().contains(opendistrosecurityIndex)

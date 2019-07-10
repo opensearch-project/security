@@ -45,6 +45,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -227,6 +229,9 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                             @Override
                             public void onResponse(IndicesExistsResponse response) {
                                 if(response != null && response.isExists()) {
+                                    LOGGER.info(
+                                            "{} index exist, so we try to load the config from it",
+                                            opendistrosecurityIndex);
                                    bgThread.start();
                                 } else {
                                     if(settings.get("tribe.name", null) == null && settings.getByPrefix("tribe").size() > 0) {
@@ -238,8 +243,14 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                                             LOGGER.info("{} index does not exist yet, so we create a default config", opendistrosecurityIndex);
                                             installDefaultConfig.set(true);
                                             bgThread.start();
+                                        } else if (settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, true)){
+                                            LOGGER.info(
+                                                    "{} index does not exist yet, use either securityadmin to initialize cluster or wait until cluster is fully formed and up",
+                                                    opendistrosecurityIndex);
+                                            bgThread.start();
                                         } else {
-                                            LOGGER.info("{} index does not exist yet, so no need to load config on node startup. Use securityadmin to initialize cluster", opendistrosecurityIndex);
+                                            LOGGER.info("{} index does not exist yet, use securityadmin to initialize the cluster. We will not perform background initialization",
+                                                    opendistrosecurityIndex);
                                         }
                                     }
                                 }
@@ -256,6 +267,7 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                     LOGGER.error("Failure while executing IndicesExistsRequest {}",e2, e2);
                     bgThread.start();
                 }
+                                
             }
         });
     }
@@ -291,8 +303,27 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
     }
 
 
+    private final Lock LOCK = new ReentrantLock();
+
     @Override
-    public Map<String, Settings> reloadConfiguration(Collection<String> configTypes) {
+    public Map<String, Settings> reloadConfiguration(Collection<String> configTypes) throws ConfigUpdateAlreadyInProgressException {
+        try {
+            if (LOCK.tryLock(60, TimeUnit.SECONDS)) {
+                try {
+                    return reloadConfiguration0(configTypes);
+                    } finally {
+                    LOCK.unlock();
+                    }
+            } else {
+                throw new ConfigUpdateAlreadyInProgressException("A config update is already imn progress");
+            }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new ConfigUpdateAlreadyInProgressException("Interrupted config update");
+        }
+    }
+
+    private Map<String, Settings> reloadConfiguration0(Collection<String> configTypes) {
         Map<String, Tuple<Long, Settings>> loaded = loadConfigurations(configTypes, false);
         Map<String, Settings> loaded0 = loaded.entrySet().stream().collect(Collectors.toMap(x -> x.getKey(), x -> x.getValue().v2()));
         typeToConfig.keySet().removeAll(loaded0.keySet());

@@ -1,0 +1,37 @@
+diff a/src/main/java/com/amazon/opendistroforelasticsearch/security/privileges/PrivilegesEvaluator.java b/src/main/java/com/amazon/opendistroforelasticsearch/security/privileges/PrivilegesEvaluator.java	(rejected hunks)
+@@ -511,3 +514,3 @@ public class PrivilegesEvaluator implements ConfigurationChangeListener {
+         // term aggregations
+-        if (termsAggregationEvaluator.evaluate(request, clusterService, user, securityRoles, resolver, presponse).isComplete()) {
++        if (termsAggregationEvaluator.evaluate(requestedResolved, request, clusterService, user, securityRoles, resolver, presponse).isComplete()) {
+             return presponse;
+@@ -567,2 +570,30 @@ public class PrivilegesEvaluator implements ConfigurationChangeListener {
+             if (reduced.isEmpty()) {
++                
++                if(getConfigSettings().getAsBoolean("opendistro_security.dynamic.do_not_fail_on_forbidden_empty", false)) {
++                    //ITT-1886
++                    if(request instanceof SearchRequest) {
++                        ((SearchRequest) request).indices(new String[0]);
++                        ((SearchRequest) request).indicesOptions(IndicesOptions.fromOptions(true, true, false, false));
++                        presponse.missingPrivileges.clear();
++                        presponse.allowed = true;
++                        return presponse;
++                    }
++    
++                    if(request instanceof ClusterSearchShardsRequest) {
++                        ((ClusterSearchShardsRequest) request).indices(new String[0]);
++                        ((ClusterSearchShardsRequest) request).indicesOptions(IndicesOptions.fromOptions(true, true, false, false));
++                        presponse.missingPrivileges.clear();
++                        presponse.allowed = true;
++                        return presponse;
++                    }
++                    
++                    if(request instanceof GetFieldMappingsRequest) {
++                        ((GetFieldMappingsRequest) request).indices(new String[0]);
++                        ((GetFieldMappingsRequest) request).indicesOptions(IndicesOptions.fromOptions(true, true, false, false));
++                        presponse.missingPrivileges.clear();
++                        presponse.allowed = true;
++                        return presponse;
++                    }
++                }
++
+                 presponse.allowed = false;

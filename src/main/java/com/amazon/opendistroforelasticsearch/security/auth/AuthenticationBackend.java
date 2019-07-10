@@ -75,8 +75,9 @@ public interface AuthenticationBackend {
      * 
      * Lookup for a specific user in the authentication backend
      * 
-     * @param user The user for which the authentication backend should be queried
-     * @return true if the user exists in the authentication backend, false otherwise
+     * @param user The user for which the authentication backend should be queried. If the authentication backend supports
+     * user attributes in combination with impersonation the attributes needs to be added to user by calling {@code user.addAttributes()} 
+     * @return true if the user exists in the authentication backend, false otherwise. Before return call {@code user.addAttributes()} as explained above.
      */
     boolean exists(User user);
 

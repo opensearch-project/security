@@ -322,6 +322,7 @@ public class IntegrationTests extends SingleClusterTest {
             tc.index(new IndexRequest("shakespeare").type("type").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
                       
             ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
+            Assert.assertFalse(cur.hasFailures());
             Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());
         }
     
@@ -403,6 +404,7 @@ public class IntegrationTests extends SingleClusterTest {
             tc.index(new IndexRequest(".opendistro_security").type("security").id("config").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("config", FileHelper.readYamlContent("config_multirolespan.yml"))).actionGet();
    
             ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config"})).actionGet();
+            Assert.assertFalse(cur.hasFailures());
             Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());
         }
         
@@ -831,6 +833,45 @@ public class IntegrationTests extends SingleClusterTest {
         System.out.println("#### */_mapping/field/*");
         Assert.assertEquals(HttpStatus.SC_OK, (resc=rh.executeGetRequest("*/_mapping/field/*", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
         System.out.println(resc.getBody());
+    }
+
+    @Test
+    public void testSecurityIndexSecurity() throws Exception {
+        setup();
+        final RestHelper rh = nonSslRestHelper();
+
+        HttpResponse res = rh.executePutRequest(".opendistro_security/_mapping/sg?pretty", "{\"properties\": {\"name\":{\"type\":\"text\"}}}",
+                encodeBasicHeader("nagilum", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+        res = rh.executePutRequest("*end*ity*/_mapping/security?pretty", "{\"properties\": {\"name\":{\"type\":\"text\"}}}",
+                encodeBasicHeader("nagilum", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+        res = rh.executePutRequest("_mapping/sg?pretty", "{\"properties\": {\"name\":{\"type\":\"text\"}}}",
+                encodeBasicHeader("nagilum", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+        res = rh.executePutRequest("*/_mapping/sg?pretty", "{\"properties\": {\"name\":{\"type\":\"text\"}}}",
+                encodeBasicHeader("nagilum", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+        res = rh.executePutRequest("_all/_mapping/security?pretty", "{\"properties\": {\"name\":{\"type\":\"text\"}}}",
+                encodeBasicHeader("nagilum", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+        res = rh.executePostRequest(".opendistro_security/_close", "",
+                encodeBasicHeader("nagilum", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+        res = rh.executeDeleteRequest("opendistro_security",
+                encodeBasicHeader("nagilum", "nagilum"));
+        res = rh.executeDeleteRequest("_all",
+                encodeBasicHeader("nagilum", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+        res = rh.executePutRequest(".opendistro_security/_settings", "{\"index\" : {\"number_of_replicas\" : 2}}",
+                encodeBasicHeader("nagilum", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+        res = rh.executePutRequest(".open*/_settings", "{\"index\" : {\"number_of_replicas\" : 2}}",
+                encodeBasicHeader("nagilum", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+        //        res = rh.executePostRequest(".opendistro_security/_freeze", "",
+        //              encodeBasicHeader("nagilum", "nagilum"));
+        //        Assert.assertTrue(res.getStatusCode() >= 400);
     }
 
 }

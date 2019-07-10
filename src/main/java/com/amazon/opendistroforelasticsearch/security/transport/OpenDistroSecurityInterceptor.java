@@ -48,6 +48,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
+import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.Transport.Connection;
 import org.elasticsearch.transport.TransportException;
@@ -140,6 +141,7 @@ public class OpenDistroSecurityInterceptor {
                             || (k.equals("_opendistro_security_source_field_context") && ! (request instanceof SearchRequest) && !(request instanceof GetRequest))
                             || k.startsWith("_opendistro_security_trace")
                             || k.startsWith(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER)
+                    || k.equals(Task.X_OPAQUE_ID)
             )));
 
             if (OpenDistroSecurityPlugin.GuiceHolder.getRemoteClusterService().isCrossClusterSearchEnabled()

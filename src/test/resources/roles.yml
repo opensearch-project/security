@@ -18,6 +18,23 @@ opendistro_security_all_access:
       '*':  
         - ALL
         
+env_test:
+  cluster:
+    - '*'
+  indices:
+    '${env.INDEXNAME1:-index1}':
+      '*':  
+        - ALL
+    '${env.INDEXNAME2:-index2}':
+      '*':  
+        - ALL
+    '${user_name}':
+      '*':  
+        - ALL
+    '${env.INDEXNAME3}':
+      '*':  
+        - ALL
+        
 role.with.dot:
   cluster:
     - '*'
@@ -362,6 +379,9 @@ opendistro_security_twitter:
     - CLUSTER_COMPOSITE_OPS_RO
   indices:
     'twitter':
+      '*':
+        - '*'
+    'analytics':
       '*':
         - '*'
         

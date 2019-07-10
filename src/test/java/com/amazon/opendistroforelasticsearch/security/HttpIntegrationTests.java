@@ -155,6 +155,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
             try (TransportClient tc = getInternalTransportClient()) {       
                 tc.index(new IndexRequest(".opendistro_security").type("security").id("roles").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("roles", FileHelper.readYamlContent("roles_deny.yml"))).actionGet();
                 ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"roles"})).actionGet();
+                Assert.assertFalse(cur.hasFailures());
                 Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());
             }
             
@@ -163,6 +164,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
             try (TransportClient tc = getInternalTransportClient()) {
                 tc.index(new IndexRequest(".opendistro_security").type("security").id("roles").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("roles", FileHelper.readYamlContent("roles.yml"))).actionGet();
                 ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"roles"})).actionGet();
+                Assert.assertFalse(cur.hasFailures());
                 Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());
             }
             
@@ -331,6 +333,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
                 tc.index(new IndexRequest(".opendistro_security").type("security").id("config").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("config", FileHelper.readYamlContent("config.yml"))).actionGet();
                 tc.index(new IndexRequest(".opendistro_security").type("security").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("internalusers").source("internalusers", FileHelper.readYamlContent("internal_users.yml"))).actionGet();
                 ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
+                Assert.assertFalse(cur.hasFailures());
                 Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());
              }
     
@@ -361,6 +364,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
             tc.index(new IndexRequest("vulcangov").type("type").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
             
             ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
+            Assert.assertFalse(cur.hasFailures());
             Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());
         }
     
@@ -728,6 +732,79 @@ public class HttpIntegrationTests extends SingleClusterTest {
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest("_all/_search", encodeBasicHeader("worf", "worf")).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest("*/_search", encodeBasicHeader("worf", "worf")).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest("_search", encodeBasicHeader("worf", "worf")).getStatusCode());
+    }
+
+    @Test
+    public void testRateLimiting() throws Exception {
+
+        setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_auth_ratelimiting.yml"), Settings.EMPTY, true);
+        RestHelper rh = nonSslRestHelper();
+
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest("", encodeBasicHeader("nagilum", "wrong")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest("", encodeBasicHeader("nagilum", "wrong")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest("", encodeBasicHeader("nagilum", "wrong")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest("", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("worf", "worf")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest("", encodeBasicHeader("x1", "wrong")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest("", encodeBasicHeader("x2", "wrong")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest("", encodeBasicHeader("x3", "wrong")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest("", encodeBasicHeader("x4", "wrong")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest("", encodeBasicHeader("x5", "wrong")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest("", encodeBasicHeader("x6", "wrong")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest("", encodeBasicHeader("x7", "wrong")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest("", encodeBasicHeader("x8", "wrong")).getStatusCode());
+
+        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest("", encodeBasicHeader("worf", "worf")).getStatusCode());
+    }
+
+    @Test
+    public void testEnvReplace() throws Exception {
+        final Settings settings = Settings.builder()
+                .build();
+        setup(Settings.EMPTY, new DynamicSecurityConfig(), settings);
+
+        try (TransportClient tc = getInternalTransportClient(this.clusterInfo, Settings.EMPTY)) {
+            tc.index(new IndexRequest("index1").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest("index2").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":2}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest("index3").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":3}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest("env.replace@example.comp.com").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":4}", XContentType.JSON)).actionGet();
+        }
+
+        final RestHelper rh = nonSslRestHelper();
+
+        HttpResponse res = rh.executeGetRequest("/index1/_search?pretty", encodeBasicHeader("env.replace@example.comp.com", "nagilum"));
+        Assert.assertEquals(res.getBody(), HttpStatus.SC_OK, res.getStatusCode());
+        res = rh.executeGetRequest("/index2/_search?pretty", encodeBasicHeader("env.replace@example.comp.com", "nagilum"));
+        Assert.assertEquals(res.getBody(), HttpStatus.SC_OK, res.getStatusCode());
+        res = rh.executeGetRequest("/env.replace@example.comp.com/_search?pretty", encodeBasicHeader("env.replace@example.comp.com", "nagilum"));
+        Assert.assertEquals(res.getBody(), HttpStatus.SC_OK, res.getStatusCode());
+        //res = rh.executeGetRequest("/index3/_search?pretty", encodeBasicHeader("env.replace@example.comp.com", "nagilum"));
+        //Assert.assertEquals(res.getBody(), HttpStatus.SC_OK, res.getStatusCode());
+    }
+
+
+    @Test
+     public void testNoEnvReplace() throws Exception {
+        final Settings settings = Settings.builder().put(ConfigConstants.OPENDISTRO_SECURITY_DISABLE_ENVVAR_REPLACEMENT, true).build();
+        setup(Settings.EMPTY, new DynamicSecurityConfig(), settings);
+
+        try (TransportClient tc = getInternalTransportClient(this.clusterInfo, Settings.EMPTY)) {
+            tc.index(new IndexRequest("index1").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest("index2").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":2}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest("index3").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":3}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest("env.replace@example.comp.com").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":4}", XContentType.JSON)).actionGet();
+        }
+
+        final RestHelper rh = nonSslRestHelper();
+
+        HttpResponse res = rh.executeGetRequest("/index1/_search?pretty", encodeBasicHeader("env.replace@example.comp.com", "nagilum"));
+        Assert.assertEquals(res.getBody(), HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+        res = rh.executeGetRequest("/index2/_search?pretty", encodeBasicHeader("env.replace@example.comp.com", "nagilum"));
+        Assert.assertEquals(res.getBody(), HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+        res = rh.executeGetRequest("/env.replace@example.comp.com/_search?pretty", encodeBasicHeader("env.replace@example.comp.com", "nagilum"));
+        Assert.assertEquals(res.getBody(), HttpStatus.SC_OK, res.getStatusCode());
     }
 
 }
