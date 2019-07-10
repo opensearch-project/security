@@ -1,6 +1,0 @@
-diff a/src/test/resources/internal_users.yml b/src/test/resources/internal_users.yml	(rejected hunks)
-@@ -108,2 +108,4 @@ knuddel:
-   hash: _imponly_
-+  attributes:
-+    test1: test2
- 

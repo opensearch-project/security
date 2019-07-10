@@ -1,6 +1,0 @@
-diff a/plugin-descriptor.properties b/plugin-descriptor.properties	(rejected hunks)
-@@ -5,3 +5,3 @@ description=Provide access control related features for Elasticsearch 6
- # 'version': plugin's version
--version=6.7.1-24.3
-+version=6.8.1-25.1
- 

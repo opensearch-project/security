@@ -1,4 +1,0 @@
-diff a/.gitignore b/.gitignore	(rejected hunks)
-@@ -49 +49,2 @@ jspm_packages
- .DS_Store
-+/pom.xml

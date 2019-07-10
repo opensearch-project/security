@@ -1,8 +1,0 @@
-diff a/src/test/resources/roles_mapping.yml b/src/test/resources/roles_mapping.yml	(rejected hunks)
-@@ -167,2 +167,6 @@ kibana_server:
- 
-+env_test:
-+  users:
-+    - env.replace@example.comp.com
-+
- remote_ccs:
