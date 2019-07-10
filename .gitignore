@@ -36,3 +36,4 @@ test.sh
 .vagrant/
 .idea/
 *.iml
+*.rej
