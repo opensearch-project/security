@@ -825,7 +825,6 @@ opendistro_security_kibana_server:
   cluster_permissions:
   - "OPENDISTRO_SECURITY_CLUSTER_MONITOR"
   - "OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS"
-  - "cluster:admin/xpack/monitoring*"
   - "indices:admin/template*"
   - "indices:data/read/scroll*"
   index_permissions:
