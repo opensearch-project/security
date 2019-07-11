@@ -98,14 +98,10 @@ public class ConfigTests {
     private void check(String file, CType cType) throws Exception {
         JsonNode jsonNode = YAML.readTree(FileUtils.readFileToString(new File(file), "UTF-8"));
         int configVersion = 1;
-        System.out.println("%%%%%%%% THIS IS A LINE OF INTEREST %%%%%%%");
         if(jsonNode.get("_meta") != null) {
             Assert.assertEquals(jsonNode.get("_meta").get("type").asText(), cType.toLCString());
             configVersion = jsonNode.get("_meta").get("config_version").asInt();
         }
-
-
-        System.out.println("%%%%%%%% THIS IS A LINE OF INTEREST: CONFIG VERSION: "+ configVersion + "%%%%%%%");
         
         SecurityDynamicConfiguration<?> dc = load(file, cType);
         Assert.assertNotNull(dc);
@@ -120,12 +116,10 @@ public class ConfigTests {
         JsonNode jsonNode = YAML.readTree(FileUtils.readFileToString(new File(file), "UTF-8"));
         int configVersion = 1;
 
-        System.out.println("%%%%%%%% THIS IS A LINE OF INTEREST LOAD: CONFIG VERSION: %%%%%%%");
         if(jsonNode.get("_meta") != null) {
             Assert.assertEquals(jsonNode.get("_meta").get("type").asText(), cType.toLCString());
             configVersion = jsonNode.get("_meta").get("config_version").asInt();
         }
-        System.out.println("%%%%%%%% THIS IS A LINE OF INTEREST: CONFIG VERSION: "+ configVersion + "%%%%%%%");
         return SecurityDynamicConfiguration.fromNode(jsonNode, cType, configVersion, 0, 0);
     }
 }
