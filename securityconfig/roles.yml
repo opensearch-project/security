@@ -205,3 +205,6 @@ alerting_full_access:
     '?opendistro-alerting*':
       '*':
         - CRUD
+    '?opendistro-alerting-alert*':
+      '*':
+        - CRUD
