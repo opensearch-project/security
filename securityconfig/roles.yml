@@ -22,7 +22,7 @@ alerting_crud_alerts:
 alerting_full_access:
   readonly: true
   indices:
-    '?opendistro-alerting*':
+    '?opendistro-alerting-config':
       '*':
         - CRUD
     '?opendistro-alerting-alert*':
