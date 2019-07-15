@@ -4,27 +4,28 @@ _meta:
 
 # Allows users to view alerts
 alerting_view_alerts:
-  readonly: true
-  indices:
-    '?opendistro-alerting-alert*':
-      '*':
-        - READ
+  reserved: true
+  index_permissions:
+    - index_patterns:
+      - ".opendistro-alerting-alert*"
+      allowed_actions:
+        - read 
 
 # Allows users to view and acknowledge alerts
 alerting_crud_alerts:
-  readonly: true
-  indices:
-    '?opendistro-alerting-alert*':
-      '*':
-        - CRUD
+  reserved: true
+  index_permissions:
+    - index_patterns:
+      - ".opendistro-alerting-alert*"
+      allowed_actions:
+       - crud 
 
 # Allows users to use all alerting functionality
 alerting_full_access:
-  readonly: true
-  indices:
-    '?opendistro-alerting-config':
-      '*':
-        - CRUD
-    '?opendistro-alerting-alert*':
-      '*':
-        - CRUD
+  reserved: true
+  index_permissions:
+    - index_patterns:
+      - ".opendistro-alerting-config"
+      - ".opendistro-alerting-alert*"
+      allowed_actions:
+        - crud 
