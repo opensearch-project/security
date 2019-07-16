@@ -938,7 +938,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
         }
 
         if (!isInitialized()) {
-            throw new ElasticsearchSecurityException("Could not check for impersonation because Search Guard is not yet initialized");
+            throw new ElasticsearchSecurityException("Could not check for impersonation because Open Distro Security is not yet initialized");
         }
 
         if (adminDns.isAdminDN(impersonatedUserHeader)) {

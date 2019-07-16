@@ -869,9 +869,6 @@ public class IntegrationTests extends SingleClusterTest {
         res = rh.executePutRequest(".open*/_settings", "{\"index\" : {\"number_of_replicas\" : 2}}",
                 encodeBasicHeader("nagilum", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
-        //        res = rh.executePostRequest(".opendistro_security/_freeze", "",
-        //              encodeBasicHeader("nagilum", "nagilum"));
-        //        Assert.assertTrue(res.getStatusCode() >= 400);
     }
 
 }
