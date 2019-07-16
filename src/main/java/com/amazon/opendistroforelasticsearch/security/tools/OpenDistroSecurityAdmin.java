@@ -33,10 +33,8 @@ package com.amazon.opendistroforelasticsearch.security.tools;
 import java.io.ByteArrayInputStream;
 import java.io.Console;
 import java.io.File;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.Reader;
 import java.io.Writer;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -44,6 +42,7 @@ import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Currency;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -115,6 +114,7 @@ import com.amazon.opendistroforelasticsearch.security.ssl.util.ExceptionUtils;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.OpenDistroSecurityDeprecationHandler;
+import com.amazon.opendistroforelasticsearch.security.support.OpenDistroSecurityUtils;
 import com.google.common.io.Files;
 
 public class OpenDistroSecurityAdmin {
@@ -130,7 +130,8 @@ public class OpenDistroSecurityAdmin {
     
     public static void main(final String[] args) {
         try {
-            main0(args);
+            final int returnCode = execute(args);
+            System.exit(returnCode);
         } catch (NoNodeAvailableException e) {
             System.out.println("ERR: Cannot connect to Elasticsearch. Please refer to elasticsearch logfile for more information");
             System.out.println("Trace:");
@@ -163,7 +164,7 @@ public class OpenDistroSecurityAdmin {
         }
     }
 
-    private static void main0(final String[] args) throws Exception {
+    public static int execute(final String[] args) throws Exception {
         
         System.out.println("Open Distro Security Admin v6");
         System.setProperty("security.nowarn.client","true");
@@ -219,6 +220,8 @@ public class OpenDistroSecurityAdmin {
 
         options.addOption(Option.builder("er").longOpt("explicit-replicas").hasArg().argName("number of replicas").desc("Set explicit number of replicas or autoexpand expression for .opendistro_security index").build());
 
+        options.addOption(Option.builder("rev").longOpt("resolve-env-vars").desc("Resolve/Substitute env vars in config with their value before uploading").build());
+
         
         //when adding new options also adjust validate(CommandLine line)
         
@@ -263,6 +266,7 @@ public class OpenDistroSecurityAdmin {
         boolean whoami;
         final boolean promptForPassword;
         String explicitReplicas = null;
+        final boolean resolveEnvVars;
         
         CommandLineParser parser = new DefaultParser();
         try {
@@ -347,11 +351,13 @@ public class OpenDistroSecurityAdmin {
             
             explicitReplicas = line.getOptionValue("er", explicitReplicas);
             
+            resolveEnvVars = line.hasOption("rev");
+            
         }
         catch( ParseException exp ) {
             System.out.println("ERR: Parsing failed.  Reason: " + exp.getMessage());
             formatter.printHelp("securityadmin.sh", options, true);
-            return;
+            return 0;
         }
         
         if(port < 9300) {
@@ -369,7 +375,7 @@ public class OpenDistroSecurityAdmin {
           } catch (java.net.ConnectException ex) {
             System.out.println();
             System.out.println("ERR: Seems there is no Elasticsearch running on "+hostname+":"+port+" - Will exit");
-            System.exit(-1);
+            return (-1);
           } finally {
               try {
                 socket.close();
@@ -474,39 +480,46 @@ public class OpenDistroSecurityAdmin {
                 } else {
                 	System.out.println("Seems you use a node certificate. This is not permitted, you have to use a client certificate and register it as admin_dn in elasticsearch.yml");
                 }
-                System.exit(-1);
+                return (-1);
             } else if(whoAmIRes.isNodeCertificateRequest()) {
                 System.out.println("ERR: Seems you use a node certificate which is also an admin certificate");
                 System.out.println("     That may have worked with older Open Distro Security versions but it indicates");
                 System.out.println("     a configuration error and is therefore forbidden now.");
                 if(failFast) {
-                    System.exit(-1);
+                    return (-1);
                 }
 
             }
 
             if(updateSettings != null) { 
                 Settings indexSettings = Settings.builder().put("index.number_of_replicas", updateSettings).build();                
-                tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();                
+                ConfigUpdateResponse res = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();                
+                if(res.hasFailures()) {
+                    System.out.println("ERR: Unabe to reload config due to "+res.failures());
+                }
                 final AcknowledgedResponse response = tc.admin().indices().updateSettings((new UpdateSettingsRequest(index).settings(indexSettings))).actionGet();
                 System.out.println("Reload config on all nodes");
                 System.out.println("Update number of replicas to "+(updateSettings) +" with result: "+response.isAcknowledged());
-                System.exit(response.isAcknowledged()?0:-1);
+                return ((response.isAcknowledged() && !res.hasFailures())?0:-1);
             }
             
             if(reload) { 
-                tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();                
+                ConfigUpdateResponse res = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();                
+                if(res.hasFailures()) {
+                    System.out.println("ERR: Unabe to reload config due to "+res.failures());
+                    return -1;
+                }
                 System.out.println("Reload config on all nodes");
-                System.exit(0);
+                return 0;
             }
             
-            if(si) { 
-                System.exit(0);
+            if(si) {
+                return (0);
             }
             
             if(whoami) { 
                 System.out.println(whoAmIRes.toString());
-                System.exit(0);
+                return (0);
             }
             
             
@@ -514,11 +527,14 @@ public class OpenDistroSecurityAdmin {
                 Settings indexSettings = Settings.builder()
                         .put("index.auto_expand_replicas", replicaAutoExpand?"0-all":"false")
                         .build();                
-                tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();                
+                ConfigUpdateResponse res = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();                
+                if(res.hasFailures()) {
+                    System.out.println("ERR: Unabe to reload config due to "+res.failures());
+                }
                 final AcknowledgedResponse response = tc.admin().indices().updateSettings((new UpdateSettingsRequest(index).settings(indexSettings))).actionGet();
                 System.out.println("Reload config on all nodes");
                 System.out.println("Auto-expand replicas "+(replicaAutoExpand?"enabled":"disabled"));
-                System.exit(response.isAcknowledged()?0:-1);
+                return ((response.isAcknowledged() && !res.hasFailures())?0:-1);
             }   
             
             if(enableShardAllocation) { 
@@ -535,7 +551,7 @@ public class OpenDistroSecurityAdmin {
                     System.out.println("ERR: Unable to enable shard allocation");
                 }
                 
-                System.exit(successful?0:-1);
+                return (successful?0:-1);
             }   
             
             if(failFast) {
@@ -577,7 +593,7 @@ public class OpenDistroSecurityAdmin {
                         System.out.println("   * If this is not working, try running securityadmin.sh with --diagnose and see diagnose trace log file)"); 
                         System.out.println("   * Add --accept-red-cluster to allow securityadmin to operate on a red cluster.");
 
-                        System.exit(-1);
+                        return (-1);
                     }
                     
                     Thread.sleep(3000);
@@ -593,7 +609,7 @@ public class OpenDistroSecurityAdmin {
                 System.out.println("   * Make also sure that your keystore or PEM certificate is a client certificate (not a node certificate) and configured properly in elasticsearch.yml"); 
                 System.out.println("   * If this is not working, try running securityadmin.sh with --diagnose and see diagnose trace log file)"); 
                 System.out.println("   * Add --accept-red-cluster to allow securityadmin to operate on a red cluster.");
-                System.exit(-1);
+                return (-1);
             }
             
             System.out.println("Clustername: "+chr.getClusterName());
@@ -622,7 +638,7 @@ public class OpenDistroSecurityAdmin {
                     System.out.print("No index '"+index+"' exists, so no need to delete it");
                 }
                 
-                System.exit(success?0:-1);
+                return (success?0:-1);
             }
                
             if (!indexExists) {
@@ -650,7 +666,7 @@ public class OpenDistroSecurityAdmin {
                 } else {
                     System.out.println("failed!");
                     System.out.println("FAIL: Unable to create the "+index+" index. See elasticsearch logs for more details");
-                    System.exit(-1);
+                    return (-1);
                 }
 
             } else {
@@ -676,7 +692,7 @@ public class OpenDistroSecurityAdmin {
                         System.out.println("Cannot retrieve "+index+" index state state due to "+e.getMessage()+". This is not an error, will keep on trying ...");
                     } else {
                         System.out.println("ERR: Cannot retrieve "+index+" index state state due to "+e.getMessage()+".");
-                        System.exit(-1);
+                        return (-1);
                     }
                 }
             }
@@ -698,7 +714,7 @@ public class OpenDistroSecurityAdmin {
                 success = retrieveFile(tc, cd+"roles_mapping_"+date+".yml", index, "rolesmapping", legacy) && success;
                 success = retrieveFile(tc, cd+"internal_users_"+date+".yml", index, "internalusers", legacy) && success;
                 success = retrieveFile(tc, cd+"action_groups_"+date+".yml", index, "actiongroups", legacy) && success;
-                System.exit(success?0:-1);
+                return (success?0:-1);
             }
             
             boolean isCdAbs = new File(cd).isAbsolute();
@@ -708,32 +724,32 @@ public class OpenDistroSecurityAdmin {
             if(file != null) {
                 if(type == null) {
                     System.out.println("ERR: type missing");
-                    System.exit(-1);
+                    return (-1);
                 }
                 
                 if(!Arrays.asList(new String[]{"config", "roles", "rolesmapping", "internalusers","actiongroups" }).contains(type)) {
                     System.out.println("ERR: Invalid type '"+type+"'");
-                    System.exit(-1);
+                    return (-1);
                 }
                 
-                boolean success = uploadFile(tc, file, index, type, legacy);
+                boolean success = uploadFile(tc, file, index, type, legacy, resolveEnvVars);
                 ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{type})).actionGet();
                 
                 success = checkConfigUpdateResponse(cur, nodesInfo, 1) && success;
                 
                 System.out.println("Done with "+(success?"success":"failures"));
-                System.exit(success?0:-1);
+                return (success?0:-1);
             }
 
-            boolean success = uploadFile(tc, cd+"config.yml", index, "config", legacy);
-            success = uploadFile(tc, cd+"roles.yml", index, "roles", legacy) && success;
-            success = uploadFile(tc, cd+"roles_mapping.yml", index, "rolesmapping", legacy) && success;
-            success = uploadFile(tc, cd+"internal_users.yml", index, "internalusers", legacy) && success;
-            success = uploadFile(tc, cd+"action_groups.yml", index, "actiongroups", legacy) && success;
+            boolean success = uploadFile(tc, cd+"config.yml", index, "config", legacy, resolveEnvVars);
+            success = uploadFile(tc, cd+"roles.yml", index, "roles", legacy, resolveEnvVars) && success;
+            success = uploadFile(tc, cd+"roles_mapping.yml", index, "rolesmapping", legacy, resolveEnvVars) && success;
+            success = uploadFile(tc, cd+"internal_users.yml", index, "internalusers", legacy, resolveEnvVars) && success;
+            success = uploadFile(tc, cd+"action_groups.yml", index, "actiongroups", legacy, resolveEnvVars) && success;
             
             if(failFast && !success) {
                 System.out.println("ERR: cannot upload configuration, see errors above");
-                System.exit(-1);
+                return -1;
             }
             
             ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
@@ -741,7 +757,7 @@ public class OpenDistroSecurityAdmin {
             success = checkConfigUpdateResponse(cur, nodesInfo, 5) && success;
             
             System.out.println("Done with "+(success?"success":"failures"));
-            System.exit(success?0:-1);
+            return (success?0:-1);
         }
         // TODO audit changes to .opendistro_security index
     }
@@ -759,9 +775,13 @@ public class OpenDistroSecurityAdmin {
             }           
         }
 
+        if(response.hasFailures()) {
+            System.out.println("FAIL: "+response.failures().size()+" nodes reported failures. First failure is "+response.failures().get(0));
+        }
+        
         boolean success = response.getNodes().size() == expectedNodeCount;
         if(!success) {
-            System.out.println("FAIL: Expected "+expectedNodeCount+" nodes to return response, but got only "+response.getNodes().size());
+            System.out.println("FAIL: Expected "+expectedNodeCount+" nodes to return response, but got "+response.getNodes().size());
         }
         
         for(String nodeId: response.getNodesMap().keySet()) {
@@ -769,16 +789,16 @@ public class OpenDistroSecurityAdmin {
             boolean successNode = (node.getUpdatedConfigTypes() != null && node.getUpdatedConfigTypes().length == expectedConfigCount);
             
             if(!successNode) {
-                System.out.println("FAIL: Expected "+expectedConfigCount+" config types for node "+nodeId+" but got only "+Arrays.toString(node.getUpdatedConfigTypes()) + " due to: "+node.getMessage()==null?"unknown reason":node.getMessage());
+                System.out.println("FAIL: Expected "+expectedConfigCount+" config types for node "+nodeId+" but got "+Arrays.toString(node.getUpdatedConfigTypes()) + " due to: "+(node.getMessage()==null?"unknown reason":node.getMessage()));
             }
             
             success = success && successNode;
         }
-        
-        return success;
+
+        return success && !response.hasFailures();
     }
-    
-    private static boolean uploadFile(final Client tc, final String filepath, final String index, final String _id, final boolean legacy) {
+
+    private static boolean uploadFile(final Client tc, final String filepath, final String index, final String _id, final boolean legacy, boolean resolveEnvVars) {
         
         String type = "security";
         String id = _id;
@@ -789,12 +809,12 @@ public class OpenDistroSecurityAdmin {
         }
         
         System.out.println("Will update '"+type+"/" + id + "' with " + filepath+" "+(legacy?"(legacy mode)":""));
-        
-        try (Reader reader = new FileReader(filepath)) {
 
+        try {
+            final String content = Files.asCharSource(new File(filepath), StandardCharsets.UTF_8).read();
             final String res = tc
                     .index(new IndexRequest(index).type(type).id(id).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                            .source(_id, readXContent(reader, XContentType.YAML))).actionGet().getId();
+                            .source(_id, readXContent(resolveEnvVars?OpenDistroSecurityUtils.replaceEnvVars(content, Settings.EMPTY):content, XContentType.YAML))).actionGet().getId();
 
             if (id.equals(res)) {
                 System.out.println("   SUCC: Configuration for '" + _id + "' created or updated");
@@ -845,11 +865,11 @@ public class OpenDistroSecurityAdmin {
         return false;
     }
 
-    private static BytesReference readXContent(final Reader reader, final XContentType xContentType) throws IOException {
+    private static BytesReference readXContent(final String content, final XContentType xContentType) throws IOException {
         BytesReference retVal;
         XContentParser parser = null;
         try {
-            parser = XContentFactory.xContent(xContentType).createParser(NamedXContentRegistry.EMPTY, OpenDistroSecurityDeprecationHandler.INSTANCE, reader);
+            parser = XContentFactory.xContent(xContentType).createParser(NamedXContentRegistry.EMPTY, OpenDistroSecurityDeprecationHandler.INSTANCE, content);
             parser.nextToken();
             final XContentBuilder builder = XContentFactory.jsonBuilder();
             builder.copyCurrentStructure(parser);

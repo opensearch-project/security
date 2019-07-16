@@ -218,4 +218,35 @@ opendistro_security:
         enabled: false
         authorization_backend:
           type: ldap 
-          #config goes here ...
+          #config goes here ...#    auth_failure_listeners:
+#      ip_rate_limiting:
+#        # Limit failed authentication requests by client IP. This is independed of the used authentication backend.
+#        type: ip
+#        # After the number of allowed tries within the time window specified further elow, the IP will be blocked for the time specified further below.
+#        # Note that increasing this number increases heap usage.
+#        allowed_tries: 10
+#        # The time window to consider. 
+#        time_window_seconds: 3600
+#        # Blocks will be released again after this time. 
+#        block_expiry_seconds: 600
+#        # Maximum number of blocked clients. Limits heap usage to avoid DOS.
+#        max_blocked_clients: 100000
+#        # Maximum number of tracked clients with login failures. Limits heap usage to avoid DOS.
+#        max_tracked_clients: 100000
+#      internal_authentication_backend_limiting:
+#        # Limit failed authentication requests by user name and authentication backend.
+#        type: username
+#        # The authentication backend for which this listener will be installed.
+#        authentication_backend: intern        
+#        # After the number of allowed tries within the time window specified further elow, the IP will be blocked for the time specified further below.
+#        # Note that increasing this number increases heap usage.
+#        allowed_tries: 10
+#        # The time window to consider. 
+#        time_window_seconds: 3600
+#        # Blocks will be released again after this time. 
+#        block_expiry_seconds: 600
+#        # Maximum number of blocked user names. Limits heap usage to avoid DOS.
+#        max_blocked_clients: 100000
+#        # Maximum number of tracked user names with login failures. Limits heap usage to avoid DOS.
+#        max_tracked_clients: 100000
+        

@@ -30,8 +30,8 @@
 
 package com.amazon.opendistroforelasticsearch.security.configuration;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -41,7 +41,6 @@ import java.util.concurrent.TimeoutException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.get.MultiGetItemResponse;
@@ -60,18 +59,19 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.OpenDistroSecurityDeprecationHandler;
+import com.amazon.opendistroforelasticsearch.security.support.OpenDistroSecurityUtils;
 
 class ConfigurationLoader {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
     private final Client client;
-    //private final ThreadContext threadContext;
+    private final Settings settings;
     private final String opendistrosecurityIndex;
 
     ConfigurationLoader(final Client client, ThreadPool threadPool, final Settings settings) {
         super();
         this.client = client;
-        //this.threadContext = threadPool.getThreadContext();
+        this.settings = settings;
         this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
         log.debug("Index is: {}", opendistrosecurityIndex);
     }
@@ -145,11 +145,15 @@ class ConfigurationLoader {
                         GetResponse singleGetResponse = singleResponse.getResponse();
                         if(singleGetResponse.isExists() && !singleGetResponse.isSourceEmpty()) {
                             //success
+                            try {
                             final Tuple<Long, Settings> _settings = toSettings(singleGetResponse);
                             if(_settings.v2() != null) {
                                 callback.success(singleGetResponse.getId(), _settings);
                             } else {
-                                log.error("Cannot parse settings for "+singleGetResponse.getId());
+                                    callback.failure(new Exception("Cannot parse settings for "+singleGetResponse.getId()));
+                                }
+                            } catch (Exception e) {
+                                callback.failure(e);
                             }
                         } else {
                             //does not exist or empty source
@@ -170,7 +174,7 @@ class ConfigurationLoader {
 
     }
 
-    private Tuple<Long, Settings> toSettings(GetResponse singleGetResponse) {
+    private Tuple<Long, Settings> toSettings(GetResponse singleGetResponse) throws Exception {
         final BytesReference ref = singleGetResponse.getSourceAsBytesRef();
         final String id = singleGetResponse.getId();
         final long version = singleGetResponse.getVersion();
@@ -195,9 +199,8 @@ class ConfigurationLoader {
 
             parser.nextToken();
 
-            return new Tuple<Long, Settings>(version, Settings.builder().loadFromStream("dummy.json", new ByteArrayInputStream(parser.binaryValue()), true).build());
-        } catch (final IOException e) {
-            throw ExceptionsHelper.convertToElastic(e);
+            final byte[] content = parser.binaryValue();
+            return new Tuple<Long, Settings>(version, Settings.builder().loadFromSource(OpenDistroSecurityUtils.replaceEnvVars(new String(content, StandardCharsets.UTF_8), settings), XContentType.JSON).build());
         } finally {
             if(parser != null) {
                 try {

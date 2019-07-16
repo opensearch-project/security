@@ -210,6 +210,7 @@ public class SnapshotRestoreTests extends SingleClusterTest {
             tc.admin().cluster().createSnapshot(new CreateSnapshotRequest("all", "all_1").indices("*").includeGlobalState(false).waitForCompletion(true)).actionGet();
     
             ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
+            Assert.assertFalse(cur.hasFailures());
             Assert.assertEquals(currentClusterConfig.getNodes(), cur.getNodes().size());
             System.out.println(cur.getNodesMap());
         }

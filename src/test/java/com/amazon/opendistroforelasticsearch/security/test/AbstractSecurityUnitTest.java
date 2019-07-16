@@ -195,6 +195,7 @@ public abstract class AbstractSecurityUnitTest {
             ConfigUpdateResponse cur = tc
                     .execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(ConfigConstants.CONFIG_NAMES.toArray(new String[0])))
                     .actionGet();
+            Assert.assertFalse(cur.failures().toString(), cur.hasFailures());
             Assert.assertEquals(info.numNodes, cur.getNodes().size());
 
             SearchResponse sr = tc.search(new SearchRequest(".opendistro_security")).actionGet();
@@ -232,6 +233,7 @@ public abstract class AbstractSecurityUnitTest {
 
         if(!sslOnly) {
             builder.putList("opendistro_security.authcz.admin_dn", "CN=kirk,OU=client,O=client,l=tEst, C=De");
+                    builder.put(ConfigConstants.OPENDISTRO_SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, false);
             //.put(other==null?Settings.EMPTY:other);
         }
 
