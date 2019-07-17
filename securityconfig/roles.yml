@@ -2,6 +2,13 @@ _meta:
   type: "roles"
   config_version: 2
 
+# Restrict users so they can only view visualization and dashboard on kibana
+kibana_read_only:
+  reserved: true
+
+rest_api_access:
+  reserved: true
+ 
 # Allows users to view alerts
 alerting_view_alerts:
   reserved: true
