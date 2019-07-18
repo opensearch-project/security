@@ -11,7 +11,7 @@ _meta:
 ## Demo roles mapping
 
 all_access:
-  reserved: true
+  reserved: false
   backend_roles:
   - "admin"
   description: "Maps admin to all_access"
@@ -34,12 +34,12 @@ kibana_user:
   description: "Maps kibanauser to kibana_user"
 
 readall:
-  reserved: true
+  reserved: false
   backend_roles:
   - "readall"
 
 manage_snapshots:
-  reserved: true
+  reserved: false
   backend_roles:
   - "snapshotrestore"
 
