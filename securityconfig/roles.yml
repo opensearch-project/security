@@ -6,7 +6,7 @@ _meta:
 kibana_read_only:
   reserved: true
 
-rest_api_access:
+security_rest_api_access:
   reserved: true
  
 # Allows users to view alerts
