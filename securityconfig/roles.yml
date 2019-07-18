@@ -6,6 +6,7 @@ _meta:
 kibana_read_only:
   reserved: true
 
+# The security REST API access role is used to assign specific users access to change the security settings through the REST API.
 security_rest_api_access:
   reserved: true
  
