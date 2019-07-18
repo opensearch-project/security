@@ -1,4 +1,9 @@
-## 2019-07-11, Version 1.0.0.1 (Current)
+## 2019-07-18, Version 1.0.0.2 (Current)
+
+- Added Kibana readonly roles (https://github.com/opendistro-for-elasticsearch/security/pull/96)
+- Added alerting related roles.
+
+## 2019-07-11, Version 1.0.0.1 
 
 - Nit fixes from older version
 
