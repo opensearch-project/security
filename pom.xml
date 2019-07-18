@@ -52,7 +52,7 @@
   </licenses>
 
   <properties>
-    <opendistro_security_advanceda_modules.version>1.0.0.1</opendistro_security_advanceda_modules.version>
+    <opendistro_security_advanceda_modules.version>1.0.0.2</opendistro_security_advanceda_modules.version>
     <elasticsearch.version>7.0.1</elasticsearch.version>
 
     <!-- deps -->
@@ -366,7 +366,7 @@
                 <dependency>
                     <groupId>com.amazon.opendistroforelasticsearch</groupId>
                     <artifactId>opendistro_security_advanced_modules</artifactId>
-                    <version>1.0.0.1</version>
+                    <version>1.0.0.2</version>
                     <exclusions>
                         <exclusion>
                             <artifactId>jna</artifactId>
