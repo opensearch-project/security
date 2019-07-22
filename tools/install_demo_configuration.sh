@@ -196,6 +196,114 @@ if $SUDO_CMD grep --quiet -i opendistro_security "$ES_CONF_FILE"; then
   exit $skip_updates
 fi
 
+#configure default SAML
+if [ "$EnableSAML" == true ]; then
+
+    OP_DISTRO_CONFIG_FILE="$BASE_DIR/plugins/opendistro_security/securityconfig/config.yml"
+
+    if [ "$SAML_exchange_key" ]; then
+        sed -i -e "/^\s*roles_key:.*$/{n;d}" -e '$!N;/\n.*string/!P;D' "${OP_DISTRO_CONFIG_FILE}" 
+        sed -i -e "/^\s*roles_key:.*$/a\            exchange_key: ${SAML_exchange_key}" "${OP_DISTRO_CONFIG_FILE}"
+    fi
+
+    if [ "$SAML_subject_key" ];then
+        sed -i -e "/^\s*roles_key: Role\s*$/i\            subject_key: ${SAML_subject_key}" "${OP_DISTRO_CONFIG_FILE}"
+    fi
+
+    if [ "$SAML_roles_key" ];then
+        sed -i -e "/^\s*exchange_key:.*$/i\            exchange_key: ${SAML_roles_key}" "${OP_DISTRO_CONFIG_FILE}"
+    fi
+
+    if [ "$SAML_kibana_url" ];then
+         sed -i -e "/^\s*kibna_url:/d" "${OP_DISTRO_CONFIG_FILE}"
+         sed -i -e "/^\s*forceAuthn:.*$/a\            kibana_url: ${SAML_kibana_url}" "${OP_DISTRO_CONFIG_FILE}"
+    fi
+
+    if [ "$SAML_forceAuthn" == false ];then
+        sed -i -e "/^\s*entity_id: SAML-Demo-ID*$/{n;d}" -e '$!N;/\n.*string/!P;D' "${OP_DISTRO_CONFIG_FILE}" 
+        sed -i -e "/^\s*entity_id: SAML-Demo-ID*$/a\              forceAuthn: false" "${OP_DISTRO_CONFIG_FILE}"
+    fi
+
+    if [ "$SAML_signature_private_key" ];then
+        sed -i -e "/^\s*forceAuthn:.*$/a\              signature_private_key: ${SAML_signature_private_key}" "${OP_DISTRO_CONFIG_FILE}"
+    fi
+
+    if [ "$SAML_signature_algorithm" ];then
+        sed -i -e "/^\s*forceAuthn:.*$/a\              signature_algorithm: ${SAML_signature_algorithm}" "${OP_DISTRO_CONFIG_FILE}"
+    fi
+
+    if [ "$SAML_sp_entity_id" ];then
+        sed -i -e "/^\s*sp:\s*$/{n;d}" -e '$!N;/\n.*string/!P;D' "${OP_DISTRO_CONFIG_FILE}"
+        sed -i -e "/^\s*sp:\s*$/a\              entity_id: ${SAML_sp_entity_id}" "${OP_DISTRO_CONFIG_FILE}"
+    fi
+
+    if [ "SAML_enabled_ssl_ciphers" ];then
+        IFS=";"
+        array=($SAML_enabled_ssl_ciphers)
+        for i in "${!array[@]}"; do
+            sed -i -e "/^\s*entity_id: null\s*$/a\                - ${array[i]}" "${OP_DISTRO_CONFIG_FILE}"
+        done
+        sed -i -e "/^\s*entity_id: null\s*$/a\              enabled_ssl_ciphers:" "${OP_DISTRO_CONFIG_FILE}"
+    fi
+
+    if [ "$SAML_enabled_ssl_protocols" ];then
+        IFS=";"
+        array=($SAML_enabled_ssl_protocols)
+        for i in "${!array[@]}"; do
+            sed -i -e "/^\s*entity_id: null\s*$/a\                - ${array[i]}" "${OP_DISTRO_CONFIG_FILE}"
+        done
+        sed -i -e "/^\s*entity_id: null\s*$/a\              enabled_ssl_protocols:" "${OP_DISTRO_CONFIG_FILE}"
+    fi
+
+    if [ "$SAML_pemkey_password" ];then
+        sed -i -e "/^\s*entity_id: null\s*$/a\              pemkey_password: ${SAML_pemkey_password}" "${OP_DISTRO_CONFIG_FILE}"
+    fi
+
+    if [ "$SAML_pemkey_filepath" ];then
+        sed -i -e "/^\s*entity_id: null\s*$/a\              pemkey_filepath: ${SAML_pemkey_filepath}" "${OP_DISTRO_CONFIG_FILE}"
+    fi
+
+    if [ "$SAML_pemcert_filepath" ];then
+        sed -i -e "/^\s*entity_id: null\s*$/a\              pemcert_filepath: ${SAML_pemcert_filepath}" "${OP_DISTRO_CONFIG_FILE}"
+    fi
+
+    if [ "$SAML_enable_ssl_client_auth" == true ];then
+        sed -i -e "/^\s*entity_id: null\s*$/a\              enable_ssl_client_auth: true" "${OP_DISTRO_CONFIG_FILE}"
+    elif [ "$SAML_enable_ssl_client_auth" == false ];then
+        sed -i -e "/^\s*entity_id: null\s*$/a\              enable_ssl_client_auth: false" "${OP_DISTRO_CONFIG_FILE}"
+    fi
+
+    if [ "$SAML_pemtrustedcas_filepath" ];then
+        sed -i -e "/^\s*entity_id: null\s*$/a\              pemtrustedcas_filepath: ${SAML_pemtrustedcas_filepath}" "${OP_DISTRO_CONFIG_FILE}"
+    fi
+
+    if [ "$SAML_verify_hostnames" == true ];then
+        sed -i -e "/^\s*entity_id: null\s*$/a\              verify_hostnames: true" "${OP_DISTRO_CONFIG_FILE}"
+    elif [ "$SAML_verify_hostnames" == false ];then
+        sed -i -e "/^\s*entity_id: null\s*$/a\              verify_hostnames: false" "${OP_DISTRO_CONFIG_FILE}"
+    fi
+
+    if [ "$SAML_enable_ssl" == true ];then
+        sed -i -e "/^\s*entity_id: null\s*$/a\              enable_ssl: true" "${OP_DISTRO_CONFIG_FILE}"
+    elif [ "$SAML_enable_ssl" == false ];then
+         sed -i -e "/^\s*entity_id: null\s*$/a\              enable_ssl: false" "${OP_DISTRO_CONFIG_FILE}"
+    fi
+
+    sed -i -e "/^\s*idp:\s*$/{n;d}" -e '$!N;/\n.*string/!P;D' "${OP_DISTRO_CONFIG_FILE}"
+    sed -i -e "/^\s*idp:\s*$/{n;d}" -e '$!N;/\n.*string/!P;D' "${OP_DISTRO_CONFIG_FILE}"
+    sed -i -e "/^\s*idp:\s*$/{n;d}" -e '$!N;/\n.*string/!P;D' "${OP_DISTRO_CONFIG_FILE}"
+    sed -i -e "/^\s*idp:\s*$/a\              entity_id: ${SAML_idp_entity_id}" "${OP_DISTRO_CONFIG_FILE}"
+    sed -i -e "/^\s*idp:\s*$/a\              metadata_url: ${SAML_metadata_url}" "${OP_DISTRO_CONFIG_FILE}"
+    sed -i -e "/^\s*idp:\s*$/a\              metadata_file: ${SAML_metadata_file}" "${OP_DISTRO_CONFIG_FILE}"
+
+    sed -i -e "/^\s*saml_auth_domain:\s*$/{n;d}" -e '$!N;/\n.*string/!P;D' "${OP_DISTRO_CONFIG_FILE}"
+    sed -i -e "/^\s*saml_auth_domain:\s*$/{n;d}" -e '$!N;/\n.*string/!P;D' "${OP_DISTRO_CONFIG_FILE}"
+    sed -i -e "/^\s*saml_auth_domain:\s*$/a\        transport_enabled: true" "${OP_DISTRO_CONFIG_FILE}"
+    sed -i -e "/^\s*saml_auth_domain:\s*$/a\        http_enabled: true" "${OP_DISTRO_CONFIG_FILE}"
+    sed -i -e "/^\s*type: basic\s*$/{n;d}" -e '$!N;/\n.*string/!P;D' "${OP_DISTRO_CONFIG_FILE}"
+    sed -i -e "/^\s*type: basic\s*$/a\          challenge: false" "${OP_DISTRO_CONFIG_FILE}"
+fi
+
 set +e
 
 read -r -d '' ADMIN_CERT << EOM

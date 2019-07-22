@@ -177,6 +177,27 @@ config:
             usersearch: '(sAMAccountName={0})'
             # Use this attribute from the user as username (if not set then DN is used)
             username_attribute: null
+    saml_auth_domain:
+        http_enabled: false
+        transport_enabled: false
+        order: 7
+        http_authenticator:
+          type: saml
+          challenge: true
+          config:
+            idp:
+              metadata_file: null
+              metadata_url: null
+              entity_id: null
+            sp:
+              entity_id: SAML-Demo-ID
+              forceAuthn: true
+            kibana_url: http://localhost:5601/
+            roles_key: Role
+            exchange_key: 'MIIDYjCCAkoCCQD/vVmtAGm39TANBgkqhkiG9w0BAQsFADBzMQswCQYDVQQGEwJ1
+czELMAkGA1UECAwCY2ExDTALBgNVBAcMBHBhbG8xDDAKBgNVBAoMA2FtYTELMAkGA1UECwwCZXMxCzAJBgNVBAMMAnloMSAwHgYJKoZIhvcNAQkBFhFjeWhsbGwzMjFAMTYzLmNvbTAeFw0xOTA2MDMyMzMxMDhaFw0xOTA3MDMyMzMxMDhaMHMxCzAJBgNVBAYTAnVzMQswCQYDVQQIDAJjYTENMAsGA1UEBwwEcGFsbzEMMAoGA1UECgwDYW1hMQswCQYDVQQLDAJlczELMAkGA1UEAwwCeWgxIDAeBgkqhkiG9w0BCQEWEWN5aGxsbDMyMUAxNjMuY29tMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0yyCoz/Chq56iWJX0/Q3lej0SUgFKRFrR77dfVWQ+B384lOWTJdWNNRrso0f0nBUGV66cga98LnDIhC5+Qp4mT6Ms8AWc1sPxgQ591I6jpZDFYORVNOHVQi96naZaDBAlSNAw6k8WHrJEiTXvGpuoLO8gno+nUS+ISgDZaYo/uSQkhSJBBwU4JAJJXzLxsH7E3bo4d1A/kcT0623+JArpzLVOzH1N9nfhzXp7vTNk/ItGk+UeT8NDR7K9fy+1mvHu+EZDQEoEfaA1URybMO1C1kuzdx/N6oonOE3W9PPjs6kTUTY8h0SqHL8hwkiY0TSAoSRawOdcJRs2wdXNmG3wQIDAQABMA0GCSqGSIb3DQEBCwUAA4IBAQAUHvNf4OMeKD2Vn4yb4KOyjdJRGYJVoP5yX7dDdm5m1Ww5tW1YtClMw8ygz2cGxHQaNNLUSlY0yU9CQjaVFBimpUFKp7nMSDzs0EIJZ6/SL/yR5bcEMVLt4mhesXor6hnqv690EM4fAAzgZ71BoTzpKPo1ITOnvnWX57JylRX2a0EUtwsx+puLqUuEzUF0mZ9YvNV4Su3sazaLvYP1aY1E2jsEaL29tV/gimG7M9kTlBN5kjatkaOHq71fgmcsT71vC9XKyDK37uFvNyxAqnIcyhzbYIz8I9xaXPTvnzNCaS9Zy1r3CRraxoLp3QJ1Dk5DxQ5Q23ZO/AbAuV6iRNVB'
+        authentication_backend:
+          type: noop
     authz:
       roles_from_myldap:
         description: "Authorize via LDAP or Active Directory"
