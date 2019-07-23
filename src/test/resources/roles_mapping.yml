@@ -165,6 +165,10 @@ opendistro_security_kibana_server:
   users:
     - kibanaserver
 
+env_test:
+  users:
+  - env.replace@example.comp.com
+
 opendistro_security_remote_ccs:
   users:
     - crusherw

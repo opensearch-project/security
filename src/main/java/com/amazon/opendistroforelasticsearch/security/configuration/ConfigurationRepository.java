@@ -74,7 +74,7 @@ public interface ConfigurationRepository {
      * they will be absent in result map
      * @throws NullPointerException if specified collection with type null or contain null or empty types
      */
-    Map<String, Settings> reloadConfiguration(Collection<String> configTypes);
+    Map<String, Settings> reloadConfiguration(Collection<String> configTypes) throws ConfigUpdateAlreadyInProgressException;
 
     /**
      * Save changed configuration in persistence layer. After save, changes will be available for

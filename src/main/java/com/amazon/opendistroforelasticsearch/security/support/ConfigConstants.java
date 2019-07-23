@@ -203,6 +203,7 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_CACHE_TTL_MINUTES = "opendistro_security.cache.ttl_minutes";
     public static final String OPENDISTRO_SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES = "opendistro_security.allow_unsafe_democertificates";
     public static final String OPENDISTRO_SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX = "opendistro_security.allow_default_init_securityindex";
+    public static final String OPENDISTRO_SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST = "opendistro_security.background_init_if_securityindex_not_exist";
 
     public static final String OPENDISTRO_SECURITY_ROLES_MAPPING_RESOLUTION = "opendistro_security.roles_mapping_resolution";
 
@@ -221,6 +222,8 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED  = "opendistro_security.compliance.history.internal_config_enabled";
 
     public static final String OPENDISTRO_SECURITY_SSL_ONLY = "opendistro_security.ssl_only";
+    
+    public static final String OPENDISTRO_SECURITY_DISABLE_ENVVAR_REPLACEMENT = "opendistro_security.disable_envvar_replacement";
     
     public enum RolesMappingResolution {
         MAPPING_ONLY,
@@ -245,4 +248,7 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_UNSUPPORTED_RESTORE_SECURITYINDEX_ENABLED = "opendistro_security.unsupported.restore.securityindex.enabled";
     public static final String OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_USER_ENABLED = "opendistro_security.unsupported.inject_user.enabled";
     public static final String OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_ADMIN_USER_ENABLED = "opendistro_security.unsupported.inject_user.admin.enabled";
+    public static final String OPENDISTRO_SECURITY_UNSUPPORTED_ALLOW_NOW_IN_DLS = "opendistro_security.unsupported.allow_now_in_dls";
+    public static final String OPENDISTRO_SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION = "opendistro_security.unsupported.restapi.allow_Securityconfig_modification";
+
 }

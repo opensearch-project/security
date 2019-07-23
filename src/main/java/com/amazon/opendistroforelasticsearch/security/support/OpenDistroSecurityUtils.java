@@ -30,19 +30,29 @@
 
 package com.amazon.opendistroforelasticsearch.security.support;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.settings.Settings;
+
+import com.amazon.opendistroforelasticsearch.security.tools.Hasher;
 
 public final class OpenDistroSecurityUtils {
     
     protected final static Logger log = LogManager.getLogger(OpenDistroSecurityUtils.class);
+    private static final Pattern ENV_PATTERN = Pattern.compile("\\$\\{env\\.([\\w]+)((\\:\\-)?[\\w]*)\\}");
+    private static final Pattern ENVBC_PATTERN = Pattern.compile("\\$\\{envbc\\.([\\w]+)((\\:\\-)?[\\w]*)\\}");
+    private static final Pattern ENVBASE64_PATTERN = Pattern.compile("\\$\\{envbase64\\.([\\w]+)((\\:\\-)?[\\w]*)\\}");
     public static Locale EN_Locale = forEN();
 
 
@@ -111,5 +121,77 @@ public final class OpenDistroSecurityUtils {
             map.put(keyValues[i], keyValues[i+1]);
         }
         return map;
+    }
+    
+    public static String replaceEnvVars(String in, Settings settings) {
+        if(in == null || in.isEmpty()) {
+            return in;
+        }
+        
+        if(settings == null || settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_DISABLE_ENVVAR_REPLACEMENT, false)) {
+            return in;
+        }
+        
+        return replaceEnvVarsBC(replaceEnvVarsNonBC(replaceEnvVarsBase64(in)));
+    }
+    
+    private static String replaceEnvVarsNonBC(String in) {
+        //${env.MY_ENV_VAR}
+        //${env.MY_ENV_VAR:-default}
+        Matcher matcher = ENV_PATTERN.matcher(in);
+        StringBuffer sb = new StringBuffer();
+        while(matcher.find()) {
+            final String replacement = resolveEnvVar(matcher.group(1), matcher.group(2), false);
+            if(replacement != null) {
+                matcher.appendReplacement(sb, Matcher.quoteReplacement(replacement));
+            }
+        }
+        matcher.appendTail(sb);
+        return sb.toString();
+    }
+    
+    private static String replaceEnvVarsBC(String in) {
+        //${envbc.MY_ENV_VAR}
+        //${envbc.MY_ENV_VAR:-default}
+        Matcher matcher = ENVBC_PATTERN.matcher(in);
+        StringBuffer sb = new StringBuffer();
+        while(matcher.find()) {
+            final String replacement = resolveEnvVar(matcher.group(1), matcher.group(2), true);
+            if(replacement != null) {
+                matcher.appendReplacement(sb, Matcher.quoteReplacement(replacement));
+            }
+        }
+        matcher.appendTail(sb);
+        return sb.toString();
+    }
+    
+    private static String replaceEnvVarsBase64(String in) {
+        //${envbc.MY_ENV_VAR}
+        //${envbc.MY_ENV_VAR:-default}
+        Matcher matcher = ENVBASE64_PATTERN.matcher(in);
+        StringBuffer sb = new StringBuffer();
+        while(matcher.find()) {
+            final String replacement = resolveEnvVar(matcher.group(1), matcher.group(2), false);
+            if(replacement != null) {
+                matcher.appendReplacement(sb, (Matcher.quoteReplacement(new String(Base64.getDecoder().decode(replacement), StandardCharsets.UTF_8))));
+            }
+        }
+        matcher.appendTail(sb);
+        return sb.toString();
+    }
+    
+    //${env.MY_ENV_VAR}
+    //${env.MY_ENV_VAR:-default}
+    private static String resolveEnvVar(String envVarName, String mode, boolean bc) {
+        final String envVarValue = System.getenv(envVarName);
+        if(envVarValue == null || envVarValue.isEmpty()) {
+            if(mode != null && mode.startsWith(":-") && mode.length() > 2) {
+                return bc?Hasher.hash(mode.substring(2).toCharArray()):mode.substring(2);
+            } else {
+                return null;
+            }
+        } else {
+            return bc?Hasher.hash(envVarValue.toCharArray()):envVarValue;
+        }
     }
 }
