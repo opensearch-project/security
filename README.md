@@ -34,7 +34,7 @@ Open Distro for Elasticsearch Security is an Elasticsearch plugin that offers en
 
 ## Documentation
 
-Please refer to the [technical documentation](https://opendistro.github.io/for-elasticsearch-docs) for detailed information on installing and configuring opendistro-elasticsearch-security plugin.
+Please refer to the [technical documentation](https://opendistro.github.io/for-elasticsearch-docs/docs/security-configuration/) for detailed information on installing and configuring opendistro-elasticsearch-security plugin.
 
 ## Quick Start
 
