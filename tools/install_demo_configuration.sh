@@ -215,7 +215,7 @@ if [ "$EnableSAML" == true ]; then
     fi
 
     if [ "$SAML_kibana_url" ];then
-         sed -i -e "/^\s*kibna_url:/d" "${OP_DISTRO_CONFIG_FILE}"
+         sed -i -e "/^\s*kibana_url:/d" "${OP_DISTRO_CONFIG_FILE}"
          sed -i -e "/^\s*forceAuthn:.*$/a\            kibana_url: ${SAML_kibana_url}" "${OP_DISTRO_CONFIG_FILE}"
     fi
 
