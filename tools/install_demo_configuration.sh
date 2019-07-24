@@ -198,7 +198,6 @@ fi
 
 #configure default SAML
 if [ "$EnableSAML" == true ]; then
-
     OP_DISTRO_CONFIG_FILE="$BASE_DIR/plugins/opendistro_security/securityconfig/config.yml"
 
     if [ "$SAML_exchange_key" ]; then
@@ -207,16 +206,17 @@ if [ "$EnableSAML" == true ]; then
     fi
 
     if [ "$SAML_subject_key" ];then
-        sed -i -e "/^\s*roles_key: Role\s*$/i\            subject_key: ${SAML_subject_key}" "${OP_DISTRO_CONFIG_FILE}"
+        sed -i -e "/^\s*roles_key.*$/i\            subject_key: ${SAML_subject_key}" "${OP_DISTRO_CONFIG_FILE}"
     fi
 
     if [ "$SAML_roles_key" ];then
-        sed -i -e "/^\s*exchange_key:.*$/i\            exchange_key: ${SAML_roles_key}" "${OP_DISTRO_CONFIG_FILE}"
+        sed -i -e "/roles_key:/d" "${OP_DISTRO_CONFIG_FILE}"
+        sed -i -e "/^\s*exchange_key:.*$/i\            roles_key: ${SAML_roles_key}" "${OP_DISTRO_CONFIG_FILE}"
     fi
 
     if [ "$SAML_kibana_url" ];then
-         sed -i -e "/^\s*kibana_url:/d" "${OP_DISTRO_CONFIG_FILE}"
-         sed -i -e "/^\s*forceAuthn:.*$/a\            kibana_url: ${SAML_kibana_url}" "${OP_DISTRO_CONFIG_FILE}"
+        sed -i -e "/^\s*kibana_url:/d" "${OP_DISTRO_CONFIG_FILE}"
+        sed -i -e "/^\s*forceAuthn:.*$/a\            kibana_url: ${SAML_kibana_url}" "${OP_DISTRO_CONFIG_FILE}"
     fi
 
     if [ "$SAML_forceAuthn" == false ];then
@@ -286,7 +286,7 @@ if [ "$EnableSAML" == true ]; then
     if [ "$SAML_enable_ssl" == true ];then
         sed -i -e "/^\s*entity_id: null\s*$/a\              enable_ssl: true" "${OP_DISTRO_CONFIG_FILE}"
     elif [ "$SAML_enable_ssl" == false ];then
-         sed -i -e "/^\s*entity_id: null\s*$/a\              enable_ssl: false" "${OP_DISTRO_CONFIG_FILE}"
+        sed -i -e "/^\s*entity_id: null\s*$/a\              enable_ssl: false" "${OP_DISTRO_CONFIG_FILE}"
     fi
 
     sed -i -e "/^\s*idp:\s*$/{n;d}" -e '$!N;/\n.*string/!P;D' "${OP_DISTRO_CONFIG_FILE}"
