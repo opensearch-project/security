@@ -237,7 +237,7 @@ if [ "$EnableSAML" == true ]; then
         sed -i -e "/^\s*sp:\s*$/a\              entity_id: ${SAML_sp_entity_id}" "${OP_DISTRO_CONFIG_FILE}"
     fi
 
-    if [ "SAML_enabled_ssl_ciphers" ];then
+    if [ "$SAML_enabled_ssl_ciphers" ];then
         IFS=";"
         array=($SAML_enabled_ssl_ciphers)
         for i in "${!array[@]}"; do
