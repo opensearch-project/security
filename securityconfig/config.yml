@@ -177,7 +177,7 @@ config:
             usersearch: '(sAMAccountName={0})'
             # Use this attribute from the user as username (if not set then DN is used)
             username_attribute: null
-    saml_auth_domain:
+      saml_auth_domain:
         http_enabled: false
         transport_enabled: false
         order: 7
