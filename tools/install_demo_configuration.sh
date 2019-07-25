@@ -206,7 +206,7 @@ if [ "$EnableSAML" == true ]; then
     fi
 
     if [ "$SAML_subject_key" ];then
-        sed -i -e "/^\s*roles_key.*$/i\            subject_key: ${SAML_subject_key}" "${OP_DISTRO_CONFIG_FILE}"
+        sed -i -e "/^\s*roles_key: Role*$/i\            subject_key: ${SAML_subject_key}" "${OP_DISTRO_CONFIG_FILE}"
     fi
 
     if [ "$SAML_roles_key" ];then
