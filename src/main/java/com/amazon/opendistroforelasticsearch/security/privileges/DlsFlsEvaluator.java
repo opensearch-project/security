@@ -112,8 +112,7 @@ public class DlsFlsEvaluator {
             }
         }
 
-
-
+        securityRoles.getRoleNames().stream().forEach(role -> user.addRole(role));
         // attach dls/fls map if not already done
         final Tuple<Map<String, Set<String>>, Map<String, Set<String>>> dlsFls = securityRoles.getDlsFls(user, resolver, clusterService);
         final Map<String, Set<String>> dlsQueries = dlsFls.v1();
