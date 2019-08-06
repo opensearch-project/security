@@ -82,7 +82,7 @@ implements TransportRequestHandler<T> {
             throw exception;
         }
  
-        if (!"netty".equals(channel.getChannelType())) { //netty4
+        if (!"transport".equals(channel.getChannelType())) { //netty4
             messageReceivedDecorate(request, actualHandler, channel, task);
             return;
         }

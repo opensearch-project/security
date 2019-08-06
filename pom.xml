@@ -56,7 +56,7 @@
     <elasticsearch.version>7.2.0</elasticsearch.version>
 
     <!-- deps -->
-    <netty-native.version>2.0.20.Final</netty-native.version>
+    <netty-native.version>2.0.25.Final</netty-native.version>
     <bc.version>1.61</bc.version>
     <log4j.version>2.11.1</log4j.version>
     <guava.version>25.1-jre</guava.version>
@@ -459,7 +459,7 @@
                 <dependency>
                     <groupId>com.floragunn</groupId>
                     <artifactId>search-guard-static-tcnative-beta</artifactId>
-                    <version>1.1.1a-${netty-native.version}-non-fedora-linux-x86_64</version>
+                    <version>1.1.1c-${netty-native.version}-non-fedora-linux-x86_64</version>
                     <scope>provided</scope>
                 </dependency>
             </dependencies>
@@ -470,7 +470,7 @@
                 <dependency>
                     <groupId>com.floragunn</groupId>
                     <artifactId>search-guard-static-tcnative-beta</artifactId>
-                    <version>1.1.1a-${netty-native.version}-fedora-linux-x86_64</version>
+                    <version>1.1.1c-${netty-native.version}-fedora-linux-x86_64</version>
                     <scope>provided</scope>
                 </dependency>
             </dependencies>
