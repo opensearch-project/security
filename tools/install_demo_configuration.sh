@@ -381,7 +381,7 @@ echo 'opendistro_security.restapi.roles_enabled: ["all_access", "security_rest_a
 #configure default LDAP
 if [ "$EnableLDAP" == true ]; then
     echo "Configure LDAP anthentication"
-    OP_DISTRO_CONFIG_FILE=/usr/share/elasticsearch/plugins/opendistro_security/securityconfig/config.yml
+    OP_DISTRO_CONFIG_FILE=${ES_PLUGINS_DIR}/opendistro_security/securityconfig/config.yml
     #configure default LDAP
     if [ "$LDAP_enable_ssl" == true ]; then
         sed -i -e "/^\s*# enable ldaps\s*$/{n;d}" -e '$!N;/\n.*string/!P;D' "${OP_DISTRO_CONFIG_FILE}"
@@ -526,7 +526,7 @@ fi
 #configure default SAML
 if [ "$EnableSAML" == true ]; then
     echo "Configure SAML anthentication"
-    OP_DISTRO_CONFIG_FILE=/usr/share/elasticsearch/plugins/opendistro_security/securityconfig/config.yml
+    OP_DISTRO_CONFIG_FILE=${ES_PLUGINS_DIR}/opendistro_security/securityconfig/config.yml
 
     #configure SAML
     sed -i -e "/    authz:/i\      saml:" "${OP_DISTRO_CONFIG_FILE}"
