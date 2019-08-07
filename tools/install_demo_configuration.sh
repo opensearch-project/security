@@ -623,8 +623,12 @@ if [ "$EnableSAML" == true ]; then
         sed -i -e "/    authz:/i\              forceAuthn: true" "${OP_DISTRO_CONFIG_FILE}"
     fi
 
-    if [ "$SAML_signature_private_key" ];then
-        sed -i -e "/    authz:/i\              signature_private_key: ${SAML_signature_private_key}" "${OP_DISTRO_CONFIG_FILE}"
+    if [ "$SAML_signature_private_key_password" ];then
+        sed -i -e "/    authz:/i\              signature_private_key_password: ${SAML_signature_private_key_password}" "${OP_DISTRO_CONFIG_FILE}"
+    fi
+
+    if [ "$SAML_signature_private_key_filepath" ];then
+        sed -i -e "/    authz:/i\              signature_private_key_filepath: ${SAML_signature_private_key_filepath}" "${OP_DISTRO_CONFIG_FILE}"
     fi
 
     if [ "$SAML_signature_algorithm" ];then
