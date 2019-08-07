@@ -379,10 +379,14 @@ echo "opendistro_security.check_snapshot_restore_write_privileges: true" | $SUDO
 echo 'opendistro_security.restapi.roles_enabled: ["all_access", "security_rest_api_access"]' | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
 
 #configure default LDAP
+#add ENV EnableLDAP=true will enable LDAP auth
+#Change each setting in LDAP by adding the ENV LDAP_{setting_name}
+#exmaple to change LDAP configuration:
+#  add ENV LDAP_hosts=http://example:389 will change the value of hosts to 'http://example:389' in both LDAP authc and authz
+#  add ENV LDAP_userbase=ou=People,dc=example,dc=org will change the value of userbase to 'ou=People,dc=example,dc=org' will in both LDAP authc and authz
 if [ "$EnableLDAP" == true ]; then
     echo "Configure LDAP anthentication"
     OP_DISTRO_CONFIG_FILE=${ES_PLUGINS_DIR}/opendistro_security/securityconfig/config.yml
-    #configure default LDAP
     if [ "$LDAP_enable_ssl" == true ]; then
         sed -i -e "/^\s*# enable ldaps\s*$/{n;d}" -e '$!N;/\n.*string/!P;D' "${OP_DISTRO_CONFIG_FILE}"
         sed -i -e "/^\s*# enable ldaps\s*$/a\            enable_ssl: true" "${OP_DISTRO_CONFIG_FILE}"
@@ -524,11 +528,15 @@ if [ "$EnableLDAP" == true ]; then
 fi
 
 #configure default SAML
+#add ENV EnableSAML=true  will enable SAML auth
+#Change each setting in SAML by adding the ENV SAML_{setting_name}
+#exmaple to change SAML configuration:
+#  add ENV SAML_metadata_url=http://example:8080 will change the value of metadata_url to 'http://example:8080'
+#  add ENV SAML_sp_entity_id=SAML-Demo-ID will change the value of sp.entity.id to 'SAML-Demo-Id'
 if [ "$EnableSAML" == true ]; then
     echo "Configure SAML anthentication"
     OP_DISTRO_CONFIG_FILE=${ES_PLUGINS_DIR}/opendistro_security/securityconfig/config.yml
 
-    #configure SAML
     sed -i -e "/    authz:/i\      saml:" "${OP_DISTRO_CONFIG_FILE}"
     sed -i -e "/    authz:/i\        http_enabled: true" "${OP_DISTRO_CONFIG_FILE}"
     sed -i -e "/    authz:/i\        transport_enabled: true" "${OP_DISTRO_CONFIG_FILE}"
