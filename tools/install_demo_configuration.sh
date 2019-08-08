@@ -384,127 +384,148 @@ echo 'opendistro_security.restapi.roles_enabled: ["all_access", "security_rest_a
 #exmaple to change LDAP configuration:
 #  add ENV LDAP_hosts=http://example:389 will change the value of hosts to 'http://example:389' in both LDAP authc and authz
 #  add ENV LDAP_userbase=ou=People,dc=example,dc=org will change the value of userbase to 'ou=People,dc=example,dc=org' will in both LDAP authc and authz
-if [ "$EnableLDAP" == true ]; then
+if [ "$ENABLE_LDAP" == true ]; then
     echo "Configure LDAP anthentication"
+
+    #check minimal setting
+    if [ -z "${LDAP_HOSTS}" ] || [ -z "${LDAP_USERBASE}" ] ||  [ -z "${LDAP_USERBASE}" ] || [ -z "${LDAP_USERSEARCH}" ] || [ -z "${LDAP_USERNAME_ATTRIBUTE}" ];then
+        echo "Minimal LDAP authenticaion configuration is not complete. Quit."
+        exit 1; 
+    fi
+    if [ -z "${LDAP_BIND_DN}" ];then
+        echo "Warning: If your LDAP server doesn't support anonymous authentication, LDAP won't work."
+    fi
+
+    if [ -z "${LDAP_ROLEBASE}" ] || [ -z "${LDAP_ROLESEARCH}" ];then
+        echo "Minimal LDAP authorization configuration is not complete. Quit."
+        exit 1;
+    fi
+
     OP_DISTRO_CONFIG_FILE=${ES_PLUGINS_DIR}/opendistro_security/securityconfig/config.yml
-    if [ "$LDAP_enable_ssl" == true ]; then
+    
+    #start to change configuration
+    if [ "$LDAP_ENABLE_SSL" == true ]; then
         sed -i -e "/^\s*# enable ldaps\s*$/{n;d}" -e '$!N;/\n.*string/!P;D' "${OP_DISTRO_CONFIG_FILE}"
         sed -i -e "/^\s*# enable ldaps\s*$/a\            enable_ssl: true" "${OP_DISTRO_CONFIG_FILE}"
     fi
 
-    if [ "$LDAP_enable_start_tls" == true ]; then
+    if [ "$LDAP_ENABLE_START_TLS" == true ]; then
         sed -i -e "/^\s*# enable start tls, enable_ssl should be false\s*$/{n;d}" -e '$!N;/\n.*string/!P;D' "${OP_DISTRO_CONFIG_FILE}"
         sed -i -e "/^\s*# enable start tls, enable_ssl should be false\s*$/a\            enable_start_tls: true" "${OP_DISTRO_CONFIG_FILE}"
     fi
 
-    if [ "$LDAP_enable_ssl_client_auth" == true ]; then
+    if [ "$LDAP_ENABLE_SSL_CLIENT_AUTH" == true ]; then
         sed -i -e "/^\s*# send client certificate\s*$/{n;d}" -e '$!N;/\n.*string/!P;D' "${OP_DISTRO_CONFIG_FILE}"
         sed -i -e "/^\s*# send client certificate\s*$/a\            enable_ssl_client_auth: true" "${OP_DISTRO_CONFIG_FILE}"
     fi
 
-    if [ "$LDAP_verify_hostnames" == false ]; then
+    if [ "$LDAP_VERIFY_HOSTNAMES" == false ]; then
         sed -i -e "/^\s*# verify ldap hostname\s*$/{n;d}" -e '$!N;/\n.*string/!P;D' "${OP_DISTRO_CONFIG_FILE}"
         sed -i -e "/^\s*# verify ldap hostname\s*$/a\            verify_hostnames: false" "${OP_DISTRO_CONFIG_FILE}"
     fi
 
-    if [ "$LDAP_pemtrustedcas_filepath" ]; then
-        sed -i -e "/^\s*hosts:\s*$/i\            pemtrustedcas_filepath: ${LDAP_pemtrustedcas_filepath}" "${OP_DISTRO_CONFIG_FILE}"
+    if [ -n "$LDAP_PEMTRUSTEDCAS_FILEPATH" ]; then
+        sed -i -e "/^\s*hosts:\s*$/i\            pemtrustedcas_filepath: ${LDAP_PEMTRUSTEDCAS_FILEPATH}" "${OP_DISTRO_CONFIG_FILE}"
     fi
 
-    if [ "$LDAP_pemkey_filepath" ]; then
-        sed -i -e "/^\s*hosts:\s*$/i\            pemkey_filepath: ${LDAP_pemkey_filepath}" "${OP_DISTRO_CONFIG_FILE}"
+    if [ -n "$LDAP_PEMKEY_FILEPATH" ]; then
+        sed -i -e "/^\s*hosts:\s*$/i\            pemkey_filepath: ${LDAP_PEMKEY_FILEPATH}" "${OP_DISTRO_CONFIG_FILE}"
     fi
 
-    if [ "$LDAP_pemkey_password" ]; then
-        sed -i -e "/^\s*hosts:\s*$/i\            pemkey_password: ${LDAP_pemkey_password}" "${OP_DISTRO_CONFIG_FILE}"
+    if [ -n "$LDAP_PEMKEY_PASSWORD" ]; then
+        sed -i -e "/^\s*hosts:\s*$/i\            pemkey_password: ${LDAP_PEMKEY_PASSWORD}" "${OP_DISTRO_CONFIG_FILE}"
     fi
 
-    if [ "$LDAP_pemcert_filepath" ]; then
-        sed -i -e "/^\s*hosts:\s*$/i\            pemcert_filepath: ${LDAP_pemcert_filepath}" "${OP_DISTRO_CONFIG_FILE}"
+    if [ -n "$LDAP_PEMCERT_FILEPATH" ]; then
+        sed -i -e "/^\s*hosts:\s*$/i\            pemcert_filepath: ${LDAP_PEMCERT_FILEPATH}" "${OP_DISTRO_CONFIG_FILE}"
     fi
 
-    if [ "$LDAP_enabled_ssl_protocols" ]; then
+    if [ -n "$LDAP_ENABLED_SSL_PROTOCOLS" ]; then
         IFS=";"
-        array=($LDAP_enabled_ssl_protocols)
+        array=($LDAP_ENABLED_SSL_PROTOCOLS)
         sed -i -e "/^\s*hosts:\s*$/i\            enabled_ssl_protocols:" "${OP_DISTRO_CONFIG_FILE}"
         for i in "${!array[@]}"; do
             sed -i -e "/^\s*enabled_ssl_protocols:\s*$/a\              - ${array[i]}" "${OP_DISTRO_CONFIG_FILE}"
         done
     fi
 
-    if [ "$LDAP_enabled_ssl_ciphers" ]; then
+    if [ -n "$LDAP_ENABLED_SSL_CIPHERS" ]; then
         IFS=";"
-        array=($LDAP_enabled_ssl_ciphers)
+        array=($LDAP_ENABLED_SSL_CIPHERS)
         sed -i -e "/^\s*hosts:\s*$/i\            enabled_ssl_ciphers:" "${OP_DISTRO_CONFIG_FILE}"
         for i in "${!array[@]}"; do
             sed -i -e "/^\s*enabled_ssl_ciphers:\s*$/a\              - ${array[i]}" "${OP_DISTRO_CONFIG_FILE}"
         done
     fi
 
-    if [ "$LDAP_password" ]; then
+    if [ -n "$LDAP_PASSWORD" ]; then
         sed -i -e "/^\s*bind_dn:/{n;d}" -e '$!N;/\n.*string/!P;D' "${OP_DISTRO_CONFIG_FILE}"
-        sed -i -e "/^\s*bind_dn:/a\            password: ${LDAP_password}" "${OP_DISTRO_CONFIG_FILE}"
+        sed -i -e "/^\s*bind_dn:/a\            password: ${LDAP_PASSWORD}" "${OP_DISTRO_CONFIG_FILE}"
     fi
 
-    if [ "$LDAP_bind_dn" ]; then
+    if [ -n "$LDAP_BIND_DN" ]; then
         sed -i -e "/^\s*bind_dn:/d" "${OP_DISTRO_CONFIG_FILE}"
-        sed -i -e "/^\s*password:/i\            bind_dn: ${LDAP_bind_dn}" "${OP_DISTRO_CONFIG_FILE}"
+        sed -i -e "/^\s*password:/i\            bind_dn: ${LDAP_BIND_DN}" "${OP_DISTRO_CONFIG_FILE}"
     fi
 
-    if [ "$LDAP_hosts" ]; then
-        sed -i -e "/^\s*hosts:\s*$/{n;d}" -e '$!N;/\n.*string/!P;D' "${OP_DISTRO_CONFIG_FILE}"
-        sed -i -e "/^\s*hosts:\s*$/a\            - ${LDAP_hosts}" "${OP_DISTRO_CONFIG_FILE}"
-    fi
+    sed -i -e "/^\s*hosts:\s*$/{n;d}" -e '$!N;/\n.*string/!P;D' "${OP_DISTRO_CONFIG_FILE}"
+    sed -i -e "/^\s*hosts:\s*$/a\            - ${LDAP_HOSTS}" "${OP_DISTRO_CONFIG_FILE}"
 
-    if [ "$LDAP_userbase" ]; then
-        sed -i -e "/^\s*userbase:/d" "${OP_DISTRO_CONFIG_FILE}"
-        sed -i -e "/Filter to search for users/i\            userbase: ${LDAP_userbase}" "${OP_DISTRO_CONFIG_FILE}"
-    fi
+    sed -i -e "/^\s*userbase:/d" "${OP_DISTRO_CONFIG_FILE}"
+    sed -i -e "/Filter to search for users/i\            userbase: ${LDAP_USERBASE}" "${OP_DISTRO_CONFIG_FILE}"
 
-    if [ "$LDAP_rolebase" ]; then
-        sed -i -e "/^\s*rolebase:/d" "${OP_DISTRO_CONFIG_FILE}"
-        sed -i -e "/Filter to search for roles/i\            rolebase: ${LDAP_rolebase}" "${OP_DISTRO_CONFIG_FILE}"
-    fi
+    sed -i -e "/^\s*rolebase:/d" "${OP_DISTRO_CONFIG_FILE}"
+    sed -i -e "/Filter to search for roles/i\            rolebase: ${LDAP_ROLEBASE}" "${OP_DISTRO_CONFIG_FILE}"
 
-    if [ "$LDAP_rolesearch" ]; then
-        sed -i -e "/^\s*rolesearch:/d" "${OP_DISTRO_CONFIG_FILE}"
-        sed -i -e "/^\s*# Specify the name of the attribute which value should be substituted with {2} above\s*$/i\            rolesearch: (${LDAP_rolesearch})" "${OP_DISTRO_CONFIG_FILE}"
-    fi
+    sed -i -e "/^\s*rolesearch:/d" "${OP_DISTRO_CONFIG_FILE}"
+    sed -i -e "/^\s*# Specify the name of the attribute which value should be substituted with {2} above\s*$/i\            rolesearch: (${LDAP_ROLESEARCH})" "${OP_DISTRO_CONFIG_FILE}"
 
-    if [ "$LDAP_usersearch" ]; then
-        sed -i -e "/^\s*usersearch:/d" "${OP_DISTRO_CONFIG_FILE}"
-        sed -i -e "/^\s*# {0} is substituted with the username\s*$/a\            usersearch: (${LDAP_usersearch})" "${OP_DISTRO_CONFIG_FILE}"
-    fi
+    sed -i -e "/^\s*usersearch:/d" "${OP_DISTRO_CONFIG_FILE}"
+    sed -i -e "/^\s*# {0} is substituted with the username\s*$/a\            usersearch: (${LDAP_USERSEARCH})" "${OP_DISTRO_CONFIG_FILE}"
 
-    if [ "$LDAP_username_attribute" ]; then
+    if [ -n "$LDAP_USERNAME_ATTRIBUTE" ]; then
         sed -i -e "/^\s*# Use this attribute from the user as username (if not set then DN is used)\s*$/{n;d}" -e '$!N;/\n.*string/!P;D' "${OP_DISTRO_CONFIG_FILE}"
-        sed -i -e "/^\s*# Use this attribute from the user as username (if not set then DN is used)\s*$/a\            username_attribute: ${LDAP_username_attribute}" "${OP_DISTRO_CONFIG_FILE}"
+        sed -i -e "/^\s*# Use this attribute from the user as username (if not set then DN is used)\s*$/a\            username_attribute: ${LDAP_USERNAME_ATTRIBUTE}" "${OP_DISTRO_CONFIG_FILE}"
     fi
 
-    if [ "$LDAP_resolve_nested_roles" == false ]; then
+    if [ "$LDAP_RESOLVE_NESTED_ROLES" == false ]; then
         sed -i -e "/^\s*# Resolve nested roles transitive (roles which are members of other roles and so on ...)\s*$/{n;d}" -e '$!N;/\n.*string/!P;D' "${OP_DISTRO_CONFIG_FILE}"
         sed -i -e "/^\s*# Resolve nested roles transitive (roles which are members of other roles and so on ...)\s*$/a\            resolve_nested_roles: false" "${OP_DISTRO_CONFIG_FILE}"
     fi
 
-    if [ "$LDAP_rolename" ]; then
+    if [ -n "$LDAP_ROLENAME" ]; then
          sed -i -e "/^\s*#Can also be \"dn\" to use the full DN as rolename.\s*$/{n;d}" -e '$!N;/\n.*string/!P;D' "${OP_DISTRO_CONFIG_FILE}"
-         sed -i -e "/^\s*#Can also be \"dn\" to use the full DN as rolename.\s*$/a\            rolename: ${LDAP_rolename}" "${OP_DISTRO_CONFIG_FILE}"
+         sed -i -e "/^\s*#Can also be \"dn\" to use the full DN as rolename.\s*$/a\            rolename: ${LDAP_ROLENAME}" "${OP_DISTRO_CONFIG_FILE}"
     fi
 
-    if [ "$LDAP_userrolename" ]; then
+    if [ -n "$LDAP_USERROLENAME" ]; then
          sed -i -e "/^\s*# Roles as an attribute of the user entry\s*$/{n;d}" -e '$!N;/\n.*string/!P;D' "${OP_DISTRO_CONFIG_FILE}"
-         sed -i -e "/^\s*# Roles as an attribute of the user entry\s*$/a\            userrolename: ${LDAP_userrolename}" "${OP_DISTRO_CONFIG_FILE}"
+         sed -i -e "/^\s*# Roles as an attribute of the user entry\s*$/a\            userrolename: ${LDAP_USERROLENAME}" "${OP_DISTRO_CONFIG_FILE}"
     fi
 
-    if [ "$LDAP_userroleattribute" ]; then
+    if [ -n "$LDAP_USERROLEATTRIBUTE" ]; then
          sed -i -e "/^\s*userroleattribute:/d" "${OP_DISTRO_CONFIG_FILE}"
-         sed -i -e "/^\s* # Specify the name of the attribute which value should be substituted with {2} above\s*$/a\            userroleattribute: ${LDAP_userroleattribute}" "${OP_DISTRO_CONFIG_FILE}"
+         sed -i -e "/^\s* # Specify the name of the attribute which value should be substituted with {2} above\s*$/a\            userroleattribute: ${LDAP_USERROLEATTRIBUTE}" "${OP_DISTRO_CONFIG_FILE}"
     fi
 
+    if [ -n "$LDAP_CUSTOME_ATTR_WHITLELIST" ];then
+        IFS=";"
+        array=($LDAP_CUSTOME_ATTR_WHITLELIST)
+        sed -i -e "/^\s*# Skip users matching a user name, a wildcard or a regex pattern\s*$/i\            custom_attr_whitelist:" "${OP_DISTRO_CONFIG_FILE}"
+        for i in "${!array[@]}"; do
+            sed -i -e "/^\s*custom_attr_whitelist:\s*$/a\              - ${array[i]}" "${OP_DISTRO_CONFIG_FILE}"
+        done
+    fi
 
-    if [ "$LDAP_skip_users" ]; then
+    if [ -n "$LDAP_CUSTOME_MAXVAL_LEN" ];then
+        IFS=";"
+        array=($LDAP_ENABLED_SSL_CIPHERS)
+        sed -i -e "/^\s*# Skip users matching a user name, a wildcard or a regex pattern\s*$/i\            custom_attr_maxval_len: ${LDAP_CUSTOME_MAXVAL_LEN}" "${OP_DISTRO_CONFIG_FILE}"
+    fi
+
+    if [ -n "$LDAP_SKIP_USERS" ]; then
          IFS=";"
-         array=($LDAP_skip_users)
+         array=($LDAP_SKIP_USERS)
          sed -i -e "/^\s*# Skip users matching a user name, a wildcard or a regex pattern\s*$/a\            skip_users:" "${OP_DISTRO_CONFIG_FILE}"
          for i in "${!array[@]}"; do
             sed -i -e "/^\s*skip_users:\s*$/a\              - ${array[i]}" "${OP_DISTRO_CONFIG_FILE}"
@@ -533,10 +554,17 @@ fi
 #exmaple to change SAML configuration:
 #  add ENV SAML_metadata_url=http://example:8080 will change the value of metadata_url to 'http://example:8080'
 #  add ENV SAML_sp_entity_id=SAML-Demo-ID will change the value of sp.entity.id to 'SAML-Demo-Id'
-if [ "$EnableSAML" == true ]; then
+if [ "$ENABLE_SAML" == true ]; then
     echo "Configure SAML anthentication"
+    #check minimal settings
+    if ([ -z "${SAML_METADATA_FILE}" ] && [ -z "${SAML_METADATA_URL}" ]) || [ -z "${SAML_IDP_ENTITY_ID}" ]  || [ -z "${SAML_SP_ENTITY_ID}" ] || [ -z "${SAML_KIBANA_URL}" ] || [ -z "${SAML_ROLES_KEY}" ]; then
+        echo "Minimal SAML configuration is not complete. Quit."
+        exit 1;
+    fi
+
     OP_DISTRO_CONFIG_FILE=${ES_PLUGINS_DIR}/opendistro_security/securityconfig/config.yml
 
+    #start to change configuration
     sed -i -e "/    authz:/i\      saml:" "${OP_DISTRO_CONFIG_FILE}"
     sed -i -e "/    authz:/i\        http_enabled: true" "${OP_DISTRO_CONFIG_FILE}"
     sed -i -e "/    authz:/i\        transport_enabled: true" "${OP_DISTRO_CONFIG_FILE}"
@@ -547,113 +575,101 @@ if [ "$EnableSAML" == true ]; then
     sed -i -e "/    authz:/i\          config:" "${OP_DISTRO_CONFIG_FILE}"
     sed -i -e "/    authz:/i\            idp:" "${OP_DISTRO_CONFIG_FILE}"
 
-    if [ "$SAML_metadata_file" ]; then
-        sed -i -e "/    authz:/i\              metadata_file: ${SAML_metadata_file}" "${OP_DISTRO_CONFIG_FILE}"
+    if [ -n "$SAML_METADATA_FILE" ]; then
+        sed -i -e "/    authz:/i\              metadata_file: ${SAML_METADATA_FILE}" "${OP_DISTRO_CONFIG_FILE}"
     fi
 
-    if [ "$SAML_metadata_url" ]; then
-        sed -i -e "/    authz:/i\              metadata_url: ${SAML_metadata_url}" "${OP_DISTRO_CONFIG_FILE}"
+    if [ -n "$SAML_METADATA_URL" ]; then
+        sed -i -e "/    authz:/i\              metadata_url: ${SAML_METADATA_URL}" "${OP_DISTRO_CONFIG_FILE}"
     fi
 
-    if [ "$SAML_idp_entity_id" ]; then
-        sed -i -e "/    authz:/i\              entity_id: ${SAML_idp_entity_id}" "${OP_DISTRO_CONFIG_FILE}"
+    if [ -n "$SAML_IDP_ENTITY_ID" ]; then
+        sed -i -e "/    authz:/i\              entity_id: ${SAML_IDP_ENTITY_ID}" "${OP_DISTRO_CONFIG_FILE}"
     fi
 
-    if [ "$SAML_enable_ssl" == true ]; then
+    if [ "$SAML_ENABLE_SSL" == true ]; then
         sed -i -e "/    authz:/i\              enable_ssl: true" "${OP_DISTRO_CONFIG_FILE}"
-    elif [ "$SAML_enable_ssl" == false ]; then
+    elif [ "$SAML_ENABLE_SSL" == false ]; then
         sed -i -e "/    authz:/i\              enable_ssl: false" "${OP_DISTRO_CONFIG_FILE}"
     fi
 
-    if [ "$SAML_verify_hostnames" == true ]; then
+    if [ "$SAML_VERIFY_HOSTNAMES" == true ]; then
         sed -i -e "/    authz:/i\              verify_hostnames: true" "${OP_DISTRO_CONFIG_FILE}"
-    elif [ "$SAML_verify_hostnames" == false ]; then
+    elif [ "$SAML_VERIFY_HOSTNAMES" == false ]; then
         sed -i -e "/    authz:/i\              verify_hostnames: false" "${OP_DISTRO_CONFIG_FILE}"
     fi
 
-    if [ "$SAML_pemtrustedcas_filepath" ]; then
-        sed -i -e "/    authz:/i\              pemtrustedcas_filepath: ${SAML_pemtrustedcas_filepath}" "${OP_DISTRO_CONFIG_FILE}"
+    if [ -n "$SAML_PEMTRUSTEDCAS_FILEPATH" ]; then
+        sed -i -e "/    authz:/i\              pemtrustedcas_filepath: ${SAML_PEMTRUSTEDCAS_FILEPATH}" "${OP_DISTRO_CONFIG_FILE}"
     fi
 
-    if [ "$SAML_enable_ssl_client_auth" == true ]; then
+    if [ "$SAML_ENABLE_SSL_CLIENT_AUTH" == true ]; then
         sed -i -e "/    authz:/i\              enable_ssl_client_auth: true" "${OP_DISTRO_CONFIG_FILE}"
     fi
 
-    if [ "$SAML_pemcert_filepath" ];then
-        sed -i -e "/    authz:/i\              pemcert_filepath: ${SAML_pemcert_filepath}" "${OP_DISTRO_CONFIG_FILE}"
+    if [ -n "$SAML_PEMCERT_FILEPATH" ];then
+        sed -i -e "/    authz:/i\              pemcert_filepath: ${SAML_PEMCERT_FILEPATH}" "${OP_DISTRO_CONFIG_FILE}"
     fi
 
-    if [ "$SAML_pemkey_filepath" ];then
-        sed -i -e "/    authz:/i\              pemkey_filepath: ${SAML_pemkey_filepath}" "${OP_DISTRO_CONFIG_FILE}"
+    if [ -n "$SAML_PEMKEY_FILEPATH" ];then
+        sed -i -e "/    authz:/i\              pemkey_filepath: ${SAML_PEMKEY_FILEPATH}" "${OP_DISTRO_CONFIG_FILE}"
     fi
 
-    if [ "$SAML_pemkey_password" ];then
-        sed -i -e "/    authz:/i\              pemkey_password: ${SAML_pemkey_password}" "${OP_DISTRO_CONFIG_FILE}"
+    if [ -n "$SAML_PEMKEY_PASSWORD" ];then
+        sed -i -e "/    authz:/i\              pemkey_password: ${SAML_PEMKEY_PASSWORD}" "${OP_DISTRO_CONFIG_FILE}"
     fi
 
-    if [ "$SAML_enabled_ssl_ciphers" ];then
+    if [ -n "$SAML_ENABLED_SSL_CIPHERS" ];then
         sed -i -e "/    authz:/i\              enabled_ssl_ciphers:" "${OP_DISTRO_CONFIG_FILE}"
         IFS=";"
-        array=($SAML_enabled_ssl_ciphers)
+        array=($SAML_ENABLED_SSL_CIPHERS)
         for i in "${!array[@]}"; do
             sed -i -e "/    authz:/i\                - ${array[i]}" "${OP_DISTRO_CONFIG_FILE}"
         done
     fi
 
-    if [ "$SAML_enabled_ssl_protocols" ];then
+    if [ -n "$SAML_ENABLED_SSL_PROTOCOLS" ];then
         sed -i -e "/    authz:/i\              enabled_ssl_protocols:" "${OP_DISTRO_CONFIG_FILE}"
         IFS=";"
-        array=($SAML_enabled_ssl_protocols)
+        array=($SAML_ENABLED_SSL_PROTOCOLS)
         for i in "${!array[@]}"; do
             sed -i -e "/    authz:/i\                - ${array[i]}" "${OP_DISTRO_CONFIG_FILE}"
         done
     fi
 
     sed -i -e "/    authz:/i\            sp:" "${OP_DISTRO_CONFIG_FILE}"
+    sed -i -e "/    authz:/i\              entity_id: ${SAML_SP_ENTITY_ID}" "${OP_DISTRO_CONFIG_FILE}"
 
-    if [ "$SAML_sp_entity_id" ]; then
-        sed -i -e "/    authz:/i\              entity_id: ${SAML_sp_entity_id}" "${OP_DISTRO_CONFIG_FILE}"
-    else
-        sed -i -e "/    authz:/i\              entity_id: SAML-Demo-ID" "${OP_DISTRO_CONFIG_FILE}"
-    fi
-
-    if [ "$SAML_forceAuthn" == false ]; then
+    if [ "$SAML_FORCEAUTHN" == false ]; then
         sed -i -e "/    authz:/i\              forceAuthn: false" "${OP_DISTRO_CONFIG_FILE}"
     else
         sed -i -e "/    authz:/i\              forceAuthn: true" "${OP_DISTRO_CONFIG_FILE}"
     fi
 
-    if [ "$SAML_signature_private_key_password" ];then
-        sed -i -e "/    authz:/i\              signature_private_key_password: ${SAML_signature_private_key_password}" "${OP_DISTRO_CONFIG_FILE}"
+    if [ -n "$SAML_SIGNATURE_PRIVATE_KEY_PASSWORD" ];then
+        sed -i -e "/    authz:/i\              signature_private_key_password: ${SAML_SIGNATURE_PRIVATE_KEY_PASSWORD}" "${OP_DISTRO_CONFIG_FILE}"
     fi
 
-    if [ "$SAML_signature_private_key_filepath" ];then
-        sed -i -e "/    authz:/i\              signature_private_key_filepath: ${SAML_signature_private_key_filepath}" "${OP_DISTRO_CONFIG_FILE}"
+    if [ -n "$SAML_SIGNATURE_PRIVATE_KEY_FILEPATH" ];then
+        sed -i -e "/    authz:/i\              signature_private_key_filepath: ${SAML_SIGNATURE_PRIVATE_KEY_FILEPATH}" "${OP_DISTRO_CONFIG_FILE}"
     fi
 
-    if [ "$SAML_signature_algorithm" ];then
-        sed -i -e "/    authz:/i\              signature_algorithm: ${SAML_signature_algorithm}" "${OP_DISTRO_CONFIG_FILE}"
+    if [ -n "$SAML_SIGNATURE_ALGORITHM" ];then
+        sed -i -e "/    authz:/i\              signature_algorithm: ${SAML_SIGNATURE_ALGORITHM}" "${OP_DISTRO_CONFIG_FILE}"
     fi
 
-    if [ "$SAML_kibana_url" ];then
-        sed -i -e "/    authz:/i\            kibana_url: ${SAML_kibana_url}" "${OP_DISTRO_CONFIG_FILE}"
+    sed -i -e "/    authz:/i\            kibana_url: ${SAML_KIBANA_URL}" "${OP_DISTRO_CONFIG_FILE}"
+
+    if [ -n "$SAML_SUBJECT_KEY" ];then
+        sed -i -e "/    authz:/i\            subject_key: ${SAML_SUBJECT_KEY}" "${OP_DISTRO_CONFIG_FILE}"
+    fi
+
+    sed -i -e "/    authz:/i\            roles_key: ${SAML_ROLES_KEY}" "${OP_DISTRO_CONFIG_FILE}"
+
+    if [ -n "$SAML_EXCHANGE_KEY" ]; then
+        sed -i -e "/    authz:/i\            exchange_key: ${SAML_EXCHANGE_KEY}" "${OP_DISTRO_CONFIG_FILE}"
     else
-        sed -i -e "/    authz:/i\            kibana_url: http://localhost:5601/" "${OP_DISTRO_CONFIG_FILE}"
-    fi
-
-    if [ "$SAML_subject_key" ];then
-        sed -i -e "/    authz:/i\            subject_key: ${SAML_subject_key}" "${OP_DISTRO_CONFIG_FILE}"
-    fi
-
-    if [ "$SAML_roles_key" ];then
-        sed -i -e "/    authz:/i\            roles_key: ${SAML_roles_key}" "${OP_DISTRO_CONFIG_FILE}"
-    else
-        sed -i -e "/    authz:/i\            roles_key: Role" "${OP_DISTRO_CONFIG_FILE}"
-    fi
-
-    if [ "$SAML_exchange_key" ]; then
-        sed -i -e "/    authz:/i\            exchange_key: ${SAML_exchange_key}" "${OP_DISTRO_CONFIG_FILE}"
-    else
+        echo "No exchange key configured, use the dafault exchange key."
         sed -i -e "/    authz:/i\            exchange_key: MIIDYjCCAkoCCQD/vVmtAGm39TANBgkqhkiG9w0BAQsFADBzMQswCQYDVQQGEwJ1czELMAkGA1UECAwCY2ExDTALBgNVBAcMBHBhbG8xDDAKBgNVBAoMA2FtYTELMAkGA1UECwwCZXMxCzAJBgNVBAMMAnloMSAwHgYJKoZIhvcNAQkBFhFjeWhsbGwzMjFAMTYzLmNvbTAeFw0xOTA2MDMyMzMxMDhaFw0xOTA3MDMyMzMxMDhaMHMxCzAJBgNVBAYTAnVzMQswCQYDVQQIDAJjYTENMAsGA1UEBwwEcGFsbzEMMAoGA1UECgwDYW1hMQswCQYDVQQLDAJlczELMAkGA1UEAwwCeWgxIDAeBgkqhkiG9w0BCQEWEWN5aGxsbDMyMUAxNjMuY29tMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0yyCoz/Chq56iWJX0/Q3lej0SUgFKRFrR77dfVWQ+B384lOWTJdWNNRrso0f0nBUGV66cga98LnDIhC5+Qp4mT6Ms8AWc1sPxgQ591I6jpZDFYORVNOHVQi96naZaDBAlSNAw6k8WHrJEiTXvGpuoLO8gno+nUS+ISgDZaYo/uSQkhSJBBwU4JAJJXzLxsH7E3bo4d1A/kcT0623+JArpzLVOzH1N9nfhzXp7vTNk/ItGk+UeT8NDR7K9fy+1mvHu+EZDQEoEfaA1URybMO1C1kuzdx/N6oonOE3W9PPjs6kTUTY8h0SqHL8hwkiY0TSAoSRawOdcJRs2wdXNmG3wQIDAQABMA0GCSqGSIb3DQEBCwUAA4IBAQAUHvNf4OMeKD2Vn4yb4KOyjdJRGYJVoP5yX7dDdm5m1Ww5tW1YtClMw8ygz2cGxHQaNNLUSlY0yU9CQjaVFBimpUFKp7nMSDzs0EIJZ6/SL/yR5bcEMVLt4mhesXor6hnqv690EM4fAAzgZ71BoTzpKPo1ITOnvnWX57JylRX2a0EUtwsx+puLqUuEzUF0mZ9YvNV4Su3sazaLvYP1aY1E2jsEaL29tV/gimG7M9kTlBN5kjatkaOHq71fgmcsT71vC9XKyDK37uFvNyxAqnIcyhzbYIz8I9xaXPTvnzNCaS9Zy1r3CRraxoLp3QJ1Dk5DxQ5Q23ZO/AbAuV6iRNVB" "${OP_DISTRO_CONFIG_FILE}"
     fi
 
