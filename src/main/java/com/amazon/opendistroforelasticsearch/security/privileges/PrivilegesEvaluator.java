@@ -32,6 +32,7 @@ package com.amazon.opendistroforelasticsearch.security.privileges;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -71,6 +72,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.common.util.CollectionUtils;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.index.reindex.ReindexAction;
 import org.elasticsearch.tasks.Task;
@@ -93,6 +95,23 @@ import com.amazon.opendistroforelasticsearch.security.user.User;
 
 public class PrivilegesEvaluator implements DCFListener {
 
+
+    final String[] alertingIndexDeniedActionPatternsList = new ArrayList<String>() {
+        {
+            add("indices:data/write*");
+            add("indices:data/read*");
+            add("indices:admin/delete*");
+            add("indices:admin/create*");
+            add("indices:admin/mapping/delete*");
+            add("indices:admin/mapping/put*");
+            add("indices:admin/freeze*");
+            add("indices:admin/settings/update*");
+            add("indices:admin/aliases");
+            add("indices:admin/close*");
+            // Todo decide if we want this index blocked during snapshots
+//            add("indices:admin/snapshot/restore*");
+        }
+    }.toArray(new String[0]);
 
     protected final Logger log = LogManager.getLogger(this.getClass());
     protected final Logger actionTrace = LogManager.getLogger("opendistro_security_action_trace");
@@ -119,6 +138,8 @@ public class PrivilegesEvaluator implements DCFListener {
     private final boolean advancedModulesEnabled;
     private DynamicConfigModel dcm;
 
+    private Settings settings;
+
     public PrivilegesEvaluator(final ClusterService clusterService, final ThreadPool threadPool,
                                final ConfigurationRepository configurationRepository, final IndexNameExpressionResolver resolver,
                                AuditLog auditLog, final Settings settings, final PrivilegesInterceptor privilegesInterceptor, final ClusterInfoHolder clusterInfoHolder,
@@ -143,6 +164,8 @@ public class PrivilegesEvaluator implements DCFListener {
         dlsFlsEvaluator = new DlsFlsEvaluator(settings, threadPool);
         termsAggregationEvaluator = new TermsAggregationEvaluator();
         this.advancedModulesEnabled = advancedModulesEnabled;
+
+        this.settings = settings;
     }
 
 
@@ -174,7 +197,6 @@ public class PrivilegesEvaluator implements DCFListener {
         final Set<String> mappedRoles = mapRoles(user, caller);
         final SecurityRoles securityRoles = getSecurityRoles(mappedRoles);
 
-
         final PrivilegesEvaluatorResponse presponse = new PrivilegesEvaluatorResponse();
 
 
@@ -187,6 +209,23 @@ public class PrivilegesEvaluator implements DCFListener {
 
         if (log.isDebugEnabled()) {
             log.debug("requestedResolved : {}", requestedResolved );
+        }
+
+
+        // Check if index blocking is enabled.
+        if (settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_ROLE_BLOCKED_INDICES_ENABLED_KEY, ConfigConstants.OPENDISTRO_SECURITY_ROLE_BLOCKED_INDICES_ENABLED_DEFAULT)) {
+            final List<String> indexNames = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_ROLE_BLOCKED_INDICES_KEY, ConfigConstants.OPENDISTRO_SECURITY_ROLE_BLOCKED_INDICES_DEFAULT);
+            final Collection indexPatterns = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_ROLE_BLOCKED_INDEX_PATTERN_KEY, ConfigConstants.OPENDISTRO_SECURITY_ROLE_BLOCKED_INDEX_PATTERN_DEFAULT);
+            final boolean deniedAction = WildcardMatcher.matchAny(alertingIndexDeniedActionPatternsList, action0);
+            // Check if this is an action that should be denied.
+            if (deniedAction) {
+                // Check if we are touching an index in the index pattern or index directly and if so reject.
+                if(!Collections.disjoint(requestedResolved.getAllIndices(), indexNames) ||
+                        WildcardMatcher.matchAny(indexPatterns, requestedResolved.getAllIndices())) {
+                    presponse.missingPrivileges.add(ConfigConstants.BLOCKED);
+                    return presponse;
+                }
+            }
         }
 
         // check dlsfls

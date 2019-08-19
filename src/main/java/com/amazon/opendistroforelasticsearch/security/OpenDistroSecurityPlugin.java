@@ -819,6 +819,11 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         
         settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_SSL_ONLY, false, Property.NodeScope, Property.Filtered));
 
+        // Index blocking settings
+        settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_ROLE_BLOCKED_INDICES_ENABLED_KEY, ConfigConstants.OPENDISTRO_SECURITY_ROLE_BLOCKED_INDICES_ENABLED_DEFAULT, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_ROLE_BLOCKED_INDICES_KEY, ConfigConstants.OPENDISTRO_SECURITY_ROLE_BLOCKED_INDICES_DEFAULT, Function.identity(), Property.NodeScope, Property.Filtered));
+        settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_ROLE_BLOCKED_INDEX_PATTERN_KEY, ConfigConstants.OPENDISTRO_SECURITY_ROLE_BLOCKED_INDEX_PATTERN_DEFAULT, Function.identity(), Property.NodeScope, Property.Filtered));
+
         if(!sslOnly) {
             settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_ADMIN_DN, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
     
@@ -944,6 +949,8 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_ADMIN_USER_ENABLED, false, Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_ALLOW_NOW_IN_DLS, false, Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_RESTAPI_ALLOW_CONFIG_MODIFICATION, false, Property.NodeScope, Property.Filtered));
+
+
         }
         
         return settings;

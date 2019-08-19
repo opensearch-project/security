@@ -367,3 +367,9 @@ twitter:
 env_test:
   users:
     - env.replace@example.comp.com
+alerting_full_access:
+  users:
+    - "alertinguser"
+all_access:
+  users:
+    - "all_accessuser"

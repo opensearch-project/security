@@ -322,3 +322,17 @@ userwithblankpasswd:
 env.replace@example.comp.com:
   hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
   #password is: nagilum
+alertinguser:
+  hash: "$2y$12$qrYK8aALJd7a7Wblm2Jtoe8fEiCtTCE5tMoqG7Vp2194A4L35S4RK"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "User that has access to alerting index only"
+all_accessuser:
+  hash: "$2y$12$dq8uThZJCtAASPY5iuGbxeUOU/TBqElaeCurrxHTv3D00ca/CJKTi"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "User that has all_access role."

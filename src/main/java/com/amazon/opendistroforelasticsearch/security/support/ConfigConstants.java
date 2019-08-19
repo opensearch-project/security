@@ -236,4 +236,16 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_ADMIN_USER_ENABLED = "opendistro_security.unsupported.inject_user.admin.enabled";
     public static final String OPENDISTRO_SECURITY_UNSUPPORTED_ALLOW_NOW_IN_DLS = "opendistro_security.unsupported.allow_now_in_dls";
     public static final String OPENDISTRO_SECURITY_UNSUPPORTED_RESTAPI_ALLOW_CONFIG_MODIFICATION = "opendistro_security.unsupported.restapi.allow_config_modification";
+
+
+
+    // Index blocking settings
+    public static final String OPENDISTRO_SECURITY_ROLE_BLOCKED_INDICES_ENABLED_KEY = "opendistro_security.admin_only_indices";
+    public static final Boolean OPENDISTRO_SECURITY_ROLE_BLOCKED_INDICES_ENABLED_DEFAULT = true;
+    public static final String OPENDISTRO_SECURITY_ROLE_BLOCKED_INDICES_KEY = "opendistro_security.alerting_config_index";
+    public static final List<String> OPENDISTRO_SECURITY_ROLE_BLOCKED_INDICES_DEFAULT = Arrays.asList(".opendistro-alerting-config", ".opendistro-ism-config");
+    public static final String OPENDISTRO_SECURITY_ROLE_BLOCKED_INDEX_PATTERN_KEY = "opendistro_security.alerting_alerts_index";
+    public static final List<String> OPENDISTRO_SECURITY_ROLE_BLOCKED_INDEX_PATTERN_DEFAULT = Arrays.asList(".opendistro-alerting-alert*", ".opendistro-ism-managed-index-history*");
+
+    public static final String BLOCKED = "BLOCKED";
 }

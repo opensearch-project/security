@@ -148,7 +148,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
                     && !action.startsWith("internal:transport/proxy");
 
             if (user != null) {
-                org.apache.logging.log4j.ThreadContext.put("user", user.getName());    
+                org.apache.logging.log4j.ThreadContext.put("user", user.getName());
             }
                         
             if(actionTrace.isTraceEnabled()) {
@@ -266,7 +266,11 @@ public class OpenDistroSecurityFilter implements ActionFilter {
             } else {
                 auditLog.logMissingPrivileges(action, request, task);
                 log.debug("no permissions for {}", pres.getMissingPrivileges());
-                listener.onFailure(new ElasticsearchSecurityException("no permissions for " + pres.getMissingPrivileges()+" and "+user, RestStatus.FORBIDDEN));
+                if (pres.getMissingPrivileges().contains(ConfigConstants.BLOCKED)) {
+                    listener.onFailure(new ElasticsearchSecurityException("This index is reserved for members of [all_access] role only.", RestStatus.FORBIDDEN));
+                    return;
+                }
+                listener.onFailure(new ElasticsearchSecurityException("no permissions for " + pres.getMissingPrivileges()+ " and "+user, RestStatus.FORBIDDEN));
                 return;
             }
         } catch (Throwable e) {
