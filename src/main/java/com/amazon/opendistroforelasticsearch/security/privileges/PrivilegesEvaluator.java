@@ -72,7 +72,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.common.util.CollectionUtils;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.index.reindex.ReindexAction;
 import org.elasticsearch.tasks.Task;
@@ -96,7 +95,7 @@ import com.amazon.opendistroforelasticsearch.security.user.User;
 public class PrivilegesEvaluator implements DCFListener {
 
 
-    final String[] alertingIndexDeniedActionPatternsList = new ArrayList<String>() {
+    final String[] blockIndexActionPatternsList = new ArrayList<String>() {
         {
             add("indices:data/write*");
             add("indices:data/read*");
@@ -216,7 +215,7 @@ public class PrivilegesEvaluator implements DCFListener {
         if (settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_ROLE_BLOCKED_INDICES_ENABLED_KEY, ConfigConstants.OPENDISTRO_SECURITY_ROLE_BLOCKED_INDICES_ENABLED_DEFAULT)) {
             final List<String> indexNames = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_ROLE_BLOCKED_INDICES_KEY, ConfigConstants.OPENDISTRO_SECURITY_ROLE_BLOCKED_INDICES_DEFAULT);
             final Collection indexPatterns = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_ROLE_BLOCKED_INDEX_PATTERN_KEY, ConfigConstants.OPENDISTRO_SECURITY_ROLE_BLOCKED_INDEX_PATTERN_DEFAULT);
-            final boolean deniedAction = WildcardMatcher.matchAny(alertingIndexDeniedActionPatternsList, action0);
+            final boolean deniedAction = WildcardMatcher.matchAny(blockIndexActionPatternsList, action0);
             // Check if this is an action that should be denied.
             if (deniedAction) {
                 // Check if we are touching an index in the index pattern or index directly and if so reject.
