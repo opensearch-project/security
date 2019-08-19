@@ -238,7 +238,6 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_UNSUPPORTED_RESTAPI_ALLOW_CONFIG_MODIFICATION = "opendistro_security.unsupported.restapi.allow_config_modification";
 
 
-
     // Index blocking settings
     public static final String OPENDISTRO_SECURITY_ROLE_BLOCKED_INDICES_ENABLED_KEY = "opendistro_security.admin_only_indices";
     public static final Boolean OPENDISTRO_SECURITY_ROLE_BLOCKED_INDICES_ENABLED_DEFAULT = true;
