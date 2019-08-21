@@ -247,4 +247,5 @@ public class ConfigConstants {
     public static final List<String> OPENDISTRO_SECURITY_ROLE_BLOCKED_INDEX_PATTERN_DEFAULT = Arrays.asList(".opendistro-alerting-alert*", ".opendistro-ism-managed-index-history*");
 
     public static final String BLOCKED = "BLOCKED";
+    public static final String OPENDISTRO_SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION = "opendistro_security.unsupported.restapi.allow_securityconfig_modification";
 }
