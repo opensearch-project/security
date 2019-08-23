@@ -34,12 +34,12 @@
   <parent>
     <groupId>com.amazon.opendistroforelasticsearch</groupId>
     <artifactId>opendistro_security_parent</artifactId>
-    <version>1.0.0.2</version>
+    <version>1.0.0.3</version>
   </parent>
 
   <artifactId>opendistro_security</artifactId>
   <packaging>jar</packaging>
-  <version>1.0.0.2</version>
+  <version>1.0.0.3</version>
   <name>Open Distro Security for Elasticsearch</name>
   <description>Open Distro For Elasticsearch Security</description>
   <inceptionYear>2015</inceptionYear>
@@ -52,7 +52,7 @@
   </licenses>
 
   <properties>
-    <opendistro_security_advanceda_modules.version>1.0.0.2</opendistro_security_advanceda_modules.version>
+    <opendistro_security_advanceda_modules.version>1.0.0.3</opendistro_security_advanceda_modules.version>
     <elasticsearch.version>7.0.1</elasticsearch.version>
 
     <!-- deps -->
@@ -76,7 +76,7 @@
     <url>https://github.com/opendistro-for-elasticsearch/security</url>
     <connection>scm:git:git@github.com:opendistro-for-elasticsearch/security.git</connection>
     <developerConnection>scm:git:git@github.com:opendistro-for-elasticsearch/security.git</developerConnection>
-    <tag>v1.0.0.2</tag>
+    <tag>v1.0.0.3</tag>
   </scm>
 
   <issueManagement>
@@ -366,7 +366,7 @@
                 <dependency>
                     <groupId>com.amazon.opendistroforelasticsearch</groupId>
                     <artifactId>opendistro_security_advanced_modules</artifactId>
-                    <version>1.0.0.2</version>
+                    <version>1.0.0.3</version>
                     <exclusions>
                         <exclusion>
                             <artifactId>jna</artifactId>
