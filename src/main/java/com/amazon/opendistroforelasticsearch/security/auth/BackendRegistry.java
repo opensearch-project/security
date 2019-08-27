@@ -110,6 +110,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
     private final AdminDNs adminDns;
     private final XFFResolver xffResolver;
     private volatile boolean anonymousAuthEnabled = false;
+    private volatile boolean injectedUserEnabled = false;
     private final Settings esSettings;
     private final Path configPath;
     private final InternalAuthenticationBackend iab;
@@ -354,6 +355,8 @@ public class BackendRegistry implements ConfigurationChangeListener {
         anonymousAuthEnabled = settings.getAsBoolean("opendistro_security.dynamic.http.anonymous_auth_enabled", false)
                 && !esSettings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_DISABLE_ANONYMOUS_AUTHENTICATION, false);
 
+        injectedUserEnabled = esSettings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_USER_ENABLED,false);
+
         List<Destroyable> originalDestroyableComponents = destroyableComponents;
 
         restAuthDomains = Collections.unmodifiableSortedSet(restAuthDomains0);
@@ -367,7 +370,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
         authBackendFailureListeners = Multimaps.unmodifiableMultimap(authBackendFailureListeners0);
 
         //Open Distro Security no default authc
-        initialized = !restAuthDomains.isEmpty() || anonymousAuthEnabled;
+        initialized = !restAuthDomains.isEmpty() || anonymousAuthEnabled || injectedUserEnabled;
 
         if(originalDestroyableComponents != null) {
             destroyDestroyables(originalDestroyableComponents);
