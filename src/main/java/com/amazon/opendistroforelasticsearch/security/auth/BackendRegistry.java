@@ -95,6 +95,7 @@ public class BackendRegistry implements DCFListener {
     private Multimap<String, ClientBlockRegistry<String>> authBackendClientBlockRegistries;
 
     private volatile boolean initialized;
+    private volatile boolean injectedUserEnabled = false;
     private final AdminDNs adminDns;
     private final XFFResolver xffResolver;
     private volatile boolean anonymousAuthEnabled = false;
@@ -185,7 +186,10 @@ public class BackendRegistry implements DCFListener {
 
 
         this.ttlInMin = settings.getAsInt(ConfigConstants.OPENDISTRO_SECURITY_CACHE_TTL_MINUTES, 60);
-                
+
+        // This is going to be defined in the elasticsearch.yml, so it's best suited to be initialized once.
+        this.injectedUserEnabled = esSettings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_USER_ENABLED,false);
+
         createCaches();
     }
 
@@ -222,7 +226,7 @@ public class BackendRegistry implements DCFListener {
         authBackendClientBlockRegistries = dcm.getAuthBackendClientBlockRegistries();
 
         //Open Distro Security no default authc
-        initialized = !restAuthDomains.isEmpty() || anonymousAuthEnabled;
+        initialized = !restAuthDomains.isEmpty() || anonymousAuthEnabled  || injectedUserEnabled;
     }
 
     public User authenticate(final TransportRequest request, final String sslPrincipal, final Task task, final String action) {
