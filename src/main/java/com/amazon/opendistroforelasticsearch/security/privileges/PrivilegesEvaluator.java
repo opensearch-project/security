@@ -111,7 +111,7 @@ public class PrivilegesEvaluator implements DCFListener {
     private final IndexResolverReplacer irr;
     private final SnapshotRestoreEvaluator snapshotRestoreEvaluator;
     private final OpenDistroSecurityIndexAccessEvaluator securityIndexAccessEvaluator;
-    private final OpenDistroProtectedIndexAccessEvaluator adminIndexAccessEvaluator;
+    private final OpenDistroProtectedIndexAccessEvaluator protectedIndexAccessEvaluator;
     private final TermsAggregationEvaluator termsAggregationEvaluator;
 
     private final DlsFlsEvaluator dlsFlsEvaluator;
@@ -140,7 +140,7 @@ public class PrivilegesEvaluator implements DCFListener {
         this.irr = irr;
         snapshotRestoreEvaluator = new SnapshotRestoreEvaluator(settings, auditLog);
         securityIndexAccessEvaluator = new OpenDistroSecurityIndexAccessEvaluator(settings, auditLog);
-        adminIndexAccessEvaluator = new OpenDistroProtectedIndexAccessEvaluator(settings, auditLog);
+        protectedIndexAccessEvaluator = new OpenDistroProtectedIndexAccessEvaluator(settings, auditLog);
         dlsFlsEvaluator = new DlsFlsEvaluator(settings, threadPool);
         termsAggregationEvaluator = new TermsAggregationEvaluator();
         this.advancedModulesEnabled = advancedModulesEnabled;
@@ -207,7 +207,8 @@ public class PrivilegesEvaluator implements DCFListener {
             return presponse;
         }
 
-        if (adminIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved, presponse, securityRoles).isComplete()) {
+        // Protected index access
+        if (protectedIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved, presponse, securityRoles).isComplete()) {
             return presponse;
         }
 
@@ -299,8 +300,6 @@ public class PrivilegesEvaluator implements DCFListener {
 
         final Set<String> allIndexPermsRequired = evaluateAdditionalIndexPermissions(request, action0);
         final String[] allIndexPermsRequiredA = allIndexPermsRequired.toArray(new String[0]);
-
-        log.info("allIndexpermsRequired: " + allIndexPermsRequired);
 
         if(log.isDebugEnabled()) {
             log.debug("requested {} from {}", allIndexPermsRequired, caller);
