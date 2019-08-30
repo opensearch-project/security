@@ -820,7 +820,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         
         settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_SSL_ONLY, false, Property.NodeScope, Property.Filtered));
 
-        // Index blocking settings
+        // Protected index settings
         settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_DEFAULT, Property.NodeScope, Property.Filtered, Property.Final));
         settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_DEFAULT, Function.identity(), Property.NodeScope, Property.Filtered, Property.Final));
         settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_DEFAULT, Function.identity(), Property.NodeScope, Property.Filtered, Property.Final));
