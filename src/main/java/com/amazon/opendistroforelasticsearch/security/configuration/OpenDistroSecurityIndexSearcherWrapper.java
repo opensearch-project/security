@@ -133,7 +133,6 @@ public class OpenDistroSecurityIndexSearcherWrapper extends IndexSearcherWrapper
         return WildcardMatcher.matchAny(indexPatterns, index.getName());
     }
 
-
     protected final boolean isPermittedOnIndex() {
 	    final TransportAddress caller = (TransportAddress) this.threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
         final User user = (User) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
