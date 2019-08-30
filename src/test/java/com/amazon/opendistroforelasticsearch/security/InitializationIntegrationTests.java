@@ -93,6 +93,23 @@ public class InitializationIntegrationTests extends SingleClusterTest {
     }
 
     @Test
+    public void testInitWithInjectedUser() throws Exception {
+
+        final Settings settings = Settings.builder()
+                .putList("path.repo", repositoryPath.getRoot().getAbsolutePath())
+                .put("opendistro_security.unsupported.inject_user.enabled", true)
+                .build();
+
+        setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_disable_all.yml"), settings, true);
+
+        RestHelper rh = nonSslRestHelper();
+
+        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executePutRequest(".opendistro_security/config/0", "{}", encodeBasicHeader("___", "")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executePutRequest(".opendistro_security/sg/config", "{}", encodeBasicHeader("___", "")).getStatusCode());
+
+    }
+
+    @Test
     public void testWhoAmI() throws Exception {
         setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityInternalUsers("internal_empty.yml")
                 .setSecurityRoles("roles_deny.yml"), Settings.EMPTY, true);

@@ -32,7 +32,6 @@ package com.amazon.opendistroforelasticsearch.security.privileges;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -94,24 +93,6 @@ import com.amazon.opendistroforelasticsearch.security.user.User;
 
 public class PrivilegesEvaluator implements DCFListener {
 
-
-    final String[] blockIndexActionPatternsList = new ArrayList<String>() {
-        {
-            add("indices:data/write*");
-            add("indices:data/read*");
-            add("indices:admin/delete*");
-            add("indices:admin/create*");
-            add("indices:admin/mapping/delete*");
-            add("indices:admin/mapping/put*");
-            add("indices:admin/freeze*");
-            add("indices:admin/settings/update*");
-            add("indices:admin/aliases");
-            add("indices:admin/close*");
-            // Todo decide if we want this index blocked during snapshots
-//            add("indices:admin/snapshot/restore*");
-        }
-    }.toArray(new String[0]);
-
     protected final Logger log = LogManager.getLogger(this.getClass());
     protected final Logger actionTrace = LogManager.getLogger("opendistro_security_action_trace");
     private final ClusterService clusterService;
@@ -130,14 +111,13 @@ public class PrivilegesEvaluator implements DCFListener {
     private final IndexResolverReplacer irr;
     private final SnapshotRestoreEvaluator snapshotRestoreEvaluator;
     private final OpenDistroSecurityIndexAccessEvaluator securityIndexAccessEvaluator;
+    private final OpenDistroProtectedIndexAccessEvaluator adminIndexAccessEvaluator;
     private final TermsAggregationEvaluator termsAggregationEvaluator;
 
     private final DlsFlsEvaluator dlsFlsEvaluator;
 
     private final boolean advancedModulesEnabled;
     private DynamicConfigModel dcm;
-
-    private Settings settings;
 
     public PrivilegesEvaluator(final ClusterService clusterService, final ThreadPool threadPool,
                                final ConfigurationRepository configurationRepository, final IndexNameExpressionResolver resolver,
@@ -160,11 +140,10 @@ public class PrivilegesEvaluator implements DCFListener {
         this.irr = irr;
         snapshotRestoreEvaluator = new SnapshotRestoreEvaluator(settings, auditLog);
         securityIndexAccessEvaluator = new OpenDistroSecurityIndexAccessEvaluator(settings, auditLog);
+        adminIndexAccessEvaluator = new OpenDistroProtectedIndexAccessEvaluator(settings, auditLog);
         dlsFlsEvaluator = new DlsFlsEvaluator(settings, threadPool);
         termsAggregationEvaluator = new TermsAggregationEvaluator();
         this.advancedModulesEnabled = advancedModulesEnabled;
-
-        this.settings = settings;
     }
 
 
@@ -211,22 +190,6 @@ public class PrivilegesEvaluator implements DCFListener {
         }
 
 
-        // Check if index blocking is enabled.
-        if (settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_ROLE_BLOCKED_INDICES_ENABLED_KEY, ConfigConstants.OPENDISTRO_SECURITY_ROLE_BLOCKED_INDICES_ENABLED_DEFAULT)) {
-            final List<String> indexNames = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_ROLE_BLOCKED_INDICES_KEY, ConfigConstants.OPENDISTRO_SECURITY_ROLE_BLOCKED_INDICES_DEFAULT);
-            final Collection indexPatterns = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_ROLE_BLOCKED_INDEX_PATTERN_KEY, ConfigConstants.OPENDISTRO_SECURITY_ROLE_BLOCKED_INDEX_PATTERN_DEFAULT);
-            final boolean deniedAction = WildcardMatcher.matchAny(blockIndexActionPatternsList, action0);
-            // Check if this is an action that should be denied.
-            if (deniedAction) {
-                // Check if we are touching an index in the index pattern or index directly and if so reject.
-                if(!Collections.disjoint(requestedResolved.getAllIndices(), indexNames) ||
-                        WildcardMatcher.matchAny(indexPatterns, requestedResolved.getAllIndices())) {
-                    presponse.missingPrivileges.add(ConfigConstants.BLOCKED);
-                    return presponse;
-                }
-            }
-        }
-
         // check dlsfls
         if (advancedModulesEnabled
                 //&& (action0.startsWith("indices:data/read") || action0.equals(ClusterSearchShardsAction.NAME))
@@ -241,6 +204,10 @@ public class PrivilegesEvaluator implements DCFListener {
 
         // Security index access
         if (securityIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved, presponse).isComplete()) {
+            return presponse;
+        }
+
+        if (adminIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved, presponse, securityRoles).isComplete()) {
             return presponse;
         }
 
@@ -332,6 +299,8 @@ public class PrivilegesEvaluator implements DCFListener {
 
         final Set<String> allIndexPermsRequired = evaluateAdditionalIndexPermissions(request, action0);
         final String[] allIndexPermsRequiredA = allIndexPermsRequired.toArray(new String[0]);
+
+        log.info("allIndexpermsRequired: " + allIndexPermsRequired);
 
         if(log.isDebugEnabled()) {
             log.debug("requested {} from {}", allIndexPermsRequired, caller);

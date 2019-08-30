@@ -123,7 +123,6 @@ public class OpenDistroSecurityFilter implements ActionFilter {
 
     private <Request extends ActionRequest, Response extends ActionResponse> void apply0(Task task, final String action, Request request,
             ActionListener<Response> listener, ActionFilterChain<Request, Response> chain) {
-        
         try {
 
             if(threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN) == null) {
@@ -266,10 +265,6 @@ public class OpenDistroSecurityFilter implements ActionFilter {
             } else {
                 auditLog.logMissingPrivileges(action, request, task);
                 log.debug("no permissions for {}", pres.getMissingPrivileges());
-                if (pres.getMissingPrivileges().contains(ConfigConstants.BLOCKED)) {
-                    listener.onFailure(new ElasticsearchSecurityException("This index is reserved for members of [all_access] role only.", RestStatus.FORBIDDEN));
-                    return;
-                }
                 listener.onFailure(new ElasticsearchSecurityException("no permissions for " + pres.getMissingPrivileges()+ " and "+user, RestStatus.FORBIDDEN));
                 return;
             }
