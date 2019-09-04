@@ -242,7 +242,7 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_KEY = "opendistro_security.protected_indices.enabled";
     public static final Boolean OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_DEFAULT = false;
     public static final String OPENDISTRO_SECURITY_PROTECTED_INDICES_KEY = "opendistro_security.protected_indices.indices";
-    public static final List<String> OPENDISTRO_SECURITY_PROTECTED_INDICES_DEFAULT = Arrays.asList();
+    public static final List<String> OPENDISTRO_SECURITY_PROTECTED_INDICES_DEFAULT = Collections.emptyList();
     public static final String OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_KEY = "opendistro_security.protected_indices.roles";
-    public static final List<String> OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_DEFAULT = Arrays.asList();
+    public static final List<String> OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_DEFAULT = Collections.emptyList();
 }
