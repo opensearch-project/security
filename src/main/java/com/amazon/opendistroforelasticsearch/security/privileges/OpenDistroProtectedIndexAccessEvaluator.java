@@ -24,30 +24,28 @@ public class OpenDistroProtectedIndexAccessEvaluator {
     private final AuditLog auditLog;
     private final Collection<String> indexPatterns;
     private final Collection<String> allowedRoles;
+    private final Boolean protectedIndexEnabled;
     private final String[] deniedActionPatterns;
 
 
     public OpenDistroProtectedIndexAccessEvaluator(final Settings settings, AuditLog auditLog) {
         this.indexPatterns = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_DEFAULT);
         this.allowedRoles = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_DEFAULT);
+        this.protectedIndexEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_DEFAULT);
         this.auditLog = auditLog;
 
         final List<String> indexDeniedActionPatterns = new ArrayList<String>();
         indexDeniedActionPatterns.add("indices:data/write*");
-        indexDeniedActionPatterns.add("indices:admin/delete*");
-        indexDeniedActionPatterns.add("indices:admin/create*");
-        indexDeniedActionPatterns.add("indices:admin/mapping/delete*");
-        indexDeniedActionPatterns.add("indices:admin/mapping/put*");
-        indexDeniedActionPatterns.add("indices:admin/freeze*");
-        indexDeniedActionPatterns.add("indices:admin/settings/update*");
-        indexDeniedActionPatterns.add("indices:admin/aliases");
-        indexDeniedActionPatterns.add("indices:admin/open*");
-        indexDeniedActionPatterns.add("indices:admin/close*");
+        indexDeniedActionPatterns.add("indices:admin/*");
+        indexDeniedActionPatterns.add("cluster:admin/snapshot/*");
         this.deniedActionPatterns = indexDeniedActionPatterns.toArray(new String[0]);
     }
 
     public PrivilegesEvaluatorResponse evaluate(final ActionRequest request, final Task task, final String action, final IndexResolverReplacer.Resolved requestedResolved,
                                                 final PrivilegesEvaluatorResponse presponse, final SecurityRoles securityRoles) {
+        if (!protectedIndexEnabled) {
+            return presponse;
+        }
         if (WildcardMatcher.matchAny(indexPatterns, requestedResolved.getAllIndices())
                 && WildcardMatcher.matchAny(deniedActionPatterns, action)
                 && !WildcardMatcher.matchAny(allowedRoles, securityRoles.getRoleNames())) {

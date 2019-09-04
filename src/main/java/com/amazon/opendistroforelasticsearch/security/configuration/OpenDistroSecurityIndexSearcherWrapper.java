@@ -67,6 +67,7 @@ public class OpenDistroSecurityIndexSearcherWrapper extends IndexSearcherWrapper
     private final PrivilegesEvaluator evaluator;
     private final Collection<String> indexPatterns;
     private final Collection<String> allowedRoles;
+    private final Boolean protectedIndexEnabled;
 
     //constructor is called per index, so avoid costly operations here
 	public OpenDistroSecurityIndexSearcherWrapper(final IndexService indexService, final Settings settings, final AdminDNs adminDNs, final PrivilegesEvaluator evaluator) {
@@ -77,6 +78,7 @@ public class OpenDistroSecurityIndexSearcherWrapper extends IndexSearcherWrapper
         this.adminDns = adminDNs;
         this.indexPatterns = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_DEFAULT);
         this.allowedRoles = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_DEFAULT);
+        this.protectedIndexEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_DEFAULT);
 	}
 
     @Override
@@ -90,7 +92,7 @@ public class OpenDistroSecurityIndexSearcherWrapper extends IndexSearcherWrapper
         if (isSecurityIndexRequest() && !isAdminAuthenticatedOrInternalRequest()) {
             return new EmptyFilterLeafReader.EmptyDirectoryReader(reader);
         }
-        if (isBlockedIndexRequest() && !isPermittedOnIndex()) {
+        if (protectedIndexEnabled && isBlockedIndexRequest() && !isPermittedOnIndex()) {
             return new EmptyFilterLeafReader.EmptyDirectoryReader(reader);
         }
 
