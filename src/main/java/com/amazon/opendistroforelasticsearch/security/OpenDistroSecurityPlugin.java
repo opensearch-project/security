@@ -471,7 +471,8 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                             Objects.requireNonNull(cs),
                             Objects.requireNonNull(auditLog),
                             Objects.requireNonNull(ciol),
-                            Objects.requireNonNull(complianceConfig));
+                            Objects.requireNonNull(complianceConfig),
+                            Objects.requireNonNull(evaluator));
             if(log.isDebugEnabled()) {
                 log.debug("FLS/DLS enabled for index {}", indexService.index().getName());
             }
@@ -544,7 +545,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                 assert complianceConfig==null:"compliance config must be null here";
                 
                 indexModule.setSearcherWrapper(indexService -> new OpenDistroSecurityIndexSearcherWrapper(indexService, settings, Objects
-                        .requireNonNull(adminDns)));
+                        .requireNonNull(adminDns), Objects.requireNonNull(evaluator)));
             }
 
             indexModule.addSearchOperationListener(new SearchOperationListener() {
@@ -818,6 +819,11 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         settings.addAll(super.getSettings());
         
         settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_SSL_ONLY, false, Property.NodeScope, Property.Filtered));
+
+        // Protected index settings
+        settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_DEFAULT, Property.NodeScope, Property.Filtered, Property.Final));
+        settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_DEFAULT, Function.identity(), Property.NodeScope, Property.Filtered, Property.Final));
+        settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_DEFAULT, Function.identity(), Property.NodeScope, Property.Filtered, Property.Final));
 
         if(!sslOnly) {
             settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_ADMIN_DN, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
