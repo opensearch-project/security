@@ -123,7 +123,6 @@ public class OpenDistroSecurityFilter implements ActionFilter {
 
     private <Request extends ActionRequest, Response extends ActionResponse> void apply0(Task task, final String action, Request request,
             ActionListener<Response> listener, ActionFilterChain<Request, Response> chain) {
-        
         try {
 
             if(threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN) == null) {
@@ -148,7 +147,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
                     && !action.startsWith("internal:transport/proxy");
 
             if (user != null) {
-                org.apache.logging.log4j.ThreadContext.put("user", user.getName());    
+                org.apache.logging.log4j.ThreadContext.put("user", user.getName());
             }
                         
             if(actionTrace.isTraceEnabled()) {
@@ -266,7 +265,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
             } else {
                 auditLog.logMissingPrivileges(action, request, task);
                 log.debug("no permissions for {}", pres.getMissingPrivileges());
-                listener.onFailure(new ElasticsearchSecurityException("no permissions for " + pres.getMissingPrivileges()+" and "+user, RestStatus.FORBIDDEN));
+                listener.onFailure(new ElasticsearchSecurityException("no permissions for " + pres.getMissingPrivileges()+ " and "+user, RestStatus.FORBIDDEN));
                 return;
             }
         } catch (Throwable e) {

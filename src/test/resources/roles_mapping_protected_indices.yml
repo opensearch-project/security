@@ -1,0 +1,23 @@
+---
+_meta:
+  type: "rolesmapping"
+  config_version: 2
+
+all_access:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "indexAccessNoRoleUser"
+    - "protectedIndexUser"
+  description: "Full index permissions, but no role to view protected indices."
+
+protected_index_role1:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "protectedIndexUser"
+  description: "Role to have access to protected indices."

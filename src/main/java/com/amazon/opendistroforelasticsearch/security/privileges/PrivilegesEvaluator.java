@@ -93,7 +93,6 @@ import com.amazon.opendistroforelasticsearch.security.user.User;
 
 public class PrivilegesEvaluator implements DCFListener {
 
-
     protected final Logger log = LogManager.getLogger(this.getClass());
     protected final Logger actionTrace = LogManager.getLogger("opendistro_security_action_trace");
     private final ClusterService clusterService;
@@ -112,6 +111,7 @@ public class PrivilegesEvaluator implements DCFListener {
     private final IndexResolverReplacer irr;
     private final SnapshotRestoreEvaluator snapshotRestoreEvaluator;
     private final OpenDistroSecurityIndexAccessEvaluator securityIndexAccessEvaluator;
+    private final OpenDistroProtectedIndexAccessEvaluator protectedIndexAccessEvaluator;
     private final TermsAggregationEvaluator termsAggregationEvaluator;
 
     private final DlsFlsEvaluator dlsFlsEvaluator;
@@ -140,6 +140,7 @@ public class PrivilegesEvaluator implements DCFListener {
         this.irr = irr;
         snapshotRestoreEvaluator = new SnapshotRestoreEvaluator(settings, auditLog);
         securityIndexAccessEvaluator = new OpenDistroSecurityIndexAccessEvaluator(settings, auditLog);
+        protectedIndexAccessEvaluator = new OpenDistroProtectedIndexAccessEvaluator(settings, auditLog);
         dlsFlsEvaluator = new DlsFlsEvaluator(settings, threadPool);
         termsAggregationEvaluator = new TermsAggregationEvaluator();
         this.advancedModulesEnabled = advancedModulesEnabled;
@@ -174,7 +175,6 @@ public class PrivilegesEvaluator implements DCFListener {
         final Set<String> mappedRoles = mapRoles(user, caller);
         final SecurityRoles securityRoles = getSecurityRoles(mappedRoles);
 
-
         final PrivilegesEvaluatorResponse presponse = new PrivilegesEvaluatorResponse();
 
 
@@ -188,6 +188,7 @@ public class PrivilegesEvaluator implements DCFListener {
         if (log.isDebugEnabled()) {
             log.debug("requestedResolved : {}", requestedResolved );
         }
+
 
         // check dlsfls
         if (advancedModulesEnabled
@@ -203,6 +204,11 @@ public class PrivilegesEvaluator implements DCFListener {
 
         // Security index access
         if (securityIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved, presponse).isComplete()) {
+            return presponse;
+        }
+
+        // Protected index access
+        if (protectedIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved, presponse, securityRoles).isComplete()) {
             return presponse;
         }
 

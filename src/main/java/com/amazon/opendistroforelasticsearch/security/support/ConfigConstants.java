@@ -235,5 +235,14 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_USER_ENABLED = "opendistro_security.unsupported.inject_user.enabled";
     public static final String OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_ADMIN_USER_ENABLED = "opendistro_security.unsupported.inject_user.admin.enabled";
     public static final String OPENDISTRO_SECURITY_UNSUPPORTED_ALLOW_NOW_IN_DLS = "opendistro_security.unsupported.allow_now_in_dls";
+
     public static final String OPENDISTRO_SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION = "opendistro_security.unsupported.restapi.allow_securityconfig_modification";
+
+    // Protected indices settings
+    public static final String OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_KEY = "opendistro_security.protected_indices.enabled";
+    public static final Boolean OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_DEFAULT = false;
+    public static final String OPENDISTRO_SECURITY_PROTECTED_INDICES_KEY = "opendistro_security.protected_indices.indices";
+    public static final List<String> OPENDISTRO_SECURITY_PROTECTED_INDICES_DEFAULT = Collections.emptyList();
+    public static final String OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_KEY = "opendistro_security.protected_indices.roles";
+    public static final List<String> OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_DEFAULT = Collections.emptyList();
 }
