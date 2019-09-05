@@ -1,0 +1,17 @@
+---
+_meta:
+  type: "roles"
+  config_version: 2
+
+full_index_permissions:
+  description: "All access role, but not protected index role."
+  cluster_permissions:
+    - '*'
+  index_permissions:
+    - index_patterns:
+        - '*'
+      allowed_actions:
+        - '*'
+
+protected_index_role1:
+    description: "Blank role to give access to protected indices."
