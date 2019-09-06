@@ -1,0 +1,14 @@
+all_access:
+  description: "All access role, but not protected index role."
+  cluster:
+    - ALL
+    - CLUSTER_ALL
+  indices:
+    '*':
+      '*':
+        - ALL
+
+protected_index_role1:
+    description: "Blank role to give access to protected indices."
+    cluster:
+      - ALL
