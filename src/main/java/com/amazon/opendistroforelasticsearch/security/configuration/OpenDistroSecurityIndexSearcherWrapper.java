@@ -35,10 +35,6 @@ import java.util.Collection;
 import java.util.Set;
 
 import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvaluator;
-import com.amazon.opendistroforelasticsearch.security.securityconf.ConfigModel;
-import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigFactory;
-import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigModel;
-import com.amazon.opendistroforelasticsearch.security.securityconf.InternalUsersModel;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -56,14 +52,13 @@ import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.HeaderHelper;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 
-public class OpenDistroSecurityIndexSearcherWrapper extends IndexSearcherWrapper implements DynamicConfigFactory.DCFListener {
+public class OpenDistroSecurityIndexSearcherWrapper extends IndexSearcherWrapper {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
     protected final ThreadContext threadContext;
     protected final Index index;
     protected final String opendistrosecurityIndex;
     private final AdminDNs adminDns;
-    private ConfigModel configModel;
     private final PrivilegesEvaluator evaluator;
     private final Collection<String> indexPatterns;
     private final Collection<String> allowedRoles;
@@ -79,11 +74,6 @@ public class OpenDistroSecurityIndexSearcherWrapper extends IndexSearcherWrapper
         this.indexPatterns = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_KEY);
         this.allowedRoles = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_KEY);
         this.protectedIndexEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_DEFAULT);
-    }
-
-    @Override
-    public void onChanged(ConfigModel cm, DynamicConfigModel dcm, InternalUsersModel ium) {
-        this.configModel = cm;
     }
 
     @Override
