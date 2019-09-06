@@ -1,6 +1,6 @@
 ## 2019-09-06, Version 1.1.0.2 (Current)
 
-- Initialize opendistro index if injected user enabled
+- Add the ability to block indices and index patterns to certain roles, adding another level of protection for these indices
 - Ability to protect indices even further
 
 ## 2019-08-20, Version 1.1.0.1
