@@ -196,3 +196,14 @@ opendistro_security.audit.type: internal_elasticsearch
 # Disable Open Distro Security
 # WARNING: This can expose your configuration (including passwords) to the public.
 #opendistro_security.disabled: false
+
+
+# Protected indices are even more secure than normal indices. These indices require a role to access like any other index, but they require an additional role
+# to be visible, listed in the opendistro_security.protected_indices.roles setting.
+# Enable protected indices
+# opendistro_security.protected_indices.enabled: true
+# Specify a list of roles a user must be member of to touch any protected index.
+# opendistro_security.protected_indices.roles: ['all_access']
+# Specify a list of indices to mark as protected. These indices will only be visible / mutable by members of the above setting, in addition to needing permission to the index via a normal role.
+# opendistro_security.protected_indices.indices: ['.opendistro-alerting-config', '.opendistro-ism-*']
+

@@ -1,0 +1,11 @@
+all_access:
+  users:
+    - indexAccessNoRoleUser
+    - protectedIndexUser
+  description: "Full index permissions, but no role to view protected indices."
+
+
+protected_index_role1:
+  users:
+    - protectedIndexUser
+  description: "Role to have access to protected indices."
