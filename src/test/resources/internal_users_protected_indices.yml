@@ -1,0 +1,7 @@
+indexAccessNoRoleUser:
+  hash: "$2y$12$93KcWlQxeify28LSx8EjYOnHv1AQ6vJZXSRUVTnfSN7AxTfvCBfu."
+  description: "User mapped to all cluster and index permissions but no role to view protected index"
+
+protectedIndexUser:
+  hash: "$2y$12$LavzCpUFiFwXD22rc0n.SOVExdnzDcn6lHY48XKPl6KKdvAHm0awm"
+  description: "User mapped to all cluster and index permissions but no role to view protected index"
