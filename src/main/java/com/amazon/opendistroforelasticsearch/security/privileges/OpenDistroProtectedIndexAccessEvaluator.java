@@ -44,11 +44,11 @@ public class OpenDistroProtectedIndexAccessEvaluator {
 
     public PrivilegesEvaluatorResponse evaluate(final ActionRequest request, final Task task, final String action, final IndexResolverReplacer.Resolved requestedResolved,
                                                 final PrivilegesEvaluatorResponse presponse, final SecurityRoles securityRoles) {
-        List<String> roleNames = new ArrayList();
-        securityRoles.getRoles().forEach( role -> roleNames.add(role.getName()));
         if (!protectedIndexEnabled) {
             return presponse;
         }
+        List<String> roleNames = new ArrayList();
+        securityRoles.getRoles().forEach( role -> roleNames.add(role.getName()));
         if (WildcardMatcher.matchAny(indexPatterns, requestedResolved.getAllIndices())
                 && WildcardMatcher.matchAny(deniedActionPatterns, action)
                 && !WildcardMatcher.matchAny(allowedRoles, roleNames)) {
