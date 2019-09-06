@@ -112,6 +112,7 @@ public class ProtectedIndicesTests extends SingleClusterTest {
         final Settings settings = Settings.builder()
                 .putList("path.repo", repositoryPath.getRoot().getAbsolutePath())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_KEY, true)
+                .put(ConfigConstants.OPENDISTRO_SECURITY_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE, true)
                 .putList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_KEY, listOfIndexesToTest)
                 .putList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_KEY, protectedIndexRoles)
                 .build();
@@ -134,7 +135,7 @@ public class ProtectedIndicesTests extends SingleClusterTest {
         try (TransportClient tc = getInternalTransportClient()) {
             for (String index : listOfIndexesToTest) {
                 tc.admin().indices().create(new CreateIndexRequest(index)).actionGet();
-                tc.index(new IndexRequest(index).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE).id("document1").source("{ \"foo\": \"bar\" }", XContentType.JSON)).actionGet();
+                tc.index(new IndexRequest(index).type("_doc").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE).id("document1").source("{ \"foo\": \"bar\" }", XContentType.JSON)).actionGet();
             }
         }
     }
@@ -464,7 +465,7 @@ public class ProtectedIndicesTests extends SingleClusterTest {
         RestHelper rh = nonSslRestHelper();
 
         for (String index : listOfIndexesToTest) {
-            RestHelper.HttpResponse response = rh.executePutRequest(index + "/_mapping", newMappings, indexAccessNoRoleUserHeader);
+            RestHelper.HttpResponse response = rh.executePutRequest(index + "/_mapping/_doc", newMappings, indexAccessNoRoleUserHeader);
 
             assertTrue(response.getStatusCode() == RestStatus.FORBIDDEN.getStatus());
             assertTrue(response.getBody().contains(generalErrorMessage));
@@ -485,7 +486,7 @@ public class ProtectedIndicesTests extends SingleClusterTest {
         RestHelper rh = nonSslRestHelper();
 
         for (String index : listOfIndexesToTest) {
-            RestHelper.HttpResponse response = rh.executePutRequest(index + "/_mapping", newMappings, indexAccessNoRoleUserHeader);
+            RestHelper.HttpResponse response = rh.executePutRequest(index + "/_mapping/_doc", newMappings, indexAccessNoRoleUserHeader);
             assertTrue(response.getStatusCode() == RestStatus.OK.getStatus());
         }
     }
@@ -751,7 +752,7 @@ public class ProtectedIndicesTests extends SingleClusterTest {
         RestHelper rh = nonSslRestHelper();
 
         for (String index : listOfIndexesToTest) {
-            RestHelper.HttpResponse response = rh.executePutRequest(index + "/_mapping", newMappings, protectedIndexUserHeader);
+            RestHelper.HttpResponse response = rh.executePutRequest(index + "/_mapping/_doc", newMappings, protectedIndexUserHeader);
 
             assertTrue(response.getStatusCode() == RestStatus.OK.getStatus());
         }
@@ -784,7 +785,6 @@ public class ProtectedIndicesTests extends SingleClusterTest {
 
         for (String index : listOfIndexesToTest) {
             RestHelper.HttpResponse response = rh.executePostRequest(index + "/_open", "", protectedIndexUserHeader);
-
             assertTrue(response.getStatusCode() == RestStatus.OK.getStatus());
         }
     }
@@ -900,7 +900,7 @@ public class ProtectedIndicesTests extends SingleClusterTest {
         RestHelper rh = nonSslRestHelper();
 
         for (String index : listOfIndexesToTest) {
-            assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_snapshot/" + index + "/" + index + "_1", protectedIndexUserHeader).getStatusCode());
+            log.error("Response is: " + rh.executeGetRequest("_snapshot/" + index + "/" + index + "_1", protectedIndexUserHeader));
             assertEquals(HttpStatus.SC_OK, rh.executePostRequest("_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true","{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_with_global_state_$1\" }", protectedIndexUserHeader).getStatusCode());
             assertEquals(HttpStatus.SC_OK, rh.executePostRequest("_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true", "", protectedIndexUserHeader).getStatusCode());
             assertEquals(HttpStatus.SC_OK, rh.executePostRequest("_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true","{ \"indices\": \"" + index + "\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"" + index + "_1\" }", protectedIndexUserHeader).getStatusCode());

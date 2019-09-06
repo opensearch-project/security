@@ -44,7 +44,8 @@ public class OpenDistroProtectedIndexAccessEvaluator {
 
     public PrivilegesEvaluatorResponse evaluate(final ActionRequest request, final Task task, final String action, final IndexResolverReplacer.Resolved requestedResolved,
                                                 final PrivilegesEvaluatorResponse presponse, final SecurityRoles securityRoles) {
-        List<String> roleNames = securityRoles.getRoles().stream().map(r->r.getName()).collect(Collectors.toList());
+        List<String> roleNames = new ArrayList();
+        securityRoles.getRoles().forEach( role -> roleNames.add(role.getName()));
         if (!protectedIndexEnabled) {
             return presponse;
         }
