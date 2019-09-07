@@ -1,3 +1,17 @@
+## 2019-09-06, Version 0.10.0.2
+
+- Add 3 new default read only roles to easily allow integration with the opendistro alerting plugin
+- Add the ability to block indices and index patterns to certain roles, adding another level of protection for these indices
+- Initialize opendistro index if injected user enabled
+
+## 2019-08-21, Version 0.10.0.1
+
+- Fix API path naming issue
+
+## 2019-07-23, Version 0.10.0.0
+
+-Support For Elasticsearch 6.8
+
 ## 2019-07-15, Version 0.9.0.1
 
 - Add PUT and PATCH method for securityconfig
