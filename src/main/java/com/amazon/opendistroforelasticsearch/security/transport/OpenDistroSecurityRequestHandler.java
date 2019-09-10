@@ -125,7 +125,7 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
 
             String channelType = transportChannel.getChannelType();
 
-            if(!channelType.equals("direct") && !channelType.equals("netty")) {
+            if(!channelType.equals("direct") && !channelType.equals("transport")) {
                 Class wrappedChannelCls = transportChannel.getClass();
 
                 try {

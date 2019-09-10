@@ -34,12 +34,12 @@
   <parent>
     <groupId>com.amazon.opendistroforelasticsearch</groupId>
     <artifactId>opendistro_security_parent</artifactId>
-    <version>1.1.0.0</version>
+    <version>1.2.0.0</version>
   </parent>
 
   <artifactId>opendistro_security</artifactId>
   <packaging>jar</packaging>
-  <version>1.1.0.0</version>
+  <version>1.2.0.0</version>
   <name>Open Distro Security for Elasticsearch</name>
   <description>Open Distro For Elasticsearch Security</description>
   <inceptionYear>2015</inceptionYear>
@@ -52,11 +52,11 @@
   </licenses>
 
   <properties>
-    <opendistro_security_advanceda_modules.version>1.1.0.0</opendistro_security_advanceda_modules.version>
-    <elasticsearch.version>7.1.1</elasticsearch.version>
+    <opendistro_security_advanceda_modules.version>1.2.0.0</opendistro_security_advanceda_modules.version>
+    <elasticsearch.version>7.2.0</elasticsearch.version>
 
     <!-- deps -->
-    <netty-native.version>2.0.20.Final</netty-native.version>
+    <netty-native.version>2.0.25.Final</netty-native.version>
     <bc.version>1.61</bc.version>
     <log4j.version>2.11.1</log4j.version>
     <guava.version>25.1-jre</guava.version>
@@ -76,7 +76,7 @@
     <url>https://github.com/opendistro-for-elasticsearch/security</url>
     <connection>scm:git:git@github.com:opendistro-for-elasticsearch/security.git</connection>
     <developerConnection>scm:git:git@github.com:opendistro-for-elasticsearch/security.git</developerConnection>
-    <tag>1.1.0.0</tag>
+    <tag>1.2.0.0</tag>
   </scm>
 
   <issueManagement>
@@ -366,7 +366,7 @@
                 <dependency>
                     <groupId>com.amazon.opendistroforelasticsearch</groupId>
                     <artifactId>opendistro_security_advanced_modules</artifactId>
-                    <version>1.1.0.0</version>
+                    <version>1.2.0.0</version>
                     <exclusions>
                         <exclusion>
                             <artifactId>jna</artifactId>
@@ -459,7 +459,7 @@
                 <dependency>
                     <groupId>com.floragunn</groupId>
                     <artifactId>search-guard-static-tcnative-beta</artifactId>
-                    <version>1.1.1a-${netty-native.version}-non-fedora-linux-x86_64</version>
+                    <version>1.1.1c-${netty-native.version}-non-fedora-linux-x86_64</version>
                     <scope>provided</scope>
                 </dependency>
             </dependencies>
@@ -470,7 +470,7 @@
                 <dependency>
                     <groupId>com.floragunn</groupId>
                     <artifactId>search-guard-static-tcnative-beta</artifactId>
-                    <version>1.1.1a-${netty-native.version}-fedora-linux-x86_64</version>
+                    <version>1.1.1c-${netty-native.version}-fedora-linux-x86_64</version>
                     <scope>provided</scope>
                 </dependency>
             </dependencies>
