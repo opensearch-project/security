@@ -270,44 +270,6 @@ public class ProtectedIndicesTests extends SingleClusterTest {
 
     // Test indices:admin/create
     @Test
-    public void testNoAccessCreateIndex() throws Exception {
-        setupSettingsEnabled();
-        // Create rest client
-        RestHelper rh = nonSslRestHelper();
-
-        String indexSettings = "{\n" +
-                "    \"settings\" : {\n" +
-                "        \"index\" : {\n" +
-                "            \"number_of_shards\" : 3, \n" +
-                "            \"number_of_replicas\" : 2 \n" +
-                "        }\n" +
-                "    }\n" +
-                "}";
-        for (String index : listOfIndexesToTest) {
-            RestHelper.HttpResponse response = rh.executePutRequest(index, indexSettings, indexAccessNoRoleUserHeader);
-            assertTrue(response.getStatusCode() == RestStatus.FORBIDDEN.getStatus());
-            assertTrue(response.getBody().contains(generalErrorMessage));
-        }
-    }
-
-
-    @Test
-    public void testCreateIndexNoAccessPatternSettings() throws Exception {
-        setupSettingsIndexPatterns();
-
-        // Create rest client
-        RestHelper rh = nonSslRestHelper();
-
-        for (String pattern : listOfIndexPatternsToTest) {
-            String index = pattern.replace("*", "1");
-            RestHelper.HttpResponse response = rh.executePutRequest(index, "", indexAccessNoRoleUserHeader);
-            assertTrue(response.getStatusCode() == RestStatus.FORBIDDEN.getStatus());
-            assertTrue(response.getBody().contains(generalErrorMessage));
-        }
-    }
-
-    // Test indices:admin/create
-    @Test
     public void testNoAccessCreateIndexDisabled() throws Exception {
         setupSettingsDisabled();
         // Create rest client
@@ -501,23 +463,6 @@ public class ProtectedIndicesTests extends SingleClusterTest {
 
         for (String index : listOfIndexesToTest) {
             RestHelper.HttpResponse response = rh.executePostRequest(index + "/_close", "", indexAccessNoRoleUserHeader);
-
-            assertTrue(response.getStatusCode() == RestStatus.FORBIDDEN.getStatus());
-            assertTrue(response.getBody().contains(generalErrorMessage));
-        }
-    }
-
-    // Tests indices:admin/open
-    @Test
-    public void testNonAccessOpenIndex() throws Exception {
-        setupSettingsEnabled();
-        createTestIndicesAndDocs();
-
-        // Create rest client
-        RestHelper rh = nonSslRestHelper();
-
-        for (String index : listOfIndexesToTest) {
-            RestHelper.HttpResponse response = rh.executePostRequest(index + "/_open", "", indexAccessNoRoleUserHeader);
 
             assertTrue(response.getStatusCode() == RestStatus.FORBIDDEN.getStatus());
             assertTrue(response.getBody().contains(generalErrorMessage));
@@ -847,36 +792,6 @@ public class ProtectedIndicesTests extends SingleClusterTest {
     /************************************************************************************************
      * Test snapshot operations
      ***********************************************************************************************/
-
-    @Test
-    public void testNoAccessSnapshot() throws Exception {
-        setupSettingsEnabledSnapshot();
-        createTestIndicesAndDocs();
-        createSnapshots();
-
-        try (TransportClient tc = getInternalTransportClient()) {
-            for (String index : listOfIndexesToTest) {
-                tc.admin().indices().close(new CloseIndexRequest(index)).actionGet();
-            }
-        }
-
-        String putSnapshot = "{"+
-                "\"indices\": \"%s\"," +
-                "\"ignore_unavailable\": false," +
-                "\"include_global_state\": false" +
-                "}";
-
-        // Create rest client
-        RestHelper rh = nonSslRestHelper();
-
-        for (String index : listOfIndexesToTest) {
-            assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest("_snapshot/" + index + "/" + index + "_1", indexAccessNoRoleUserHeader).getStatusCode());
-            assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true","{ \"include_global_state\": true, \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_with_global_state_$1\" }", indexAccessNoRoleUserHeader).getStatusCode());
-            assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true", "", indexAccessNoRoleUserHeader).getStatusCode());
-            assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true","{ \"indices\": \"" + index + "\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"" + index + "\" }", indexAccessNoRoleUserHeader).getStatusCode());
-            assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest("_snapshot/" + index + "/" + index + "_2?wait_for_completion=true", String.format(putSnapshot, index), indexAccessNoRoleUserHeader).getStatusCode());
-        }
-    }
 
     @Test
     public void testAccessSnapshot() throws Exception {
