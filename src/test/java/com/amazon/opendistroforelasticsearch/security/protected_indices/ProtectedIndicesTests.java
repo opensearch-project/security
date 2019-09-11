@@ -268,18 +268,24 @@ public class ProtectedIndicesTests extends SingleClusterTest {
         }
     }
 
+    // Test indices:admin/create
     @Test
-    public void testCreateIndexNoAccessPatternSettings() throws Exception {
-        setupSettingsIndexPatterns();
-
+    public void testNoAccessCreateIndexDisabled() throws Exception {
+        setupSettingsDisabled();
         // Create rest client
         RestHelper rh = nonSslRestHelper();
 
-        for (String pattern : listOfIndexPatternsToTest) {
-            String index = pattern.replace("*", "1");
-            RestHelper.HttpResponse response = rh.executePutRequest(index, "", indexAccessNoRoleUserHeader);
-            assertTrue(response.getStatusCode() == RestStatus.FORBIDDEN.getStatus());
-            assertTrue(response.getBody().contains(generalErrorMessage));
+        String indexSettings = "{\n" +
+                "    \"settings\" : {\n" +
+                "        \"index\" : {\n" +
+                "            \"number_of_shards\" : 3, \n" +
+                "            \"number_of_replicas\" : 2 \n" +
+                "        }\n" +
+                "    }\n" +
+                "}";
+        for (String index : listOfIndexesToTest) {
+            RestHelper.HttpResponse response = rh.executePutRequest(index, indexSettings, indexAccessNoRoleUserHeader);
+            assertTrue(response.getStatusCode() == RestStatus.OK.getStatus());
         }
     }
 
@@ -457,23 +463,6 @@ public class ProtectedIndicesTests extends SingleClusterTest {
 
         for (String index : listOfIndexesToTest) {
             RestHelper.HttpResponse response = rh.executePostRequest(index + "/_close", "", indexAccessNoRoleUserHeader);
-
-            assertTrue(response.getStatusCode() == RestStatus.FORBIDDEN.getStatus());
-            assertTrue(response.getBody().contains(generalErrorMessage));
-        }
-    }
-
-    // Tests indices:admin/open
-    @Test
-    public void testNonAccessOpenIndex() throws Exception {
-        setupSettingsEnabled();
-        createTestIndicesAndDocs();
-
-        // Create rest client
-        RestHelper rh = nonSslRestHelper();
-
-        for (String index : listOfIndexesToTest) {
-            RestHelper.HttpResponse response = rh.executePostRequest(index + "/_open", "", indexAccessNoRoleUserHeader);
 
             assertTrue(response.getStatusCode() == RestStatus.FORBIDDEN.getStatus());
             assertTrue(response.getBody().contains(generalErrorMessage));
