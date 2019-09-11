@@ -36,8 +36,14 @@ public class OpenDistroProtectedIndexAccessEvaluator {
 
         final List<String> indexDeniedActionPatterns = new ArrayList<String>();
         indexDeniedActionPatterns.add("indices:data/write*");
-        indexDeniedActionPatterns.add("indices:admin/*");
-        indexDeniedActionPatterns.add("cluster:admin/snapshot/*");
+        indexDeniedActionPatterns.add("indices:admin/delete*");
+        indexDeniedActionPatterns.add("indices:admin/mapping/delete*");
+        indexDeniedActionPatterns.add("indices:admin/mapping/put*");
+        indexDeniedActionPatterns.add("indices:admin/freeze*");
+        indexDeniedActionPatterns.add("indices:admin/settings/update*");
+        indexDeniedActionPatterns.add("indices:admin/aliases");
+        indexDeniedActionPatterns.add("indices:admin/close*");
+        indexDeniedActionPatterns.add("cluster:admin/snapshot/restore*");
         this.deniedActionPatterns = indexDeniedActionPatterns.toArray(new String[0]);
     }
 
