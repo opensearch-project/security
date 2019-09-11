@@ -1,4 +1,8 @@
-## 2019-09-06, Version 0.9.0.3 (Current)
+## 2019-09-11, Version 0.9.0.4 (Current)
+
+- Fix protected index kinbana
+
+## 2019-09-06, Version 0.9.0.3
 
 - Add 3 new default read only roles to easily allow integration with the opendistro alerting plugin
 - Add the ability to block indices and index patterns to certain roles, adding another level of protection for these indices
