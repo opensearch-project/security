@@ -138,13 +138,19 @@ public class OpenDistroSecurityIndexSearcherWrapper extends IndexSearcherWrapper
     protected final boolean isPermittedOnIndex() {
         final TransportAddress caller = (TransportAddress) this.threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
         final User user = (User) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        if (caller == null || user == null) {
-            return false;
+
+
+        if (user != null && caller != null) {
+            final Set<String> securityRoles = evaluator.mapRoles(user, caller);
+            if (WildcardMatcher.matchAny(allowedRoles, securityRoles)) {
+                return true;
+            }
         }
-        final Set<String> securityRoles = evaluator.mapRoles(user, caller);
-        if (WildcardMatcher.matchAny(allowedRoles, securityRoles)) {
+
+        if ("true".equals(HeaderHelper.getSafeFromHeader(threadContext, ConfigConstants.OPENDISTRO_PLUGIN_CONF_REQUEST_HEADER))) {
             return true;
         }
+
         return false;
     }
 }
