@@ -145,7 +145,7 @@ public class OpenDistroSecurityIndexSearcherWrapper extends IndexSearcherWrapper
                 return true;
             }
         }
-        if ("true".equals(HeaderHelper.getSafeFromHeader(threadContext, ConfigConstants.OPENDISTRO_PROTECTED_INDICES_CONF_REQUEST_HEADER))) {
+        if (user == null && "true".equals(HeaderHelper.getSafeFromHeader(threadContext, ConfigConstants.OPENDISTRO_PROTECTED_INDICES_CONF_REQUEST_HEADER))) {
             return true;
         }
 
