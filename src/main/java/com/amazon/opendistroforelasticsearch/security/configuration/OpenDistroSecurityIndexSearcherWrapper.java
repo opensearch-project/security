@@ -142,7 +142,9 @@ public class OpenDistroSecurityIndexSearcherWrapper extends IndexSearcherWrapper
         if (user != null && caller != null) {
             final Set<String> securityRoles = evaluator.mapRoles(user, caller);
             if (WildcardMatcher.matchAny(allowedRoles, securityRoles)) {
-                return true;
+                return true; // User matches a role that has access to the protected index.
+            } else {
+                return false; // User does not match a role that has access to the protected index.
             }
         }
         if (user == null && "true".equals(HeaderHelper.getSafeFromHeader(threadContext, ConfigConstants.OPENDISTRO_PROTECTED_INDICES_CONF_REQUEST_HEADER))) {
