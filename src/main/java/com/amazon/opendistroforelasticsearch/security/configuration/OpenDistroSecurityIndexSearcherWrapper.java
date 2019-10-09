@@ -139,7 +139,6 @@ public class OpenDistroSecurityIndexSearcherWrapper extends IndexSearcherWrapper
         final TransportAddress caller = (TransportAddress) this.threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
         final User user = (User) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
 
-
         if (user != null && caller != null) {
             final Set<String> securityRoles = evaluator.mapRoles(user, caller);
             if (WildcardMatcher.matchAny(allowedRoles, securityRoles)) {
