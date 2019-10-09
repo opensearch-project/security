@@ -128,6 +128,7 @@ public class OpenDistroSecurityInterceptor {
 
             final Map<String, String> headerMap = new HashMap<>(Maps.filterKeys(origHeaders0, k->k!=null && (
                     k.equals(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER)
+                            || k.equals(ConfigConstants.OPENDISTRO_PROTECTED_INDICES_CONF_REQUEST_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER)
