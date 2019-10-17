@@ -85,8 +85,7 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
         public NodeConfigUpdateRequest() {
         }
 
-        public NodeConfigUpdateRequest(final String nodeId, final ConfigUpdateRequest request) {
-            super(nodeId);
+        public NodeConfigUpdateRequest(final ConfigUpdateRequest request) {
             this.request = request;
         }
 
@@ -102,10 +101,6 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
             super.writeTo(out);
             request.writeTo(out);
         }
-    }
-
-    protected NodeConfigUpdateRequest newNodeRequest(final String nodeId, final ConfigUpdateRequest request) {
-        return new NodeConfigUpdateRequest(nodeId, request);
     }
 
     @Override
@@ -126,5 +121,10 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
         configurationRepository.reloadConfiguration(CType.fromStringValues((request.request.getConfigTypes())));
         backendRegistry.get().invalidateCache();
         return new ConfigUpdateNodeResponse(clusterService.localNode(), request.request.getConfigTypes(), null);
+    }
+
+   @Override
+    protected NodeConfigUpdateRequest newNodeRequest(ConfigUpdateRequest request) {
+        return new NodeConfigUpdateRequest(request);
     }
 }
