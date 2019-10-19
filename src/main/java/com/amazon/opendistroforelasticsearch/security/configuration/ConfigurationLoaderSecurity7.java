@@ -83,7 +83,7 @@ public class ConfigurationLoaderSecurity7 {
         log.debug("Index is: {}", securityIndex);
     }
 
-    Map<CType, SecurityDynamicConfiguration<?>> load(final CType[] events, long timeout, TimeUnit timeUnit) throws InterruptedException, TimeoutException {
+    Map<CType, SecurityDynamicConfiguration<?>> load(final CType[] events, long timeout, TimeUnit timeUnit, boolean acceptInvalid) throws InterruptedException, TimeoutException {
         final CountDownLatch latch = new CountDownLatch(events.length);
         final Map<CType, SecurityDynamicConfiguration<?>> rs = new HashMap<>(events.length);
 
@@ -148,7 +148,7 @@ public class ConfigurationLoaderSecurity7 {
             public void failure(Throwable t) {
                 log.error("Exception {} while retrieving configuration for {}  (index={})",t,t.toString(), Arrays.toString(events), securityIndex);
             }
-        });
+        }, acceptInvalid);
 
         if(!latch.await(timeout, timeUnit)) {
             //timeout
@@ -158,7 +158,7 @@ public class ConfigurationLoaderSecurity7 {
         return rs;
     }
 
-    void loadAsync(final CType[] events, final ConfigCallback callback) {
+    void loadAsync(final CType[] events, final ConfigCallback callback, boolean acceptInvalid) {
         if(events == null || events.length == 0) {
             log.warn("No config events requested to load");
             return;
@@ -185,7 +185,7 @@ public class ConfigurationLoaderSecurity7 {
                         if(singleGetResponse.isExists() && !singleGetResponse.isSourceEmpty()) {
                             //success
                             try {
-                                final SecurityDynamicConfiguration<?> dConf = toConfig(singleGetResponse);
+                                final SecurityDynamicConfiguration<?> dConf = toConfig(singleGetResponse, acceptInvalid);
                                 if(dConf != null) {
                                     callback.success(dConf.deepClone());
                                 } else {
@@ -214,7 +214,7 @@ public class ConfigurationLoaderSecurity7 {
 
     }
 
-    private SecurityDynamicConfiguration<?> toConfig(GetResponse singleGetResponse) throws Exception {
+    private SecurityDynamicConfiguration<?> toConfig(GetResponse singleGetResponse, boolean acceptInvalid) throws Exception {
         final BytesReference ref = singleGetResponse.getSourceAsBytesRef();
         final String id = singleGetResponse.getId();
         final long seqNo = singleGetResponse.getSeqNo();
@@ -258,15 +258,15 @@ public class ConfigurationLoaderSecurity7 {
 
             if (CType.ACTIONGROUPS.toLCString().equals(id)) {
                 try {
-                    return SecurityDynamicConfiguration.fromJson(jsonAsString, CType.fromString(id), configVersion, seqNo, primaryTerm);
+                    return SecurityDynamicConfiguration.fromJson(jsonAsString, CType.fromString(id), configVersion, seqNo, primaryTerm, acceptInvalid);
                 } catch (Exception e) {
                     if(log.isDebugEnabled()) {
                         log.debug("Unable to load "+id+" with version "+configVersion+" - Try loading legacy format ...");
                     }
-                    return SecurityDynamicConfiguration.fromJson(jsonAsString, CType.fromString(id), 0, seqNo, primaryTerm);
+                    return SecurityDynamicConfiguration.fromJson(jsonAsString, CType.fromString(id), 0, seqNo, primaryTerm, acceptInvalid);
                 }
             }
-            return SecurityDynamicConfiguration.fromJson(jsonAsString, CType.fromString(id), configVersion, seqNo, primaryTerm);
+            return SecurityDynamicConfiguration.fromJson(jsonAsString, CType.fromString(id), configVersion, seqNo, primaryTerm, acceptInvalid);
 
         } finally {
             if(parser != null) {
