@@ -27,5 +27,7 @@ public enum Endpoint {
 	PERMISSIONSINFO,
 	AUTHTOKEN,
 	TENANTS,
-	NODESDN;
+	MIGRATE,
+	VALIDATE,
+        NODESDN;
 }
