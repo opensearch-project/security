@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
+import com.amazon.opendistroforelasticsearch.security.NonValidatingObjectMapper;
 import com.amazon.opendistroforelasticsearch.security.securityconf.Hashed;
 import com.amazon.opendistroforelasticsearch.security.securityconf.Hideable;
 import com.amazon.opendistroforelasticsearch.security.securityconf.StaticDefinable;
@@ -41,13 +42,21 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     }
 
     public static <T> SecurityDynamicConfiguration<T> fromJson(String json, CType ctype, int version, long seqNo, long primaryTerm) throws IOException {
+        return fromJson(json, ctype, version, seqNo, primaryTerm, false);
+    }
+
+    public static <T> SecurityDynamicConfiguration<T> fromJson(String json, CType ctype, int version, long seqNo, long primaryTerm, boolean acceptInvalid) throws IOException {
         SecurityDynamicConfiguration<T> sdc = null;
         if(ctype != null) {
             final Class<?> implementationClass = ctype.getImplementationClass().get(version);
             if(implementationClass == null) {
                 throw new IllegalArgumentException("No implementation class found for "+ctype+" and config version "+version);
             }
-            sdc = DefaultObjectMapper.readValue(json, DefaultObjectMapper.getTypeFactory().constructParametricType(SecurityDynamicConfiguration.class, implementationClass));
+            if(acceptInvalid && version < 2) {
+                sdc = NonValidatingObjectMapper.readValue(json, NonValidatingObjectMapper.getTypeFactory().constructParametricType(SecurityDynamicConfiguration.class, implementationClass));
+            } else {
+                sdc = DefaultObjectMapper.readValue(json, DefaultObjectMapper.getTypeFactory().constructParametricType(SecurityDynamicConfiguration.class, implementationClass));
+            }
             validate(sdc, version, ctype);
         
         } else {
