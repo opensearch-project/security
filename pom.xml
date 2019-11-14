@@ -52,7 +52,7 @@
   </licenses>
 
   <properties>
-    <opendistro_security_advanceda_modules.version>1.2.0.0</opendistro_security_advanceda_modules.version>
+    <opendistro_security_advanceda_modules.version>1.3.0.0</opendistro_security_advanceda_modules.version>
     <elasticsearch.version>7.3.2</elasticsearch.version>
 
     <!-- deps -->
