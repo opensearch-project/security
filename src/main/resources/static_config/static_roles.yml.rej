@@ -1,0 +1,85 @@
+diff a/src/main/resources/static_config/static_roles.yml b/src/main/resources/static_config/static_roles.yml	(rejected hunks)
+@@ -44,2 +44,4 @@ SGS_KIBANA_USER:
+         - ".management-beats"
++        - "*:.tasks"
++        - "*:.management-beats"
+       allowed_actions:
+@@ -72,2 +74,3 @@ SGS_XP_MONITORING:
+     - ".monitor*"
++    - "*:.monitor*"
+     allowed_actions:
+@@ -102,10 +105,7 @@ SGS_XP_ALERTING:
+     - ".watches*"
+-    allowed_actions:
+-    - "SGS_INDICES_ALL"
+-  - index_patterns:
+     - ".watcher-history-*"
+-    allowed_actions:
+-    - "SGS_INDICES_ALL"
+-  - index_patterns:
+     - ".triggered_watches"
++    - "*:.watches*"
++    - "*:.watcher-history-*"
++    - "*:.triggered_watches"
+     allowed_actions:
+@@ -137,2 +137,3 @@ SGS_XP_MACHINE_LEARNING:
+     - ".ml-*"
++    - "*:.ml-*"
+     allowed_actions:
+@@ -154,26 +155,12 @@ SGS_KIBANA_SERVER:
+     - ".kibana"
+-    allowed_actions:
+-    - "SGS_INDICES_ALL"
+-  - index_patterns:
+     - ".kibana-6"
+-    allowed_actions:
+-    - "SGS_INDICES_ALL"
+-  - index_patterns:
+     - ".kibana_*"
+-    allowed_actions:
+-    - "SGS_INDICES_ALL"
+-  - index_patterns:
+     - ".reporting*"
+-    allowed_actions:
+-    - "SGS_INDICES_ALL"
+-  - index_patterns:
++    - "*:.reporting*"
+     - ".monitoring*"
+-    allowed_actions:
+-    - "SGS_INDICES_ALL"
+-  - index_patterns:
++    - "*:.monitoring*"
+     - ".tasks"
+-    allowed_actions:
+-    - "SGS_INDICES_ALL"
+-  - index_patterns:
+     - ".management-beats*"
++    - "*:.tasks"
++    - "*:.management-beats*" 
+     allowed_actions:
+@@ -193,6 +180,6 @@ SGS_LOGSTASH:
+   - "SGS_CLUSTER_COMPOSITE_OPS"
+-  - "indices:admin/template/get"
+-  - "indices:admin/template/put"
+-  - "cluster:admin/ingest/pipeline/put"
+-  - "cluster:admin/ingest/pipeline/get"
++  - "SGS_CLUSTER_MANAGE_INDEX_TEMPLATES"
++  - "SGS_CLUSTER_MANAGE_ILM"
++  - "SGS_CLUSTER_MANAGE_PIPELINES"
++  - "cluster:admin/xpack/monitoring*"
+   index_permissions:
+@@ -200,6 +187,2 @@ SGS_LOGSTASH:
+     - "logstash-*"
+-    allowed_actions:
+-    - "SGS_CRUD"
+-    - "SGS_CREATE_INDEX"
+-  - index_patterns:
+     - "*beat*"
+@@ -208,2 +191,7 @@ SGS_LOGSTASH:
+     - "SGS_CREATE_INDEX"
++    - "SGS_MANAGE"
++  - index_patterns:
++    - "*"
++    allowed_actions:
++    - "indices:admin/aliases/get"
+   

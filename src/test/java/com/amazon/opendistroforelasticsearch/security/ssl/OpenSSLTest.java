@@ -193,6 +193,7 @@ public class OpenSSLTest extends SSLTest {
                 .put("opendistro_security.ssl.transport.resolve_hostname", false)
                 .putList(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, "TLSv1.3")
                 .putList(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, "TLS_CHACHA20_POLY1305_SHA256")
+                .put("node.max_local_storage_nodes",4)
                 .build();
 
         setupSslOnlyMode(settings);

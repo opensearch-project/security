@@ -35,24 +35,33 @@ import java.util.Set;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.search.internal.SearchContext;
+import org.elasticsearch.threadpool.ThreadPool;
 
 public interface DlsFlsRequestValve {
     
     /**
-     * 
+     * SSLConfigConstants.java
      * @param request
      * @param listener
      * @return false to stop
      */
     boolean invoke(ActionRequest request, ActionListener<?> listener, Map<String,Set<String>> allowedFlsFields, final Map<String,Set<String>> maskedFields, Map<String,Set<String>> queries);
 
+    void handleSearchContext(SearchContext context, ThreadPool threadPool, NamedXContentRegistry namedXContentRegistry);
+    
     public static class NoopDlsFlsRequestValve implements DlsFlsRequestValve {
 
         @Override
         public boolean invoke(ActionRequest request, ActionListener<?> listener, Map<String,Set<String>> allowedFlsFields, final Map<String,Set<String>> maskedFields, Map<String,Set<String>> queries) {
             return true;
         }
-        
+
+        @Override
+        public void handleSearchContext(SearchContext context, ThreadPool threadPool, NamedXContentRegistry namedXContentRegistry) {
+
+        }
     }
     
 }

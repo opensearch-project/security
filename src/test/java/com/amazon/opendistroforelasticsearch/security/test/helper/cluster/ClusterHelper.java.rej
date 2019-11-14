@@ -1,0 +1,15 @@
+diff a/src/test/java/com/amazon/opendistroforelasticsearch/security/test/helper/cluster/ClusterHelper.java b/src/test/java/com/amazon/opendistroforelasticsearch/security/test/helper/cluster/ClusterHelper.java	(rejected hunks)
+@@ -44,3 +44,3 @@ import org.elasticsearch.client.Client;
+ import org.elasticsearch.cluster.health.ClusterHealthStatus;
+-import org.elasticsearch.cluster.node.DiscoveryNode.Role;
++import org.elasticsearch.cluster.node.DiscoveryNodeRole;
+ import org.elasticsearch.common.settings.Settings;
+@@ -271,5 +271,5 @@ public final class ClusterHelper {
+ 
+-			final List<NodeInfo> masterNodes = nodes.stream().filter(n->n.getNode().getRoles().contains(Role.MASTER)).collect(Collectors.toList());
+-	        final List<NodeInfo> dataNodes = nodes.stream().filter(n->n.getNode().getRoles().contains(Role.DATA) && !n.getNode().getRoles().contains(Role.MASTER)).collect(Collectors.toList());
+-	        final List<NodeInfo> clientNodes = nodes.stream().filter(n->!n.getNode().getRoles().contains(Role.MASTER) && !n.getNode().getRoles().contains(Role.DATA)).collect(Collectors.toList());
++			final List<NodeInfo> masterNodes = nodes.stream().filter(n->n.getNode().getRoles().contains(DiscoveryNodeRole.MASTER_ROLE)).collect(Collectors.toList());
++	        final List<NodeInfo> dataNodes = nodes.stream().filter(n->n.getNode().getRoles().contains(DiscoveryNodeRole.DATA_ROLE) && !n.getNode().getRoles().contains(DiscoveryNodeRole.MASTER_ROLE)).collect(Collectors.toList());
++	        final List<NodeInfo> clientNodes = nodes.stream().filter(n->!n.getNode().getRoles().contains(DiscoveryNodeRole.MASTER_ROLE) && !n.getNode().getRoles().contains(DiscoveryNodeRole.DATA_ROLE)).collect(Collectors.toList());
+ 

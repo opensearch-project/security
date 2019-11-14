@@ -17,36 +17,29 @@
 
 package com.amazon.opendistroforelasticsearch.security.ssl.http.netty;
 
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandler;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.DecoderException;
-import io.netty.handler.ssl.NotSslRecordException;
-import io.netty.handler.ssl.SslHandler;
-
-import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLHandshakeException;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.http.HttpChannel;
 import org.elasticsearch.http.HttpHandlingSettings;
 import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import com.amazon.opendistroforelasticsearch.security.ssl.SslExceptionHandler;
 import com.amazon.opendistroforelasticsearch.security.ssl.OpenDistroSecurityKeyStore;
+import com.amazon.opendistroforelasticsearch.security.ssl.SslExceptionHandler;
+
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandler;
+import io.netty.handler.codec.DecoderException;
+import io.netty.handler.ssl.SslHandler;
 
 public class OpenDistroSecuritySSLNettyHttpServerTransport extends Netty4HttpServerTransport {
 
     private static final Logger logger = LogManager.getLogger(OpenDistroSecuritySSLNettyHttpServerTransport.class);
     private final OpenDistroSecurityKeyStore odsks;
-    //private final ThreadContext threadContext;
     private final SslExceptionHandler errorHandler;
     
     public OpenDistroSecuritySSLNettyHttpServerTransport(final Settings settings, final NetworkService networkService, final BigArrays bigArrays,
@@ -54,7 +47,6 @@ public class OpenDistroSecuritySSLNettyHttpServerTransport extends Netty4HttpSer
             final SslExceptionHandler errorHandler) {
         super(settings, networkService, bigArrays, threadPool, namedXContentRegistry, dispatcher);
         this.odsks = odsks;
-        //this.threadContext = threadPool.getThreadContext();
         this.errorHandler = errorHandler;
     }
 
@@ -65,32 +57,16 @@ public class OpenDistroSecuritySSLNettyHttpServerTransport extends Netty4HttpSer
 
     @Override
     public void onException(HttpChannel channel, Exception cause0) {
-        if(this.lifecycle.started()) {
-            
-            Throwable cause = cause0;
-            
-            if(cause0 instanceof DecoderException && cause0 != null) {
-                cause = cause0.getCause();
-            }
-            
-            errorHandler.logError(cause, true);
-            
-            if(cause instanceof NotSslRecordException) {
-                logger.warn("Someone ({}) speaks http plaintext instead of ssl, will close the channel", channel.getRemoteAddress());
-                channel.close();
-                return;
-            } else if (cause instanceof SSLException) {
-                logger.error("SSL Problem "+cause.getMessage(),cause);
-                channel.close();
-                return;
-            } else if (cause instanceof SSLHandshakeException) {
-                logger.error("Problem during handshake "+cause.getMessage());
-                channel.close();
-                return;
-            }
-            
+        Throwable cause = cause0;
+
+        if (cause0 instanceof DecoderException && cause0 != null) {
+            cause = cause0.getCause();
         }
-        
+
+
+        errorHandler.logError(cause, true);
+        logger.error("Exception during establishing a SSL connection: " + cause, cause);
+
         super.onException(channel, cause0);
     }
 

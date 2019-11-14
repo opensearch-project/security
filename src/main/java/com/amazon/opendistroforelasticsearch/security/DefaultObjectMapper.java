@@ -58,6 +58,7 @@ public class DefaultObjectMapper {
         objectMapper.enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION);
         defaulOmittingObjectMapper.setSerializationInclusion(Include.NON_DEFAULT);
         defaulOmittingObjectMapper.enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION);
+        YAML_MAPPER.enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION);
     }
 
     public static <T> T readTree(JsonNode node, Class<T> clazz) throws IOException {

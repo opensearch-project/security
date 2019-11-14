@@ -139,7 +139,7 @@ public class PrivilegesEvaluator implements DCFListener {
         this.clusterInfoHolder = clusterInfoHolder;
         this.irr = irr;
         snapshotRestoreEvaluator = new SnapshotRestoreEvaluator(settings, auditLog);
-        securityIndexAccessEvaluator = new OpenDistroSecurityIndexAccessEvaluator(settings, auditLog);
+        securityIndexAccessEvaluator = new OpenDistroSecurityIndexAccessEvaluator(settings, auditLog, irr);
         protectedIndexAccessEvaluator = new OpenDistroProtectedIndexAccessEvaluator(settings, auditLog);
         dlsFlsEvaluator = new DlsFlsEvaluator(settings, threadPool);
         termsAggregationEvaluator = new TermsAggregationEvaluator();
