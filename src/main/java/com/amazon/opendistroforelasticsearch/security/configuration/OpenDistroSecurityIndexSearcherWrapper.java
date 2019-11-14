@@ -54,26 +54,43 @@ import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.HeaderHelper;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 
-public class OpenDistroSecurityIndexSearcherWrapper implements CheckedFunction<DirectoryReader, DirectoryReader, IOException>  {
+public class OpenDistroSecurityIndexSearcherWrapper implements CheckedFunction<DirectoryReader, DirectoryReader, IOException>, DynamicConfigFactory.DCFListener  {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
     protected final ThreadContext threadContext;
     protected final Index index;
     protected final String opendistrosecurityIndex;
     private final AdminDNs adminDns;
+    private ConfigModel configModel;
+    private final PrivilegesEvaluator evaluator;
+    private final Collection<String> indexPatterns;
+    private final Collection<String> allowedRoles;
+    private final Boolean protectedIndexEnabled;
 
     //constructor is called per index, so avoid costly operations here
-    public OpenDistroSecurityIndexSearcherWrapper(final IndexService indexService, final Settings settings, final AdminDNs adminDNs) {
+    public OpenDistroSecurityIndexSearcherWrapper(final IndexService indexService, final Settings settings, final AdminDNs adminDNs, final PrivilegesEvaluator evaluator) {
         index = indexService.index();
         threadContext = indexService.getThreadPool().getThreadContext();
         this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
+        this.evaluator = evaluator;
         this.adminDns = adminDNs;
+        this.indexPatterns = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_KEY);
+        this.allowedRoles = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_KEY);
+        this.protectedIndexEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_DEFAULT);
+    }
+
+    @Override
+    public void onChanged(ConfigModel cm, DynamicConfigModel dcm, InternalUsersModel ium) {
+        this.configModel = cm;
     }
 
     @Override
     public final DirectoryReader apply(DirectoryReader reader) throws IOException {
 
         if (isSecurityIndexRequest() && !isAdminAuthenticatedOrInternalRequest()) {
+            return new EmptyFilterLeafReader.EmptyDirectoryReader(reader);
+        }
+        if (protectedIndexEnabled && isBlockedIndexRequest() && !isPermittedOnIndex()) {
             return new EmptyFilterLeafReader.EmptyDirectoryReader(reader);
         }
 
@@ -103,4 +120,20 @@ public class OpenDistroSecurityIndexSearcherWrapper implements CheckedFunction<D
         return index.getName().equals(opendistrosecurityIndex);
     }
 
+    protected final boolean isBlockedIndexRequest() {
+        return WildcardMatcher.matchAny(indexPatterns, index.getName());
+    }
+
+    protected final boolean isPermittedOnIndex() {
+        final TransportAddress caller = (TransportAddress) this.threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
+        final User user = (User) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        if (caller == null || user == null) {
+            return false;
+        }
+        final Set<String> securityRoles = evaluator.mapRoles(user, caller);
+        if (WildcardMatcher.matchAny(allowedRoles, securityRoles)) {
+            return true;
+        }
+        return false;
+    }
 }

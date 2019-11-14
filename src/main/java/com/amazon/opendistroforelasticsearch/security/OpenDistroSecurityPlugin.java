@@ -548,7 +548,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                 assert complianceConfig==null:"compliance config must be null here";
                 
                 indexModule.setReaderWrapper(
-                        indexService -> new OpenDistroSecurityIndexSearcherWrapper(indexService, settings, Objects.requireNonNull(adminDns)));
+                        indexService -> new OpenDistroSecurityIndexSearcherWrapper(indexService, settings, Objects.requireNonNull(adminDns), Objects.requireNonNull(evaluator)));
             }
 
             indexModule.addSearchOperationListener(new SearchOperationListener() {
