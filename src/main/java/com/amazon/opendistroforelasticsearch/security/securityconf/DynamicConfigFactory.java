@@ -273,7 +273,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         
         public List<String> getOpenDistroSecurityRoles(String user) {
             InternalUserV7 tmp = configuration.getCEntry(user);
-            return tmp==null?Collections.emptyList():tmp.getOpenDistro_security_roles();
+            return tmp==null?Collections.emptyList():tmp.getOpendistro_security_roles();
         }
     }
     

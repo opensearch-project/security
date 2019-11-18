@@ -597,7 +597,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
 
         HttpResponse resc = rh.executeGetRequest("/**/_search", encodeBasicHeader("foo_all", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
-        
+
         resc = rh.executeGetRequest("/*/_search", encodeBasicHeader("foo_all", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
         
@@ -610,19 +610,19 @@ public class IndexIntegrationTests extends SingleClusterTest {
         resc = rh.executeGetRequest("/*,-foo*/_search", encodeBasicHeader("foo_all", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
         
-        resc = rh.executeGetRequest("/**,-searchg*/_search", encodeBasicHeader("foo_all", "nagilum"));
+        resc = rh.executeGetRequest("/*,-*security/_search", encodeBasicHeader("foo_all", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
+
+        resc = rh.executeGetRequest("/*,-*security/_search", encodeBasicHeader("foo_all", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
         
-        resc = rh.executeGetRequest("/*,-searchg*/_search", encodeBasicHeader("foo_all", "nagilum"));
+        resc = rh.executeGetRequest("/*,-*security,-foo*/_search", encodeBasicHeader("foo_all", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
         
-        resc = rh.executeGetRequest("/*,-searchg*,-foo*/_search", encodeBasicHeader("foo_all", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
-        
-        resc = rh.executeGetRequest("/_all,-searchg*/_search", encodeBasicHeader("foo_all", "nagilum"));
+        resc = rh.executeGetRequest("/_all,-*security/_search", encodeBasicHeader("foo_all", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
         
-        resc = rh.executeGetRequest("/_all,-searchg*/_search", encodeBasicHeader("nagilum", "nagilum"));
+        resc = rh.executeGetRequest("/_all,-*security/_search", encodeBasicHeader("nagilum", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, resc.getStatusCode());
         
     }
