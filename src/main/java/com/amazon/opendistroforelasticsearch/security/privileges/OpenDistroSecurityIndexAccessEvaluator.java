@@ -57,15 +57,15 @@ public class OpenDistroSecurityIndexAccessEvaluator {
     private final AuditLog auditLog;
     private final String[] securityDeniedActionPatterns;
     private final IndexResolverReplacer irr;
-    private final boolean filterSgIndex;
+    private final boolean filterSecurityIndex;
     
     public OpenDistroSecurityIndexAccessEvaluator(final Settings settings, AuditLog auditLog, IndexResolverReplacer irr) {
         this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
         this.auditLog = auditLog;
         this.irr = irr;
-        this.filterSgIndex = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_FILTER_SECURITYINDEX_FROM_ALL_REQUESTS, false);
+        this.filterSecurityIndex = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_FILTER_SECURITYINDEX_FROM_ALL_REQUESTS, false);
 
-        final boolean restoreSgIndexEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_RESTORE_SECURITYINDEX_ENABLED, false);
+        final boolean restoreSecurityIndexEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_RESTORE_SECURITYINDEX_ENABLED, false);
 
         final List<String> securityIndexDeniedActionPatternsList = new ArrayList<String>();
         securityIndexDeniedActionPatternsList.add("indices:data/write*");
@@ -81,7 +81,7 @@ public class OpenDistroSecurityIndexAccessEvaluator {
         securityIndexDeniedActionPatternsListNoSnapshot.add("indices:admin/close*");
         securityIndexDeniedActionPatternsListNoSnapshot.add("cluster:admin/snapshot/restore*");
 
-        securityDeniedActionPatterns = (restoreSgIndexEnabled?securityIndexDeniedActionPatternsList:securityIndexDeniedActionPatternsListNoSnapshot).toArray(new String[0]);
+        securityDeniedActionPatterns = (restoreSecurityIndexEnabled?securityIndexDeniedActionPatternsList:securityIndexDeniedActionPatternsListNoSnapshot).toArray(new String[0]);
     }
     
     public PrivilegesEvaluatorResponse evaluate(final ActionRequest request, final Task task, final String action, final Resolved requestedResolved,
@@ -90,19 +90,19 @@ public class OpenDistroSecurityIndexAccessEvaluator {
         
         if (requestedResolved.getAllIndices().contains(opendistrosecurityIndex)
                 && WildcardMatcher.matchAny(securityDeniedActionPatterns, action)) {
-            if(filterSgIndex) {
-                Set<String> allWithoutSg = new HashSet<>(requestedResolved.getAllIndices());
-                allWithoutSg.remove(opendistrosecurityIndex);
-                if(allWithoutSg.isEmpty()) {
+            if(filterSecurityIndex) {
+                Set<String> allWithoutSecurity = new HashSet<>(requestedResolved.getAllIndices());
+                allWithoutSecurity.remove(opendistrosecurityIndex);
+                if(allWithoutSecurity.isEmpty()) {
                     if(log.isDebugEnabled()) {
                         log.debug("Filtered '{}' but resulting list is empty", opendistrosecurityIndex);
                     }
                     presponse.allowed = false;
                     return presponse.markComplete();
                 }
-                irr.replace(request, false, allWithoutSg.toArray(new String[0]));
+                irr.replace(request, false, allWithoutSecurity.toArray(new String[0]));
                 if(log.isDebugEnabled()) {
-                    log.debug("Filtered '{}', resulting list is {}", opendistrosecurityIndex, allWithoutSg);
+                    log.debug("Filtered '{}', resulting list is {}", opendistrosecurityIndex, allWithoutSecurity);
                 }
                 return presponse;
             } else {
@@ -115,7 +115,7 @@ public class OpenDistroSecurityIndexAccessEvaluator {
 
         if (requestedResolved.isLocalAll()
                 && WildcardMatcher.matchAny(securityDeniedActionPatterns, action)) {
-            if(filterSgIndex) {
+            if(filterSecurityIndex) {
                 irr.replace(request, false, "*","-"+opendistrosecurityIndex);
                 if(log.isDebugEnabled()) {
                     log.debug("Filtered '{}'from {}, resulting list with *,-{} is {}", opendistrosecurityIndex, requestedResolved, opendistrosecurityIndex, irr.resolveRequest(request));

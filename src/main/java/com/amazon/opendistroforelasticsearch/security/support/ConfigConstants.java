@@ -220,7 +220,7 @@ public class ConfigConstants {
         BOTH
     }
 
-    public static final String OPENDISTRO_SECURITY_FILTER_SECURITYINDEX_FROM_ALL_REQUESTS = "opendistro_security.filter_sgindex_from_all_requests";
+    public static final String OPENDISTRO_SECURITY_FILTER_SECURITYINDEX_FROM_ALL_REQUESTS = "opendistro_security.filter_securityindex_from_all_requests";
 
     // REST API
     public static final String OPENDISTRO_SECURITY_RESTAPI_ROLES_ENABLED = "opendistro_security.restapi.roles_enabled";

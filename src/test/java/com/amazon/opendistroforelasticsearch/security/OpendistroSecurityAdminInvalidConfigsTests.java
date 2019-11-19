@@ -46,7 +46,7 @@ import com.amazon.opendistroforelasticsearch.security.tools.OpenDistroSecurityAd
 public class OpendistroSecurityAdminInvalidConfigsTests extends SingleClusterTest {
 
 	@Test
-	public void testSgAdminDuplicateKey() throws Exception {
+	public void testSecurityAdminDuplicateKey() throws Exception {
 		setup();
 
 		final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
@@ -76,8 +76,8 @@ public class OpendistroSecurityAdminInvalidConfigsTests extends SingleClusterTes
 	}
 
 	@Test
-	public void testSgAdminDuplicateKeyReload() throws Exception {
-		testSgAdminDuplicateKey();
+	public void testSecurityAdminDuplicateKeyReload() throws Exception {
+		testSecurityAdminDuplicateKey();
 
 		final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
 
@@ -105,7 +105,7 @@ public class OpendistroSecurityAdminInvalidConfigsTests extends SingleClusterTes
 	}
 
 	@Test
-	public void testSgAdminDuplicateKeySingleFile() throws Exception {
+	public void testSecurityAdminDuplicateKeySingleFile() throws Exception {
 		setup();
 
 		final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
@@ -120,7 +120,7 @@ public class OpendistroSecurityAdminInvalidConfigsTests extends SingleClusterTes
 		argsAsList.add("-cn");
 		argsAsList.add(clusterInfo.clustername);
 		argsAsList.add("-f");
-		argsAsList.add(new File("./src/test/resources/invalid_dupkey/sg_roles_mapping.yml").getAbsolutePath());
+		argsAsList.add(new File("./src/test/resources/invalid_dupkey/roles_mapping.yml").getAbsolutePath());
 		argsAsList.add("-t");
 		argsAsList.add("rolesmapping");
 		argsAsList.add("-nhnv");
@@ -137,8 +137,8 @@ public class OpendistroSecurityAdminInvalidConfigsTests extends SingleClusterTes
 	}
 
 	@Test
-	public void testSgAdminDuplicateKeyReloadSingleFile() throws Exception {
-		testSgAdminDuplicateKeySingleFile();
+	public void testSecurityAdminDuplicateKeyReloadSingleFile() throws Exception {
+		testSecurityAdminDuplicateKeySingleFile();
 
 		final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
 
