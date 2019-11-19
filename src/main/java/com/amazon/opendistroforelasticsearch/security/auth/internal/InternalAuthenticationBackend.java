@@ -77,9 +77,9 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Aut
                 }
             }
 
-            final List<String> searchGuardRoles = internalUsersModel.getOpenDistroSecurityRoles(user.getName());
-            if(searchGuardRoles != null) {
-                user.addOpenDistroSecurityRoles(searchGuardRoles);
+            final List<String> openDistroSecurityRoles = internalUsersModel.getOpenDistroSecurityRoles(user.getName());
+            if(openDistroSecurityRoles != null) {
+                user.addOpenDistroSecurityRoles(openDistroSecurityRoles);
             }
             
             user.addAttributes(attributeMap);
@@ -125,9 +125,9 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Aut
                 
                 final User user = new User(credentials.getUsername(), roles, credentials);
                 
-                final List<String> searchGuardRoles = internalUsersModel.getOpenDistroSecurityRoles(credentials.getUsername());
-                if(searchGuardRoles != null) {
-                    user.addOpenDistroSecurityRoles(searchGuardRoles);
+                final List<String> openDistroSecurityRoles = internalUsersModel.getOpenDistroSecurityRoles(credentials.getUsername());
+                if(openDistroSecurityRoles != null) {
+                    user.addOpenDistroSecurityRoles(openDistroSecurityRoles);
                 }
                 
                 return user;
