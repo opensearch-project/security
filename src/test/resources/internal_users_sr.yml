@@ -1,0 +1,21 @@
+---
+_meta:
+  type: "internalusers"
+  config_version: 2
+
+sr_user:
+  #password is: nagilum
+  hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
+  backend_roles:
+    - abc_ber
+  opendistro_security_roles:
+    - xyz_sr
+
+sr_impuser:
+  #password is: nagilum
+  hash: __imp_only_
+  backend_roles:
+    - ert_ber
+  opendistro_security_roles:
+    - xyz_impsr
+

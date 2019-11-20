@@ -367,3 +367,13 @@ twitter:
 env_test:
   users:
     - env.replace@example.comp.com
+ODS_ALL_ACCESS:
+  users:
+    - static_role_user
+role_foo_index:
+  users:
+    - foo_index
+role_foo_all:
+  users:
+    - foo_all
+

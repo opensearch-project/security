@@ -46,6 +46,7 @@ import org.elasticsearch.action.support.replication.TransportReplicationAction.C
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
+import org.elasticsearch.search.internal.ShardSearchTransportRequest;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportChannel;
@@ -139,6 +140,13 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
 
             getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_CHANNEL_TYPE, channelType);
             getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_ACTION_NAME, task.getAction());
+
+            if(request instanceof ShardSearchTransportRequest) {
+                ShardSearchTransportRequest sr = ((ShardSearchTransportRequest) request);
+                if(sr.source() != null && sr.source().suggest() != null) {
+                    getThreadContext().putTransient("_opendistro_security_issuggest", Boolean.TRUE);
+                }
+            }
 
             //bypass non-netty requests
             if(channelType.equals("direct")) {

@@ -1003,3 +1003,31 @@ env_test:
     - '${env.INDEXNAME3}'
     allowed_actions:
     - "*"
+xyz_impsr:
+  cluster_permissions:
+    - "*"
+  index_permissions:
+    - index_patterns:
+        - "*"
+      allowed_actions:
+        - "ALL"
+role_foo_index:
+  cluster_permissions:
+    - '*'
+  index_permissions:
+    - index_patterns:
+        - foo-index
+      allowed_actions:
+        - indices:data/read/*
+        - indices:admin/*
+        - indices:monitor/*
+role_foo_all:
+  cluster_permissions:
+    - '*'
+  index_permissions:
+    - index_patterns:
+        - 'foo-*'
+      allowed_actions:
+        - indices:data/read/*
+        - indices:admin/*
+        - indices:monitor/*

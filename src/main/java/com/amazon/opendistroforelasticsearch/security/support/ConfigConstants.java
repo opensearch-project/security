@@ -220,13 +220,13 @@ public class ConfigConstants {
         BOTH
     }
 
+    public static final String OPENDISTRO_SECURITY_FILTER_SECURITYINDEX_FROM_ALL_REQUESTS = "opendistro_security.filter_securityindex_from_all_requests";
 
     // REST API
     public static final String OPENDISTRO_SECURITY_RESTAPI_ROLES_ENABLED = "opendistro_security.restapi.roles_enabled";
     public static final String OPENDISTRO_SECURITY_RESTAPI_ENDPOINTS_DISABLED = "opendistro_security.restapi.endpoints_disabled";
     public static final String OPENDISTRO_SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX = "opendistro_security.restapi.password_validation_regex";
     public static final String OPENDISTRO_SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE = "opendistro_security.restapi.password_validation_error_message";
-
 
     // Illegal Opcodes from here on
     public static final String OPENDISTRO_SECURITY_UNSUPPORTED_DISABLE_REST_AUTH_INITIALLY = "opendistro_security.unsupported.disable_rest_auth_initially";
@@ -237,6 +237,7 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_UNSUPPORTED_ALLOW_NOW_IN_DLS = "opendistro_security.unsupported.allow_now_in_dls";
 
     public static final String OPENDISTRO_SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION = "opendistro_security.unsupported.restapi.allow_securityconfig_modification";
+    public static final String OPENDISTRO_SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES = "opendistro_security.unsupported.load_static_resources";
 
     // Protected indices settings
     public static final String OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_KEY = "opendistro_security.protected_indices.enabled";

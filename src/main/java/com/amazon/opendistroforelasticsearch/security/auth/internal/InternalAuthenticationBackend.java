@@ -77,6 +77,11 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Aut
                 }
             }
 
+            final List<String> openDistroSecurityRoles = internalUsersModel.getOpenDistroSecurityRoles(user.getName());
+            if(openDistroSecurityRoles != null) {
+                user.addOpenDistroSecurityRoles(openDistroSecurityRoles);
+            }
+            
             user.addAttributes(attributeMap);
             return true;
         }
@@ -117,7 +122,15 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Aut
                         credentials.addAttribute("attr.internal."+attributeName.getKey(), attributeName.getValue());
                     }
                 }
-                return new User(credentials.getUsername(), roles, credentials);
+                
+                final User user = new User(credentials.getUsername(), roles, credentials);
+                
+                final List<String> openDistroSecurityRoles = internalUsersModel.getOpenDistroSecurityRoles(credentials.getUsername());
+                if(openDistroSecurityRoles != null) {
+                    user.addOpenDistroSecurityRoles(openDistroSecurityRoles);
+                }
+                
+                return user;
             } else {
                 throw new ElasticsearchSecurityException("password does not match");
             }

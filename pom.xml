@@ -34,12 +34,12 @@
   <parent>
     <groupId>com.amazon.opendistroforelasticsearch</groupId>
     <artifactId>opendistro_security_parent</artifactId>
-    <version>1.2.0.0</version>
+    <version>1.3.0.0</version>
   </parent>
 
   <artifactId>opendistro_security</artifactId>
   <packaging>jar</packaging>
-  <version>1.2.0.0</version>
+  <version>1.3.0.0</version>
   <name>Open Distro Security for Elasticsearch</name>
   <description>Open Distro For Elasticsearch Security</description>
   <inceptionYear>2015</inceptionYear>
@@ -52,16 +52,16 @@
   </licenses>
 
   <properties>
-    <opendistro_security_advanceda_modules.version>1.2.0.0</opendistro_security_advanceda_modules.version>
-    <elasticsearch.version>7.2.0</elasticsearch.version>
+    <opendistro_security_advanceda_modules.version>1.3.0.0</opendistro_security_advanceda_modules.version>
+    <elasticsearch.version>7.3.2</elasticsearch.version>
 
     <!-- deps -->
     <netty-native.version>2.0.25.Final</netty-native.version>
-    <bc.version>1.61</bc.version>
+    <bc.version>1.62</bc.version>
     <log4j.version>2.11.1</log4j.version>
     <guava.version>25.1-jre</guava.version>
     <commons.cli.version>1.3.1</commons.cli.version>
-    <jackson-databind.version>2.9.9.2</jackson-databind.version>
+    <jackson-databind.version>2.9.10.1</jackson-databind.version>
     
     <!-- assembly descriptors -->
     <elasticsearch.assembly.descriptor>${basedir}/src/main/assemblies/plugin.xml</elasticsearch.assembly.descriptor>
@@ -76,7 +76,7 @@
     <url>https://github.com/opendistro-for-elasticsearch/security</url>
     <connection>scm:git:git@github.com:opendistro-for-elasticsearch/security.git</connection>
     <developerConnection>scm:git:git@github.com:opendistro-for-elasticsearch/security.git</developerConnection>
-    <tag>1.2.0.0</tag>
+    <tag>1.3.0.0</tag>
   </scm>
 
   <issueManagement>
@@ -366,7 +366,7 @@
                 <dependency>
                     <groupId>com.amazon.opendistroforelasticsearch</groupId>
                     <artifactId>opendistro_security_advanced_modules</artifactId>
-                    <version>1.2.0.0</version>
+                    <version>1.3.0.0</version>
                     <exclusions>
                         <exclusion>
                             <artifactId>jna</artifactId>

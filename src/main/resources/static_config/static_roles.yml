@@ -42,6 +42,8 @@ kibana_user:
     - index_patterns:
         - ".tasks"
         - ".management-beats"
+        - "*:.tasks"
+        - "*:.management-beats"
       allowed_actions:
         - "indices_all"
 
