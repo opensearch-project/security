@@ -78,6 +78,7 @@ import com.amazon.opendistroforelasticsearch.security.http.HTTPBasicAuthenticato
 import com.amazon.opendistroforelasticsearch.security.http.HTTPClientCertAuthenticator;
 import com.amazon.opendistroforelasticsearch.security.http.HTTPProxyAuthenticator;
 import com.amazon.opendistroforelasticsearch.security.http.XFFResolver;
+import com.amazon.opendistroforelasticsearch.security.http.proxy.HTTPExtendedProxyAuthenticator;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.Utils;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.HTTPHelper;
@@ -213,6 +214,7 @@ public class BackendRegistry implements ConfigurationChangeListener {
 
         authImplMap.put("basic_h", HTTPBasicAuthenticator.class.getName());
         authImplMap.put("proxy_h", HTTPProxyAuthenticator.class.getName());
+        authImplMap.put("extended-proxy_h", HTTPExtendedProxyAuthenticator.class.getName());
         authImplMap.put("clientcert_h", HTTPClientCertAuthenticator.class.getName());
         authImplMap.put("kerberos_h", "com.amazon.dlic.auth.http.kerberos.HTTPSpnegoAuthenticator");
         authImplMap.put("jwt_h", "com.amazon.dlic.auth.http.jwt.HTTPJwtAuthenticator");
