@@ -43,6 +43,7 @@ import com.amazon.opendistroforelasticsearch.security.auth.internal.NoOpAuthoriz
 import com.amazon.opendistroforelasticsearch.security.http.HTTPBasicAuthenticator;
 import com.amazon.opendistroforelasticsearch.security.http.HTTPClientCertAuthenticator;
 import com.amazon.opendistroforelasticsearch.security.http.HTTPProxyAuthenticator;
+import com.amazon.opendistroforelasticsearch.security.http.proxy.HTTPExtendedProxyAuthenticator;
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.PrincipalExtractor;
 import com.amazon.opendistroforelasticsearch.security.transport.InterClusterRequestEvaluator;
 
@@ -63,6 +64,7 @@ public enum ModuleType implements Serializable {
 	NOOP_AUTHORIZATION_BACKEND("Noop authorization backend", NoOpAuthorizationBackend.class.getName(), Boolean.FALSE),
 	HTTP_BASIC_AUTHENTICATOR("HTTP Basic Authenticator", HTTPBasicAuthenticator.class.getName(), Boolean.FALSE),
 	HTTP_PROXY_AUTHENTICATOR("HTTP Proxy Authenticator", HTTPProxyAuthenticator.class.getName(), Boolean.FALSE),
+    HTTP_EXT_PROXY_AUTHENTICATOR("HTTP Extended Proxy Authenticator", HTTPExtendedProxyAuthenticator.class.getName(), Boolean.FALSE),
 	HTTP_CLIENTCERT_AUTHENTICATOR("HTTP Client Certificate Authenticator", HTTPClientCertAuthenticator.class.getName(), Boolean.FALSE),
 	CUSTOM_HTTP_AUTHENTICATOR("Custom HTTP authenticator", null, Boolean.TRUE),
 	CUSTOM_AUTHENTICATION_BACKEND("Custom authentication backend", null, Boolean.TRUE),
