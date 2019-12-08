@@ -1,0 +1,4 @@
+{
+ "allowed_actions": ["READ_UT", "OPENDISTRO_SECURITY_WRITE"],
+ "reserved": "true"
+}

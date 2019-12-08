@@ -1,0 +1,173 @@
+---
+_meta:
+  type: "internalusers"
+  config_version: 2
+user_masked_nowc1:
+  hash: "$2a$12$YCBrpxYyFusK609FurY5Ee3BlmuzWw0qHwpwqEyNhM2.XnQY3Bxpe"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+dept_manager:
+  hash: "$2a$12$YCBrpxYyFusK609FurY5Ee3BlmuzWw0qHwpwqEyNhM2.XnQY3Bxpe"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+admin:
+  hash: "$2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+perf_named_ex:
+  hash: "$2a$12$YCBrpxYyFusK609FurY5Ee3BlmuzWw0qHwpwqEyNhM2.XnQY3Bxpe"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+perf_wc_ex:
+  hash: "$2a$12$YCBrpxYyFusK609FurY5Ee3BlmuzWw0qHwpwqEyNhM2.XnQY3Bxpe"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+human_resources_trainee:
+  hash: "$2a$12$YCBrpxYyFusK609FurY5Ee3BlmuzWw0qHwpwqEyNhM2.XnQY3Bxpe"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+perf_named_only:
+  hash: "$2a$12$YCBrpxYyFusK609FurY5Ee3BlmuzWw0qHwpwqEyNhM2.XnQY3Bxpe"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+user_bbb:
+  hash: "$2a$12$YCBrpxYyFusK609FurY5Ee3BlmuzWw0qHwpwqEyNhM2.XnQY3Bxpe"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+user_aaa:
+  hash: "$2a$12$YCBrpxYyFusK609FurY5Ee3BlmuzWw0qHwpwqEyNhM2.XnQY3Bxpe"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+dept_manager_fls_reversed_fields:
+  hash: "$2a$12$YCBrpxYyFusK609FurY5Ee3BlmuzWw0qHwpwqEyNhM2.XnQY3Bxpe"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+opendistro_security_logstash:
+  hash: "$2a$12$YCBrpxYyFusK609FurY5Ee3BlmuzWw0qHwpwqEyNhM2.XnQY3Bxpe"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+regex:
+  hash: "$2a$12$YCBrpxYyFusK609FurY5Ee3BlmuzWw0qHwpwqEyNhM2.XnQY3Bxpe"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+dept_manager_fls_dls:
+  hash: "$2a$12$YCBrpxYyFusK609FurY5Ee3BlmuzWw0qHwpwqEyNhM2.XnQY3Bxpe"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+fls_fields:
+  hash: "$2a$12$YCBrpxYyFusK609FurY5Ee3BlmuzWw0qHwpwqEyNhM2.XnQY3Bxpe"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+user_masked_nowc:
+  hash: "$2a$12$YCBrpxYyFusK609FurY5Ee3BlmuzWw0qHwpwqEyNhM2.XnQY3Bxpe"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+perf_wc_in:
+  hash: "$2a$12$YCBrpxYyFusK609FurY5Ee3BlmuzWw0qHwpwqEyNhM2.XnQY3Bxpe"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+user_masked:
+  hash: "$2a$12$YCBrpxYyFusK609FurY5Ee3BlmuzWw0qHwpwqEyNhM2.XnQY3Bxpe"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+dept_manager_fls:
+  hash: "$2a$12$YCBrpxYyFusK609FurY5Ee3BlmuzWw0qHwpwqEyNhM2.XnQY3Bxpe"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+dept_manager_multi:
+  hash: "$2a$12$YCBrpxYyFusK609FurY5Ee3BlmuzWw0qHwpwqEyNhM2.XnQY3Bxpe"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+fls_fields_wc:
+  hash: "$2a$12$YCBrpxYyFusK609FurY5Ee3BlmuzWw0qHwpwqEyNhM2.XnQY3Bxpe"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+user_combined:
+  hash: "$2a$12$YCBrpxYyFusK609FurY5Ee3BlmuzWw0qHwpwqEyNhM2.XnQY3Bxpe"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+prop_replace:
+  hash: "$2a$12$YCBrpxYyFusK609FurY5Ee3BlmuzWw0qHwpwqEyNhM2.XnQY3Bxpe"
+  reserved: false
+  hidden: false
+  backend_roles:
+  - "prole1"
+  - "prole2"
+  attributes: {}
+  description: "Migrated from v6"
+user_masked_custom:
+  hash: "$2a$12$YCBrpxYyFusK609FurY5Ee3BlmuzWw0qHwpwqEyNhM2.XnQY3Bxpe"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+date_math:
+  #password
+  hash: $2a$12$YCBrpxYyFusK609FurY5Ee3BlmuzWw0qHwpwqEyNhM2.XnQY3Bxpe
+fls_exists:
+  #password
+  hash: $2a$12$YCBrpxYyFusK609FurY5Ee3BlmuzWw0qHwpwqEyNhM2.XnQY3Bxpe

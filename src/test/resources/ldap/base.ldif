@@ -1,0 +1,264 @@
+#dc=TEST
+
+dn: o=TEST
+dc: TEST
+objectClass: top
+objectClass: domain
+
+dn: ou=people,o=TEST
+objectclass: organizationalUnit
+objectclass: top
+ou: people
+
+dn: ou=groups,o=TEST
+objectclass: organizationalUnit
+objectclass: top
+ou: groups
+
+#dn: ou=p,o=TEST,dc=TEST
+#objectClass: referral
+#objectClass: extensibleObject
+#ou=p
+#ref: ldap://b.example.net/dc=subtree,dc=example,dc=net
+
+dn: cn=Ref1,ou=people,o=TEST
+cn: Ref1
+objectClass: referral
+objectClass: extensibleObject
+ou: Human Resources
+ref: ldap://localhost:${port}/cn=refsolved,ou=people,o=TEST
+
+#dn: cn=Ref2,ou=people,o=TEST
+#changetype: modify
+#add: objectClass
+#objectClass: extensibleObject
+#-
+#add: ref
+#ref: ldap://opendj.example.com:2389/ou=People,dc=example,dc=com
+
+dn: cn=refsolved,ou=people,o=TEST
+objectclass: inetOrgPerson
+cn: refsolved
+sn: refsolved
+uid: refsolved
+userpassword: secret
+mail: refsolved@example.com
+
+dn: cn=Michael Jackson,ou=people,o=TEST
+objectclass: inetOrgPerson
+cn: Michael Jackson
+sn: jackson
+uid: jacksonm
+userpassword: secret
+mail: jacksonm@example.com
+ou: Human Resources
+userPKCS12::aW52YWxpZHBja3MxMgo=
+userSMIMECertificate;binary: abc
+
+dn: cn=Captain Spock,ou=people,o=TEST
+objectclass: inetOrgPerson
+cn: Captain Spock
+sn: spock
+uid: spock
+userpassword: spocksecret
+mail: spock@example.com
+# no memberOf IOD registered, so we use 'description'
+description: cn=dummyempty,ou=groups,o=TEST
+description: cn=rolemo4,ou=groups,o=TEST
+ou: Human Resources
+
+dn: cn=Special\, Sign,ou=people,o=TEST
+objectclass: inetOrgPerson
+cn: Special\, Sign
+sn: ssign
+uid: ssign
+userpassword: ssignsecret
+mail: ssign@example.com
+description: cn=dummyempty,ou=groups,o=TEST
+
+dn: cn=Non DN Roles,ou=people,o=TEST
+objectclass: inetOrgPerson
+cn: Non DN Roles
+sn: nondnroles
+uid: nondnroles
+userpassword: nondnroles
+mail: nondnroles@example.com
+# no memberOf IOD registered, so we use 'description'
+description: humanresources
+description: kibanauser
+description: cn=dummyempty,ou=groups,o=TEST
+description: cn=role2,ou=groups,o=TEST
+ou: anotherrole
+
+dn: cn=ceo,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: ceo
+uniqueMember: cn=Michael Jackson,ou=people,o=TEST
+uniqueMember: cn=Captain Spock,ou=people,o=TEST
+uniqueMember: cn=hnelson,ou=people,o=TEST
+uniqueMember: cn=Special\, Sign,ou=people,o=TEST
+description: ceo-ceo
+
+dn: cn=spec\,group,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: special2nest
+uniqueMember: cn=Special\, Sign,ou=people,o=TEST
+
+dn: cn=spec\, groupnest,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: special2
+uniqueMember: cn=spec\,group,ou=groups,o=TEST
+
+dn: cn=role2,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: role2
+uniqueMember: cn=Michael Jackson,ou=people,o=TEST
+uniqueMember: cn=nested1,ou=groups,o=TEST
+uniqueMember: cn=Non DN Roles,ou=people,o=TEST
+description: role2-role2
+
+dn: cn=nested1,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: nested1
+uniqueMember: cn=nested2,ou=groups,o=TEST
+
+dn: cn=nested2,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: nested2
+uniqueMember: cn=Captain Spock,ou=people,o=TEST
+
+dn: cn=rolemo4,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: rolemo4
+uniqueMember: cn=hnelson,ou=people,o=TEST
+description: cn=nested3,ou=groups,o=TEST
+
+dn: cn=dummyempty,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: dummyempty
+uniqueMember: cn=krbtgt,ou=people,o=TEST
+
+dn: cn=nested3,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: nested3
+uniqueMember: cn=krbtgt,ou=people,o=TEST
+
+dn: cn=nested4,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: nested4
+uniqueMember: cn=nested3,ou=groups,o=TEST
+
+#krb
+
+dn: cn=hnelson,ou=people,o=TEST
+objectclass: inetOrgPerson
+#objectclass: krb5principal
+#objectclass: krb5kdcentry
+cn: hnelson
+sn: hnelson
+uid: hnelson
+userPassword: secret
+mail: hnelson@example.com
+description: krb user
+#krb5PrincipalName: hnelson@EXAMPLE.COM
+#krb5KeyVersionNumber: 0
+
+dn: cn=cabc,ou=people,o=TEST
+objectclass: inetOrgPerson
+cn: xyz
+cn: hij
+cn: 123
+cn: 456
+cn: abc
+cn: aaa
+cn: zzz
+cn: bbb
+cn: acc
+sn: multi
+uid: multi
+userPassword: multi
+mail: multi@example.com
+
+dn: cn=krbtgt,ou=people,o=TEST
+objectclass: inetOrgPerson
+#objectclass: krb5principal
+#objectclass: krb5kdcentry
+cn: krbtgt
+sn: krbtgt
+uid: krbtgt
+userpassword: secret
+mail: krbtgt@example.com
+description: krb user
+#krb5PrincipalName: krbtgt/EXAMPLE.COM@EXAMPLE.COM
+#krb5KeyVersionNumber: 0
+
+dn: cn=ldap,ou=people,o=TEST
+objectclass: inetOrgPerson
+#objectclass: krb5principal
+#objectclass: krb5kdcentry
+cn: ldap
+sn: ldap
+uid: ldap
+userpassword: randall
+mail: ldap@example.com
+description: krb user
+#krb5PrincipalName: ldap/localhost@EXAMPLE.COM
+#krb5KeyVersionNumber: 0
+
+dn: cn=http,ou=people,o=TEST
+objectclass: inetOrgPerson
+#objectclass: krb5principal
+#objectclass: krb5kdcentry
+cn: http
+sn: http
+uid: http
+userpassword: httppwd
+mail: http@example.com
+description: krb user
+#krb5PrincipalName: HTTP/${hostname}@EXAMPLE.COM
+#krb5KeyVersionNumber: 0
+
+dn: cn=httploc,ou=people,o=TEST
+objectclass: inetOrgPerson
+#objectclass: krb5principal
+#objectclass: krb5kdcentry
+cn: httploc
+sn: httploc
+uid: httploc
+userpassword: httppwd
+mail: httploc@example.com
+description: krb user
+#krb5PrincipalName: HTTP/localhost@EXAMPLE.COM
+#krb5KeyVersionNumber: 0
+
+dn: CN=AA BB/CC (DD) my\, comp
+ any end\=with\=whitespace\ ,ou=people,o=TEST
+objectclass: inetOrgPerson
+cn: "AA BB/CC (DD) my\, company end\=with\=whitespace\ "
+sn: spec186
+uid: spec186
+userpassword: spec186
+mail: spec186@example.com
+
+dn: cn=ROLE/(186) con
+ sists of\, special\=chars\ ,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+description: ROLE/(186) con
+ sists of\, special=
+uniqueMember: CN=AA BB/CC (DD) my\, company end\=with\=whitespace\ ,ou=people,o=TEST
+
+dn: cn=ROLE/(186n) con
+ sists of\, special\=chars\ ,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+description: ROLEx(186n) con
+ sists of\, special=
+uniqueMember: cn=ROLE/(186) con
+ sists of\, special\=chars\ ,ou=groups,o=TEST
+
+dn: cn=ROLE/(186nn) con
+ sists of\, special\=chars\ ,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+description: ROLE/(186nn) con
+ sists of\, special=
+uniqueMember: cn=ROLE/(186n) con
+ sists of\, special\=chars\ ,ou=groups,o=TEST

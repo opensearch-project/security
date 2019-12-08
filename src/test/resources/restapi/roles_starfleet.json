@@ -1,0 +1,11 @@
+{
+  "cluster_permissions" : [ "cluster:monitor*", "indices:data/read/scroll", "*bulk*" ],
+  "index_permissions" : [ {
+    "index_patterns" : [ "sf" ],
+    "allowed_actions" : [ "OPENDISTRO_SECURITY_READ", "indices:*", "*bulk*" ]
+  }, {
+    "index_patterns" : [ "pub" ],
+    "allowed_actions" : [ "OPENDISTRO_SECURITY_READ" ]
+  } ],
+  "tenant_permissions" : [ ]
+}

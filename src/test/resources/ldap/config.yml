@@ -1,0 +1,46 @@
+---
+_meta:
+  type: "config"
+  config_version: 2
+config:
+  dynamic:
+    filtered_alias_mode: "warn"
+    disable_rest_auth: false
+    disable_intertransport_auth: false
+    respect_request_indices_options: false
+    license: null
+    kibana:
+      multitenancy_enabled: true
+      server_username: "kibanaserver"
+      index: ".kibana"
+    http:
+      anonymous_auth_enabled: false
+      xff:
+        enabled: false
+        internalProxies: "10\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}|192\\.168\\.\\d{1,3}\\\
+          .\\d{1,3}|169\\.254\\.\\d{1,3}\\.\\d{1,3}|127\\.\\d{1,3}\\.\\d{1,3}\\.\\\
+          d{1,3}|172\\.1[6-9]{1}\\.\\d{1,3}\\.\\d{1,3}|172\\.2[0-9]{1}\\.\\d{1,3}\\\
+          .\\d{1,3}|172\\.3[0-1]{1}\\.\\d{1,3}\\.\\d{1,3}"
+        remoteIpHeader: "X-Forwarded-For"
+    authc:
+      authentication_ldap:
+        http_enabled: true
+        transport_enabled: true
+        order: 0
+        http_authenticator:
+          challenge: true
+          type: "basic"
+          config: {}
+        authentication_backend:
+          type: "ldap"
+          config:
+            hosts: "localhost:${ldapsPort}"
+            usersearch: "(uid={0})"
+            enable_ssl: true
+            verify_hostnames: false
+        description: "Migrated from v6"
+    authz: {}
+    do_not_fail_on_forbidden: false
+    multi_rolespan_enabled: false
+    hosts_resolver_mode: "ip-only"
+    transport_userrname_attribute: null
