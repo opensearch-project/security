@@ -1,0 +1,44 @@
+name: CI
+
+on: [pull_request]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11.0.x
+
+      - name: Checkout security parent repository
+        uses: actions/checkout@v1
+        with:
+          repository: opendistro-for-elasticsearch/security-parent
+          ref: refs/heads/master
+      - name: Install security parent project
+        run: mvn clean install -DskipTests --file ../security-parent/pom.xml
+
+      - name: Run checkstyle
+        # Run mvn checkstyle:check to fail the build
+        run: mvn checkstyle:checkstyle
+
+      - name: Run tests
+        run: mvn test
+
+      - name: Test coverage
+        uses: codecov/codecov-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Package artifacts
+        run: mvn clean package -Padvanced -DskipTests
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: artifacts
+          path: target/releases/
