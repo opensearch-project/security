@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - '*'
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: opendistroforelasticsearch/security-maven:v1
+
+    steps:
+
+    - name: Checkout security-parent
+      uses: actions/checkout@v1
+      with:
+        repository: opendistro-for-elasticsearch/security-parent
+        ref: refs/heads/master
+    - name: Install security-parent
+      run: mvn clean install -DskipTests --file ../security-parent/pom.xml
+        
+    - name: Checkout security
+      uses: actions/checkout@v1
+    - name: Install security
+      run: mvn clean install -DskipTests
+
+    - name: Checkout security-advanced-modules
+      uses: actions/checkout@v1
+      with:
+        repository: opendistro-for-elasticsearch/security-advanced-modules
+        ref: refs/heads/master 
+    - name: Install security-advanced-modules
+      run: mvn clean install -DskipTests --file ../security-advanced-modules/pom.xml
+        
+    - name: Checkstyle
+      run: mvn checkstyle:checkstyle
+      
+    - name: Test
+      run: mvn test
+    
+    - name: Package
+      run: mvn clean package -Padvanced -DskipTests
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v1
+      with:
+        name: artifacts
+        path: target/releases/
