@@ -1,14 +1,15 @@
 package com.amazon.opendistroforelasticsearch.security.securityconf;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -33,51 +34,47 @@ import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.Inter
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.RoleMappingsV7;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.RoleV7;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.TenantV7;
+import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 
 public class DynamicConfigFactory implements Initializable, ConfigurationChangeListener {
-    
-    private static final SecurityDynamicConfiguration<RoleV7> staticRoles;
-    private static final SecurityDynamicConfiguration<ActionGroupsV7> staticActionGroups;
-    private static final SecurityDynamicConfiguration<TenantV7> staticTenants;
-    
-    static {
-        try {
-            JsonNode staticRolesJsonNode = DefaultObjectMapper.YAML_MAPPER.readTree(DynamicConfigFactory.class.getResourceAsStream("/static_config/static_roles.yml"));
-            staticRoles = SecurityDynamicConfiguration.fromNode(staticRolesJsonNode, CType.ROLES, 2, 0, 0);
-            JsonNode staticActionGroupsJsonNode = DefaultObjectMapper.YAML_MAPPER.readTree(DynamicConfigFactory.class.getResourceAsStream("/static_config/static_action_groups.yml"));
-            staticActionGroups = SecurityDynamicConfiguration.fromNode(staticActionGroupsJsonNode, CType.ACTIONGROUPS, 2, 0, 0);
-            JsonNode staticTenantsJsonNode = DefaultObjectMapper.YAML_MAPPER.readTree(DynamicConfigFactory.class.getResourceAsStream("/static_config/static_tenants.yml"));
-            staticTenants = SecurityDynamicConfiguration.fromNode(staticTenantsJsonNode, CType.TENANTS, 2, 0, 0);
-        } catch (Exception e) {
-            throw ExceptionsHelper.convertToRuntime(e);
-        }
+
+    private static SecurityDynamicConfiguration<RoleV7> staticRoles = SecurityDynamicConfiguration.empty();
+    private static SecurityDynamicConfiguration<ActionGroupsV7> staticActionGroups = SecurityDynamicConfiguration.empty();
+    private static SecurityDynamicConfiguration<TenantV7> staticTenants = SecurityDynamicConfiguration.empty();
+
+    static void resetStatics() {
+        staticRoles = SecurityDynamicConfiguration.empty();
+        staticActionGroups = SecurityDynamicConfiguration.empty();
+        staticTenants = SecurityDynamicConfiguration.empty();
     }
-    
-    public static final SecurityDynamicConfiguration<RoleV7> getStaticRoles() {
-        return staticRoles.deepClone();
+
+    private void loadStaticConfig() throws IOException {
+        JsonNode staticRolesJsonNode = DefaultObjectMapper.YAML_MAPPER
+                .readTree(DynamicConfigFactory.class.getResourceAsStream("/static_config/static_roles.yml"));
+        staticRoles = SecurityDynamicConfiguration.fromNode(staticRolesJsonNode, CType.ROLES, 2, 0, 0);
+
+        JsonNode staticActionGroupsJsonNode = DefaultObjectMapper.YAML_MAPPER
+                .readTree(DynamicConfigFactory.class.getResourceAsStream("/static_config/static_action_groups.yml"));
+        staticActionGroups = SecurityDynamicConfiguration.fromNode(staticActionGroupsJsonNode, CType.ACTIONGROUPS, 2, 0, 0);
+
+        JsonNode staticTenantsJsonNode = DefaultObjectMapper.YAML_MAPPER
+                .readTree(DynamicConfigFactory.class.getResourceAsStream("/static_config/static_tenants.yml"));
+        staticTenants = SecurityDynamicConfiguration.fromNode(staticTenantsJsonNode, CType.TENANTS, 2, 0, 0);
     }
-    
-    public static final SecurityDynamicConfiguration<ActionGroupsV7> getStaticActionGroups() {
-        return staticActionGroups.deepClone();
-    }
-    
-    public static final SecurityDynamicConfiguration<TenantV7> getStaticTenants() {
-        return staticTenants.deepClone();
-    }
-    
-    public static final SecurityDynamicConfiguration<?> addStatics(SecurityDynamicConfiguration<?> original) {
-        if(original.getCType() == CType.ACTIONGROUPS) {
-            original.add(getStaticActionGroups());
+
+    public final static SecurityDynamicConfiguration<?> addStatics(SecurityDynamicConfiguration<?> original) {
+        if(original.getCType() == CType.ACTIONGROUPS && !staticActionGroups.getCEntries().isEmpty()) {
+            original.add(staticActionGroups.deepClone());
         }
-        
-        if(original.getCType() == CType.ROLES) {
-            original.add(getStaticRoles());
+
+        if(original.getCType() == CType.ROLES && !staticRoles.getCEntries().isEmpty()) {
+            original.add(staticRoles.deepClone());
         }
-        
-        if(original.getCType() == CType.TENANTS) {
-            original.add(getStaticTenants());
+
+        if(original.getCType() == CType.TENANTS && !staticTenants.getCEntries().isEmpty()) {
+            original.add(staticTenants.deepClone());
         }
-        
+
         return original;
     }
     
@@ -97,6 +94,27 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         this.cr = cr;
         this.esSettings = esSettings;
         this.configPath = configPath;
+
+        if(esSettings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES, true)) {
+            try {
+                loadStaticConfig();
+            } catch (IOException e) {
+                throw new StaticResourceException("Unable to load static resources due to "+e, e);
+            }
+        } else {
+            log.info("Static resources will not be loaded.");
+        }
+        
+        if(esSettings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES, true)) {
+            try {
+                loadStaticConfig();
+            } catch (IOException e) {
+                throw new StaticResourceException("Unable to load static resources due to "+e, e);
+            }
+        } else {
+            log.info("Static resources will not be loaded.");
+        }
+        
         registerDCFListener(this.iab);
         this.cr.subscribeOnChange(this);
     }
@@ -129,7 +147,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
                 if(roles.containsAny(staticRoles)) {
                     throw new StaticResourceException("Cannot override static roles");
                 }
-                if(!roles.add(staticRoles)) {
+                if(!roles.add(staticRoles) && !staticRoles.getCEntries().isEmpty()) {
                     throw new StaticResourceException("Unable to load static roles");
                 }
 
@@ -140,7 +158,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
                     System.out.println("Static Action Groups:" + staticActionGroups.getCEntries());
                     throw new StaticResourceException("Cannot override static action groups");
                 }
-                if(!actionGroups.add(staticActionGroups)) {
+                if(!actionGroups.add(staticActionGroups) && !staticActionGroups.getCEntries().isEmpty()) {
                     throw new StaticResourceException("Unable to load static action groups");
                 }
                 
@@ -150,7 +168,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
                 if(tenants.containsAny(staticTenants)) {
                     throw new StaticResourceException("Cannot override static tenants");
                 }
-                if(!tenants.add(staticTenants)) {
+                if(!tenants.add(staticTenants) && !staticTenants.getCEntries().isEmpty()) {
                     throw new StaticResourceException("Unable to load static tenants");
                 }
                 
@@ -253,6 +271,10 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
             return tmp==null?null:tmp.getHash();
         }
         
+        public List<String> getOpenDistroSecurityRoles(String user) {
+            InternalUserV7 tmp = configuration.getCEntry(user);
+            return tmp==null?Collections.emptyList():tmp.getOpendistro_security_roles();
+        }
     }
     
     private static class InternalUsersModelV6 extends InternalUsersModel {
@@ -294,6 +316,9 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
             return tmp==null?null:tmp.getHash();
         }
         
+        public List<String> getOpenDistroSecurityRoles(String user) {
+            return Collections.emptyList();
+        }
     }
    
 }

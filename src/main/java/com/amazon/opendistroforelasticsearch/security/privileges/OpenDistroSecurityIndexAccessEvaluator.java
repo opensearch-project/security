@@ -31,7 +31,9 @@
 package com.amazon.opendistroforelasticsearch.security.privileges;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -42,6 +44,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.tasks.Task;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
+import com.amazon.opendistroforelasticsearch.security.resolver.IndexResolverReplacer;
 import com.amazon.opendistroforelasticsearch.security.resolver.IndexResolverReplacer.Resolved;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
@@ -53,12 +56,16 @@ public class OpenDistroSecurityIndexAccessEvaluator {
     private final String opendistrosecurityIndex;
     private final AuditLog auditLog;
     private final String[] securityDeniedActionPatterns;
+    private final IndexResolverReplacer irr;
+    private final boolean filterSecurityIndex;
     
-    public OpenDistroSecurityIndexAccessEvaluator(final Settings settings, AuditLog auditLog) {
+    public OpenDistroSecurityIndexAccessEvaluator(final Settings settings, AuditLog auditLog, IndexResolverReplacer irr) {
         this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
         this.auditLog = auditLog;
+        this.irr = irr;
+        this.filterSecurityIndex = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_FILTER_SECURITYINDEX_FROM_ALL_REQUESTS, false);
 
-        final boolean restoreSgIndexEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_RESTORE_SECURITYINDEX_ENABLED, false);
+        final boolean restoreSecurityIndexEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_RESTORE_SECURITYINDEX_ENABLED, false);
 
         final List<String> securityIndexDeniedActionPatternsList = new ArrayList<String>();
         securityIndexDeniedActionPatternsList.add("indices:data/write*");
@@ -74,7 +81,7 @@ public class OpenDistroSecurityIndexAccessEvaluator {
         securityIndexDeniedActionPatternsListNoSnapshot.add("indices:admin/close*");
         securityIndexDeniedActionPatternsListNoSnapshot.add("cluster:admin/snapshot/restore*");
 
-        securityDeniedActionPatterns = (restoreSgIndexEnabled?securityIndexDeniedActionPatternsList:securityIndexDeniedActionPatternsListNoSnapshot).toArray(new String[0]);
+        securityDeniedActionPatterns = (restoreSecurityIndexEnabled?securityIndexDeniedActionPatternsList:securityIndexDeniedActionPatternsListNoSnapshot).toArray(new String[0]);
     }
     
     public PrivilegesEvaluatorResponse evaluate(final ActionRequest request, final Task task, final String action, final Resolved requestedResolved,
@@ -83,18 +90,43 @@ public class OpenDistroSecurityIndexAccessEvaluator {
         
         if (requestedResolved.getAllIndices().contains(opendistrosecurityIndex)
                 && WildcardMatcher.matchAny(securityDeniedActionPatterns, action)) {
-            auditLog.logSecurityIndexAttempt(request, action, task);
-            log.warn(action + " for '{}' index is not allowed for a regular user", opendistrosecurityIndex);
-            presponse.allowed = false;
-            return presponse.markComplete();
+            if(filterSecurityIndex) {
+                Set<String> allWithoutSecurity = new HashSet<>(requestedResolved.getAllIndices());
+                allWithoutSecurity.remove(opendistrosecurityIndex);
+                if(allWithoutSecurity.isEmpty()) {
+                    if(log.isDebugEnabled()) {
+                        log.debug("Filtered '{}' but resulting list is empty", opendistrosecurityIndex);
+                    }
+                    presponse.allowed = false;
+                    return presponse.markComplete();
+                }
+                irr.replace(request, false, allWithoutSecurity.toArray(new String[0]));
+                if(log.isDebugEnabled()) {
+                    log.debug("Filtered '{}', resulting list is {}", opendistrosecurityIndex, allWithoutSecurity);
+                }
+                return presponse;
+            } else {
+                auditLog.logSecurityIndexAttempt(request, action, task);
+                log.warn(action + " for '{}' index is not allowed for a regular user", opendistrosecurityIndex);
+                presponse.allowed = false;
+                return presponse.markComplete();
+            }
         }
 
         if (requestedResolved.isLocalAll()
                 && WildcardMatcher.matchAny(securityDeniedActionPatterns, action)) {
-            auditLog.logSecurityIndexAttempt(request, action, task);
-            log.warn(action + " for '_all' indices is not allowed for a regular user");
-            presponse.allowed = false;
-            return presponse.markComplete();
+            if(filterSecurityIndex) {
+                irr.replace(request, false, "*","-"+opendistrosecurityIndex);
+                if(log.isDebugEnabled()) {
+                    log.debug("Filtered '{}'from {}, resulting list with *,-{} is {}", opendistrosecurityIndex, requestedResolved, opendistrosecurityIndex, irr.resolveRequest(request));
+                }
+                return presponse;
+            } else {
+                auditLog.logSecurityIndexAttempt(request, action, task);
+                log.warn(action + " for '_all' indices is not allowed for a regular user");
+                presponse.allowed = false;
+                return presponse.markComplete();
+            }
         }
 
         if(requestedResolved.getAllIndices().contains(opendistrosecurityIndex) || requestedResolved.isLocalAll()) {

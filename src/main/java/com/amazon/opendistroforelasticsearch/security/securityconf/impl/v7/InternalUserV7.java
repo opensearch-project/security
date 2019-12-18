@@ -21,6 +21,7 @@ public class InternalUserV7 implements Hideable, Hashed, StaticDefinable {
         private List<String> backend_roles = Collections.emptyList();
         private Map<String, String> attributes = Collections.emptyMap();
         private String description;
+        private List<String> opendistro_security_roles = Collections.emptyList();
 
         private InternalUserV7(String hash, boolean reserved, boolean hidden, List<String> backend_roles, Map<String, String> attributes) {
             super();
@@ -68,6 +69,14 @@ public class InternalUserV7 implements Hideable, Hashed, StaticDefinable {
 
         public void setBackend_roles(List<String> backend_roles) {
             this.backend_roles = backend_roles;
+        }
+
+        public List<String> getOpendistro_security_roles() {
+            return opendistro_security_roles;
+        }
+
+        public void setOpendistro_security_roles(List<String> opendistro_security_roles) {
+            this.opendistro_security_roles = opendistro_security_roles;
         }
 
         public Map<String, String> getAttributes() {

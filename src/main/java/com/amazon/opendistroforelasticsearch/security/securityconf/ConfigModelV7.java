@@ -1126,7 +1126,7 @@ public class ConfigModelV7 extends ConfigModel {
                 return Collections.emptySet();
             }
 
-            final Set<String> securityRoles = new TreeSet<String>();
+            final Set<String> securityRoles = new TreeSet<String>(user.getOpenDistroSecurityRoles());
 
             if (rolesMappingResolution == ConfigConstants.RolesMappingResolution.BOTH
                     || rolesMappingResolution == ConfigConstants.RolesMappingResolution.BACKENDROLES_ONLY) {

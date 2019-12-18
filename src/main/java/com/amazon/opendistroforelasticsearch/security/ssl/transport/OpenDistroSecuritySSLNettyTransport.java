@@ -22,7 +22,6 @@ import java.net.SocketAddress;
 
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLHandshakeException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -30,7 +29,6 @@ import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
-import org.elasticsearch.common.network.CloseableChannel;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.PageCacheRecycler;
@@ -49,7 +47,6 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelOutboundHandlerAdapter;
 import io.netty.channel.ChannelPromise;
 import io.netty.handler.codec.DecoderException;
-import io.netty.handler.ssl.NotSslRecordException;
 import io.netty.handler.ssl.SslHandler;
 
 public class OpenDistroSecuritySSLNettyTransport extends Netty4Transport {
@@ -70,30 +67,15 @@ public class OpenDistroSecuritySSLNettyTransport extends Netty4Transport {
     @Override
     public void onException(TcpChannel channel, Exception e) {
 
-        if (lifecycle.started()) {
-            
-            Throwable cause = e;
-            
-            if(e instanceof DecoderException && e != null) {
-                cause = e.getCause();
-            }
-            
-            errorHandler.logError(cause, false);
-            
-            if(cause instanceof NotSslRecordException) {
-                logger.warn("Someone ({}) speaks transport plaintext instead of ssl, will close the channel", channel.getLocalAddress());
-                CloseableChannel.closeChannel(channel, false);
-                return;
-            } else if (cause instanceof SSLException) {
-                logger.error("SSL Problem "+cause.getMessage(),cause);
-                CloseableChannel.closeChannel(channel, false);
-                return;
-            } else if (cause instanceof SSLHandshakeException) {
-                logger.error("Problem during handshake "+cause.getMessage());
-                CloseableChannel.closeChannel(channel, false);
-                return;
-            }
+        Throwable cause = e;
+
+        if (e instanceof DecoderException && e != null) {
+            cause = e.getCause();
         }
+
+        errorHandler.logError(cause, false);
+        logger.error("Exception during establishing a SSL connection: " + cause, cause);
+
         super.onException(channel, e);
     }
 
@@ -122,29 +104,13 @@ public class OpenDistroSecuritySSLNettyTransport extends Netty4Transport {
         
         @Override
         public final void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-            if(OpenDistroSecuritySSLNettyTransport.this.lifecycle.started()) {
-                
-                if(cause instanceof DecoderException && cause != null) {
-                    cause = cause.getCause();
-                }
-                
-                errorHandler.logError(cause, false);
-                
-                if(cause instanceof NotSslRecordException) {
-                    logger.warn("Someone ({}) speaks transport plaintext instead of ssl, will close the channel", ctx.channel().remoteAddress());
-                    ctx.channel().close();
-                    return;
-                } else if (cause instanceof SSLException) {
-                    logger.error("SSL Problem "+cause.getMessage(),cause);
-                    ctx.channel().close();
-                    return;
-                } else if (cause instanceof SSLHandshakeException) {
-                    logger.error("Problem during handshake "+cause.getMessage());
-                    ctx.channel().close();
-                    return;
-                }
+            if (cause instanceof DecoderException && cause != null) {
+                cause = cause.getCause();
             }
-            
+
+            errorHandler.logError(cause, false);
+            logger.error("Exception during establishing a SSL connection: " + cause, cause);
+
             super.exceptionCaught(ctx, cause);
         }
     }
@@ -168,30 +134,15 @@ public class OpenDistroSecuritySSLNettyTransport extends Netty4Transport {
 
         @Override
         public final void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-            if(cause instanceof DecoderException && cause != null) {
+            if (cause instanceof DecoderException && cause != null) {
                 cause = cause.getCause();
             }
             
             errorHandler.logError(cause, false);
-            
-            if(cause instanceof NotSslRecordException) {
-                log.warn("Someone ({}) speaks transport plaintext instead of ssl, will close the channel", ctx.channel().remoteAddress());
-                ctx.channel().close();
-                return;
-            } else if (cause instanceof SSLException) {
-                log.error("SSL Problem "+cause.getMessage(),cause);
-                ctx.channel().close();
-                return;
-            } else if (cause instanceof SSLHandshakeException) {
-                log.error("Problem during handshake "+cause.getMessage());
-                ctx.channel().close();
-                return;
-            }
+            logger.error("Exception during establishing a SSL connection: " + cause, cause);
 
             super.exceptionCaught(ctx, cause);
         }
-
-
 
         @Override
         public void connect(ChannelHandlerContext ctx, SocketAddress remoteAddress, SocketAddress localAddress, ChannelPromise promise) throws Exception {
@@ -243,29 +194,13 @@ public class OpenDistroSecuritySSLNettyTransport extends Netty4Transport {
         
         @Override
         public final void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-            if(OpenDistroSecuritySSLNettyTransport.this.lifecycle.started()) {
-                
-                if(cause instanceof DecoderException && cause != null) {
-                    cause = cause.getCause();
-                }
-                
-                errorHandler.logError(cause, false);
-                
-                if(cause instanceof NotSslRecordException) {
-                    logger.warn("Someone ({}) speaks transport plaintext instead of ssl, will close the channel", ctx.channel().remoteAddress());
-                    ctx.channel().close();
-                    return;
-                } else if (cause instanceof SSLException) {
-                    logger.error("SSL Problem "+cause.getMessage(),cause);
-                    ctx.channel().close();
-                    return;
-                } else if (cause instanceof SSLHandshakeException) {
-                    logger.error("Problem during handshake "+cause.getMessage());
-                    ctx.channel().close();
-                    return;
-                }
-
+            if (cause instanceof DecoderException && cause != null) {
+                cause = cause.getCause();
             }
+
+
+            errorHandler.logError(cause, false);
+            logger.error("Exception during establishing a SSL connection: " + cause, cause);
             
             super.exceptionCaught(ctx, cause);
         }

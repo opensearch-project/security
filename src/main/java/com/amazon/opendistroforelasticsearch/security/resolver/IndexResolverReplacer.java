@@ -150,10 +150,6 @@ public final class IndexResolverReplacer implements DCFListener {
             return true;
         }
 
-        if(patterns.contains("*")) {
-            return true;
-        }
-
         if(patterns.contains("_all")) {
             return true;
         }

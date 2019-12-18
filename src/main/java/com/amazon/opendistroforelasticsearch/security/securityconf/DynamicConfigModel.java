@@ -23,6 +23,7 @@ import com.amazon.opendistroforelasticsearch.security.auth.limiting.UserNameBase
 import com.amazon.opendistroforelasticsearch.security.http.HTTPBasicAuthenticator;
 import com.amazon.opendistroforelasticsearch.security.http.HTTPClientCertAuthenticator;
 import com.amazon.opendistroforelasticsearch.security.http.HTTPProxyAuthenticator;
+import com.amazon.opendistroforelasticsearch.security.http.proxy.HTTPExtendedProxyAuthenticator;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 
@@ -77,6 +78,7 @@ public abstract class DynamicConfigModel {
 
         authImplMap.put("basic_h", HTTPBasicAuthenticator.class.getName());
         authImplMap.put("proxy_h", HTTPProxyAuthenticator.class.getName());
+        authImplMap.put("extended-proxy_h", HTTPExtendedProxyAuthenticator.class.getName());
         authImplMap.put("clientcert_h", HTTPClientCertAuthenticator.class.getName());
         authImplMap.put("kerberos_h", "com.amazon.dlic.auth.http.kerberos.HTTPSpnegoAuthenticator");
         authImplMap.put("jwt_h", "com.amazon.dlic.auth.http.jwt.HTTPJwtAuthenticator");
