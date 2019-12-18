@@ -1,3 +1,5 @@
+[![CI](https://github.com/opendistro-for-elasticsearch/security/workflows/CI/badge.svg?branch=master)](https://github.com/opendistro-for-elasticsearch/security/actions)
+
 # Open Distro for Elasticsearch Security
 
 Open Distro for Elasticsearch Security is an Elasticsearch plugin that offers encryption, authentication, and authorization. When combined with Open Distro for Elasticsearch Security-Advanced Modules, it supports authentication via Active Directory, LDAP, Kerberos, JSON web tokens, SAML, OpenID and more. It includes fine grained role-based access control to indices, documents and fields. It also provides multi-tenancy support in Kibana.
@@ -63,6 +65,20 @@ Please refer to the [technical documentation](https://opendistro.github.io/for-e
 * Source build instructions can be found here : 
 
 https://github.com/opendistro-for-elasticsearch/security-parent/blob/master/README.md
+
+## Custom CI build for testing
+
+This project is dependent on [security-parent](https://github.com/opendistro-for-elasticsearch/security) repository and [security-advanced-modules](https://github.com/opendistro-for-elasticsearch/security-advanced-modules) repository.
+By default the Github Actions CI workflow checks out the master branch of both the repos. 
+In order to point to a different repository/fork/branch/tag for testing a pull request, please update `repository` and `ref` inputs of the respective checkout actions in the [ci.yml](.github/workflows/ci.yml) file. Here is a sample which uses `opendistro-1.3` branch of `security-parent` project during building.
+
+```
+    - name: Checkout security-parent
+      uses: actions/checkout@v1
+      with:
+        repository: opendistro-for-elasticsearch/security-parent
+        ref: refs/heads/opendistro-1.3
+```
 
 ## Config hot reloading
 
