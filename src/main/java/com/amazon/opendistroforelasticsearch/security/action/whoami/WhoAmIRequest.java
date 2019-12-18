@@ -38,17 +38,11 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 public class WhoAmIRequest extends BaseNodesRequest<WhoAmIRequest> {
 
-    public WhoAmIRequest() {
-        super();
+    public WhoAmIRequest(final StreamInput in) throws IOException {
+        super(in);
     }
 
-    @Override
-    public void readFrom(final StreamInput in) throws IOException {
-        super.readFrom(in);
-    }
-
-    @Override
-    public void writeTo(final StreamOutput out) throws IOException {
-        super.writeTo(out);
+    public WhoAmIRequest() throws IOException {
+        super(new String[0]);
     }
 }

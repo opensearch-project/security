@@ -53,7 +53,7 @@ public class OpenDistroSecuritySSLInfoAction extends BaseRestHandler {
 
     public OpenDistroSecuritySSLInfoAction(final Settings settings, final Path configPath, final RestController controller,
             final OpenDistroSecurityKeyStore odsks, final PrincipalExtractor principalExtractor) {
-        super(settings);
+        super();
         this.settings = settings;
         this.odsks = odsks;
         this.principalExtractor = principalExtractor;

@@ -34,13 +34,15 @@ import org.elasticsearch.action.ActionRequestBuilder;
 import org.elasticsearch.client.ClusterAdminClient;
 import org.elasticsearch.client.ElasticsearchClient;
 
+import java.io.IOException;
+
 public class WhoAmIRequestBuilder extends
 ActionRequestBuilder<WhoAmIRequest, WhoAmIResponse> {    
-    public WhoAmIRequestBuilder(final ClusterAdminClient client) {
+    public WhoAmIRequestBuilder(final ClusterAdminClient client) throws IOException {
         this(client, WhoAmIAction.INSTANCE);
     }
 
-    public WhoAmIRequestBuilder(final ElasticsearchClient client, final WhoAmIAction action) {
+    public WhoAmIRequestBuilder(final ElasticsearchClient client, final WhoAmIAction action) throws IOException {
         super(client, action, new WhoAmIRequest());
     }
 }

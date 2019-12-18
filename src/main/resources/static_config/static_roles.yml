@@ -27,7 +27,6 @@ kibana_user:
   static: true
   description: "Provide the minimum permissions for a kibana user"
   cluster_permissions:
-    - "indices_monitor"
     - "cluster_composite_ops"
   index_permissions:
     - index_patterns:

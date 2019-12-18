@@ -41,7 +41,8 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 public class ConfigUpdateResponse extends BaseNodesResponse<ConfigUpdateNodeResponse> {
 
-    public ConfigUpdateResponse() {
+    public ConfigUpdateResponse(StreamInput in) throws IOException {
+        super(in);
     }
     
     public ConfigUpdateResponse(final ClusterName clusterName, List<ConfigUpdateNodeResponse> nodes, List<FailedNodeException> failures) {
@@ -55,6 +56,6 @@ public class ConfigUpdateResponse extends BaseNodesResponse<ConfigUpdateNodeResp
 
     @Override
     public void writeNodesTo(final StreamOutput out, List<ConfigUpdateNodeResponse> nodes) throws IOException {
-        out.writeStreamableList(nodes);
+        out.writeList(nodes);
     }
 }
