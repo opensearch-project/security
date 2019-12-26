@@ -487,6 +487,7 @@ public class PrivilegesEvaluator implements DCFListener {
                     case UPDATE:
                         additionalPermissionsRequired.add(UpdateAction.NAME);
                         break;
+                    default:
                 }
             }
         }

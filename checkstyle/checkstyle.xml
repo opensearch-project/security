@@ -110,5 +110,8 @@
 
         <!-- No C-style array declarations are permitted (eg. String args[]). -->
         <module name="ArrayTypeStyle"/>
+
+        <!-- Defaults must always be included for switch statements, even if they are empty. -->
+        <module name="MissingSwitchDefault"/>
     </module>
 </module>
