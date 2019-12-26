@@ -113,5 +113,102 @@
 
         <!-- Defaults must always be included for switch statements, even if they are empty. -->
         <module name="MissingSwitchDefault"/>
+
+        <!-- Case blocks with statements on them must include a break, return, etc. or the comment "fall through". -->
+        <module name="FallThrough"/>
+
+        <!-- When defining long literals, an upper L must be used. -->
+        <module name="UpperEll"/>
+
+        <!-- Empty lines must separate methods and constructors. -->
+        <module name="EmptyLineSeparator">
+            <property name="allowNoEmptyLineBetweenFields" value="true"/>
+        </module>
+
+        <!-- New lines must happen before dots. -->
+        <module name="SeparatorWrap">
+            <property name="id" value="SeparatorWrapDot"/>
+            <property name="tokens" value="DOT"/>
+            <property name="option" value="nl"/>
+        </module>
+
+        <!-- Package names must follow a defined format. -->
+        <module name="PackageName">
+            <property name="format" value="^[a-z]+(\.[a-z][a-z0-9]*)*$"/>
+            <message key="name.invalidPattern"
+                     value="Package name ''{0}'' must match pattern ''{1}''."/>
+        </module>
+
+        <!-- Type names must follow a defined format. -->
+        <module name="TypeName">
+            <message key="name.invalidPattern"
+                     value="Type name ''{0}'' must match pattern ''{1}''."/>
+        </module>
+
+        <!-- Catch parameters must follow a defined format. -->
+        <module name="CatchParameterName">
+            <property name="format" value="^(e|t|[a-z][a-zA-Z0-9]*)$"/>
+            <message key="name.invalidPattern"
+                     value="Catch parameter name ''{0}'' must match pattern ''{1}''."/>
+        </module>
+
+        <!-- Finalizers must not be overridden. -->
+        <module name="NoFinalizer"/>
+
+        <!-- Whitespace around generics must follow a defined format. -->
+        <module name="GenericWhitespace">
+            <message key="ws.followed"
+                     value="GenericWhitespace ''{0}'' is followed by whitespace."/>
+            <message key="ws.preceded"
+                     value="GenericWhitespace ''{0}'' is preceded with whitespace."/>
+            <message key="ws.illegalFollow"
+                     value="GenericWhitespace ''{0}'' should be followed by whitespace."/>
+            <message key="ws.notPreceded"
+                     value="GenericWhitespace ''{0}'' is not preceded with whitespace."/>
+        </module>
+
+        <module name="VariableDeclarationUsageDistance">
+            <property name="allowedDistance" value="10"/>
+        </module>
+
+        <!-- Method names must be specified on the same line as their parameter list. -->
+        <module name="MethodParamPad"/>
+
+        <!-- There must be no space between a method name and its parameter list. -->
+        <module name="ParenPad"/>
+
+        <!-- Non-field annotations must be on separate lines, or in the case of single parameterless annotation can be
+             placed on the same line as the signature. -->
+        <module name="AnnotationLocation">
+            <property name="id" value="AnnotationLocationMostCases"/>
+            <property name="tokens" value="CLASS_DEF, INTERFACE_DEF, ENUM_DEF, METHOD_DEF, CTOR_DEF"/>
+        </module>
+
+        <!-- Fields can have multiple annotations applied on the same line. -->
+        <module name="AnnotationLocation">
+            <property name="id" value="AnnotationLocationVariables"/>
+            <property name="tokens" value="VARIABLE_DEF"/>
+            <property name="allowSamelineMultipleAnnotations" value="true"/>
+        </module>
+
+        <!-- Catch blocks must not be empty without a comment. -->
+        <module name="EmptyCatchBlock"/>
+
+        <!-- Checks for imports of certain packages           -->
+        <!-- See http://checkstyle.sf.net/config_imports.html -->
+        <module name="IllegalImport">
+            <property name="illegalPkgs" value="org.apache.http.annotation,javax.annotation.Generated"/>
+        </module>
+
+        <!-- Checks that the override annotation is specified when using @inheritDoc javadoc. -->
+        <module name="MissingOverride"/>
+
+        <!-- Checks that we don't use Objects.hash. Objects.hashCode is preferred-->
+        <module name="Regexp">
+            <property name="format" value="\bObjects.hash\b"/>
+            <property name="illegalPattern" value="true"/>
+            <property name="message" value="Don't use Objects.hash, use Objects.hashCode instead"/>
+            <property name="ignoreComments" value="true"/>
+        </module>
     </module>
 </module>
