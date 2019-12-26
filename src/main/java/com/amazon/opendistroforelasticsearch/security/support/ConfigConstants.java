@@ -207,7 +207,7 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_COMPLIANCE_DISABLE_ANONYMOUS_AUTHENTICATION = "opendistro_security.compliance.disable_anonymous_authentication";
     public static final String OPENDISTRO_SECURITY_COMPLIANCE_IMMUTABLE_INDICES = "opendistro_security.compliance.immutable_indices";
     public static final String OPENDISTRO_SECURITY_COMPLIANCE_SALT = "opendistro_security.compliance.salt";
-    public static final String OPENDISTRO_SECURITY_COMPLIANCE_SALT_DEFAULT = "e1ukloTsQlOgPquJ";//16 chars
+    public static final String OPENDISTRO_SECURITY_COMPLIANCE_SALT_DEFAULT = "e1ukloTsQlOgPquJ"; //16 chars
     public static final String OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED = "opendistro_security.compliance.history.internal_config_enabled";
 
     public static final String OPENDISTRO_SECURITY_SSL_ONLY = "opendistro_security.ssl_only";

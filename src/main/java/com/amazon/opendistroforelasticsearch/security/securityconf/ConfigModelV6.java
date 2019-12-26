@@ -803,7 +803,7 @@ public class ConfigModelV6 extends ConfigModel {
 
         private TypePerm(String typePattern) {
             super();
-            this.typePattern = Objects.requireNonNull("*");//typePattern
+            this.typePattern = Objects.requireNonNull("*"); //typePattern
             /*if(IGNORED_TYPES.contains(typePattern)) {
                 throw new RuntimeException("typepattern '"+typePattern+"' not allowed");
             }*/

@@ -581,7 +581,7 @@ public class PrivilegesEvaluator implements DCFListener {
 
             if (filteredAliases.size() > 1 && WildcardMatcher.match("indices:data/read/*search*", action)) {
                 //TODO add queries as dls queries (works only if dls module is installed)
-                final String faMode = dcm.getFilteredAliasMode();// getConfigSettings().dynamic.filtered_alias_mode;
+                final String faMode = dcm.getFilteredAliasMode(); // getConfigSettings().dynamic.filtered_alias_mode;
                 if (faMode.equals("warn")) {
                     log.warn("More than one ({}) filtered alias found for same index ({}). This is currently not recommended. Aliases: {}", filteredAliases.size(), requestAliasOrIndex, toString(filteredAliases));
                 } else if (faMode.equals("disallow")) {

@@ -61,5 +61,34 @@
 
         <!-- Checks for unused imports. -->
         <module name="UnusedImports"/>
+
+        <!-- Package name and imports must not be wrapped. -->
+        <module name="NoLineWrap"/>
+
+        <!-- Braces must not be empty for most language constructs. -->
+        <module name="EmptyBlock">
+            <property name="option" value="TEXT"/>
+            <property name="tokens" value="LITERAL_TRY, LITERAL_FINALLY, LITERAL_IF, LITERAL_ELSE, LITERAL_SWITCH"/>
+        </module>
+
+        <!-- For language constructs related to the previous statement (eg. "else" or "catch"), the keywords must
+             be defined on the same line as the right curly brace. -->
+        <module name="RightCurly">
+            <property name="id" value="RightCurlySame"/>
+            <property name="tokens"
+                      value="LITERAL_TRY, LITERAL_CATCH, LITERAL_FINALLY, LITERAL_IF, LITERAL_ELSE, LITERAL_DO"/>
+        </module>
+
+        <!-- For other language constructs, they must be defined on a separate line. -->
+        <module name="RightCurly">
+            <property name="id" value="RightCurlyAlone"/>
+            <property name="option" value="alone"/>
+            <property name="tokens"
+                      value="CLASS_DEF, METHOD_DEF, CTOR_DEF, LITERAL_FOR, LITERAL_WHILE, STATIC_INIT, INSTANCE_INIT"/>
+        </module>
+
+        <!-- Language constructs like "if" and "while" must be followed by whitespace. -->
+        <module name="WhitespaceAfter"/>
+
     </module>
 </module>

@@ -211,7 +211,7 @@ public class BackendRegistry implements DCFListener {
     public void onChanged(ConfigModel cm, DynamicConfigModel dcm, InternalUsersModel ium) {
 
         invalidateCache();
-        transportUsernameAttribute = dcm.getTransportUsernameAttribute();// config.dynamic.transport_userrname_attribute;
+        transportUsernameAttribute = dcm.getTransportUsernameAttribute(); // config.dynamic.transport_userrname_attribute;
         anonymousAuthEnabled = dcm.isAnonymousAuthenticationEnabled()//config.dynamic.http.anonymous_auth_enabled
                 && !esSettings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_DISABLE_ANONYMOUS_AUTHENTICATION, false);
 
