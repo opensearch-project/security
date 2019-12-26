@@ -101,5 +101,14 @@
             <message key="ws.notPreceded"
                      value="WhitespaceAround: ''{0}'' is not preceded with whitespace."/>
         </module>
+
+        <!-- Only one statement per line is permitted. -->
+        <module name="OneStatementPerLine"/>
+
+        <!-- Variables must be defined on different lines. -->
+        <module name="MultipleVariableDeclarations"/>
+
+        <!-- No C-style array declarations are permitted (eg. String args[]). -->
+        <module name="ArrayTypeStyle"/>
     </module>
 </module>

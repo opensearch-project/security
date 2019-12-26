@@ -340,7 +340,7 @@ public class WildcardMatcher {
      * @param candidate
      * @return
      */
-    public static boolean matchAny(final String pattern[], final String candidate) {
+    public static boolean matchAny(final String[] pattern, final String candidate) {
 
         for (int i = 0; i < pattern.length; i++) {
             final String string = pattern[i];

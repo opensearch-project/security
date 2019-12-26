@@ -361,7 +361,7 @@ public final class PemKeyReader {
         return ks;
     }
 
-    public static KeyStore toKeystore(final String authenticationCertificateAlias, final char[] password, final X509Certificate authenticationCertificate[], final PrivateKey authenticationKey) throws Exception {
+    public static KeyStore toKeystore(final String authenticationCertificateAlias, final char[] password, final X509Certificate[] authenticationCertificate, final PrivateKey authenticationKey) throws Exception {
 
         if (authenticationCertificateAlias != null && authenticationCertificate != null && authenticationKey != null) {
             KeyStore ks = KeyStore.getInstance(JKS);
