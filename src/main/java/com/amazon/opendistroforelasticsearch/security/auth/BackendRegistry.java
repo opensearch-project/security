@@ -316,7 +316,7 @@ public class BackendRegistry implements DCFListener {
                     action, task);
 
             return authenticatedUser;
-        }//end looping auth domains
+        } //end looping auth domains
 
 
         //auditlog
@@ -490,7 +490,7 @@ public class BackendRegistry implements DCFListener {
             authenticatedUser.setRequestedTenant(tenant);
             authenticated = true;
             break;
-        }//end looping auth domains
+        } //end looping auth domains
 
         if (authenticated) {
             final User impersonatedUser = impersonate(request, authenticatedUser);

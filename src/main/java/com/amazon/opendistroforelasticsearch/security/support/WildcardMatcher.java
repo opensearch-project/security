@@ -593,7 +593,7 @@ public class WildcardMatcher {
                 }
                 if (ch == '?') {
                     list.add("?");
-                } else if (prevChar != '*') {// ch == '*' here; check if previous char was '*'
+                } else if (prevChar != '*') { // ch == '*' here; check if previous char was '*'
                     list.add("*");
                 }
             } else {
