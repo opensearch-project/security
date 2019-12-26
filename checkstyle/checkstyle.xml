@@ -31,4 +31,34 @@
         <property name="eachLine" value="true"/>
     </module>
 
+    <module name="TreeWalker">
+        <!-- Allow suppressing rules via comments. -->
+        <module name="SuppressionCommentFilter"/>
+
+        <!-- Class names must match the file name in which they are defined. -->
+        <module name="OuterTypeFilename"/>
+
+        <!-- Only one class may be defined per file. -->
+        <module name="OneTopLevelClass"/>
+
+        <!-- Special escape sequences like \n and \t must be used over the octal or unicode equivalent. -->
+        <module name="IllegalTokenText">
+            <property name="tokens" value="STRING_LITERAL, CHAR_LITERAL"/>
+            <property name="format"
+                      value="\\u00(08|09|0(a|A)|0(c|C)|0(d|D)|22|27|5(C|c))|\\(0(10|11|12|14|15|42|47)|134)"/>
+            <property name="message" value="Avoid using corresponding octal or Unicode escape."/>
+        </module>
+
+        <!-- Unicode escapes must not be used for printable characters. -->
+        <module name="AvoidEscapedUnicodeCharacters">
+            <property name="allowEscapesForControlCharacters" value="true"/>
+            <property name="allowByTailComment" value="true"/>
+            <property name="allowNonPrintableEscapes" value="true"/>
+        </module>
+
+        <!-- Stars must not be used in import statements. -->
+        <module name="AvoidStarImport"/>
+
+
+    </module>
 </module>
