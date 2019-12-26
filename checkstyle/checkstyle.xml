@@ -59,6 +59,7 @@
         <!-- Stars must not be used in import statements. -->
         <module name="AvoidStarImport"/>
 
-
+        <!-- Checks for unused imports. -->
+        <module name="UnusedImports"/>
     </module>
 </module>

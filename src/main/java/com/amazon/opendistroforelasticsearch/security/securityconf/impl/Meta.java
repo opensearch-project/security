@@ -1,7 +1,6 @@
 package com.amazon.opendistroforelasticsearch.security.securityconf.impl;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class Meta {
 

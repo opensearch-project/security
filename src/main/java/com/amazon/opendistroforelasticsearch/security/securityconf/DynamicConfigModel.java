@@ -1,7 +1,6 @@
 package com.amazon.opendistroforelasticsearch.security.securityconf;
 
 import java.net.InetAddress;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,7 +24,6 @@ import com.amazon.opendistroforelasticsearch.security.http.HTTPClientCertAuthent
 import com.amazon.opendistroforelasticsearch.security.http.HTTPProxyAuthenticator;
 import com.amazon.opendistroforelasticsearch.security.http.proxy.HTTPExtendedProxyAuthenticator;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
 
 public abstract class DynamicConfigModel {
 

@@ -1,7 +1,6 @@
 package com.amazon.opendistroforelasticsearch.security.securityconf.impl;
 
 import java.io.IOException;
-import java.io.Reader;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -23,7 +22,6 @@ import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
 import com.amazon.opendistroforelasticsearch.security.securityconf.Hashed;
 import com.amazon.opendistroforelasticsearch.security.securityconf.Hideable;
 import com.amazon.opendistroforelasticsearch.security.securityconf.StaticDefinable;
-import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.RoleV7;
 
 public class SecurityDynamicConfiguration<T> implements ToXContent {
 
