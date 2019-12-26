@@ -50,7 +50,7 @@ import com.amazon.opendistroforelasticsearch.security.auth.BackendRegistry;
 public class OpenDistroSecurityHealthAction extends BaseRestHandler {
 
     private final BackendRegistry registry;
-    
+
     public OpenDistroSecurityHealthAction(final Settings settings, final RestController controller, final BackendRegistry registry) {
         super(settings);
         this.registry = registry;
@@ -61,8 +61,8 @@ public class OpenDistroSecurityHealthAction extends BaseRestHandler {
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
         return new RestChannelConsumer() {
-            
-            final String mode = request.param("mode","strict");
+
+            final String mode = request.param("mode", "strict");
 
             @Override
             public void accept(RestChannel channel) throws Exception {
@@ -70,8 +70,8 @@ public class OpenDistroSecurityHealthAction extends BaseRestHandler {
                 RestStatus restStatus = RestStatus.OK;
                 BytesRestResponse response = null;
                 try {
-                    
-                    
+
+
                     String status = "UP";
                     String message = null;
 
@@ -92,12 +92,12 @@ public class OpenDistroSecurityHealthAction extends BaseRestHandler {
                 } finally {
                     builder.close();
                 }
-                
-                
+
+
                 channel.sendResponse(response);
             }
-            
-            
+
+
         };
     }
 

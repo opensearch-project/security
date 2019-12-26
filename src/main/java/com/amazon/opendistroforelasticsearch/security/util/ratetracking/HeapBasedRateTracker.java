@@ -1,10 +1,10 @@
 /*
  * Copyright 2015-2019 floragunn GmbH
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  */
 
 package com.amazon.opendistroforelasticsearch.security.util.ratetracking;
@@ -132,7 +132,7 @@ public class HeapBasedRateTracker<ClientIdType> implements RateTracker<ClientIdT
                 this.startTime = timestamp;
                 return;
             }
-            
+
             int shiftOffset = this.timeOffsets[this.timeOffsetStart];
             this.startTime += shiftOffset;
 
@@ -141,7 +141,7 @@ public class HeapBasedRateTracker<ClientIdType> implements RateTracker<ClientIdT
 
             short i = second;
 
-            for (;;) {
+            for (; ; ) {
                 this.timeOffsets[i] -= shiftOffset;
 
                 if (i == this.timeOffsetEnd) {
@@ -190,7 +190,7 @@ public class HeapBasedRateTracker<ClientIdType> implements RateTracker<ClientIdT
 
             short i = secondNonExpired;
 
-            for (;;) {
+            for (; ; ) {
                 this.timeOffsets[i] -= offsetBetweenOldAndNew;
 
                 if (i == this.timeOffsetEnd) {
@@ -225,7 +225,7 @@ public class HeapBasedRateTracker<ClientIdType> implements RateTracker<ClientIdT
                 return -1;
             }
 
-            for (;;) {
+            for (; ; ) {
 
                 if (timestamp - (this.startTime + this.timeOffsets[i]) < timeWindowMs) {
                     return i;

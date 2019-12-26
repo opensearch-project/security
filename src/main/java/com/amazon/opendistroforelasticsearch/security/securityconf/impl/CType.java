@@ -27,7 +27,7 @@ public enum CType {
     ACTIONGROUPS(toMap(0, List.class, 1, ActionGroupsV6.class, 2,
             ActionGroupsV7.class)),
     CONFIG(toMap(1, ConfigV6.class, 2, ConfigV7.class)),
-    ROLES(toMap(1, RoleV6.class, 2, RoleV7.class)), 
+    ROLES(toMap(1, RoleV6.class, 2, RoleV7.class)),
     ROLESMAPPING(toMap(1, RoleMappingsV6.class, 2, RoleMappingsV7.class)),
     TENANTS(toMap(2, TenantV7.class));
 

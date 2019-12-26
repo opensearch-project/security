@@ -120,18 +120,18 @@ public class ConfigurationRepository {
             @Override
             public void run() {
                 try {
-                    LOGGER.info("Background init thread started. Install default config?: "+installDefaultConfig.get());
+                    LOGGER.info("Background init thread started. Install default config?: " + installDefaultConfig.get());
 
 
-                    if(installDefaultConfig.get()) {
+                    if (installDefaultConfig.get()) {
 
                         try {
                             String lookupDir = System.getProperty("security.default_init.dir");
-                            final String cd = lookupDir != null? (lookupDir+"/") : new Environment(settings, configPath).pluginsFile().toAbsolutePath().toString()+"/opendistro_security/securityconfig/";
-                            File confFile = new File(cd+"config.yml");
-                            if(confFile.exists()) {
+                            final String cd = lookupDir != null ? (lookupDir + "/") : new Environment(settings, configPath).pluginsFile().toAbsolutePath().toString() + "/opendistro_security/securityconfig/";
+                            File confFile = new File(cd + "config.yml");
+                            if (confFile.exists()) {
                                 final ThreadContext threadContext = threadPool.getThreadContext();
-                                try(StoredContext ctx = threadContext.stashContext()) {
+                                try (StoredContext ctx = threadContext.stashContext()) {
                                     threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
                                     LOGGER.info("Will create {} index so we can apply default config", opendistrosecurityIndex);
 
@@ -143,14 +143,14 @@ public class ConfigurationRepository {
                                             .settings(indexSettings))
                                             .actionGet().isAcknowledged();
                                     LOGGER.info("Index {} created?: {}", opendistrosecurityIndex, ok);
-                                    if(ok) {
-                                        ConfigHelper.uploadFile(client, cd+"config.yml", opendistrosecurityIndex, CType.CONFIG, configVersion);
-                                        ConfigHelper.uploadFile(client, cd+"roles.yml", opendistrosecurityIndex, CType.ROLES, configVersion);
-                                        ConfigHelper.uploadFile(client, cd+"roles_mapping.yml", opendistrosecurityIndex, CType.ROLESMAPPING, configVersion);
-                                        ConfigHelper.uploadFile(client, cd+"internal_users.yml", opendistrosecurityIndex, CType.INTERNALUSERS, configVersion);
-                                        ConfigHelper.uploadFile(client, cd+"action_groups.yml", opendistrosecurityIndex, CType.ACTIONGROUPS, configVersion);
-                                        if(configVersion == 2) {
-                                            ConfigHelper.uploadFile(client, cd+"tenants.yml", opendistrosecurityIndex, CType.TENANTS, configVersion);
+                                    if (ok) {
+                                        ConfigHelper.uploadFile(client, cd + "config.yml", opendistrosecurityIndex, CType.CONFIG, configVersion);
+                                        ConfigHelper.uploadFile(client, cd + "roles.yml", opendistrosecurityIndex, CType.ROLES, configVersion);
+                                        ConfigHelper.uploadFile(client, cd + "roles_mapping.yml", opendistrosecurityIndex, CType.ROLESMAPPING, configVersion);
+                                        ConfigHelper.uploadFile(client, cd + "internal_users.yml", opendistrosecurityIndex, CType.INTERNALUSERS, configVersion);
+                                        ConfigHelper.uploadFile(client, cd + "action_groups.yml", opendistrosecurityIndex, CType.ACTIONGROUPS, configVersion);
+                                        if (configVersion == 2) {
+                                            ConfigHelper.uploadFile(client, cd + "tenants.yml", opendistrosecurityIndex, CType.TENANTS, configVersion);
                                         }
                                         LOGGER.info("Default config applied");
                                     } else {
@@ -175,8 +175,8 @@ public class ConfigurationRepository {
                         LOGGER.debug("Catched a {} but we just try again ...", e1.toString());
                     }
 
-                    while(response == null || response.isTimedOut() || response.getStatus() == ClusterHealthStatus.RED) {
-                        LOGGER.debug("index '{}' not healthy yet, we try again ... (Reason: {})", opendistrosecurityIndex, response==null?"no response":(response.isTimedOut()?"timeout":"other, maybe red cluster"));
+                    while (response == null || response.isTimedOut() || response.getStatus() == ClusterHealthStatus.RED) {
+                        LOGGER.debug("index '{}' not healthy yet, we try again ... (Reason: {})", opendistrosecurityIndex, response == null ? "no response" : (response.isTimedOut() ? "timeout" : "other, maybe red cluster"));
                         try {
                             Thread.sleep(500);
                         } catch (InterruptedException e1) {
@@ -191,7 +191,7 @@ public class ConfigurationRepository {
                         continue;
                     }
 
-                    while(!dynamicConfigFactory.isInitialized()) {
+                    while (!dynamicConfigFactory.isInitialized()) {
                         try {
                             LOGGER.debug("Try to load config ...");
                             reloadConfiguration(Arrays.asList(CType.values()));
@@ -211,7 +211,7 @@ public class ConfigurationRepository {
                     LOGGER.info("Node '{}' initialized", clusterService.localNode().getName());
 
                 } catch (Exception e) {
-                    LOGGER.error("Unexpected exception while initializing node "+e, e);
+                    LOGGER.error("Unexpected exception while initializing node " + e, e);
                 }
             }
         });
@@ -232,7 +232,7 @@ public class ConfigurationRepository {
                     LOGGER.info("{} index does not exist yet, so we create a default config", opendistrosecurityIndex);
                     installDefaultConfig.set(true);
                     bgThread.start();
-                } else if (settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, true)){
+                } else if (settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, true)) {
                     LOGGER.info("{} index does not exist yet, so no need to load config on node startup. Use securityadmin to initialize cluster",
                             opendistrosecurityIndex);
                     bgThread.start();
@@ -249,7 +249,7 @@ public class ConfigurationRepository {
     }
 
     public static ConfigurationRepository create(Settings settings, final Path configPath, final ThreadPool threadPool,
-                                                 Client client,  ClusterService clusterService, AuditLog auditLog, ComplianceConfig complianceConfig) {
+                                                 Client client, ClusterService clusterService, AuditLog auditLog, ComplianceConfig complianceConfig) {
         final ConfigurationRepository repository = new ConfigurationRepository(settings, configPath, threadPool, client, clusterService, auditLog, complianceConfig);
         return repository;
     }
@@ -259,13 +259,12 @@ public class ConfigurationRepository {
     }
 
     /**
-     *
      * @param configurationType
      * @return can also return empty in case it was never loaded
      */
     public SecurityDynamicConfiguration<?> getConfiguration(CType configurationType) {
-        SecurityDynamicConfiguration<?> conf=  configCache.getIfPresent(configurationType);
-        if(conf != null) {
+        SecurityDynamicConfiguration<?> conf = configCache.getIfPresent(configurationType);
+        if (conf != null) {
             return conf.deepClone();
         }
         return SecurityDynamicConfiguration.empty();
@@ -307,7 +306,7 @@ public class ConfigurationRepository {
                 LOGGER.debug("Notify {} listener about change configuration with type {}", listener);
                 listener.onChange(typeToConfig);
             } catch (Exception e) {
-                LOGGER.error("{} listener errored: "+e, listener, e);
+                LOGGER.error("{} listener errored: " + e, listener, e);
                 throw ExceptionsHelper.convertToElastic(e);
             }
         }
@@ -315,6 +314,7 @@ public class ConfigurationRepository {
 
     /**
      * This retrieves the config directly from the index without caching involved
+     *
      * @param configTypes
      * @param logComplianceEvent
      * @return
@@ -324,14 +324,14 @@ public class ConfigurationRepository {
         final ThreadContext threadContext = threadPool.getThreadContext();
         final Map<CType, SecurityDynamicConfiguration<?>> retVal = new HashMap<>();
 
-        try(StoredContext ctx = threadContext.stashContext()) {
+        try (StoredContext ctx = threadContext.stashContext()) {
             threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
 
             IndexMetaData securityMetaData = clusterService.state().metaData().index(this.opendistrosecurityIndex);
-            MappingMetaData mappingMetaData = securityMetaData==null?null:securityMetaData.mapping();
+            MappingMetaData mappingMetaData = securityMetaData == null ? null : securityMetaData.mapping();
 
-            if(securityMetaData !=null && mappingMetaData !=null ) {
-                if("security".equals(mappingMetaData.type())) {
+            if (securityMetaData != null && mappingMetaData != null) {
+                if ("security".equals(mappingMetaData.type())) {
                     LOGGER.debug("security index exists and was created before ES 7 (legacy layout)");
                 } else {
                     LOGGER.debug("security index exists and was created with ES 7 (new layout)");
@@ -349,7 +349,7 @@ public class ConfigurationRepository {
             throw new ElasticsearchException(e);
         }
 
-        if(logComplianceEvent && complianceConfig.isEnabled()) {
+        if (logComplianceEvent && complianceConfig.isEnabled()) {
             CType configurationType = configTypes.iterator().next();
             Map<String, String> fields = new HashMap<String, String>();
             fields.put(configurationType.toLCString(), Strings.toString(retVal.get(configurationType)));
@@ -361,7 +361,7 @@ public class ConfigurationRepository {
 
     private Map<CType, SecurityDynamicConfiguration<?>> validate(Map<CType, SecurityDynamicConfiguration<?>> conf, int expectedSize) throws InvalidConfigException {
 
-        if(conf == null || conf.size() != expectedSize) {
+        if (conf == null || conf.size() != expectedSize) {
             throw new InvalidConfigException("Retrieved only partial configuration");
         }
 

@@ -87,6 +87,7 @@ class EmptyFilterLeafReader extends FilterLeafReader {
     public CacheHelper getReaderCacheHelper() {
         return null;
     }
+
     private static class EmptySubReaderWrapper extends FilterDirectoryReader.SubReaderWrapper {
 
         @Override
@@ -106,7 +107,7 @@ class EmptyFilterLeafReader extends FilterLeafReader {
         protected DirectoryReader doWrapDirectoryReader(final DirectoryReader in) throws IOException {
             return new EmptyDirectoryReader(in);
         }
-        
+
         @Override
         public CacheHelper getReaderCacheHelper() {
             return in.getReaderCacheHelper();

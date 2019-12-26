@@ -56,19 +56,19 @@ import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfig
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
 
 public class TransportConfigUpdateAction
-extends
-TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigUpdateAction.NodeConfigUpdateRequest, ConfigUpdateNodeResponse> {
+        extends
+        TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigUpdateAction.NodeConfigUpdateRequest, ConfigUpdateNodeResponse> {
 
     protected Logger logger = LogManager.getLogger(getClass());
     private final Provider<BackendRegistry> backendRegistry;
     private final ConfigurationRepository configurationRepository;
     private DynamicConfigFactory dynamicConfigFactory;
-    
+
     @Inject
     public TransportConfigUpdateAction(final Settings settings,
-            final ThreadPool threadPool, final ClusterService clusterService, final TransportService transportService,
-            final ConfigurationRepository configurationRepository, final ActionFilters actionFilters,
-            Provider<BackendRegistry> backendRegistry, DynamicConfigFactory dynamicConfigFactory) {        
+                                       final ThreadPool threadPool, final ClusterService clusterService, final TransportService transportService,
+                                       final ConfigurationRepository configurationRepository, final ActionFilters actionFilters,
+                                       Provider<BackendRegistry> backendRegistry, DynamicConfigFactory dynamicConfigFactory) {
         super(ConfigUpdateAction.NAME, threadPool, clusterService, transportService, actionFilters,
                 ConfigUpdateRequest::new, TransportConfigUpdateAction.NodeConfigUpdateRequest::new,
                 ThreadPool.Names.MANAGEMENT, ConfigUpdateNodeResponse.class);
@@ -107,17 +107,15 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
     protected ConfigUpdateNodeResponse newNodeResponse() {
         return new ConfigUpdateNodeResponse(clusterService.localNode(), new String[0], null);
     }
-    
-    
-    
-	
+
+
     @Override
     protected ConfigUpdateResponse newResponse(ConfigUpdateRequest request, List<ConfigUpdateNodeResponse> responses,
-            List<FailedNodeException> failures) {
+                                               List<FailedNodeException> failures) {
         return new ConfigUpdateResponse(this.clusterService.getClusterName(), responses, failures);
 
     }
-	
+
     @Override
     protected ConfigUpdateNodeResponse nodeOperation(final NodeConfigUpdateRequest request) {
         configurationRepository.reloadConfiguration(CType.fromStringValues((request.request.getConfigTypes())));

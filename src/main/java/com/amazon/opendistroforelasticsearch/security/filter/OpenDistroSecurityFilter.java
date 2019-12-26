@@ -94,8 +94,8 @@ public class OpenDistroSecurityFilter implements ActionFilter {
     private final CompatConfig compatConfig;
 
     public OpenDistroSecurityFilter(final PrivilegesEvaluator evalp, final AdminDNs adminDns,
-            DlsFlsRequestValve dlsFlsValve, AuditLog auditLog, ThreadPool threadPool, ClusterService cs,
-            ComplianceConfig complianceConfig, final CompatConfig compatConfig) {
+                                    DlsFlsRequestValve dlsFlsValve, AuditLog auditLog, ThreadPool threadPool, ClusterService cs,
+                                    ComplianceConfig complianceConfig, final CompatConfig compatConfig) {
         this.evalp = evalp;
         this.adminDns = adminDns;
         this.dlsFlsValve = dlsFlsValve;
@@ -113,23 +113,23 @@ public class OpenDistroSecurityFilter implements ActionFilter {
 
     @Override
     public <Request extends ActionRequest, Response extends ActionResponse> void apply(Task task, final String action, Request request,
-            ActionListener<Response> listener, ActionFilterChain<Request, Response> chain) {
-        try (StoredContext ctx = threadContext.newStoredContext(true)){
+                                                                                       ActionListener<Response> listener, ActionFilterChain<Request, Response> chain) {
+        try (StoredContext ctx = threadContext.newStoredContext(true)) {
             org.apache.logging.log4j.ThreadContext.clearAll();
             apply0(task, action, request, listener, chain);
         }
     }
-    
+
 
     private <Request extends ActionRequest, Response extends ActionResponse> void apply0(Task task, final String action, Request request,
-            ActionListener<Response> listener, ActionFilterChain<Request, Response> chain) {
+                                                                                         ActionListener<Response> listener, ActionFilterChain<Request, Response> chain) {
         try {
 
-            if(threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN) == null) {
+            if (threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN) == null) {
                 threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, Origin.LOCAL.toString());
             }
-            
-            if(complianceConfig != null && complianceConfig.isEnabled()) {
+
+            if (complianceConfig != null && complianceConfig.isEnabled()) {
                 attachSourceFieldContext(request);
             }
 
@@ -143,96 +143,96 @@ public class OpenDistroSecurityFilter implements ActionFilter {
 
             final boolean internalRequest =
                     (interClusterRequest || HeaderHelper.isDirectRequest(threadContext))
-                    && action.startsWith("internal:")
-                    && !action.startsWith("internal:transport/proxy");
+                            && action.startsWith("internal:")
+                            && !action.startsWith("internal:transport/proxy");
 
             if (user != null) {
                 org.apache.logging.log4j.ThreadContext.put("user", user.getName());
             }
-                        
-            if(actionTrace.isTraceEnabled()) {
+
+            if (actionTrace.isTraceEnabled()) {
 
                 String count = "";
-                if(request instanceof BulkRequest) {
-                    count = ""+((BulkRequest) request).requests().size();
+                if (request instanceof BulkRequest) {
+                    count = "" + ((BulkRequest) request).requests().size();
                 }
 
-                if(request instanceof MultiGetRequest) {
-                    count = ""+((MultiGetRequest) request).getItems().size();
+                if (request instanceof MultiGetRequest) {
+                    count = "" + ((MultiGetRequest) request).getItems().size();
                 }
 
-                if(request instanceof MultiSearchRequest) {
-                    count = ""+((MultiSearchRequest) request).requests().size();
+                if (request instanceof MultiSearchRequest) {
+                    count = "" + ((MultiSearchRequest) request).requests().size();
                 }
 
-                actionTrace.trace("Node "+cs.localNode().getName()+" -> "+action+" ("+count+"): userIsAdmin="+userIsAdmin+"/conRequest="+confRequest+"/internalRequest="+internalRequest
-                        +"origin="+threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN)+"/directRequest="+HeaderHelper.isDirectRequest(threadContext)+"/remoteAddress="+request.remoteAddress());
+                actionTrace.trace("Node " + cs.localNode().getName() + " -> " + action + " (" + count + "): userIsAdmin=" + userIsAdmin + "/conRequest=" + confRequest + "/internalRequest=" + internalRequest
+                        + "origin=" + threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN) + "/directRequest=" + HeaderHelper.isDirectRequest(threadContext) + "/remoteAddress=" + request.remoteAddress());
 
 
-                threadContext.putHeader("_opendistro_security_trace"+System.currentTimeMillis()+"#"+UUID.randomUUID().toString(), Thread.currentThread().getName()+" FILTER -> "+"Node "+cs.localNode().getName()+" -> "+action+" userIsAdmin="+userIsAdmin+"/conRequest="+confRequest+"/internalRequest="+internalRequest
-                        +"origin="+threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN)+"/directRequest="+HeaderHelper.isDirectRequest(threadContext)+"/remoteAddress="+request.remoteAddress()+" "+threadContext.getHeaders().entrySet().stream().filter(p->!p.getKey().startsWith("_opendistro_security_trace")).collect(Collectors.toMap(p -> p.getKey(), p -> p.getValue())));
+                threadContext.putHeader("_opendistro_security_trace" + System.currentTimeMillis() + "#" + UUID.randomUUID().toString(), Thread.currentThread().getName() + " FILTER -> " + "Node " + cs.localNode().getName() + " -> " + action + " userIsAdmin=" + userIsAdmin + "/conRequest=" + confRequest + "/internalRequest=" + internalRequest
+                        + "origin=" + threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN) + "/directRequest=" + HeaderHelper.isDirectRequest(threadContext) + "/remoteAddress=" + request.remoteAddress() + " " + threadContext.getHeaders().entrySet().stream().filter(p -> !p.getKey().startsWith("_opendistro_security_trace")).collect(Collectors.toMap(p -> p.getKey(), p -> p.getValue())));
 
 
             }
 
 
-            if(userIsAdmin
+            if (userIsAdmin
                     || confRequest
                     || internalRequest
-                    || passThroughRequest){
+                    || passThroughRequest) {
 
-                if(userIsAdmin && !confRequest && !internalRequest && !passThroughRequest) {
+                if (userIsAdmin && !confRequest && !internalRequest && !passThroughRequest) {
                     auditLog.logGrantedPrivileges(action, request, task);
                 }
 
                 chain.proceed(task, action, request, listener);
                 return;
             }
-            
-            
-            if(complianceConfig != null && complianceConfig.isEnabled()) {
-            
+
+
+            if (complianceConfig != null && complianceConfig.isEnabled()) {
+
                 boolean isImmutable = false;
-                
-                if(request instanceof BulkShardRequest) {
-                    for(BulkItemRequest bsr: ((BulkShardRequest) request).items()) {
+
+                if (request instanceof BulkShardRequest) {
+                    for (BulkItemRequest bsr : ((BulkShardRequest) request).items()) {
                         isImmutable = checkImmutableIndices(bsr.request(), listener);
-                        if(isImmutable) {
+                        if (isImmutable) {
                             break;
                         }
                     }
                 } else {
                     isImmutable = checkImmutableIndices(request, listener);
                 }
-    
-                if(isImmutable) {
+
+                if (isImmutable) {
                     return;
                 }
 
             }
 
-            if(Origin.LOCAL.toString().equals(threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN))
+            if (Origin.LOCAL.toString().equals(threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN))
                     && (interClusterRequest || HeaderHelper.isDirectRequest(threadContext))
-                    ) {
+            ) {
 
                 chain.proceed(task, action, request, listener);
                 return;
             }
 
-            if(user == null) {
+            if (user == null) {
 
-                if(action.startsWith("cluster:monitor/state")) {
+                if (action.startsWith("cluster:monitor/state")) {
                     chain.proceed(task, action, request, listener);
                     return;
                 }
 
-                if((interClusterRequest || trustedClusterRequest || request.remoteAddress() == null) && !compatConfig.transportInterClusterAuthEnabled()) {
+                if ((interClusterRequest || trustedClusterRequest || request.remoteAddress() == null) && !compatConfig.transportInterClusterAuthEnabled()) {
                     chain.proceed(task, action, request, listener);
                     return;
                 }
 
-                log.error("No user found for "+ action+" from "+request.remoteAddress()+" "+threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN)+" via "+threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_CHANNEL_TYPE)+" "+threadContext.getHeaders());
-                listener.onFailure(new ElasticsearchSecurityException("No user found for "+action, RestStatus.INTERNAL_SERVER_ERROR));
+                log.error("No user found for " + action + " from " + request.remoteAddress() + " " + threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN) + " via " + threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_CHANNEL_TYPE) + " " + threadContext.getHeaders());
+                listener.onFailure(new ElasticsearchSecurityException("No user found for " + action, RestStatus.INTERNAL_SERVER_ERROR));
                 return;
             }
 
@@ -241,7 +241,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
             if (!eval.isInitialized()) {
                 log.error("Open Distro Security not initialized for {}", action);
                 listener.onFailure(new ElasticsearchSecurityException("Open Distro Security not initialized for "
-                + action, RestStatus.SERVICE_UNAVAILABLE));
+                        + action, RestStatus.SERVICE_UNAVAILABLE));
                 return;
             }
 
@@ -250,14 +250,14 @@ public class OpenDistroSecurityFilter implements ActionFilter {
             }
 
             final PrivilegesEvaluatorResponse pres = eval.evaluate(user, action, request, task);
-            
+
             if (log.isDebugEnabled()) {
                 log.debug(pres);
             }
-            
+
             if (pres.isAllowed()) {
                 auditLog.logGrantedPrivileges(action, request, task);
-                if(!dlsFlsValve.invoke(request, listener, pres.getAllowedFlsFields(), pres.getMaskedFields(), pres.getQueries())) {
+                if (!dlsFlsValve.invoke(request, listener, pres.getAllowedFlsFields(), pres.getMaskedFields(), pres.getQueries())) {
                     return;
                 }
                 chain.proceed(task, action, request, listener);
@@ -265,11 +265,11 @@ public class OpenDistroSecurityFilter implements ActionFilter {
             } else {
                 auditLog.logMissingPrivileges(action, request, task);
                 log.debug("no permissions for {}", pres.getMissingPrivileges());
-                listener.onFailure(new ElasticsearchSecurityException("no permissions for " + pres.getMissingPrivileges()+ " and "+user, RestStatus.FORBIDDEN));
+                listener.onFailure(new ElasticsearchSecurityException("no permissions for " + pres.getMissingPrivileges() + " and " + user, RestStatus.FORBIDDEN));
                 return;
             }
         } catch (Throwable e) {
-            log.error("Unexpected exception "+e, e);
+            log.error("Unexpected exception " + e, e);
             listener.onFailure(new ElasticsearchSecurityException("Unexpected exception " + action, RestStatus.INTERNAL_SERVER_ERROR));
             return;
         }
@@ -284,57 +284,56 @@ public class OpenDistroSecurityFilter implements ActionFilter {
     }
 
     private void attachSourceFieldContext(ActionRequest request) {
-        
-        if(request instanceof SearchRequest && SourceFieldsContext.isNeeded((SearchRequest) request)) {            
-            if(threadContext.getHeader("_opendistro_security_source_field_context") == null) {
+
+        if (request instanceof SearchRequest && SourceFieldsContext.isNeeded((SearchRequest) request)) {
+            if (threadContext.getHeader("_opendistro_security_source_field_context") == null) {
                 final String serializedSourceFieldContext = Base64Helper.serializeObject(new SourceFieldsContext((SearchRequest) request));
                 threadContext.putHeader("_opendistro_security_source_field_context", serializedSourceFieldContext);
             }
         } else if (request instanceof GetRequest && SourceFieldsContext.isNeeded((GetRequest) request)) {
-            if(threadContext.getHeader("_opendistro_security_source_field_context") == null) {
+            if (threadContext.getHeader("_opendistro_security_source_field_context") == null) {
                 final String serializedSourceFieldContext = Base64Helper.serializeObject(new SourceFieldsContext((GetRequest) request));
                 threadContext.putHeader("_opendistro_security_source_field_context", serializedSourceFieldContext);
             }
         }
     }
-    
+
     @SuppressWarnings("rawtypes")
     private boolean checkImmutableIndices(Object request, ActionListener listener) {
 
-        if(        request instanceof DeleteRequest 
-                || request instanceof UpdateRequest 
-                || request instanceof UpdateByQueryRequest 
+        if (request instanceof DeleteRequest
+                || request instanceof UpdateRequest
+                || request instanceof UpdateByQueryRequest
                 || request instanceof DeleteByQueryRequest
                 || request instanceof DeleteIndexRequest
                 || request instanceof RestoreSnapshotRequest
                 || request instanceof CloseIndexRequest
                 || request instanceof IndicesAliasesRequest //TODO only remove index
-                ) {
-            
-            if(complianceConfig != null && complianceConfig.isIndexImmutable(request)) {
+        ) {
+
+            if (complianceConfig != null && complianceConfig.isIndexImmutable(request)) {
                 //auditLog.log
-                
+
                 //check index for type = remove index
                 //IndicesAliasesRequest iar = (IndicesAliasesRequest) request;
                 //for(AliasActions aa: iar.getAliasActions()) {
                 //    if(aa.actionType() == Type.REMOVE_INDEX) {
-                        
+
                 //    }
                 //}
-                
-                
-                
+
+
                 listener.onFailure(new ElasticsearchSecurityException("Index is immutable", RestStatus.FORBIDDEN));
                 return true;
             }
         }
-        
-        if(request instanceof IndexRequest) {
-            if(complianceConfig != null && complianceConfig.isIndexImmutable(request)) {
+
+        if (request instanceof IndexRequest) {
+            if (complianceConfig != null && complianceConfig.isIndexImmutable(request)) {
                 ((IndexRequest) request).opType(OpType.CREATE);
             }
         }
-        
+
         return false;
     }
 

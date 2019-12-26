@@ -1,10 +1,10 @@
 /*
  * Copyright 2015-2017 floragunn GmbH
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  */
 
 package com.amazon.opendistroforelasticsearch.security.ssl.transport;
@@ -45,8 +45,8 @@ import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLRequestHelper;
 import io.netty.handler.ssl.SslHandler;
 
 public class OpenDistroSecuritySSLRequestHandler<T extends TransportRequest>
-implements TransportRequestHandler<T> {
-    
+        implements TransportRequestHandler<T> {
+
     private final String action;
     private final TransportRequestHandler<T> actualHandler;
     private final ThreadPool threadPool;
@@ -54,8 +54,8 @@ implements TransportRequestHandler<T> {
     private final PrincipalExtractor principalExtractor;
     private final SslExceptionHandler errorHandler;
 
-    public OpenDistroSecuritySSLRequestHandler(String action, TransportRequestHandler<T> actualHandler, 
-            ThreadPool threadPool, final PrincipalExtractor principalExtractor, final SslExceptionHandler errorHandler) {
+    public OpenDistroSecuritySSLRequestHandler(String action, TransportRequestHandler<T> actualHandler,
+                                               ThreadPool threadPool, final PrincipalExtractor principalExtractor, final SslExceptionHandler errorHandler) {
         super();
         this.action = action;
         this.actualHandler = actualHandler;
@@ -63,45 +63,44 @@ implements TransportRequestHandler<T> {
         this.principalExtractor = principalExtractor;
         this.errorHandler = errorHandler;
     }
-    
+
     protected ThreadContext getThreadContext() {
-        if(threadPool == null) {
+        if (threadPool == null) {
             return null;
         }
-        
+
         return threadPool.getThreadContext();
     }
 
     @Override
     public final void messageReceived(T request, TransportChannel channel, Task task) throws Exception {
-        ThreadContext threadContext = getThreadContext() ;
-      
-        if(SSLRequestHelper.containsBadHeader(threadContext, "_opendistro_security_ssl_")) {
+        ThreadContext threadContext = getThreadContext();
+
+        if (SSLRequestHelper.containsBadHeader(threadContext, "_opendistro_security_ssl_")) {
             final Exception exception = ExceptionUtils.createBadHeaderException();
             channel.sendResponse(exception);
             throw exception;
         }
- 
+
         if (!"transport".equals(channel.getChannelType())) { //netty4
             messageReceivedDecorate(request, actualHandler, channel, task);
             return;
         }
-        
+
         try {
 
             Netty4TcpChannel nettyChannel = null;
 
             if (channel instanceof TaskTransportChannel) {
                 final TransportChannel inner = ((TaskTransportChannel) channel).getChannel();
-                nettyChannel = (Netty4TcpChannel ) ((TcpTransportChannel) inner).getChannel();
-            } else
-            if (channel instanceof TcpTransportChannel) {
+                nettyChannel = (Netty4TcpChannel) ((TcpTransportChannel) inner).getChannel();
+            } else if (channel instanceof TcpTransportChannel) {
                 final TcpChannel inner = ((TcpTransportChannel) channel).getChannel();
                 nettyChannel = (Netty4TcpChannel) inner;
             } else {
-                throw new Exception("Invalid channel of type "+channel.getClass()+ " ("+channel.getChannelType()+")");
+                throw new Exception("Invalid channel of type " + channel.getClass() + " (" + channel.getChannelType() + ")");
             }
-            
+
             final SslHandler sslhandler = (SslHandler) nettyChannel.getNettyChannel().pipeline().get("ssl_server");
 
             if (sslhandler == null) {
@@ -115,17 +114,17 @@ implements TransportRequestHandler<T> {
 
             final Certificate[] peerCerts = sslhandler.engine().getSession().getPeerCertificates();
             final Certificate[] localCerts = sslhandler.engine().getSession().getLocalCertificates();
-            
-            if (peerCerts != null 
-                    && peerCerts.length > 0 
-                    && peerCerts[0] instanceof X509Certificate 
-                    && localCerts != null && localCerts.length > 0 
+
+            if (peerCerts != null
+                    && peerCerts.length > 0
+                    && peerCerts[0] instanceof X509Certificate
+                    && localCerts != null && localCerts.length > 0
                     && localCerts[0] instanceof X509Certificate) {
                 final X509Certificate[] x509PeerCerts = Arrays.copyOf(peerCerts, peerCerts.length, X509Certificate[].class);
                 final X509Certificate[] x509LocalCerts = Arrays.copyOf(localCerts, localCerts.length, X509Certificate[].class);
-                final String principal = principalExtractor==null?null:principalExtractor.extractPrincipal(x509PeerCerts[0], PrincipalExtractor.Type.TRANSPORT);
+                final String principal = principalExtractor == null ? null : principalExtractor.extractPrincipal(x509PeerCerts[0], PrincipalExtractor.Type.TRANSPORT);
                 addAdditionalContextValues(action, request, x509LocalCerts, x509PeerCerts, principal);
-                if(threadContext != null) {
+                if (threadContext != null) {
                     //in the case of ssl plugin only: threadContext and principalExtractor are null
                     threadContext.putTransient("_opendistro_security_ssl_transport_principal", principal);
                     threadContext.putTransient("_opendistro_security_ssl_transport_peer_certificates", x509PeerCerts);
@@ -152,14 +151,14 @@ implements TransportRequestHandler<T> {
             errorHandler.logError(e, request, action, task, 0);
             throw e;
         }
-        
+
     }
-    
+
     protected void addAdditionalContextValues(final String action, final TransportRequest request, final X509Certificate[] localCerts, final X509Certificate[] peerCerts, final String principal)
             throws Exception {
         // no-op
     }
-    
+
     protected void messageReceivedDecorate(final T request, final TransportRequestHandler<T> actualHandler, final TransportChannel transportChannel, Task task) throws Exception {
         actualHandler.messageReceived(request, transportChannel, task);
     }

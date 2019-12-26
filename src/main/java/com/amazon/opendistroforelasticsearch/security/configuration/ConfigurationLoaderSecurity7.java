@@ -90,20 +90,20 @@ public class ConfigurationLoaderSecurity7 {
 
             @Override
             public void success(SecurityDynamicConfiguration<?> dConf) {
-                if(latch.getCount() <= 0) {
+                if (latch.getCount() <= 0) {
                     log.error("Latch already counted down (for {} of {})  (index={})", dConf.getCType().toLCString(), Arrays.toString(events), securityIndex);
                 }
 
                 rs.put(dConf.getCType(), dConf);
                 latch.countDown();
-                if(log.isDebugEnabled()) {
+                if (log.isDebugEnabled()) {
                     log.debug("Received config for {} (of {}) with current latch value={}", dConf.getCType().toLCString(), Arrays.toString(events), latch.getCount());
                 }
             }
 
             @Override
             public void singleFailure(Failure failure) {
-                log.error("Failure {} retrieving configuration for {} (index={})", failure==null?null:failure.getMessage(), Arrays.toString(events), securityIndex);
+                log.error("Failure {} retrieving configuration for {} (index={})", failure == null ? null : failure.getMessage(), Arrays.toString(events), securityIndex);
             }
 
             @Override
@@ -111,15 +111,15 @@ public class ConfigurationLoaderSecurity7 {
 
                 //when index was created with ES 6 there are no separate tenants. So we load just empty ones.
                 //when index was created with ES 7 and type not "security" (ES 6 type) there are no rolemappings anymore.
-                if(cs.state().metaData().index(securityIndex).getCreationVersion().before(Version.V_7_0_0) || "security".equals(type)) {
+                if (cs.state().metaData().index(securityIndex).getCreationVersion().before(Version.V_7_0_0) || "security".equals(type)) {
                     //created with SG 6
                     //skip tenants
 
-                    if(log.isDebugEnabled()) {
+                    if (log.isDebugEnabled()) {
                         log.debug("Skip tenants because we not yet migrated to ES 7 (index was created with ES 6 and type is legacy [{}])", type);
                     }
 
-                    if(CType.fromString(id) == CType.TENANTS) {
+                    if (CType.fromString(id) == CType.TENANTS) {
                         rs.put(CType.fromString(id), SecurityDynamicConfiguration.empty());
                         latch.countDown();
                         return;
@@ -131,20 +131,20 @@ public class ConfigurationLoaderSecurity7 {
 
             @Override
             public void failure(Throwable t) {
-                log.error("Exception {} while retrieving configuration for {}  (index={})",t,t.toString(), Arrays.toString(events), securityIndex);
+                log.error("Exception {} while retrieving configuration for {}  (index={})", t, t.toString(), Arrays.toString(events), securityIndex);
             }
         });
 
-        if(!latch.await(timeout, timeUnit)) {
+        if (!latch.await(timeout, timeUnit)) {
             //timeout
-            throw new TimeoutException("Timeout after "+timeout+""+timeUnit+" while retrieving configuration for "+Arrays.toString(events)+ "(index="+securityIndex+")");
+            throw new TimeoutException("Timeout after " + timeout + "" + timeUnit + " while retrieving configuration for " + Arrays.toString(events) + "(index=" + securityIndex + ")");
         }
 
         return rs;
     }
 
     void loadAsync(final CType[] events, final ConfigCallback callback) {
-        if(events == null || events.length == 0) {
+        if (events == null || events.length == 0) {
             log.warn("No config events requested to load");
             return;
         }
@@ -165,19 +165,19 @@ public class ConfigurationLoaderSecurity7 {
                 MultiGetItemResponse[] responses = response.getResponses();
                 for (int i = 0; i < responses.length; i++) {
                     MultiGetItemResponse singleResponse = responses[i];
-                    if(singleResponse != null && !singleResponse.isFailed()) {
+                    if (singleResponse != null && !singleResponse.isFailed()) {
                         GetResponse singleGetResponse = singleResponse.getResponse();
-                        if(singleGetResponse.isExists() && !singleGetResponse.isSourceEmpty()) {
+                        if (singleGetResponse.isExists() && !singleGetResponse.isSourceEmpty()) {
                             //success
                             try {
                                 final SecurityDynamicConfiguration<?> dConf = toConfig(singleGetResponse);
-                                if(dConf != null) {
+                                if (dConf != null) {
                                     callback.success(dConf.deepClone());
                                 } else {
-                                    callback.failure(new Exception("Cannot parse settings for "+singleGetResponse.getId()));
+                                    callback.failure(new Exception("Cannot parse settings for " + singleGetResponse.getId()));
                                 }
                             } catch (Exception e) {
-                                log.error(e.toString(),e);
+                                log.error(e.toString(), e);
                                 callback.failure(e);
                             }
                         } else {
@@ -186,7 +186,7 @@ public class ConfigurationLoaderSecurity7 {
                         }
                     } else {
                         //failure
-                        callback.singleFailure(singleResponse==null?null:singleResponse.getFailure());
+                        callback.singleFailure(singleResponse == null ? null : singleResponse.getFailure());
                     }
                 }
             }
@@ -206,7 +206,6 @@ public class ConfigurationLoaderSecurity7 {
         final long primaryTerm = singleGetResponse.getPrimaryTerm();
 
 
-
         if (ref == null || ref.length() == 0) {
             log.error("Empty or null byte reference for {}", id);
             return null;
@@ -219,7 +218,7 @@ public class ConfigurationLoaderSecurity7 {
             parser.nextToken();
             parser.nextToken();
 
-            if(!id.equals((parser.currentName()))) {
+            if (!id.equals((parser.currentName()))) {
                 log.error("Cannot parse config for type {} because {}!={}", id, id, parser.currentName());
                 return null;
             }
@@ -231,22 +230,21 @@ public class ConfigurationLoaderSecurity7 {
             int configVersion = 1;
 
 
-
-            if(jsonNode.get("_meta") != null) {
+            if (jsonNode.get("_meta") != null) {
                 assert jsonNode.get("_meta").get("type").asText().equals(id);
                 configVersion = jsonNode.get("_meta").get("config_version").asInt();
             }
 
-            if(log.isDebugEnabled()) {
-                log.debug("Load "+id+" with version "+configVersion);
+            if (log.isDebugEnabled()) {
+                log.debug("Load " + id + " with version " + configVersion);
             }
 
             if (CType.ACTIONGROUPS.toLCString().equals(id)) {
                 try {
                     return SecurityDynamicConfiguration.fromJson(jsonAsString, CType.fromString(id), configVersion, seqNo, primaryTerm);
                 } catch (Exception e) {
-                    if(log.isDebugEnabled()) {
-                        log.debug("Unable to load "+id+" with version "+configVersion+" - Try loading legacy format ...");
+                    if (log.isDebugEnabled()) {
+                        log.debug("Unable to load " + id + " with version " + configVersion + " - Try loading legacy format ...");
                     }
                     return SecurityDynamicConfiguration.fromJson(jsonAsString, CType.fromString(id), 0, seqNo, primaryTerm);
                 }
@@ -254,7 +252,7 @@ public class ConfigurationLoaderSecurity7 {
             return SecurityDynamicConfiguration.fromJson(jsonAsString, CType.fromString(id), configVersion, seqNo, primaryTerm);
 
         } finally {
-            if(parser != null) {
+            if (parser != null) {
                 try {
                     parser.close();
                 } catch (IOException e) {

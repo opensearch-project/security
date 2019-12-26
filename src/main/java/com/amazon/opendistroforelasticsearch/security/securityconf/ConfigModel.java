@@ -32,6 +32,7 @@ package com.amazon.opendistroforelasticsearch.security.securityconf;
 
 import java.util.Map;
 import java.util.Set;
+
 import com.amazon.opendistroforelasticsearch.security.securityconf.SecurityRoles;
 import org.elasticsearch.common.transport.TransportAddress;
 
@@ -41,7 +42,9 @@ import com.amazon.opendistroforelasticsearch.security.user.User;
 public abstract class ConfigModel {
 
     public abstract Map<String, Boolean> mapTenants(User user, Set<String> roles);
+
     public abstract Set<String> mapSecurityRoles(User user, TransportAddress caller);
+
     public abstract SecurityRoles getSecurityRoles();
 
     public abstract Set<String> getAllConfiguredTenantNames();

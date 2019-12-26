@@ -55,23 +55,23 @@ public class Hasher {
         final CommandLineParser parser = new DefaultParser();
         try {
             final CommandLine line = parser.parse(options, args);
-            
-            if(line.hasOption("p")) {
+
+            if (line.hasOption("p")) {
                 System.out.println(hash(line.getOptionValue("p").toCharArray()));
-            } else if(line.hasOption("env")) {
+            } else if (line.hasOption("env")) {
                 final String pwd = System.getenv(line.getOptionValue("env"));
-                if(pwd == null || pwd.isEmpty()) {
-                    throw new Exception("No environment variable '"+line.getOptionValue("env")+"' set");
+                if (pwd == null || pwd.isEmpty()) {
+                    throw new Exception("No environment variable '" + line.getOptionValue("env") + "' set");
                 }
                 System.out.println(hash(pwd.toCharArray()));
             } else {
                 final Console console = System.console();
-                if(console == null) {
+                if (console == null) {
                     throw new Exception("Cannot allocate a console");
                 }
                 final char[] passwd = console.readPassword("[%s]", "Password:");
                 System.out.println(hash(passwd));
-            }  
+            }
         } catch (final Exception exp) {
             System.err.println("Parsing failed.  Reason: " + exp.getMessage());
             formatter.printHelp("hasher.sh", options, true);
@@ -83,7 +83,7 @@ public class Hasher {
         final byte[] salt = new byte[16];
         new SecureRandom().nextBytes(salt);
         final String hash = OpenBSDBCrypt.generate((Objects.requireNonNull(clearTextPassword)), salt, 12);
-        Arrays.fill(salt, (byte)0);
+        Arrays.fill(salt, (byte) 0);
         Arrays.fill(clearTextPassword, '\0');
         return hash;
     }

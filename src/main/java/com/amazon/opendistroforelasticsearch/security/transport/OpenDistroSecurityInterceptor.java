@@ -87,12 +87,12 @@ public class OpenDistroSecurityInterceptor {
     private final ClusterInfoHolder clusterInfoHolder;
 
     public OpenDistroSecurityInterceptor(final Settings settings,
-            final ThreadPool threadPool, final BackendRegistry backendRegistry,
-            final AuditLog auditLog, final PrincipalExtractor principalExtractor,
-            final InterClusterRequestEvaluator requestEvalProvider,
-            final ClusterService cs,
-            final SslExceptionHandler sslExceptionHandler,
-            final ClusterInfoHolder clusterInfoHolder) {
+                                         final ThreadPool threadPool, final BackendRegistry backendRegistry,
+                                         final AuditLog auditLog, final PrincipalExtractor principalExtractor,
+                                         final InterClusterRequestEvaluator requestEvalProvider,
+                                         final ClusterService cs,
+                                         final SslExceptionHandler sslExceptionHandler,
+                                         final ClusterInfoHolder clusterInfoHolder) {
         this.backendRegistry = backendRegistry;
         this.auditLog = auditLog;
         this.threadPool = threadPool;
@@ -105,14 +105,14 @@ public class OpenDistroSecurityInterceptor {
     }
 
     public <T extends TransportRequest> OpenDistroSecurityRequestHandler<T> getHandler(String action,
-            TransportRequestHandler<T> actualHandler) {
+                                                                                       TransportRequestHandler<T> actualHandler) {
         return new OpenDistroSecurityRequestHandler<T>(action, actualHandler, threadPool, backendRegistry, auditLog,
                 principalExtractor, requestEvalProvider, cs, sslExceptionHandler);
     }
 
 
     public <T extends TransportResponse> void sendRequestDecorate(AsyncSender sender, Connection connection, String action,
-            TransportRequest request, TransportRequestOptions options, TransportResponseHandler<T> handler) {
+                                                                  TransportRequest request, TransportRequestOptions options, TransportResponseHandler<T> handler) {
 
         final Map<String, String> origHeaders0 = getThreadContext().getHeaders();
         final User user0 = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
@@ -126,7 +126,7 @@ public class OpenDistroSecurityInterceptor {
             final TransportResponseHandler<T> restoringHandler = new RestoringTransportResponseHandler<T>(handler, stashedContext);
             getThreadContext().putHeader("_opendistro_security_remotecn", cs.getClusterName().value());
 
-            final Map<String, String> headerMap = new HashMap<>(Maps.filterKeys(origHeaders0, k->k!=null && (
+            final Map<String, String> headerMap = new HashMap<>(Maps.filterKeys(origHeaders0, k -> k != null && (
                     k.equals(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER)
@@ -134,7 +134,7 @@ public class OpenDistroSecurityInterceptor {
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER)
-                            || (k.equals("_opendistro_security_source_field_context") && ! (request instanceof SearchRequest) && !(request instanceof GetRequest))
+                            || (k.equals("_opendistro_security_source_field_context") && !(request instanceof SearchRequest) && !(request instanceof GetRequest))
                             || k.startsWith("_opendistro_security_trace")
                             || k.startsWith(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER)
                             || k.equals(Task.X_OPAQUE_ID)
@@ -179,8 +179,8 @@ public class OpenDistroSecurityInterceptor {
 
             ensureCorrectHeaders(remoteAddress0, user0, origin0);
 
-            if(actionTrace.isTraceEnabled()) {
-                getThreadContext().putHeader("_opendistro_security_trace"+System.currentTimeMillis()+"#"+UUID.randomUUID().toString(), Thread.currentThread().getName()+" IC -> "+action+" "+getThreadContext().getHeaders().entrySet().stream().filter(p->!p.getKey().startsWith("_opendistro_security_trace")).collect(Collectors.toMap(p -> p.getKey(), p -> p.getValue())));
+            if (actionTrace.isTraceEnabled()) {
+                getThreadContext().putHeader("_opendistro_security_trace" + System.currentTimeMillis() + "#" + UUID.randomUUID().toString(), Thread.currentThread().getName() + " IC -> " + action + " " + getThreadContext().getHeaders().entrySet().stream().filter(p -> !p.getKey().startsWith("_opendistro_security_trace")).collect(Collectors.toMap(p -> p.getKey(), p -> p.getValue())));
             }
 
             sender.sendRequest(connection, action, request, options, restoringHandler);
@@ -190,11 +190,11 @@ public class OpenDistroSecurityInterceptor {
     private void ensureCorrectHeaders(final Object remoteAdr, final User origUser, final String origin) {
         // keep original address
 
-        if(origin != null && !origin.isEmpty() /*&& !Origin.LOCAL.toString().equalsIgnoreCase(origin)*/ && getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER) == null) {
+        if (origin != null && !origin.isEmpty() /*&& !Origin.LOCAL.toString().equalsIgnoreCase(origin)*/ && getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER) == null) {
             getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER, origin);
         }
 
-        if(origin == null && getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER) == null) {
+        if (origin == null && getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER) == null) {
             getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER, Origin.LOCAL.toString());
         }
 
@@ -202,15 +202,15 @@ public class OpenDistroSecurityInterceptor {
 
             String remoteAddressHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER);
 
-            if(remoteAddressHeader == null) {
+            if (remoteAddressHeader == null) {
                 getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER, Base64Helper.serializeObject(((TransportAddress) remoteAdr).address()));
             }
         }
 
-        if(origUser != null) {
+        if (origUser != null) {
             String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
 
-            if(userHeader == null) {
+            if (userHeader == null) {
                 getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER, Base64Helper.serializeObject(origUser));
             }
         }

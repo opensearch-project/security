@@ -52,7 +52,7 @@ public class SourceFieldsContext implements Serializable {
         return (request.source() != null && request.source().fetchSource() != null && (request.source().fetchSource().includes() != null || request
                 .source().fetchSource().excludes() != null))
                 || (request.source() != null && request.source().storedFields() != null
-                        && request.source().storedFields().fieldNames() != null && !request.source().storedFields().fieldNames().isEmpty());
+                && request.source().storedFields().fieldNames() != null && !request.source().storedFields().fieldNames().isEmpty());
     }
 
     public static boolean isNeeded(GetRequest request) {
@@ -101,7 +101,7 @@ public class SourceFieldsContext implements Serializable {
     public boolean hasIncludesOrExcludes() {
         return (includes != null && includes.length > 0) || (excludes != null && excludes.length > 0);
     }
-    
+
     public boolean isFetchSource() {
         return fetchSource;
     }

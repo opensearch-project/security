@@ -51,32 +51,42 @@ public interface AuditLog extends Closeable {
 
     //login
     void logFailedLogin(String effectiveUser, boolean securityadmin, String initiatingUser, TransportRequest request, Task task);
+
     void logFailedLogin(String effectiveUser, boolean securityadmin, String initiatingUser, RestRequest request);
+
     void logSucceededLogin(String effectiveUser, boolean securityadmin, String initiatingUser, TransportRequest request, String action, Task task);
+
     void logSucceededLogin(String effectiveUser, boolean securityadmin, String initiatingUser, RestRequest request);
 
     //privs
     void logMissingPrivileges(String privilege, String effectiveUser, RestRequest request);
+
     void logMissingPrivileges(String privilege, TransportRequest request, Task task);
+
     void logGrantedPrivileges(String privilege, TransportRequest request, Task task);
 
     //spoof
     void logBadHeaders(TransportRequest request, String action, Task task);
+
     void logBadHeaders(RestRequest request);
 
     void logSecurityIndexAttempt(TransportRequest request, String action, Task task);
 
     void logSSLException(TransportRequest request, Throwable t, String action, Task task);
+
     void logSSLException(RestRequest request, Throwable t);
 
     void logDocumentRead(String index, String id, ShardId shardId, Map<String, String> fieldNameValues, ComplianceConfig complianceConfig);
+
     void logDocumentWritten(ShardId shardId, GetResult originalIndex, Index currentIndex, IndexResult result, ComplianceConfig complianceConfig);
+
     void logDocumentDeleted(ShardId shardId, Delete delete, DeleteResult result);
+
     void logExternalConfig(Settings settings, Environment environment);
-    
+
     // compliance config
     void setComplianceConfig(ComplianceConfig complianceConfig);
-    
+
     public enum Origin {
         REST, TRANSPORT, LOCAL
     }

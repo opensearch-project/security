@@ -12,11 +12,9 @@ public class RoleMappingsV6 implements Hideable {
     private boolean readonly;
     private boolean hidden;
     private List<String> backendroles = Collections.emptyList();
-    private List<String> hosts= Collections.emptyList();
-    private List<String> users= Collections.emptyList();
-    private List<String> andBackendroles= Collections.emptyList();
-
-
+    private List<String> hosts = Collections.emptyList();
+    private List<String> users = Collections.emptyList();
+    private List<String> andBackendroles = Collections.emptyList();
 
 
     public RoleMappingsV6() {
@@ -26,38 +24,48 @@ public class RoleMappingsV6 implements Hideable {
     public boolean isReadonly() {
         return readonly;
     }
+
     public void setReadonly(boolean readonly) {
         this.readonly = readonly;
     }
+
     public boolean isHidden() {
         return hidden;
     }
+
     public void setHidden(boolean hidden) {
         this.hidden = hidden;
     }
+
     public List<String> getBackendroles() {
         return backendroles;
     }
+
     public void setBackendroles(List<String> backendroles) {
         this.backendroles = backendroles;
     }
+
     public List<String> getHosts() {
         return hosts;
     }
+
     public void setHosts(List<String> hosts) {
         this.hosts = hosts;
     }
+
     public List<String> getUsers() {
         return users;
     }
+
     public void setUsers(List<String> users) {
         this.users = users;
     }
 
-    @JsonProperty(value="and_backendroles")
+    @JsonProperty(value = "and_backendroles")
     public List<String> getAndBackendroles() {
         return andBackendroles;
     }
+
     public void setAndBackendroles(List<String> andBackendroles) {
         this.andBackendroles = andBackendroles;
     }
@@ -67,7 +75,7 @@ public class RoleMappingsV6 implements Hideable {
         return "RoleMappings [readonly=" + readonly + ", hidden=" + hidden + ", backendroles=" + backendroles + ", hosts=" + hosts + ", users="
                 + users + ", andBackendroles=" + andBackendroles + "]";
     }
-    
+
     @JsonIgnore
     public boolean isReserved() {
         return readonly;

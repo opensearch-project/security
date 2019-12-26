@@ -40,19 +40,19 @@ import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
 public class WhoAmIResponse extends ActionResponse implements ToXContent {
-    
+
     private String dn;
     private boolean isAdmin;
     private boolean isAuthenticated;
     private boolean isNodeCertificateRequest;
-    
+
     public WhoAmIResponse(String dn, boolean isAdmin, boolean isAuthenticated, boolean isNodeCertificateRequest) {
         this.dn = dn;
         this.isAdmin = isAdmin;
         this.isAuthenticated = isAuthenticated;
         this.isNodeCertificateRequest = isNodeCertificateRequest;
     }
-    
+
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
@@ -89,8 +89,8 @@ public class WhoAmIResponse extends ActionResponse implements ToXContent {
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        
-        builder.startObject("whoami"); 
+
+        builder.startObject("whoami");
         builder.field("dn", dn);
         builder.field("is_admin", isAdmin);
         builder.field("is_authenticated", isAuthenticated);

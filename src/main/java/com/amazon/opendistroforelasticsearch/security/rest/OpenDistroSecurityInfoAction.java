@@ -83,54 +83,54 @@ public class OpenDistroSecurityInfoAction extends BaseRestHandler {
             public void accept(RestChannel channel) throws Exception {
                 XContentBuilder builder = channel.newBuilder(); //NOSONAR
                 BytesRestResponse response = null;
-                
+
                 try {
 
-                    
+
                     final boolean verbose = request.paramAsBoolean("verbose", false);
-                    
+
                     final X509Certificate[] certs = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PEER_CERTIFICATES);
-                    final User user = (User)threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+                    final User user = (User) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
                     final TransportAddress remoteAddress = (TransportAddress) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
 
                     final Set<String> securityRoles = evaluator.mapRoles(user, remoteAddress);
 
                     builder.startObject();
-                    builder.field("user", user==null?null:user.toString());
-                    builder.field("user_name", user==null?null:user.getName());
-                    builder.field("user_requested_tenant", user==null?null:user.getRequestedTenant());
+                    builder.field("user", user == null ? null : user.toString());
+                    builder.field("user_name", user == null ? null : user.getName());
+                    builder.field("user_requested_tenant", user == null ? null : user.getRequestedTenant());
                     builder.field("remote_address", remoteAddress);
-                    builder.field("backend_roles", user==null?null:user.getRoles());
-                    builder.field("custom_attribute_names", user==null?null:user.getCustomAttributesMap().keySet());
+                    builder.field("backend_roles", user == null ? null : user.getRoles());
+                    builder.field("custom_attribute_names", user == null ? null : user.getCustomAttributesMap().keySet());
                     builder.field("roles", securityRoles);
                     builder.field("tenants", evaluator.mapTenants(user, securityRoles));
-                    builder.field("principal", (String)threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL));
+                    builder.field("principal", (String) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL));
                     builder.field("peer_certificates", certs != null && certs.length > 0 ? certs.length + "" : "0");
-                    builder.field("sso_logout_url", (String)threadContext.getTransient(ConfigConstants.SSO_LOGOUT_URL));
-                    
-                    if(user != null && verbose) {
+                    builder.field("sso_logout_url", (String) threadContext.getTransient(ConfigConstants.SSO_LOGOUT_URL));
+
+                    if (user != null && verbose) {
                         try {
                             builder.field("size_of_user", RamUsageEstimator.humanReadableUnits(Base64Helper.serializeObject(user).length()));
                             builder.field("size_of_custom_attributes", RamUsageEstimator.humanReadableUnits(Base64Helper.serializeObject((Serializable) user.getCustomAttributesMap()).getBytes(StandardCharsets.UTF_8).length));
-                            builder.field("size_of_backendroles", RamUsageEstimator.humanReadableUnits(Base64Helper.serializeObject((Serializable)user.getRoles()).getBytes(StandardCharsets.UTF_8).length));
+                            builder.field("size_of_backendroles", RamUsageEstimator.humanReadableUnits(Base64Helper.serializeObject((Serializable) user.getRoles()).getBytes(StandardCharsets.UTF_8).length));
                         } catch (Throwable e) {
                             //ignore
                         }
                     }
-                    
-                    
+
+
                     builder.endObject();
 
                     response = new BytesRestResponse(RestStatus.OK, builder);
                 } catch (final Exception e1) {
-                    log.error(e1.toString(),e1);
+                    log.error(e1.toString(), e1);
                     builder = channel.newBuilder(); //NOSONAR
                     builder.startObject();
                     builder.field("error", e1.toString());
                     builder.endObject();
                     response = new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, builder);
                 } finally {
-                    if(builder != null) {
+                    if (builder != null) {
                         builder.close();
                     }
                 }
@@ -139,7 +139,7 @@ public class OpenDistroSecurityInfoAction extends BaseRestHandler {
             }
         };
     }
-    
+
     @Override
     public String getName() {
         return "Open Distro Security Info Action";

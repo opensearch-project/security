@@ -50,15 +50,15 @@ import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 
 public class OpenDistroSecurityIndexAccessEvaluator {
-    
+
     protected final Logger log = LogManager.getLogger(this.getClass());
-    
+
     private final String opendistrosecurityIndex;
     private final AuditLog auditLog;
     private final String[] securityDeniedActionPatterns;
     private final IndexResolverReplacer irr;
     private final boolean filterSecurityIndex;
-    
+
     public OpenDistroSecurityIndexAccessEvaluator(final Settings settings, AuditLog auditLog, IndexResolverReplacer irr) {
         this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
         this.auditLog = auditLog;
@@ -81,27 +81,27 @@ public class OpenDistroSecurityIndexAccessEvaluator {
         securityIndexDeniedActionPatternsListNoSnapshot.add("indices:admin/close*");
         securityIndexDeniedActionPatternsListNoSnapshot.add("cluster:admin/snapshot/restore*");
 
-        securityDeniedActionPatterns = (restoreSecurityIndexEnabled?securityIndexDeniedActionPatternsList:securityIndexDeniedActionPatternsListNoSnapshot).toArray(new String[0]);
+        securityDeniedActionPatterns = (restoreSecurityIndexEnabled ? securityIndexDeniedActionPatternsList : securityIndexDeniedActionPatternsListNoSnapshot).toArray(new String[0]);
     }
-    
-    public PrivilegesEvaluatorResponse evaluate(final ActionRequest request, final Task task, final String action, final Resolved requestedResolved,
-            final PrivilegesEvaluatorResponse presponse)  {
 
-        
+    public PrivilegesEvaluatorResponse evaluate(final ActionRequest request, final Task task, final String action, final Resolved requestedResolved,
+                                                final PrivilegesEvaluatorResponse presponse) {
+
+
         if (requestedResolved.getAllIndices().contains(opendistrosecurityIndex)
                 && WildcardMatcher.matchAny(securityDeniedActionPatterns, action)) {
-            if(filterSecurityIndex) {
+            if (filterSecurityIndex) {
                 Set<String> allWithoutSecurity = new HashSet<>(requestedResolved.getAllIndices());
                 allWithoutSecurity.remove(opendistrosecurityIndex);
-                if(allWithoutSecurity.isEmpty()) {
-                    if(log.isDebugEnabled()) {
+                if (allWithoutSecurity.isEmpty()) {
+                    if (log.isDebugEnabled()) {
                         log.debug("Filtered '{}' but resulting list is empty", opendistrosecurityIndex);
                     }
                     presponse.allowed = false;
                     return presponse.markComplete();
                 }
                 irr.replace(request, false, allWithoutSecurity.toArray(new String[0]));
-                if(log.isDebugEnabled()) {
+                if (log.isDebugEnabled()) {
                     log.debug("Filtered '{}', resulting list is {}", opendistrosecurityIndex, allWithoutSecurity);
                 }
                 return presponse;
@@ -115,9 +115,9 @@ public class OpenDistroSecurityIndexAccessEvaluator {
 
         if (requestedResolved.isLocalAll()
                 && WildcardMatcher.matchAny(securityDeniedActionPatterns, action)) {
-            if(filterSecurityIndex) {
-                irr.replace(request, false, "*","-"+opendistrosecurityIndex);
-                if(log.isDebugEnabled()) {
+            if (filterSecurityIndex) {
+                irr.replace(request, false, "*", "-" + opendistrosecurityIndex);
+                if (log.isDebugEnabled()) {
                     log.debug("Filtered '{}'from {}, resulting list with *,-{} is {}", opendistrosecurityIndex, requestedResolved, opendistrosecurityIndex, irr.resolveRequest(request));
                 }
                 return presponse;
@@ -129,18 +129,18 @@ public class OpenDistroSecurityIndexAccessEvaluator {
             }
         }
 
-        if(requestedResolved.getAllIndices().contains(opendistrosecurityIndex) || requestedResolved.isLocalAll()) {
+        if (requestedResolved.getAllIndices().contains(opendistrosecurityIndex) || requestedResolved.isLocalAll()) {
 
-            if(request instanceof SearchRequest) {
-                ((SearchRequest)request).requestCache(Boolean.FALSE);
-                if(log.isDebugEnabled()) {
+            if (request instanceof SearchRequest) {
+                ((SearchRequest) request).requestCache(Boolean.FALSE);
+                if (log.isDebugEnabled()) {
                     log.debug("Disable search request cache for this request");
                 }
             }
 
-            if(request instanceof RealtimeRequest) {
+            if (request instanceof RealtimeRequest) {
                 ((RealtimeRequest) request).realtime(Boolean.FALSE);
-                if(log.isDebugEnabled()) {
+                if (log.isDebugEnabled()) {
                     log.debug("Disable realtime for this request");
                 }
             }

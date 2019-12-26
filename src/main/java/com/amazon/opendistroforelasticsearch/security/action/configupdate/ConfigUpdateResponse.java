@@ -43,7 +43,7 @@ public class ConfigUpdateResponse extends BaseNodesResponse<ConfigUpdateNodeResp
 
     public ConfigUpdateResponse() {
     }
-    
+
     public ConfigUpdateResponse(final ClusterName clusterName, List<ConfigUpdateNodeResponse> nodes, List<FailedNodeException> failures) {
         super(clusterName, nodes, failures);
     }

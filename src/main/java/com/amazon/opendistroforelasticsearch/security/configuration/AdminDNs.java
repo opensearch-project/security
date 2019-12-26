@@ -53,19 +53,19 @@ public class AdminDNs {
     protected final Logger log = LogManager.getLogger(AdminDNs.class);
     private final Set<LdapName> adminDn = new HashSet<LdapName>();
     private final Set<String> adminUsernames = new HashSet<String>();
-    private final ListMultimap<LdapName, String> allowedImpersonations = ArrayListMultimap.<LdapName, String> create();
-    private final ListMultimap<String, String> allowedRestImpersonations = ArrayListMultimap.<String, String> create();
+    private final ListMultimap<LdapName, String> allowedImpersonations = ArrayListMultimap.<LdapName, String>create();
+    private final ListMultimap<String, String> allowedRestImpersonations = ArrayListMultimap.<String, String>create();
     private boolean injectUserEnabled;
     private boolean injectAdminUserEnabled;
-    
+
     public AdminDNs(final Settings settings) {
 
         this.injectUserEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, false);
         this.injectAdminUserEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_ADMIN_USER_ENABLED, false);
 
         final List<String> adminDnsA = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_ADMIN_DN, Collections.emptyList());
-        
-        for (String dn:adminDnsA) {
+
+        for (String dn : adminDnsA) {
             try {
                 log.debug("{} is registered as an admin dn", dn);
                 adminDn.add(new LdapName(dn));
@@ -75,34 +75,34 @@ public class AdminDNs {
                     if (log.isDebugEnabled()) {
                         log.debug("Admin DN not an LDAP name, but admin user injection enabled. Will add {} to admin usernames", dn);
                     }
-                    adminUsernames.add(dn);    
+                    adminUsernames.add(dn);
                 } else {
-                    log.error("Unable to parse admin dn {}",dn, e);    
+                    log.error("Unable to parse admin dn {}", dn, e);
                 }
             }
         }
-       
-        log.debug("Loaded {} admin DN's {}",adminDn.size(),  adminDn);
-        
-        final Settings impersonationDns = settings.getByPrefix(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_IMPERSONATION_DN+".");
-        
-        for (String dnString:impersonationDns.keySet()) {
+
+        log.debug("Loaded {} admin DN's {}", adminDn.size(), adminDn);
+
+        final Settings impersonationDns = settings.getByPrefix(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_IMPERSONATION_DN + ".");
+
+        for (String dnString : impersonationDns.keySet()) {
             try {
-                allowedImpersonations.putAll(new LdapName(dnString), settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_IMPERSONATION_DN+"."+dnString));
+                allowedImpersonations.putAll(new LdapName(dnString), settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_IMPERSONATION_DN + "." + dnString));
             } catch (final InvalidNameException e) {
-                log.error("Unable to parse allowedImpersonations dn {}",dnString, e);
+                log.error("Unable to parse allowedImpersonations dn {}", dnString, e);
             }
         }
-        
-        log.debug("Loaded {} impersonation DN's {}",allowedImpersonations.size(), allowedImpersonations);
-        
-        final Settings impersonationUsersRest = settings.getByPrefix(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".");
 
-        for (String user:impersonationUsersRest.keySet()) {
-            allowedRestImpersonations.putAll(user, settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+"."+user));
+        log.debug("Loaded {} impersonation DN's {}", allowedImpersonations.size(), allowedImpersonations);
+
+        final Settings impersonationUsersRest = settings.getByPrefix(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS + ".");
+
+        for (String user : impersonationUsersRest.keySet()) {
+            allowedRestImpersonations.putAll(user, settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS + "." + user));
         }
-        
-        log.debug("Loaded {} impersonation users for REST {}",allowedRestImpersonations.size(), allowedRestImpersonations);
+
+        log.debug("Loaded {} impersonation users for REST {}", allowedRestImpersonations.size(), allowedRestImpersonations);
     }
 
     public boolean isAdmin(User user) {
@@ -116,43 +116,43 @@ public class AdminDNs {
         }
         return false;
     }
-    
+
     public boolean isAdminDN(String dn) {
-        
-        if(dn == null) return false;
-                
+
+        if (dn == null) return false;
+
         try {
             return isAdminDN(new LdapName(dn));
         } catch (InvalidNameException e) {
-           return false;
+            return false;
         }
     }
 
     private boolean isAdminDN(LdapName dn) {
-        if(dn == null) return false;
-        
+        if (dn == null) return false;
+
         boolean isAdmin = adminDn.contains(dn);
-        
+
         if (log.isTraceEnabled()) {
             log.trace("Is principal {} an admin cert? {}", dn.toString(), isAdmin);
         }
-        
+
         return isAdmin;
     }
-    
+
     public boolean isTransportImpersonationAllowed(LdapName dn, String impersonated) {
-        if(dn == null) return false;
-        
-        if(isAdminDN(dn)) {
+        if (dn == null) return false;
+
+        if (isAdminDN(dn)) {
             return true;
         }
 
         return WildcardMatcher.matchAny(this.allowedImpersonations.get(dn), impersonated);
     }
-    
+
     public boolean isRestImpersonationAllowed(final String originalUser, final String impersonated) {
-        if(originalUser == null) {
-            return false;    
+        if (originalUser == null) {
+            return false;
         }
         return WildcardMatcher.matchAny(this.allowedRestImpersonations.get(originalUser), impersonated);
     }

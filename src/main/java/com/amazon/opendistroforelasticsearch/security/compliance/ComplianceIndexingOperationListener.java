@@ -35,8 +35,6 @@ import org.elasticsearch.index.shard.IndexingOperationListener;
 
 /**
  * noop impl
- *
- *
  */
 public class ComplianceIndexingOperationListener implements IndexingOperationListener {
 

@@ -60,24 +60,24 @@ public final class DefaultInterClusterRequestEvaluator implements InterClusterRe
 
     @Override
     public boolean isInterClusterRequest(TransportRequest request, X509Certificate[] localCerts, X509Certificate[] peerCerts,
-            final String principal) {
-        
+                                         final String principal) {
+
         String[] principals = new String[2];
-        
+
         if (principal != null && principal.length() > 0) {
             principals[0] = principal;
-            principals[1] = principal.replace(" ","");
+            principals[1] = principal.replace(" ", "");
         }
-        
+
         if (principals[0] != null && WildcardMatcher.matchAny(nodesDn, principals, true)) {
-            
+
             if (log.isTraceEnabled()) {
                 log.trace("Treat certificate with principal {} as other node because of it matches one of {}", Arrays.toString(principals),
                         nodesDn);
             }
-            
+
             return true;
-            
+
         } else {
             if (log.isTraceEnabled()) {
                 log.trace("Treat certificate with principal {} NOT as other node because we it does not matches one of {}", Arrays.toString(principals),
@@ -96,11 +96,10 @@ public final class DefaultInterClusterRequestEvaluator implements InterClusterRe
                         continue;
                     }
 
-                    for (@SuppressWarnings("rawtypes")
-                    final Iterator iterator = ian.iterator(); iterator.hasNext();) {
+                    for (@SuppressWarnings("rawtypes") final Iterator iterator = ian.iterator(); iterator.hasNext(); ) {
                         final int id = (int) iterator.next();
                         if (id == 8) { // id 8 = OID, id 1 = name (as string or
-                                       // ASN.1 encoded byte[])
+                            // ASN.1 encoded byte[])
                             Object value = iterator.next();
 
                             if (value == null) {

@@ -49,28 +49,28 @@ public class CompatConfig implements DCFListener {
 
     public CompatConfig(final Environment environment) {
         super();
-        this.staticSettings = environment.settings(); 
+        this.staticSettings = environment.settings();
     }
-    
+
     @Override
     public void onChanged(ConfigModel cm, DynamicConfigModel dcm, InternalUsersModel ium) {
         this.dcm = dcm;
         log.debug("dynamicSecurityConfig updated?: {}", (dcm != null));
     }
-    
+
     //true is default
     public boolean restAuthEnabled() {
         final boolean restInitiallyDisabled = staticSettings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_DISABLE_REST_AUTH_INITIALLY, false);
-        
-        if(restInitiallyDisabled) {
-            if(dcm == null) {
-                if(log.isTraceEnabled()) {
+
+        if (restInitiallyDisabled) {
+            if (dcm == null) {
+                if (log.isTraceEnabled()) {
                     log.trace("dynamicSecurityConfig is null, initially static restDisabled");
                 }
                 return false;
             } else {
                 final boolean restDynamicallyDisabled = dcm.isRestAuthDisabled();
-                if(log.isTraceEnabled()) {
+                if (log.isTraceEnabled()) {
                     log.trace("opendistro_security.dynamic.disable_rest_auth {}", restDynamicallyDisabled);
                 }
                 return !restDynamicallyDisabled;
@@ -80,20 +80,20 @@ public class CompatConfig implements DCFListener {
         }
 
     }
-    
+
     //true is default
     public boolean transportInterClusterAuthEnabled() {
         final boolean interClusterAuthInitiallyDisabled = staticSettings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_DISABLE_INTERTRANSPORT_AUTH_INITIALLY, false);
-        
-        if(interClusterAuthInitiallyDisabled) {
-            if(dcm == null) {
-                if(log.isTraceEnabled()) {
+
+        if (interClusterAuthInitiallyDisabled) {
+            if (dcm == null) {
+                if (log.isTraceEnabled()) {
                     log.trace("dynamicSecurityConfig is null, initially static interClusterAuthDisabled");
                 }
                 return false;
             } else {
                 final boolean interClusterAuthDynamicallyDisabled = dcm.isInterTransportAuthDisabled();
-                if(log.isTraceEnabled()) {
+                if (log.isTraceEnabled()) {
                     log.trace("opendistro_security.dynamic.disable_intertransport_auth {}", interClusterAuthDynamicallyDisabled);
                 }
                 return !interClusterAuthDynamicallyDisabled;

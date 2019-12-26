@@ -51,20 +51,20 @@ public class HTTPBasicAuthenticator implements HTTPAuthenticator {
     protected final Logger log = LogManager.getLogger(this.getClass());
 
     public HTTPBasicAuthenticator(final Settings settings, final Path configPath) {
-    
+
     }
 
     @Override
     public AuthCredentials extractCredentials(final RestRequest request, ThreadContext threadContext) {
 
         final boolean forceLogin = request.paramAsBoolean("force_login", false);
-        
-        if(forceLogin) {
+
+        if (forceLogin) {
             return null;
         }
-        
+
         final String authorizationHeader = request.header("Authorization");
-        
+
         return HTTPHelper.extractCredentials(authorizationHeader, log);
     }
 

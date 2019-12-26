@@ -35,7 +35,7 @@ import org.elasticsearch.client.ClusterAdminClient;
 import org.elasticsearch.client.ElasticsearchClient;
 
 public class ConfigUpdateRequestBuilder extends
-NodesOperationRequestBuilder<ConfigUpdateRequest, ConfigUpdateResponse, ConfigUpdateRequestBuilder> {
+        NodesOperationRequestBuilder<ConfigUpdateRequest, ConfigUpdateResponse, ConfigUpdateRequestBuilder> {
     public ConfigUpdateRequestBuilder(final ClusterAdminClient client) {
         this(client, ConfigUpdateAction.INSTANCE);
     }

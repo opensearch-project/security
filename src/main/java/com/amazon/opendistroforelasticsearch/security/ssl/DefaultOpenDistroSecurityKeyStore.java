@@ -1,10 +1,10 @@
 /*
  * Copyright 2015-2017 floragunn GmbH
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  */
 
 package com.amazon.opendistroforelasticsearch.security.ssl;
@@ -88,17 +88,17 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
     public final SslProvider sslTransportClientProvider;
     private final boolean httpSSLEnabled;
     private final boolean transportSSLEnabled;
-    
+
     private List<String> enabledHttpCiphersJDKProvider;
     private List<String> enabledHttpCiphersOpenSSLProvider;
     private List<String> enabledTransportCiphersJDKProvider;
     private List<String> enabledTransportCiphersOpenSSLProvider;
-    
+
     private List<String> enabledHttpProtocolsJDKProvider;
     private List<String> enabledHttpProtocolsOpenSSLProvider;
     private List<String> enabledTransportProtocolsJDKProvider;
     private List<String> enabledTransportProtocolsOpenSSLProvider;
-    
+
     private SslContext httpSslContext;
     private SslContext transportServerSslContext;
     private SslContext transportClientSslContext;
@@ -165,8 +165,8 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
                 Arrays.toString(getEnabledSSLProtocols(sslTransportServerProvider, false)));
         log.info("Enabled TLS protocols for HTTP layer      : {}",
                 Arrays.toString(getEnabledSSLProtocols(sslHTTPProvider, true)));
-        
-        
+
+
         log.debug("sslTransportClientProvider:{} with protocols {}", sslTransportClientProvider,
                 getEnabledSSLProtocols(sslTransportClientProvider, false));
         log.debug("sslTransportServerProvider:{} with protocols {}", sslTransportServerProvider,
@@ -185,7 +185,7 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
         if (transportSSLEnabled && getEnabledSSLCiphers(sslTransportServerProvider, false).isEmpty()) {
             throw new ElasticsearchSecurityException("no ssl protocols for transport protocol");
         }
-        
+
         if (transportSSLEnabled && getEnabledSSLCiphers(sslTransportClientProvider, false).isEmpty()) {
             throw new ElasticsearchSecurityException("no ssl protocols for transport protocol");
         }
@@ -242,11 +242,11 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
                 final String keystorePassword = settings.get(
                         SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD,
                         SSLConfigConstants.DEFAULT_STORE_PASSWORD);
-                
+
                 final String keyPassword = settings.get(
                         SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_KEYPASSWORD,
                         keystorePassword);
-                
+
                 final String keystoreAlias = settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS,
                         null);
 
@@ -290,7 +290,7 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
                         /*
                          * for (int i = 0; i < transportKeystoreCert.length; i++) { X509Certificate
                          * x509Certificate = transportKeystoreCert[i];
-                         * 
+                         *
                          * if(x509Certificate != null) {
                          * log.info("Transport keystore subject DN no. {} {}",i,x509Certificate.
                          * getSubjectX500Principal()); } }
@@ -377,12 +377,12 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
                         DEFAULT_STORE_TYPE);
                 final String keystorePassword = settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_KEYSTORE_PASSWORD,
                         SSLConfigConstants.DEFAULT_STORE_PASSWORD);
-                
+
                 final String keyPassword = settings.get(
                         SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD,
                         keystorePassword);
-                
-                
+
+
                 final String keystoreAlias = settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_KEYSTORE_ALIAS, null);
 
                 log.info("HTTPS client auth mode {}", httpClientAuthMode);
@@ -426,7 +426,7 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
                         /*
                          * for (int i = 0; i < httpKeystoreCert.length; i++) { X509Certificate
                          * x509Certificate = httpKeystoreCert[i];
-                         * 
+                         *
                          * if(x509Certificate != null) {
                          * log.info("HTTP keystore subject DN no. {} {}",i,x509Certificate.
                          * getSubjectX500Principal()); } }
@@ -594,7 +594,7 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
         }
 
     }
-    
+
     private String[] getEnabledSSLProtocols(final SslProvider provider, boolean http) {
         if (provider == null) {
             return new String[0];
@@ -623,10 +623,10 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
                     openSSLSecureHttpCiphers.add(secure);
                 }
             }
-            
-            
-            log.debug("OPENSSL "+OpenSsl.versionString()+" supports the following ciphers (java-style) {}", OpenSsl.availableJavaCipherSuites());
-            log.debug("OPENSSL "+OpenSsl.versionString()+" supports the following ciphers (openssl-style) {}", OpenSsl.availableOpenSslCipherSuites());
+
+
+            log.debug("OPENSSL " + OpenSsl.versionString() + " supports the following ciphers (java-style) {}", OpenSsl.availableJavaCipherSuites());
+            log.debug("OPENSSL " + OpenSsl.versionString() + " supports the following ciphers (openssl-style) {}", OpenSsl.availableOpenSslCipherSuites());
 
             enabledHttpCiphersOpenSSLProvider = Collections
                     .unmodifiableList(new ArrayList<String>(openSSLSecureHttpCiphers));
@@ -647,19 +647,19 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
         } else {
             enabledTransportCiphersOpenSSLProvider = Collections.emptyList();
         }
-        
-        if(OpenSsl.isAvailable() && OpenSsl.version() > 0x10101009L) {
-            enabledHttpProtocolsOpenSSLProvider = new ArrayList(Arrays.asList("TLSv1.3","TLSv1.2","TLSv1.1","TLSv1"));
+
+        if (OpenSsl.isAvailable() && OpenSsl.version() > 0x10101009L) {
+            enabledHttpProtocolsOpenSSLProvider = new ArrayList(Arrays.asList("TLSv1.3", "TLSv1.2", "TLSv1.1", "TLSv1"));
             enabledHttpProtocolsOpenSSLProvider.retainAll(secureHttpSSLProtocols);
-            enabledTransportProtocolsOpenSSLProvider = new ArrayList(Arrays.asList("TLSv1.3","TLSv1.2","TLSv1.1"));
+            enabledTransportProtocolsOpenSSLProvider = new ArrayList(Arrays.asList("TLSv1.3", "TLSv1.2", "TLSv1.1"));
             enabledTransportProtocolsOpenSSLProvider.retainAll(secureTransportSSLProtocols);
-            
+
             log.info("OpenSSL supports TLSv1.3");
-            
-        } else if(OpenSsl.isAvailable()){
-            enabledHttpProtocolsOpenSSLProvider = new ArrayList(Arrays.asList("TLSv1.2","TLSv1.1","TLSv1"));
+
+        } else if (OpenSsl.isAvailable()) {
+            enabledHttpProtocolsOpenSSLProvider = new ArrayList(Arrays.asList("TLSv1.2", "TLSv1.1", "TLSv1"));
             enabledHttpProtocolsOpenSSLProvider.retainAll(secureHttpSSLProtocols);
-            enabledTransportProtocolsOpenSSLProvider = new ArrayList(Arrays.asList("TLSv1.2","TLSv1.1"));
+            enabledTransportProtocolsOpenSSLProvider = new ArrayList(Arrays.asList("TLSv1.2", "TLSv1.1"));
             enabledTransportProtocolsOpenSSLProvider.retainAll(secureTransportSSLProtocols);
         } else {
             enabledHttpProtocolsOpenSSLProvider = Collections.emptyList();
@@ -679,11 +679,11 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
                     jdkSupportedProtocols);
             log.debug("JVM supports the following {} ciphers {}", jdkSupportedCiphers.size(),
                     jdkSupportedCiphers);
-            
-            if(jdkSupportedProtocols.contains("TLSv1.3")) {
+
+            if (jdkSupportedProtocols.contains("TLSv1.3")) {
                 log.info("JVM supports TLSv1.3");
             }
-            
+
         } catch (final Throwable e) {
             log.error("Unable to determine supported ciphers due to " + e, e);
         } finally {
@@ -697,26 +697,26 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
             }
         }
 
-        if(jdkSupportedCiphers == null || jdkSupportedCiphers.isEmpty() || jdkSupportedProtocols == null || jdkSupportedProtocols.isEmpty()) {
+        if (jdkSupportedCiphers == null || jdkSupportedCiphers.isEmpty() || jdkSupportedProtocols == null || jdkSupportedProtocols.isEmpty()) {
             throw new ElasticsearchException("Unable to determine supported ciphers or protocols");
         }
-        
+
         enabledHttpCiphersJDKProvider = new ArrayList<String>(jdkSupportedCiphers);
         enabledHttpCiphersJDKProvider.retainAll(secureHttpSSLCiphers);
-        
+
         enabledTransportCiphersJDKProvider = new ArrayList<String>(jdkSupportedCiphers);
         enabledTransportCiphersJDKProvider.retainAll(secureTransportSSLCiphers);
-        
+
         enabledHttpProtocolsJDKProvider = new ArrayList<String>(jdkSupportedProtocols);
         enabledHttpProtocolsJDKProvider.retainAll(secureHttpSSLProtocols);
-        
+
         enabledTransportProtocolsJDKProvider = new ArrayList<String>(jdkSupportedProtocols);
         enabledTransportProtocolsJDKProvider.retainAll(secureTransportSSLProtocols);
     }
 
     private SslContext buildSSLServerContext(final PrivateKey _key, final X509Certificate[] _cert,
-            final X509Certificate[] _trustedCerts, final Iterable<String> ciphers, final SslProvider sslProvider,
-            final ClientAuth authMode) throws SSLException {
+                                             final X509Certificate[] _trustedCerts, final Iterable<String> ciphers, final SslProvider sslProvider,
+                                             final ClientAuth authMode) throws SSLException {
 
         final SslContextBuilder _sslContextBuilder = SslContextBuilder.forServer(_key, _cert).ciphers(ciphers)
                 .applicationProtocolConfig(ApplicationProtocolConfig.DISABLED)
@@ -731,7 +731,7 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
     }
 
     private SslContext buildSSLServerContext(final File _key, final File _cert, final File _trustedCerts,
-            final String pwd, final Iterable<String> ciphers, final SslProvider sslProvider, final ClientAuth authMode)
+                                             final String pwd, final Iterable<String> ciphers, final SslProvider sslProvider, final ClientAuth authMode)
             throws SSLException {
 
         final SslContextBuilder _sslContextBuilder = SslContextBuilder.forServer(_cert, _key, pwd).ciphers(ciphers)
@@ -747,7 +747,7 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
     }
 
     private SslContext buildSSLClientContext(final PrivateKey _key, final X509Certificate[] _cert,
-            final X509Certificate[] _trustedCerts, final Iterable<String> ciphers, final SslProvider sslProvider)
+                                             final X509Certificate[] _trustedCerts, final Iterable<String> ciphers, final SslProvider sslProvider)
             throws SSLException {
 
         final SslContextBuilder _sslClientContextBuilder = SslContextBuilder.forClient().ciphers(ciphers)
@@ -759,7 +759,7 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
     }
 
     private SslContext buildSSLClientContext(final File _key, final File _cert, final File _trustedCerts,
-            final String pwd, final Iterable<String> ciphers, final SslProvider sslProvider) throws SSLException {
+                                             final String pwd, final Iterable<String> ciphers, final SslProvider sslProvider) throws SSLException {
 
         final SslContextBuilder _sslClientContextBuilder = SslContextBuilder.forClient().ciphers(ciphers)
                 .applicationProtocolConfig(ApplicationProtocolConfig.DISABLED).sessionCacheSize(0).sessionTimeout(0)

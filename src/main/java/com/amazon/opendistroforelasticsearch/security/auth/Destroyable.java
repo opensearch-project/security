@@ -31,5 +31,5 @@
 package com.amazon.opendistroforelasticsearch.security.auth;
 
 public interface Destroyable {
-	void destroy();
+    void destroy();
 }

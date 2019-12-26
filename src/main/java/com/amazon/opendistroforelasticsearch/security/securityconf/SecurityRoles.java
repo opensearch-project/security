@@ -17,18 +17,18 @@ public abstract class SecurityRoles {
     public abstract Set<String> getRoleNames();
 
     public abstract Set<String> reduce(Resolved requestedResolved, User user, String[] strings, IndexNameExpressionResolver resolver,
-            ClusterService clusterService);
+                                       ClusterService clusterService);
 
     public abstract boolean impliesTypePermGlobal(Resolved requestedResolved, User user, String[] allIndexPermsRequiredA, IndexNameExpressionResolver resolver,
-            ClusterService clusterService);
+                                                  ClusterService clusterService);
 
     public abstract boolean get(Resolved requestedResolved, User user, String[] allIndexPermsRequiredA, IndexNameExpressionResolver resolver,
-            ClusterService clusterService);
+                                ClusterService clusterService);
 
     public abstract Map<String, Set<String>> getMaskedFields(User user, IndexNameExpressionResolver resolver, ClusterService clusterService);
 
     public abstract Tuple<Map<String, Set<String>>, Map<String, Set<String>>> getDlsFls(User user, IndexNameExpressionResolver resolver,
-            ClusterService clusterService);
+                                                                                        ClusterService clusterService);
 
     public abstract Set<String> getAllPermittedIndicesForKibana(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs);
 

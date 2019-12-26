@@ -45,7 +45,7 @@ public class OpenDistroSecurityNonSslHttpServerTransport extends Netty4HttpServe
 
 
     public OpenDistroSecurityNonSslHttpServerTransport(final Settings settings, final NetworkService networkService, final BigArrays bigArrays,
-            final ThreadPool threadPool, final NamedXContentRegistry namedXContentRegistry, final Dispatcher dispatcher) {
+                                                       final ThreadPool threadPool, final NamedXContentRegistry namedXContentRegistry, final Dispatcher dispatcher) {
         super(settings, networkService, bigArrays, threadPool, namedXContentRegistry, dispatcher);
     }
 
@@ -55,7 +55,7 @@ public class OpenDistroSecurityNonSslHttpServerTransport extends Netty4HttpServe
     }
 
     protected class NonSslHttpChannelHandler extends Netty4HttpServerTransport.HttpChannelHandler {
-        
+
         protected NonSslHttpChannelHandler(Netty4HttpServerTransport transport, final HttpHandlingSettings handlingSettings) {
             super(transport, handlingSettings);
         }

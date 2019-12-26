@@ -16,8 +16,7 @@ public class ConfigV6 {
 
     public Dynamic dynamic;
 
-    
-    
+
     @Override
     public String toString() {
         return "Config [dynamic=" + dynamic + "]";
@@ -41,7 +40,7 @@ public class ConfigV6 {
         public String hosts_resolver_mode = "ip-only";
         public String transport_userrname_attribute;
         public boolean do_not_fail_on_forbidden_empty;
-    
+
         @Override
         public String toString() {
             return "Dynamic [filtered_alias_mode=" + filtered_alias_mode + ", kibana=" + kibana + ", http=" + http + ", authc=" + authc + ", authz="
@@ -55,27 +54,28 @@ public class ConfigV6 {
         public String server_username = "kibanaserver";
         public String index = ".kibana";
         public boolean do_not_fail_on_forbidden;
+
         @Override
         public String toString() {
             return "Kibana [multitenancy_enabled=" + multitenancy_enabled + ", server_username=" + server_username + ", index=" + index
                     + ", do_not_fail_on_forbidden=" + do_not_fail_on_forbidden + "]";
         }
-        
-        
-        
+
+
     }
-    
+
     public static class Http {
         public boolean anonymous_auth_enabled = false;
         public Xff xff = new Xff();
+
         @Override
         public String toString() {
             return "Http [anonymous_auth_enabled=" + anonymous_auth_enabled + ", xff=" + xff + "]";
         }
-        
-        
+
+
     }
-    
+
     public static class AuthFailureListeners {
         @JsonIgnore
         private final Map<String, AuthFailureListener> listeners = new HashMap<>();
@@ -90,9 +90,9 @@ public class ConfigV6 {
             return listeners;
         }
 
-        
+
     }
-    
+
     public static class AuthFailureListener {
         public String type;
         public String authentication_backend;
@@ -101,11 +101,11 @@ public class ConfigV6 {
         public int block_expiry_seconds = 60 * 10;
         public int max_blocked_clients = 100_000;
         public int max_tracked_clients = 100_000;
-        
+
         public AuthFailureListener() {
             super();
         }
-        
+
         @JsonIgnore
         public String asJson() {
             try {
@@ -115,7 +115,7 @@ public class ConfigV6 {
             }
         }
     }
-    
+
     public static class Xff {
         public boolean enabled = true;
         public String internalProxies = Pattern.compile(
@@ -126,20 +126,21 @@ public class ConfigV6 {
                         "172\\.1[6-9]{1}\\.\\d{1,3}\\.\\d{1,3}|" +
                         "172\\.2[0-9]{1}\\.\\d{1,3}\\.\\d{1,3}|" +
                         "172\\.3[0-1]{1}\\.\\d{1,3}\\.\\d{1,3}").toString();
-        public String remoteIpHeader="X-Forwarded-For";
-        public String proxiesHeader="X-Forwarded-By";
+        public String remoteIpHeader = "X-Forwarded-For";
+        public String proxiesHeader = "X-Forwarded-By";
         public String trustedProxies;
+
         @Override
         public String toString() {
             return "Xff [enabled=" + enabled + ", internalProxies=" + internalProxies + ", remoteIpHeader=" + remoteIpHeader + ", proxiesHeader="
                     + proxiesHeader + ", trustedProxies=" + trustedProxies + "]";
         }
-        
-        
+
+
     }
-    
+
     public static class Authc {
-        
+
         @JsonIgnore
         private final Map<String, AuthcDomain> domains = new HashMap<>();
 
@@ -157,31 +158,32 @@ public class ConfigV6 {
         public String toString() {
             return "Authc [domains=" + domains + "]";
         }
-        
-        
+
+
     }
-    
+
     public static class AuthcDomain {
-        public boolean http_enabled= true;
-        public boolean transport_enabled= true;
-        public boolean enabled= true;
+        public boolean http_enabled = true;
+        public boolean transport_enabled = true;
+        public boolean enabled = true;
         public int order = 0;
         public HttpAuthenticator http_authenticator = new HttpAuthenticator();
         public AuthcBackend authentication_backend = new AuthcBackend();
+
         @Override
         public String toString() {
             return "AuthcDomain [http_enabled=" + http_enabled + ", transport_enabled=" + transport_enabled + ", enabled=" + enabled + ", order="
                     + order + ", http_authenticator=" + http_authenticator + ", authentication_backend=" + authentication_backend + "]";
         }
-        
-        
+
+
     }
 
     public static class HttpAuthenticator {
         public boolean challenge = true;
         public String type;
         public Map<String, Object> config = Collections.emptyMap();
-        
+
         @JsonIgnore
         public String configAsJson() {
             try {
@@ -195,14 +197,14 @@ public class ConfigV6 {
         public String toString() {
             return "HttpAuthenticator [challenge=" + challenge + ", type=" + type + ", config=" + config + "]";
         }
-        
-        
+
+
     }
-    
+
     public static class AuthzBackend {
         public String type = "noop";
         public Map<String, Object> config = Collections.emptyMap();
-        
+
         @JsonIgnore
         public String configAsJson() {
             try {
@@ -216,14 +218,14 @@ public class ConfigV6 {
         public String toString() {
             return "AuthzBackend [type=" + type + ", config=" + config + "]";
         }
-        
-        
+
+
     }
-    
+
     public static class AuthcBackend {
         public String type = InternalAuthenticationBackend.class.getName();
         public Map<String, Object> config = Collections.emptyMap();
-        
+
         @JsonIgnore
         public String configAsJson() {
             try {
@@ -237,10 +239,10 @@ public class ConfigV6 {
         public String toString() {
             return "AuthcBackend [type=" + type + ", config=" + config + "]";
         }
-        
-        
+
+
     }
-    
+
     public static class Authz {
         @JsonIgnore
         private final Map<String, AuthzDomain> domains = new HashMap<>();
@@ -259,21 +261,22 @@ public class ConfigV6 {
         public String toString() {
             return "Authz [domains=" + domains + "]";
         }
-        
-        
+
+
     }
-    
+
     public static class AuthzDomain {
         public boolean http_enabled = true;
         public boolean transport_enabled = true;
         public boolean enabled = true;
         public AuthzBackend authorization_backend = new AuthzBackend();
+
         @Override
         public String toString() {
             return "AuthzDomain [http_enabled=" + http_enabled + ", transport_enabled=" + transport_enabled + ", enabled=" + enabled + ", authorization_backend=" + authorization_backend + "]";
         }
-        
-        
+
+
     }
-   
+
 }

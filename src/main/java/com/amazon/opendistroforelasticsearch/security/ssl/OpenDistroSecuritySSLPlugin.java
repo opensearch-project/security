@@ -1,10 +1,10 @@
 /*
  * Copyright 2015-2017 floragunn GmbH
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  */
 
 package com.amazon.opendistroforelasticsearch.security.ssl;
@@ -91,22 +91,23 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin,
     protected final OpenDistroSecurityKeyStore odsks;
     protected PrincipalExtractor principalExtractor;
     protected final Path configPath;
-    private final static SslExceptionHandler NOOP_SSL_EXCEPTION_HANDLER = new SslExceptionHandler() {};
-    
+    private final static SslExceptionHandler NOOP_SSL_EXCEPTION_HANDLER = new SslExceptionHandler() {
+    };
+
 //    public OpenDistroSecuritySSLPlugin(final Settings settings, final Path configPath) {
 //        this(settings, configPath, false);
 //    }
 
     protected OpenDistroSecuritySSLPlugin(final Settings settings, final Path configPath, boolean disabled) {
-     
-        if(disabled) {
+
+        if (disabled) {
             this.settings = null;
             this.client = false;
             this.httpSSLEnabled = false;
             this.transportSSLEnabled = false;
             this.odsks = null;
             this.configPath = null;
-            
+
             AccessController.doPrivileged(new PrivilegedAction<Object>() {
                 @Override
                 public Object run() {
@@ -114,36 +115,36 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin,
                     return null;
                 }
             });
-            
-            
+
+
             return;
         }
-        
+
         this.configPath = configPath;
-        
-        if(this.configPath != null) {
-            log.info("ES Config path is "+this.configPath.toAbsolutePath());
+
+        if (this.configPath != null) {
+            log.info("ES Config path is " + this.configPath.toAbsolutePath());
         } else {
             log.info("ES Config path is not set");
         }
-        
+
         final boolean allowClientInitiatedRenegotiation = settings.getAsBoolean(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_ALLOW_CLIENT_INITIATED_RENEGOTIATION, false);
         final boolean rejectClientInitiatedRenegotiation = Boolean.parseBoolean(System.getProperty(SSLConfigConstants.JDK_TLS_REJECT_CLIENT_INITIATED_RENEGOTIATION));
-   
-        if(allowClientInitiatedRenegotiation && !rejectClientInitiatedRenegotiation) {
+
+        if (allowClientInitiatedRenegotiation && !rejectClientInitiatedRenegotiation) {
             final String renegoMsg = "Client side initiated TLS renegotiation enabled. This can open a vulnerablity for DoS attacks through client side initiated TLS renegotiation.";
             log.warn(renegoMsg);
             System.out.println(renegoMsg);
             System.err.println(renegoMsg);
-        } else {   
-            if(!rejectClientInitiatedRenegotiation) {
-                
+        } else {
+            if (!rejectClientInitiatedRenegotiation) {
+
                 final SecurityManager sm = System.getSecurityManager();
 
                 if (sm != null) {
                     sm.checkPermission(new SpecialPermission());
                 }
-                
+
                 AccessController.doPrivileged(new PrivilegedAction<Object>() {
                     @Override
                     public Object run() {
@@ -176,7 +177,7 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin,
 
         this.settings = settings;
         client = !"node".equals(this.settings.get(OpenDistroSecuritySSLPlugin.CLIENT_TYPE));
-        
+
         httpSSLEnabled = settings.getAsBoolean(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLED,
                 SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLED_DEFAULT);
         transportSSLEnabled = settings.getAsBoolean(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLED,
@@ -187,30 +188,28 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin,
             System.out.println("SSL not activated for http and/or transport.");
             System.err.println("SSL not activated for http and/or transport.");
         }
-        
-        if(ExternalOpenDistroSecurityKeyStore.hasExternalSslContext(settings)) {
+
+        if (ExternalOpenDistroSecurityKeyStore.hasExternalSslContext(settings)) {
             this.odsks = new ExternalOpenDistroSecurityKeyStore(settings);
         } else {
             this.odsks = new DefaultOpenDistroSecurityKeyStore(settings, configPath);
         }
     }
-    
-    
-    
+
 
     @Override
     public Map<String, Supplier<HttpServerTransport>> getHttpTransports(Settings settings, ThreadPool threadPool, BigArrays bigArrays,
-            PageCacheRecycler pageCacheRecycler, CircuitBreakerService circuitBreakerService, NamedXContentRegistry xContentRegistry,
-            NetworkService networkService, Dispatcher dispatcher) {
-        
+                                                                        PageCacheRecycler pageCacheRecycler, CircuitBreakerService circuitBreakerService, NamedXContentRegistry xContentRegistry,
+                                                                        NetworkService networkService, Dispatcher dispatcher) {
+
         final Map<String, Supplier<HttpServerTransport>> httpTransports = new HashMap<String, Supplier<HttpServerTransport>>(1);
         if (!client && httpSSLEnabled) {
-            
+
             final ValidatingDispatcher validatingDispatcher = new ValidatingDispatcher(threadPool.getThreadContext(), dispatcher, settings, configPath, NOOP_SSL_EXCEPTION_HANDLER);
             final OpenDistroSecuritySSLNettyHttpServerTransport sgsnht = new OpenDistroSecuritySSLNettyHttpServerTransport(settings, networkService, bigArrays, threadPool, odsks, xContentRegistry, validatingDispatcher, NOOP_SSL_EXCEPTION_HANDLER);
-            
+
             httpTransports.put("com.amazon.opendistroforelasticsearch.security.ssl.http.netty.OpenDistroSecuritySSLNettyHttpServerTransport", () -> sgsnht);
-            
+
         }
         return httpTransports;
 
@@ -218,37 +217,35 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin,
 
     @Override
     public List<RestHandler> getRestHandlers(Settings settings, RestController restController, ClusterSettings clusterSettings,
-            IndexScopedSettings indexScopedSettings, SettingsFilter settingsFilter,
-            IndexNameExpressionResolver indexNameExpressionResolver, Supplier<DiscoveryNodes> nodesInCluster) {
-        
+                                             IndexScopedSettings indexScopedSettings, SettingsFilter settingsFilter,
+                                             IndexNameExpressionResolver indexNameExpressionResolver, Supplier<DiscoveryNodes> nodesInCluster) {
+
         final List<RestHandler> handlers = new ArrayList<RestHandler>(1);
-        
+
         if (!client) {
             handlers.add(new OpenDistroSecuritySSLInfoAction(settings, configPath, restController, odsks, Objects.requireNonNull(principalExtractor)));
         }
-        
+
         return handlers;
     }
-    
-    
-    
+
+
     @Override
     public List<TransportInterceptor> getTransportInterceptors(NamedWriteableRegistry namedWriteableRegistry, ThreadContext threadContext) {
         List<TransportInterceptor> interceptors = new ArrayList<TransportInterceptor>(1);
-        
-        if(transportSSLEnabled && !client) {
+
+        if (transportSSLEnabled && !client) {
             interceptors.add(new OpenDistroSecuritySSLTransportInterceptor(settings, null, null, NOOP_SSL_EXCEPTION_HANDLER));
         }
-        
+
         return interceptors;
     }
 
-    
-    
+
     @Override
     public Map<String, Supplier<Transport>> getTransports(Settings settings, ThreadPool threadPool, PageCacheRecycler pageCacheRecycler,
-            CircuitBreakerService circuitBreakerService, NamedWriteableRegistry namedWriteableRegistry, NetworkService networkService) {
-        
+                                                          CircuitBreakerService circuitBreakerService, NamedWriteableRegistry namedWriteableRegistry, NetworkService networkService) {
+
         Map<String, Supplier<Transport>> transports = new HashMap<String, Supplier<Transport>>();
         if (transportSSLEnabled) {
             transports.put("com.amazon.opendistroforelasticsearch.security.ssl.http.netty.OpenDistroSecuritySSLNettyTransport",
@@ -258,23 +255,22 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin,
         return transports;
 
     }
-    
-    
-    
+
+
     @Override
     public Collection<Object> createComponents(Client localClient, ClusterService clusterService, ThreadPool threadPool,
-            ResourceWatcherService resourceWatcherService, ScriptService scriptService, NamedXContentRegistry xContentRegistry,
-            Environment environment, NodeEnvironment nodeEnvironment, NamedWriteableRegistry namedWriteableRegistry) {
+                                               ResourceWatcherService resourceWatcherService, ScriptService scriptService, NamedXContentRegistry xContentRegistry,
+                                               Environment environment, NodeEnvironment nodeEnvironment, NamedWriteableRegistry namedWriteableRegistry) {
 
         final List<Object> components = new ArrayList<>(1);
-        
-        if(client) {
+
+        if (client) {
             return components;
         }
-        
+
         final String principalExtractorClass = settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, null);
 
-        if(principalExtractorClass == null) {
+        if (principalExtractorClass == null) {
             principalExtractor = new com.amazon.opendistroforelasticsearch.security.ssl.transport.DefaultPrincipalExtractor();
         } else {
             try {
@@ -286,9 +282,9 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin,
                 throw new ElasticsearchException(e);
             }
         }
-        
+
         components.add(principalExtractor);
-        
+
         return components;
     }
 
@@ -307,7 +303,7 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin,
         settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_TRUSTSTORE_TYPE, Property.NodeScope, Property.Filtered));
         settings.add(Setting.boolSetting(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, true, Property.NodeScope, Property.Filtered));
         settings.add(Setting.boolSetting(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLED, SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLED_DEFAULT, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.boolSetting(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, true,Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, true, Property.NodeScope, Property.Filtered));
         settings.add(Setting.boolSetting(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLED, SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLED_DEFAULT, Property.NodeScope, Property.Filtered));
         settings.add(Setting.boolSetting(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, true, Property.NodeScope, Property.Filtered));
         settings.add(Setting.boolSetting(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, true, Property.NodeScope, Property.Filtered));
@@ -350,25 +346,25 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin,
 
     @Override
     public Settings additionalSettings() {
-       final Settings.Builder builder = Settings.builder();
-        
-       if(!client && httpSSLEnabled) {
-           
-           if(settings.get("http.compression") == null) {
-               builder.put("http.compression", false);
-               log.info("Disabled https compression by default to mitigate BREACH attacks. You can enable it by setting 'http.compression: true' in elasticsearch.yml");
-           }
-           
-           builder.put(NetworkModule.HTTP_TYPE_KEY, "com.amazon.opendistroforelasticsearch.security.ssl.http.netty.OpenDistroSecuritySSLNettyHttpServerTransport");
-       }
-        
-       if (transportSSLEnabled) {
-           builder.put(NetworkModule.TRANSPORT_TYPE_KEY, "com.amazon.opendistroforelasticsearch.security.ssl.http.netty.OpenDistroSecuritySSLNettyTransport");
-       }
-        
+        final Settings.Builder builder = Settings.builder();
+
+        if (!client && httpSSLEnabled) {
+
+            if (settings.get("http.compression") == null) {
+                builder.put("http.compression", false);
+                log.info("Disabled https compression by default to mitigate BREACH attacks. You can enable it by setting 'http.compression: true' in elasticsearch.yml");
+            }
+
+            builder.put(NetworkModule.HTTP_TYPE_KEY, "com.amazon.opendistroforelasticsearch.security.ssl.http.netty.OpenDistroSecuritySSLNettyHttpServerTransport");
+        }
+
+        if (transportSSLEnabled) {
+            builder.put(NetworkModule.TRANSPORT_TYPE_KEY, "com.amazon.opendistroforelasticsearch.security.ssl.http.netty.OpenDistroSecuritySSLNettyTransport");
+        }
+
         return builder.build();
     }
-    
+
     @Override
     public List<String> getSettingsFilter() {
         List<String> settingsFilter = new ArrayList<>();

@@ -72,8 +72,8 @@ public class OpenDistroSecurityRestFilter {
     private final CompatConfig compatConfig;
 
     public OpenDistroSecurityRestFilter(final BackendRegistry registry, final AuditLog auditLog,
-            final ThreadPool threadPool, final PrincipalExtractor principalExtractor,
-            final Settings settings, final Path configPath, final CompatConfig compatConfig) {
+                                        final ThreadPool threadPool, final PrincipalExtractor principalExtractor,
+                                        final Settings settings, final Path configPath, final CompatConfig compatConfig) {
         super();
         this.registry = registry;
         this.auditLog = auditLog;
@@ -83,14 +83,14 @@ public class OpenDistroSecurityRestFilter {
         this.configPath = configPath;
         this.compatConfig = compatConfig;
     }
-    
+
     public RestHandler wrap(RestHandler original) {
         return new RestHandler() {
-            
+
             @Override
             public void handleRequest(RestRequest request, RestChannel channel, NodeClient client) throws Exception {
                 org.apache.logging.log4j.ThreadContext.clearAll();
-                if(!checkAndAuthenticateRequest(request, channel, client)) {
+                if (!checkAndAuthenticateRequest(request, channel, client)) {
                     original.handleRequest(request, channel, client);
                 }
             }
@@ -100,16 +100,16 @@ public class OpenDistroSecurityRestFilter {
     private boolean checkAndAuthenticateRequest(RestRequest request, RestChannel channel, NodeClient client) throws Exception {
 
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, Origin.REST.toString());
-        
-        if(HTTPHelper.containsBadHeader(request)) {
+
+        if (HTTPHelper.containsBadHeader(request)) {
             final ElasticsearchException exception = ExceptionUtils.createBadHeaderException();
             log.error(exception);
             auditLog.logBadHeaders(request);
             channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, exception));
             return true;
         }
-        
-        if(SSLRequestHelper.containsBadHeader(threadContext, ConfigConstants.OPENDISTRO_SECURITY_CONFIG_PREFIX)) {
+
+        if (SSLRequestHelper.containsBadHeader(threadContext, ConfigConstants.OPENDISTRO_SECURITY_CONFIG_PREFIX)) {
             final ElasticsearchException exception = ExceptionUtils.createBadHeaderException();
             log.error(exception);
             auditLog.logBadHeaders(request);
@@ -119,13 +119,13 @@ public class OpenDistroSecurityRestFilter {
 
         final SSLInfo sslInfo;
         try {
-            if((sslInfo = SSLRequestHelper.getSSLInfo(settings, configPath, request, principalExtractor)) != null) {
-                if(sslInfo.getPrincipal() != null) {
+            if ((sslInfo = SSLRequestHelper.getSSLInfo(settings, configPath, request, principalExtractor)) != null) {
+                if (sslInfo.getPrincipal() != null) {
                     threadContext.putTransient("_opendistro_security_ssl_principal", sslInfo.getPrincipal());
                 }
-                
-                if(sslInfo.getX509Certs() != null) {
-                     threadContext.putTransient("_opendistro_security_ssl_peer_certificates", sslInfo.getX509Certs());
+
+                if (sslInfo.getX509Certs() != null) {
+                    threadContext.putTransient("_opendistro_security_ssl_peer_certificates", sslInfo.getX509Certs());
                 }
                 threadContext.putTransient("_opendistro_security_ssl_protocol", sslInfo.getProtocol());
                 threadContext.putTransient("_opendistro_security_ssl_cipher", sslInfo.getCipher());
@@ -136,12 +136,12 @@ public class OpenDistroSecurityRestFilter {
             channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, e));
             return true;
         }
-        
-        if(!compatConfig.restAuthEnabled()) {
+
+        if (!compatConfig.restAuthEnabled()) {
             return false;
         }
 
-        if(request.method() != Method.OPTIONS 
+        if (request.method() != Method.OPTIONS
                 && !"/_opendistro/_security/health".equals(request.path())) {
             if (!registry.authenticate(request, channel, threadContext)) {
                 // another roundtrip
@@ -149,10 +149,10 @@ public class OpenDistroSecurityRestFilter {
                 return true;
             } else {
                 // make it possible to filter logs by username
-                org.apache.logging.log4j.ThreadContext.put("user", ((User)threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER)).getName());
+                org.apache.logging.log4j.ThreadContext.put("user", ((User) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER)).getName());
             }
         }
-        
+
         return false;
     }
 }

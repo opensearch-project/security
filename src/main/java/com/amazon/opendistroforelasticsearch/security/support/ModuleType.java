@@ -49,94 +49,94 @@ import com.amazon.opendistroforelasticsearch.security.transport.InterClusterRequ
 
 public enum ModuleType implements Serializable {
 
-	REST_MANAGEMENT_API("REST Management API", "com.amazon.opendistroforelasticsearch.security.dlic.rest.api.OpenDistroSecurityRestApiActions", Boolean.TRUE),
-	DLSFLS("Document- and Field-Level Security", "com.amazon.opendistroforelasticsearch.security.configuration.OpenDistroSecurityFlsDlsIndexSearcherWrapper", Boolean.TRUE),
-	AUDITLOG("Audit Logging", "com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditLogImpl", Boolean.TRUE),
-	MULTITENANCY("Kibana Multitenancy", "com.amazon.opendistroforelasticsearch.security.configuration.PrivilegesInterceptorImpl", Boolean.TRUE),
-	LDAP_AUTHENTICATION_BACKEND("LDAP authentication backend", "com.amazon.dlic.auth.ldap.backend.LDAPAuthenticationBackend", Boolean.TRUE),
-	LDAP_AUTHORIZATION_BACKEND("LDAP authorization backend", "com.amazon.dlic.auth.ldap.backend.LDAPAuthorizationBackend", Boolean.TRUE),
-	KERBEROS_AUTHENTICATION_BACKEND("Kerberos authentication backend", "com.amazon.dlic.auth.http.kerberos.HTTPSpnegoAuthenticator", Boolean.TRUE),
-	JWT_AUTHENTICATION_BACKEND("JWT authentication backend", "com.amazon.dlic.auth.http.jwt.HTTPJwtAuthenticator", Boolean.TRUE),
-	OPENID_AUTHENTICATION_BACKEND("OpenID authentication backend", "com.amazon.dlic.auth.http.jwt.keybyoidc.HTTPJwtKeyByOpenIdConnectAuthenticator", Boolean.TRUE),
-	SAML_AUTHENTICATION_BACKEND("SAML authentication backend", "com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator", Boolean.TRUE),
-	INTERNAL_USERS_AUTHENTICATION_BACKEND("Internal users authentication backend", InternalAuthenticationBackend.class.getName(), Boolean.FALSE),
-	NOOP_AUTHENTICATION_BACKEND("Noop authentication backend", NoOpAuthenticationBackend.class.getName(), Boolean.FALSE),
-	NOOP_AUTHORIZATION_BACKEND("Noop authorization backend", NoOpAuthorizationBackend.class.getName(), Boolean.FALSE),
-	HTTP_BASIC_AUTHENTICATOR("HTTP Basic Authenticator", HTTPBasicAuthenticator.class.getName(), Boolean.FALSE),
-	HTTP_PROXY_AUTHENTICATOR("HTTP Proxy Authenticator", HTTPProxyAuthenticator.class.getName(), Boolean.FALSE),
+    REST_MANAGEMENT_API("REST Management API", "com.amazon.opendistroforelasticsearch.security.dlic.rest.api.OpenDistroSecurityRestApiActions", Boolean.TRUE),
+    DLSFLS("Document- and Field-Level Security", "com.amazon.opendistroforelasticsearch.security.configuration.OpenDistroSecurityFlsDlsIndexSearcherWrapper", Boolean.TRUE),
+    AUDITLOG("Audit Logging", "com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditLogImpl", Boolean.TRUE),
+    MULTITENANCY("Kibana Multitenancy", "com.amazon.opendistroforelasticsearch.security.configuration.PrivilegesInterceptorImpl", Boolean.TRUE),
+    LDAP_AUTHENTICATION_BACKEND("LDAP authentication backend", "com.amazon.dlic.auth.ldap.backend.LDAPAuthenticationBackend", Boolean.TRUE),
+    LDAP_AUTHORIZATION_BACKEND("LDAP authorization backend", "com.amazon.dlic.auth.ldap.backend.LDAPAuthorizationBackend", Boolean.TRUE),
+    KERBEROS_AUTHENTICATION_BACKEND("Kerberos authentication backend", "com.amazon.dlic.auth.http.kerberos.HTTPSpnegoAuthenticator", Boolean.TRUE),
+    JWT_AUTHENTICATION_BACKEND("JWT authentication backend", "com.amazon.dlic.auth.http.jwt.HTTPJwtAuthenticator", Boolean.TRUE),
+    OPENID_AUTHENTICATION_BACKEND("OpenID authentication backend", "com.amazon.dlic.auth.http.jwt.keybyoidc.HTTPJwtKeyByOpenIdConnectAuthenticator", Boolean.TRUE),
+    SAML_AUTHENTICATION_BACKEND("SAML authentication backend", "com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator", Boolean.TRUE),
+    INTERNAL_USERS_AUTHENTICATION_BACKEND("Internal users authentication backend", InternalAuthenticationBackend.class.getName(), Boolean.FALSE),
+    NOOP_AUTHENTICATION_BACKEND("Noop authentication backend", NoOpAuthenticationBackend.class.getName(), Boolean.FALSE),
+    NOOP_AUTHORIZATION_BACKEND("Noop authorization backend", NoOpAuthorizationBackend.class.getName(), Boolean.FALSE),
+    HTTP_BASIC_AUTHENTICATOR("HTTP Basic Authenticator", HTTPBasicAuthenticator.class.getName(), Boolean.FALSE),
+    HTTP_PROXY_AUTHENTICATOR("HTTP Proxy Authenticator", HTTPProxyAuthenticator.class.getName(), Boolean.FALSE),
     HTTP_EXT_PROXY_AUTHENTICATOR("HTTP Extended Proxy Authenticator", HTTPExtendedProxyAuthenticator.class.getName(), Boolean.FALSE),
-	HTTP_CLIENTCERT_AUTHENTICATOR("HTTP Client Certificate Authenticator", HTTPClientCertAuthenticator.class.getName(), Boolean.FALSE),
-	CUSTOM_HTTP_AUTHENTICATOR("Custom HTTP authenticator", null, Boolean.TRUE),
-	CUSTOM_AUTHENTICATION_BACKEND("Custom authentication backend", null, Boolean.TRUE),
-	CUSTOM_AUTHORIZATION_BACKEND("Custom authorization backend", null, Boolean.TRUE),
-	CUSTOM_INTERCLUSTER_REQUEST_EVALUATOR("Intercluster Request Evaluator", null, Boolean.FALSE),
-	CUSTOM_PRINCIPAL_EXTRACTOR("TLS Principal Extractor", null, Boolean.FALSE),
-	// COMPLIANCE("Compliance", "com.amazon.opendistroforelasticsearch.security.compliance.ComplianceIndexingOperationListenerImpl", Boolean.TRUE),
-	UNKNOWN("Unknown type", null, Boolean.TRUE);
+    HTTP_CLIENTCERT_AUTHENTICATOR("HTTP Client Certificate Authenticator", HTTPClientCertAuthenticator.class.getName(), Boolean.FALSE),
+    CUSTOM_HTTP_AUTHENTICATOR("Custom HTTP authenticator", null, Boolean.TRUE),
+    CUSTOM_AUTHENTICATION_BACKEND("Custom authentication backend", null, Boolean.TRUE),
+    CUSTOM_AUTHORIZATION_BACKEND("Custom authorization backend", null, Boolean.TRUE),
+    CUSTOM_INTERCLUSTER_REQUEST_EVALUATOR("Intercluster Request Evaluator", null, Boolean.FALSE),
+    CUSTOM_PRINCIPAL_EXTRACTOR("TLS Principal Extractor", null, Boolean.FALSE),
+    // COMPLIANCE("Compliance", "com.amazon.opendistroforelasticsearch.security.compliance.ComplianceIndexingOperationListenerImpl", Boolean.TRUE),
+    UNKNOWN("Unknown type", null, Boolean.TRUE);
 
-	private String description;
-	private String defaultImplClass;
-	private Boolean isAdvancedModule = Boolean.TRUE;
-	private static Map<String, ModuleType> modulesMap = new HashMap<>();
+    private String description;
+    private String defaultImplClass;
+    private Boolean isAdvancedModule = Boolean.TRUE;
+    private static Map<String, ModuleType> modulesMap = new HashMap<>();
 
-	static{
-		for(ModuleType module : ModuleType.values()) {
-			if (module.defaultImplClass != null) {
-				modulesMap.put(module.getDefaultImplClass(), module);
-			}
-		}
-	}
+    static {
+        for (ModuleType module : ModuleType.values()) {
+            if (module.defaultImplClass != null) {
+                modulesMap.put(module.getDefaultImplClass(), module);
+            }
+        }
+    }
 
-	private ModuleType(String description, String defaultImplClass, Boolean isAdvancedModule) {
-		this.description = description;
-		this.defaultImplClass = defaultImplClass;
-		this.isAdvancedModule = isAdvancedModule;
-	}
+    private ModuleType(String description, String defaultImplClass, Boolean isAdvancedModule) {
+        this.description = description;
+        this.defaultImplClass = defaultImplClass;
+        this.isAdvancedModule = isAdvancedModule;
+    }
 
-	public static ModuleType getByDefaultImplClass(Class<?> clazz) {
-		ModuleType moduleType = modulesMap.get(clazz.getName());
-    	if(moduleType == null) {
-    		if(HTTPAuthenticator.class.isAssignableFrom(clazz)) {
-    			moduleType = ModuleType.CUSTOM_HTTP_AUTHENTICATOR;
-    		}
+    public static ModuleType getByDefaultImplClass(Class<?> clazz) {
+        ModuleType moduleType = modulesMap.get(clazz.getName());
+        if (moduleType == null) {
+            if (HTTPAuthenticator.class.isAssignableFrom(clazz)) {
+                moduleType = ModuleType.CUSTOM_HTTP_AUTHENTICATOR;
+            }
 
-    		if(AuthenticationBackend.class.isAssignableFrom(clazz)) {
-    			moduleType = ModuleType.CUSTOM_AUTHENTICATION_BACKEND;
-    		}
+            if (AuthenticationBackend.class.isAssignableFrom(clazz)) {
+                moduleType = ModuleType.CUSTOM_AUTHENTICATION_BACKEND;
+            }
 
-    		if(AuthorizationBackend.class.isAssignableFrom(clazz)) {
-    			moduleType = ModuleType.CUSTOM_AUTHORIZATION_BACKEND;
-    		}
+            if (AuthorizationBackend.class.isAssignableFrom(clazz)) {
+                moduleType = ModuleType.CUSTOM_AUTHORIZATION_BACKEND;
+            }
 
-    		if(AuthorizationBackend.class.isAssignableFrom(clazz)) {
-    			moduleType = ModuleType.CUSTOM_AUTHORIZATION_BACKEND;
-    		}
+            if (AuthorizationBackend.class.isAssignableFrom(clazz)) {
+                moduleType = ModuleType.CUSTOM_AUTHORIZATION_BACKEND;
+            }
 
-    		if(InterClusterRequestEvaluator.class.isAssignableFrom(clazz)) {
-    			moduleType = ModuleType.CUSTOM_INTERCLUSTER_REQUEST_EVALUATOR;
-    		}
+            if (InterClusterRequestEvaluator.class.isAssignableFrom(clazz)) {
+                moduleType = ModuleType.CUSTOM_INTERCLUSTER_REQUEST_EVALUATOR;
+            }
 
-    		if(PrincipalExtractor.class.isAssignableFrom(clazz)) {
-    			moduleType = ModuleType.CUSTOM_PRINCIPAL_EXTRACTOR;
-    		}
-    	}
-    	if(moduleType == null) {
-    		moduleType = ModuleType.UNKNOWN;
-    	}
-    	return moduleType;
-	}
+            if (PrincipalExtractor.class.isAssignableFrom(clazz)) {
+                moduleType = ModuleType.CUSTOM_PRINCIPAL_EXTRACTOR;
+            }
+        }
+        if (moduleType == null) {
+            moduleType = ModuleType.UNKNOWN;
+        }
+        return moduleType;
+    }
 
-	public String getDescription() {
-		return this.description;
-	}
+    public String getDescription() {
+        return this.description;
+    }
 
-	public String getDefaultImplClass() {
-		return defaultImplClass;
-	}
+    public String getDefaultImplClass() {
+        return defaultImplClass;
+    }
 
-	public Boolean isAdvancedModule() {
-		return isAdvancedModule;
-	}
+    public Boolean isAdvancedModule() {
+        return isAdvancedModule;
+    }
 
 
 }

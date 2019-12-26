@@ -44,7 +44,6 @@ import org.elasticsearch.ElasticsearchSecurityException;
 /**
  * AuthCredentials are an abstraction to encapsulate credentials like passwords or generic
  * native credentials like GSS tokens.
- *
  */
 public final class AuthCredentials {
 
@@ -60,7 +59,7 @@ public final class AuthCredentials {
     /**
      * Create new credentials with a username and native credentials
      *
-     * @param username The username, must not be null or empty
+     * @param username          The username, must not be null or empty
      * @param nativeCredentials Arbitrary credentials (like GSS tokens), must not be null
      * @throws IllegalArgumentException if username or nativeCredentials are null or empty
      */
@@ -89,8 +88,8 @@ public final class AuthCredentials {
 
     /**
      * Create new credentials with a username, a initial optional set of roles and empty password/native credentials
-
-     * @param username The username, must not be null or empty
+     *
+     * @param username     The username, must not be null or empty
      * @param backendRoles set of roles this user is a member of
      * @throws IllegalArgumentException if username is null or empty
      */
@@ -109,7 +108,7 @@ public final class AuthCredentials {
         // make defensive copy
         this.password = password == null ? null : Arrays.copyOf(password, password.length);
 
-        if(this.password != null) {
+        if (this.password != null) {
             try {
                 MessageDigest digester = MessageDigest.getInstance(DIGEST_ALGORITHM);
                 internalPasswordHash = digester.digest(this.password);
@@ -120,7 +119,7 @@ public final class AuthCredentials {
             internalPasswordHash = null;
         }
 
-        if(password != null) {
+        if (password != null) {
             Arrays.fill(password, (byte) '\0');
             password = null;
         }
@@ -128,7 +127,7 @@ public final class AuthCredentials {
         this.nativeCredentials = nativeCredentials;
         nativeCredentials = null;
 
-        if(backendRoles != null && backendRoles.length > 0) {
+        if (backendRoles != null && backendRoles.length > 0) {
             this.backendRoles.addAll(Arrays.asList(backendRoles));
         }
     }
@@ -150,7 +149,6 @@ public final class AuthCredentials {
     }
 
     /**
-     *
      * @return Defensive copy of the password
      */
     public byte[] getPassword() {
@@ -193,11 +191,10 @@ public final class AuthCredentials {
     @Override
     public String toString() {
         return "AuthCredentials [username=" + username + ", password empty=" + (password == null) + ", nativeCredentials empty="
-                + (nativeCredentials == null) + ",backendRoles="+backendRoles+"]";
+                + (nativeCredentials == null) + ",backendRoles=" + backendRoles + "]";
     }
 
     /**
-     *
      * @return Defensive copy of the roles this user is member of.
      */
     public Set<String> getBackendRoles() {
@@ -222,7 +219,7 @@ public final class AuthCredentials {
     }
 
     public void addAttribute(String name, String value) {
-        if(name != null && !name.isEmpty()) {
+        if (name != null && !name.isEmpty()) {
             this.attributes.put(name, value);
         }
     }

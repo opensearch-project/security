@@ -51,7 +51,7 @@ public class DefaultObjectMapper {
     public static final ObjectMapper objectMapper = new ObjectMapper();
     public final static ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
     private static final ObjectMapper defaulOmittingObjectMapper = new ObjectMapper();
-    
+
     static {
         objectMapper.setSerializationInclusion(Include.NON_NULL);
         //objectMapper.enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
@@ -80,7 +80,7 @@ public class DefaultObjectMapper {
             throw (IOException) e.getCause();
         }
     }
-    
+
     public static <T> T readValue(String string, Class<T> clazz) throws IOException {
 
         final SecurityManager sm = System.getSecurityManager();
@@ -100,7 +100,7 @@ public class DefaultObjectMapper {
             throw (IOException) e.getCause();
         }
     }
-    
+
     public static JsonNode readTree(String string) throws IOException {
 
         final SecurityManager sm = System.getSecurityManager();
@@ -133,7 +133,7 @@ public class DefaultObjectMapper {
             return AccessController.doPrivileged(new PrivilegedExceptionAction<String>() {
                 @Override
                 public String run() throws Exception {
-                    return (omitDefaults?defaulOmittingObjectMapper:objectMapper).writeValueAsString(value);
+                    return (omitDefaults ? defaulOmittingObjectMapper : objectMapper).writeValueAsString(value);
                 }
             });
         } catch (final PrivilegedActionException e) {

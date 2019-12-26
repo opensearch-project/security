@@ -52,18 +52,18 @@ import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SecurityDynamicConfiguration;
 
 public class ConfigHelper {
-    
+
     private static final Logger LOGGER = LogManager.getLogger(ConfigHelper.class);
-    
+
     public static void uploadFile(Client tc, String filepath, String index, CType cType, int configVersion) throws Exception {
         LOGGER.info("Will update '" + cType + "' with " + filepath);
 
         ConfigHelper.fromYamlFile(filepath, cType, configVersion, 0, 0);
-        
+
         try (Reader reader = new FileReader(filepath)) {
 
             final String res = tc
-                    .index(new IndexRequest(index).type(configVersion==1?"security":"_doc").id(cType.toLCString()).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .index(new IndexRequest(index).type(configVersion == 1 ? "security" : "_doc").id(cType.toLCString()).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                             .source(cType.toLCString(), readXContent(reader, XContentType.YAML))).actionGet().getId();
 
             if (!cType.toLCString().equals(res)) {
@@ -74,7 +74,7 @@ public class ConfigHelper {
             throw e;
         }
     }
-    
+
     public static BytesReference readXContent(final Reader reader, final XContentType xContentType) throws IOException {
         BytesReference retVal;
         XContentParser parser = null;
@@ -96,7 +96,7 @@ public class ConfigHelper {
         try {
             return SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(yamlReader), ctype, version, seqNo, primaryTerm);
         } finally {
-            if(yamlReader != null) {
+            if (yamlReader != null) {
                 yamlReader.close();
             }
         }

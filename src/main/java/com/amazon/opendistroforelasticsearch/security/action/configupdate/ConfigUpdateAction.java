@@ -46,5 +46,5 @@ public class ConfigUpdateAction extends StreamableResponseActionType<ConfigUpdat
         return new ConfigUpdateResponse();
     }
 
-    
+
 }

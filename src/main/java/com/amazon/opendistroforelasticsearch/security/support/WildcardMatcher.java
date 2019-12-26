@@ -45,6 +45,7 @@ public class WildcardMatcher {
 
     /**
      * returns true if at least one candidate match at least one pattern (case sensitive)
+     *
      * @param pattern
      * @param candidate
      * @return
@@ -53,7 +54,7 @@ public class WildcardMatcher {
 
         return matchAny(pattern, candidate, false);
     }
-    
+
     public static boolean matchAny(final Collection<String> pattern, final Collection<String> candidate) {
 
         return matchAny(pattern, candidate, false);
@@ -89,7 +90,7 @@ public class WildcardMatcher {
      */
     public static boolean matchAny(final Collection<String> pattern, final String[] candidate, boolean ignoreCase) {
 
-        for (String string: pattern) {
+        for (String string : pattern) {
             if (matchAny(string, candidate, ignoreCase)) {
                 return true;
             }
@@ -97,10 +98,10 @@ public class WildcardMatcher {
 
         return false;
     }
-    
+
     public static boolean matchAny(final Collection<String> pattern, final Collection<String> candidate, boolean ignoreCase) {
 
-        for (String string: pattern) {
+        for (String string : pattern) {
             if (matchAny(string, candidate, ignoreCase)) {
                 return true;
             }
@@ -130,7 +131,6 @@ public class WildcardMatcher {
     }
 
     /**
-     *
      * @param pattern
      * @param candidate
      * @return
@@ -153,7 +153,7 @@ public class WildcardMatcher {
 
         int matchedPatternNum = 0;
 
-        for (String string:pattern) {
+        for (String string : pattern) {
             if (matchAny(string, candidate)) {
                 matchedPatternNum++;
             }
@@ -165,7 +165,7 @@ public class WildcardMatcher {
     public static boolean matchAny(final String pattern, final String[] candidate) {
         return matchAny(pattern, candidate, false);
     }
-    
+
     public static boolean matchAny(final String pattern, final Collection<String> candidate) {
         return matchAny(pattern, candidate, false);
     }
@@ -192,7 +192,7 @@ public class WildcardMatcher {
 
     public static boolean matchAny(final String pattern, final Collection<String> candidates, boolean ignoreCase) {
 
-        for (String candidate: candidates) {
+        for (String candidate : candidates) {
             if (match(pattern, candidate, ignoreCase)) {
                 return true;
             }
@@ -261,7 +261,7 @@ public class WildcardMatcher {
 
         final List<String> matches = new ArrayList<String>(candidates.size());
 
-        for (String string: candidates) {
+        for (String string : candidates) {
             if (matchAny(patterns, string)) {
                 matches.add(string);
             }
@@ -274,7 +274,7 @@ public class WildcardMatcher {
 
         final List<String> matches = new ArrayList<String>(candidate.size());
 
-        for (final String string: candidate) {
+        for (final String string : candidate) {
             if (match(pattern, string)) {
                 matches.add(string);
             }
@@ -287,7 +287,7 @@ public class WildcardMatcher {
 
         final List<String> matches = new ArrayList<String>(candidate.size());
 
-        for (final String string: candidate) {
+        for (final String string : candidate) {
             if (matchAny(patterns, string)) {
                 matches.add(string);
             }
@@ -295,7 +295,7 @@ public class WildcardMatcher {
 
         return matches;
     }
-    
+
     public static Optional<String> getFirstMatchingPattern(final Collection<String> pattern, final String candidate) {
 
         for (String p : pattern) {
@@ -361,7 +361,7 @@ public class WildcardMatcher {
      */
     public static boolean matchAny(final Collection<String> pattern, final String candidate) {
 
-        for (String string: pattern) {
+        for (String string : pattern) {
             if (match(string, candidate)) {
                 return true;
             }
@@ -380,14 +380,14 @@ public class WildcardMatcher {
             return false;
         }
 
-        if(ignoreCase) {
+        if (ignoreCase) {
             pattern = pattern.toLowerCase();
             candidate = candidate.toLowerCase();
         }
 
         if (pattern.startsWith("/") && pattern.endsWith("/")) {
             // regex
-            return Pattern.matches("^"+pattern.substring(1, pattern.length() - 1)+"$", candidate);
+            return Pattern.matches("^" + pattern.substring(1, pattern.length() - 1) + "$", candidate);
         } else if (pattern.length() == 1 && pattern.charAt(0) == '*') {
             return true;
         } else if (pattern.indexOf('?') == NOT_FOUND && pattern.indexOf('*') == NOT_FOUND) {
@@ -400,7 +400,7 @@ public class WildcardMatcher {
     public static boolean containsWildcard(final String pattern) {
         if (pattern != null
                 && (pattern.indexOf("*") > NOT_FOUND || pattern.indexOf("?") > NOT_FOUND || (pattern.startsWith("/") && pattern
-                        .endsWith("/")))) {
+                .endsWith("/")))) {
             return true;
         }
 
@@ -408,23 +408,22 @@ public class WildcardMatcher {
     }
 
     /**
-     *
-     * @param set will be modified
+     * @param set                will be modified
      * @param stringContainingWc
      * @return
      */
     public static boolean wildcardRemoveFromSet(Set<String> set, String stringContainingWc) {
-        if(set == null || set.isEmpty()) {
+        if (set == null || set.isEmpty()) {
             return false;
         }
-        if(!containsWildcard(stringContainingWc) && set.contains(stringContainingWc)) {
+        if (!containsWildcard(stringContainingWc) && set.contains(stringContainingWc)) {
             return set.remove(stringContainingWc);
         } else {
             boolean modified = false;
             Set<String> copy = new HashSet<>(set);
 
-            for(String it: copy) {
-                if(WildcardMatcher.match(stringContainingWc, it)) {
+            for (String it : copy) {
+                if (WildcardMatcher.match(stringContainingWc, it)) {
                     modified = set.remove(it) || modified;
                 }
             }
@@ -433,20 +432,19 @@ public class WildcardMatcher {
     }
 
     /**
-     *
-     * @param set will be modified
+     * @param set                will be modified
      * @param stringContainingWc
      * @return
      */
     public static boolean wildcardRetainInSet(Set<String> set, String[] setContainingWc) {
-        if(set == null || set.isEmpty()) {
+        if (set == null || set.isEmpty()) {
             return false;
         }
         boolean modified = false;
         Set<String> copy = new HashSet<>(set);
 
-        for(String it: copy) {
-            if(!WildcardMatcher.matchAny(setContainingWc, it)) {
+        for (String it : copy) {
+            if (!WildcardMatcher.matchAny(setContainingWc, it)) {
                 modified = set.remove(it) || modified;
             }
         }
@@ -482,8 +480,8 @@ public class WildcardMatcher {
      * single or multiple (zero or more) wildcard characters.
      * N.B. the sequence "*?" does not work properly at present in match strings.
      *
-     * @param candidate  the filename to match on
-     * @param pattern  the wildcard string to match against
+     * @param candidate the filename to match on
+     * @param pattern   the wildcard string to match against
      * @return true if the filename matches the wilcard string
      * @since 1.3
      */
@@ -539,7 +537,7 @@ public class WildcardMatcher {
                         }
                         final int repeat = checkIndexOf(candidate, textIdx + 1, wcs[wcsIdx]);
                         if (repeat >= 0) {
-                            backtrack.push(new int[] {wcsIdx, repeat});
+                            backtrack.push(new int[]{wcsIdx, repeat});
                         }
                     } else {
                         // matching from current position
@@ -572,7 +570,7 @@ public class WildcardMatcher {
      * The text is split by '?' and '*'.
      * Where multiple '*' occur consecutively they are collapsed into a single '*'.
      *
-     * @param text  the text to split
+     * @param text the text to split
      * @return the array of tokens, never null
      */
     private static String[] splitOnTokens(final String text) {
@@ -580,7 +578,7 @@ public class WildcardMatcher {
         // package level so a unit test may run on this
 
         if (text.indexOf('?') == NOT_FOUND && text.indexOf('*') == NOT_FOUND) {
-            return new String[] { text };
+            return new String[]{text};
         }
 
         final char[] array = text.toCharArray();
@@ -607,7 +605,7 @@ public class WildcardMatcher {
             list.add(buffer.toString());
         }
 
-        return list.toArray( new String[ list.size() ] );
+        return list.toArray(new String[list.size()]);
     }
 
     /**
@@ -617,11 +615,11 @@ public class WildcardMatcher {
      * This method mimics parts of {@link String#indexOf(String, int)}
      * but takes case-sensitivity into account.
      *
-     * @param str  the string to check, not null
-     * @param strStartIndex  the index to start at in str
-     * @param search  the start to search for, not null
+     * @param str           the string to check, not null
+     * @param strStartIndex the index to start at in str
+     * @param search        the start to search for, not null
      * @return the first index of the search String,
-     *  -1 if no match or {@code null} string input
+     * -1 if no match or {@code null} string input
      * @throws NullPointerException if either string is null
      * @since 2.0
      */
@@ -643,9 +641,9 @@ public class WildcardMatcher {
      * This method mimics parts of {@link String#regionMatches(boolean, int, String, int, int)}
      * but takes case-sensitivity into account.
      *
-     * @param str  the string to check, not null
-     * @param strStartIndex  the index to start at in str
-     * @param search  the start to search for, not null
+     * @param str           the string to check, not null
+     * @param strStartIndex the index to start at in str
+     * @param search        the start to search for, not null
      * @return true if equal using the case rules
      * @throws NullPointerException if either string is null
      */

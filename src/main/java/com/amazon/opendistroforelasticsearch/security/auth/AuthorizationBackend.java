@@ -48,13 +48,14 @@ import com.amazon.opendistroforelasticsearch.security.user.User;
  * Instead catch all exceptions and log a appropriate error message. A logger can be instantiated like:
  * <p/>
  * {@code private final Logger log = LogManager.getLogger(this.getClass());}
- *
+ * <p>
  * <p/>
  */
 public interface AuthorizationBackend {
 
     /**
-     * The type (name) of the authorizer. Only for logging.  
+     * The type (name) of the authorizer. Only for logging.
+     *
      * @return the type
      */
     String getType();
@@ -64,11 +65,12 @@ public interface AuthorizationBackend {
      * <p/>
      * Add them by calling either {@code user.addRole()} or {@code user.addRoles()}
      * </P>
-     * @param user The authenticated user to populate with backend roles, never null
+     *
+     * @param user        The authenticated user to populate with backend roles, never null
      * @param credentials Credentials to authenticate to the authorization backend, maybe null.
-     * <em>This parameter is for future usage, currently always empty credentials are passed!</em> 
-     * @throws ElasticsearchSecurityException in case when the authorization backend cannot be reached 
-     * or the {@code credentials} are insufficient to authenticate to the authorization backend.
+     *                    <em>This parameter is for future usage, currently always empty credentials are passed!</em>
+     * @throws ElasticsearchSecurityException in case when the authorization backend cannot be reached
+     *                                        or the {@code credentials} are insufficient to authenticate to the authorization backend.
      */
     void fillRoles(User user, AuthCredentials credentials) throws ElasticsearchSecurityException;
 

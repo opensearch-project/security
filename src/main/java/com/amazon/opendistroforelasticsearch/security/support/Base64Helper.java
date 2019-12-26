@@ -122,19 +122,19 @@ public class Base64Helper {
 
             if (
                     clazz.isArray() ||
-                    clazz.equals(String.class) ||
-                    clazz.equals(SocketAddress.class) ||
-                    clazz.equals(InetSocketAddress.class) ||
-                    InetAddress.class.isAssignableFrom(clazz) ||
-                    Number.class.isAssignableFrom(clazz) ||
-                    Collection.class.isAssignableFrom(clazz) ||
-                    Map.class.isAssignableFrom(clazz) ||
-                    Enum.class.isAssignableFrom(clazz) ||
-                    clazz.equals(User.class) ||
-                    clazz.equals(IndexResolverReplacer.Resolved.class) ||
-                    clazz.equals(SourceFieldsContext.class) ||
-                    SAFE_CLASSES.contains(clazz.getName())
-               ) {
+                            clazz.equals(String.class) ||
+                            clazz.equals(SocketAddress.class) ||
+                            clazz.equals(InetSocketAddress.class) ||
+                            InetAddress.class.isAssignableFrom(clazz) ||
+                            Number.class.isAssignableFrom(clazz) ||
+                            Collection.class.isAssignableFrom(clazz) ||
+                            Map.class.isAssignableFrom(clazz) ||
+                            Enum.class.isAssignableFrom(clazz) ||
+                            clazz.equals(User.class) ||
+                            clazz.equals(IndexResolverReplacer.Resolved.class) ||
+                            clazz.equals(SourceFieldsContext.class) ||
+                            SAFE_CLASSES.contains(clazz.getName())
+            ) {
 
                 return clazz;
             }

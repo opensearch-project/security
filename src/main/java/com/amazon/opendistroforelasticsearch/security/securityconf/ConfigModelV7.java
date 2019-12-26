@@ -86,7 +86,7 @@ public class ConfigModelV7 extends ConfigModel {
 
         this.roles = roles;
         this.tenants = tenants;
-        
+
         try {
             rolesMappingResolution = ConfigConstants.RolesMappingResolution.valueOf(
                     esSettings.get(ConfigConstants.OPENDISTRO_SECURITY_ROLES_MAPPING_RESOLUTION, ConfigConstants.RolesMappingResolution.MAPPING_ONLY.toString())
@@ -95,28 +95,28 @@ public class ConfigModelV7 extends ConfigModel {
             log.error("Cannot apply roles mapping resolution", e);
             rolesMappingResolution = ConfigConstants.RolesMappingResolution.MAPPING_ONLY;
         }
-        
+
         agr = reloadActionGroups(actiongroups);
         securityRoles = reload(roles);
         tenantHolder = new TenantHolder(roles, tenants);
         roleMappingHolder = new RoleMappingHolder(rolemappings, dcm.getHostsResolverMode());
     }
-    
+
     public Set<String> getAllConfiguredTenantNames() {
         return Collections.unmodifiableSet(tenants.getCEntries().keySet());
     }
-    
+
     public SecurityRoles getSecurityRoles() {
         return securityRoles;
     }
-    
+
     private static interface ActionGroupResolver {
         Set<String> resolvedActions(final List<String> actions);
     }
-    
+
     private ActionGroupResolver reloadActionGroups(SecurityDynamicConfiguration<ActionGroupsV7> actionGroups) {
         return new ActionGroupResolver() {
-            
+
             private Set<String> getGroupMembers(final String groupname) {
 
                 if (actionGroups == null) {
@@ -125,55 +125,55 @@ public class ConfigModelV7 extends ConfigModel {
 
                 return Collections.unmodifiableSet(resolve(actionGroups, groupname));
             }
-            
+
             private Set<String> resolve(final SecurityDynamicConfiguration<?> actionGroups, final String entry) {
 
-                
+
                 // SG5 format, plain array
                 //List<String> en = actionGroups.getAsList(DotPath.of(entry));
                 //if (en.isEmpty()) {
-                    // try SG6 format including readonly and permissions key
+                // try SG6 format including readonly and permissions key
                 //  en = actionGroups.getAsList(DotPath.of(entry + "." + ConfigConstants.CONFIGKEY_ACTION_GROUPS_PERMISSIONS));
-                    //}
-                
-                if(!actionGroups.getCEntries().containsKey(entry)) {
+                //}
+
+                if (!actionGroups.getCEntries().containsKey(entry)) {
                     return Collections.emptySet();
                 }
-                
+
                 final Set<String> ret = new HashSet<String>();
-                
+
                 final Object actionGroupAsObject = actionGroups.getCEntries().get(entry);
-                
-                if(actionGroupAsObject != null && actionGroupAsObject instanceof List) {
-                    
-                    for (final String perm: ((List<String>) actionGroupAsObject)) {
+
+                if (actionGroupAsObject != null && actionGroupAsObject instanceof List) {
+
+                    for (final String perm : ((List<String>) actionGroupAsObject)) {
                         if (actionGroups.getCEntries().keySet().contains(perm)) {
-                            ret.addAll(resolve(actionGroups,perm));
+                            ret.addAll(resolve(actionGroups, perm));
                         } else {
                             ret.add(perm);
                         }
                     }
-                    
-                    
-                } else if(actionGroupAsObject != null &&  actionGroupAsObject instanceof ActionGroupsV7) {
-                    for (final String perm: ((ActionGroupsV7) actionGroupAsObject).getAllowed_actions()) {
+
+
+                } else if (actionGroupAsObject != null && actionGroupAsObject instanceof ActionGroupsV7) {
+                    for (final String perm : ((ActionGroupsV7) actionGroupAsObject).getAllowed_actions()) {
                         if (actionGroups.getCEntries().keySet().contains(perm)) {
-                            ret.addAll(resolve(actionGroups,perm));
+                            ret.addAll(resolve(actionGroups, perm));
                         } else {
                             ret.add(perm);
                         }
                     }
                 } else {
-                    throw new RuntimeException("Unable to handle "+actionGroupAsObject);
+                    throw new RuntimeException("Unable to handle " + actionGroupAsObject);
                 }
-                
+
                 return Collections.unmodifiableSet(ret);
             }
-            
+
             @Override
             public Set<String> resolvedActions(final List<String> actions) {
                 final Set<String> resolvedActions = new HashSet<String>();
-                for (String string: actions) {
+                for (String string : actions) {
                     final Set<String> groups = getGroupMembers(string);
                     if (groups.isEmpty()) {
                         resolvedActions.add(string);
@@ -192,15 +192,15 @@ public class ConfigModelV7 extends ConfigModel {
         final Set<Future<SecurityRole>> futures = new HashSet<>(5000);
         final ExecutorService execs = Executors.newFixedThreadPool(10);
 
-        for(Entry<String, RoleV7> securityRole: settings.getCEntries().entrySet()) {
+        for (Entry<String, RoleV7> securityRole : settings.getCEntries().entrySet()) {
 
             Future<SecurityRole> future = execs.submit(new Callable<SecurityRole>() {
 
                 @Override
                 public SecurityRole call() throws Exception {
                     SecurityRole _securityRole = new SecurityRole(securityRole.getKey());
-                    
-                    if(securityRole.getValue() == null) {
+
+                    if (securityRole.getValue() == null) {
                         return null;
                     }
 
@@ -220,18 +220,18 @@ public class ConfigModelV7 extends ConfigModel {
                             }
                         }*/
 
-                        for (final Index permittedAliasesIndex : securityRole.getValue().getIndex_permissions()) {
+                    for (final Index permittedAliasesIndex : securityRole.getValue().getIndex_permissions()) {
 
-                            final String dls = permittedAliasesIndex.getDls();
-                            final List<String> fls = permittedAliasesIndex.getFls();
-                            final List<String> maskedFields = permittedAliasesIndex.getMasked_fields();
+                        final String dls = permittedAliasesIndex.getDls();
+                        final List<String> fls = permittedAliasesIndex.getFls();
+                        final List<String> maskedFields = permittedAliasesIndex.getMasked_fields();
 
-                            for(String pat: permittedAliasesIndex.getIndex_patterns()) {
-                                IndexPattern _indexPattern = new IndexPattern(pat);
-                                _indexPattern.setDlsQuery(dls);
-                                _indexPattern.addFlsFields(fls);
-                                _indexPattern.addMaskedFields(maskedFields);
-                                _indexPattern.addPerm(agr.resolvedActions(permittedAliasesIndex.getAllowed_actions()));
+                        for (String pat : permittedAliasesIndex.getIndex_patterns()) {
+                            IndexPattern _indexPattern = new IndexPattern(pat);
+                            _indexPattern.setDlsQuery(dls);
+                            _indexPattern.addFlsFields(fls);
+                            _indexPattern.addMaskedFields(maskedFields);
+                            _indexPattern.addPerm(agr.resolvedActions(permittedAliasesIndex.getAllowed_actions()));
     
                                 /*for(Entry<String, List<String>> type: permittedAliasesIndex.getValue().getTypes(-).entrySet()) {
                                     TypePerm typePerm = new TypePerm(type.getKey());
@@ -239,15 +239,15 @@ public class ConfigModelV7 extends ConfigModel {
                                     typePerm.addPerms(agr.resolvedActions(perms));
                                     _indexPattern.addTypePerms(typePerm);
                                 }*/
-    
-                                _securityRole.addIndexPattern(_indexPattern);
-                            
-                            }
+
+                            _securityRole.addIndexPattern(_indexPattern);
 
                         }
-            
-                            
-                        return _securityRole;
+
+                    }
+
+
+                    return _securityRole;
                 }
             });
 
@@ -333,7 +333,7 @@ public class ConfigModelV7 extends ConfigModel {
         public Set<SecurityRole> getRoles() {
             return Collections.unmodifiableSet(roles);
         }
-        
+
         public Set<String> getRoleNames() {
             return getRoles().stream().map(r -> r.getName()).collect(Collectors.toSet());
         }
@@ -386,7 +386,7 @@ public class ConfigModelV7 extends ConfigModel {
         }
 
         public Tuple<Map<String, Set<String>>, Map<String, Set<String>>> getDlsFls(User user, IndexNameExpressionResolver resolver,
-                ClusterService cs) {
+                                                                                   ClusterService cs) {
 
             final Map<String, Set<String>> dlsQueries = new HashMap<String, Set<String>>();
             final Map<String, Set<String>> flsFields = new HashMap<String, Set<String>>();
@@ -449,7 +449,7 @@ public class ConfigModelV7 extends ConfigModel {
 
         }
 
-      //kibana special only, terms eval
+        //kibana special only, terms eval
         public Set<String> getAllPermittedIndicesForKibana(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
             Set<String> retVal = new HashSet<>();
             for (SecurityRole sr : roles) {
@@ -487,7 +487,7 @@ public class ConfigModelV7 extends ConfigModel {
 
         //rolespan
         public boolean impliesTypePermGlobal(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver,
-                ClusterService cs) {
+                                             ClusterService cs) {
             Set<IndexPattern> ipatterns = new HashSet<ConfigModelV7.IndexPattern>();
             roles.stream().forEach(p -> ipatterns.addAll(p.getIpatterns()));
             return ConfigModelV7.impliesTypePerm(ipatterns, resolved, user, actions, resolver, cs);
@@ -513,13 +513,13 @@ public class ConfigModelV7 extends ConfigModel {
         //get indices which are permitted for the given types and actions
         //dnfof + kibana special only
         private Set<String> getAllResolvedPermittedIndices(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver,
-                ClusterService cs) {
+                                                           ClusterService cs) {
 
             final Set<String> retVal = new HashSet<>();
             for (IndexPattern p : ipatterns) {
                 //what if we cannot resolve one (for create purposes)
                 final boolean patternMatch = WildcardMatcher.matchAll(p.getPerms().toArray(new String[0]), actions);
-                
+
 //                final Set<TypePerm> tperms = p.getTypePerms();
 //                for (TypePerm tp : tperms) {
 //                    if (WildcardMatcher.matchAny(tp.typePattern, resolved.getTypes(-).toArray(new String[0]))) {
@@ -759,7 +759,7 @@ public class ConfigModelV7 extends ConfigModel {
                 resolved = resolver.concreteIndexNames(cs.state(), IndicesOptions.lenientExpandOpen(), unresolved);
             }
             if (resolved == null || resolved.length == 0) {
-                return new String[] { unresolved };
+                return new String[]{unresolved};
             } else {
                 //append unresolved value for pattern matching
                 String[] retval = Arrays.copyOf(resolved, resolved.length + 1);
@@ -937,7 +937,7 @@ public class ConfigModelV7 extends ConfigModel {
     }
 
     private static boolean impliesTypePerm(Set<IndexPattern> ipatterns, Resolved resolved, User user, String[] actions,
-            IndexNameExpressionResolver resolver, ClusterService cs) {
+                                           IndexNameExpressionResolver resolver, ClusterService cs) {
         Set<String> matchingIndex = new HashSet<>(resolved.getAllIndices());
 
         for (String in : resolved.getAllIndices()) {
@@ -948,16 +948,16 @@ public class ConfigModelV7 extends ConfigModel {
                 if (WildcardMatcher.matchAny(p.getResolvedIndexPattern(user, resolver, cs), in)) {
                     //per resolved index per pattern
                     //for (String t : resolved.getTypes(-)) {
-                        //for (TypePerm tp : p.typePerms) {
-                            //if (WildcardMatcher.match(tp.typePattern, t)) {
-                                //matchingTypes.remove(t);
-                                for (String a : Arrays.asList(actions)) {
-                                    if (WildcardMatcher.matchAny(p.perms, a)) {
-                                        matchingActions.remove(a);
-                                    }
-                                }
-                            //}
-                        //}
+                    //for (TypePerm tp : p.typePerms) {
+                    //if (WildcardMatcher.match(tp.typePattern, t)) {
+                    //matchingTypes.remove(t);
+                    for (String a : Arrays.asList(actions)) {
+                        if (WildcardMatcher.matchAny(p.perms, a)) {
+                            matchingActions.remove(a);
+                        }
+                    }
+                    //}
+                    //}
                     //}
                 }
             }
@@ -969,11 +969,10 @@ public class ConfigModelV7 extends ConfigModel {
 
         return matchingIndex.isEmpty();
     }
-    
-    
-    
+
+
     //#######
-    
+
     private class TenantHolder {
 
         private SetMultimap<String, Tuple<String, Boolean>> tenantsMM = null;
@@ -983,9 +982,9 @@ public class ConfigModelV7 extends ConfigModel {
 
             final ExecutorService execs = Executors.newFixedThreadPool(10);
 
-            for(Entry<String, RoleV7> securityRole: roles.getCEntries().entrySet()) {
-                
-                if(securityRole.getValue() == null) {
+            for (Entry<String, RoleV7> securityRole : roles.getCEntries().entrySet()) {
+
+                if (securityRole.getValue() == null) {
                     continue;
                 }
 
@@ -996,10 +995,10 @@ public class ConfigModelV7 extends ConfigModel {
                         final List<RoleV7.Tenant> tenants = securityRole.getValue().getTenant_permissions();
 
                         if (tenants != null) {
-                            
+
                             for (RoleV7.Tenant tenant : tenants) {
-                                
-                                for(String matchingTenant: WildcardMatcher.getMatchAny(tenant.getTenant_patterns(), definedTenants.getCEntries().keySet())) {
+
+                                for (String matchingTenant : WildcardMatcher.getMatchAny(tenant.getTenant_patterns(), definedTenants.getCEntries().keySet())) {
                                     tuples.add(new Tuple<String, Boolean>(matchingTenant, agr.resolvedActions(tenant.getAllowed_actions()).contains("kibana:saved_objects/*/write")));
                                 }
                             }
@@ -1059,13 +1058,13 @@ public class ConfigModelV7 extends ConfigModel {
                     result.put(tenant, rw);
                 }
             });
-            
-            if(!result.containsKey("global_tenant") && (
+
+            if (!result.containsKey("global_tenant") && (
                     roles.contains("kibana_user")
-                    || roles.contains("kibana_user")
-                    || roles.contains("all_access")
-                    || roles.contains("ALL_ACCESS")
-                    )) {
+                            || roles.contains("kibana_user")
+                            || roles.contains("all_access")
+                            || roles.contains("ALL_ACCESS")
+            )) {
                 result.put("global_tenant", true);
             }
 
@@ -1084,7 +1083,7 @@ public class ConfigModelV7 extends ConfigModel {
         private RoleMappingHolder(final SecurityDynamicConfiguration<RoleMappingsV7> rolemappings, final String hostResolverMode) {
 
             this.hostResolverMode = hostResolverMode;
-            
+
             if (roles != null) {
 
                 final ListMultimap<String, String> users_ = ArrayListMultimap.create();
@@ -1185,10 +1184,7 @@ public class ConfigModelV7 extends ConfigModel {
 
         }
     }
-    
-    
-    
-    
+
 
     public Map<String, Boolean> mapTenants(User user, Set<String> roles) {
         return tenantHolder.mapTenants(user, roles);

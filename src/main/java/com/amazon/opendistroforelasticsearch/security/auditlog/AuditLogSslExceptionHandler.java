@@ -37,7 +37,7 @@ import org.elasticsearch.transport.TransportRequest;
 
 import com.amazon.opendistroforelasticsearch.security.ssl.SslExceptionHandler;
 
-public class AuditLogSslExceptionHandler implements SslExceptionHandler{
+public class AuditLogSslExceptionHandler implements SslExceptionHandler {
 
     private final AuditLog auditLog;
 
@@ -49,14 +49,14 @@ public class AuditLogSslExceptionHandler implements SslExceptionHandler{
     @Override
     public void logError(Throwable t, RestRequest request, int type) {
         switch (type) {
-        case 0:
-            auditLog.logSSLException(request, t);
-            break;
-        case 1:
-            auditLog.logBadHeaders(request);
-            break;
-        default:
-            break;
+            case 0:
+                auditLog.logSSLException(request, t);
+                break;
+            case 1:
+                auditLog.logBadHeaders(request);
+                break;
+            default:
+                break;
         }
     }
 
@@ -72,18 +72,18 @@ public class AuditLogSslExceptionHandler implements SslExceptionHandler{
     @Override
     public void logError(Throwable t, TransportRequest request, String action, Task task, int type) {
         switch (type) {
-        case 0:
-            if(t instanceof ElasticsearchException) {
-                auditLog.logMissingPrivileges(action, request, task);
-            } else {
-                auditLog.logSSLException(request, t, action, task);
-            }
-            break;
-        case 1:
-            auditLog.logBadHeaders(request, action, task);
-            break;
-        default:
-            break;
+            case 0:
+                if (t instanceof ElasticsearchException) {
+                    auditLog.logMissingPrivileges(action, request, task);
+                } else {
+                    auditLog.logSSLException(request, t, action, task);
+                }
+                break;
+            case 1:
+                auditLog.logBadHeaders(request, action, task);
+                break;
+            default:
+                break;
         }
     }
 

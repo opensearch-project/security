@@ -57,19 +57,19 @@ public class HTTPProxyAuthenticator implements HTTPAuthenticator {
 
     @Override
     public AuthCredentials extractCredentials(final RestRequest request, ThreadContext context) {
-    	
-        if(context.getTransient(ConfigConstants.OPENDISTRO_SECURITY_XFF_DONE) !=  Boolean.TRUE) {
+
+        if (context.getTransient(ConfigConstants.OPENDISTRO_SECURITY_XFF_DONE) != Boolean.TRUE) {
             throw new ElasticsearchSecurityException("xff not done");
         }
-        
+
         final String userHeader = settings.get("user_header");
         final String rolesHeader = settings.get("roles_header");
         final String rolesSeparator = settings.get("roles_separator", ",");
-        
-        if(log.isDebugEnabled()) {
+
+        if (log.isDebugEnabled()) {
             log.debug("headers {}", request.getHeaders());
-            log.debug("userHeader {}, value {}", userHeader, userHeader == null?null:request.header(userHeader));
-            log.debug("rolesHeader {}, value {}", rolesHeader, rolesHeader == null?null:request.header(rolesHeader));
+            log.debug("userHeader {}, value {}", userHeader, userHeader == null ? null : request.header(userHeader));
+            log.debug("rolesHeader {}, value {}", rolesHeader, rolesHeader == null ? null : request.header(rolesHeader));
         }
 
         if (!Strings.isNullOrEmpty(userHeader) && !Strings.isNullOrEmpty((String) request.header(userHeader))) {
@@ -81,7 +81,7 @@ public class HTTPProxyAuthenticator implements HTTPAuthenticator {
             }
             return new AuthCredentials((String) request.header(userHeader), backendRoles).markComplete();
         } else {
-            if(log.isTraceEnabled()) {
+            if (log.isTraceEnabled()) {
                 log.trace("No '{}' header, send 401", userHeader);
             }
             return null;

@@ -46,7 +46,7 @@ import com.amazon.opendistroforelasticsearch.security.http.HTTPProxyAuthenticato
 import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
 import com.google.common.base.Joiner;
 
-public class HTTPExtendedProxyAuthenticator extends HTTPProxyAuthenticator{
+public class HTTPExtendedProxyAuthenticator extends HTTPProxyAuthenticator {
 
     private static final String ATTR_PROXY = "attr.proxy.";
     private static final String ATTR_PROXY_USERNAME = "attr.proxy.username";
@@ -60,27 +60,27 @@ public class HTTPExtendedProxyAuthenticator extends HTTPProxyAuthenticator{
 
     @Override
     public AuthCredentials extractCredentials(final RestRequest request, ThreadContext context) {
-    	AuthCredentials credentials = super.extractCredentials(request, context);
-    	if(credentials == null) {
-    	    return null;
-    	}
-        
+        AuthCredentials credentials = super.extractCredentials(request, context);
+        if (credentials == null) {
+            return null;
+        }
+
         String attrHeaderPrefix = settings.get("attr_header_prefix");
-        if(Strings.isNullOrEmpty(attrHeaderPrefix)) {
+        if (Strings.isNullOrEmpty(attrHeaderPrefix)) {
             log.debug("attr_header_prefix is null. Skipping additional attribute extraction");
             return credentials;
-        } else if(log.isDebugEnabled()) {
+        } else if (log.isDebugEnabled()) {
             log.debug("attrHeaderPrefix {}", attrHeaderPrefix);
         }
-        
+
         credentials.addAttribute(ATTR_PROXY_USERNAME, credentials.getUsername());
         attrHeaderPrefix = attrHeaderPrefix.toLowerCase();
         for (Entry<String, List<String>> entry : request.getHeaders().entrySet()) {
             String key = entry.getKey().toLowerCase();
-            if(key.startsWith(attrHeaderPrefix)) {
+            if (key.startsWith(attrHeaderPrefix)) {
                 key = ATTR_PROXY + key.substring(attrHeaderPrefix.length());
                 credentials.addAttribute(key, Joiner.on(",").join(entry.getValue().iterator()));
-                if(log.isTraceEnabled()) {
+                if (log.isTraceEnabled()) {
                     log.trace("Found user custom attribute '{}'", key);
                 }
             }

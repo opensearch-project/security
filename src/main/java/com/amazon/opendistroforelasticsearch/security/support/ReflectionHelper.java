@@ -86,9 +86,9 @@ public class ReflectionHelper {
         if (advancedModulesDisabled()) {
             return;
         }
-        
-        if(!settings.getAsBoolean("http.enabled", true)) {
-    
+
+        if (!settings.getAsBoolean("http.enabled", true)) {
+
             try {
                 final Class<?> clazz = Class.forName("com.amazon.opendistroforelasticsearch.security.dlic.rest.api.OpenDistroSecurityRestApiActions");
                 //addLoadedModule(clazz);
@@ -96,8 +96,8 @@ public class ReflectionHelper {
                 //and it is not loaded in every case/on every node
             } catch (final Throwable e) {
                 log.warn("Unable to register Rest Management Api Module due to {}", e.toString());
-                if(log.isDebugEnabled()) {
-                    log.debug("Stacktrace: ",e);
+                if (log.isDebugEnabled()) {
+                    log.debug("Stacktrace: ", e);
                 }
             }
         }
@@ -105,8 +105,8 @@ public class ReflectionHelper {
 
     @SuppressWarnings("unchecked")
     public static Collection<RestHandler> instantiateMngtRestApiHandler(final Settings settings, final Path configPath, final RestController restController,
-            final Client localClient, final AdminDNs adminDns, final ConfigurationRepository cr, final ClusterService cs, final PrincipalExtractor principalExtractor,
-            final PrivilegesEvaluator evaluator, final ThreadPool threadPool, final AuditLog auditlog) {
+                                                                        final Client localClient, final AdminDNs adminDns, final ConfigurationRepository cr, final ClusterService cs, final PrincipalExtractor principalExtractor,
+                                                                        final PrivilegesEvaluator evaluator, final ThreadPool threadPool, final AuditLog auditlog) {
 
         if (advancedModulesDisabled()) {
             return Collections.emptyList();
@@ -122,8 +122,8 @@ public class ReflectionHelper {
             return ret;
         } catch (final Throwable e) {
             log.warn("Unable to enable Rest Management Api Module due to {}", e.toString());
-            if(log.isDebugEnabled()) {
-                log.debug("Stacktrace: ",e);
+            if (log.isDebugEnabled()) {
+                log.debug("Stacktrace: ", e);
             }
             return Collections.emptyList();
         }
@@ -145,8 +145,8 @@ public class ReflectionHelper {
             return ret;
         } catch (final Throwable e) {
             log.warn("Unable to enable DLS/FLS Module due to {}", e.toString());
-            if(log.isDebugEnabled()) {
-                log.debug("Stacktrace: ",e);
+            if (log.isDebugEnabled()) {
+                log.debug("Stacktrace: ", e);
             }
             return null;
         }
@@ -164,15 +164,15 @@ public class ReflectionHelper {
             return ret;
         } catch (final Throwable e) {
             log.warn("Unable to enable DLS/FLS Valve Module due to {}", e.toString());
-            if(log.isDebugEnabled()) {
-                log.debug("Stacktrace: ",e);
+            if (log.isDebugEnabled()) {
+                log.debug("Stacktrace: ", e);
             }
             return new DlsFlsRequestValve.NoopDlsFlsRequestValve();
         }
     }
 
     public static AuditLog instantiateAuditLog(final Settings settings, final Path configPath, final Client localClient, final ThreadPool threadPool,
-            final IndexNameExpressionResolver resolver, final ClusterService clusterService) {
+                                               final IndexNameExpressionResolver resolver, final ClusterService clusterService) {
 
         if (advancedModulesDisabled()) {
             return new NullAuditLog();
@@ -187,8 +187,8 @@ public class ReflectionHelper {
             return impl;
         } catch (final Throwable e) {
             log.warn("Unable to enable Auditlog Module due to {}", e.toString());
-            if(log.isDebugEnabled()) {
-                log.debug("Stacktrace: ",e);
+            if (log.isDebugEnabled()) {
+                log.debug("Stacktrace: ", e);
             }
             return new NullAuditLog();
         }
@@ -209,22 +209,22 @@ public class ReflectionHelper {
             return impl;
         } catch (final ClassNotFoundException e) {
             //TODO produce a single warn msg, this here is issued for every index
-           log.debug("Unable to enable Compliance Module due to {}", e.toString());
-           if(log.isDebugEnabled()) {
-               log.debug("Stacktrace: ",e);
-           }
-           return new ComplianceIndexingOperationListener();
+            log.debug("Unable to enable Compliance Module due to {}", e.toString());
+            if (log.isDebugEnabled()) {
+                log.debug("Stacktrace: ", e);
+            }
+            return new ComplianceIndexingOperationListener();
         } catch (final Throwable e) {
             log.error("Unable to enable Compliance Module due to {}", e.toString());
-            if(log.isDebugEnabled()) {
-                log.debug("Stacktrace: ",e);
+            if (log.isDebugEnabled()) {
+                log.debug("Stacktrace: ", e);
             }
             return new ComplianceIndexingOperationListener();
         }
     }
 
     public static PrivilegesInterceptor instantiatePrivilegesInterceptorImpl(final IndexNameExpressionResolver resolver, final ClusterService clusterService,
-            final Client localClient, final ThreadPool threadPool) {
+                                                                             final Client localClient, final ThreadPool threadPool) {
 
         final PrivilegesInterceptor noop = new PrivilegesInterceptor(resolver, clusterService, localClient, threadPool);
 
@@ -240,8 +240,8 @@ public class ReflectionHelper {
             return ret;
         } catch (final Throwable e) {
             log.warn("Unable to enable Kibana Module due to {}", e.toString());
-            if(log.isDebugEnabled()) {
-                log.debug("Stacktrace: ",e);
+            if (log.isDebugEnabled()) {
+                log.debug("Stacktrace: ", e);
             }
             return noop;
         }
@@ -264,8 +264,8 @@ public class ReflectionHelper {
 
         } catch (final Throwable e) {
             log.warn("Unable to enable '{}' due to {}", clazz, e.toString());
-            if(log.isDebugEnabled()) {
-                log.debug("Stacktrace: ",e);
+            if (log.isDebugEnabled()) {
+                log.debug("Stacktrace: ", e);
             }
             throw new ElasticsearchException(e);
         }
@@ -280,8 +280,8 @@ public class ReflectionHelper {
             return ret;
         } catch (final Throwable e) {
             log.warn("Unable to load inter cluster request evaluator '{}' due to {}", clazz, e.toString());
-            if(log.isDebugEnabled()) {
-                log.debug("Stacktrace: ",e);
+            if (log.isDebugEnabled()) {
+                log.debug("Stacktrace: ", e);
             }
             return new DefaultInterClusterRequestEvaluator(settings);
         }
@@ -296,8 +296,8 @@ public class ReflectionHelper {
             return ret;
         } catch (final Throwable e) {
             log.warn("Unable to load pricipal extractor '{}' due to {}", clazz, e.toString());
-            if(log.isDebugEnabled()) {
-                log.debug("Stacktrace: ",e);
+            if (log.isDebugEnabled()) {
+                log.debug("Stacktrace: ", e);
             }
             return new DefaultPrincipalExtractor();
         }
@@ -317,7 +317,7 @@ public class ReflectionHelper {
         if (clazz.equalsIgnoreCase("com.amazon.dlic.auth.http.jwt.HTTPJwtAuthenticator")) {
             advancedModuleInstalled = true;
         }
-        
+
         if (clazz.equalsIgnoreCase("com.amazon.dlic.auth.http.jwt.keybyoidc.HTTPJwtKeyByOpenIdConnectAuthenticator")) {
             advancedModuleInstalled = true;
         }
@@ -325,7 +325,7 @@ public class ReflectionHelper {
         if (clazz.equalsIgnoreCase("com.amazon.dlic.auth.http.kerberos.HTTPSpnegoAuthenticator")) {
             advancedModuleInstalled = true;
         }
-        
+
         if (clazz.equalsIgnoreCase("com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator")) {
             advancedModuleInstalled = true;
         }

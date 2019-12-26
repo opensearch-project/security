@@ -48,13 +48,14 @@ import com.amazon.opendistroforelasticsearch.security.user.User;
  * Instead catch all exceptions and log a appropriate error message. A logger can be instantiated like:
  * <p/>
  * {@code private final Logger log = LogManager.getLogger(this.getClass());}
- * 
+ * <p>
  * <p/>
  */
 public interface AuthenticationBackend {
 
     /**
-     * The type (name) of the authenticator. Only for logging.  
+     * The type (name) of the authenticator. Only for logging.
+     *
      * @return the type
      */
     String getType();
@@ -63,20 +64,20 @@ public interface AuthenticationBackend {
      * Validate credentials and return an authenticated user (or throw an ElasticsearchSecurityException)
      * <p/>
      * Results of this method are normally cached so that we not need to query the backend for every authentication attempt.
-     * <p/> 
+     * <p/>
+     *
      * @param The credentials to be validated, never null
      * @return the authenticated User, never null
-     * @throws ElasticsearchSecurityException in case an authentication failure 
-     * (when credentials are incorrect, the user does not exist or the backend is not reachable)
+     * @throws ElasticsearchSecurityException in case an authentication failure
+     *                                        (when credentials are incorrect, the user does not exist or the backend is not reachable)
      */
     User authenticate(AuthCredentials credentials) throws ElasticsearchSecurityException;
-    
+
     /**
-     * 
      * Lookup for a specific user in the authentication backend
-     * 
+     *
      * @param user The user for which the authentication backend should be queried. If the authentication backend supports
-     * user attributes in combination with impersonation the attributes needs to be added to user by calling {@code user.addAttributes()} 
+     *             user attributes in combination with impersonation the attributes needs to be added to user by calling {@code user.addAttributes()}
      * @return true if the user exists in the authentication backend, false otherwise. Before return call {@code user.addAttributes()} as explained above.
      */
     boolean exists(User user);

@@ -78,7 +78,7 @@ final class RemoteIpDetector {
      */
     protected static String[] commaDelimitedListToStringArray(String commaDelimitedStrings) {
         return (commaDelimitedStrings == null || commaDelimitedStrings.length() == 0) ? new String[0] : commaSeparatedValuesPattern
-            .split(commaDelimitedStrings);
+                .split(commaDelimitedStrings);
     }
 
     /**
@@ -86,12 +86,12 @@ final class RemoteIpDetector {
      */
     private Pattern internalProxies = Pattern.compile(
             "10\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}|" +
-            "192\\.168\\.\\d{1,3}\\.\\d{1,3}|" +
-            "169\\.254\\.\\d{1,3}\\.\\d{1,3}|" +
-            "127\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}|" +
-            "172\\.1[6-9]{1}\\.\\d{1,3}\\.\\d{1,3}|" +
-            "172\\.2[0-9]{1}\\.\\d{1,3}\\.\\d{1,3}|" +
-            "172\\.3[0-1]{1}\\.\\d{1,3}\\.\\d{1,3}");
+                    "192\\.168\\.\\d{1,3}\\.\\d{1,3}|" +
+                    "169\\.254\\.\\d{1,3}\\.\\d{1,3}|" +
+                    "127\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}|" +
+                    "172\\.1[6-9]{1}\\.\\d{1,3}\\.\\d{1,3}|" +
+                    "172\\.2[0-9]{1}\\.\\d{1,3}\\.\\d{1,3}|" +
+                    "172\\.3[0-1]{1}\\.\\d{1,3}\\.\\d{1,3}");
 
     /**
      * @see #setRemoteIpHeader(String)
@@ -99,8 +99,8 @@ final class RemoteIpDetector {
     private String remoteIpHeader = "X-Forwarded-For";
 
     /**
-     * @see #setInternalProxies(String)
      * @return Regular expression that defines the internal proxies
+     * @see #setInternalProxies(String)
      */
     public String getInternalProxies() {
         if (internalProxies == null) {
@@ -110,45 +110,45 @@ final class RemoteIpDetector {
     }
 
     /**
-     * @see #setRemoteIpHeader(String)
      * @return the remote IP header name (e.g. "X-Forwarded-For")
+     * @see #setRemoteIpHeader(String)
      */
     public String getRemoteIpHeader() {
         return remoteIpHeader;
     }
 
-    String detect(RestRequest request, ThreadContext threadContext){
-        final String originalRemoteAddr = ((InetSocketAddress)request.getHttpChannel().getRemoteAddress()).getAddress().getHostAddress();
-        
-        if(log.isTraceEnabled()) {
+    String detect(RestRequest request, ThreadContext threadContext) {
+        final String originalRemoteAddr = ((InetSocketAddress) request.getHttpChannel().getRemoteAddress()).getAddress().getHostAddress();
+
+        if (log.isTraceEnabled()) {
             log.trace("originalRemoteAddr {}", originalRemoteAddr);
         }
-        
+
         //X-Forwarded-For: client1, proxy1, proxy2
         //                                   ^^^^^^ originalRemoteAddr
-        
+
         //originalRemoteAddr need to be in the list of internalProxies
-        if (internalProxies !=null &&
+        if (internalProxies != null &&
                 internalProxies.matcher(originalRemoteAddr).matches()) {
             String remoteIp = null;
             final StringBuilder concatRemoteIpHeaderValue = new StringBuilder();
-            
+
             //client1, proxy1, proxy2
             final List<String> remoteIpHeaders = request.getHeaders().get(remoteIpHeader); //X-Forwarded-For
 
-            if(remoteIpHeaders == null || remoteIpHeaders.isEmpty()) {
+            if (remoteIpHeaders == null || remoteIpHeaders.isEmpty()) {
                 return originalRemoteAddr;
             }
-            
-            for (String rh:remoteIpHeaders) {
+
+            for (String rh : remoteIpHeaders) {
                 if (concatRemoteIpHeaderValue.length() > 0) {
                     concatRemoteIpHeaderValue.append(", ");
                 }
 
                 concatRemoteIpHeaderValue.append(rh);
             }
-            
-            if(log.isTraceEnabled()) {
+
+            if (log.isTraceEnabled()) {
                 log.trace("concatRemoteIpHeaderValue {}", concatRemoteIpHeaderValue.toString());
             }
 
@@ -165,35 +165,35 @@ final class RemoteIpDetector {
                     break;
                 }
             }
-            
+
             // continue to loop on remoteIpHeaderValue to build the new value of the remoteIpHeader
             final LinkedList<String> newRemoteIpHeaderValue = new LinkedList<>();
             for (; idx >= 0; idx--) {
                 String currentRemoteIp = remoteIpHeaderValue[idx];
                 newRemoteIpHeaderValue.addFirst(currentRemoteIp);
             }
-            
+
             if (remoteIp != null) {
                 if (log.isTraceEnabled()) {
-                    final String originalRemoteHost = ((InetSocketAddress)request.getHttpChannel().getRemoteAddress()).getAddress().getHostName();
+                    final String originalRemoteHost = ((InetSocketAddress) request.getHttpChannel().getRemoteAddress()).getAddress().getHostName();
                     log.trace("Incoming request " + request.uri() + " with originalRemoteAddr '" + originalRemoteAddr
-                              + "', originalRemoteHost='" + originalRemoteHost + "', will be seen as newRemoteAddr='" + remoteIp);
+                            + "', originalRemoteHost='" + originalRemoteHost + "', will be seen as newRemoteAddr='" + remoteIp);
                 }
 
                 threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_XFF_DONE, Boolean.TRUE);
                 return remoteIp;
-                
+
             } else {
                 log.warn("Remote ip could not be detected, this should normally not happen");
             }
-            
+
         } else {
             if (log.isTraceEnabled()) {
                 log.trace("Skip RemoteIpDetector for request " + request.uri() + " with originalRemoteAddr '"
                         + request.getHttpChannel().getRemoteAddress() + "' cause no internal proxy matches");
             }
         }
-        
+
         return originalRemoteAddr;
     }
 

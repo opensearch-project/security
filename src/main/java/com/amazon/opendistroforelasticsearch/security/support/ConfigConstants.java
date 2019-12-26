@@ -41,64 +41,64 @@ public class ConfigConstants {
 
     public static final String OPENDISTRO_SECURITY_CONFIG_PREFIX = "_opendistro_security_";
 
-    public static final String OPENDISTRO_SECURITY_CHANNEL_TYPE = OPENDISTRO_SECURITY_CONFIG_PREFIX+"channel_type";
+    public static final String OPENDISTRO_SECURITY_CHANNEL_TYPE = OPENDISTRO_SECURITY_CONFIG_PREFIX + "channel_type";
 
-    public static final String OPENDISTRO_SECURITY_ORIGIN = OPENDISTRO_SECURITY_CONFIG_PREFIX+"origin";
-    public static final String OPENDISTRO_SECURITY_ORIGIN_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX+"origin_header";
+    public static final String OPENDISTRO_SECURITY_ORIGIN = OPENDISTRO_SECURITY_CONFIG_PREFIX + "origin";
+    public static final String OPENDISTRO_SECURITY_ORIGIN_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX + "origin_header";
 
-    public static final String OPENDISTRO_SECURITY_DLS_QUERY_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX+"dls_query";
+    public static final String OPENDISTRO_SECURITY_DLS_QUERY_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX + "dls_query";
 
-    public static final String OPENDISTRO_SECURITY_FLS_FIELDS_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX+"fls_fields";
-    
-    public static final String OPENDISTRO_SECURITY_MASKED_FIELD_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX+"masked_fields";
+    public static final String OPENDISTRO_SECURITY_FLS_FIELDS_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX + "fls_fields";
 
-    public static final String OPENDISTRO_SECURITY_DLS_QUERY_CCS = OPENDISTRO_SECURITY_CONFIG_PREFIX+"dls_query_ccs";
+    public static final String OPENDISTRO_SECURITY_MASKED_FIELD_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX + "masked_fields";
 
-    public static final String OPENDISTRO_SECURITY_FLS_FIELDS_CCS = OPENDISTRO_SECURITY_CONFIG_PREFIX+"fls_fields_ccs";
+    public static final String OPENDISTRO_SECURITY_DLS_QUERY_CCS = OPENDISTRO_SECURITY_CONFIG_PREFIX + "dls_query_ccs";
 
-    public static final String OPENDISTRO_SECURITY_MASKED_FIELD_CCS = OPENDISTRO_SECURITY_CONFIG_PREFIX+"masked_fields_ccs";
+    public static final String OPENDISTRO_SECURITY_FLS_FIELDS_CCS = OPENDISTRO_SECURITY_CONFIG_PREFIX + "fls_fields_ccs";
 
-    public static final String OPENDISTRO_SECURITY_CONF_REQUEST_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX+"conf_request";
+    public static final String OPENDISTRO_SECURITY_MASKED_FIELD_CCS = OPENDISTRO_SECURITY_CONFIG_PREFIX + "masked_fields_ccs";
 
-    public static final String OPENDISTRO_SECURITY_REMOTE_ADDRESS = OPENDISTRO_SECURITY_CONFIG_PREFIX+"remote_address";
-    public static final String OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX+"remote_address_header";
-    
-    public static final String OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX+"initial_action_class_header";
+    public static final String OPENDISTRO_SECURITY_CONF_REQUEST_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX + "conf_request";
 
-    /**
-     * Set by SSL plugin for https requests only
-     */
-    public static final String OPENDISTRO_SECURITY_SSL_PEER_CERTIFICATES = OPENDISTRO_SECURITY_CONFIG_PREFIX+"ssl_peer_certificates";
+    public static final String OPENDISTRO_SECURITY_REMOTE_ADDRESS = OPENDISTRO_SECURITY_CONFIG_PREFIX + "remote_address";
+    public static final String OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX + "remote_address_header";
+
+    public static final String OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX + "initial_action_class_header";
 
     /**
      * Set by SSL plugin for https requests only
      */
-    public static final String OPENDISTRO_SECURITY_SSL_PRINCIPAL = OPENDISTRO_SECURITY_CONFIG_PREFIX+"ssl_principal";
+    public static final String OPENDISTRO_SECURITY_SSL_PEER_CERTIFICATES = OPENDISTRO_SECURITY_CONFIG_PREFIX + "ssl_peer_certificates";
+
+    /**
+     * Set by SSL plugin for https requests only
+     */
+    public static final String OPENDISTRO_SECURITY_SSL_PRINCIPAL = OPENDISTRO_SECURITY_CONFIG_PREFIX + "ssl_principal";
 
     /**
      * If this is set to TRUE then the request comes from a Server Node (fully trust)
      * Its expected that there is a _opendistro_security_user attached as header
      */
-    public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_INTERCLUSTER_REQUEST = OPENDISTRO_SECURITY_CONFIG_PREFIX+"ssl_transport_intercluster_request";
+    public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_INTERCLUSTER_REQUEST = OPENDISTRO_SECURITY_CONFIG_PREFIX + "ssl_transport_intercluster_request";
 
-    public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTED_CLUSTER_REQUEST = OPENDISTRO_SECURITY_CONFIG_PREFIX+"ssl_transport_trustedcluster_request";
+    public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTED_CLUSTER_REQUEST = OPENDISTRO_SECURITY_CONFIG_PREFIX + "ssl_transport_trustedcluster_request";
 
 
     /**
      * Set by the SSL plugin, this is the peer node certificate on the transport layer
      */
-    public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_PRINCIPAL = OPENDISTRO_SECURITY_CONFIG_PREFIX+"ssl_transport_principal";
+    public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_PRINCIPAL = OPENDISTRO_SECURITY_CONFIG_PREFIX + "ssl_transport_principal";
 
-    public static final String OPENDISTRO_SECURITY_USER = OPENDISTRO_SECURITY_CONFIG_PREFIX+"user";
-    public static final String OPENDISTRO_SECURITY_USER_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX+"user_header";
+    public static final String OPENDISTRO_SECURITY_USER = OPENDISTRO_SECURITY_CONFIG_PREFIX + "user";
+    public static final String OPENDISTRO_SECURITY_USER_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX + "user_header";
 
     public static final String OPENDISTRO_SECURITY_INJECTED_USER = "injected_user";
-    
-    public static final String OPENDISTRO_SECURITY_XFF_DONE = OPENDISTRO_SECURITY_CONFIG_PREFIX+"xff_done";
 
-    public static final String SSO_LOGOUT_URL = OPENDISTRO_SECURITY_CONFIG_PREFIX+"sso_logout_url";
+    public static final String OPENDISTRO_SECURITY_XFF_DONE = OPENDISTRO_SECURITY_CONFIG_PREFIX + "xff_done";
 
-    
+    public static final String SSO_LOGOUT_URL = OPENDISTRO_SECURITY_CONFIG_PREFIX + "sso_logout_url";
+
+
     public static final String OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX = ".opendistro_security";
 
     public static final String OPENDISTRO_SECURITY_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE = "opendistro_security.enable_snapshot_restore_privilege";
@@ -111,17 +111,17 @@ public class ConfigConstants {
                     "indices:admin/create",
                     "indices:data/write/index"
                     // "indices:data/write/bulk"
-              )));
+            )));
 
     public static final String OPENDISTRO_SECURITY_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = "opendistro_security.cert.intercluster_request_evaluator_class";
-    public static final String OPENDISTRO_SECURITY_ACTION_NAME = OPENDISTRO_SECURITY_CONFIG_PREFIX+"action_name";
+    public static final String OPENDISTRO_SECURITY_ACTION_NAME = OPENDISTRO_SECURITY_CONFIG_PREFIX + "action_name";
 
 
     public static final String OPENDISTRO_SECURITY_AUTHCZ_ADMIN_DN = "opendistro_security.authcz.admin_dn";
     public static final String OPENDISTRO_SECURITY_CONFIG_INDEX_NAME = "opendistro_security.config_index_name";
     public static final String OPENDISTRO_SECURITY_AUTHCZ_IMPERSONATION_DN = "opendistro_security.authcz.impersonation_dn";
-    public static final String OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS="opendistro_security.authcz.rest_impersonation_user";
-    
+    public static final String OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS = "opendistro_security.authcz.rest_impersonation_user";
+
     public static final String OPENDISTRO_SECURITY_AUDIT_TYPE_DEFAULT = "opendistro_security.audit.type";
     public static final String OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT = "opendistro_security.audit.config";
     public static final String OPENDISTRO_SECURITY_AUDIT_CONFIG_ROUTES = "opendistro_security.audit.routes";
@@ -140,13 +140,13 @@ public class ConfigConstants {
     public static final boolean OPENDISTRO_SECURITY_AUDIT_SSL_VERIFY_HOSTNAMES_DEFAULT = true;
     public static final boolean OPENDISTRO_SECURITY_AUDIT_SSL_ENABLE_SSL_CLIENT_AUTH_DEFAULT = false;
     public static final String OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS = "opendistro_security.audit.exclude_sensitive_headers";
-    
+
     public static final String OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX = "opendistro_security.audit.config.";
 
     // Internal / External ES
     public static final String OPENDISTRO_SECURITY_AUDIT_ES_INDEX = "index";
     public static final String OPENDISTRO_SECURITY_AUDIT_ES_TYPE = "type";
-    
+
     // External ES
     public static final String OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_HTTP_ENDPOINTS = "http_endpoints";
     public static final String OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_USERNAME = "username";
@@ -171,16 +171,16 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_AUDIT_WEBHOOK_SSL_VERIFY = "webhook.ssl.verify";
     public static final String OPENDISTRO_SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_FILEPATH = "webhook.ssl.pemtrustedcas_filepath";
     public static final String OPENDISTRO_SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_CONTENT = "webhook.ssl.pemtrustedcas_content";
-    
+
     // Log4j
     public static final String OPENDISTRO_SECURITY_AUDIT_LOG4J_LOGGER_NAME = "log4j.logger_name";
     public static final String OPENDISTRO_SECURITY_AUDIT_LOG4J_LEVEL = "log4j.level";
-    
+
     //retry
     public static final String OPENDISTRO_SECURITY_AUDIT_RETRY_COUNT = "opendistro_security.audit.config.retry_count";
     public static final String OPENDISTRO_SECURITY_AUDIT_RETRY_DELAY_MS = "opendistro_security.audit.config.retry_delay_ms";
 
-        
+
     public static final String OPENDISTRO_SECURITY_KERBEROS_KRB5_FILEPATH = "opendistro_security.kerberos.krb5_filepath";
     public static final String OPENDISTRO_SECURITY_KERBEROS_ACCEPTOR_KEYTAB_FILEPATH = "opendistro_security.kerberos.acceptor_keytab_filepath";
     public static final String OPENDISTRO_SECURITY_KERBEROS_ACCEPTOR_PRINCIPAL = "opendistro_security.kerberos.acceptor_principal";
@@ -203,17 +203,17 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS = "opendistro_security.compliance.history.write.log_diffs";
     public static final String OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS = "opendistro_security.compliance.history.read.ignore_users";
     public static final String OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS = "opendistro_security.compliance.history.write.ignore_users";
-    public static final String OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED  = "opendistro_security.compliance.history.external_config_enabled";
-    public static final String OPENDISTRO_SECURITY_COMPLIANCE_DISABLE_ANONYMOUS_AUTHENTICATION  = "opendistro_security.compliance.disable_anonymous_authentication";
+    public static final String OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED = "opendistro_security.compliance.history.external_config_enabled";
+    public static final String OPENDISTRO_SECURITY_COMPLIANCE_DISABLE_ANONYMOUS_AUTHENTICATION = "opendistro_security.compliance.disable_anonymous_authentication";
     public static final String OPENDISTRO_SECURITY_COMPLIANCE_IMMUTABLE_INDICES = "opendistro_security.compliance.immutable_indices";
     public static final String OPENDISTRO_SECURITY_COMPLIANCE_SALT = "opendistro_security.compliance.salt";
     public static final String OPENDISTRO_SECURITY_COMPLIANCE_SALT_DEFAULT = "e1ukloTsQlOgPquJ";//16 chars
-    public static final String OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED  = "opendistro_security.compliance.history.internal_config_enabled";
+    public static final String OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED = "opendistro_security.compliance.history.internal_config_enabled";
 
     public static final String OPENDISTRO_SECURITY_SSL_ONLY = "opendistro_security.ssl_only";
-    
+
     public static final String OPENDISTRO_SECURITY_DISABLE_ENVVAR_REPLACEMENT = "opendistro_security.disable_envvar_replacement";
-    
+
     public enum RolesMappingResolution {
         MAPPING_ONLY,
         BACKENDROLES_ONLY,

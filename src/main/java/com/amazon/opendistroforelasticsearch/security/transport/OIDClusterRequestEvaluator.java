@@ -41,7 +41,6 @@ import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 /**
  * Implementation to evaluate a certificate extension with a given OID
  * and value to the same value found on the peer certificate
- *
  */
 public final class OIDClusterRequestEvaluator implements InterClusterRequestEvaluator {
     private final String certOid;
@@ -52,7 +51,7 @@ public final class OIDClusterRequestEvaluator implements InterClusterRequestEval
 
     @Override
     public boolean isInterClusterRequest(TransportRequest request, X509Certificate[] localCerts, X509Certificate[] peerCerts,
-            final String principal) {
+                                         final String principal) {
         if (localCerts != null && localCerts.length > 0 && peerCerts != null && peerCerts.length > 0) {
             final byte[] localValue = localCerts[0].getExtensionValue(certOid);
             final byte[] peerValue = peerCerts[0].getExtensionValue(certOid);

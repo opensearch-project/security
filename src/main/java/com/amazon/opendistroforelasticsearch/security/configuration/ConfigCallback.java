@@ -35,10 +35,13 @@ import org.elasticsearch.action.get.MultiGetResponse.Failure;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SecurityDynamicConfiguration;
 
 public interface ConfigCallback {
-    
+
     void success(SecurityDynamicConfiguration<?> dConf);
+
     void noData(String id, String type);
+
     void singleFailure(Failure failure);
+
     void failure(Throwable t);
 
 }

@@ -40,6 +40,7 @@ public class OpenDistroSecurityDeprecationHandler {
             throw new UnsupportedOperationException("deprecated fields not supported here but got ["
                     + usedName + "] which is a deprecated name for [" + replacedWith + "]");
         }
+
         @Override
         public void usedDeprecatedName(String usedName, String modernName) {
             throw new UnsupportedOperationException("deprecated fields not supported here but got ["

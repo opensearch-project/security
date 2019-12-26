@@ -54,7 +54,7 @@ import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.HeaderHelper;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 
-public class OpenDistroSecurityIndexSearcherWrapper implements CheckedFunction<DirectoryReader, DirectoryReader, IOException>, DynamicConfigFactory.DCFListener  {
+public class OpenDistroSecurityIndexSearcherWrapper implements CheckedFunction<DirectoryReader, DirectoryReader, IOException>, DynamicConfigFactory.DCFListener {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
     protected final ThreadContext threadContext;

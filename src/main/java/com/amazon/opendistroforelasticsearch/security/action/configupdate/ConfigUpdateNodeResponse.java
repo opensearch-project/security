@@ -39,10 +39,10 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 public class ConfigUpdateNodeResponse extends BaseNodeResponse {
-    
+
     private String[] updatedConfigTypes;
     private String message;
-    
+
     ConfigUpdateNodeResponse() {
     }
 
@@ -51,21 +51,21 @@ public class ConfigUpdateNodeResponse extends BaseNodeResponse {
         this.updatedConfigTypes = updatedConfigTypes;
         this.message = message;
     }
-    
+
     public static ConfigUpdateNodeResponse readNodeResponse(StreamInput in) throws IOException {
         ConfigUpdateNodeResponse nodeResponse = new ConfigUpdateNodeResponse();
         nodeResponse.readFrom(in);
         return nodeResponse;
     }
-    
+
     public String[] getUpdatedConfigTypes() {
-        return updatedConfigTypes==null?null:Arrays.copyOf(updatedConfigTypes, updatedConfigTypes.length);
+        return updatedConfigTypes == null ? null : Arrays.copyOf(updatedConfigTypes, updatedConfigTypes.length);
     }
 
     public String getMessage() {
         return message;
     }
-    
+
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);

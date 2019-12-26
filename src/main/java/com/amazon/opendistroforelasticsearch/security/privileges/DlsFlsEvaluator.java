@@ -78,7 +78,7 @@ public class DlsFlsEvaluator {
 
         if (maskedFieldsMap != null && !maskedFieldsMap.isEmpty()) {
 
-            if(request instanceof ClusterSearchShardsRequest && HeaderHelper.isTrustedClusterRequest(threadContext)) {
+            if (request instanceof ClusterSearchShardsRequest && HeaderHelper.isTrustedClusterRequest(threadContext)) {
                 threadContext.addResponseHeader(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER, Base64Helper.serializeObject((Serializable) maskedFieldsMap));
                 if (log.isDebugEnabled()) {
                     log.debug("added response header for masked fields info: {}", maskedFieldsMap);
@@ -103,7 +103,7 @@ public class DlsFlsEvaluator {
             presponse.maskedFields = new HashMap<>(maskedFieldsMap);
 
             if (!requestedResolved.getAllIndices().isEmpty()) {
-                for (Iterator<Entry<String, Set<String>>> it = presponse.maskedFields.entrySet().iterator(); it.hasNext();) {
+                for (Iterator<Entry<String, Set<String>>> it = presponse.maskedFields.entrySet().iterator(); it.hasNext(); ) {
                     Entry<String, Set<String>> entry = it.next();
                     if (!WildcardMatcher.matchAny(entry.getKey(), requestedResolved.getAllIndices(), false)) {
                         it.remove();
@@ -113,7 +113,6 @@ public class DlsFlsEvaluator {
         }
 
 
-
         // attach dls/fls map if not already done
         final Tuple<Map<String, Set<String>>, Map<String, Set<String>>> dlsFls = securityRoles.getDlsFls(user, resolver, clusterService);
         final Map<String, Set<String>> dlsQueries = dlsFls.v1();
@@ -121,7 +120,7 @@ public class DlsFlsEvaluator {
 
         if (!dlsQueries.isEmpty()) {
 
-            if(request instanceof ClusterSearchShardsRequest && HeaderHelper.isTrustedClusterRequest(threadContext)) {
+            if (request instanceof ClusterSearchShardsRequest && HeaderHelper.isTrustedClusterRequest(threadContext)) {
                 threadContext.addResponseHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER, Base64Helper.serializeObject((Serializable) dlsQueries));
                 if (log.isDebugEnabled()) {
                     log.debug("added response header for DLS info: {}", dlsQueries);
@@ -142,7 +141,7 @@ public class DlsFlsEvaluator {
             presponse.queries = new HashMap<>(dlsQueries);
 
             if (!requestedResolved.getAllIndices().isEmpty()) {
-                for (Iterator<Entry<String, Set<String>>> it = presponse.queries.entrySet().iterator(); it.hasNext();) {
+                for (Iterator<Entry<String, Set<String>>> it = presponse.queries.entrySet().iterator(); it.hasNext(); ) {
                     Entry<String, Set<String>> entry = it.next();
                     if (!WildcardMatcher.matchAny(entry.getKey(), requestedResolved.getAllIndices(), false)) {
                         it.remove();
@@ -154,7 +153,7 @@ public class DlsFlsEvaluator {
 
         if (!flsFields.isEmpty()) {
 
-            if(request instanceof ClusterSearchShardsRequest && HeaderHelper.isTrustedClusterRequest(threadContext)) {
+            if (request instanceof ClusterSearchShardsRequest && HeaderHelper.isTrustedClusterRequest(threadContext)) {
                 threadContext.addResponseHeader(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER, Base64Helper.serializeObject((Serializable) flsFields));
                 if (log.isDebugEnabled()) {
                     log.debug("added response header for FLS info: {}", flsFields);
@@ -179,7 +178,7 @@ public class DlsFlsEvaluator {
             presponse.allowedFlsFields = new HashMap<>(flsFields);
 
             if (!requestedResolved.getAllIndices().isEmpty()) {
-                for (Iterator<Entry<String, Set<String>>> it = presponse.allowedFlsFields.entrySet().iterator(); it.hasNext();) {
+                for (Iterator<Entry<String, Set<String>>> it = presponse.allowedFlsFields.entrySet().iterator(); it.hasNext(); ) {
                     Entry<String, Set<String>> entry = it.next();
                     if (!WildcardMatcher.matchAny(entry.getKey(), requestedResolved.getAllIndices(), false)) {
                         it.remove();

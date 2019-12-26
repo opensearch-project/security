@@ -69,20 +69,20 @@ public class OpenDistroProtectedIndexAccessEvaluator {
             presponse.allowed = false;
             return presponse.markComplete();
         }
-        if((WildcardMatcher.matchAny(indexPatterns, requestedResolved.getAllIndices())
+        if ((WildcardMatcher.matchAny(indexPatterns, requestedResolved.getAllIndices())
                 || requestedResolved.isLocalAll())
                 && !WildcardMatcher.matchAny(allowedRoles, securityRoles.getRoleNames())) {
 
-            if(request instanceof SearchRequest) {
-                ((SearchRequest)request).requestCache(Boolean.FALSE);
-                if(log.isDebugEnabled()) {
+            if (request instanceof SearchRequest) {
+                ((SearchRequest) request).requestCache(Boolean.FALSE);
+                if (log.isDebugEnabled()) {
                     log.debug("Disable search request cache for this request");
                 }
             }
 
-            if(request instanceof RealtimeRequest) {
+            if (request instanceof RealtimeRequest) {
                 ((RealtimeRequest) request).realtime(Boolean.FALSE);
-                if(log.isDebugEnabled()) {
+                if (log.isDebugEnabled()) {
                     log.debug("Disable realtime for this request");
                 }
             }

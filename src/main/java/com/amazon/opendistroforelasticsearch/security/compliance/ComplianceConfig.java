@@ -65,7 +65,7 @@ public class ComplianceConfig {
 
     private final Logger log = LogManager.getLogger(getClass());
     private final Settings settings;
-	private final Map<String, Set<String>> readEnabledFields = new HashMap<>(100);
+    private final Map<String, Set<String>> readEnabledFields = new HashMap<>(100);
     private final List<String> watchedWriteIndices;
     private DateTimeFormatter auditLogPattern = null;
     private String auditLogIndex = null;
@@ -103,28 +103,28 @@ public class ComplianceConfig {
         final String saltAsString = settings.get(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT, ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT_DEFAULT);
         final byte[] saltAsBytes = saltAsString.getBytes(StandardCharsets.UTF_8);
 
-        if(saltAsString.equals(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT_DEFAULT)) {
-            log.warn("If you plan to use field masking pls configure "+ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT+" to be a random string of 16 chars length identical on all nodes");
+        if (saltAsString.equals(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT_DEFAULT)) {
+            log.warn("If you plan to use field masking pls configure " + ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT + " to be a random string of 16 chars length identical on all nodes");
         }
-        
-        if(saltAsBytes.length < 16) {
-            throw new ElasticsearchException(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT+" must at least contain 16 bytes");
+
+        if (saltAsBytes.length < 16) {
+            throw new ElasticsearchException(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT + " must at least contain 16 bytes");
         }
-        
-        if(saltAsBytes.length > 16) {
-            log.warn(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT+" is greater than 16 bytes. Only the first 16 bytes are used for salting");
+
+        if (saltAsBytes.length > 16) {
+            log.warn(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT + " is greater than 16 bytes. Only the first 16 bytes are used for salting");
         }
-        
+
         salt16 = Arrays.copyOf(saltAsBytes, 16);
         this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
-        
+
         //opendistro_security.compliance.pii_fields:
         //  - indexpattern,fieldpattern,fieldpattern,....
-        for(String watchedReadField: watchedReadFields) {
+        for (String watchedReadField : watchedReadFields) {
             final List<String> split = new ArrayList<>(Arrays.asList(watchedReadField.split(",")));
-            if(split.isEmpty()) {
+            if (split.isEmpty()) {
                 continue;
-            } else if(split.size() == 1) {
+            } else if (split.size() == 1) {
                 readEnabledFields.put(split.get(0), Collections.singleton("*"));
             } else {
                 Set<String> _fields = new HashSet<String>(split.subList(1, split.size()));
@@ -133,8 +133,8 @@ public class ComplianceConfig {
         }
 
         final String type = settings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_TYPE_DEFAULT, null);
-        if("internal_elasticsearch".equalsIgnoreCase(type)) {
-            final String index = settings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ES_INDEX,"'security-auditlog-'YYYY.MM.dd");
+        if ("internal_elasticsearch".equalsIgnoreCase(type)) {
+            final String index = settings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ES_INDEX, "'security-auditlog-'YYYY.MM.dd");
             try {
                 auditLogPattern = DateTimeFormat.forPattern(index); //throws IllegalArgumentException if no pattern
             } catch (IllegalArgumentException e) {
@@ -159,18 +159,18 @@ public class ComplianceConfig {
     }
 
     public boolean isLogExternalConfig() {
-		return logExternalConfig;
-	}
+        return logExternalConfig;
+    }
 
-	public boolean isExternalConfigLogged() {
-		return externalConfigLogged;
-	}
+    public boolean isExternalConfigLogged() {
+        return externalConfigLogged;
+    }
 
-	public void setExternalConfigLogged(boolean externalConfigLogged) {
-		this.externalConfigLogged = externalConfigLogged;
-	}
+    public void setExternalConfigLogged(boolean externalConfigLogged) {
+        this.externalConfigLogged = externalConfigLogged;
+    }
 
-	public boolean isEnabled() {
+    public boolean isEnabled() {
         return this.enabled;
     }
 
@@ -178,23 +178,23 @@ public class ComplianceConfig {
     @SuppressWarnings("unchecked")
     private Set<String> getFieldsForIndex0(String index) {
 
-        if(index == null) {
+        if (index == null) {
             return Collections.EMPTY_SET;
         }
 
-        if(auditLogIndex != null && auditLogIndex.equalsIgnoreCase(index)) {
+        if (auditLogIndex != null && auditLogIndex.equalsIgnoreCase(index)) {
             return Collections.EMPTY_SET;
         }
 
-        if(auditLogPattern != null) {
-            if(index.equalsIgnoreCase(getExpandedIndexName(auditLogPattern, null))) {
+        if (auditLogPattern != null) {
+            if (index.equalsIgnoreCase(getExpandedIndexName(auditLogPattern, null))) {
                 return Collections.EMPTY_SET;
             }
         }
 
         final Set<String> tmp = new HashSet<String>(100);
-        for(String indexPattern: readEnabledFields.keySet()) {
-            if(indexPattern != null && !indexPattern.isEmpty() && WildcardMatcher.match(indexPattern, index)) {
+        for (String indexPattern : readEnabledFields.keySet()) {
+            if (indexPattern != null && !indexPattern.isEmpty() && WildcardMatcher.match(indexPattern, index)) {
                 tmp.addAll(readEnabledFields.get(indexPattern));
             }
         }
@@ -202,7 +202,7 @@ public class ComplianceConfig {
     }
 
     private String getExpandedIndexName(DateTimeFormatter indexPattern, String index) {
-        if(indexPattern == null) {
+        if (indexPattern == null) {
             return index;
         }
         return indexPattern.print(DateTime.now(DateTimeZone.UTC));
@@ -211,20 +211,20 @@ public class ComplianceConfig {
     //do not check for isEnabled
     public boolean writeHistoryEnabledForIndex(String index) {
 
-        if(index == null) {
+        if (index == null) {
             return false;
         }
-        
-        if(opendistrosecurityIndex.equals(index)) {
+
+        if (opendistrosecurityIndex.equals(index)) {
             return logInternalConfig;
         }
 
-        if(auditLogIndex != null && auditLogIndex.equalsIgnoreCase(index)) {
+        if (auditLogIndex != null && auditLogIndex.equalsIgnoreCase(index)) {
             return false;
         }
 
-        if(auditLogPattern != null) {
-            if(index.equalsIgnoreCase(getExpandedIndexName(auditLogPattern, null))) {
+        if (auditLogPattern != null) {
+            if (index.equalsIgnoreCase(getExpandedIndexName(auditLogPattern, null))) {
                 return false;
             }
         }
@@ -235,15 +235,15 @@ public class ComplianceConfig {
     //no patterns here as parameters
     //check for isEnabled
     public boolean readHistoryEnabledForIndex(String index) {
-        
-        if(!this.enabled) {
+
+        if (!this.enabled) {
             return false;
         }
-        
-        if(opendistrosecurityIndex.equals(index)) {
+
+        if (opendistrosecurityIndex.equals(index)) {
             return logInternalConfig;
         }
-        
+
         try {
             return !cache.get(index).isEmpty();
         } catch (ExecutionException e) {
@@ -255,18 +255,18 @@ public class ComplianceConfig {
     //no patterns here as parameters
     //check for isEnabled
     public boolean readHistoryEnabledForField(String index, String field) {
-        
-        if(!this.enabled) {
+
+        if (!this.enabled) {
             return false;
         }
-        
-        if(opendistrosecurityIndex.equals(index)) {
+
+        if (opendistrosecurityIndex.equals(index)) {
             return logInternalConfig;
         }
-        
+
         try {
             final Set<String> fields = cache.get(index);
-            if(fields.isEmpty()) {
+            if (fields.isEmpty()) {
                 return false;
             }
 
@@ -284,31 +284,31 @@ public class ComplianceConfig {
     public boolean logWriteMetadataOnly() {
         return logWriteMetadataOnly;
     }
-    
+
     public boolean logReadMetadataOnly() {
         return logReadMetadataOnly;
     }
-    
-    public Settings getSettings() {
-		return settings;
-	}
 
-	public Environment getEnvironment() {
-		return environment;
-	}
+    public Settings getSettings() {
+        return settings;
+    }
+
+    public Environment getEnvironment() {
+        return environment;
+    }
 
 
     //check for isEnabled
     public boolean isIndexImmutable(Object request) {
-        
-        if(!this.enabled) {
+
+        if (!this.enabled) {
             return false;
         }
-        
-        if(immutableIndicesPatterns.isEmpty()) {
+
+        if (immutableIndicesPatterns.isEmpty()) {
             return false;
         }
-        
+
         final Resolved resolved = irr.resolveRequest(request);
         final Set<String> allIndices = resolved.getAllIndices();
 
