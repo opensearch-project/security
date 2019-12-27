@@ -1110,8 +1110,7 @@ public class ConfigModelV7 extends ConfigModel {
                     roles.contains("kibana_user")
                             || roles.contains("kibana_user")
                             || roles.contains("all_access")
-                            || roles.contains("ALL_ACCESS")
-            )) {
+                            || roles.contains("ALL_ACCESS"))) {
                 result.put("global_tenant", true);
             }
 

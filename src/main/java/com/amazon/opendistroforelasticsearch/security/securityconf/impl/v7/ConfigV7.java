@@ -55,19 +55,19 @@ public class ConfigV7 {
         dynamic.authc = new Authc();
 
         dynamic.authc.domains.putAll(c6.dynamic.authc.getDomains().entrySet().stream().collect(Collectors.toMap(
-                entry -> entry.getKey(),
-                entry -> new AuthcDomain(entry.getValue()))));
+            entry -> entry.getKey(),
+            entry -> new AuthcDomain(entry.getValue()))));
 
         dynamic.authz = new Authz();
 
         dynamic.authz.domains.putAll(c6.dynamic.authz.getDomains().entrySet().stream().collect(Collectors.toMap(
-                entry -> entry.getKey(),
-                entry -> new AuthzDomain(entry.getValue()))));
+            entry -> entry.getKey(),
+            entry -> new AuthzDomain(entry.getValue()))));
 
         dynamic.auth_failure_listeners = new AuthFailureListeners();
         dynamic.auth_failure_listeners.listeners.putAll(c6.dynamic.auth_failure_listeners.getListeners().entrySet().stream().collect(Collectors.toMap(
-                entry -> entry.getKey(),
-                entry -> new AuthFailureListener(entry.getValue()))));
+            entry -> entry.getKey(),
+            entry -> new AuthFailureListener(entry.getValue()))));
     }
 
     @Override

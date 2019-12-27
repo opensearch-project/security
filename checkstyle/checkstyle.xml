@@ -180,6 +180,12 @@
                      value="GenericWhitespace ''{0}'' is not preceded with whitespace."/>
         </module>
 
+        <!-- File indentation must follow a convention of 4 spaces (8 for throws statements). -->
+        <module name="Indentation">
+            <property name="throwsIndent" value="8"/>
+            <property name="arrayInitIndent" value="8"/>
+        </module>
+
         <!-- Class contents must be defined in the order suggested by Sun/Oracle:
              http://www.oracle.com/technetwork/java/javase/documentation/codeconventions-141855.html#1852 -->
         <module name="DeclarationOrder"/>

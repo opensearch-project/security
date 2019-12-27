@@ -563,7 +563,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                 assert complianceConfig == null : "compliance config must be null here";
 
                 indexModule.setReaderWrapper(
-                        indexService -> new OpenDistroSecurityIndexSearcherWrapper(indexService, settings, Objects.requireNonNull(adminDns), Objects.requireNonNull(evaluator)));
+                    indexService -> new OpenDistroSecurityIndexSearcherWrapper(indexService, settings, Objects.requireNonNull(adminDns), Objects.requireNonNull(evaluator)));
             }
 
             indexModule.addSearchOperationListener(new SearchOperationListener() {
@@ -682,7 +682,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
 
         if (transportSSLEnabled) {
             transports.put("com.amazon.opendistroforelasticsearch.security.ssl.http.netty.OpenDistroSecuritySSLNettyTransport",
-                    () -> new OpenDistroSecuritySSLNettyTransport(settings, Version.CURRENT, threadPool, networkService, pageCacheRecycler,
+                () -> new OpenDistroSecuritySSLNettyTransport(settings, Version.CURRENT, threadPool, networkService, pageCacheRecycler,
                             namedWriteableRegistry, circuitBreakerService, odsks, evaluateSslExceptionHandler()));
         }
         return transports;
@@ -710,10 +710,10 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                         threadPool, odsks, evaluateSslExceptionHandler(), xContentRegistry, validatingDispatcher);
 
                 httpTransports.put("com.amazon.opendistroforelasticsearch.security.http.OpenDistroSecurityHttpServerTransport",
-                        () -> odshst);
+                    () -> odshst);
             } else if (!client) {
                 httpTransports.put("com.amazon.opendistroforelasticsearch.security.http.OpenDistroSecurityHttpServerTransport",
-                        () -> new OpenDistroSecurityNonSslHttpServerTransport(settings, networkService, bigArrays, threadPool, xContentRegistry, dispatcher));
+                    () -> new OpenDistroSecurityNonSslHttpServerTransport(settings, networkService, bigArrays, threadPool, xContentRegistry, dispatcher));
             }
         }
         return httpTransports;

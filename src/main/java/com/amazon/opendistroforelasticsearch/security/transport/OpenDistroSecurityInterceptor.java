@@ -143,8 +143,7 @@ public class OpenDistroSecurityInterceptor {
             if (OpenDistroSecurityPlugin.GuiceHolder.getRemoteClusterService().isCrossClusterSearchEnabled()
                     && clusterInfoHolder.isInitialized()
                     && (action.equals(ClusterSearchShardsAction.NAME)
-                    || action.equals(SearchAction.NAME)
-            )
+                    || action.equals(SearchAction.NAME))
                     && !clusterInfoHolder.hasNode(connection.getNode())) {
                 if (log.isDebugEnabled()) {
                     log.debug("remove dls/fls/mf because we sent a ccs request to a remote cluster");

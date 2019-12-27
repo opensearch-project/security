@@ -536,9 +536,7 @@ public class PrivilegesEvaluator implements DCFListener {
                 || (action0.equals(MultiGetAction.NAME))
                 || (action0.equals(MultiSearchAction.NAME))
                 || (action0.equals(MultiTermVectorsAction.NAME))
-                || (action0.equals(ReindexAction.NAME))
-
-        );
+                || (action0.equals(ReindexAction.NAME)));
     }
 
     private boolean checkFilteredAliases(Set<String> requestedResolvedIndices, String action) {

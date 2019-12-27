@@ -249,7 +249,7 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin,
         Map<String, Supplier<Transport>> transports = new HashMap<String, Supplier<Transport>>();
         if (transportSSLEnabled) {
             transports.put("com.amazon.opendistroforelasticsearch.security.ssl.http.netty.OpenDistroSecuritySSLNettyTransport",
-                    () -> new OpenDistroSecuritySSLNettyTransport(settings, Version.CURRENT, threadPool, networkService, pageCacheRecycler, namedWriteableRegistry, circuitBreakerService, odsks, NOOP_SSL_EXCEPTION_HANDLER));
+                () -> new OpenDistroSecuritySSLNettyTransport(settings, Version.CURRENT, threadPool, networkService, pageCacheRecycler, namedWriteableRegistry, circuitBreakerService, odsks, NOOP_SSL_EXCEPTION_HANDLER));
 
         }
         return transports;
