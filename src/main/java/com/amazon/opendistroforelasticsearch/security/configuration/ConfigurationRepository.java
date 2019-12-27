@@ -88,10 +88,11 @@ public class ConfigurationRepository {
     private final AuditLog auditLog;
     private final ComplianceConfig complianceConfig;
     private final ThreadPool threadPool;
-    private DynamicConfigFactory dynamicConfigFactory;
     private final int configVersion = 2;
     private final Thread bgThread;
     private final AtomicBoolean installDefaultConfig = new AtomicBoolean();
+    private final Lock LOCK = new ReentrantLock();
+    private DynamicConfigFactory dynamicConfigFactory;
 
     private ConfigurationRepository(Settings settings, final Path configPath, ThreadPool threadPool,
                                     Client client, ClusterService clusterService, AuditLog auditLog, ComplianceConfig complianceConfig) {
@@ -211,6 +212,16 @@ public class ConfigurationRepository {
 
     }
 
+    public static ConfigurationRepository create(Settings settings, final Path configPath, final ThreadPool threadPool,
+                                                 Client client, ClusterService clusterService, AuditLog auditLog, ComplianceConfig complianceConfig) {
+        final ConfigurationRepository repository = new ConfigurationRepository(settings, configPath, threadPool, client, clusterService, auditLog, complianceConfig);
+        return repository;
+    }
+
+    private static String formatDate(long date) {
+        return new SimpleDateFormat("yyyy-MM-dd", OpenDistroSecurityUtils.EN_Locale).format(new Date(date));
+    }
+
     public void initOnNodeStart() {
 
         LOGGER.info("Check if " + opendistrosecurityIndex + " index exists ...");
@@ -241,12 +252,6 @@ public class ConfigurationRepository {
         }
     }
 
-    public static ConfigurationRepository create(Settings settings, final Path configPath, final ThreadPool threadPool,
-                                                 Client client, ClusterService clusterService, AuditLog auditLog, ComplianceConfig complianceConfig) {
-        final ConfigurationRepository repository = new ConfigurationRepository(settings, configPath, threadPool, client, clusterService, auditLog, complianceConfig);
-        return repository;
-    }
-
     public void setDynamicConfigFactory(DynamicConfigFactory dynamicConfigFactory) {
         this.dynamicConfigFactory = dynamicConfigFactory;
     }
@@ -262,8 +267,6 @@ public class ConfigurationRepository {
         }
         return SecurityDynamicConfiguration.empty();
     }
-
-    private final Lock LOCK = new ReentrantLock();
 
     public void reloadConfiguration(Collection<CType> configTypes) throws ConfigUpdateAlreadyInProgressException {
         try {
@@ -281,7 +284,6 @@ public class ConfigurationRepository {
             throw new ConfigUpdateAlreadyInProgressException("Interrupted config update");
         }
     }
-
 
     private void reloadConfiguration0(Collection<CType> configTypes) {
         final Map<CType, SecurityDynamicConfiguration<?>> loaded = getConfigurationsFromIndex(configTypes, false);
@@ -359,9 +361,5 @@ public class ConfigurationRepository {
         }
 
         return conf;
-    }
-
-    private static String formatDate(long date) {
-        return new SimpleDateFormat("yyyy-MM-dd", OpenDistroSecurityUtils.EN_Locale).format(new Date(date));
     }
 }

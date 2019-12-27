@@ -74,9 +74,6 @@ public enum ModuleType implements Serializable {
     // COMPLIANCE("Compliance", "com.amazon.opendistroforelasticsearch.security.compliance.ComplianceIndexingOperationListenerImpl", Boolean.TRUE),
     UNKNOWN("Unknown type", null, Boolean.TRUE);
 
-    private String description;
-    private String defaultImplClass;
-    private Boolean isAdvancedModule = Boolean.TRUE;
     private static Map<String, ModuleType> modulesMap = new HashMap<>();
 
     static {
@@ -86,6 +83,10 @@ public enum ModuleType implements Serializable {
             }
         }
     }
+
+    private String description;
+    private String defaultImplClass;
+    private Boolean isAdvancedModule = Boolean.TRUE;
 
     private ModuleType(String description, String defaultImplClass, Boolean isAdvancedModule) {
         this.description = description;

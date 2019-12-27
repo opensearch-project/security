@@ -177,6 +177,10 @@
                      value="GenericWhitespace ''{0}'' is not preceded with whitespace."/>
         </module>
 
+        <!-- Class contents must be defined in the order suggested by Sun/Oracle:
+             http://www.oracle.com/technetwork/java/javase/documentation/codeconventions-141855.html#1852 -->
+        <module name="DeclarationOrder"/>
+
         <module name="VariableDeclarationUsageDistance">
             <property name="allowedDistance" value="10"/>
         </module>

@@ -47,10 +47,10 @@ import io.netty.handler.ssl.SslHandler;
 public class OpenDistroSecuritySSLRequestHandler<T extends TransportRequest>
         implements TransportRequestHandler<T> {
 
+    protected final Logger log = LogManager.getLogger(this.getClass());
     private final String action;
     private final TransportRequestHandler<T> actualHandler;
     private final ThreadPool threadPool;
-    protected final Logger log = LogManager.getLogger(this.getClass());
     private final PrincipalExtractor principalExtractor;
     private final SslExceptionHandler errorHandler;
 

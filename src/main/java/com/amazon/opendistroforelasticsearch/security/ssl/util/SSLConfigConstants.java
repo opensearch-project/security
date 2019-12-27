@@ -82,25 +82,6 @@ public final class SSLConfigConstants {
     public static final String JDK_TLS_REJECT_CLIENT_INITIATED_RENEGOTIATION = "jdk.tls.rejectClientInitiatedRenegotiation";
 
     private static final String[] _SECURE_SSL_PROTOCOLS = {"TLSv1.3", "TLSv1.2", "TLSv1.1"};
-
-    public static final String[] getSecureSSLProtocols(Settings settings, boolean http) {
-        List<String> configuredProtocols = null;
-
-        if (settings != null) {
-            if (http) {
-                configuredProtocols = settings.getAsList(OPENDISTRO_SECURITY_SSL_HTTP_ENABLED_PROTOCOLS, Collections.emptyList());
-            } else {
-                configuredProtocols = settings.getAsList(OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, Collections.emptyList());
-            }
-        }
-
-        if (configuredProtocols != null && configuredProtocols.size() > 0) {
-            return configuredProtocols.toArray(new String[0]);
-        }
-
-        return _SECURE_SSL_PROTOCOLS.clone();
-    }
-
     // @formatter:off
     private static final String[] _SECURE_SSL_CIPHERS =
             {
@@ -218,7 +199,29 @@ public final class SSLConfigConstants {
                     //"TLS_RSA_WITH_AES_128_CBC_SHA",
                     //"TLS_RSA_WITH_AES_256_CBC_SHA",
             };
+
+    private SSLConfigConstants() {
+
+    }
     // @formatter:on
+
+    public static final String[] getSecureSSLProtocols(Settings settings, boolean http) {
+        List<String> configuredProtocols = null;
+
+        if (settings != null) {
+            if (http) {
+                configuredProtocols = settings.getAsList(OPENDISTRO_SECURITY_SSL_HTTP_ENABLED_PROTOCOLS, Collections.emptyList());
+            } else {
+                configuredProtocols = settings.getAsList(OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, Collections.emptyList());
+            }
+        }
+
+        if (configuredProtocols != null && configuredProtocols.size() > 0) {
+            return configuredProtocols.toArray(new String[0]);
+        }
+
+        return _SECURE_SSL_PROTOCOLS.clone();
+    }
 
     public static final List<String> getSecureSSLCiphers(Settings settings, boolean http) {
 
@@ -237,10 +240,6 @@ public final class SSLConfigConstants {
         }
 
         return Collections.unmodifiableList(Arrays.asList(_SECURE_SSL_CIPHERS));
-    }
-
-    private SSLConfigConstants() {
-
     }
 
 }

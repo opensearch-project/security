@@ -49,12 +49,11 @@ import com.amazon.opendistroforelasticsearch.security.tools.Hasher;
 
 public final class OpenDistroSecurityUtils {
 
+    public static Locale EN_Locale = forEN();
     protected static final Logger log = LogManager.getLogger(OpenDistroSecurityUtils.class);
     private static final Pattern ENV_PATTERN = Pattern.compile("\\$\\{env\\.([\\w]+)((\\:\\-)?[\\w]*)\\}");
     private static final Pattern ENVBC_PATTERN = Pattern.compile("\\$\\{envbc\\.([\\w]+)((\\:\\-)?[\\w]*)\\}");
     private static final Pattern ENVBASE64_PATTERN = Pattern.compile("\\$\\{envbase64\\.([\\w]+)((\\:\\-)?[\\w]*)\\}");
-    public static Locale EN_Locale = forEN();
-
 
     private OpenDistroSecurityUtils() {
     }

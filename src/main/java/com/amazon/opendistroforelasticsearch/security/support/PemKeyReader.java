@@ -87,6 +87,9 @@ public final class PemKeyReader {
                     "-+END\\s+.*PRIVATE\\s+KEY[^-]*-+",            // Footer
             Pattern.CASE_INSENSITIVE);
 
+    private PemKeyReader() {
+    }
+
     private static byte[] readPrivateKey(File file) throws KeyException {
         try {
             InputStream in = new FileInputStream(file);
@@ -306,7 +309,6 @@ public final class PemKeyReader {
 
     }
 
-
     public static InputStream resolveStream(String propName, Settings settings) {
         final String content = settings.get(propName, null);
 
@@ -381,9 +383,6 @@ public final class PemKeyReader {
             ret[i] = (char) (r.nextInt(26) + 'a');
         }
         return ret;
-    }
-
-    private PemKeyReader() {
     }
 }
 

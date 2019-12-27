@@ -46,9 +46,9 @@ import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLRequestHelper.
 
 public class OpenDistroSecuritySSLInfoAction extends BaseRestHandler {
 
+    final PrincipalExtractor principalExtractor;
     private final Logger log = LogManager.getLogger(this.getClass());
     private final OpenDistroSecurityKeyStore odsks;
-    final PrincipalExtractor principalExtractor;
     private final Path configPath;
     private final Settings settings;
 

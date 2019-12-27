@@ -39,13 +39,12 @@ public class DynamicConfigModelV6 extends DynamicConfigModel {
     private final ConfigV6 config;
     private final Settings esSettings;
     private final Path configPath;
+    private final InternalAuthenticationBackend iab;
     private SortedSet<AuthDomain> restAuthDomains;
     private Set<AuthorizationBackend> restAuthorizers;
     private SortedSet<AuthDomain> transportAuthDomains;
     private Set<AuthorizationBackend> transportAuthorizers;
     private List<Destroyable> destroyableComponents;
-    private final InternalAuthenticationBackend iab;
-
     private List<AuthFailureListener> ipAuthFailureListeners;
     private Multimap<String, AuthFailureListener> authBackendFailureListeners;
     private List<ClientBlockRegistry<InetAddress>> ipClientBlockRegistries;

@@ -72,6 +72,7 @@ public class ReflectionHelper {
     protected static final Logger log = LogManager.getLogger(ReflectionHelper.class);
 
     private static Set<ModuleInfo> modulesLoaded = new HashSet<>();
+    private static boolean advancedModulesEnabled;
 
     public static Set<ModuleInfo> getModulesLoaded() {
         return Collections.unmodifiableSet(modulesLoaded);
@@ -340,8 +341,6 @@ public class ReflectionHelper {
         }
         return modulesLoaded.add(moduleInfo);
     }
-
-    private static boolean advancedModulesEnabled;
 
     // TODO static hack
     public static void init(final boolean advancedModulesEnabled) {

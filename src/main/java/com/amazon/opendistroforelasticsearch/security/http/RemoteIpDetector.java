@@ -70,17 +70,6 @@ final class RemoteIpDetector {
      * Logger
      */
     protected final Logger log = LogManager.getLogger(this.getClass());
-
-    /**
-     * Convert a given comma delimited String into an array of String
-     *
-     * @return array of String (non <code>null</code>)
-     */
-    protected static String[] commaDelimitedListToStringArray(String commaDelimitedStrings) {
-        return (commaDelimitedStrings == null || commaDelimitedStrings.length() == 0) ? new String[0] : commaSeparatedValuesPattern
-                .split(commaDelimitedStrings);
-    }
-
     /**
      * @see #setInternalProxies(String)
      */
@@ -92,11 +81,20 @@ final class RemoteIpDetector {
                     "172\\.1[6-9]{1}\\.\\d{1,3}\\.\\d{1,3}|" +
                     "172\\.2[0-9]{1}\\.\\d{1,3}\\.\\d{1,3}|" +
                     "172\\.3[0-1]{1}\\.\\d{1,3}\\.\\d{1,3}");
-
     /**
      * @see #setRemoteIpHeader(String)
      */
     private String remoteIpHeader = "X-Forwarded-For";
+
+    /**
+     * Convert a given comma delimited String into an array of String
+     *
+     * @return array of String (non <code>null</code>)
+     */
+    protected static String[] commaDelimitedListToStringArray(String commaDelimitedStrings) {
+        return (commaDelimitedStrings == null || commaDelimitedStrings.length() == 0) ? new String[0] : commaSeparatedValuesPattern
+                .split(commaDelimitedStrings);
+    }
 
     /**
      * @return Regular expression that defines the internal proxies
@@ -110,11 +108,44 @@ final class RemoteIpDetector {
     }
 
     /**
+     * <p>
+     * Regular expression that defines the internal proxies.
+     * </p>
+     * <p>
+     * Default value : 10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|169\.254.\d{1,3}.\d{1,3}|127\.\d{1,3}\.\d{1,3}\.\d{1,3}
+     * </p>
+     */
+    public void setInternalProxies(String internalProxies) {
+        if (internalProxies == null || internalProxies.length() == 0) {
+            this.internalProxies = null;
+        } else {
+            this.internalProxies = Pattern.compile(internalProxies);
+        }
+    }
+
+    /**
      * @return the remote IP header name (e.g. "X-Forwarded-For")
      * @see #setRemoteIpHeader(String)
      */
     public String getRemoteIpHeader() {
         return remoteIpHeader;
+    }
+
+    /**
+     * <p>
+     * Name of the http header from which the remote ip is extracted.
+     * </p>
+     * <p>
+     * The value of this header can be comma delimited.
+     * </p>
+     * <p>
+     * Default value : <code>X-Forwarded-For</code>
+     * </p>
+     *
+     * @param remoteIpHeader
+     */
+    public void setRemoteIpHeader(String remoteIpHeader) {
+        this.remoteIpHeader = remoteIpHeader;
     }
 
     String detect(RestRequest request, ThreadContext threadContext) {
@@ -195,38 +226,5 @@ final class RemoteIpDetector {
         }
 
         return originalRemoteAddr;
-    }
-
-    /**
-     * <p>
-     * Regular expression that defines the internal proxies.
-     * </p>
-     * <p>
-     * Default value : 10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|169\.254.\d{1,3}.\d{1,3}|127\.\d{1,3}\.\d{1,3}\.\d{1,3}
-     * </p>
-     */
-    public void setInternalProxies(String internalProxies) {
-        if (internalProxies == null || internalProxies.length() == 0) {
-            this.internalProxies = null;
-        } else {
-            this.internalProxies = Pattern.compile(internalProxies);
-        }
-    }
-
-    /**
-     * <p>
-     * Name of the http header from which the remote ip is extracted.
-     * </p>
-     * <p>
-     * The value of this header can be comma delimited.
-     * </p>
-     * <p>
-     * Default value : <code>X-Forwarded-For</code>
-     * </p>
-     *
-     * @param remoteIpHeader
-     */
-    public void setRemoteIpHeader(String remoteIpHeader) {
-        this.remoteIpHeader = remoteIpHeader;
     }
 }

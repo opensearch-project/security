@@ -176,6 +176,10 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     private static final String KEYWORD = ".keyword";
     private final boolean dlsFlsAvailable;
     private final Constructor<?> dlsFlsConstructor;
+    private final boolean disabled;
+    private final boolean advancedModulesEnabled;
+    private final boolean sslOnly;
+    private final List<String> demoCertHashes = new ArrayList<String>(3);
     private volatile OpenDistroSecurityRestFilter securityRestHandler;
     private volatile OpenDistroSecurityInterceptor odsi;
     private volatile PrivilegesEvaluator evaluator;
@@ -187,38 +191,11 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     private volatile BackendRegistry backendRegistry;
     private volatile SslExceptionHandler sslExceptionHandler;
     private volatile Client localClient;
-    private final boolean disabled;
-    private final boolean advancedModulesEnabled;
-    private final boolean sslOnly;
-    private final List<String> demoCertHashes = new ArrayList<String>(3);
     private volatile OpenDistroSecurityFilter odsf;
     private volatile ComplianceConfig complianceConfig;
     private volatile IndexResolverReplacer irr;
     private volatile NamedXContentRegistry namedXContentRegistry = null;
     private volatile DlsFlsRequestValve dlsFlsValve = null;
-
-    @Override
-    public void close() throws IOException {
-        //TODO implement close
-        super.close();
-    }
-
-    private final SslExceptionHandler evaluateSslExceptionHandler() {
-        if (client || disabled || sslOnly) {
-            return new SslExceptionHandler() {
-            };
-        }
-
-        return Objects.requireNonNull(sslExceptionHandler);
-    }
-
-    private static boolean isDisabled(final Settings settings) {
-        return settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_DISABLED, false);
-    }
-
-    private static boolean isSslOnlyMode(final Settings settings) {
-        return settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_SSL_ONLY, false);
-    }
 
     public OpenDistroSecurityPlugin(final Settings settings, final Path configPath) {
         super(settings, configPath, isDisabled(settings));
@@ -359,6 +336,36 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         }
     }
 
+    private static boolean isDisabled(final Settings settings) {
+        return settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_DISABLED, false);
+    }
+
+    private static boolean isSslOnlyMode(final Settings settings) {
+        return settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_SSL_ONLY, false);
+    }
+
+    private static String handleKeyword(final String field) {
+        if (field != null && field.endsWith(KEYWORD)) {
+            return field.substring(0, field.length() - KEYWORD.length());
+        }
+        return field;
+    }
+
+    @Override
+    public void close() throws IOException {
+        //TODO implement close
+        super.close();
+    }
+
+    private final SslExceptionHandler evaluateSslExceptionHandler() {
+        if (client || disabled || sslOnly) {
+            return new SslExceptionHandler() {
+            };
+        }
+
+        return Objects.requireNonNull(sslExceptionHandler);
+    }
+
     private String sha256(Path p) {
 
         if (!Files.isRegularFile(p, LinkOption.NOFOLLOW_LINKS)) {
@@ -425,7 +432,6 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
 
         return false;
     }
-
 
     @Override
     public List<RestHandler> getRestHandlers(Settings settings, RestController restController, ClusterSettings clusterSettings,
@@ -713,7 +719,6 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         return httpTransports;
     }
 
-
     @Override
     public Collection<Object> createComponents(Client localClient, ClusterService clusterService, ThreadPool threadPool,
                                                ResourceWatcherService resourceWatcherService, ScriptService scriptService, NamedXContentRegistry xContentRegistry,
@@ -990,6 +995,10 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         return settingsFilter;
     }
 
+    //below is a hack because it seems not possible to access RepositoriesService from a non guice class
+    //the way of how deguice is organized is really a mess - hope this can be fixed in later versions
+    //TODO check if this could be removed
+
     @Override
     public void onNodeStarted() {
         log.info("Node started");
@@ -1004,10 +1013,6 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             complianceConfig.setExternalConfigLogged(true);
         }
     }
-
-    //below is a hack because it seems not possible to access RepositoriesService from a non guice class
-    //the way of how deguice is organized is really a mess - hope this can be fixed in later versions
-    //TODO check if this could be removed
 
     @Override
     public Collection<Class<? extends LifecycleComponent>> getGuiceServiceClasses() {
@@ -1058,13 +1063,6 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                 }
             }
         };
-    }
-
-    private static String handleKeyword(final String field) {
-        if (field != null && field.endsWith(KEYWORD)) {
-            return field.substring(0, field.length() - KEYWORD.length());
-        }
-        return field;
     }
 
     public static class GuiceHolder implements LifecycleComponent {

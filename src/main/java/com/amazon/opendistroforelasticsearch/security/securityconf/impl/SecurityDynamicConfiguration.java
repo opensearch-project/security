@@ -34,6 +34,12 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     private long primaryTerm = -1;
     private CType ctype;
     private int version = -1;
+    private Meta _meta;
+
+    //for Jackson
+    private SecurityDynamicConfiguration() {
+        super();
+    }
 
     public static <T> SecurityDynamicConfiguration<T> empty() {
         return new SecurityDynamicConfiguration<T>();
@@ -83,13 +89,6 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     public static <T> SecurityDynamicConfiguration<T> fromNode(JsonNode json, CType ctype, int version, long seqNo, long primaryTerm) throws IOException {
         return fromJson(DefaultObjectMapper.writeValueAsString(json, false), ctype, version, seqNo, primaryTerm);
     }
-
-    //for Jackson
-    private SecurityDynamicConfiguration() {
-        super();
-    }
-
-    private Meta _meta;
 
     public Meta get_meta() {
         return _meta;

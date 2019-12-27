@@ -50,8 +50,6 @@ import com.amazon.opendistroforelasticsearch.security.user.User;
 
 public class TermsAggregationEvaluator {
 
-    protected final Logger log = LogManager.getLogger(this.getClass());
-
     private static final String[] READ_ACTIONS = new String[]{
             "indices:data/read/msearch",
             "indices:data/read/mget",
@@ -60,8 +58,8 @@ public class TermsAggregationEvaluator {
             "indices:data/read/field_caps*"
             //"indices:admin/mappings/fields/get*"
     };
-
     private static final QueryBuilder NONE_QUERY = new MatchNoneQueryBuilder();
+    protected final Logger log = LogManager.getLogger(this.getClass());
 
     public TermsAggregationEvaluator() {
     }

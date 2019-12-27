@@ -84,27 +84,25 @@ import com.google.common.collect.Multimap;
 public class BackendRegistry implements DCFListener {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
-    private SortedSet<AuthDomain> restAuthDomains;
-    private Set<AuthorizationBackend> restAuthorizers;
-    private SortedSet<AuthDomain> transportAuthDomains;
-    private Set<AuthorizationBackend> transportAuthorizers;
-
-    private List<AuthFailureListener> ipAuthFailureListeners;
-    private Multimap<String, AuthFailureListener> authBackendFailureListeners;
-    private List<ClientBlockRegistry<InetAddress>> ipClientBlockRegistries;
-    private Multimap<String, ClientBlockRegistry<String>> authBackendClientBlockRegistries;
-
-    private volatile boolean initialized;
-    private volatile boolean injectedUserEnabled = false;
     private final AdminDNs adminDns;
     private final XFFResolver xffResolver;
-    private volatile boolean anonymousAuthEnabled = false;
     private final Settings esSettings;
     //private final InternalAuthenticationBackend iab;
     private final AuditLog auditLog;
     private final ThreadPool threadPool;
     private final UserInjector userInjector;
     private final int ttlInMin;
+    private SortedSet<AuthDomain> restAuthDomains;
+    private Set<AuthorizationBackend> restAuthorizers;
+    private SortedSet<AuthDomain> transportAuthDomains;
+    private Set<AuthorizationBackend> transportAuthorizers;
+    private List<AuthFailureListener> ipAuthFailureListeners;
+    private Multimap<String, AuthFailureListener> authBackendFailureListeners;
+    private List<ClientBlockRegistry<InetAddress>> ipClientBlockRegistries;
+    private Multimap<String, ClientBlockRegistry<String>> authBackendClientBlockRegistries;
+    private volatile boolean initialized;
+    private volatile boolean injectedUserEnabled = false;
+    private volatile boolean anonymousAuthEnabled = false;
     private Cache<AuthCredentials, User> userCache; //rest standard
     private Cache<String, User> restImpersonationCache; //used for rest impersonation
     private Cache<String, User> userCacheTransport; //transport no creds, possibly impersonated
@@ -115,6 +113,24 @@ public class BackendRegistry implements DCFListener {
     private Cache<String, User> transportImpersonationCache; //used for transport impersonation
 
     private volatile String transportUsernameAttribute = null;
+
+    public BackendRegistry(final Settings settings, final AdminDNs adminDns,
+                           final XFFResolver xffResolver, final AuditLog auditLog, final ThreadPool threadPool) {
+        this.adminDns = adminDns;
+        this.esSettings = settings;
+        this.xffResolver = xffResolver;
+        this.auditLog = auditLog;
+        this.threadPool = threadPool;
+        this.userInjector = new UserInjector(settings, threadPool, auditLog, xffResolver);
+
+
+        this.ttlInMin = settings.getAsInt(ConfigConstants.OPENDISTRO_SECURITY_CACHE_TTL_MINUTES, 60);
+
+        // This is going to be defined in the elasticsearch.yml, so it's best suited to be initialized once.
+        this.injectedUserEnabled = esSettings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, false);
+
+        createCaches();
+    }
 
     private void createCaches() {
         userCache = CacheBuilder.newBuilder().expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
@@ -173,24 +189,6 @@ public class BackendRegistry implements DCFListener {
                     }
                 }).build();
 
-    }
-
-    public BackendRegistry(final Settings settings, final AdminDNs adminDns,
-                           final XFFResolver xffResolver, final AuditLog auditLog, final ThreadPool threadPool) {
-        this.adminDns = adminDns;
-        this.esSettings = settings;
-        this.xffResolver = xffResolver;
-        this.auditLog = auditLog;
-        this.threadPool = threadPool;
-        this.userInjector = new UserInjector(settings, threadPool, auditLog, xffResolver);
-
-
-        this.ttlInMin = settings.getAsInt(ConfigConstants.OPENDISTRO_SECURITY_CACHE_TTL_MINUTES, 60);
-
-        // This is going to be defined in the elasticsearch.yml, so it's best suited to be initialized once.
-        this.injectedUserEnabled = esSettings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, false);
-
-        createCaches();
     }
 
     public boolean isInitialized() {

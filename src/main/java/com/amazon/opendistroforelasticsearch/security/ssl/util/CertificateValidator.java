@@ -53,26 +53,9 @@ import java.util.Set;
  */
 public class CertificateValidator {
 
-    boolean isPreferCrl() {
-        return preferCrl;
-    }
-
-    void setPreferCrl(boolean preferCrl) {
-        this.preferCrl = preferCrl;
-    }
-
-    boolean isCheckOnlyEndEntities() {
-        return checkOnlyEndEntities;
-    }
-
-    void setCheckOnlyEndEntities(boolean checkOnlyEndEntities) {
-        this.checkOnlyEndEntities = checkOnlyEndEntities;
-    }
-
     private KeyStore _trustStore;
     private X509Certificate[] _trustedCert;
     private Collection<? extends CRL> _crls;
-
     /**
      * Maximum certification path length (n - number of intermediate certs, -1 for unlimited)
      */
@@ -89,7 +72,6 @@ public class CertificateValidator {
      * Location of OCSP Responder
      */
     private String _ocspResponderURL;
-
     private boolean preferCrl = false;
     private boolean checkOnlyEndEntities = true;
     private Date date = null; //current date
@@ -116,6 +98,22 @@ public class CertificateValidator {
 
         _trustedCert = trustedCert;
         _crls = crls;
+    }
+
+    boolean isPreferCrl() {
+        return preferCrl;
+    }
+
+    void setPreferCrl(boolean preferCrl) {
+        this.preferCrl = preferCrl;
+    }
+
+    boolean isCheckOnlyEndEntities() {
+        return checkOnlyEndEntities;
+    }
+
+    void setCheckOnlyEndEntities(boolean checkOnlyEndEntities) {
+        this.checkOnlyEndEntities = checkOnlyEndEntities;
     }
 
     public void validate(Certificate[] certChain) throws CertificateException {

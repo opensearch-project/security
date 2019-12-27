@@ -67,28 +67,14 @@ import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConfigConstant
 public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyStore {
 
     private static final String DEFAULT_STORE_TYPE = "JKS";
-
-    private void printJCEWarnings() {
-        try {
-            final int aesMaxKeyLength = Cipher.getMaxAllowedKeyLength("AES");
-
-            if (aesMaxKeyLength < 256) {
-                log.info("AES-256 not supported, max key length for AES is " + aesMaxKeyLength + " bit."
-                        + " (This is not an issue, it just limits possible encryption strength. To enable AES 256, install 'Java Cryptography Extension (JCE) Unlimited Strength Jurisdiction Policy Files')");
-            }
-        } catch (final NoSuchAlgorithmException e) {
-            log.error("AES encryption not supported (SG 1). " + e);
-        }
-    }
-
-    private final Settings settings;
-    private final Logger log = LogManager.getLogger(this.getClass());
     public final SslProvider sslHTTPProvider;
     public final SslProvider sslTransportServerProvider;
     public final SslProvider sslTransportClientProvider;
+    private final Settings settings;
+    private final Logger log = LogManager.getLogger(this.getClass());
     private final boolean httpSSLEnabled;
     private final boolean transportSSLEnabled;
-
+    private final Environment env;
     private List<String> enabledHttpCiphersJDKProvider;
     private List<String> enabledHttpCiphersOpenSSLProvider;
     private List<String> enabledTransportCiphersJDKProvider;
@@ -102,7 +88,6 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
     private SslContext httpSslContext;
     private SslContext transportServerSslContext;
     private SslContext transportClientSslContext;
-    private final Environment env;
 
     public DefaultOpenDistroSecurityKeyStore(final Settings settings, final Path configPath) {
         super();
@@ -192,6 +177,37 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
 
         if (httpSSLEnabled && getEnabledSSLCiphers(sslHTTPProvider, true).isEmpty()) {
             throw new ElasticsearchSecurityException("no ssl protocols for https");
+        }
+    }
+
+    private static void checkPath(String keystoreFilePath, String fileNameLogOnly) {
+
+        if (keystoreFilePath == null || keystoreFilePath.length() == 0) {
+            throw new ElasticsearchException("Empty file path for " + fileNameLogOnly);
+        }
+
+        if (Files.isDirectory(Paths.get(keystoreFilePath), LinkOption.NOFOLLOW_LINKS)) {
+            throw new ElasticsearchException(
+                    "Is a directory: " + keystoreFilePath + " Expected a file for " + fileNameLogOnly);
+        }
+
+        if (!Files.isReadable(Paths.get(keystoreFilePath))) {
+            throw new ElasticsearchException("Unable to read " + keystoreFilePath + " (" + Paths.get(keystoreFilePath)
+                    + "). Please make sure this files exists and is readable regarding to permissions. Property: "
+                    + fileNameLogOnly);
+        }
+    }
+
+    private void printJCEWarnings() {
+        try {
+            final int aesMaxKeyLength = Cipher.getMaxAllowedKeyLength("AES");
+
+            if (aesMaxKeyLength < 256) {
+                log.info("AES-256 not supported, max key length for AES is " + aesMaxKeyLength + " bit."
+                        + " (This is not an issue, it just limits possible encryption strength. To enable AES 256, install 'Java Cryptography Extension (JCE) Unlimited Strength Jurisdiction Policy Files')");
+            }
+        } catch (final NoSuchAlgorithmException e) {
+            log.error("AES encryption not supported (SG 1). " + e);
         }
     }
 
@@ -802,24 +818,6 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
 
         if (ExceptionUtils.findMsg(e, "not contain valid certificates") != null) {
             log.error("Your keystore or PEM does not contain a certificate. Maybe you confused keys and certificates.");
-        }
-    }
-
-    private static void checkPath(String keystoreFilePath, String fileNameLogOnly) {
-
-        if (keystoreFilePath == null || keystoreFilePath.length() == 0) {
-            throw new ElasticsearchException("Empty file path for " + fileNameLogOnly);
-        }
-
-        if (Files.isDirectory(Paths.get(keystoreFilePath), LinkOption.NOFOLLOW_LINKS)) {
-            throw new ElasticsearchException(
-                    "Is a directory: " + keystoreFilePath + " Expected a file for " + fileNameLogOnly);
-        }
-
-        if (!Files.isReadable(Paths.get(keystoreFilePath))) {
-            throw new ElasticsearchException("Unable to read " + keystoreFilePath + " (" + Paths.get(keystoreFilePath)
-                    + "). Please make sure this files exists and is readable regarding to permissions. Property: "
-                    + fileNameLogOnly);
         }
     }
 }

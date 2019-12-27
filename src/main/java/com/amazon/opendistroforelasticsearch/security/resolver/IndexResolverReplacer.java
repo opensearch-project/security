@@ -347,240 +347,6 @@ public final class IndexResolverReplacer implements DCFListener {
         return resolvedBuilder.build();
     }
 
-    public static final class Resolved implements Serializable, Writeable {
-
-        /**
-         *
-         */
-        private static final Set<String> All_SET = Collections.singleton("*");
-        private static final long serialVersionUID = 1L;
-        public static final Resolved _LOCAL_ALL = new Resolved(All_SET, All_SET, All_SET, All_SET, Collections.emptySet(), Collections.emptySet());
-        private final Set<String> aliases;
-        private final Set<String> indices;
-        private final Set<String> allIndices;
-        private final Set<String> types;
-
-        private final Set<String> originalRequested;
-        private final Set<String> remoteIndices;
-
-        private Resolved(final Set<String> aliases, final Set<String> indices, final Set<String> allIndices,
-                         final Set<String> types, final Set<String> originalRequested, final Set<String> remoteIndices) {
-            super();
-            this.aliases = aliases;
-            this.indices = indices;
-            this.allIndices = allIndices;
-            this.types = types;
-            this.originalRequested = originalRequested;
-            this.remoteIndices = remoteIndices;
-
-            if (!aliases.isEmpty() || !indices.isEmpty() || !allIndices.isEmpty()) {
-                if (types.isEmpty()) {
-                    //throw new ElasticsearchException("Empty types for nonempty indices or aliases");
-                }
-            }
-        }
-
-        public boolean isLocalAll() {
-            if (IndexResolverReplacer.isLocalAll(originalRequested == null ? null : originalRequested.toArray(new String[0]))) {
-                return true;
-            }
-
-            return aliases.contains("*") && indices.contains("*") && allIndices.contains("*") && types.contains("*");
-        }
-
-        public Set<String> getAliases() {
-            return Collections.unmodifiableSet(aliases);
-        }
-
-        public Set<String> getIndices() {
-            return Collections.unmodifiableSet(indices);
-        }
-
-        public Set<String> getAllIndices() {
-            return Collections.unmodifiableSet(allIndices);
-        }
-
-        public Set<String> getTypes() {
-            return Collections.unmodifiableSet(types);
-        }
-
-        public Set<String> getOriginalRequested() {
-            return Collections.unmodifiableSet(originalRequested);
-        }
-
-        public Set<String> getRemoteIndices() {
-            return Collections.unmodifiableSet(remoteIndices);
-        }
-
-        @Override
-        public String toString() {
-            return "Resolved [aliases=" + aliases + ", indices=" + indices + ", allIndices=" + allIndices + ", types=" + types
-                    + ", originalRequested=" + originalRequested + ", remoteIndices=" + remoteIndices + "]";
-        }
-
-        @Override
-        public int hashCode() {
-            final int prime = 31;
-            int result = 1;
-            result = prime * result + ((aliases == null) ? 0 : aliases.hashCode());
-            result = prime * result + ((allIndices == null) ? 0 : allIndices.hashCode());
-            result = prime * result + ((indices == null) ? 0 : indices.hashCode());
-            result = prime * result + ((originalRequested == null) ? 0 : originalRequested.hashCode());
-            result = prime * result + ((remoteIndices == null) ? 0 : remoteIndices.hashCode());
-            result = prime * result + ((types == null) ? 0 : types.hashCode());
-            return result;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj)
-                return true;
-            if (obj == null)
-                return false;
-            if (getClass() != obj.getClass())
-                return false;
-            Resolved other = (Resolved) obj;
-            if (aliases == null) {
-                if (other.aliases != null)
-                    return false;
-            } else if (!aliases.equals(other.aliases))
-                return false;
-            if (allIndices == null) {
-                if (other.allIndices != null)
-                    return false;
-            } else if (!allIndices.equals(other.allIndices))
-                return false;
-            if (indices == null) {
-                if (other.indices != null)
-                    return false;
-            } else if (!indices.equals(other.indices))
-                return false;
-            if (originalRequested == null) {
-                if (other.originalRequested != null)
-                    return false;
-            } else if (!originalRequested.equals(other.originalRequested))
-                return false;
-            if (remoteIndices == null) {
-                if (other.remoteIndices != null)
-                    return false;
-            } else if (!remoteIndices.equals(other.remoteIndices))
-                return false;
-            if (types == null) {
-                if (other.types != null)
-                    return false;
-            } else if (!types.equals(other.types))
-                return false;
-            return true;
-        }
-
-
-        private static class Builder {
-
-            private final Set<String> aliases = new HashSet<String>();
-            private final Set<String> indices = new HashSet<String>();
-            private final Set<String> allIndices = new HashSet<String>();
-            //private final Set<String> types = new HashSet<String>();
-            private final Set<String> originalRequested = new HashSet<String>();
-            private final Set<String> remoteIndices = new HashSet<String>();
-
-            public Builder() {
-                this(null, null, null, null, null, null);
-            }
-
-            public Builder(Collection<String> aliases, Collection<String> indices, Collection<String> allIndices,
-                           Collection<String> types, String[] originalRequested, Collection<String> remoteIndices) {
-
-                if (aliases != null) {
-                    this.aliases.addAll(aliases);
-                }
-
-                if (indices != null) {
-                    this.indices.addAll(indices);
-                }
-
-                if (allIndices != null) {
-                    this.allIndices.addAll(allIndices);
-                }
-
-                if (types != null) {
-                    //this.types.addAll(types);
-                }
-
-                if (originalRequested != null) {
-                    this.originalRequested.addAll(Arrays.asList(originalRequested));
-                }
-
-                if (remoteIndices != null) {
-                    this.remoteIndices.addAll(remoteIndices);
-                }
-            }
-
-            /*public Builder addTypes(Collection<String> types) {
-                if(types != null && types.size() > 0) {
-                    if(this.types.contains("*")) {
-                        this.types.remove("*");
-                    }
-                    this.types.addAll(types);
-                }
-                return this;
-            }*/
-
-            public Builder add(Resolved r) {
-
-                this.aliases.addAll(r.aliases);
-                this.indices.addAll(r.indices);
-                this.allIndices.addAll(r.allIndices);
-                this.originalRequested.addAll(r.originalRequested);
-                this.remoteIndices.addAll(r.remoteIndices);
-                //addTypes(r.types);
-                return this;
-            }
-
-            public Builder addOriginalRequested(List<String> originalRequested) {
-                if (originalRequested != null) {
-                    this.originalRequested.addAll(originalRequested);
-                }
-                return this;
-            }
-
-            public Builder addRemoteIndices(Set<String> remoteIndices) {
-                if (remoteIndices != null) {
-                    this.remoteIndices.addAll(remoteIndices);
-                }
-                return this;
-            }
-
-            public Resolved build() {
-//                if(types.isEmpty()) {
-//                    types.add("*");
-//                }
-
-                return new Resolved(new HashSet<String>(aliases), new HashSet<String>(indices), new HashSet<String>(allIndices),
-                        Collections.singleton("*"), new HashSet<String>(originalRequested), new HashSet<String>(remoteIndices));
-            }
-        }
-
-        public Resolved(final StreamInput in) throws IOException {
-            aliases = new HashSet<String>(in.readList(StreamInput::readString));
-            indices = new HashSet<String>(in.readList(StreamInput::readString));
-            allIndices = new HashSet<String>(in.readList(StreamInput::readString));
-            types = new HashSet<String>(in.readList(StreamInput::readString));
-            originalRequested = new HashSet<String>(in.readList(StreamInput::readString));
-            remoteIndices = new HashSet<String>(in.readList(StreamInput::readString));
-        }
-
-
-        @Override
-        public void writeTo(StreamOutput out) throws IOException {
-            out.writeStringCollection(new ArrayList<>(aliases));
-            out.writeStringCollection(new ArrayList<>(indices));
-            out.writeStringCollection(new ArrayList<>(allIndices));
-            out.writeStringCollection(new ArrayList<>(types));
-            out.writeStringCollection(new ArrayList<>(originalRequested));
-            out.writeStringCollection(new ArrayList<>(remoteIndices));
-        }
-    }
-
     private List<String> renamedIndices(final RestoreSnapshotRequest request, final List<String> filteredIndices) {
         try {
             final List<String> renamedIndices = new ArrayList<>();
@@ -596,16 +362,6 @@ public final class IndexResolverReplacer implements DCFListener {
             log.error("Unable to parse the regular expression denoted in 'rename_pattern'. Please correct the pattern an try again.");
             throw e;
         }
-    }
-
-
-    //--
-
-    @FunctionalInterface
-    public interface IndicesProvider {
-        public static final String[] NOOP = new String[0];
-
-        String[] provide(String[] original, Object request, boolean supportsReplace);
     }
 
     private boolean checkIndices(Object request, String[] indices, boolean needsToBeSizeOne, boolean allowEmpty) {
@@ -642,11 +398,15 @@ public final class IndexResolverReplacer implements DCFListener {
         return true;
     }
 
+
+    //--
+
     /**
      * new
      *
      * @param request
-     * @param newIndices
+     * @param provider
+     * @param allowEmptyIndices
      * @return
      */
     @SuppressWarnings("rawtypes")
@@ -839,5 +599,244 @@ public final class IndexResolverReplacer implements DCFListener {
     @Override
     public void onChanged(ConfigModel cm, DynamicConfigModel dcm, InternalUsersModel ium) {
         respectRequestIndicesOptions = dcm.isRespectRequestIndicesEnabled();
+    }
+
+    @FunctionalInterface
+    public interface IndicesProvider {
+        public static final String[] NOOP = new String[0];
+
+        String[] provide(String[] original, Object request, boolean supportsReplace);
+    }
+
+    public static final class Resolved implements Serializable, Writeable {
+
+        /**
+         *
+         */
+        private static final Set<String> All_SET = Collections.singleton("*");
+        public static final Resolved _LOCAL_ALL = new Resolved(All_SET, All_SET, All_SET, All_SET, Collections.emptySet(), Collections.emptySet());
+        private static final long serialVersionUID = 1L;
+        private final Set<String> aliases;
+        private final Set<String> indices;
+        private final Set<String> allIndices;
+        private final Set<String> types;
+
+        private final Set<String> originalRequested;
+        private final Set<String> remoteIndices;
+
+        private Resolved(final Set<String> aliases, final Set<String> indices, final Set<String> allIndices,
+                         final Set<String> types, final Set<String> originalRequested, final Set<String> remoteIndices) {
+            super();
+            this.aliases = aliases;
+            this.indices = indices;
+            this.allIndices = allIndices;
+            this.types = types;
+            this.originalRequested = originalRequested;
+            this.remoteIndices = remoteIndices;
+
+            if (!aliases.isEmpty() || !indices.isEmpty() || !allIndices.isEmpty()) {
+                if (types.isEmpty()) {
+                    //throw new ElasticsearchException("Empty types for nonempty indices or aliases");
+                }
+            }
+        }
+
+        public Resolved(final StreamInput in) throws IOException {
+            aliases = new HashSet<String>(in.readList(StreamInput::readString));
+            indices = new HashSet<String>(in.readList(StreamInput::readString));
+            allIndices = new HashSet<String>(in.readList(StreamInput::readString));
+            types = new HashSet<String>(in.readList(StreamInput::readString));
+            originalRequested = new HashSet<String>(in.readList(StreamInput::readString));
+            remoteIndices = new HashSet<String>(in.readList(StreamInput::readString));
+        }
+
+        public boolean isLocalAll() {
+            if (IndexResolverReplacer.isLocalAll(originalRequested == null ? null : originalRequested.toArray(new String[0]))) {
+                return true;
+            }
+
+            return aliases.contains("*") && indices.contains("*") && allIndices.contains("*") && types.contains("*");
+        }
+
+        public Set<String> getAliases() {
+            return Collections.unmodifiableSet(aliases);
+        }
+
+        public Set<String> getIndices() {
+            return Collections.unmodifiableSet(indices);
+        }
+
+        public Set<String> getAllIndices() {
+            return Collections.unmodifiableSet(allIndices);
+        }
+
+        public Set<String> getTypes() {
+            return Collections.unmodifiableSet(types);
+        }
+
+        public Set<String> getOriginalRequested() {
+            return Collections.unmodifiableSet(originalRequested);
+        }
+
+        public Set<String> getRemoteIndices() {
+            return Collections.unmodifiableSet(remoteIndices);
+        }
+
+        @Override
+        public String toString() {
+            return "Resolved [aliases=" + aliases + ", indices=" + indices + ", allIndices=" + allIndices + ", types=" + types
+                    + ", originalRequested=" + originalRequested + ", remoteIndices=" + remoteIndices + "]";
+        }
+
+        @Override
+        public int hashCode() {
+            final int prime = 31;
+            int result = 1;
+            result = prime * result + ((aliases == null) ? 0 : aliases.hashCode());
+            result = prime * result + ((allIndices == null) ? 0 : allIndices.hashCode());
+            result = prime * result + ((indices == null) ? 0 : indices.hashCode());
+            result = prime * result + ((originalRequested == null) ? 0 : originalRequested.hashCode());
+            result = prime * result + ((remoteIndices == null) ? 0 : remoteIndices.hashCode());
+            result = prime * result + ((types == null) ? 0 : types.hashCode());
+            return result;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj)
+                return true;
+            if (obj == null)
+                return false;
+            if (getClass() != obj.getClass())
+                return false;
+            Resolved other = (Resolved) obj;
+            if (aliases == null) {
+                if (other.aliases != null)
+                    return false;
+            } else if (!aliases.equals(other.aliases))
+                return false;
+            if (allIndices == null) {
+                if (other.allIndices != null)
+                    return false;
+            } else if (!allIndices.equals(other.allIndices))
+                return false;
+            if (indices == null) {
+                if (other.indices != null)
+                    return false;
+            } else if (!indices.equals(other.indices))
+                return false;
+            if (originalRequested == null) {
+                if (other.originalRequested != null)
+                    return false;
+            } else if (!originalRequested.equals(other.originalRequested))
+                return false;
+            if (remoteIndices == null) {
+                if (other.remoteIndices != null)
+                    return false;
+            } else if (!remoteIndices.equals(other.remoteIndices))
+                return false;
+            if (types == null) {
+                if (other.types != null)
+                    return false;
+            } else if (!types.equals(other.types))
+                return false;
+            return true;
+        }
+
+        @Override
+        public void writeTo(StreamOutput out) throws IOException {
+            out.writeStringCollection(new ArrayList<>(aliases));
+            out.writeStringCollection(new ArrayList<>(indices));
+            out.writeStringCollection(new ArrayList<>(allIndices));
+            out.writeStringCollection(new ArrayList<>(types));
+            out.writeStringCollection(new ArrayList<>(originalRequested));
+            out.writeStringCollection(new ArrayList<>(remoteIndices));
+        }
+
+        private static class Builder {
+
+            private final Set<String> aliases = new HashSet<String>();
+            private final Set<String> indices = new HashSet<String>();
+            private final Set<String> allIndices = new HashSet<String>();
+            //private final Set<String> types = new HashSet<String>();
+            private final Set<String> originalRequested = new HashSet<String>();
+            private final Set<String> remoteIndices = new HashSet<String>();
+
+            public Builder() {
+                this(null, null, null, null, null, null);
+            }
+
+            public Builder(Collection<String> aliases, Collection<String> indices, Collection<String> allIndices,
+                           Collection<String> types, String[] originalRequested, Collection<String> remoteIndices) {
+
+                if (aliases != null) {
+                    this.aliases.addAll(aliases);
+                }
+
+                if (indices != null) {
+                    this.indices.addAll(indices);
+                }
+
+                if (allIndices != null) {
+                    this.allIndices.addAll(allIndices);
+                }
+
+                if (types != null) {
+                    //this.types.addAll(types);
+                }
+
+                if (originalRequested != null) {
+                    this.originalRequested.addAll(Arrays.asList(originalRequested));
+                }
+
+                if (remoteIndices != null) {
+                    this.remoteIndices.addAll(remoteIndices);
+                }
+            }
+
+            /*public Builder addTypes(Collection<String> types) {
+                if(types != null && types.size() > 0) {
+                    if(this.types.contains("*")) {
+                        this.types.remove("*");
+                    }
+                    this.types.addAll(types);
+                }
+                return this;
+            }*/
+
+            public Builder add(Resolved r) {
+
+                this.aliases.addAll(r.aliases);
+                this.indices.addAll(r.indices);
+                this.allIndices.addAll(r.allIndices);
+                this.originalRequested.addAll(r.originalRequested);
+                this.remoteIndices.addAll(r.remoteIndices);
+                //addTypes(r.types);
+                return this;
+            }
+
+            public Builder addOriginalRequested(List<String> originalRequested) {
+                if (originalRequested != null) {
+                    this.originalRequested.addAll(originalRequested);
+                }
+                return this;
+            }
+
+            public Builder addRemoteIndices(Set<String> remoteIndices) {
+                if (remoteIndices != null) {
+                    this.remoteIndices.addAll(remoteIndices);
+                }
+                return this;
+            }
+
+            public Resolved build() {
+//                if(types.isEmpty()) {
+//                    types.add("*");
+//                }
+
+                return new Resolved(new HashSet<String>(aliases), new HashSet<String>(indices), new HashSet<String>(allIndices),
+                        Collections.singleton("*"), new HashSet<String>(originalRequested), new HashSet<String>(remoteIndices));
+            }
+        }
     }
 }

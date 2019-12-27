@@ -28,17 +28,17 @@ public class InternalUserV6 implements Hideable, Hashed {
         this.username = username;
     }
 
+    public InternalUserV6() {
+        super();
+        //default constructor
+    }
+
     public String getUsername() {
         return username;
     }
 
     public void setUsername(String username) {
         this.username = username;
-    }
-
-    public InternalUserV6() {
-        super();
-        //default constructor
     }
 
     public String getHash() {

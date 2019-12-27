@@ -38,27 +38,14 @@ import org.elasticsearch.action.search.SearchRequest;
 
 public class SourceFieldsContext implements Serializable {
 
-    private String[] includes;
-    private String[] excludes;
-    //private String[] storedFields;
-    private boolean fetchSource = true;
-
     /**
      *
      */
     private static final long serialVersionUID = 1L;
-
-    public static boolean isNeeded(SearchRequest request) {
-        return (request.source() != null && request.source().fetchSource() != null && (request.source().fetchSource().includes() != null || request
-                .source().fetchSource().excludes() != null))
-                || (request.source() != null && request.source().storedFields() != null
-                && request.source().storedFields().fieldNames() != null && !request.source().storedFields().fieldNames().isEmpty());
-    }
-
-    public static boolean isNeeded(GetRequest request) {
-        return (request.fetchSourceContext() != null && (request.fetchSourceContext().includes() != null || request.fetchSourceContext()
-                .excludes() != null)) || (request.storedFields() != null && request.storedFields().length > 0);
-    }
+    private String[] includes;
+    private String[] excludes;
+    //private String[] storedFields;
+    private boolean fetchSource = true;
 
     public SourceFieldsContext() {
         super();
@@ -84,6 +71,18 @@ public class SourceFieldsContext implements Serializable {
         }
 
         //storedFields = request.storedFields();
+    }
+
+    public static boolean isNeeded(SearchRequest request) {
+        return (request.source() != null && request.source().fetchSource() != null && (request.source().fetchSource().includes() != null || request
+                .source().fetchSource().excludes() != null))
+                || (request.source() != null && request.source().storedFields() != null
+                && request.source().storedFields().fieldNames() != null && !request.source().storedFields().fieldNames().isEmpty());
+    }
+
+    public static boolean isNeeded(GetRequest request) {
+        return (request.fetchSourceContext() != null && (request.fetchSourceContext().includes() != null || request.fetchSourceContext()
+                .excludes() != null)) || (request.storedFields() != null && request.storedFields().length > 0);
     }
 
     public String[] getIncludes() {

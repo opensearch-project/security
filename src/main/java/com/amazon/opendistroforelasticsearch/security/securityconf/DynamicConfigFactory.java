@@ -41,52 +41,14 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     private static SecurityDynamicConfiguration<RoleV7> staticRoles = SecurityDynamicConfiguration.empty();
     private static SecurityDynamicConfiguration<ActionGroupsV7> staticActionGroups = SecurityDynamicConfiguration.empty();
     private static SecurityDynamicConfiguration<TenantV7> staticTenants = SecurityDynamicConfiguration.empty();
-
-    static void resetStatics() {
-        staticRoles = SecurityDynamicConfiguration.empty();
-        staticActionGroups = SecurityDynamicConfiguration.empty();
-        staticTenants = SecurityDynamicConfiguration.empty();
-    }
-
-    private void loadStaticConfig() throws IOException {
-        JsonNode staticRolesJsonNode = DefaultObjectMapper.YAML_MAPPER
-                .readTree(DynamicConfigFactory.class.getResourceAsStream("/static_config/static_roles.yml"));
-        staticRoles = SecurityDynamicConfiguration.fromNode(staticRolesJsonNode, CType.ROLES, 2, 0, 0);
-
-        JsonNode staticActionGroupsJsonNode = DefaultObjectMapper.YAML_MAPPER
-                .readTree(DynamicConfigFactory.class.getResourceAsStream("/static_config/static_action_groups.yml"));
-        staticActionGroups = SecurityDynamicConfiguration.fromNode(staticActionGroupsJsonNode, CType.ACTIONGROUPS, 2, 0, 0);
-
-        JsonNode staticTenantsJsonNode = DefaultObjectMapper.YAML_MAPPER
-                .readTree(DynamicConfigFactory.class.getResourceAsStream("/static_config/static_tenants.yml"));
-        staticTenants = SecurityDynamicConfiguration.fromNode(staticTenantsJsonNode, CType.TENANTS, 2, 0, 0);
-    }
-
-    public static final SecurityDynamicConfiguration<?> addStatics(SecurityDynamicConfiguration<?> original) {
-        if (original.getCType() == CType.ACTIONGROUPS && !staticActionGroups.getCEntries().isEmpty()) {
-            original.add(staticActionGroups.deepClone());
-        }
-
-        if (original.getCType() == CType.ROLES && !staticRoles.getCEntries().isEmpty()) {
-            original.add(staticRoles.deepClone());
-        }
-
-        if (original.getCType() == CType.TENANTS && !staticTenants.getCEntries().isEmpty()) {
-            original.add(staticTenants.deepClone());
-        }
-
-        return original;
-    }
-
     protected final Logger log = LogManager.getLogger(this.getClass());
+    SecurityDynamicConfiguration<?> config;
     private final ConfigurationRepository cr;
     private final AtomicBoolean initialized = new AtomicBoolean();
     private final List<DCFListener> listeners = new ArrayList<>();
     private final Settings esSettings;
     private final Path configPath;
     private final InternalAuthenticationBackend iab = new InternalAuthenticationBackend();
-
-    SecurityDynamicConfiguration<?> config;
 
     public DynamicConfigFactory(ConfigurationRepository cr, final Settings esSettings,
                                 final Path configPath, Client client, ThreadPool threadPool, ClusterInfoHolder cih) {
@@ -117,6 +79,54 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
 
         registerDCFListener(this.iab);
         this.cr.subscribeOnChange(this);
+    }
+
+    static void resetStatics() {
+        staticRoles = SecurityDynamicConfiguration.empty();
+        staticActionGroups = SecurityDynamicConfiguration.empty();
+        staticTenants = SecurityDynamicConfiguration.empty();
+    }
+
+    public static final SecurityDynamicConfiguration<?> addStatics(SecurityDynamicConfiguration<?> original) {
+        if (original.getCType() == CType.ACTIONGROUPS && !staticActionGroups.getCEntries().isEmpty()) {
+            original.add(staticActionGroups.deepClone());
+        }
+
+        if (original.getCType() == CType.ROLES && !staticRoles.getCEntries().isEmpty()) {
+            original.add(staticRoles.deepClone());
+        }
+
+        if (original.getCType() == CType.TENANTS && !staticTenants.getCEntries().isEmpty()) {
+            original.add(staticTenants.deepClone());
+        }
+
+        return original;
+    }
+
+    private static ConfigV6 getConfigV6(SecurityDynamicConfiguration<?> sdc) {
+        @SuppressWarnings("unchecked")
+        SecurityDynamicConfiguration<ConfigV6> c = (SecurityDynamicConfiguration<ConfigV6>) sdc;
+        return c.getCEntry("opendistro_security");
+    }
+
+    private static ConfigV7 getConfigV7(SecurityDynamicConfiguration<?> sdc) {
+        @SuppressWarnings("unchecked")
+        SecurityDynamicConfiguration<ConfigV7> c = (SecurityDynamicConfiguration<ConfigV7>) sdc;
+        return c.getCEntry("config");
+    }
+
+    private void loadStaticConfig() throws IOException {
+        JsonNode staticRolesJsonNode = DefaultObjectMapper.YAML_MAPPER
+                .readTree(DynamicConfigFactory.class.getResourceAsStream("/static_config/static_roles.yml"));
+        staticRoles = SecurityDynamicConfiguration.fromNode(staticRolesJsonNode, CType.ROLES, 2, 0, 0);
+
+        JsonNode staticActionGroupsJsonNode = DefaultObjectMapper.YAML_MAPPER
+                .readTree(DynamicConfigFactory.class.getResourceAsStream("/static_config/static_action_groups.yml"));
+        staticActionGroups = SecurityDynamicConfiguration.fromNode(staticActionGroupsJsonNode, CType.ACTIONGROUPS, 2, 0, 0);
+
+        JsonNode staticTenantsJsonNode = DefaultObjectMapper.YAML_MAPPER
+                .readTree(DynamicConfigFactory.class.getResourceAsStream("/static_config/static_tenants.yml"));
+        staticTenants = SecurityDynamicConfiguration.fromNode(staticTenantsJsonNode, CType.TENANTS, 2, 0, 0);
     }
 
     @Override
@@ -205,18 +215,6 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
 
         initialized.set(true);
 
-    }
-
-    private static ConfigV6 getConfigV6(SecurityDynamicConfiguration<?> sdc) {
-        @SuppressWarnings("unchecked")
-        SecurityDynamicConfiguration<ConfigV6> c = (SecurityDynamicConfiguration<ConfigV6>) sdc;
-        return c.getCEntry("opendistro_security");
-    }
-
-    private static ConfigV7 getConfigV7(SecurityDynamicConfiguration<?> sdc) {
-        @SuppressWarnings("unchecked")
-        SecurityDynamicConfiguration<ConfigV7> c = (SecurityDynamicConfiguration<ConfigV7>) sdc;
-        return c.getCEntry("config");
     }
 
     @Override

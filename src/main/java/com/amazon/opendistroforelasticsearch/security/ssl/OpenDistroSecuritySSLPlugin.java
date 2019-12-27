@@ -82,17 +82,17 @@ import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConfigConstant
 //For ES5 this class has only effect when SSL only plugin is installed
 public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin, NetworkPlugin {
 
-    protected final Logger log = LogManager.getLogger(this.getClass());
     protected static final String CLIENT_TYPE = "client.type";
+    private static final SslExceptionHandler NOOP_SSL_EXCEPTION_HANDLER = new SslExceptionHandler() {
+    };
+    protected final Logger log = LogManager.getLogger(this.getClass());
     protected final boolean client;
     protected final boolean httpSSLEnabled;
     protected final boolean transportSSLEnabled;
     protected final Settings settings;
     protected final OpenDistroSecurityKeyStore odsks;
-    protected PrincipalExtractor principalExtractor;
     protected final Path configPath;
-    private static final SslExceptionHandler NOOP_SSL_EXCEPTION_HANDLER = new SslExceptionHandler() {
-    };
+    protected PrincipalExtractor principalExtractor;
 
 //    public OpenDistroSecuritySSLPlugin(final Settings settings, final Path configPath) {
 //        this(settings, configPath, false);
