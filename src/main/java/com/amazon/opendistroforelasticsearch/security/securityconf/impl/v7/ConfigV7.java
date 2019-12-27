@@ -240,10 +240,10 @@ public class ConfigV7 {
             super();
             http_enabled = v6.http_enabled && v6.enabled;
             transport_enabled = v6.transport_enabled && v6.enabled;
-//            if(v6.enabled)vv {
-//                http_enabled = true;
-//                transport_enabled = true;
-//            }
+            //            if(v6.enabled)vv {
+            //                http_enabled = true;
+            //                transport_enabled = true;
+            //            }
             order = v6.order;
             http_authenticator = new HttpAuthenticator(v6.http_authenticator);
             authentication_backend = new AuthcBackend(v6.authentication_backend);

@@ -830,9 +830,9 @@ public final class IndexResolverReplacer implements DCFListener {
             }
 
             public Resolved build() {
-//                if(types.isEmpty()) {
-//                    types.add("*");
-//                }
+                //if (types.isEmpty()) {
+                //    types.add("*");
+                //}
 
                 return new Resolved(new HashSet<String>(aliases), new HashSet<String>(indices), new HashSet<String>(allIndices),
                         Collections.singleton("*"), new HashSet<String>(originalRequested), new HashSet<String>(remoteIndices));

@@ -110,7 +110,7 @@ public class ConfigConstants {
             new HashSet<String>(Arrays.asList(
                     "indices:admin/create",
                     "indices:data/write/index"
-                    // "indices:data/write/bulk"
+            // "indices:data/write/bulk"
             )));
 
     public static final String OPENDISTRO_SECURITY_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = "opendistro_security.cert.intercluster_request_evaluator_class";

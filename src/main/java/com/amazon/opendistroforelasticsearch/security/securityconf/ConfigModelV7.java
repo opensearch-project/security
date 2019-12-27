@@ -207,7 +207,7 @@ public class ConfigModelV7 extends ConfigModel {
                     final Set<String> permittedClusterActions = agr.resolvedActions(securityRole.getValue().getCluster_permissions());
                     _securityRole.addClusterPerms(permittedClusterActions);
 
-                        /*for(RoleV7.Tenant tenant: securityRole.getValue().getTenant_permissions()) {
+                    /*for(RoleV7.Tenant tenant: securityRole.getValue().getTenant_permissions()) {
 
                             //if(tenant.equals(user.getName())) {
                             //    continue;
@@ -218,7 +218,7 @@ public class ConfigModelV7 extends ConfigModel {
                             } else {
                                 _securityRole.addTenant(new Tenant(tenant.getKey(), false));
                             }
-                        }*/
+                    }*/
 
                     for (final Index permittedAliasesIndex : securityRole.getValue().getIndex_permissions()) {
 
@@ -232,13 +232,13 @@ public class ConfigModelV7 extends ConfigModel {
                             _indexPattern.addFlsFields(fls);
                             _indexPattern.addMaskedFields(maskedFields);
                             _indexPattern.addPerm(agr.resolvedActions(permittedAliasesIndex.getAllowed_actions()));
-    
-                                /*for(Entry<String, List<String>> type: permittedAliasesIndex.getValue().getTypes(-).entrySet()) {
+
+                            /*for(Entry<String, List<String>> type: permittedAliasesIndex.getValue().getTypes(-).entrySet()) {
                                     TypePerm typePerm = new TypePerm(type.getKey());
                                     final List<String> perms = type.getValue();
                                     typePerm.addPerms(agr.resolvedActions(perms));
                                     _indexPattern.addTypePerms(typePerm);
-                                }*/
+                            }*/
 
                             _securityRole.addIndexPattern(_indexPattern);
 
@@ -520,12 +520,12 @@ public class ConfigModelV7 extends ConfigModel {
                 //what if we cannot resolve one (for create purposes)
                 final boolean patternMatch = WildcardMatcher.matchAll(p.getPerms().toArray(new String[0]), actions);
 
-//                final Set<TypePerm> tperms = p.getTypePerms();
-//                for (TypePerm tp : tperms) {
-//                    if (WildcardMatcher.matchAny(tp.typePattern, resolved.getTypes(-).toArray(new String[0]))) {
-//                        patternMatch = WildcardMatcher.matchAll(tp.perms.toArray(new String[0]), actions);
-//                    }
-//                }
+                //                final Set<TypePerm> tperms = p.getTypePerms();
+                //                for (TypePerm tp : tperms) {
+                //                    if (WildcardMatcher.matchAny(tp.typePattern, resolved.getTypes(-).toArray(new String[0]))) {
+                //                        patternMatch = WildcardMatcher.matchAll(tp.perms.toArray(new String[0]), actions);
+                //                    }
+                //                }
                 if (patternMatch) {
                     //resolved but can contain patterns for nonexistent indices
                     final String[] permitted = p.getResolvedIndexPattern(user, resolver, cs); //maybe they do not exist
@@ -609,11 +609,11 @@ public class ConfigModelV7 extends ConfigModel {
                     return false;
             } else if (!name.equals(other.name))
                 return false;
-//            if (tenants == null) {
-//                if (other.tenants != null)
-//                    return false;
-//            } else if (!tenants.equals(other.tenants))
-//                return false;
+            //            if (tenants == null) {
+            //                if (other.tenants != null)
+            //                    return false;
+            //            } else if (!tenants.equals(other.tenants))
+            //                return false;
             return true;
         }
 

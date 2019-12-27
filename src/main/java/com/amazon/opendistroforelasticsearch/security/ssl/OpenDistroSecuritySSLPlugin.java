@@ -94,9 +94,9 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin,
     protected final Path configPath;
     protected PrincipalExtractor principalExtractor;
 
-//    public OpenDistroSecuritySSLPlugin(final Settings settings, final Path configPath) {
-//        this(settings, configPath, false);
-//    }
+    //    public OpenDistroSecuritySSLPlugin(final Settings settings, final Path configPath) {
+    //        this(settings, configPath, false);
+    //    }
 
     protected OpenDistroSecuritySSLPlugin(final Settings settings, final Path configPath, boolean disabled) {
 

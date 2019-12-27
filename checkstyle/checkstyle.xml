@@ -181,9 +181,13 @@
              http://www.oracle.com/technetwork/java/javase/documentation/codeconventions-141855.html#1852 -->
         <module name="DeclarationOrder"/>
 
+        <!-- Variables must be declared near where they are used. -->
         <module name="VariableDeclarationUsageDistance">
             <property name="allowedDistance" value="10"/>
         </module>
+
+        <!-- Comments must be placed at the same indentation level as the surrounding code. -->
+        <module name="CommentsIndentation"/>
 
         <!-- Method names must be specified on the same line as their parameter list. -->
         <module name="MethodParamPad"/>
