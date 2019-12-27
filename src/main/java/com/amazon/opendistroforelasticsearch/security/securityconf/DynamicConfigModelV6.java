@@ -217,8 +217,8 @@ public class DynamicConfigModelV6 extends DynamicConfigModel {
                                 Settings.builder()
                                         .put(esSettings)
                                         //.putProperties(ads.getAsStringMap(DotPath.of("authorization_backend.config")), DynamicConfiguration.checkKeyFunction()).build(), configPath);
-                                        .put(Settings.builder().loadFromSource(ad.getValue().authorization_backend.configAsJson(), XContentType.JSON).build()).build()
-                                , configPath);
+                                        .put(Settings.builder().loadFromSource(ad.getValue().authorization_backend.configAsJson(), XContentType.JSON).build()).build(),
+                                configPath);
                     }
 
                     if (httpEnabled) {
@@ -260,17 +260,16 @@ public class DynamicConfigModelV6 extends DynamicConfigModel {
                                 Settings.builder()
                                         .put(esSettings)
                                         //.putProperties(ads.getAsStringMap(DotPath.of("authentication_backend.config")), DynamicConfiguration.checkKeyFunction()).build()
-                                        .put(Settings.builder().loadFromSource(ad.getValue().authentication_backend.configAsJson(), XContentType.JSON).build()).build()
-                                , configPath);
+                                        .put(Settings.builder().loadFromSource(ad.getValue().authentication_backend.configAsJson(), XContentType.JSON).build()).build(),
+                                configPath);
                     }
 
                     String httpAuthenticatorType = ad.getValue().http_authenticator.type; //no default
                     HTTPAuthenticator httpAuthenticator = httpAuthenticatorType == null ? null : (HTTPAuthenticator) newInstance(httpAuthenticatorType, "h",
                             Settings.builder().put(esSettings)
                                     //.putProperties(ads.getAsStringMap(DotPath.of("http_authenticator.config")), DynamicConfiguration.checkKeyFunction()).build(),
-                                    .put(Settings.builder().loadFromSource(ad.getValue().http_authenticator.configAsJson(), XContentType.JSON).build()).build()
-
-                            , configPath);
+                                    .put(Settings.builder().loadFromSource(ad.getValue().http_authenticator.configAsJson(), XContentType.JSON).build()).build(),
+                            configPath);
 
                     final AuthDomain _ad = new AuthDomain(authenticationBackend, httpAuthenticator,
                             ad.getValue().http_authenticator.challenge, ad.getValue().order);
