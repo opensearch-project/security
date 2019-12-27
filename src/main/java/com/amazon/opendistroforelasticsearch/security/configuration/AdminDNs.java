@@ -60,10 +60,13 @@ public class AdminDNs {
 
     public AdminDNs(final Settings settings) {
 
-        this.injectUserEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, false);
-        this.injectAdminUserEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_ADMIN_USER_ENABLED, false);
+        this.injectUserEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_USER_ENABLED,
+                false);
+        this.injectAdminUserEnabled =
+                settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_ADMIN_USER_ENABLED, false);
 
-        final List<String> adminDnsA = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_ADMIN_DN, Collections.emptyList());
+        final List<String> adminDnsA = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_ADMIN_DN,
+                Collections.emptyList());
 
         for (String dn : adminDnsA) {
             try {
@@ -73,7 +76,8 @@ public class AdminDNs {
                 // make sure to log correctly depending on user injection settings
                 if (injectUserEnabled && injectAdminUserEnabled) {
                     if (log.isDebugEnabled()) {
-                        log.debug("Admin DN not an LDAP name, but admin user injection enabled. Will add {} to admin usernames", dn);
+                        log.debug("Admin DN not an LDAP name, but admin user injection enabled. Will add {} to admin usernames",
+                                dn);
                     }
                     adminUsernames.add(dn);
                 } else {
@@ -88,7 +92,8 @@ public class AdminDNs {
 
         for (String dnString : impersonationDns.keySet()) {
             try {
-                allowedImpersonations.putAll(new LdapName(dnString), settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_IMPERSONATION_DN + "." + dnString));
+                allowedImpersonations.putAll(new LdapName(dnString),
+                        settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_IMPERSONATION_DN + "." + dnString));
             } catch (final InvalidNameException e) {
                 log.error("Unable to parse allowedImpersonations dn {}", dnString, e);
             }
@@ -96,10 +101,12 @@ public class AdminDNs {
 
         log.debug("Loaded {} impersonation DN's {}", allowedImpersonations.size(), allowedImpersonations);
 
-        final Settings impersonationUsersRest = settings.getByPrefix(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS + ".");
+        final Settings impersonationUsersRest =
+                settings.getByPrefix(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS + ".");
 
         for (String user : impersonationUsersRest.keySet()) {
-            allowedRestImpersonations.putAll(user, settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS + "." + user));
+            allowedRestImpersonations.putAll(user,
+                    settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS + "." + user));
         }
 
         log.debug("Loaded {} impersonation users for REST {}", allowedRestImpersonations.size(), allowedRestImpersonations);
@@ -119,7 +126,9 @@ public class AdminDNs {
 
     public boolean isAdminDN(String dn) {
 
-        if (dn == null) return false;
+        if (dn == null) {
+            return false;
+        }
 
         try {
             return isAdminDN(new LdapName(dn));
@@ -129,7 +138,9 @@ public class AdminDNs {
     }
 
     private boolean isAdminDN(LdapName dn) {
-        if (dn == null) return false;
+        if (dn == null) {
+            return false;
+        }
 
         boolean isAdmin = adminDn.contains(dn);
 
@@ -141,7 +152,9 @@ public class AdminDNs {
     }
 
     public boolean isTransportImpersonationAllowed(LdapName dn, String impersonated) {
-        if (dn == null) return false;
+        if (dn == null) {
+            return false;
+        }
 
         if (isAdminDN(dn)) {
             return true;

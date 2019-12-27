@@ -41,6 +41,9 @@
         <!-- Only one class may be defined per file. -->
         <module name="OneTopLevelClass"/>
 
+        <!-- Braces must be used for all blocks. -->
+        <module name="NeedBraces"/>
+
         <!-- Special escape sequences like \n and \t must be used over the octal or unicode equivalent. -->
         <module name="IllegalTokenText">
             <property name="tokens" value="STRING_LITERAL, CHAR_LITERAL"/>

@@ -120,8 +120,9 @@ public class CertificateValidator {
         try {
             ArrayList<X509Certificate> certList = new ArrayList<X509Certificate>();
             for (Certificate item : certChain) {
-                if (item == null)
+                if (item == null) {
                     continue;
+                }
 
                 if (!(item instanceof X509Certificate)) {
                     throw new IllegalStateException("Invalid certificate type in chain");

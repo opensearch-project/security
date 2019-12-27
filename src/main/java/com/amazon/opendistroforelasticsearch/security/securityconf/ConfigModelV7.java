@@ -89,7 +89,8 @@ public class ConfigModelV7 extends ConfigModel {
 
         try {
             rolesMappingResolution = ConfigConstants.RolesMappingResolution.valueOf(
-                    esSettings.get(ConfigConstants.OPENDISTRO_SECURITY_ROLES_MAPPING_RESOLUTION, ConfigConstants.RolesMappingResolution.MAPPING_ONLY.toString())
+                    esSettings.get(ConfigConstants.OPENDISTRO_SECURITY_ROLES_MAPPING_RESOLUTION,
+                            ConfigConstants.RolesMappingResolution.MAPPING_ONLY.toString())
                             .toUpperCase());
         } catch (Exception e) {
             log.error("Cannot apply roles mapping resolution", e);
@@ -204,7 +205,8 @@ public class ConfigModelV7 extends ConfigModel {
                         return null;
                     }
 
-                    final Set<String> permittedClusterActions = agr.resolvedActions(securityRole.getValue().getCluster_permissions());
+                    final Set<String> permittedClusterActions =
+                            agr.resolvedActions(securityRole.getValue().getCluster_permissions());
                     _securityRole.addClusterPerms(permittedClusterActions);
 
                     /*for(RoleV7.Tenant tenant: securityRole.getValue().getTenant_permissions()) {
@@ -310,18 +312,23 @@ public class ConfigModelV7 extends ConfigModel {
 
         @Override
         public boolean equals(Object obj) {
-            if (this == obj)
+            if (this == obj) {
                 return true;
-            if (obj == null)
+            }
+            if (obj == null) {
                 return false;
-            if (getClass() != obj.getClass())
+            }
+            if (getClass() != obj.getClass()) {
                 return false;
+            }
             SecurityRoles other = (SecurityRoles) obj;
             if (roles == null) {
-                if (other.roles != null)
+                if (other.roles != null) {
                     return false;
-            } else if (!roles.equals(other.roles))
+                }
+            } else if (!roles.equals(other.roles)) {
                 return false;
+            }
             return true;
         }
 
@@ -385,7 +392,8 @@ public class ConfigModelV7 extends ConfigModel {
             return maskedFieldsMap;
         }
 
-        public Tuple<Map<String, Set<String>>, Map<String, Set<String>>> getDlsFls(User user, IndexNameExpressionResolver resolver,
+        public Tuple<Map<String, Set<String>>, Map<String, Set<String>>> getDlsFls(User user,
+                                                                                   IndexNameExpressionResolver resolver,
                                                                                    ClusterService cs) {
 
             final Map<String, Set<String>> dlsQueries = new HashMap<String, Set<String>>();
@@ -450,7 +458,8 @@ public class ConfigModelV7 extends ConfigModel {
         }
 
         //kibana special only, terms eval
-        public Set<String> getAllPermittedIndicesForKibana(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
+        public Set<String> getAllPermittedIndicesForKibana(Resolved resolved, User user, String[] actions,
+                                                           IndexNameExpressionResolver resolver, ClusterService cs) {
             Set<String> retVal = new HashSet<>();
             for (SecurityRole sr : roles) {
                 retVal.addAll(sr.getAllResolvedPermittedIndices(Resolved._LOCAL_ALL, user, actions, resolver, cs));
@@ -460,7 +469,8 @@ public class ConfigModelV7 extends ConfigModel {
         }
 
         //dnfof only
-        public Set<String> reduce(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
+        public Set<String> reduce(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver,
+                                  ClusterService cs) {
             Set<String> retVal = new HashSet<>();
             for (SecurityRole sr : roles) {
                 retVal.addAll(sr.getAllResolvedPermittedIndices(resolved, user, actions, resolver, cs));
@@ -472,7 +482,8 @@ public class ConfigModelV7 extends ConfigModel {
         }
 
         //return true on success
-        public boolean get(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
+        public boolean get(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver,
+                           ClusterService cs) {
             for (SecurityRole sr : roles) {
                 if (ConfigModelV7.impliesTypePerm(sr.getIpatterns(), resolved, user, actions, resolver, cs)) {
                     return true;
@@ -512,7 +523,8 @@ public class ConfigModelV7 extends ConfigModel {
 
         //get indices which are permitted for the given types and actions
         //dnfof + kibana special only
-        private Set<String> getAllResolvedPermittedIndices(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver,
+        private Set<String> getAllResolvedPermittedIndices(Resolved resolved, User user, String[] actions,
+                                                           IndexNameExpressionResolver resolver,
                                                            ClusterService cs) {
 
             final Set<String> retVal = new HashSet<>();
@@ -539,7 +551,8 @@ public class ConfigModelV7 extends ConfigModel {
                         //we want all indices so just return what's permitted
 
                         //#557
-                        //final String[] allIndices = resolver.concreteIndexNames(cs.state(), IndicesOptions.lenientExpandOpen(), "*");
+                        //final String[] allIndices = resolver.concreteIndexNames(cs.state(), IndicesOptions.lenientExpandOpen
+                        // (), "*");
                         final String[] allIndices = cs.state().metaData().getConcreteAllOpenIndices();
                         final Set<String> wanted = new HashSet<>(Arrays.asList(allIndices));
                         WildcardMatcher.wildcardRetainInSet(wanted, permitted);
@@ -587,28 +600,37 @@ public class ConfigModelV7 extends ConfigModel {
 
         @Override
         public boolean equals(Object obj) {
-            if (this == obj)
+            if (this == obj) {
                 return true;
-            if (obj == null)
+            }
+            if (obj == null) {
                 return false;
-            if (getClass() != obj.getClass())
+            }
+            if (getClass() != obj.getClass()) {
                 return false;
+            }
             SecurityRole other = (SecurityRole) obj;
             if (clusterPerms == null) {
-                if (other.clusterPerms != null)
+                if (other.clusterPerms != null) {
                     return false;
-            } else if (!clusterPerms.equals(other.clusterPerms))
+                }
+            } else if (!clusterPerms.equals(other.clusterPerms)) {
                 return false;
+            }
             if (ipatterns == null) {
-                if (other.ipatterns != null)
+                if (other.ipatterns != null) {
                     return false;
-            } else if (!ipatterns.equals(other.ipatterns))
+                }
+            } else if (!ipatterns.equals(other.ipatterns)) {
                 return false;
+            }
             if (name == null) {
-                if (other.name != null)
+                if (other.name != null) {
                     return false;
-            } else if (!name.equals(other.name))
+                }
+            } else if (!name.equals(other.name)) {
                 return false;
+            }
             //            if (tenants == null) {
             //                if (other.tenants != null)
             //                    return false;
@@ -697,44 +719,58 @@ public class ConfigModelV7 extends ConfigModel {
 
         @Override
         public boolean equals(Object obj) {
-            if (this == obj)
+            if (this == obj) {
                 return true;
-            if (obj == null)
+            }
+            if (obj == null) {
                 return false;
-            if (getClass() != obj.getClass())
+            }
+            if (getClass() != obj.getClass()) {
                 return false;
+            }
             IndexPattern other = (IndexPattern) obj;
             if (dlsQuery == null) {
-                if (other.dlsQuery != null)
+                if (other.dlsQuery != null) {
                     return false;
-            } else if (!dlsQuery.equals(other.dlsQuery))
+                }
+            } else if (!dlsQuery.equals(other.dlsQuery)) {
                 return false;
+            }
             if (fls == null) {
-                if (other.fls != null)
+                if (other.fls != null) {
                     return false;
-            } else if (!fls.equals(other.fls))
+                }
+            } else if (!fls.equals(other.fls)) {
                 return false;
+            }
             if (maskedFields == null) {
-                if (other.maskedFields != null)
+                if (other.maskedFields != null) {
                     return false;
-            } else if (!maskedFields.equals(other.maskedFields))
+                }
+            } else if (!maskedFields.equals(other.maskedFields)) {
                 return false;
+            }
             if (indexPattern == null) {
-                if (other.indexPattern != null)
+                if (other.indexPattern != null) {
                     return false;
-            } else if (!indexPattern.equals(other.indexPattern))
+                }
+            } else if (!indexPattern.equals(other.indexPattern)) {
                 return false;
+            }
             if (perms == null) {
-                if (other.perms != null)
+                if (other.perms != null) {
                     return false;
-            } else if (!perms.equals(other.perms))
+                }
+            } else if (!perms.equals(other.perms)) {
                 return false;
+            }
             return true;
         }
 
         @Override
         public String toString() {
-            return System.lineSeparator() + "        indexPattern=" + indexPattern + System.lineSeparator() + "          dlsQuery=" + dlsQuery
+            return System.lineSeparator() + "        indexPattern=" + indexPattern + System.lineSeparator() + "          " +
+                    "dlsQuery=" + dlsQuery
                     + System.lineSeparator() + "          fls=" + fls + System.lineSeparator() + "          perms=" + perms;
         }
 
@@ -751,7 +787,8 @@ public class ConfigModelV7 extends ConfigModel {
                         .toArray(String[]::new);
 
                 if (aliasesForPermittedPattern != null && aliasesForPermittedPattern.length > 0) {
-                    resolved = resolver.concreteIndexNames(cs.state(), IndicesOptions.lenientExpandOpen(), aliasesForPermittedPattern);
+                    resolved = resolver.concreteIndexNames(cs.state(), IndicesOptions.lenientExpandOpen(),
+                            aliasesForPermittedPattern);
                 }
             }
 
@@ -786,70 +823,68 @@ public class ConfigModelV7 extends ConfigModel {
 
     }
 
-    /*public static class TypePerm {
-        private final String typePattern;
-        private final Set<String> perms = new HashSet<>();
-
-        private TypePerm(String typePattern) {
-            super();
-            this.typePattern = Objects.requireNonNull(typePattern);
-            /*if(IGNORED_TYPES.contains(typePattern)) {
-                throw new RuntimeException("typepattern '"+typePattern+"' not allowed");
-            }
-        }
-
-        private TypePerm addPerms(Collection<String> perms) {
-            if (perms != null) {
-                this.perms.addAll(perms);
-            }
-            return this;
-        }
-
-        @Override
-        public int hashCode() {
-            final int prime = 31;
-            int result = 1;
-            result = prime * result + ((perms == null) ? 0 : perms.hashCode());
-            result = prime * result + ((typePattern == null) ? 0 : typePattern.hashCode());
-            return result;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj)
-                return true;
-            if (obj == null)
-                return false;
-            if (getClass() != obj.getClass())
-                return false;
-            TypePerm other = (TypePerm) obj;
-            if (perms == null) {
-                if (other.perms != null)
-                    return false;
-            } else if (!perms.equals(other.perms))
-                return false;
-            if (typePattern == null) {
-                if (other.typePattern != null)
-                    return false;
-            } else if (!typePattern.equals(other.typePattern))
-                return false;
-            return true;
-        }
-
-        @Override
-        public String toString() {
-            return System.lineSeparator() + "             typePattern=" + typePattern + System.lineSeparator() + "             perms=" + perms;
-        }
-
-        public String getTypePattern() {
-            return typePattern;
-        }
-
-        public Set<String> getPerms() {
-            return Collections.unmodifiableSet(perms);
-        }
-
-    }*/
+    /**
+     * public static class TypePerm {
+     * private final String typePattern;
+     * private final Set<String> perms = new HashSet<>();
+     * <p>
+     * private TypePerm(String typePattern) {
+     * super();
+     * this.typePattern = Objects.requireNonNull(typePattern);
+     * /*if(IGNORED_TYPES.contains(typePattern)) {
+     * throw new RuntimeException("typepattern '"+typePattern+"' not allowed");
+     * }
+     * }
+     * <p>
+     * private TypePerm addPerms(Collection<String> perms) {
+     * if (perms != null) {
+     * this.perms.addAll(perms);
+     * }
+     * return this;
+     * }
+     *
+     * @Override public int hashCode() {
+     * final int prime = 31;
+     * int result = 1;
+     * result = prime * result + ((perms == null) ? 0 : perms.hashCode());
+     * result = prime * result + ((typePattern == null) ? 0 : typePattern.hashCode());
+     * return result;
+     * }
+     * @Override public boolean equals(Object obj) {
+     * if (this == obj)
+     * return true;
+     * if (obj == null)
+     * return false;
+     * if (getClass() != obj.getClass())
+     * return false;
+     * TypePerm other = (TypePerm) obj;
+     * if (perms == null) {
+     * if (other.perms != null)
+     * return false;
+     * } else if (!perms.equals(other.perms))
+     * return false;
+     * if (typePattern == null) {
+     * if (other.typePattern != null)
+     * return false;
+     * } else if (!typePattern.equals(other.typePattern))
+     * return false;
+     * return true;
+     * }
+     * @Override public String toString() {
+     * return System.lineSeparator() + "             typePattern=" + typePattern + System.lineSeparator() + "
+     * perms=" + perms;
+     * }
+     * <p>
+     * public String getTypePattern() {
+     * return typePattern;
+     * }
+     * <p>
+     * public Set<String> getPerms() {
+     * return Collections.unmodifiableSet(perms);
+     * }
+     * <p>
+     * }
+     */
 
     public static class Tenant {
         private final String tenant;
@@ -880,26 +915,33 @@ public class ConfigModelV7 extends ConfigModel {
 
         @Override
         public boolean equals(Object obj) {
-            if (this == obj)
+            if (this == obj) {
                 return true;
-            if (obj == null)
+            }
+            if (obj == null) {
                 return false;
-            if (getClass() != obj.getClass())
+            }
+            if (getClass() != obj.getClass()) {
                 return false;
+            }
             Tenant other = (Tenant) obj;
-            if (readWrite != other.readWrite)
+            if (readWrite != other.readWrite) {
                 return false;
+            }
             if (tenant == null) {
-                if (other.tenant != null)
+                if (other.tenant != null) {
                     return false;
-            } else if (!tenant.equals(other.tenant))
+                }
+            } else if (!tenant.equals(other.tenant)) {
                 return false;
+            }
             return true;
         }
 
         @Override
         public String toString() {
-            return System.lineSeparator() + "                tenant=" + tenant + System.lineSeparator() + "                readWrite=" + readWrite;
+            return System.lineSeparator() + "                tenant=" + tenant + System.lineSeparator() + "                " +
+                    "readWrite=" + readWrite;
         }
     }
 
@@ -988,7 +1030,8 @@ public class ConfigModelV7 extends ConfigModel {
                     continue;
                 }
 
-                Future<Tuple<String, Set<Tuple<String, Boolean>>>> future = execs.submit(new Callable<Tuple<String, Set<Tuple<String, Boolean>>>>() {
+                Future<Tuple<String, Set<Tuple<String, Boolean>>>> future = execs.submit(new Callable<Tuple<String,
+                        Set<Tuple<String, Boolean>>>>() {
                     @Override
                     public Tuple<String, Set<Tuple<String, Boolean>>> call() throws Exception {
                         final Set<Tuple<String, Boolean>> tuples = new HashSet<>();
@@ -998,8 +1041,11 @@ public class ConfigModelV7 extends ConfigModel {
 
                             for (RoleV7.Tenant tenant : tenants) {
 
-                                for (String matchingTenant : WildcardMatcher.getMatchAny(tenant.getTenant_patterns(), definedTenants.getCEntries().keySet())) {
-                                    tuples.add(new Tuple<String, Boolean>(matchingTenant, agr.resolvedActions(tenant.getAllowed_actions()).contains("kibana:saved_objects/*/write")));
+                                for (String matchingTenant : WildcardMatcher.getMatchAny(tenant.getTenant_patterns(),
+                                        definedTenants.getCEntries().keySet())) {
+                                    tuples.add(new Tuple<String, Boolean>(matchingTenant,
+                                            agr.resolvedActions(tenant.getAllowed_actions()).contains("kibana:saved_objects" +
+                                                    "/*/write")));
                                 }
                             }
                         }
@@ -1022,7 +1068,8 @@ public class ConfigModelV7 extends ConfigModel {
             }
 
             try {
-                final SetMultimap<String, Tuple<String, Boolean>> tenantsMM_ = SetMultimapBuilder.hashKeys(futures.size()).hashSetValues(16).build();
+                final SetMultimap<String, Tuple<String, Boolean>> tenantsMM_ =
+                        SetMultimapBuilder.hashKeys(futures.size()).hashSetValues(16).build();
 
                 for (Future<Tuple<String, Set<Tuple<String, Boolean>>>> future : futures) {
                     Tuple<String, Set<Tuple<String, Boolean>>> result = future.get();
@@ -1080,7 +1127,8 @@ public class ConfigModelV7 extends ConfigModel {
         private ListMultimap<String, String> hosts;
         private final String hostResolverMode;
 
-        private RoleMappingHolder(final SecurityDynamicConfiguration<RoleMappingsV7> rolemappings, final String hostResolverMode) {
+        private RoleMappingHolder(final SecurityDynamicConfiguration<RoleMappingsV7> rolemappings,
+                                  final String hostResolverMode) {
 
             this.hostResolverMode = hostResolverMode;
 
@@ -1161,7 +1209,8 @@ public class ConfigModelV7 extends ConfigModel {
                     }
 
                     if (caller.address() != null
-                            && (hostResolverMode.equalsIgnoreCase("ip-hostname") || hostResolverMode.equalsIgnoreCase("ip-hostname-lookup"))) {
+                            && (hostResolverMode.equalsIgnoreCase("ip-hostname") || hostResolverMode.equalsIgnoreCase("ip" +
+                            "-hostname-lookup"))) {
                         final String hostName = caller.address().getHostString();
 
                         for (String p : WildcardMatcher.getAllMatchingPatterns(hosts.keySet(), hostName)) {
