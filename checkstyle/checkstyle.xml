@@ -31,7 +31,20 @@
         <property name="eachLine" value="true"/>
     </module>
 
+    <!-- Files must contain a copyright header. -->
+    <!--    <module name="Header">-->
+    <!--        <property name="header"-->
+    <!--                  value="/*\n * Copyright 2010-2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.\n *\n * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;).\n * You may not use this file except in compliance with the License.\n * A copy of the License is located at\n *\n *  http://aws.amazon.com/apache2.0\n *\n * or in the &quot;license&quot; file accompanying this file. This file is distributed\n * on an &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either\n * express or implied. See the License for the specific language governing\n * permissions and limitations under the License.\n */"/>-->
+    <!--    </module>-->
+
+    <!--    <module name="SuppressionFilter">-->
+    <!--        <property name="file"-->
+    <!--                  value="${checkstyle.suppressions.file}"-->
+    <!--                  default="checkstyle-suppressions.xml"/>-->
+    <!--    </module>-->
+
     <module name="TreeWalker">
+
         <!-- Allow suppressing rules via comments. -->
         <module name="SuppressionCommentFilter"/>
 
@@ -40,9 +53,6 @@
 
         <!-- Only one class may be defined per file. -->
         <module name="OneTopLevelClass"/>
-
-        <!-- Braces must be used for all blocks. -->
-        <module name="NeedBraces"/>
 
         <!-- Special escape sequences like \n and \t must be used over the octal or unicode equivalent. -->
         <module name="IllegalTokenText">
@@ -59,6 +69,12 @@
             <property name="allowNonPrintableEscapes" value="true"/>
         </module>
 
+        <!-- Enforce maximum line lengths. -->
+        <!--        <module name="LineLength">-->
+        <!--            <property name="max" value="130"/>-->
+        <!--            <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://"/>-->
+        <!--        </module>-->
+
         <!-- Stars must not be used in import statements. -->
         <module name="AvoidStarImport"/>
 
@@ -67,6 +83,9 @@
 
         <!-- Package name and imports must not be wrapped. -->
         <module name="NoLineWrap"/>
+
+        <!-- Braces must be used for all blocks. -->
+        <module name="NeedBraces"/>
 
         <!-- Braces must not be empty for most language constructs. -->
         <module name="EmptyBlock">
@@ -131,18 +150,18 @@
             <property name="allowNoEmptyLineBetweenFields" value="true"/>
         </module>
 
-        <!-- New lines must happen after commas. -->
-        <module name="SeparatorWrap">
-            <property name="id" value="SeparatorWrapComma"/>
-            <property name="tokens" value="COMMA"/>
-            <property name="option" value="EOL"/>
-        </module>
-
         <!-- New lines must happen before dots. -->
         <module name="SeparatorWrap">
             <property name="id" value="SeparatorWrapDot"/>
             <property name="tokens" value="DOT"/>
             <property name="option" value="nl"/>
+        </module>
+
+        <!-- New lines must happen after commas. -->
+        <module name="SeparatorWrap">
+            <property name="id" value="SeparatorWrapComma"/>
+            <property name="tokens" value="COMMA"/>
+            <property name="option" value="EOL"/>
         </module>
 
         <!-- Package names must follow a defined format. -->
@@ -158,12 +177,80 @@
                      value="Type name ''{0}'' must match pattern ''{1}''."/>
         </module>
 
+        <!-- Non-constant fields must follow a defined format. -->
+        <!--        <module name="MemberName">-->
+        <!--            <property name="format" value="^[a-z][a-zA-Z0-9]*$"/>-->
+        <!--            <message key="name.invalidPattern"-->
+        <!--                     value="Member name ''{0}'' must match pattern ''{1}''."/>-->
+        <!--        </module>-->
+
+        <!-- Constant fields must follow a defined format. -->
+        <!--        <module name="ConstantName">-->
+        <!--            <property name="format" value="^log?|[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$"/>-->
+        <!--        </module>-->
+
+        <!-- Method and lambda parameters must follow a defined format. -->
+        <!--        <module name="ParameterName">-->
+        <!--            <property name="id" value="ParameterNameNonPublic"/>-->
+        <!--            <property name="format" value="^[a-z]([a-zA-Z0-9]*)?$"/>-->
+        <!--            <property name="accessModifiers" value="protected, package, private"/>-->
+        <!--            <message key="name.invalidPattern"-->
+        <!--                     value="Parameter name ''{0}'' must match pattern ''{1}''."/>-->
+        <!--        </module>-->
+        <!--        <module name="ParameterName">-->
+        <!--            <property name="id" value="ParameterNamePublic"/>-->
+        <!--            <property name="format" value="^[a-z][a-zA-Z0-9]*$"/>-->
+        <!--            <property name="accessModifiers" value="public"/>-->
+        <!--            <message key="name.invalidPattern"-->
+        <!--                     value="Parameter name ''{0}'' must match pattern ''{1}''."/>-->
+        <!--        </module>-->
+
         <!-- Catch parameters must follow a defined format. -->
         <module name="CatchParameterName">
             <property name="format" value="^(e|t|[a-z][a-zA-Z0-9]*)$"/>
             <message key="name.invalidPattern"
                      value="Catch parameter name ''{0}'' must match pattern ''{1}''."/>
         </module>
+
+        <!-- Local variables must follow a defined format. -->
+        <!--        <module name="LocalVariableName">-->
+        <!--            <property name="tokens" value="VARIABLE_DEF"/>-->
+        <!--            <property name="format" value="^[a-z][a-zA-Z0-9]*$"/>-->
+        <!--            <property name="allowOneCharVarInForLoop" value="true"/>-->
+        <!--            <message key="name.invalidPattern"-->
+        <!--                     value="Local variable name ''{0}'' must match pattern ''{1}''."/>-->
+        <!--        </module>-->
+
+        <!-- Type parameters must follow a defined format. -->
+        <!--        <module name="ClassTypeParameterName">-->
+        <!--            <property name="format" value="(^[A-Z][0-9]?)$|([A-Z][a-zA-Z0-9]*[T]$)"/>-->
+        <!--            <message key="name.invalidPattern"-->
+        <!--                     value="Class type name ''{0}'' must match pattern ''{1}''."/>-->
+        <!--        </module>-->
+        <!--        <module name="MethodTypeParameterName">-->
+        <!--            <property name="format" value="(^[A-Z][0-9]?)$|([A-Z][a-zA-Z0-9]*[T]$)"/>-->
+        <!--            <message key="name.invalidPattern"-->
+        <!--                     value="Method type name ''{0}'' must match pattern ''{1}''."/>-->
+        <!--        </module>-->
+        <!--        <module name="InterfaceTypeParameterName">-->
+        <!--            <property name="format" value="(^[A-Z][0-9]?)$|([A-Z][a-zA-Z0-9]*[T]$)"/>-->
+        <!--            <message key="name.invalidPattern"-->
+        <!--                     value="Interface type name ''{0}'' must match pattern ''{1}''."/>-->
+        <!--        </module>-->
+
+        <!-- Method names must follow a defined format. -->
+        <!--        <module name="MethodName">-->
+        <!--            <property name="format" value="^[a-z][a-zA-Z0-9]*$"/>-->
+        <!--            <message key="name.invalidPattern"-->
+        <!--                     value="Method name ''{0}'' must match pattern ''{1}''."/>-->
+        <!--        </module>-->
+
+        <!-- Should not use kotlin function name as public method name -->
+        <!--        <module name="software.amazon.awssdk.buildtools.checkstyle.SdkPublicMethodNameCheck">-->
+        <!--            <property name="format" value="^(?!(?:apply|let|run|also|with)$).*$"/>-->
+        <!--            <message key="name.invalidPattern"-->
+        <!--                     value="Method name ''{0}'' conflicts with kotlin function name"/>-->
+        <!--        </module>-->
 
         <!-- Finalizers must not be overridden. -->
         <module name="NoFinalizer"/>
@@ -186,17 +273,33 @@
             <property name="arrayInitIndent" value="8"/>
         </module>
 
+        <!-- Abbreviations must follow the same conventions as any other word (eg. use Aws, not AWS). -->
+        <!--        <module name="AbbreviationAsWordInName">-->
+        <!--            <property name="ignoreFinal" value="false"/>-->
+        <!--            <property name="allowedAbbreviationLength" value="1"/>-->
+        <!--            <property name="severity" value="warning"/>-->
+        <!--        </module>-->
+
         <!-- Class contents must be defined in the order suggested by Sun/Oracle:
              http://www.oracle.com/technetwork/java/javase/documentation/codeconventions-141855.html#1852 -->
         <module name="DeclarationOrder"/>
+
+        <!--&lt;!&ndash; Overloaded methods and constructors must be defined together. &ndash;&gt;-->
+        <!--<module name="OverloadMethodsDeclarationOrder">-->
+        <!--<property name="severity" value="warning"/> &lt;!&ndash; TODO: Make error. &ndash;&gt;-->
+        <!--</module>-->
 
         <!-- Variables must be declared near where they are used. -->
         <module name="VariableDeclarationUsageDistance">
             <property name="allowedDistance" value="10"/>
         </module>
 
-        <!-- Comments must be placed at the same indentation level as the surrounding code. -->
-        <module name="CommentsIndentation"/>
+        <!-- Static imports must occur before external package imports. -->
+        <!--        <module name="CustomImportOrder">-->
+        <!--            <property name="sortImportsInGroupAlphabetically" value="true"/>-->
+        <!--            <property name="separateLineBetweenGroups" value="true"/>-->
+        <!--            <property name="customImportOrderRules" value="STATIC###THIRD_PARTY_PACKAGE"/>-->
+        <!--        </module>-->
 
         <!-- Method names must be specified on the same line as their parameter list. -->
         <module name="MethodParamPad"/>
@@ -221,6 +324,9 @@
         <!-- Catch blocks must not be empty without a comment. -->
         <module name="EmptyCatchBlock"/>
 
+        <!-- Comments must be placed at the same indentation level as the surrounding code. -->
+        <module name="CommentsIndentation"/>
+
         <!-- Checks for imports of certain packages           -->
         <!-- See http://checkstyle.sf.net/config_imports.html -->
         <module name="IllegalImport">
@@ -230,12 +336,55 @@
         <!-- Checks that the override annotation is specified when using @inheritDoc javadoc. -->
         <module name="MissingOverride"/>
 
+        <!-- Do not allow assignment in subexpressions (except in some cases in loop conditions). -->
+        <!--        <module name="InnerAssignment"/>-->
+
+        <!-- Checks that we don't use System.out.print -->
+        <!--        <module name="Regexp">-->
+        <!--            <property name="format" value="System\s*\.\s*(out|err)\s*(\.|::)\s*print"/>-->
+        <!--            <property name="illegalPattern" value="true"/>-->
+        <!--            <property name="message" value="Don't use System console for logging, use a logger instead"/>-->
+        <!--            <property name="ignoreComments" value="true"/>-->
+        <!--        </module>-->
+
+        <!-- Checks that we don't use System.getenv or System.getProperty -->
+        <!--        <module name="Regexp">-->
+        <!--            <property name="format" value="System\s*(\.|::)\s*(getenv|getProperty)"/>-->
+        <!--            <property name="illegalPattern" value="true"/>-->
+        <!--            <property name="message" value="Use SystemSetting instead of System.getenv and System.getProperty"/>-->
+        <!--            <property name="ignoreComments" value="true"/>-->
+        <!--        </module>-->
+
+        <!-- Checks that we don't implement AutoCloseable/Closeable -->
+        <!--        <module name="Regexp">-->
+        <!--            <property name="format"-->
+        <!--                      value="(class|interface).*(implements|extends).*[^\w](Closeable|AutoCloseable)[^\w]"/>-->
+        <!--            <property name="illegalPattern" value="true"/>-->
+        <!--            <property name="message" value="Use SdkAutoCloseable instead of Closeable/AutoCloseable"/>-->
+        <!--            <property name="ignoreComments" value="true"/>-->
+        <!--        </module>-->
+
         <!-- Checks that we don't use Objects.hash. Objects.hashCode is preferred-->
-        <module name="Regexp">
-            <property name="format" value="\bObjects.hash\b"/>
-            <property name="illegalPattern" value="true"/>
-            <property name="message" value="Don't use Objects.hash, use Objects.hashCode instead"/>
-            <property name="ignoreComments" value="true"/>
-        </module>
+        <!--        <module name="Regexp">-->
+        <!--            <property name="format" value="\bObjects.hash\b"/>-->
+        <!--            <property name="illegalPattern" value="true"/>-->
+        <!--            <property name="message" value="Don't use Objects.hash, use Objects.hashCode instead"/>-->
+        <!--            <property name="ignoreComments" value="true"/>-->
+        <!--        </module>-->
+
+        <!-- Checks that we don't use plural enum names -->
+        <!--        <module name="software.amazon.awssdk.buildtools.checkstyle.PluralEnumNames"/>-->
+
+        <!-- Checks for redundant public modifier on interfaces and other redundant modifiers -->
+        <!--        <module name="RedundantModifier"/>-->
+
+        <!-- Checks for utility and constants classes to have private constructor-->
+        <!--        <module name="HideUtilityClassConstructor"/>-->
+
+        <!-- Checks that every class is marked with Sdk Annotation -->
+        <!--        <module name="software.amazon.awssdk.buildtools.checkstyle.MissingSdkAnnotationCheck" />-->
+
+        <!-- Checks that no 'final' are added on local variables -->
+        <!--        <module name="software.amazon.awssdk.buildtools.checkstyle.UnnecessaryFinalOnLocalVariableCheck" />-->
     </module>
 </module>
