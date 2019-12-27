@@ -98,7 +98,7 @@ public class Base64Helper {
         }
     }
 
-    private final static class SafeObjectInputStream extends ObjectInputStream {
+    private static final class SafeObjectInputStream extends ObjectInputStream {
 
         private static final List<String> SAFE_CLASSES = new ArrayList<>();
 

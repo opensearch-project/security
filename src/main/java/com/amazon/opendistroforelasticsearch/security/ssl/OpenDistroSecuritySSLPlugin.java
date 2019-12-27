@@ -91,7 +91,7 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin,
     protected final OpenDistroSecurityKeyStore odsks;
     protected PrincipalExtractor principalExtractor;
     protected final Path configPath;
-    private final static SslExceptionHandler NOOP_SSL_EXCEPTION_HANDLER = new SslExceptionHandler() {
+    private static final SslExceptionHandler NOOP_SSL_EXCEPTION_HANDLER = new SslExceptionHandler() {
     };
 
 //    public OpenDistroSecuritySSLPlugin(final Settings settings, final Path configPath) {

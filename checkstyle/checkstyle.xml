@@ -120,6 +120,9 @@
         <!-- When defining long literals, an upper L must be used. -->
         <module name="UpperEll"/>
 
+        <!-- Modifiers like public, abstract, static, etc. must follow a consistent order. -->
+        <module name="ModifierOrder"/>
+
         <!-- Empty lines must separate methods and constructors. -->
         <module name="EmptyLineSeparator">
             <property name="allowNoEmptyLineBetweenFields" value="true"/>

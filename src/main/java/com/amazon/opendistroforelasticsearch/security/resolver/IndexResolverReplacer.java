@@ -347,14 +347,14 @@ public final class IndexResolverReplacer implements DCFListener {
         return resolvedBuilder.build();
     }
 
-    public final static class Resolved implements Serializable, Writeable {
+    public static final class Resolved implements Serializable, Writeable {
 
         /**
          *
          */
         private static final Set<String> All_SET = Collections.singleton("*");
         private static final long serialVersionUID = 1L;
-        public final static Resolved _LOCAL_ALL = new Resolved(All_SET, All_SET, All_SET, All_SET, Collections.emptySet(), Collections.emptySet());
+        public static final Resolved _LOCAL_ALL = new Resolved(All_SET, All_SET, All_SET, All_SET, Collections.emptySet(), Collections.emptySet());
         private final Set<String> aliases;
         private final Set<String> indices;
         private final Set<String> allIndices;

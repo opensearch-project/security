@@ -49,7 +49,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
 public class DefaultObjectMapper {
     public static final ObjectMapper objectMapper = new ObjectMapper();
-    public final static ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
+    public static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
     private static final ObjectMapper defaulOmittingObjectMapper = new ObjectMapper();
 
     static {

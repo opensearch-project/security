@@ -34,7 +34,7 @@ import org.elasticsearch.common.xcontent.DeprecationHandler;
 
 public class OpenDistroSecurityDeprecationHandler {
 
-    public final static DeprecationHandler INSTANCE = new DeprecationHandler() {
+    public static final DeprecationHandler INSTANCE = new DeprecationHandler() {
         @Override
         public void usedDeprecatedField(String usedName, String replacedWith) {
             throw new UnsupportedOperationException("deprecated fields not supported here but got ["

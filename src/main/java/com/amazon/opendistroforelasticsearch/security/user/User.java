@@ -245,7 +245,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
      *
      * @return A modifiable map with all the current custom attributes associated with this user
      */
-    public synchronized final Map<String, String> getCustomAttributesMap() {
+    public final synchronized Map<String, String> getCustomAttributesMap() {
         if (attributes == null) {
             attributes = new HashMap<>();
         }
