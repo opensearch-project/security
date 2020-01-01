@@ -1,0 +1,69 @@
+---
+_meta:
+  type: "roles"
+  config_version: 2
+opendistro_security_all_access:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions:
+  - "*"
+  index_permissions:
+  - index_patterns:
+    - "*"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "OPENDISTRO_SECURITY_READ"
+  tenant_permissions: []
+opendistro_security_dls_without_field_perm:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions:
+  - "*"
+  index_permissions:
+  - index_patterns:
+    - "deals"
+    dls: "{\n  \"range\" : {\n     \"amount\" : {\n         \"gte\" : 1000,\n    \
+      \     \"lte\" : 20000\n     }\n   }\n}\n"
+    fls:
+    - "customer.*"
+    - "zip"
+    masked_fields: null
+    allowed_actions:
+    - "OPENDISTRO_SECURITY_READ"
+  tenant_permissions: []
+opendistro_security_dls_without_field_perm3:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions:
+  - "*"
+  index_permissions:
+  - index_patterns:
+    - "deals"
+    dls: "{\"term\" : {\"msgid\" : \"12\"}}"
+    fls:
+    - "customer.*"
+    - "zip"
+    masked_fields: null
+    allowed_actions:
+    - "OPENDISTRO_SECURITY_READ"
+  tenant_permissions: []
+opendistro_security_picard:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions:
+  - "**"
+  index_permissions:
+  - index_patterns:
+    - "pica*"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "OPENDISTRO_SECURITY_READ"
+  tenant_permissions: []

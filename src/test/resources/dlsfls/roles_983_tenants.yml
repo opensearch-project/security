@@ -1,0 +1,12 @@
+---
+_meta:
+  type: "tenants"
+  config_version: 2
+performance_data:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6"
+human_resources:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6"
