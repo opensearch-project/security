@@ -61,25 +61,22 @@ Please refer to the [technical documentation](https://opendistro.github.io/for-e
 * Display information about the currently logged in user by visiting ``https://localhost:9200/_opendistro/_security/authinfo``.
 
 
-## Build
+## Test and Build
 
-* Source build instructions can be found here : 
-
-https://github.com/opendistro-for-elasticsearch/security-parent/blob/master/README.md
-
-## Custom CI build for testing
-
-This project is dependent on [security-parent](https://github.com/opendistro-for-elasticsearch/security) repository and [security-advanced-modules](https://github.com/opendistro-for-elasticsearch/security-advanced-modules) repository.
-By default the Github Actions CI workflow checks out the master branch of both the repos. 
-In order to point to a different repository/fork/branch/tag for testing a pull request, please update `repository` and `ref` inputs of the respective checkout actions in the [ci.yml](.github/workflows/ci.yml) file. Here is a sample which uses `opendistro-1.3` branch of `security-parent` project during building.
+* Run all tests
 
 ```
-    - name: Checkout security-parent
-      uses: actions/checkout@v1
-      with:
-        repository: opendistro-for-elasticsearch/security-parent
-        ref: refs/heads/opendistro-1.3
+mvn clean test
 ```
+
+* Build artifacts (zip, deb, rpm)
+
+```
+mvn clean package -Padvanced -DskipTests
+artifact_zip=`ls $(pwd)/target/releases/opendistro_security-*.zip | grep -v admin-standalone`
+./gradlew build buildDeb buildRpm --no-daemon -ParchivePath=$artifact_zip -Dbuild.snapshot=false
+```
+
 
 ## Config hot reloading
 

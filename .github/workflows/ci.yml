@@ -15,14 +15,6 @@ jobs:
 
     steps:
 
-    - name: Checkout security-parent
-      uses: actions/checkout@v1
-      with:
-        repository: opendistro-for-elasticsearch/security-parent
-        ref: refs/heads/master
-    - name: Install security-parent
-      run: mvn clean install -DskipTests --file ../security-parent/pom.xml
-        
     - name: Checkout security
       uses: actions/checkout@v1
 
