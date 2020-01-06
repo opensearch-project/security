@@ -76,6 +76,7 @@
         <!-- Test only -->
         <mockito.version>2.23.0</mockito.version>
         <unboundid-ldapsdk.version>4.0.9</unboundid-ldapsdk.version>
+        <jacoco.version>0.8.5</jacoco.version>
     </properties>
 
     <scm>
@@ -484,7 +485,28 @@
                     <includes>
                         <include>**/*.java</include>
                     </includes>
+                    <argLine>${argLine}</argLine>
                 </configuration>
+            </plugin>
+            <!-- Code Coverage -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>default-report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
         <extensions>
