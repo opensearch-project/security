@@ -25,17 +25,7 @@ jobs:
         
     - name: Checkout security
       uses: actions/checkout@v1
-    - name: Install security
-      run: mvn clean install -DskipTests
 
-    - name: Checkout security-advanced-modules
-      uses: actions/checkout@v1
-      with:
-        repository: opendistro-for-elasticsearch/security-advanced-modules
-        ref: refs/heads/master 
-    - name: Install security-advanced-modules
-      run: mvn clean install -DskipTests --file ../security-advanced-modules/pom.xml
-        
     - name: Checkstyle
       run: mvn checkstyle:checkstyle
       

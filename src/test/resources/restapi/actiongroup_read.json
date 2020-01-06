@@ -1,0 +1,3 @@
+{
+ "allowed_actions": ["indices:data/read*"]
+}

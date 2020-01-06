@@ -32,14 +32,11 @@ package com.amazon.opendistroforelasticsearch.security;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpStatus;
 import org.apache.http.NoHttpResponseException;
 import org.apache.http.message.BasicHeader;
-import org.apache.logging.log4j.core.LogEvent;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
@@ -55,7 +52,6 @@ import org.junit.Test;
 import com.amazon.opendistroforelasticsearch.security.action.configupdate.ConfigUpdateAction;
 import com.amazon.opendistroforelasticsearch.security.action.configupdate.ConfigUpdateRequest;
 import com.amazon.opendistroforelasticsearch.security.action.configupdate.ConfigUpdateResponse;
-import com.amazon.opendistroforelasticsearch.security.configuration.PrivilegesInterceptorImpl;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.test.DynamicSecurityConfig;
@@ -214,7 +210,6 @@ public class HttpIntegrationTests extends SingleClusterTest {
             Assert.assertTrue(res.getBody().contains("\"user_name\":\"worf\""));
             Assert.assertTrue(res.getBody().contains("\"custom_attribute_names\":[]"));
             Assert.assertFalse(res.getBody().contains("attributes="));
-            Assert.assertTrue(PrivilegesInterceptorImpl.count > 0);
             
             res = rh.executeGetRequest("_opendistro/_security/authinfo?pretty", encodeBasicHeader("custattr", "nagilum"));
             Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
@@ -224,7 +219,6 @@ public class HttpIntegrationTests extends SingleClusterTest {
             Assert.assertTrue(res.getBody().contains("\"custom_attribute_names\" : ["));
             Assert.assertTrue(res.getBody().contains("attr.internal.c3"));
             Assert.assertTrue(res.getBody().contains("attr.internal.c1"));
-            Assert.assertTrue(PrivilegesInterceptorImpl.count > 0);
             
             res = rh.executeGetRequest("v2/_search", encodeBasicHeader("custattr", "nagilum"));
             Assert.assertEquals(res.getBody(), HttpStatus.SC_OK, res.getStatusCode());
