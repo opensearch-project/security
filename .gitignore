@@ -4,7 +4,6 @@ test-output/
 kibana*/
 logstash*/
 deploy_all.sh
-/build.gradle
 *.log
 .externalToolBuilders
 maven-eclipse.xml
@@ -36,3 +35,8 @@ test.sh
 .idea/
 *.iml
 IML
+
+# gradle
+build/
+gradle-build/
+.gradle/
