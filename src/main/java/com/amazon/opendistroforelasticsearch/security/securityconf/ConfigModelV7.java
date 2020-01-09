@@ -936,38 +936,30 @@ public class ConfigModelV7 extends ConfigModel {
         }));
     }
 
-    private static boolean impliesTypePerm(Set<IndexPattern> ipatterns, Resolved resolved, User user, String[] actions,
-            IndexNameExpressionResolver resolver, ClusterService cs) {
-        Set<String> matchingIndex = new HashSet<>(resolved.getAllIndices());
-
-        for (String in : resolved.getAllIndices()) {
-            //find index patterns who are matching
-            Set<String> matchingActions = new HashSet<>(Arrays.asList(actions));
-            //Set<String> matchingTypes = new HashSet<>(resolved.getTypes(-));
-            for (IndexPattern p : ipatterns) {
-                if (WildcardMatcher.matchAny(p.getResolvedIndexPattern(user, resolver, cs), in)) {
-                    //per resolved index per pattern
-                    //for (String t : resolved.getTypes(-)) {
-                        //for (TypePerm tp : p.typePerms) {
-                            //if (WildcardMatcher.match(tp.typePattern, t)) {
-                                //matchingTypes.remove(t);
-                                for (String a : Arrays.asList(actions)) {
-                                    if (WildcardMatcher.matchAny(p.perms, a)) {
-                                        matchingActions.remove(a);
-                                    }
-                                }
-                            //}
-                        //}
-                    //}
-                }
-            }
-
-            if (matchingActions.isEmpty() /*&& matchingTypes.isEmpty()*/) {
-                matchingIndex.remove(in);
-            }
+    static final class ResolvedIndexPattern{
+        public String[] pattern;
+        public Set<String> perms;
+        public ResolvedIndexPattern(String[] pattern, Set<String> perms) {
+            this.pattern = pattern;
+            this.perms = perms;
         }
+    }
 
-        return matchingIndex.isEmpty();
+    private static boolean impliesTypePerm(Set<IndexPattern> ipatterns, Resolved resolved, User user, String[] actions,
+                                           IndexNameExpressionResolver resolver, ClusterService cs) {
+        Set<String> resolvedIndices = resolved.getAllIndices();
+        List<ResolvedIndexPattern> resolvedIndexPatterns = ipatterns
+                .stream()
+                .map(p -> new ResolvedIndexPattern(p.getResolvedIndexPattern(user, resolver, cs), p.perms))
+                .collect(Collectors.toList());
+        return resolvedIndices
+                .stream()
+                .allMatch(index ->
+                        Arrays.stream(actions).allMatch(action -> resolvedIndexPatterns
+                                .stream()
+                                .anyMatch(rip -> WildcardMatcher.matchAny(rip.pattern, index) && WildcardMatcher.matchAny(rip.perms, action))
+                        )
+                );
     }
     
     
