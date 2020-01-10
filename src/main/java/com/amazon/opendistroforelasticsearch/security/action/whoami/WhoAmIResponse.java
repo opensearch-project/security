@@ -52,23 +52,30 @@ public class WhoAmIResponse extends ActionResponse implements ToXContent {
         this.isAuthenticated = isAuthenticated;
         this.isNodeCertificateRequest = isNodeCertificateRequest;
     }
-    
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        out.writeString(dn);
-        out.writeBoolean(isAdmin);
-        out.writeBoolean(isAuthenticated);
-        out.writeBoolean(isNodeCertificateRequest);
+
+
+    public WhoAmIResponse() {
+        super();
+        this.dn = null;
+        this.isAdmin = false;
+        this.isAuthenticated = false;
+        this.isNodeCertificateRequest = false;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public WhoAmIResponse(StreamInput in) throws IOException {
+        super(in);
         dn = in.readString();
         isAdmin = in.readBoolean();
         isAuthenticated = in.readBoolean();
         isNodeCertificateRequest = in.readBoolean();
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeString(dn);
+        out.writeBoolean(isAdmin);
+        out.writeBoolean(isAuthenticated);
+        out.writeBoolean(isNodeCertificateRequest);
     }
 
     public String getDn() {

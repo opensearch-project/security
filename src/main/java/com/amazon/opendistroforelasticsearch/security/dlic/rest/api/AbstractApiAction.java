@@ -84,7 +84,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 								final Client client, final AdminDNs adminDNs, final ConfigurationRepository cl,
 								final ClusterService cs, final PrincipalExtractor principalExtractor, final PrivilegesEvaluator evaluator,
 								ThreadPool threadPool, AuditLog auditLog) {
-		super(settings);
+		super();
 		this.settings = settings;
 		this.opendistroIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME,
 				ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);

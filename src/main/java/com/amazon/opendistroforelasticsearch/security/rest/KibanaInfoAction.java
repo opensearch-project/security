@@ -60,7 +60,7 @@ public class KibanaInfoAction extends BaseRestHandler {
     private final ThreadContext threadContext;
 
     public KibanaInfoAction(final Settings settings, final RestController controller, final PrivilegesEvaluator evaluator, final ThreadPool threadPool) {
-        super(settings);
+        super();
         this.threadContext = threadPool.getThreadContext();
         this.evaluator = evaluator;
         controller.registerHandler(GET, "/_opendistro/_security/kibanainfo", this);

@@ -32,6 +32,7 @@ package com.amazon.opendistroforelasticsearch.security.action.configupdate;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -82,18 +83,13 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
 
         ConfigUpdateRequest request;
 
-        public NodeConfigUpdateRequest() {
+        public NodeConfigUpdateRequest(StreamInput in) throws IOException{
+            super(in);
+            request = new ConfigUpdateRequest(in);
         }
 
         public NodeConfigUpdateRequest(final ConfigUpdateRequest request) {
             this.request = request;
-        }
-
-        @Override
-        public void readFrom(final StreamInput in) throws IOException {
-            super.readFrom(in);
-            request = new ConfigUpdateRequest();
-            request.readFrom(in);
         }
 
         @Override
@@ -104,13 +100,10 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
     }
 
     @Override
-    protected ConfigUpdateNodeResponse newNodeResponse() {
-        return new ConfigUpdateNodeResponse(clusterService.localNode(), new String[0], null);
+    protected ConfigUpdateNodeResponse newNodeResponse(StreamInput in) throws IOException {
+        return new ConfigUpdateNodeResponse(in);
     }
     
-    
-    
-	
     @Override
     protected ConfigUpdateResponse newResponse(ConfigUpdateRequest request, List<ConfigUpdateNodeResponse> responses,
             List<FailedNodeException> failures) {
