@@ -232,8 +232,8 @@ public class OpenSSLTest extends SSLTest {
 
     @Test
     public void testJava12WithOpenSslEnabled() throws Exception {
-        // If the user has Java 12 and have OpenSSL enabled, we give
-        // a Twarning, ignore OpenSSL and use JDK SSl instead.
+        // If the user has Java 12 running and OpenSSL enabled, we give
+        // a warning, ignore OpenSSL and use JDK SSl instead.
         Assume.assumeTrue(PlatformDependent.javaVersion() >= 12);
         super.testHttps();
     }
