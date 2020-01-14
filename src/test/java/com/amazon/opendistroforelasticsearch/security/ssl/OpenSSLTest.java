@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 
+import io.netty.util.internal.PlatformDependent;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest;
@@ -227,5 +228,13 @@ public class OpenSSLTest extends SSLTest {
     public void testTLSv1() throws Exception {
         Assume.assumeTrue(OpenDistroSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable());
         super.testTLSv1();
+    }
+
+    @Test
+    public void testJava12WithOpenSslEnabled() throws Exception {
+        // If the user has Java 12 and have OpenSSL enabled, we give
+        // a Twarning, ignore OpenSSL and use JDK SSl instead.
+        Assume.assumeTrue(PlatformDependent.javaVersion() >= 12);
+        super.testHttps();
     }
 }

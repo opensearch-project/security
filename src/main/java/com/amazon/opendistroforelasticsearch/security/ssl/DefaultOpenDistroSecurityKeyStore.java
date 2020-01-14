@@ -119,20 +119,13 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
                 SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLED_DEFAULT);
         transportSSLEnabled = settings.getAsBoolean(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLED,
                 SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLED_DEFAULT);
-        final boolean useOpenSSLForHttpIfAvailable = settings
+        final boolean useOpenSSLForHttpIfAvailable = OpenDistroSecuritySSLPlugin.OPENSSL_SUPPORTED && settings
                 .getAsBoolean(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, true);
-        final boolean useOpenSSLForTransportIfAvailable = settings
+        final boolean useOpenSSLForTransportIfAvailable = OpenDistroSecuritySSLPlugin.OPENSSL_SUPPORTED && settings
                 .getAsBoolean(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, true);
 
-
         if(!OpenDistroSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable() && (settings.getAsBoolean(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, true) || settings.getAsBoolean(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, true) )) {
-
-            String text = "Support for OpenSSL has been removed from Open Distro Security since Elasticsearch 7.4.0\n";
-            if(Constants.JRE_IS_MINIMUM_JAVA11) {
-                text += "Since you are running Java "+Constants.JAVA_VERSION+" you should not experience any performance impact but maybe not all your ciphers are supported. If you experience problems upgrade to Java 12+";
-            } else {
-                text += "You are running a very old version of Java ("+Constants.JAVA_VERSION+") so you may experience a performance impact and it is strongly advised to update to Java 12+";
-            }
+            String text = "Support for OpenSSL when Java 12 is present has been removed from Open Distro Security since Elasticsearch 7.4.0\n";
             System.out.println(text);
             log.warn(text);
         }
@@ -574,7 +567,7 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
     }
 
     private void logOpenSSLInfos() {
-        if (OpenSsl.isAvailable()) {
+        if (OpenDistroSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable()) {
             log.info("OpenSSL " + OpenSsl.versionString() + " (" + OpenSsl.version() + ") available");
 
             if (OpenSsl.version() < 0x10002000L) {
@@ -630,7 +623,7 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
         final List<String> secureHttpSSLProtocols = Arrays.asList(SSLConfigConstants.getSecureSSLProtocols(settings, true));
         final List<String> secureTransportSSLProtocols = Arrays.asList(SSLConfigConstants.getSecureSSLProtocols(settings, false));
 
-        if (OpenSsl.isAvailable()) {
+        if (OpenDistroSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable()) {
             final Set<String> openSSLSecureHttpCiphers = new HashSet<>();
             for (final String secure : secureHttpSSLCiphers) {
                 if (OpenSsl.isCipherSuiteAvailable(secure)) {
@@ -648,7 +641,7 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
             enabledHttpCiphersOpenSSLProvider = Collections.emptyList();
         }
 
-        if (OpenSsl.isAvailable()) {
+        if (OpenDistroSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable()) {
             final Set<String> openSSLSecureTransportCiphers = new HashSet<>();
             for (final String secure : secureTransportSSLCiphers) {
                 if (OpenSsl.isCipherSuiteAvailable(secure)) {
@@ -662,7 +655,7 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
             enabledTransportCiphersOpenSSLProvider = Collections.emptyList();
         }
         
-        if(OpenSsl.isAvailable() && OpenSsl.version() > 0x10101009L) {
+        if(OpenDistroSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable() && OpenSsl.version() > 0x10101009L) {
             enabledHttpProtocolsOpenSSLProvider = new ArrayList(Arrays.asList("TLSv1.3","TLSv1.2","TLSv1.1","TLSv1"));
             enabledHttpProtocolsOpenSSLProvider.retainAll(secureHttpSSLProtocols);
             enabledTransportProtocolsOpenSSLProvider = new ArrayList(Arrays.asList("TLSv1.3","TLSv1.2","TLSv1.1"));
@@ -670,7 +663,7 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
             
             log.info("OpenSSL supports TLSv1.3");
             
-        } else if(OpenSsl.isAvailable()){
+        } else if(OpenDistroSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable()){
             enabledHttpProtocolsOpenSSLProvider = new ArrayList(Arrays.asList("TLSv1.2","TLSv1.1","TLSv1"));
             enabledHttpProtocolsOpenSSLProvider.retainAll(secureHttpSSLProtocols);
             enabledTransportProtocolsOpenSSLProvider = new ArrayList(Arrays.asList("TLSv1.2","TLSv1.1"));
