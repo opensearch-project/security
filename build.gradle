@@ -7,7 +7,7 @@ plugins {
 buildDir = 'gradle-build'
 
 ext {
-    opendistroVersion = '1.3.0'
+    opendistroVersion = '1.4.0'
     isSnapshot = "true" == System.getProperty("build.snapshot", "true")
 }
 
@@ -39,7 +39,7 @@ ospackage {
     fileMode 0644
     dirMode 0755
 
-    requires('elasticsearch-oss', "7.3.2", EQUAL)
+    requires('elasticsearch-oss', "7.4.2", EQUAL)
     packager = 'Amazon'
     vendor = 'Amazon'
     os = 'LINUX'
