@@ -113,17 +113,12 @@ SUDO_CMD=""
 ES_INSTALL_TYPE=".tar.gz"
 
 #Check if its a rpm/deb install
-if [ -f /usr/share/elasticsearch/bin/elasticsearch ]; then
+if [ "/usr/share/elasticsearch" -ef "$BASE_DIR" ]; then
     ES_CONF_FILE="/usr/share/elasticsearch/config/elasticsearch.yml"
 
     if [ ! -f "$ES_CONF_FILE" ]; then
         ES_CONF_FILE="/etc/elasticsearch/elasticsearch.yml"
     fi
-
-    ES_BIN_DIR="/usr/share/elasticsearch/bin"
-    ES_PLUGINS_DIR="/usr/share/elasticsearch/plugins"
-    ES_MODULES_DIR="/usr/share/elasticsearch/modules"
-    ES_LIB_PATH="/usr/share/elasticsearch/lib"
 
     if [ -x "$(command -v sudo)" ]; then
         SUDO_CMD="sudo"
