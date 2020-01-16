@@ -68,7 +68,7 @@ public class OpenDistroSecurityInfoAction extends BaseRestHandler {
     private final ThreadContext threadContext;
 
     public OpenDistroSecurityInfoAction(final Settings settings, final RestController controller, final PrivilegesEvaluator evaluator, final ThreadPool threadPool) {
-        super(settings);
+        super();
         this.threadContext = threadPool.getThreadContext();
         this.evaluator = evaluator;
         controller.registerHandler(GET, "/_opendistro/_security/authinfo", this);

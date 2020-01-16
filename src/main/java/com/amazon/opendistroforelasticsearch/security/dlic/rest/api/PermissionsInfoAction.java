@@ -57,7 +57,7 @@ public class PermissionsInfoAction extends BaseRestHandler {
 	protected PermissionsInfoAction(final Settings settings, final Path configPath, final RestController controller, final Client client,
 			final AdminDNs adminDNs, final ConfigurationRepository cl, final ClusterService cs,
 			final PrincipalExtractor principalExtractor, final PrivilegesEvaluator privilegesEvaluator, ThreadPool threadPool, AuditLog auditLog) {
-		super(settings);
+		super();
 		controller.registerHandler(Method.GET, "/_opendistro/_security/api/permissionsinfo", this);
 		this.threadPool = threadPool;
 		this.privilegesEvaluator = privilegesEvaluator;

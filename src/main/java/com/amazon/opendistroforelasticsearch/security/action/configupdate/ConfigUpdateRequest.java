@@ -41,19 +41,18 @@ public class ConfigUpdateRequest extends BaseNodesRequest<ConfigUpdateRequest> {
 
     private String[] configTypes;
 
-    public ConfigUpdateRequest() {
-        super();
-    }
-
-    public ConfigUpdateRequest(final String[] configTypes) {
-        super();
-        this.configTypes = configTypes;
-    }
-
-    @Override
-    public void readFrom(final StreamInput in) throws IOException {
-        super.readFrom(in);
+    public ConfigUpdateRequest(StreamInput in) throws IOException {
+        super(in);
         this.configTypes = in.readStringArray();
+    }
+
+    public ConfigUpdateRequest() {
+        super(new String[0]);
+    }
+
+    public ConfigUpdateRequest(String[] configTypes) {
+    	this();
+    	setConfigTypes(configTypes);
     }
 
     @Override

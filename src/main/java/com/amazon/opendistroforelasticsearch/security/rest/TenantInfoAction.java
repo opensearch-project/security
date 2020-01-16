@@ -67,7 +67,7 @@ public class TenantInfoAction extends BaseRestHandler {
 
     public TenantInfoAction(final Settings settings, final RestController controller, 
     		final PrivilegesEvaluator evaluator, final ThreadPool threadPool, final ClusterService clusterService, final AdminDNs adminDns) {
-        super(settings);
+        super();
         this.threadContext = threadPool.getThreadContext();
         this.evaluator = evaluator;
         this.clusterService = clusterService;

@@ -64,9 +64,9 @@ public class ValidatingDispatcher implements Dispatcher {
     }
 
     @Override
-    public void dispatchBadRequest(RestRequest request, RestChannel channel, ThreadContext threadContext, Throwable cause) {
-        checkRequest(request, channel);
-        originalDispatcher.dispatchBadRequest(request, channel, threadContext, cause);
+    public void dispatchBadRequest(RestChannel channel, ThreadContext threadContext, Throwable cause) {
+        checkRequest(channel.request(), channel);
+        originalDispatcher.dispatchBadRequest(channel, threadContext, cause);
     }
     
     protected void checkRequest(final RestRequest request, final RestChannel channel) {

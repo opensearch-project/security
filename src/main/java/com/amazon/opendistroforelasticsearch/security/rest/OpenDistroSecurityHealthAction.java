@@ -52,7 +52,7 @@ public class OpenDistroSecurityHealthAction extends BaseRestHandler {
     private final BackendRegistry registry;
     
     public OpenDistroSecurityHealthAction(final Settings settings, final RestController controller, final BackendRegistry registry) {
-        super(settings);
+        super();
         this.registry = registry;
         controller.registerHandler(GET, "/_opendistro/_security/health", this);
         controller.registerHandler(POST, "/_opendistro/_security/health", this);

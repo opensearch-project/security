@@ -30,21 +30,14 @@
 
 package com.amazon.opendistroforelasticsearch.security.action.configupdate;
 
-import org.elasticsearch.action.StreamableResponseActionType;
+import org.elasticsearch.action.ActionType;
 
-public class ConfigUpdateAction extends StreamableResponseActionType<ConfigUpdateResponse> {
+public class ConfigUpdateAction extends ActionType<ConfigUpdateResponse> {
 
     public static final ConfigUpdateAction INSTANCE = new ConfigUpdateAction();
     public static final String NAME = "cluster:admin/opendistro_security/config/update";
 
     protected ConfigUpdateAction() {
-        super(NAME);
+        super(NAME, ConfigUpdateResponse::new);
     }
-
-    @Override
-    public ConfigUpdateResponse newResponse() {
-        return new ConfigUpdateResponse();
-    }
-
-    
 }

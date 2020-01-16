@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 
+import io.netty.util.internal.PlatformDependent;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest;
@@ -66,69 +67,69 @@ public class OpenSSLTest extends SSLTest {
     @Override
     @Test
     public void testHttps() throws Exception {
-        Assume.assumeTrue(OpenSsl.isAvailable());
+        Assume.assumeTrue(OpenDistroSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable());
         super.testHttps();
     }
 
     @Override
     @Test
     public void testHttpsAndNodeSSL() throws Exception {
-        Assume.assumeTrue(OpenSsl.isAvailable());
+        Assume.assumeTrue(OpenDistroSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable());
         super.testHttpsAndNodeSSL();
     }
 
     @Override
     @Test
     public void testHttpPlainFail() throws Exception {
-        Assume.assumeTrue(OpenSsl.isAvailable());
+        Assume.assumeTrue(OpenDistroSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable());
         super.testHttpPlainFail();
     }
 
     @Override
     @Test
     public void testHttpsNoEnforce() throws Exception {
-        Assume.assumeTrue(OpenSsl.isAvailable());
+        Assume.assumeTrue(OpenDistroSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable());
         super.testHttpsNoEnforce();
     }
 
     @Override
     @Test
     public void testHttpsV3Fail() throws Exception {
-        Assume.assumeTrue(OpenSsl.isAvailable());
+        Assume.assumeTrue(OpenDistroSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable());
         super.testHttpsV3Fail();
     }
 
     @Override
     @Test(timeout=40000)
     public void testTransportClientSSL() throws Exception {
-        Assume.assumeTrue(OpenSsl.isAvailable());
+        Assume.assumeTrue(OpenDistroSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable());
         super.testTransportClientSSL();
     }
 
     @Override
     @Test(timeout=40000)
     public void testNodeClientSSL() throws Exception {
-        Assume.assumeTrue(OpenSsl.isAvailable());
+        Assume.assumeTrue(OpenDistroSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable());
         super.testNodeClientSSL();
     }
 
     @Override
     @Test(timeout=40000)
     public void testTransportClientSSLFail() throws Exception {
-        Assume.assumeTrue(OpenSsl.isAvailable());
+        Assume.assumeTrue(OpenDistroSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable());
         super.testTransportClientSSLFail();
     }
     
     @Override
     @Test
     public void testHttpsOptionalAuth() throws Exception {
-        Assume.assumeTrue(OpenSsl.isAvailable());
+        Assume.assumeTrue(OpenDistroSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable());
         super.testHttpsOptionalAuth();
     }
     
     @Test
     public void testAvailCiphersOpenSSL() throws Exception {
-        Assume.assumeTrue(OpenSsl.isAvailable());
+        Assume.assumeTrue(OpenDistroSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable());
 
         // Set<String> openSSLAvailCiphers = new
         // HashSet<>(OpenSsl.availableCipherSuites());
@@ -149,38 +150,38 @@ public class OpenSSLTest extends SSLTest {
     
     @Test
     public void testHttpsEnforceFail() throws Exception {
-        Assume.assumeTrue(OpenSsl.isAvailable());
+        Assume.assumeTrue(OpenDistroSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable());
         super.testHttpsEnforceFail();
     }
 
     @Override
     public void testCipherAndProtocols() throws Exception {
-        Assume.assumeTrue(OpenSsl.isAvailable());
+        Assume.assumeTrue(OpenDistroSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable());
         super.testCipherAndProtocols();
     }
 
     @Override
     public void testHttpsAndNodeSSLFailedCipher() throws Exception {
-        Assume.assumeTrue(OpenSsl.isAvailable());
+        Assume.assumeTrue(OpenDistroSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable());
         super.testHttpsAndNodeSSLFailedCipher();
     }
     
     @Test
     public void testHttpsAndNodeSSLPem() throws Exception {
-        Assume.assumeTrue(OpenSsl.isAvailable());
+        Assume.assumeTrue(OpenDistroSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable());
         super.testHttpsAndNodeSSLPem();
     }
     
     @Test
     public void testHttpsAndNodeSSLPemEnc() throws Exception {
-        Assume.assumeTrue(OpenSsl.isAvailable());
+        Assume.assumeTrue(OpenDistroSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable());
         super.testHttpsAndNodeSSLPemEnc();
     }
     
     @Test
     public void testNodeClientSSLwithOpenSslTLSv13() throws Exception {
         
-        Assume.assumeTrue(OpenSsl.isAvailable() && OpenSsl.version() > 0x10101009L);
+        Assume.assumeTrue(OpenDistroSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable() && OpenSsl.version() > 0x10101009L);
 
         final Settings settings = Settings.builder().put("opendistro_security.ssl.transport.enabled", true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_SSL_ONLY, true)
@@ -225,7 +226,15 @@ public class OpenSSLTest extends SSLTest {
 
     @Test
     public void testTLSv1() throws Exception {
-        Assume.assumeTrue(OpenSsl.isAvailable());
+        Assume.assumeTrue(OpenDistroSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable());
         super.testTLSv1();
+    }
+
+    @Test
+    public void testJava12WithOpenSslEnabled() throws Exception {
+        // If the user has Java 12 running and OpenSSL enabled, we give
+        // a warning, ignore OpenSSL and use JDK SSl instead.
+        Assume.assumeTrue(PlatformDependent.javaVersion() >= 12);
+        super.testHttps();
     }
 }

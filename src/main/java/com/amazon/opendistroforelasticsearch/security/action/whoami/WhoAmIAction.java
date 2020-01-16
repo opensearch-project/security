@@ -30,20 +30,14 @@
 
 package com.amazon.opendistroforelasticsearch.security.action.whoami;
 
-import org.elasticsearch.action.StreamableResponseActionType;
+import org.elasticsearch.action.ActionType;
 
-public class WhoAmIAction extends StreamableResponseActionType<WhoAmIResponse> {
+public class WhoAmIAction extends ActionType<WhoAmIResponse> {
 
     public static final WhoAmIAction INSTANCE = new WhoAmIAction();
     public static final String NAME = "cluster:admin/opendistro_security/whoami";
 
     protected WhoAmIAction() {
-        super(NAME);
+        super(NAME, WhoAmIResponse::new);
     }
-
-    @Override
-    public WhoAmIResponse newResponse() {
-        return new WhoAmIResponse(null, false, false, false);
-    }
-
 }
