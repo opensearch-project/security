@@ -2,6 +2,7 @@
 
 - Support for Elasticsearch 7.4.2
 - Removing support of OpenSSL for Java 12+
+- Merging all security repos (security-parent and security-advanced-modules into security)
 
 ## 2019-11-18 Version 1.3.0.0
 
