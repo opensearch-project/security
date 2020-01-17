@@ -1,4 +1,10 @@
-## 2019-11-18 Version 1.3.0.0 (Current)
+## 2020-01-15 Version 1.4.0.0
+
+- Support for Elasticsearch 7.4.2
+- Removing support of OpenSSL for Java 12+
+- Merging all security repos (security-parent and security-advanced-modules into security)
+
+## 2019-11-18 Version 1.3.0.0
 
 - Support for Elasticsearch 7.3.2
 - Validate all config files before uploading them via securityadmin and make sure yaml parser does not tolerate duplicate keys
