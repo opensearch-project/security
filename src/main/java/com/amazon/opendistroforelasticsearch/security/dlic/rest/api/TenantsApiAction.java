@@ -29,15 +29,16 @@ public class TenantsApiAction extends PatchableResourceApiAction {
                             final AdminDNs adminDNs, final ConfigurationRepository cl, final ClusterService cs,
                             final PrincipalExtractor principalExtractor, final PrivilegesEvaluator evaluator, ThreadPool threadPool, AuditLog auditLog) {
         super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
+    }
 
-        // corrected mapping, introduced in SG6
+    @Override
+    protected void registerHandlers(RestController controller, Settings settings) {
         controller.registerHandler(Method.GET, "/_opendistro/_security/api/tenants/{name}", this);
         controller.registerHandler(Method.GET, "/_opendistro/_security/api/tenants/", this);
         controller.registerHandler(Method.DELETE, "/_opendistro/_security/api/tenants/{name}", this);
         controller.registerHandler(Method.PUT, "/_opendistro/_security/api/tenants/{name}", this);
         controller.registerHandler(Method.PATCH, "/_opendistro/_security/api/tenants/", this);
         controller.registerHandler(Method.PATCH, "/_opendistro/_security/api/tenants/{name}", this);
-
     }
 
     @Override
