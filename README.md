@@ -58,11 +58,21 @@ Please refer to the [technical documentation](https://opendistro.github.io/for-e
 * Display information about the currently logged in user by visiting ``https://localhost:9200/_opendistro/_security/authinfo``.
 
 
-## Build
+## Test and Build
 
-* Source build instructions can be found here : 
+* Run all tests
 
-https://github.com/opendistro-for-elasticsearch/security-parent/blob/master/README.md
+```
+mvn clean test
+```
+
+* Build artifacts (zip, deb, rpm)
+
+```
+mvn clean package -Padvanced -DskipTests
+artifact_zip=`ls $(pwd)/target/releases/opendistro_security-*.zip | grep -v admin-standalone`
+./gradlew build buildDeb buildRpm --no-daemon -ParchivePath=$artifact_zip -Dbuild.snapshot=false
+```
 
 ## Config hot reloading
 

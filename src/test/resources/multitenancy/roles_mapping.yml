@@ -1,0 +1,162 @@
+---
+_meta:
+  type: "rolesmapping"
+  config_version: 2
+opendistro_security_human_resources:
+  reserved: false
+  hidden: false
+  backend_roles:
+  - "hr"
+  - "jwt_hr"
+  hosts: []
+  users:
+  - "hr_employee"
+  - "hr.employee"
+  - "kerberos_hr_employee"
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_human_resources_trainee:
+  reserved: false
+  hidden: false
+  backend_roles:
+  - "hr_trainee"
+  hosts: []
+  users:
+  - "hr_trainee"
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_role_klingons1:
+  reserved: false
+  hidden: false
+  backend_roles:
+  - "klingon"
+  hosts:
+  - "*.klingongov.kli"
+  users:
+  - "worf"
+  and_backend_roles: []
+  description: "Migrated from v6"
+kibana_user:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+  - "kibanaro"
+  - "admin"
+  - user_a
+  - user_b
+  - worf
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_manage_snapshots:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+  - "snapshotrestore"
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_kibana_server:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+  - "kibanaserver"
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_all_access:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+  - "admin"
+  - "adm"
+  - "cn=admin2,ou=people,dc=example,dc=com"
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_logstash:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+  - "opendistro_security_logstash"
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_finance:
+  reserved: false
+  hidden: false
+  backend_roles:
+  - "finance"
+  hosts: []
+  users:
+  - "finance_employee"
+  - "kerberos_finance_employee"
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_readonly_dlsfls:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+  - "dlsflsuser"
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_finance_trainee:
+  reserved: false
+  hidden: false
+  backend_roles:
+  - "finance_trainee"
+  hosts: []
+  users:
+  - "finance_trainee"
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_role_starfleet:
+  reserved: false
+  hidden: false
+  backend_roles:
+  - "starfleet"
+  - "captains"
+  - "defectors"
+  - "cn=ldaprole,ou=groups,dc=example,dc=com"
+  hosts:
+  - "*.starfleetintranet.com"
+  users:
+  - "worf"
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_readall:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+  - "opendistro_security_readall"
+  - "riker"
+  - "troid"
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_role_starfleet_captains:
+  reserved: false
+  hidden: false
+  backend_roles:
+  - "captains"
+  hosts: []
+  users: []
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_kibana4_testindex:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+  - "test"
+  and_backend_roles: []
+  description: "Migrated from v6"

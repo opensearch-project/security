@@ -1,0 +1,22 @@
+{
+  "cluster_permissions" : [ "cluster:monitor1*" ],
+  "index_permissions" : [ {
+    "index_patterns" : [ "sf1" ],
+    "allowed_actions" : [ "OPENDISTRO_SECURITY_CRUD" ]
+  }, {
+    "index_patterns" : [ "pub1" ],
+    "allowed_actions" : [ "OPENDISTRO_SECURITY_CRUD" ]
+  } ],
+  "tenant_permissions" : [ ]
+}
+{
+  "cluster_permissions" : [ "cluster:monitor2*" ],
+  "index_permissions" : [ {
+    "index_patterns" : [ "sf2" ],
+    "allowed_actions" : [ "OPENDISTRO_SECURITY_CRUD" ]
+  }, {
+    "index_patterns" : [ "pub2" ],
+    "allowed_actions" : [ "OPENDISTRO_SECURITY_CRUD" ]
+  } ],
+  "tenant_permissions" : [ ]
+}
