@@ -1,0 +1,19 @@
+opendistro_security:
+  audit:
+    endpoints:
+      endpoint1:
+        type: internal_elasticsearch
+      endpoint2:
+        type: external_elasticsearch
+      endpoint3:
+        type: debug
+    routes:
+      MISSING_PRIVILEGEs:
+        endpoints:
+          - default
+          - endpoint1
+          - endpoint2
+      COMPLIANCE_DOC_READ:
+        endpoints:
+          - endpoint3
+          - default

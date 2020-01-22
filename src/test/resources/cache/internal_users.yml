@@ -1,0 +1,150 @@
+---
+_meta:
+  type: "internalusers"
+  config_version: 2
+test:
+  hash: "$2a$12$1HqHxm3QTfzwkse7vwzhFOV4gDv787cZ8BwmCwNEyJhn0CZoo8VVu"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+finance_employee:
+  hash: "$2a$12$Kv.4sU5r1zy2ZqnSDm99Ae6ImCMKtjJq4enT.9d3c55cA0O2LGNH6"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+kirk:
+  hash: "$2a$12$xZOcnwYPYQ3zIadnlQIJ0eNhX1ngwMkTN.oMwkKxoGvDVPn4/6XtO"
+  reserved: false
+  hidden: false
+  backend_roles:
+  - "captains"
+  - "starfleet"
+  attributes: {}
+  description: "Migrated from v6"
+dlsflsuser:
+  hash: "$2a$12$30rb6oabnodiSdysdWJnhO.4sVRkyNudPC1woYCJFhXja3rkyXbam"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+user_b:
+  hash: "$2a$04$idGSEpNOhFbyiRL6toGPT.orh7ENOEU8kAqwkRFaXWRdA6wVgyqUu"
+  reserved: false
+  hidden: false
+  backend_roles:
+  - "sg_ub"
+  attributes: {}
+  description: "Migrated from v6"
+snapshotrestore:
+  hash: "$2a$12$6sre4JH7O4Rgh7ubWmeyWus6UIIA13MqW8eR8KD5Qbxn06CDbJG/G"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+hr_employee:
+  hash: "$2a$12$7QIoVBGdO41qSCNoecU3L.yyXb9vGrCvEtVlpnC4oWLt/q0AsAN52"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+user_a:
+  hash: "$2a$04$NDy7mGbRNrmPMh9nSnIB.OTMFkcioEd69A04ReSGkJDd7QHxnCcVC"
+  reserved: false
+  hidden: false
+  backend_roles:
+  - "sg_ua"
+  attributes: {}
+  description: "Migrated from v6"
+admin:
+  hash: "$2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+kibanaserver:
+  hash: "$2a$12$4AcgAt3xwOWadA5s5blL6ev39OXDNhmOesEoo33eZtrq2N0YrU3H."
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+mister.picard:
+  hash: "$2a$12$wkY2BsRneCU5za1OPYlzsehQit6gu2vprVv/4jHiSEEBv2ThunaTS"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+opendistro_security_readall:
+  hash: "$2a$12$ae4ycwzwvLtZxwZ82RmiEunBbIPiAmGZduBAjKN0TXdwQFtCwARz2"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+hr_trainee:
+  hash: "$2a$12$s6rC7o345lvXp.JpTrA91O6xYAGVCCxKdVclsNkWJTaquW4GK9E9u"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+opendistro_security_logstash:
+  hash: "$2a$12$u1ShR4l4uBS3Uv59Pa2y5.1uQuZBrZtmNfqB3iM/.jL0XoV9sghS2"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+spock:
+  hash: "$2a$12$GI9JXffO3WUjTsU7Yy3E4.LBxC2ILo66Zg/rr79BpikSL2IIRezQa"
+  reserved: false
+  hidden: false
+  backend_roles:
+  - "vulcan"
+  - "starfleet"
+  attributes: {}
+  description: "Migrated from v6"
+no_roles:
+  hash: "$2a$12$gxsE8oEicXy3mNBkGEO5K.P3J/CDq3GHXDYeQTmVI/v3AA84vqIXm"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+hr.employee:
+  hash: "$2a$12$LRNG7ETwMcO68VNh14B3AuKPkvOaC0k26.QnSrv9AvbmT1JRNMJum"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+worf:
+  hash: "$2a$12$A41IxPXV1/Dx46C6i1ufGubv.p3qYX7xVcY46q33sylYbIqQVwTMu"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+finance_trainee:
+  hash: "$2a$12$c26Pnq6yiZcgi8PxNEyp5O3wIn1G1eJfCvJFifEKosQJeojUZf/D6"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
+kibanaro:
+  hash: "$2a$12$JJSXNfTowz7Uu5ttXfeYpeYE0arACvcwlPBStB1F.MI7f0U9Z4DGC"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"

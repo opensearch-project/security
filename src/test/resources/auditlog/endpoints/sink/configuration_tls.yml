@@ -1,0 +1,43 @@
+opendistro_security.ssl.transport.enabled: true
+opendistro_security.ssl.transport.keystore_filepath: "transport.keystore_filepath"
+opendistro_security.ssl.transport.truststore_filepath: "transport.truststore_filepath"
+opendistro_security.ssl.transport.enforce_hostname_verification: true
+opendistro_security.ssl.transport.resolve_hostname: true
+opendistro_security.ssl.transport.enable_openssl_if_available: true
+opendistro_security.ssl.http.enabled: true
+opendistro_security.ssl.http.keystore_filepath: "http.keystore_filepath"
+opendistro_security.ssl.http.truststore_filepath: "http.truststore_filepath"
+opendistro_security.ssl.http.enable_openssl_if_available: true
+opendistro_security.ssl.http.clientauth_mode: OPTIONAL
+
+opendistro_security:
+  audit:
+    type: webhook
+    config:
+      webhook:
+        url: https://localhost:8083
+        format: JSON
+        ssl:
+          verify: true
+          pemtrustedcas_filepath: dyn
+    endpoints:
+      endpoint1:
+        type: webhook
+        config:
+          webhook:
+            url: https://localhost:8083
+            format: JSON
+            ssl:
+              verify: true
+              pemtrustedcas_filepath: dyn
+      endpoint2:
+        type: webhook
+        config:
+          webhook:
+            url: https://localhost:8083
+            format: JSON
+            ssl:
+              verify: true
+              pemtrustedcas_content: dyn
+      fallback:
+        type: com.amazon.opendistroforelasticsearch.security.auditlog.helper.LoggingSink
