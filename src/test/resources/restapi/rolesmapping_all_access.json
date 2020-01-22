@@ -1,0 +1,16 @@
+{
+  "users": [
+    "sisko",
+    "janeway",
+    "kirk"
+  ],
+  "backend_roles": [
+    "captains",
+    "role2",
+    "role3"
+  ],
+  "hosts": [
+    "8.8.8.8",
+    "8.8.4.4"
+  ]
+}

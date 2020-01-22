@@ -1,0 +1,22 @@
+{
+      "cluster": [
+        "*"
+      ],
+      "indices": {
+        "*": {
+          "*": [
+            "indices:data/read/*"
+          ],
+          "_masked_fields_": [
+            "abvfg",
+            "*ip_dest*::[0-9]{1,3::XXX",
+            "*ip_source*::[0-9]{1,3}$::XXX::/^[0-9]{1,3}/::***",
+            "customer.name::SHA-513",
+            "abc::"
+          ],
+          "abc": [
+            123
+          ]
+        }
+      }
+  }

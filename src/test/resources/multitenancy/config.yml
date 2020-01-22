@@ -1,0 +1,159 @@
+---
+_meta:
+  type: "config"
+  config_version: 2
+config:
+  dynamic:
+    filtered_alias_mode: "warn"
+    disable_rest_auth: false
+    disable_intertransport_auth: false
+    respect_request_indices_options: false
+    license: null
+    kibana:
+      multitenancy_enabled: true
+      server_username: "kibanaserver"
+      index: ".kibana"
+    http:
+      anonymous_auth_enabled: false
+      xff:
+        enabled: true
+        internalProxies: ".*"
+        remoteIpHeader: "x-forwarded-for"
+    authc:
+      ldap:
+        http_enabled: false
+        transport_enabled: false
+        order: 3
+        http_authenticator:
+          challenge: false
+          type: "basic"
+          config: {}
+        authentication_backend:
+          type: "ldap"
+          config:
+            enable_ssl: true
+            enable_start_tls: false
+            enable_ssl_client_auth: false
+            verify_hostnames: true
+            hosts:
+            - "ldap.example.com:636"
+            bind_dn: null
+            password: null
+            userbase: "ou=people,dc=example,dc=com"
+            usersearch: "(uid={0})"
+            username_attribute: "uid"
+        description: "Migrated from v6"
+      jwt_auth_domain:
+        http_enabled: false
+        transport_enabled: false
+        order: 2
+        http_authenticator:
+          challenge: false
+          type: "jwt"
+          config:
+            signing_key: "bjBkNDBjYjg0LWJlZTMtMTFlNi1hZjdjLWNiOWFiYTM1YWJjNQ=="
+            jwt_header: "Authorization"
+            jwt_url_parameter: null
+            roles_key: "roles"
+            subject_key: "username"
+        authentication_backend:
+          type: "noop"
+          config: {}
+        description: "Migrated from v6"
+      basic_internal_auth_domain:
+        http_enabled: true
+        transport_enabled: true
+        order: 0
+        http_authenticator:
+          challenge: true
+          type: "basic"
+          config: {}
+        authentication_backend:
+          type: "intern"
+          config: {}
+        description: "Migrated from v6"
+      proxy_auth_domain:
+        http_enabled: false
+        transport_enabled: false
+        order: 1
+        http_authenticator:
+          challenge: false
+          type: "proxy"
+          config:
+            user_header: "x-proxy-user"
+            roles_header: "x-proxy-roles"
+        authentication_backend:
+          type: "noop"
+          config: {}
+        description: "Migrated from v6"
+      clientcert_auth_domain:
+        http_enabled: false
+        transport_enabled: false
+        order: 1
+        http_authenticator:
+          challenge: false
+          type: "clientcert"
+          config: {}
+        authentication_backend:
+          type: "noop"
+          config: {}
+        description: "Migrated from v6"
+      host_auth_domain:
+        http_enabled: false
+        transport_enabled: false
+        order: 0
+        http_authenticator:
+          challenge: false
+          type: "host"
+          config: {}
+        authentication_backend:
+          type: "noop"
+          config: {}
+        description: "Migrated from v6"
+      kerberos_auth_domain:
+        http_enabled: false
+        transport_enabled: false
+        order: 3
+        http_authenticator:
+          challenge: true
+          type: "kerberos"
+          config:
+            krb_debug: true
+            strip_realm_from_principal: true
+        authentication_backend:
+          type: "noop"
+          config: {}
+        description: "Migrated from v6"
+    authz:
+      roles_from_another_ldap:
+        http_enabled: false
+        transport_enabled: false
+        authorization_backend:
+          type: "ldap"
+          config: {}
+        description: "Migrated from v6"
+      roles_from_myldap:
+        http_enabled: false
+        transport_enabled: false
+        authorization_backend:
+          type: "ldap"
+          config:
+            enable_ssl: true
+            enable_start_tls: false
+            enable_ssl_client_auth: false
+            verify_hostnames: true
+            hosts:
+            - "ldap.example.com:636"
+            bind_dn: null
+            password: null
+            rolebase: "ou=groups,dc=example,dc=com"
+            rolesearch: "(uniqueMember={0})"
+            userroleattribute: null
+            userrolename: null
+            rolename: "cn"
+            resolve_nested_roles: false
+        description: "Migrated from v6"
+    do_not_fail_on_forbidden: true
+    multi_rolespan_enabled: false
+    hosts_resolver_mode: "ip-only"
+    transport_userrname_attribute: null

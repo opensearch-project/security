@@ -1,0 +1,66 @@
+{
+   "size":500,
+   "sort":[
+      {
+         "@timestamp":{
+            "order":"desc",
+            "unmapped_type":"boolean"
+         }
+      }
+   ],
+   "highlight":{
+      "pre_tags":[
+         "@kibana-highlighted-field@"
+      ],
+      "post_tags":[
+         "@/kibana-highlighted-field@"
+      ],
+      "fields":{
+         "*":{
+
+         }
+      },
+      "require_field_match":false,
+      "fragment_size":2147483647
+   },
+   "aggs":{
+      "2":{
+         "date_histogram":{
+            "field":"@timestamp",
+            "interval":"30s",
+            "time_zone":"America/New_York",
+            "min_doc_count":0
+         }
+      }
+   },
+   "query":{
+   
+         
+         
+            "bool":{
+               "must":[
+                  {
+                     "range":{
+                        "@timestamp":{
+                           "gte":0,
+                           "lte":1481310993204,
+                           "format":"epoch_millis"
+                        }
+                     }
+                  }
+               ],
+               "must_not":[
+
+               ]
+            }
+         
+     
+   },
+   "stored_fields":[
+      "*",
+      "_source"
+   ],
+   "script_fields":{
+
+   }
+}
