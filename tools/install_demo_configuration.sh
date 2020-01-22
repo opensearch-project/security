@@ -382,7 +382,7 @@ echo 'opendistro_security.restapi.roles_enabled: ["all_access", "security_rest_a
 if $SUDO_CMD grep --quiet -i "^cluster.routing.allocation.disk.threshold_enabled" "$ES_CONF_FILE"; then
 	: #already present
 else
-    echo 'cluster.routing.allocation.disk.threshold_enabled: false' | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
+    echo 'cluster.routing.allocation.disk.threshold_enabled: true' | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
 fi
 
 #network.host

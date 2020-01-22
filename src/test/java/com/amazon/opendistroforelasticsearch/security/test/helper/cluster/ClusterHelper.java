@@ -358,7 +358,7 @@ public final class ClusterHelper {
                 .put("transport.tcp.port", tcpPort)
                 .put("http.port", httpPort)
                 //.put("http.enabled", true)
-                .put("cluster.routing.allocation.disk.threshold_enabled", false)
+                .put("cluster.routing.allocation.disk.threshold_enabled", true)
                 .put("http.cors.enabled", true)
                 .put("path.home", ".");
     }
