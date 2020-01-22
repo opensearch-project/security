@@ -1,0 +1,17 @@
+{
+  "cluster_permissions" : [ "cluster:monitor*" ],
+  "index_permissions" : [ {
+    "index_patterns" : [ "sf" ],
+    "allowed_actions" : [ "OPENDISTRO_SECURITY_CRUD" ]
+  }, {
+    "index_patterns" : [ "pub" ],
+    "allowed_actions" : [ "OPENDISTRO_SECURITY_CRUD" ]
+  } ],
+  "tenantz_permissions" : [ {
+    "tenant_patterns" : [ "tenant2", "tenant4" ],
+    "allowed_actions" : [ "kibana_all_write" ]
+  }, {
+    "tenant_patterns" : [ "tenant1", "tenant3" ],
+    "allowed_actions" : [ "kibana_all_read" ]
+  } ]
+}

@@ -1,0 +1,5 @@
+{
+  "users": "picard",
+  "hosts": "1.2.3.4",
+  "backend_roles": "role"
+}

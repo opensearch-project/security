@@ -1,0 +1,56 @@
+---
+_meta:
+  type: "tenants"
+  config_version: 2
+performance_data:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6"
+enterprise_tenant:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6"
+adm_tenant:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6"
+PerFormance    ___Reviews/&%%/&&/:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6"
+business_intelligence:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6"
+command_tenant:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6"
+test_tenant_ro:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6"
+management:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6"
+finance_management:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6"
+test_tenant_rw:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6"
+PerFormance ___Reviews%%%!!!:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6"
+finance:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6"
+human_resources:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6"

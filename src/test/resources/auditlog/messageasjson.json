@@ -1,0 +1,12 @@
+{
+  "Headers": "[]",
+  "Request User": "John Doe",
+  "Category": "FAILED_LOGIN",
+  "Context": "[_opendistro_security_user=>User [name=John Doe, roles=[]], _opendistro_security_ssl_transport_principal=>CN=kirk,OU=client,O=client,L=test,C=DE, _opendistro_security_remote_address=>8.8.8.8]",
+  "Date": "Sat Nov 19 11:30:26 EET 2016",
+  "Request class": "class org.elasticsearch.common.ContextAndHeaderHolder",
+  "Details": "Details",
+  "Remote Address": "8.8.8.8",
+  "TLS Principal": "CN=kirk,OU=client,O=client,L=test,C=DE",
+  "Reason": "Forbidden"
+}
