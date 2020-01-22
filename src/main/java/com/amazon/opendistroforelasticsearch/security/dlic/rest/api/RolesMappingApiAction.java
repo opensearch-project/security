@@ -43,14 +43,16 @@ public class RolesMappingApiAction extends PatchableResourceApiAction {
 			final AdminDNs adminDNs, final ConfigurationRepository cl, final ClusterService cs,
             final PrincipalExtractor principalExtractor, final PrivilegesEvaluator evaluator, ThreadPool threadPool, AuditLog auditLog) {
 		super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
+	}
 
+	@Override
+	protected void registerHandlers(RestController controller, Settings settings) {
 		controller.registerHandler(Method.GET, "/_opendistro/_security/api/rolesmapping/", this);
 		controller.registerHandler(Method.GET, "/_opendistro/_security/api/rolesmapping/{name}", this);
 		controller.registerHandler(Method.DELETE, "/_opendistro/_security/api/rolesmapping/{name}", this);
 		controller.registerHandler(Method.PUT, "/_opendistro/_security/api/rolesmapping/{name}", this);
-        controller.registerHandler(Method.PATCH, "/_opendistro/_security/api/rolesmapping/", this);
-        controller.registerHandler(Method.PATCH, "/_opendistro/_security/api/rolesmapping/{name}", this);
-
+		controller.registerHandler(Method.PATCH, "/_opendistro/_security/api/rolesmapping/", this);
+		controller.registerHandler(Method.PATCH, "/_opendistro/_security/api/rolesmapping/{name}", this);
 	}
 
 	@Override

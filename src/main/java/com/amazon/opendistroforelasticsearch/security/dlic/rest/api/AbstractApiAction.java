@@ -96,7 +96,15 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		this.restApiPrivilegesEvaluator = new RestApiPrivilegesEvaluator(settings, adminDNs, evaluator,
 				principalExtractor, configPath, threadPool);
 		this.auditLog = auditLog;
+		this.registerHandlers(controller, settings);
 	}
+
+	/**
+	 * Abstract function to register handlers for API actions
+	 * @param controller rest controller
+	 * @param settings settings configuration
+	 */
+	protected abstract void registerHandlers(RestController controller, Settings settings);
 
 	protected abstract AbstractConfigurationValidator getValidator(RestRequest request, BytesReference ref, Object... params);
 
