@@ -50,7 +50,10 @@ public class AuthTokenProcessorAction extends AbstractApiAction {
 			ThreadPool threadPool, AuditLog auditLog) {
 		super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool,
 				auditLog);
+	}
 
+	@Override
+	protected void registerHandlers(RestController controller, Settings settings) {
 		controller.registerHandler(Method.POST, "/_opendistro/_security/api/authtoken", this);
 	}
 
