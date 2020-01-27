@@ -1,0 +1,47 @@
+opendistro_security:
+  audit:
+    type: debug
+    endpoints:
+      eNDpoint1:
+        type: internal_elasticsearch
+        config:
+          key: value
+          wedontneed: anyconfigforinternal
+      endpoint2:
+        type: external_elasticsearch
+      endPOINT3:
+        type: debug
+      endpoint4:
+        type: idonotexist
+      endpoint5:
+        type: external_elasticsearch
+        something:
+          key: value
+      endpoint6:        
+        something:
+          key: value
+      endpoint7:        
+        config:
+          key: value
+      endpoint8:
+        type: DeBug
+        config:
+          key: value
+      endpoint9:
+        type: external_elasticsearch
+        config:
+          endpoints: stringhere
+      endpoint10:
+        type: log4j
+        config:
+          log4j.logger_name: loggername
+          log4j.level: WaRn
+      endpoint11:
+        type: log4j
+        config:
+          log4j.logger_name: loggername
+      endpoint12:
+        type: log4j
+        config:
+          log4j.logger_name: loggername
+          log4j.level: invalid

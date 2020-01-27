@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - '*'
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: opendistroforelasticsearch/security-maven:v1
+
+    steps:
+
+    - name: Checkout security
+      uses: actions/checkout@v1
+
+    - name: Checkstyle
+      run: mvn checkstyle:checkstyle
+      
+    - name: Test
+      run: mvn test
+
+    - name: Coverage
+      uses: codecov/codecov-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+    
+    - name: Package
+      run: mvn clean package -Padvanced -DskipTests
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v1
+      with:
+        name: artifacts
+        path: target/releases/

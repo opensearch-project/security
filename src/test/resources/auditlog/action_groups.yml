@@ -1,0 +1,122 @@
+---
+_meta:
+  type: "actiongroups"
+  config_version: 2
+OPENDISTRO_SECURITY_CLUSTER_ALL:
+  reserved: false
+  hidden: false
+  allowed_actions:
+  - "cluster:*"
+  type: "unknown"
+  description: "Migrated from v6 (legacy)"
+ALL:
+  reserved: false
+  hidden: false
+  allowed_actions:
+  - "indices:*"
+  type: "unknown"
+  description: "Migrated from v6 (legacy)"
+OPENDISTRO_SECURITY_CRUD:
+  reserved: false
+  hidden: false
+  allowed_actions:
+  - "OPENDISTRO_SECURITY_READ"
+  - "OPENDISTRO_SECURITY_WRITE"
+  type: "unknown"
+  description: "Migrated from v6 (legacy)"
+OPENDISTRO_SECURITY_SEARCH:
+  reserved: false
+  hidden: false
+  allowed_actions:
+  - "indices:data/read/search*"
+  - "indices:data/read/msearch*"
+  - "OPENDISTRO_SECURITY_SUGGEST"
+  type: "unknown"
+  description: "Migrated from v6 (legacy)"
+MONITOR:
+  reserved: false
+  hidden: false
+  allowed_actions:
+  - "indices:monitor/*"
+  type: "unknown"
+  description: "Migrated from v6 (legacy)"
+OPENDISTRO_SECURITY_DATA_ACCESS:
+  reserved: false
+  hidden: false
+  allowed_actions:
+  - "indices:data/*"
+  type: "unknown"
+  description: "Migrated from v6 (legacy)"
+OPENDISTRO_SECURITY_CREATE_INDEX:
+  reserved: false
+  hidden: false
+  allowed_actions:
+  - "indices:admin/create"
+  type: "unknown"
+  description: "Migrated from v6 (legacy)"
+OPENDISTRO_SECURITY_WRITE:
+  reserved: false
+  hidden: false
+  allowed_actions:
+  - "indices:data/write*"
+  type: "unknown"
+  description: "Migrated from v6 (legacy)"
+OPENDISTRO_SECURITY_MANAGE_ALIASES:
+  reserved: false
+  hidden: false
+  allowed_actions:
+  - "indices:admin/aliases*"
+  type: "unknown"
+  description: "Migrated from v6 (legacy)"
+OPENDISTRO_SECURITY_READ:
+  reserved: false
+  hidden: false
+  allowed_actions:
+  - "indices:data/read*"
+  type: "unknown"
+  description: "Migrated from v6 (legacy)"
+OPENDISTRO_SECURITY_DELETE:
+  reserved: false
+  hidden: false
+  allowed_actions:
+  - "indices:data/write/delete*"
+  type: "unknown"
+  description: "Migrated from v6 (legacy)"
+OPENDISTRO_SECURITY_GET:
+  reserved: false
+  hidden: false
+  allowed_actions:
+  - "indices:data/read/get*"
+  - "indices:data/read/mget*"
+  type: "unknown"
+  description: "Migrated from v6 (legacy)"
+OPENDISTRO_SECURITY_MANAGE:
+  reserved: false
+  hidden: false
+  allowed_actions:
+  - "indices:monitor/*"
+  - "indices:admin/*"
+  type: "unknown"
+  description: "Migrated from v6 (legacy)"
+OPENDISTRO_SECURITY_CLUSTER_MONITOR:
+  reserved: false
+  hidden: false
+  allowed_actions:
+  - "cluster:monitor/*"
+  type: "unknown"
+  description: "Migrated from v6 (legacy)"
+OPENDISTRO_SECURITY_INDEX:
+  reserved: false
+  hidden: false
+  allowed_actions:
+  - "indices:data/write/index*"
+  - "indices:data/write/update*"
+  type: "unknown"
+  description: "Migrated from v6 (legacy)"
+OPENDISTRO_SECURITY_SUGGEST:
+  reserved: false
+  hidden: false
+  allowed_actions:
+  - "indices:data/read/suggest*"
+  type: "unknown"
+  description: "Migrated from v6 (legacy)"

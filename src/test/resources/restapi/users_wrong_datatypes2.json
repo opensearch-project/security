@@ -1,0 +1,7 @@
+{
+  "password": 123,
+  "backend_roles": [
+    "role1",
+    "role2"
+  ]
+}
