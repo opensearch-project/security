@@ -51,25 +51,26 @@ public class OpenDistroSecurityConfigAction extends PatchableResourceApiAction {
     public OpenDistroSecurityConfigAction(final Settings settings, final Path configPath, final RestController controller, final Client client,
                           final AdminDNs adminDNs, final ConfigurationRepository cl, final ClusterService cs,
                           final PrincipalExtractor principalExtractor, final PrivilegesEvaluator evaluator, ThreadPool threadPool, AuditLog auditLog) {
-        super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
 
+        super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
         allowPutOrPatch = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, false);
 
+    }
 
+    @Override
+    protected void registerHandlers(RestController controller, Settings settings) {
         controller.registerHandler(Method.GET, "/_opendistro/_security/api/securityconfig/", this);
 
         //controller.registerHandler(Method.GET, "/_opendistro/_security/api/config/", this);
 
-        if(allowPutOrPatch) {
+        boolean enablePutOrPatch = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, false);
+        if (enablePutOrPatch) {
 
             //deprecated, will be removed with ODFE 8, use opendistro_security_config instead of config
             controller.registerHandler(Method.PUT, "/_opendistro/_security/api/securityconfig/{name}", this);
             controller.registerHandler(Method.PATCH, "/_opendistro/_security/api/securityconfig/", this);
-
-
         }
     }
-
 
 
     @Override
