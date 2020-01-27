@@ -1,4 +1,9 @@
-## 2019-10-10, Version 1.2.1.0 (Current)
+## 2019-10-10, Version 1.2.1.1 (Current)
+
+- Merging all security repos (security-parent and security-advanced-modules into security)
+- New API to fetch and update account details (currently used for password update)
+
+## 2019-10-10, Version 1.2.1.0
 
 - Support For Elasticsearch 7.2.1
 
