@@ -1,0 +1,485 @@
+---
+_meta:
+  type: "roles"
+  config_version: 2
+opendistro_security_own_index:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions:
+  - "OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS"
+  index_permissions:
+  - index_patterns:
+    - "${user_name}"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "OPENDISTRO_SECURITY_INDICES_ALL"
+  tenant_permissions: []
+opendistro_security_kibana_testindex:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions:
+  - "OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS_RO"
+  index_permissions:
+  - index_patterns:
+    - "test*"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "OPENDISTRO_SECURITY_READ"
+    - "indices:admin/mappings/fields/get*"
+  - index_patterns:
+    - ".kibana"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "OPENDISTRO_SECURITY_INDICES_ALL"
+  tenant_permissions:
+  - tenant_patterns:
+    - "test_tenant_rw"
+    allowed_actions:
+    - "kibana_all_write"
+  - tenant_patterns:
+    - "test_tenant_ro"
+    allowed_actions:
+    - "kibana_all_read"
+opendistro_security_human_resources:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions:
+  - "OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS"
+  index_permissions:
+  - index_patterns:
+    - "humanresources"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "*"
+  - index_patterns:
+    - "?kibana"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "ALL"
+  tenant_permissions:
+  - tenant_patterns:
+    - "human_resources"
+    - "performance_data"
+    - "management"
+    - "PerFormance    ___Reviews/&%%/&&/"
+    - "PerFormance ___Reviews%%%!!!"
+    allowed_actions:
+    - "kibana_all_write"
+  - tenant_patterns:
+    - "business_intelligence"
+    allowed_actions:
+    - "kibana_all_read"
+opendistro_security_human_resources_trainee:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions:
+  - "OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS_RO"
+  index_permissions:
+  - index_patterns:
+    - "humanresources"
+    dls: "{ \"bool\": { \"must_not\": { \"match\": { \"Designation\": \"CEO\"  }}}}"
+    fls:
+    - "Designation"
+    - "FirstName"
+    - "LastName"
+    - "Salary"
+    masked_fields: null
+    allowed_actions:
+    - "OPENDISTRO_SECURITY_CRUD"
+  - index_patterns:
+    - "?kibana"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "ALL"
+  tenant_permissions:
+  - tenant_patterns:
+    - "human_resources"
+    - "performance_data"
+    - "business_intelligence"
+    allowed_actions:
+    - "kibana_all_read"
+opendistro_security_readonly_and_monitor:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions:
+  - "OPENDISTRO_SECURITY_CLUSTER_MONITOR"
+  - "OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS_RO"
+  index_permissions:
+  - index_patterns:
+    - "*"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "OPENDISTRO_SECURITY_INDICES_ALL"
+  tenant_permissions: []
+opendistro_security_kibana:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions:
+  - "MONITOR"
+  - "OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS_RO"
+  index_permissions:
+  - index_patterns:
+    - "?kibana"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "OPENDISTRO_SECURITY_READ"
+    - "OPENDISTRO_SECURITY_DELETE"
+    - "OPENDISTRO_SECURITY_MANAGE"
+    - "OPENDISTRO_SECURITY_INDEX"
+  - index_patterns:
+    - "?kibana-6"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "OPENDISTRO_SECURITY_READ"
+    - "OPENDISTRO_SECURITY_DELETE"
+    - "OPENDISTRO_SECURITY_MANAGE"
+    - "OPENDISTRO_SECURITY_INDEX"
+  - index_patterns:
+    - "*"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "indices:data/read/field_caps*"
+  tenant_permissions: []
+opendistro_security_monitor:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions:
+  - "cluster:admin/xpack/monitoring/*"
+  - "indices:admin/template/get"
+  - "indices:admin/template/put"
+  - "indices:admin/*get"
+  - "OPENDISTRO_SECURITY_CLUSTER_MONITOR"
+  - "OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS"
+  index_permissions:
+  - index_patterns:
+    - ".monitoring*"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "OPENDISTRO_SECURITY_INDICES_ALL"
+  tenant_permissions: []
+opendistro_security_manage_snapshots:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions:
+  - "OPENDISTRO_SECURITY_MANAGE_SNAPSHOTS"
+  index_permissions:
+  - index_patterns:
+    - "*"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "indices:data/write/index"
+    - "indices:admin/create"
+  tenant_permissions: []
+opendistro_security_kibana_server:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions:
+  - "OPENDISTRO_SECURITY_CLUSTER_MONITOR"
+  - "OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS"
+  index_permissions:
+  - index_patterns:
+    - "?kibana"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "OPENDISTRO_SECURITY_INDICES_ALL"
+  tenant_permissions: []
+opendistro_security_public:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions:
+  - "cluster:monitor/main"
+  - "OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS_RO"
+  index_permissions: []
+  tenant_permissions: []
+opendistro_security_all_access:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions:
+  - "OPENDISTRO_SECURITY_UNLIMITED"
+  index_permissions:
+  - index_patterns:
+    - "*"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "OPENDISTRO_SECURITY_UNLIMITED"
+  tenant_permissions:
+  - tenant_patterns:
+    - "adm_tenant"
+    - "test_tenant_ro"
+    allowed_actions:
+    - "kibana_all_write"
+opendistro_security_logstash:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions:
+  - "indices:admin/template/get"
+  - "indices:admin/template/put"
+  - "OPENDISTRO_SECURITY_CLUSTER_MONITOR"
+  - "OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS"
+  index_permissions:
+  - index_patterns:
+    - "logstash-*"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "OPENDISTRO_SECURITY_CRUD"
+    - "OPENDISTRO_SECURITY_CREATE_INDEX"
+  - index_patterns:
+    - "*beat*"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "OPENDISTRO_SECURITY_CRUD"
+    - "OPENDISTRO_SECURITY_CREATE_INDEX"
+  tenant_permissions: []
+opendistro_security_ua:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions:
+  - "*"
+  index_permissions:
+  - index_patterns:
+    - "indexa*"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "*"
+  - index_patterns:
+    - "permitnotexistentindex"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "*"
+  - index_patterns:
+    - "?kibana"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "ALL"
+  - index_patterns:
+    - "*"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "indices:data/read/field_caps"
+  tenant_permissions: []
+opendistro_security_finance:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions:
+  - "OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS_RO"
+  index_permissions:
+  - index_patterns:
+    - "finance"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "*"
+  - index_patterns:
+    - "humanresources"
+    dls: null
+    fls:
+    - "Designation"
+    - "FirstName"
+    - "LastName"
+    - "Salary"
+    masked_fields: null
+    allowed_actions:
+    - "OPENDISTRO_SECURITY_READ"
+  - index_patterns:
+    - "?kibana"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "ALL"
+  tenant_permissions:
+  - tenant_patterns:
+    - "finance"
+    - "finance_management"
+    - "performance_data"
+    - "management"
+    - "business_intelligence"
+    allowed_actions:
+    - "kibana_all_write"
+  - tenant_patterns:
+    - "human_resources"
+    allowed_actions:
+    - "kibana_all_read"
+opendistro_security_readonly_dlsfls:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions:
+  - "OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS_RO"
+  index_permissions:
+  - index_patterns:
+    - "/\\S*/"
+    dls: "{\"term\" : {\"_type\" : \"legends\"}}"
+    fls:
+    - "aaa"
+    - "bbb"
+    masked_fields: null
+    allowed_actions:
+    - "OPENDISTRO_SECURITY_READ"
+  tenant_permissions: []
+opendistro_security_finance_trainee:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions:
+  - "OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS_RO"
+  index_permissions:
+  - index_patterns:
+    - "finance"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "OPENDISTRO_SECURITY_CRUD"
+  - index_patterns:
+    - "?kibana"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "ALL"
+  tenant_permissions:
+  - tenant_patterns:
+    - "finance"
+    allowed_actions:
+    - "kibana_all_read"
+opendistro_security_role_starfleet:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions:
+  - "OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS"
+  index_permissions:
+  - index_patterns:
+    - "sf"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "OPENDISTRO_SECURITY_READ"
+    - "OPENDISTRO_SECURITY_INDICES_ALL"
+  - index_patterns:
+    - "pub*"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "OPENDISTRO_SECURITY_READ"
+  tenant_permissions:
+  - tenant_patterns:
+    - "enterprise_tenant"
+    - "test_tenant_ro"
+    allowed_actions:
+    - "kibana_all_write"
+opendistro_security_readall:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions:
+  - "OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS_RO"
+  index_permissions:
+  - index_patterns:
+    - "*"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "OPENDISTRO_SECURITY_READ"
+  tenant_permissions: []
+opendistro_security_ub:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions:
+  - "*"
+  index_permissions:
+  - index_patterns:
+    - "indexb"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "*"
+  tenant_permissions: []
+opendistro_security_role_starfleet_captains:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions:
+  - "cluster:monitor*"
+  - "OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS"
+  index_permissions:
+  - index_patterns:
+    - "sf"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "OPENDISTRO_SECURITY_CRUD"
+  - index_patterns:
+    - "pub*"
+    dls: null
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "OPENDISTRO_SECURITY_CRUD"
+  tenant_permissions:
+  - tenant_patterns:
+    - "command_tenant"
+    allowed_actions:
+    - "kibana_all_write"

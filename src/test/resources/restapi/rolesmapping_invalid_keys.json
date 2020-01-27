@@ -1,0 +1,16 @@
+{
+  "theusers": [
+    "sisko",
+    "janeway",
+    "kirk"
+  ],
+  "thebackendroles": [
+    "captains",
+    "role2",
+    "role3"
+  ],
+  "thehosts": [
+    "8.8.8.8",
+    "8.8.4.4"
+  ]
+}

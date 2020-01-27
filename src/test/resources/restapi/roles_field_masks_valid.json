@@ -1,0 +1,9 @@
+{
+  "cluster_permissions" : [ "*" ],
+  "index_permissions" : [ {
+    "index_patterns" : [ "*" ],
+    "masked_fields" : [ "abvfg", "*ip_dest*::/[0-9]{1,3}$/::XXX", "*ip_source*::/[0-9]{1,3}$/::XXX::/^[0-9]{1,3}/::***", "customer.name::SHA-512", "/[0-9]{1,3}/::SHA-512" ],
+    "allowed_actions" : [ "123", "indices:data/read/*" ]
+  } ],
+  "tenant_permissions" : [ ]
+}

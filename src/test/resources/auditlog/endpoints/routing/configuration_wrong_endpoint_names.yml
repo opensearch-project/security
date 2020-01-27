@@ -1,0 +1,33 @@
+opendistro_security:
+  audit:
+    type: internal_elasticsearch
+    endpoints:
+      endpoint1:
+        type: internal_elasticsearch
+      endpoint2:
+        type: external_elasticsearch
+        config:
+          http_endpoints: ['localhost:9200','localhost:9201','localhost:9202']
+          index: auditlog 
+          username: auditloguser
+          password: auditlogpassword
+          enable_ssl: false
+          verify_hostnames: false
+          enable_ssl_client_auth: false
+      endpoint3:
+        type: debug
+    routes:
+      MISSING_PRIVILEGEs:
+        endpoints:
+          - endpoint1
+          - nonexisting
+          - endpoint1
+          - endpoint1
+          - wrong
+          - endpoint3
+      COMPLIANCE_DOC_READ:
+        endpoints:
+          - nothinghere
+      COMPLIANCE_DOC_WRITE:
+        endpoints:
+          - default

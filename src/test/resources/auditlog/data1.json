@@ -1,0 +1,25 @@
+{
+  "title": "title value",
+  "name": "name value",
+  "age": 121,
+  "created": "2017-11-11",
+  "session_data": "session data value",
+  "manager": {
+    "age": 77,
+    "name": "manager name value",
+    "inner": {
+      "a": 1,
+      "b": "b value"
+    }
+  },
+  "employees": [
+    {
+      "age": 1,
+      "name": "emp1 name value"
+    },
+    {
+      "age": 2,
+      "name": "emp2 name value"
+    }
+  ]
+}

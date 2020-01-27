@@ -59,6 +59,8 @@ import com.amazon.opendistroforelasticsearch.security.test.SingleClusterTest;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper.HttpResponse;
 
+import static com.amazon.opendistroforelasticsearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_ADVANCED_MODULES_ENABLED;
+
 public class IndexIntegrationTests extends SingleClusterTest {
 
     @Test
@@ -282,7 +284,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
             tc.index(new IndexRequest("logstash-3").type("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest("logstash-4").type("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
     
-            SimpleDateFormat sdf = new SimpleDateFormat("YYYY.MM.dd", OpenDistroSecurityUtils.EN_Locale);
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy.MM.dd", OpenDistroSecurityUtils.EN_Locale);
             sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
             
             String date = sdf.format(new Date());
@@ -435,6 +437,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
     public void testAliasResolution() throws Exception {
 
         final Settings settings = Settings.builder()
+                .put(OPENDISTRO_SECURITY_ADVANCED_MODULES_ENABLED, false)
                 .build();
         setup(settings);
         final RestHelper rh = nonSslRestHelper();

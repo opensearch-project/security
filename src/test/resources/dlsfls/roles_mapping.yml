@@ -1,0 +1,236 @@
+---
+_meta:
+  type: "rolesmapping"
+  config_version: 2
+opendistro_security_perf_wc_in:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+  - "perf_wc_in"
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_aaa:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+  - "user_aaa"
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_dls_multi2:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+  - "dept_manager_multi"
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_masked:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+  - "user_masked"
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_regex:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+  - "regex"
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_midsized_deals:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+  - "dept_manager"
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_dls_multi1:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+  - "dept_manager_multi"
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_deals_without_amount:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+  - "dept_manager_fls"
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_perf_wc_ex:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+  - "perf_wc_ex"
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_masked_custom:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+  - "user_masked_custom"
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_perf_named_only:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+  - "perf_named_only"
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_fls_fields_wc:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+  - "fls_fields_wc"
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_bbb:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+  - "user_bbb"
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_fls_fields:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+  - "fls_fields"
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_dls_without_field_perm:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+  - "dept_manager_fls_dls"
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_perf_named_ex:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+  - "perf_named_ex"
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_deals_without_amount_reversed_fields:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+  - "dept_manager_fls_reversed_fields"
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_human_resources_trainee:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+  - "human_resources_trainee"
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_masked_nowc:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+  - "user_masked_nowc"
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_masked_nowc1:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+  - "user_masked_nowc1"
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_all_access:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+  - "admin"
+  - "user_combined"
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_public:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+  - "*"
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_logstash:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+  - "opendistro_security_logstash"
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_prop_replace:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+  - "prop_replace"
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_combined:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+  - "user_combined"
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_date_math:
+  users:
+    - date_math
+opendistro_security_fls_exists:
+  users:
+    - fls_exists
