@@ -1,0 +1,42 @@
+{
+ 
+  "customer": {
+               "name": "<name>",
+               "type": "normal",
+               "xnum": 2000,
+               "employees": <employees>,
+               "address": {
+                             "street": "street1",
+                             "zip": "12345",
+                             "city": "mycity"
+                
+                          }               
+            },
+
+  "secret": "a secret value",
+  "num": 0,
+  "field1": "field1val",
+  "field2": "field2val",
+  "field3": "field3val",
+  "field4": "field4val",
+  "field5": "field5val",
+  "field6": "field6val",
+  "numfield1": 1,
+  "numfield2": 2,
+  "numfield3": 3,
+  "numfield4": 4,
+  "numfield5": 5,
+  "numfield6": 6,
+  "boolfield1": true,
+  "boolfield2": true,
+  "boolfield3": false,
+  "boolfield4": true,
+  "boolfield5": true,
+  "boolfield6": false,
+  "nullfield": null,
+  
+  "@timestamp": "<date>",
+  "timestamp": "<date>"
+
+
+}

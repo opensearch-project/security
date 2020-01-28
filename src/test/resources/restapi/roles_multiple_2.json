@@ -1,0 +1,12 @@
+{
+  "cluster_permissions" : [ "cluster:monitor*" ],
+  "cluster_permissions" : [ "cluster:monitor*" ],
+  "index_permissions" : [ {
+    "index_patterns" : [ "sf" ],
+    "allowed_actions" : [ "OPENDISTRO_SECURITY_CRUD" ]
+  }, {
+    "index_patterns" : [ "pub" ],
+    "allowed_actions" : [ "OPENDISTRO_SECURITY_CRUD" ]
+  } ],
+  "tenant_permissions" : [ ]
+}
