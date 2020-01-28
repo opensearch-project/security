@@ -216,6 +216,12 @@ public class RestApiPrivilegesEvaluator {
 			logger.debug("Checking admin access for endpoint {}, path {} and method {}", endpoint.name(),  request.path(), request.method().name());
 		}
 
+		// Grant permission for Account endpoint.
+		// Return null to grant access.
+		if (endpoint == Endpoint.ACCOUNT) {
+			return null;
+		}
+
 		String roleBasedAccessFailureReason = checkRoleBasedAccessPermissions(request, endpoint);
 		// Role based access granted
 		if (roleBasedAccessFailureReason == null) {

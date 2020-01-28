@@ -1,4 +1,9 @@
-## 2019-07-18, Version 1.0.0.2 (Current)
+## 2020-01-27, Version 1.0.0.4 (Current)
+
+- Merging all security repos (security-parent and security-advanced-modules into security)
+- New API to fetch and update account details (currently used for password update)
+
+## 2019-07-18, Version 1.0.0.2
 
 - Added Kibana readonly roles (https://github.com/opendistro-for-elasticsearch/security/pull/96)
 - Added alerting related roles.
