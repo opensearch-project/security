@@ -46,3 +46,10 @@ worf:
   - "klingon"
   attributes: {}
   description: "Migrated from v6"
+hide:
+  hash: "$2y$12$unbLt6ftTcIofGrFEcfwSOGYvYjUGLUvKWPjDG74KUv6kgUtesQMS"
+  reserved: false
+  hidden: true
+  backend_roles: []
+  attributes: {}
+  description: "Hidden user - password - hide"

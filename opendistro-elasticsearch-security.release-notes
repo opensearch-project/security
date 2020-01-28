@@ -1,4 +1,9 @@
-## 2019-09-11, Version 1.1.0.3 (Current)
+## 2020-01-27, Version 1.1.0.4 (Current)
+
+- Merging all security repos (security-parent and security-advanced-modules into security)
+- New API to fetch and update account details (currently used for password update)
+
+## 2019-09-11, Version 1.1.0.3
 
 - Fix protected index kibana
 

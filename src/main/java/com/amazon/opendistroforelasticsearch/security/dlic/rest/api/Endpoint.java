@@ -16,6 +16,7 @@
 package com.amazon.opendistroforelasticsearch.security.dlic.rest.api;
 
 public enum Endpoint {
+	ACCOUNT,
 	ACTIONGROUPS,
 	CACHE,
 	CONFIG,

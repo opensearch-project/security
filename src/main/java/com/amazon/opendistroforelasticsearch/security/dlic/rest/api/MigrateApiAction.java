@@ -72,6 +72,10 @@ public class MigrateApiAction extends AbstractApiAction {
                             final AdminDNs adminDNs, final ConfigurationRepository cl, final ClusterService cs, final PrincipalExtractor principalExtractor,
                             final PrivilegesEvaluator evaluator, ThreadPool threadPool, AuditLog auditLog) {
         super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
+    }
+
+    @Override
+    protected void registerHandlers(RestController controller, Settings settings) {
         controller.registerHandler(Method.POST, "/_opendistro/_security/api/migrate", this);
     }
 

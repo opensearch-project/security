@@ -48,7 +48,10 @@ public class ActionGroupsApiAction extends PatchableResourceApiAction {
 								 final AdminDNs adminDNs, final ConfigurationRepository cl, final ClusterService cs,
 								 final PrincipalExtractor principalExtractor, final PrivilegesEvaluator evaluator, ThreadPool threadPool, AuditLog auditLog) {
 		super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
+	}
 
+	@Override
+	protected void registerHandlers(RestController controller, Settings settings) {
 		// legacy mapping for backwards compatibility
 		// TODO: remove in next version
 		controller.registerHandler(Method.GET, "/_opendistro/_security/api/actiongroup/{name}", this);
@@ -63,7 +66,6 @@ public class ActionGroupsApiAction extends PatchableResourceApiAction {
 		controller.registerHandler(Method.PUT, "/_opendistro/_security/api/actiongroups/{name}", this);
 		controller.registerHandler(Method.PATCH, "/_opendistro/_security/api/actiongroups/", this);
 		controller.registerHandler(Method.PATCH, "/_opendistro/_security/api/actiongroups/{name}", this);
-
 	}
 
 	@Override
