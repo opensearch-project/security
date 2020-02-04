@@ -82,7 +82,8 @@ import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConfigConstant
 //For ES5 this class has only effect when SSL only plugin is installed
 public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin, NetworkPlugin {
 
-    public static final boolean OPENSSL_SUPPORTED = PlatformDependent.javaVersion() < 12;
+    // Not supporting OPENSSL for ES7.4+
+    public static final boolean OPENSSL_SUPPORTED = false;
     protected final Logger log = LogManager.getLogger(this.getClass());
     protected static final String CLIENT_TYPE = "client.type";
     protected final boolean client;

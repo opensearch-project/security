@@ -124,7 +124,12 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
                 .getAsBoolean(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, true);
 
         if(!OpenDistroSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable() && (settings.getAsBoolean(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, true) || settings.getAsBoolean(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, true) )) {
-            String text = "Support for OpenSSL with Java 12+ has been removed from Open Distro Security since Elasticsearch 7.4.0. Using JDK SSL instead.\n";
+            String text = "Support for OpenSSL has been removed from Search Guard since Elasticsearch 7.4.0\n. Use JDK OpenSSL instead";
+            if(Constants.JRE_IS_MINIMUM_JAVA11) {
+                text += "Since you are running Java "+Constants.JAVA_VERSION+" you should not experience any performance impact but maybe not all your ciphers are supported. If you experience problems upgrade to Java 11+";
+            } else {
+                text += "You are running a very old version of Java ("+Constants.JAVA_VERSION+") so you may experience a performance impact and it is strongly advised to update to Java 11+";
+            }
             System.out.println(text);
             log.warn(text);
         }
