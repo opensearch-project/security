@@ -372,6 +372,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 		Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 		Assert.assertEquals(35, settings.size());
 
+		addUserWithPassword("tooshoort", "", HttpStatus.SC_BAD_REQUEST);
 		addUserWithPassword("tooshoort", "123", HttpStatus.SC_BAD_REQUEST);
 		addUserWithPassword("tooshoort", "1234567", HttpStatus.SC_BAD_REQUEST);
 		addUserWithPassword("tooshoort", "1Aa%", HttpStatus.SC_BAD_REQUEST);
@@ -418,6 +419,16 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 		Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 		Assert.assertTrue(response.getBody().contains("error"));
 		Assert.assertTrue(response.getBody().contains("xxx"));
+
+		response = rh.executePutRequest("/_opendistro/_security/api/internalusers/ok1", "{\"backend_roles\":[\"my-backend-role\"],\"attributes\":{},\"password\":\"\"}", new Header[0]);
+		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+
+		response = rh.executePutRequest("/_opendistro/_security/api/internalusers/ok1", "{\"backend_roles\":[\"my-backend-role\"],\"attributes\":{}}", new Header[0]);
+		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+
+		response = rh.executePutRequest("/_opendistro/_security/api/internalusers/ok1", "{\"backend_roles\":[\"my-backend-role\"],\"attributes\":{},\"password\":\"bla\"}",
+				new Header[0]);
+		Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 	}
 	
 	@Test
