@@ -37,6 +37,7 @@
     <version>1.4.0.0</version>
     <name>Open Distro Security for Elasticsearch</name>
     <description>Open Distro For Elasticsearch Security</description>
+    <url>https://github.com/opendistro-for-elasticsearch/security</url>
     <inceptionYear>2015</inceptionYear>
     <licenses>
         <license>
