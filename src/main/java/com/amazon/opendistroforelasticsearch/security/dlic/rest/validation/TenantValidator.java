@@ -12,6 +12,8 @@ public class TenantValidator extends AbstractConfigurationValidator {
         super(request, ref, esSettings, param);
         this.payloadMandatory = false;
         allowedKeys.put("description", DataType.STRING);
+
+        additionalAllowedKeysForSuperAdmin.put("reserved", DataType.BOOLEAN);
     }
 
 }

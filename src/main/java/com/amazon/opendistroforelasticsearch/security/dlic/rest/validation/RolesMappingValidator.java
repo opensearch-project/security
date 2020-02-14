@@ -34,5 +34,7 @@ public class RolesMappingValidator extends AbstractConfigurationValidator {
 		mandatoryOrKeys.add("and_backend_roles");
 		mandatoryOrKeys.add("hosts");
 		mandatoryOrKeys.add("users");
+
+		additionalAllowedKeysForSuperAdmin.put("reserved", DataType.BOOLEAN);
 	}
 }

@@ -75,7 +75,7 @@ public abstract class AbstractConfigurationValidator {
 
     protected final Set<String> missingMandatoryOrKeys = new HashSet<>();
 
-    protected final Map<String, DataType> additionalAllowedKeysForAdmin = new HashMap<>();
+    protected final Map<String, DataType> additionalAllowedKeysForSuperAdmin = new HashMap<>();
 
     /** The error type */
     protected ErrorType errorType = ErrorType.NONE;
@@ -105,7 +105,6 @@ public abstract class AbstractConfigurationValidator {
         this.esSettings = esSettings;
         this.request = request;
         this.param = param;
-        this.additionalAllowedKeysForAdmin.put("reserved", DataType.BOOLEAN);
     }
 
     public JsonNode getContentAsNode() {
@@ -173,7 +172,7 @@ public abstract class AbstractConfigurationValidator {
         // invalid settings
         Set<String> allowed = new HashSet<>(allowedKeys.keySet());
         if (isSuperAdmin) {
-            allowed.addAll(additionalAllowedKeysForAdmin.keySet());
+            allowed.addAll(additionalAllowedKeysForSuperAdmin.keySet());
         }
         requested.removeAll(allowed);
 
