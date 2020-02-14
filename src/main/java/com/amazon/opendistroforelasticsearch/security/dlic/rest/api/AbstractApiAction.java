@@ -76,7 +76,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 	protected final ClusterService cs;
 	final ThreadPool threadPool;
 	private String opendistroIndex;
-	protected final RestApiPrivilegesEvaluator restApiPrivilegesEvaluator;
+	private final RestApiPrivilegesEvaluator restApiPrivilegesEvaluator;
 	protected final AuditLog auditLog;
 	protected final Settings settings;
 	private AdminDNs adminDNs;
