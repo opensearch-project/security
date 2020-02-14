@@ -45,8 +45,8 @@ public class CredentialsValidator extends AbstractConfigurationValidator {
      * @return true if validation is successful else false
      */
     @Override
-    public boolean validate() {
-        if (!super.validate()) {
+    public boolean validate(boolean isSuperAdmin) {
+        if (!super.validate(isSuperAdmin)) {
             return false;
         }
 

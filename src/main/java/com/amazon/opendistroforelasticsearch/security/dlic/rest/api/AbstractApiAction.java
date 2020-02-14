@@ -76,9 +76,10 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 	protected final ClusterService cs;
 	final ThreadPool threadPool;
 	private String opendistroIndex;
-	private final RestApiPrivilegesEvaluator restApiPrivilegesEvaluator;
+	protected final RestApiPrivilegesEvaluator restApiPrivilegesEvaluator;
 	protected final AuditLog auditLog;
 	protected final Settings settings;
+	private AdminDNs adminDNs;
 
 	protected AbstractApiAction(final Settings settings, final Path configPath, final RestController controller,
 								final Client client, final AdminDNs adminDNs, final ConfigurationRepository cl,
@@ -89,7 +90,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		this.opendistroIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME,
 				ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
 
-
+		this.adminDNs = adminDNs;
 		this.cl = cl;
 		this.cs = cs;
 		this.threadPool = threadPool;
@@ -117,11 +118,10 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		try {
 			// validate additional settings, if any
 			AbstractConfigurationValidator validator = getValidator(request, request.content());
-			if (!validator.validate()) {
-				request.params().clear();
-				badRequestResponse(channel, validator);
+			if(!validateRequest(channel, request, validator)) {
 				return;
 			}
+
 			switch (request.method()) {
 				case DELETE:
 					handleDelete(channel,request, client, validator.getContentAsNode()); break;
@@ -158,7 +158,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 			return;
 		}
 
-		if (isReserved(existingConfiguration, name)) {
+		if (isReserved(existingConfiguration, name) && !isSuperAdmin()) {
 			forbidden(channel, "Resource '"+ name +"' is read-only.");
 			return;
 		}
@@ -196,7 +196,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 			return;
 		}
 
-		if (isReserved(existingConfiguration, name)) {
+		if (isReserved(existingConfiguration, name) && !isSuperAdmin()) {
 			forbidden(channel, "Resource '"+ name +"' is read-only.");
 			return;
 		}
@@ -220,7 +220,6 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
 			}
 		});
-
 	}
 
 	protected void handlePost(final RestChannel channel, final RestRequest request, final Client client, final JsonNode content) throws IOException {
@@ -533,6 +532,20 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 	@Override
 	public String getName() {
 		return getClass().getSimpleName();
+	}
+
+	protected boolean isSuperAdmin() {
+		User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+		return adminDNs.isAdmin(user);
+	}
+
+	protected boolean validateRequest(RestChannel channel, RestRequest request, AbstractConfigurationValidator validator) {
+		if (!validator.validate(isSuperAdmin())) {
+			request.params().clear();
+			badRequestResponse(channel, validator);
+			return false;
+		}
+		return true;
 	}
 
 	protected abstract Endpoint getEndpoint();

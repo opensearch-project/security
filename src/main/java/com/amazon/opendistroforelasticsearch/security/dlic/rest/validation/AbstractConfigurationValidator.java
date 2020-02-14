@@ -75,6 +75,8 @@ public abstract class AbstractConfigurationValidator {
 
     protected final Set<String> missingMandatoryOrKeys = new HashSet<>();
 
+    protected final Map<String, DataType> additionalAllowedKeysForAdmin = new HashMap<>();
+
     /** The error type */
     protected ErrorType errorType = ErrorType.NONE;
 
@@ -103,6 +105,7 @@ public abstract class AbstractConfigurationValidator {
         this.esSettings = esSettings;
         this.request = request;
         this.param = param;
+        this.additionalAllowedKeysForAdmin.put("reserved", DataType.BOOLEAN);
     }
 
     public JsonNode getContentAsNode() {
@@ -113,7 +116,7 @@ public abstract class AbstractConfigurationValidator {
      *
      * @return false if validation fails
      */
-    public boolean validate() {
+    public boolean validate(boolean isSuperAdmin) {
         // no payload for DELETE and GET requests
         if (method.equals(Method.DELETE) || method.equals(Method.GET)) {
             return true;
@@ -156,6 +159,7 @@ public abstract class AbstractConfigurationValidator {
             return false;
         }
 
+
         // mandatory settings, one of ...
         if (Collections.disjoint(requested, mandatoryOrKeys)) {
             this.missingMandatoryOrKeys.addAll(mandatoryOrKeys);
@@ -168,7 +172,11 @@ public abstract class AbstractConfigurationValidator {
 
         // invalid settings
         Set<String> allowed = new HashSet<>(allowedKeys.keySet());
+        if (isSuperAdmin) {
+            allowed.addAll(additionalAllowedKeysForAdmin.keySet());
+        }
         requested.removeAll(allowed);
+
         this.invalidKeys.addAll(requested);
         boolean valid = missingMandatoryKeys.isEmpty() && invalidKeys.isEmpty() && missingMandatoryOrKeys.isEmpty();
         if (!valid) {
@@ -278,7 +286,7 @@ public abstract class AbstractConfigurationValidator {
     }
 
     public static enum DataType {
-        STRING, ARRAY, OBJECT;
+        STRING, ARRAY, OBJECT, BOOLEAN;
     }
 
     public static enum ErrorType {

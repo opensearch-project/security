@@ -190,7 +190,7 @@ public class AccountApiAction extends AbstractApiAction {
             return;
         }
 
-        if (isReserved(internalUser, username)) {
+        if (isReserved(internalUser, username) && !isSuperAdmin()) {
             forbidden(channel, "Resource '" + username + "' is read-only.");
             return;
         }

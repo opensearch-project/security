@@ -70,18 +70,15 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
             return;
         }
 
+        AbstractConfigurationValidator validator = getValidator(request, request.content());
+        if(!validateRequest(channel, request, validator)) {
+            return;
+        }
+
         String name = request.param("name");
         SecurityDynamicConfiguration<?> existingConfiguration = load(getConfigName(), false);
 
-        JsonNode jsonPatch;
-
-        try {
-            jsonPatch = DefaultObjectMapper.readTree(request.content().utf8ToString());
-        } catch (IOException e) {
-            log.debug("Error while parsing JSON patch", e);
-            badRequestResponse(channel, "Error in JSON patch: " + e.getMessage());
-            return;
-        }
+        JsonNode jsonPatch = validator.getContentAsNode();
 
         JsonNode existingAsJsonNode = Utils.convertJsonToJackson(existingConfiguration, true);
 
@@ -106,7 +103,7 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
             return;
         }
 
-        if (isReserved(existingConfiguration, name)) {
+        if (isReserved(existingConfiguration, name) && !isSuperAdmin()) {
             forbidden(channel, "Resource '" + name + "' is read-only.");
             return;
         }
@@ -131,7 +128,7 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
         AbstractConfigurationValidator originalValidator = postProcessApplyPatchResult(channel, request, existingResourceAsJsonNode, patchedResourceAsJsonNode, name);
 
         if(originalValidator != null) {
-            if (!originalValidator.validate()) {
+            if (!originalValidator.validate(isSuperAdmin())) {
                 request.params().clear();
                 badRequestResponse(channel, originalValidator);
                 return;
@@ -141,7 +138,7 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
 
         AbstractConfigurationValidator validator = getValidator(request, patchedResourceAsJsonNode);
 
-        if (!validator.validate()) {
+        if (!validator.validate(isSuperAdmin())) {
             request.params().clear();
                 badRequestResponse(channel, validator);
             return;
@@ -181,7 +178,7 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
 
             if (oldResource != null && !oldResource.equals(patchedResource)) {
 
-                if (isReserved(existingConfiguration, resourceName)) {
+                if (isReserved(existingConfiguration, resourceName) && !isSuperAdmin()) {
                     forbidden(channel, "Resource '" + resourceName + "' is read-only.");
                     return;
                 }
@@ -203,7 +200,7 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
             AbstractConfigurationValidator originalValidator = postProcessApplyPatchResult(channel, request, oldResource, patchedResource, resourceName);
 
             if(originalValidator != null) {
-                if (!originalValidator.validate()) {
+                if (!originalValidator.validate(isSuperAdmin())) {
                     request.params().clear();
                         badRequestResponse(channel, originalValidator);
                     return;
@@ -213,7 +210,7 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
             if (oldResource == null || !oldResource.equals(patchedResource)) {
                 AbstractConfigurationValidator validator = getValidator(request, patchedResource);
 
-                if (!validator.validate()) {
+                if (!validator.validate(isSuperAdmin())) {
                     request.params().clear();
                         badRequestResponse(channel, validator);
                     return;

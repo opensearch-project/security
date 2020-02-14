@@ -37,9 +37,9 @@ public class RolesValidator extends AbstractConfigurationValidator {
 	}
 
     @Override
-    public boolean validate() {
+    public boolean validate(boolean isSuperAdmin) {
 
-        if (!super.validate()) {
+        if (!super.validate(isSuperAdmin)) {
             return false;
         }
 
