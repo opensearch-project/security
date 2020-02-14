@@ -143,7 +143,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
 
         if(config.getImplementingClass() == ConfigV7.class) {
                 //statics
-
+                
                 if(roles.containsAny(staticRoles)) {
                     throw new StaticResourceException("Cannot override static roles");
                 }

@@ -73,7 +73,7 @@ public class OpenDistroSecuritySSLInfoAction extends BaseRestHandler {
                 BytesRestResponse response = null;
 
                 try {
-
+                    
                     SSLInfo sslInfo = SSLRequestHelper.getSSLInfo(settings, configPath, request, principalExtractor);
                     X509Certificate[] certs = sslInfo == null?null:sslInfo.getX509Certs();
                     X509Certificate[] localCerts = sslInfo == null?null:sslInfo.getLocalCertificates();
