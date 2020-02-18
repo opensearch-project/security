@@ -17,6 +17,7 @@
 
 package com.amazon.opendistroforelasticsearch.security.ssl.transport;
 
+import java.lang.reflect.Method;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
@@ -80,6 +81,12 @@ implements TransportRequestHandler<T> {
             final Exception exception = ExceptionUtils.createBadHeaderException();
             channel.sendResponse(exception);
             throw exception;
+        }
+
+        // if channel is not netty or direct, use the inner channel.
+        // throw runtime error if the channel does not implement getInnerChannel
+        if (!"netty".equals(channel.getChannelType()) && !"direct".equals(channel.getChannelType())) {
+            channel = getInnerChannel(channel);
         }
  
         if (!"netty".equals(channel.getChannelType())) { //netty4
@@ -153,6 +160,18 @@ implements TransportRequestHandler<T> {
             throw e;
         }
         
+    }
+
+    protected TransportChannel getInnerChannel(TransportChannel channel) throws Exception {
+        try {
+            Class wrappedChannelCls = channel.getClass();
+            Method getInnerChannel = wrappedChannelCls.getMethod("getInnerChannel", null);
+            TransportChannel innerChannel = (TransportChannel) getInnerChannel.invoke(channel);
+            log.debug("Using inner channel : " + innerChannel.getChannelType());
+            return innerChannel;
+        } catch (NoSuchMethodException ex) {
+            throw new RuntimeException("Unknown channel type " + channel.getChannelType() + " does not implement getInnerChannel method.");
+        }
     }
     
     protected void addAdditionalContextValues(final String action, final TransportRequest request, final X509Certificate[] localCerts, final X509Certificate[] peerCerts, final String principal)

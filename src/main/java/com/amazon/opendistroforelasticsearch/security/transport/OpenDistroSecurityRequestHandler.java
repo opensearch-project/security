@@ -126,15 +126,7 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
             String channelType = transportChannel.getChannelType();
 
             if(!channelType.equals("direct") && !channelType.equals("netty")) {
-                Class wrappedChannelCls = transportChannel.getClass();
-
-                try {
-                    Method getInnerChannel = wrappedChannelCls.getMethod("getInnerChannel", null);
-                    TransportChannel innerChannel = (TransportChannel)(getInnerChannel.invoke(transportChannel));
-                    channelType = innerChannel.getChannelType();
-                } catch (NoSuchMethodException ex) {
-                    throw new RuntimeException("Unknown channel type " + channelType + " does not implement getInnerChannel method.");
-                }
+                channelType = getInnerChannel(transportChannel).getChannelType();
             }
 
             getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_CHANNEL_TYPE, channelType);
@@ -173,9 +165,9 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
                     && (task.getAction().startsWith("internal:") || task.getAction().contains("["))) {
 
                 auditLog.logMissingPrivileges(task.getAction(), request, task);
-                log.error("Internal or shard requests ("+task.getAction()+") not allowed from a non-server node for transport type "+transportChannel.getChannelType());
+                log.error("Internal or shard requests ("+task.getAction()+") not allowed from a non-server node for transport type " + channelType);
                 transportChannel.sendResponse(new ElasticsearchSecurityException(
-                            "Internal or shard requests not allowed from a non-server node for transport type "+transportChannel.getChannelType()));
+                            "Internal or shard requests not allowed from a non-server node for transport type " + channelType));
                 return;
                     }
 
