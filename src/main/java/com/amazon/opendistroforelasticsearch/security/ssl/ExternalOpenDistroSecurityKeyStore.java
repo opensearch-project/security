@@ -17,6 +17,7 @@
 
 package com.amazon.opendistroforelasticsearch.security.ssl;
 
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -101,7 +102,31 @@ public class ExternalOpenDistroSecurityKeyStore implements OpenDistroSecurityKey
     public String getTransportClientProviderName() {
         return EXTERNAL;
     }
-    
+
+    @Override
+    public void initHttpSSLConfig() {
+        // NO-OP: since this class uses externalSslContext
+        // We do not need to initialize any keystore/truststore or build SSLContext
+    }
+
+    @Override
+    public void initTransportSSLConfig() {
+        // NO-OP: since this class uses externalSslContext
+        // We do not need to initialize any keystore/truststore or build SSLContext
+    }
+
+    @Override
+    public X509Certificate[] getTransportCerts() {
+        // NO-OP: since this class uses externalSslContext there are no transport certs
+        return null;
+    }
+
+    @Override
+    public X509Certificate[] getHttpCerts() {
+        // NO-OP: since this class uses externalSslContext there are no http certs
+        return null;
+    }
+
     public static void registerExternalSslContext(String id, SSLContext externalSsslContext) {
         contextMap.put(Objects.requireNonNull(id), Objects.requireNonNull(externalSsslContext));
     }
