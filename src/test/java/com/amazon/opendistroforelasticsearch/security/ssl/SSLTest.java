@@ -633,7 +633,7 @@ public class SSLTest extends SingleClusterTest {
 
     @Test
     public void testTransportClientSSLFail() throws Exception {
-        thrown.expect(NoNodeAvailableException.class);
+        thrown.expect(IllegalStateException.class);
 
         final Settings settings = Settings.builder().put("opendistro_security.ssl.transport.enabled", true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_SSL_ONLY, true)
