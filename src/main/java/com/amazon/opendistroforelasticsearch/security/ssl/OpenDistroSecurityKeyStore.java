@@ -32,6 +32,7 @@ package com.amazon.opendistroforelasticsearch.security.ssl;
 
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
+import java.security.cert.X509Certificate;
 
 public interface OpenDistroSecurityKeyStore {
 
@@ -44,5 +45,9 @@ public interface OpenDistroSecurityKeyStore {
     public String getHTTPProviderName();
     public String getTransportServerProviderName();
     public String getTransportClientProviderName();
-    
+
+    public void initHttpSSLConfig();
+    public void initTransportSSLConfig();
+    public X509Certificate[] getTransportCerts();
+    public X509Certificate[] getHttpCerts();
 }

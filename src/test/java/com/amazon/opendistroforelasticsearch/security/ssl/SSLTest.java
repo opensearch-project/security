@@ -606,7 +606,7 @@ public class SSLTest extends AbstractUnitTest {
 
     @Test
     public void testTransportClientSSLFail() throws Exception {
-        thrown.expect(NoNodeAvailableException.class);
+        thrown.expect(IllegalStateException.class);
 
         final Settings settings = Settings.builder().put("opendistro_security.ssl.transport.enabled", true)
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
