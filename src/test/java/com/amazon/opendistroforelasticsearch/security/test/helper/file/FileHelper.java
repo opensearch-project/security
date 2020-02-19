@@ -30,8 +30,12 @@
 
 package com.amazon.opendistroforelasticsearch.security.test.helper.file;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
@@ -143,6 +147,31 @@ public class FileHelper {
                     //ignore
                 }
             }
+        }
+    }
+
+    /**
+     * Utility that copies contents of one file to another
+     * @param srcFile    Source File
+     * @param destFile   Destination File
+     */
+    public static void copyFileContents(String srcFile, String destFile) {
+        try {
+            final FileReader fr = new FileReader(srcFile);
+            final BufferedReader br = new BufferedReader(fr);
+            final FileWriter fw = new FileWriter(destFile, false);
+            String s;
+
+            while ((s = br.readLine()) != null) { // read a line
+                fw.write(s); // write to output file
+                fw.write(System.getProperty("line.separator"));
+                fw.flush();
+            }
+
+            br.close();
+            fw.close();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }
