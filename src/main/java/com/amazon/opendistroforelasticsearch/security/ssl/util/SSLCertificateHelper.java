@@ -17,6 +17,9 @@
 
 package com.amazon.opendistroforelasticsearch.security.ssl.util;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.security.Key;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -24,6 +27,8 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -142,7 +147,19 @@ public class SSLCertificateHelper {
 
         return null;
     }
-    
+
+    /**
+     * Helper function to translate file format to X509Certificate
+     * @param file Public Key File
+     * @return X509Formatted File
+     */
+    public static X509Certificate convertFileToX509Certificate(File file) throws CertificateException, FileNotFoundException {
+        final CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
+        final X509Certificate x509Certificate = (X509Certificate) certificateFactory.generateCertificate(new FileInputStream(file));
+        return x509Certificate;
+    }
+
+
     private static void logKeyStore(final KeyStore ks) {
         try {
             final List<String> aliases = toList(ks.aliases());
