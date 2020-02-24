@@ -273,7 +273,7 @@ public abstract class AbstractConfigurationValidator {
     }
 
     public static enum DataType {
-        STRING, ARRAY, OBJECT;
+        STRING, ARRAY, OBJECT, BOOLEAN;
     }
 
     public static enum ErrorType {
