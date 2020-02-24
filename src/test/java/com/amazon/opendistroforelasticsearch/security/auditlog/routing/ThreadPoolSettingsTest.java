@@ -29,7 +29,7 @@ public class ThreadPoolSettingsTest extends AbstractAuditlogiUnitTest {
 	public void testNoMultipleEndpointsConfiguration() throws Exception {
 		Settings settings = Settings.builder().loadFromPath(FileHelper.getAbsoluteFilePathFromClassPath("auditlog/endpoints/sink/configuration_no_multiple_endpoints.yml")).build();
 		AuditMessageRouter router = createMessageRouterComplianceEnabled(settings);
-		Assert.assertEquals(5, router.storagePool.threadPoolSize);
-		Assert.assertEquals(200000, router.storagePool.threadPoolMaxQueueLen);
+		Assert.assertEquals(5, router.storagePool.getConfig().getThreadPoolSize());
+		Assert.assertEquals(200000, router.storagePool.getConfig().getThreadPoolMaxQueueLen());
 	}
 }

@@ -18,12 +18,12 @@ package com.amazon.opendistroforelasticsearch.security.auditlog.routing;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.EnumMap;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import com.amazon.opendistroforelasticsearch.security.auditlog.AuditConfig;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.Client;
@@ -31,10 +31,9 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage;
-import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage.Category;
+import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
 import com.amazon.opendistroforelasticsearch.security.auditlog.sink.AuditLogSink;
 import com.amazon.opendistroforelasticsearch.security.auditlog.sink.SinkProvider;
-import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
 import com.amazon.opendistroforelasticsearch.security.dlic.rest.support.Utils;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 
@@ -42,16 +41,16 @@ public class AuditMessageRouter {
 
 	protected final Logger log = LogManager.getLogger(this.getClass());
 	final AuditLogSink defaultSink;
-	final Map<Category, List<AuditLogSink>> categorySinks = new EnumMap<>(Category.class);
+	final Map<AuditCategory, List<AuditLogSink>> categorySinks = new EnumMap<>(AuditCategory.class);
 	final SinkProvider sinkProvider;
 	final AsyncStoragePool storagePool;
 	final boolean enabled;
 	boolean hasMultipleEndpoints;
-	private ComplianceConfig complianceConfig;
+	private AuditConfig auditConfig;
 
 	public AuditMessageRouter(final Settings settings, final Client clientProvider, ThreadPool threadPool, final Path configPath) {
 		this.sinkProvider = new SinkProvider(settings, clientProvider, threadPool, configPath);
-		this.storagePool = new AsyncStoragePool(settings);
+		this.storagePool = new AsyncStoragePool(AsyncStoragePoolConfig.getConfig(settings));
 
 		// get the default sink
 		this.defaultSink = sinkProvider.getDefaultSink();
@@ -63,10 +62,11 @@ public class AuditMessageRouter {
 			setupRoutes(settings);
 			enabled = true;
 		}
+		log.info("Message routing enabled: {}", this.enabled);
 	}
 
-	public void setComplianceConfig(ComplianceConfig complianceConfig) {
-		this.complianceConfig = complianceConfig;
+	public void setAuditConfig(AuditConfig auditConfig) {
+		this.auditConfig = auditConfig;
 	}
 
 	public boolean isEnabled() {
@@ -80,7 +80,7 @@ public class AuditMessageRouter {
 			return;
 		}
 		// if we do not run the compliance features or no extended configuration is present, only log to default.
-		if (!hasMultipleEndpoints || complianceConfig == null || !complianceConfig.isEnabled()) {
+		if (!hasMultipleEndpoints || auditConfig == null || !auditConfig.isEnabled()) {
 			store(defaultSink, msg);
 		} else {
 			for (AuditLogSink sink : categorySinks.get(msg.getCategory())) {
@@ -117,7 +117,7 @@ public class AuditMessageRouter {
 				log.trace("Setting up routes for endpoint {}, configuraton is {}", routesEntry.getKey(), routesEntry.getValue());
 				String categoryName = routesEntry.getKey();
 				try {
-					Category category = Category.valueOf(categoryName.toUpperCase());
+					AuditCategory category = AuditCategory.valueOf(categoryName.toUpperCase());
 					// warn for duplicate definitions
 					if (categorySinks.get(category) != null) {
 						log.warn("Duplicate routing configuration detected for category {}, skipping.", category);
@@ -134,11 +134,11 @@ public class AuditMessageRouter {
 
 					}
 				} catch (Exception e ) {
-					log.error("Invalid category '{}' found in routing configuration. Must be one of: {}", categoryName, Category.values());
+					log.error("Invalid category '{}' found in routing configuration. Must be one of: {}", categoryName, AuditCategory.values());
 				}
 			}
 			// for all non-configured categories we automatically set up the default endpoint
-			for(Category category : Category.values()) {
+			for(AuditCategory category : AuditCategory.values()) {
 				if (!categorySinks.containsKey(category)) {
 					if (log.isDebugEnabled()) {
 						log.debug("No endpoint configured for category {}, adding default endpoint", category);
@@ -149,7 +149,7 @@ public class AuditMessageRouter {
 		}
 	}
 
-	private final List<AuditLogSink> createSinksForCategory(Category category, Settings configuration) {
+	private final List<AuditLogSink> createSinksForCategory(AuditCategory category, Settings configuration) {
 		List<AuditLogSink> sinksForCategory = new LinkedList<>();
 		List<String> sinks = configuration.getAsList("endpoints");
 		if (sinks == null || sinks.isEmpty()) {

@@ -55,7 +55,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
 import com.amazon.opendistroforelasticsearch.security.auditlog.NullAuditLog;
-import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
 import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceIndexingOperationListener;
 import com.amazon.opendistroforelasticsearch.security.configuration.AdminDNs;
 import com.amazon.opendistroforelasticsearch.security.configuration.DlsFlsRequestValve;
@@ -140,7 +139,7 @@ public class ReflectionHelper {
             final Class<?> clazz = Class.forName("com.amazon.opendistroforelasticsearch.security.configuration.OpenDistroSecurityFlsDlsIndexSearcherWrapper");
             final Constructor<?> ret = clazz.getConstructor(IndexService.class,
                     Settings.class, AdminDNs.class, ClusterService.class, AuditLog.class,
-                    ComplianceIndexingOperationListener.class, ComplianceConfig.class, PrivilegesEvaluator.class);
+                    ComplianceIndexingOperationListener.class, PrivilegesEvaluator.class);
             addLoadedModule(clazz);
             return ret;
         } catch (final Throwable e) {
@@ -194,7 +193,7 @@ public class ReflectionHelper {
         }
     }
 
-    public static ComplianceIndexingOperationListener instantiateComplianceListener(ComplianceConfig complianceConfig, AuditLog auditlog) {
+    public static ComplianceIndexingOperationListener instantiateComplianceListener(AuditLog auditlog) {
 
         if (advancedModulesDisabled()) {
             return new ComplianceIndexingOperationListener();
@@ -203,8 +202,8 @@ public class ReflectionHelper {
         try {
             final Class<?> clazz = Class.forName("com.amazon.opendistroforelasticsearch.security.compliance.ComplianceIndexingOperationListenerImpl");
             final ComplianceIndexingOperationListener impl = (ComplianceIndexingOperationListener) clazz
-                    .getConstructor(ComplianceConfig.class, AuditLog.class)
-                    .newInstance(complianceConfig, auditlog);
+                    .getConstructor(AuditLog.class)
+                    .newInstance(auditlog);
             addLoadedModule(clazz);
             return impl;
         } catch (final ClassNotFoundException e) {
