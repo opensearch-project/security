@@ -146,6 +146,7 @@ public abstract class AbstractConfigurationValidator {
         Set<String> allowed = new HashSet<>(allowedKeys.keySet());
         requested.removeAll(allowed);
         this.invalidKeys.addAll(requested);
+
         boolean valid = missingMandatoryKeys.isEmpty() && invalidKeys.isEmpty() && missingMandatoryOrKeys.isEmpty();
         if (!valid) {
             this.errorType = ErrorType.INVALID_CONFIGURATION;
@@ -264,7 +265,7 @@ public abstract class AbstractConfigurationValidator {
     }
 
     public static enum DataType {
-        STRING, ARRAY, OBJECT;
+        STRING, ARRAY, OBJECT, BOOLEAN;
     }
 
     public static enum ErrorType {

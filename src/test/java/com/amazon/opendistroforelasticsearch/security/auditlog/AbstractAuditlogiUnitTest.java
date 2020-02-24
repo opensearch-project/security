@@ -62,15 +62,15 @@ public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
     }
 
     protected void setupStarfleetIndex() throws Exception {
-        final boolean sendHTTPClientCertificate = rh.sendHTTPClientCertificate;
+        final boolean sendAdminCertificate = rh.sendAdminCertificate;
         final String keystore = rh.keystore;
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         rh.keystore = "auditlog/kirk-keystore.jks";
         rh.executePutRequest("sf", null, new Header[0]);
         rh.executePutRequest("sf/public/0?refresh", "{\"number\" : \"NCC-1701-D\"}", new Header[0]);
         rh.executePutRequest("sf/public/0?refresh", "{\"some\" : \"value\"}", new Header[0]);
         rh.executePutRequest("sf/public/0?refresh", "{\"some\" : \"value\"}", new Header[0]);
-        rh.sendHTTPClientCertificate = sendHTTPClientCertificate;
+        rh.sendAdminCertificate = sendAdminCertificate;
         rh.keystore = keystore;
     }
 

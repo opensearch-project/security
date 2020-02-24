@@ -49,14 +49,14 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
                 .build();
 
         setup(additionalSettings);
-        final boolean sendHTTPClientCertificate = rh.sendHTTPClientCertificate;
+        final boolean sendAdminCertificate = rh.sendAdminCertificate;
         final String keystore = rh.keystore;
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         rh.keystore = "auditlog/kirk-keystore.jks";
         rh.executePutRequest("emp/doc/0?refresh", "{\"Designation\" : \"CEO\", \"Gender\" : \"female\", \"Salary\" : 100}", new Header[0]);
         rh.executePutRequest("emp/doc/1?refresh", "{\"Designation\" : \"IT\", \"Gender\" : \"male\", \"Salary\" : 200}", new Header[0]);
         rh.executePutRequest("emp/doc/2?refresh", "{\"Designation\" : \"IT\", \"Gender\" : \"female\", \"Salary\" : 300}", new Header[0]);
-        rh.sendHTTPClientCertificate = sendHTTPClientCertificate;
+        rh.sendAdminCertificate = sendAdminCertificate;
         rh.keystore = keystore;
 
         System.out.println("#### test source includes");
@@ -103,14 +103,14 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
                 .build();
 
         setup(additionalSettings);
-        final boolean sendHTTPClientCertificate = rh.sendHTTPClientCertificate;
+        final boolean sendAdminCertificate = rh.sendAdminCertificate;
         final String keystore = rh.keystore;
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         rh.keystore = "auditlog/kirk-keystore.jks";
         rh.executePutRequest("emp/doc/0?refresh", "{\"Designation\" : \"CEO\", \"Gender\" : \"female\", \"Salary\" : 100}", new Header[0]);
         rh.executePutRequest("emp/doc/1?refresh", "{\"Designation\" : \"IT\", \"Gender\" : \"male\", \"Salary\" : 200}", new Header[0]);
         rh.executePutRequest("emp/doc/2?refresh", "{\"Designation\" : \"IT\", \"Gender\" : \"female\", \"Salary\" : 300}", new Header[0]);
-        rh.sendHTTPClientCertificate = sendHTTPClientCertificate;
+        rh.sendAdminCertificate = sendAdminCertificate;
         rh.keystore = keystore;
 
         System.out.println("#### test source includes");

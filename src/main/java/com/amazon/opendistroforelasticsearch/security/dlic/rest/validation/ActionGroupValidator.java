@@ -22,10 +22,11 @@ import org.elasticsearch.rest.RestRequest.Method;
 
 public class ActionGroupValidator extends AbstractConfigurationValidator {
 
-	public ActionGroupValidator(final RestRequest request, BytesReference ref, final Settings esSettings, Object... param) {
+	public ActionGroupValidator(final RestRequest request, boolean isSuperAdmin, BytesReference ref, final Settings esSettings, Object... param) {
 		super(request, ref, esSettings, param);
 		this.payloadMandatory = true;
 		allowedKeys.put("permissions", DataType.ARRAY);
+		if (isSuperAdmin) allowedKeys.put("readonly" , DataType.BOOLEAN);
 		mandatoryKeys.add("permissions");
 	}
 

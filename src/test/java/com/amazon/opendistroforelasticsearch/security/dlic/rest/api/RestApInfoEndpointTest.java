@@ -33,7 +33,7 @@ public class RestApInfoEndpointTest extends AbstractRestApiUnitTest {
 
 		setupWithRestRoles();
 
-		rh.sendHTTPClientCertificate = false;
+		rh.sendAdminCertificate = false;
 
 		HttpResponse response = rh.executeGetRequest("/_opendistro/_security/api/permissionsinfo", encodeBasicHeader("worf", "worf"));
 		System.out.println(response.getBody());
@@ -58,7 +58,7 @@ public class RestApInfoEndpointTest extends AbstractRestApiUnitTest {
 
 		setup();
 
-		rh.sendHTTPClientCertificate = false;
+		rh.sendAdminCertificate = false;
 
 		HttpResponse response = rh.executeGetRequest("/_opendistro/_security/api/permissionsinfo", encodeBasicHeader("admin", "admin"));
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
