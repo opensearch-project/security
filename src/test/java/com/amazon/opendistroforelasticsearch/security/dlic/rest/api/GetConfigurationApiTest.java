@@ -32,7 +32,7 @@ public class GetConfigurationApiTest extends AbstractRestApiUnitTest {
 
 		setup();
 		rh.keystore = "restapi/kirk-keystore.jks";
-		rh.sendHTTPClientCertificate = true;
+		rh.sendAdminCertificate = true;
 
 		// wrong config name -> bad request
 		HttpResponse response = null;
