@@ -8,10 +8,11 @@ import org.elasticsearch.rest.RestRequest;
 
 public class TenantValidator extends AbstractConfigurationValidator {
 
-    public TenantValidator(final RestRequest request, BytesReference ref, final Settings esSettings, Object... param) {
+    public TenantValidator(final RestRequest request, boolean isSuperAdmin, BytesReference ref, final Settings esSettings, Object... param) {
         super(request, ref, esSettings, param);
         this.payloadMandatory = false;
         allowedKeys.put("description", DataType.STRING);
+        if (isSuperAdmin) allowedKeys.put("reserved", DataType.BOOLEAN);
     }
 
 }

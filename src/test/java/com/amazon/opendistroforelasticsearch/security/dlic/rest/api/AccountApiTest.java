@@ -138,9 +138,9 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
 
         // create users from - resources/restapi/internal_users.yml
         rh.keystore = "restapi/kirk-keystore.jks";
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         response = rh.executeGetRequest("_opendistro/_security/api/" + CType.INTERNALUSERS.toLCString());
-        rh.sendHTTPClientCertificate = false;
+        rh.sendAdminCertificate = false;
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
 
         // test - reserved user - sarek
@@ -163,7 +163,7 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
 
         // test - admin with admin cert - internal user does not exist
         rh.keystore = "restapi/kirk-keystore.jks";
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         response = rh.executeGetRequest(ENDPOINT, encodeBasicHeader("admin", "admin"));
         body = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         assertEquals("CN=kirk,OU=client,O=client,L=Test,C=DE", body.get("user_name"));
@@ -193,17 +193,17 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         final String internalUserEndpoint = "/_opendistro/_security/api/internalusers/" + testUsername;
 
         // create user
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         HttpResponse response = rh.executePutRequest(internalUserEndpoint, createInternalUserPayload);
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-        rh.sendHTTPClientCertificate = false;
+        rh.sendAdminCertificate = false;
 
         // change password to new-password
         response = rh.executePutRequest(ENDPOINT, changePasswordPayload, encodeBasicHeader(testUsername, testPassword));
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         // assert account information has not changed
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         response = rh.executeGetRequest(internalUserEndpoint);
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Settings responseBody = Settings.builder()
