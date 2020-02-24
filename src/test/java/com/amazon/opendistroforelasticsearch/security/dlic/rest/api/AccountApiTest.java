@@ -116,9 +116,9 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
 
         // create users from - resources/restapi/internal_users.yml
         rh.keystore = "restapi/kirk-keystore.jks";
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         response = rh.executeGetRequest("_opendistro/_security/api/" + CType.INTERNALUSERS.toLCString());
-        rh.sendHTTPClientCertificate = false;
+        rh.sendAdminCertificate = false;
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
 
         // test - reserved user - sarek
@@ -141,7 +141,7 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
 
         // test - admin with admin cert - internal user does not exist
         rh.keystore = "restapi/kirk-keystore.jks";
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         response = rh.executeGetRequest(ENDPOINT, encodeBasicHeader("admin", "admin"));
         body = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         assertEquals("CN=kirk,OU=client,O=client,L=Test,C=DE", body.get("user_name"));
