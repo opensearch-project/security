@@ -97,8 +97,9 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
 		Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
 
 		// read only role
+		// SuperAdmin can delete read only role
 		response = rh.executeDeleteRequest("/_opendistro/_security/api/rolesmapping/opendistro_security_role_starfleet_library", new Header[0]);
-		Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         // hidden role
         response = rh.executeDeleteRequest("/_opendistro/_security/api/rolesmapping/opendistro_security_role_internal", new Header[0]);
@@ -181,9 +182,10 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
 		Assert.assertTrue(settings.get("backend_roles").equals("Array expected"));	
 
 		// Read only role mapping
+		// SuperAdmin can add read only roles - mappings
 		response = rh.executePutRequest("/_opendistro/_security/api/rolesmapping/opendistro_security_role_starfleet_library",
 				FileHelper.loadFile("restapi/rolesmapping_all_access.json"), new Header[0]);
-		Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+		Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
 
         // hidden role
         response = rh.executePutRequest("/_opendistro/_security/api/rolesmapping/opendistro_security_role_internal",
@@ -201,9 +203,10 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
 
         // PATCH read only resource, must be forbidden
+		// SuperAdmin can patch read-only resource
         rh.sendHTTPClientCertificate = true;
-        response = rh.executePatchRequest("/_opendistro/_security/api/rolesmapping/opendistro_security_role_starfleet_library", "[{ \"op\": \"add\", \"path\": \"/a/b/c\", \"value\": [ \"foo\", \"bar\" ] }]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        response = rh.executePatchRequest("/_opendistro/_security/api/rolesmapping/opendistro_security_role_starfleet_library", "[{ \"op\": \"add\", \"path\": \"/description\", \"value\": \"foo\"] }]", new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // PATCH hidden resource, must be not found
         rh.sendHTTPClientCertificate = true;
@@ -234,9 +237,10 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // PATCH read only resource, must be forbidden
+		// SuperAdmin can patch read only resource
         rh.sendHTTPClientCertificate = true;
-        response = rh.executePatchRequest("/_opendistro/_security/api/rolesmapping", "[{ \"op\": \"add\", \"path\": \"/opendistro_security_role_starfleet_library/a\", \"value\": [ \"foo\", \"bar\" ] }]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        response = rh.executePatchRequest("/_opendistro/_security/api/rolesmapping", "[{ \"op\": \"add\", \"path\": \"/opendistro_security_role_starfleet_library/description\", \"value\": \"foo\" }]", new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         // PATCH hidden resource, must be bad request
         rh.sendHTTPClientCertificate = true;

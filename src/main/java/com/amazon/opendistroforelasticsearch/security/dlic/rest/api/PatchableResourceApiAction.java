@@ -106,7 +106,7 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
             return;
         }
 
-        if (isReserved(existingConfiguration, name)) {
+        if (isReservedAndAccessibleToSuperAdmin(existingConfiguration, name)) {
             forbidden(channel, "Resource '" + name + "' is read-only.");
             return;
         }
@@ -181,7 +181,7 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
 
             if (oldResource != null && !oldResource.equals(patchedResource)) {
 
-                if (isReserved(existingConfiguration, resourceName)) {
+                if (isReservedAndAccessibleToSuperAdmin(existingConfiguration, resourceName)) {
                     forbidden(channel, "Resource '" + resourceName + "' is read-only.");
                     return;
                 }

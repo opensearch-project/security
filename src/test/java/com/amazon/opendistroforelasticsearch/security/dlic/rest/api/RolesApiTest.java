@@ -166,9 +166,9 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         response = rh.executeDeleteRequest("/_opendistro/_security/api/roles/idonotexist", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
 
-        // read only role
+        // read only role, SuperAdmin can delete the read-only role
         response = rh.executeDeleteRequest("/_opendistro/_security/api/roles/opendistro_security_transport_client", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         // hidden role
         response = rh.executeDeleteRequest("/_opendistro/_security/api/roles/opendistro_security_internal", new Header[0]);
@@ -227,9 +227,10 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         Assert.assertTrue(settings.get("cluster_permissions").asText().equals("Array expected"));
 
         // put read only role, must be forbidden
+        // But SuperAdmin can still create it
         response = rh.executePutRequest("/_opendistro/_security/api/roles/opendistro_security_transport_client",
                 FileHelper.loadFile("restapi/roles_captains.json"), new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
 
         // put hidden role, must be forbidden
         response = rh.executePutRequest("/_opendistro/_security/api/roles/opendistro_security_internal",
@@ -351,9 +352,10 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
 
         // PATCH read only resource, must be forbidden
+        // SuperAdmin can patch it
         rh.sendHTTPClientCertificate = true;
-        response = rh.executePatchRequest("/_opendistro/_security/api/roles/opendistro_security_transport_client", "[{ \"op\": \"add\", \"path\": \"/a/b/c\", \"value\": [ \"foo\", \"bar\" ] }]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        response = rh.executePatchRequest("/_opendistro/_security/api/roles/opendistro_security_transport_client", "[{ \"op\": \"add\", \"path\": \"/description\", \"value\": \"foo\" }]", new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         // PATCH hidden resource, must be not found
         rh.sendHTTPClientCertificate = true;
@@ -392,7 +394,7 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         // PATCH read only resource, must be forbidden
         rh.sendHTTPClientCertificate = true;
         response = rh.executePatchRequest("/_opendistro/_security/api/roles", "[{ \"op\": \"add\", \"path\": \"/opendistro_security_transport_client/a\", \"value\": [ \"foo\", \"bar\" ] }]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // PATCH hidden resource, must be bad request
         rh.sendHTTPClientCertificate = true;
@@ -400,9 +402,10 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // PATCH delete read only resource, must be forbidden
+        // SuperAdmin can delete read only user
         rh.sendHTTPClientCertificate = true;
         response = rh.executePatchRequest("/_opendistro/_security/api/roles", "[{ \"op\": \"remove\", \"path\": \"/opendistro_security_transport_client\" }]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         // PATCH hidden resource, must be bad request
         rh.sendHTTPClientCertificate = true;

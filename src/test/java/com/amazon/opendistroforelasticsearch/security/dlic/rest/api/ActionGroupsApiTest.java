@@ -158,18 +158,20 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
 		// -- PUT, new JSON format including readonly flag, disallowed in REST API
 		rh.sendHTTPClientCertificate = true;
 		response = rh.executePutRequest("/_opendistro/_security/api/actiongroups/CRUD_UT", FileHelper.loadFile("restapi/actiongroup_readonly.json"), new Header[0]);
-		Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
 		// -- DELETE read only resource, must be forbidden
+        // superAdmin can delete read only resource
 		rh.sendHTTPClientCertificate = true;
 		response = rh.executeDeleteRequest("/_opendistro/_security/api/actiongroups/GET_UT", new Header[0]);
-		Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
 		// -- PUT read only resource, must be forbidden
+        // superAdmin can add/update read only resource
 		rh.sendHTTPClientCertificate = true;
         response = rh.executePutRequest("/_opendistro/_security/api/actiongroups/GET_UT", FileHelper.loadFile("restapi/actiongroup_read.json"), new Header[0]);
-		Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
-        Assert.assertTrue(response.getBody().contains("Resource 'GET_UT' is read-only."));
+		Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+        Assert.assertFalse(response.getBody().contains("Resource 'GET_UT' is read-only."));
 
         // -- GET_UT hidden resource, must be 404
         rh.sendHTTPClientCertificate = true;
@@ -193,9 +195,10 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
 
         // PATCH read only resource, must be forbidden
+        // SuperAdmin can patch read only resource
         rh.sendHTTPClientCertificate = true;
-        response = rh.executePatchRequest("/_opendistro/_security/api/actiongroups/GET_UT", "[{ \"op\": \"add\", \"path\": \"/a/b/c\", \"value\": [ \"foo\", \"bar\" ] }]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        response = rh.executePatchRequest("/_opendistro/_security/api/actiongroups/GET_UT", "[{ \"op\": \"add\", \"path\": \"/description\", \"value\": \"foo\" }]", new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         // PATCH hidden resource, must be not found
         rh.sendHTTPClientCertificate = true;
@@ -230,9 +233,14 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
 
         // -- PATCH on whole config resource
         // PATCH read only resource, must be forbidden
+        // SuperAdmin can patch read only resource
         rh.sendHTTPClientCertificate = true;
         response = rh.executePatchRequest("/_opendistro/_security/api/actiongroups", "[{ \"op\": \"add\", \"path\": \"/GET_UT/a\", \"value\": [ \"foo\", \"bar\" ] }]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+
+        rh.sendHTTPClientCertificate = true;
+        response = rh.executePatchRequest("/_opendistro/_security/api/actiongroups", "[{ \"op\": \"add\", \"path\": \"/GET_UT/description\", \"value\": \"foo\" }]", new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         // PATCH hidden resource, must be bad request
         rh.sendHTTPClientCertificate = true;
@@ -240,9 +248,10 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // PATCH delete read only resource, must be forbidden
+        // SuperAdmin can delete read only resource
         rh.sendHTTPClientCertificate = true;
         response = rh.executePatchRequest("/_opendistro/_security/api/actiongroups", "[{ \"op\": \"remove\", \"path\": \"/GET_UT\" }]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         // PATCH delete hidden resource, must be bad request
         rh.sendHTTPClientCertificate = true;

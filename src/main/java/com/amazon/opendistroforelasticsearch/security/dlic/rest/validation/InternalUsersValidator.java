@@ -24,12 +24,13 @@ import org.elasticsearch.rest.RestRequest;
  */
 public class InternalUsersValidator extends CredentialsValidator {
 
-    public InternalUsersValidator(final RestRequest request, BytesReference ref, final Settings esSettings,
+    public InternalUsersValidator(final RestRequest request, boolean isSuperAdmin, BytesReference ref, final Settings esSettings,
             Object... param) {
         super(request, ref, esSettings, param);
         allowedKeys.put("backend_roles", DataType.ARRAY);
         allowedKeys.put("attributes", DataType.OBJECT);
         allowedKeys.put("description", DataType.STRING);
         allowedKeys.put("opendistro_security_roles", DataType.ARRAY);
+        if (isSuperAdmin) allowedKeys.put("reserved", DataType.BOOLEAN);
     }
 }
