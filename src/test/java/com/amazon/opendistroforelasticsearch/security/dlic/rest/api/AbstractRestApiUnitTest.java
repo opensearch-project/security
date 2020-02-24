@@ -107,35 +107,35 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 	}
 
 	protected void deleteUser(String username) throws Exception {
-		boolean sendHTTPClientCertificate = rh.sendHTTPClientCertificate;
-		rh.sendHTTPClientCertificate = true;
+		boolean sendAdminCertificate = rh.sendAdminCertificate;
+		rh.sendAdminCertificate = true;
 		HttpResponse response = rh.executeDeleteRequest("/_opendistro/_security/api/user/" + username, new Header[0]);
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-		rh.sendHTTPClientCertificate = sendHTTPClientCertificate;
+		rh.sendAdminCertificate = sendAdminCertificate;
 	}
 
 	protected void addUserWithPassword(String username, String password, int status) throws Exception {
-		boolean sendHTTPClientCertificate = rh.sendHTTPClientCertificate;
-		rh.sendHTTPClientCertificate = true;
+		boolean sendAdminCertificate = rh.sendAdminCertificate;
+		rh.sendAdminCertificate = true;
 		HttpResponse response = rh.executePutRequest("/_opendistro/_security/api/user/" + username,
 				"{\"password\": \"" + password + "\"}", new Header[0]);
 		Assert.assertEquals(status, response.getStatusCode());
-		rh.sendHTTPClientCertificate = sendHTTPClientCertificate;
+		rh.sendAdminCertificate = sendAdminCertificate;
 	}
 
     protected void addDotUserWithPassword(String usernameWithDots, String password, int status, boolean replace) throws Exception {
         Assert.assertTrue(usernameWithDots.contains("."));
-        boolean sendHTTPClientCertificate = rh.sendHTTPClientCertificate;
-        rh.sendHTTPClientCertificate = true;
+        boolean sendAdminCertificate = rh.sendAdminCertificate;
+        rh.sendAdminCertificate = true;
         HttpResponse response = rh.executePutRequest("/_opendistro/_security/api/user/" + usernameWithDots.replace('.', replace?'_':'.'),
                 "{\"password\": \"" + password + "\",\"username\":\""+usernameWithDots+"\"}", new Header[0]);
         Assert.assertEquals(status, response.getStatusCode());
-        rh.sendHTTPClientCertificate = sendHTTPClientCertificate;
+        rh.sendAdminCertificate = sendAdminCertificate;
     }
 
 	protected void addUserWithPassword(String username, String password, String[] roles, int status) throws Exception {
-		boolean sendHTTPClientCertificate = rh.sendHTTPClientCertificate;
-		rh.sendHTTPClientCertificate = true;
+		boolean sendAdminCertificate = rh.sendAdminCertificate;
+		rh.sendAdminCertificate = true;
 		String payload = "{" + "\"password\": \"" + password + "\"," + "\"roles\": [";
 		for (int i = 0; i < roles.length; i++) {
 			payload += "\"" + roles[i] + "\"";
@@ -146,12 +146,12 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 		payload += "]}";
 		HttpResponse response = rh.executePutRequest("/_opendistro/_security/api/user/" + username, payload, new Header[0]);
 		Assert.assertEquals(status, response.getStatusCode());
-		rh.sendHTTPClientCertificate = sendHTTPClientCertificate;
+		rh.sendAdminCertificate = sendAdminCertificate;
 	}
 
 	protected void addUserWithoutPasswordOrHash(String username, String[] roles, int status) throws Exception {
-		boolean sendHTTPClientCertificate = rh.sendHTTPClientCertificate;
-		rh.sendHTTPClientCertificate = true;
+		boolean sendAdminCertificate = rh.sendAdminCertificate;
+		rh.sendAdminCertificate = true;
 		String payload = "{ \"roles\": [";
 		for (int i = 0; i < roles.length; i++) {
 			payload += "\" " + roles[i] + " \"";
@@ -162,7 +162,7 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 		payload += "]}";
 		HttpResponse response = rh.executePutRequest("/_opendistro/_security/api/user/" + username, payload, new Header[0]);
 		Assert.assertEquals(status, response.getStatusCode());
-		rh.sendHTTPClientCertificate = sendHTTPClientCertificate;
+		rh.sendAdminCertificate = sendAdminCertificate;
 	}
 
 	protected void addUserWithHash(String username, String hash) throws Exception {
@@ -170,44 +170,44 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 	}
 
 	protected void addUserWithHash(String username, String hash, int status) throws Exception {
-		boolean sendHTTPClientCertificate = rh.sendHTTPClientCertificate;
-		rh.sendHTTPClientCertificate = true;
+		boolean sendAdminCertificate = rh.sendAdminCertificate;
+		rh.sendAdminCertificate = true;
 		HttpResponse response = rh.executePutRequest("/_opendistro/_security/api/user/" + username, "{\"hash\": \"" + hash + "\"}",
 				new Header[0]);
 		Assert.assertEquals(status, response.getStatusCode());
-		rh.sendHTTPClientCertificate = sendHTTPClientCertificate;
+		rh.sendAdminCertificate = sendAdminCertificate;
 	}
 
     protected void addDotUserUserWithHash(String usernameWithDots, String hash, int status, boolean replace) throws Exception {
         Assert.assertTrue(usernameWithDots.contains("."));
-        boolean sendHTTPClientCertificate = rh.sendHTTPClientCertificate;
-        rh.sendHTTPClientCertificate = true;
+        boolean sendAdminCertificate = rh.sendAdminCertificate;
+        rh.sendAdminCertificate = true;
         HttpResponse response = rh.executePutRequest("/_opendistro/_security/api/user/" + usernameWithDots.replace('.', replace?'_':'.'),
                 "{\"hash\": \"" + hash + "\",\"username\":\""+usernameWithDots+"\"}", new Header[0]);
         Assert.assertEquals(status, response.getStatusCode());
-        rh.sendHTTPClientCertificate = sendHTTPClientCertificate;
+        rh.sendAdminCertificate = sendAdminCertificate;
     }
 
 	protected void checkGeneralAccess(int status, String username, String password) throws Exception {
-		boolean sendHTTPClientCertificate = rh.sendHTTPClientCertificate;
-		rh.sendHTTPClientCertificate = false;
+		boolean sendAdminCertificate = rh.sendAdminCertificate;
+		rh.sendAdminCertificate = false;
 		Assert.assertEquals(status,
 				rh.executeGetRequest("",
 						encodeBasicHeader(username, password))
 						.getStatusCode());
-		rh.sendHTTPClientCertificate = sendHTTPClientCertificate;
+		rh.sendAdminCertificate = sendAdminCertificate;
 	}
 
 	protected String checkReadAccess(int status, String username, String password, String indexName, String type,
 			int id) throws Exception {
-		boolean sendHTTPClientCertificate = rh.sendHTTPClientCertificate;
-		rh.sendHTTPClientCertificate = false;
+		boolean sendAdminCertificate = rh.sendAdminCertificate;
+		rh.sendAdminCertificate = false;
 		String action = indexName + "/" + type + "/" + id;
 		HttpResponse response = rh.executeGetRequest(action,
 				encodeBasicHeader(username, password));
 		int returnedStatus = response.getStatusCode();
 		Assert.assertEquals(status, returnedStatus);
-		rh.sendHTTPClientCertificate = sendHTTPClientCertificate;
+		rh.sendAdminCertificate = sendAdminCertificate;
 		return response.getBody();
 
 	}
@@ -215,25 +215,25 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 	protected String checkWriteAccess(int status, String username, String password, String indexName, String type,
 			int id) throws Exception {
 
-		boolean sendHTTPClientCertificate = rh.sendHTTPClientCertificate;
-		rh.sendHTTPClientCertificate = false;
+		boolean sendAdminCertificate = rh.sendAdminCertificate;
+		rh.sendAdminCertificate = false;
 		String action = indexName + "/" + type + "/" + id;
 		String payload = "{\"value\" : \"true\"}";
 		HttpResponse response = rh.executePutRequest(action, payload,
 				encodeBasicHeader(username, password));
 		int returnedStatus = response.getStatusCode();
 		Assert.assertEquals(status, returnedStatus);
-		rh.sendHTTPClientCertificate = sendHTTPClientCertificate;
+		rh.sendAdminCertificate = sendAdminCertificate;
 		return response.getBody();
 	}
 
 	protected void setupStarfleetIndex() throws Exception {
-		boolean sendHTTPClientCertificate = rh.sendHTTPClientCertificate;
-		rh.sendHTTPClientCertificate = true;
+		boolean sendAdminCertificate = rh.sendAdminCertificate;
+		rh.sendAdminCertificate = true;
 		rh.executePutRequest("sf", null, new Header[0]);
 		rh.executePutRequest("sf/ships/0", "{\"number\" : \"NCC-1701-D\"}", new Header[0]);
 		rh.executePutRequest("sf/public/0", "{\"some\" : \"value\"}", new Header[0]);
-		rh.sendHTTPClientCertificate = sendHTTPClientCertificate;
+		rh.sendAdminCertificate = sendAdminCertificate;
 	}
 
 	protected Settings defaultNodeSettings(boolean enableRestSSL) {

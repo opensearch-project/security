@@ -22,12 +22,13 @@ import org.elasticsearch.rest.RestRequest.Method;
 
 public class RolesMappingValidator extends AbstractConfigurationValidator {
 
-	public RolesMappingValidator(final RestRequest request, final BytesReference ref, final Settings esSettings, Object... param) {
+	public RolesMappingValidator(final RestRequest request, boolean isSuperAdmin, final BytesReference ref, final Settings esSettings, Object... param) {
 		super(request, ref, esSettings, param);
 		this.payloadMandatory = true;
 		allowedKeys.put("backendroles", DataType.ARRAY);
 		allowedKeys.put("hosts", DataType.ARRAY);
 		allowedKeys.put("users", DataType.ARRAY);
+		if (isSuperAdmin) allowedKeys.put("readonly", DataType.BOOLEAN);
 
 		mandatoryOrKeys.add("backendroles");
 		mandatoryOrKeys.add("hosts");

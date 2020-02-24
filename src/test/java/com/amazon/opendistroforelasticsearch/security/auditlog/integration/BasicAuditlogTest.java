@@ -490,12 +490,12 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         setup(additionalSettings);
         setupStarfleetIndex();
 
-        final boolean sendHTTPClientCertificate = rh.sendHTTPClientCertificate;
+        final boolean sendAdminCertificate = rh.sendAdminCertificate;
         final String keystore = rh.keystore;
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         rh.keystore = "auditlog/kirk-keystore.jks";
         HttpResponse res = rh.executeGetRequest("_cat/indices", new Header[0]);
-        rh.sendHTTPClientCertificate = sendHTTPClientCertificate;
+        rh.sendAdminCertificate = sendAdminCertificate;
         rh.keystore = keystore;
 
         Assert.assertTrue(res.getBody().contains("auditlog-20"));

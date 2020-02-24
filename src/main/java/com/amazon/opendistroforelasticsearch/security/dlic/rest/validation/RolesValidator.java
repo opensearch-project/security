@@ -27,15 +27,18 @@ import com.jayway.jsonpath.ReadContext;
 
 public class RolesValidator extends AbstractConfigurationValidator {
 
-	public RolesValidator(final RestRequest request, final BytesReference ref, final Settings esSettings, Object... param) {
+	public RolesValidator(final RestRequest request, boolean isSuperAdmin, final BytesReference ref, final Settings esSettings, Object... param) {
 		super(request, ref, esSettings, param);
 		this.payloadMandatory = true;
+
 		allowedKeys.put("indices", DataType.OBJECT);
 		allowedKeys.put("cluster", DataType.ARRAY);
 		allowedKeys.put("tenants", DataType.OBJECT);
+        if (isSuperAdmin) allowedKeys.put("readonly", DataType.BOOLEAN);
 
 		mandatoryOrKeys.add("indices");
 		mandatoryOrKeys.add("cluster");
+
 	}
 
     @Override

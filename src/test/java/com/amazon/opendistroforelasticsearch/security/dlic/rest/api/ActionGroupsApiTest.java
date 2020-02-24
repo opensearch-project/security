@@ -36,7 +36,7 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
 		setup();
 
 		rh.keystore = "restapi/kirk-keystore.jks";
-		rh.sendHTTPClientCertificate = true;
+		rh.sendAdminCertificate = true;
 
 		// --- GET
 
@@ -84,7 +84,7 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
 
 		// -- DELETE
 		// Non-existing role
-		rh.sendHTTPClientCertificate = true;
+		rh.sendAdminCertificate = true;
 
 		response = rh.executeDeleteRequest("/_opendistro/_security/api/actiongroup/idonotexist", new Header[0]);
 		Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
@@ -95,7 +95,7 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
 		response = rh.executeDeleteRequest("/_opendistro/_security/api/actiongroup/READ", new Header[0]);
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
-		rh.sendHTTPClientCertificate = false;
+		rh.sendAdminCertificate = false;
 		checkReadAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard", "sf", "ships", 0);
 
 		// put picard in captains role. Role opendistro_security_role_captains uses the CRUD
@@ -107,16 +107,16 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
 		checkReadAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard", "sf", "ships", 0);
 
 		// now remove also CRUD groups, write also not possible anymore
-		rh.sendHTTPClientCertificate = true;
+		rh.sendAdminCertificate = true;
 		response = rh.executeDeleteRequest("/_opendistro/_security/api/actiongroup/CRUD", new Header[0]);
-		rh.sendHTTPClientCertificate = false;
+		rh.sendAdminCertificate = false;
 		checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard", "sf", "ships", 0);
 		checkReadAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard", "sf", "ships", 0);
 
 		// -- PUT
 
 		// put with empty payload, must fail
-		rh.sendHTTPClientCertificate = true;
+		rh.sendAdminCertificate = true;
 		response = rh.executePutRequest("/_opendistro/_security/api/actiongroup/SOMEGROUP", "", new Header[0]);
 		Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 		settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
@@ -132,82 +132,83 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
 		response = rh.executePutRequest("/_opendistro/_security/api/actiongroup/CRUD", FileHelper.loadFile("restapi/actiongroup_crud.json"), new Header[0]);
 		Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
 
-		rh.sendHTTPClientCertificate = false;
+		rh.sendAdminCertificate = false;
 
 		// write access allowed again, read forbidden, since READ group is still missing
 		checkReadAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard", "sf", "ships", 0);
 		checkWriteAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "ships", 0);
 
 		// restore READ action groups
-		rh.sendHTTPClientCertificate = true;
+		rh.sendAdminCertificate = true;
 		response = rh.executePutRequest("/_opendistro/_security/api/actiongroup/READ", FileHelper.loadFile("restapi/actiongroup_read.json"), new Header[0]);
 		Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
 
-		rh.sendHTTPClientCertificate = false;
+		rh.sendAdminCertificate = false;
 		// read/write allowed again
 		checkReadAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "ships", 0);
 		checkWriteAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "ships", 0);
 
 		// -- PUT, new JSON format including readonly flag, disallowed in REST API
-		rh.sendHTTPClientCertificate = true;
+        // allowed for SuperAdmin
+		rh.sendAdminCertificate = true;
 		response = rh.executePutRequest("/_opendistro/_security/api/actiongroup/CRUD", FileHelper.loadFile("restapi/actiongroup_readonly.json"), new Header[0]);
-		Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
 		// -- DELETE read only resource, must be forbidden
-		rh.sendHTTPClientCertificate = true;
+		rh.sendAdminCertificate = true;
 		response = rh.executeDeleteRequest("/_opendistro/_security/api/actiongroup/GET", new Header[0]);
-		Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
 		// -- PUT read only resource, must be forbidden
-		rh.sendHTTPClientCertificate = true;
+		rh.sendAdminCertificate = true;
 		response = rh.executePutRequest("/_opendistro/_security/api/actiongroup/GET", FileHelper.loadFile("restapi/actiongroup_read.json"), new Header[0]);
-		Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
-		Assert.assertTrue(response.getBody().contains("Resource 'GET' is read-only."));
+		Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+		Assert.assertFalse(response.getBody().contains("Resource 'GET' is read-only."));
 
 		// -- GET hidden resource, must be 404
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         response = rh.executeGetRequest("/_opendistro/_security/api/actiongroup/INTERNAL", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
 
 		// -- DELETE hidden resource, must be 404
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         response = rh.executeDeleteRequest("/_opendistro/_security/api/actiongroup/INTERNAL", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
 
         // -- PUT hidden resource, must be forbidden
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         response = rh.executePutRequest("/_opendistro/_security/api/actiongroup/INTERNAL", FileHelper.loadFile("restapi/actiongroup_read.json"), new Header[0]);
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
         // -- PATCH
         // PATCH on non-existing resource
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         response = rh.executePatchRequest("/_opendistro/_security/api/actiongroups/imnothere", "[{ \"op\": \"add\", \"path\": \"/a/b/c\", \"value\": [ \"foo\", \"bar\" ] }]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
 
         // PATCH read only resource, must be forbidden
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         response = rh.executePatchRequest("/_opendistro/_security/api/actiongroups/GET", "[{ \"op\": \"add\", \"path\": \"/a/b/c\", \"value\": [ \"foo\", \"bar\" ] }]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // PATCH hidden resource, must be not found
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         response = rh.executePatchRequest("/_opendistro/_security/api/actiongroups/INTERNAL", "[{ \"op\": \"add\", \"path\": \"/a/b/c\", \"value\": [ \"foo\", \"bar\" ] }]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
 
         // PATCH value of hidden flag, must fail with validation error
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         response = rh.executePatchRequest("/_opendistro/_security/api/actiongroups/CRUD", "[{ \"op\": \"add\", \"path\": \"/hidden\", \"value\": true }]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
         Assert.assertTrue(response.getBody().matches(".*\"invalid_keys\"\\s*:\\s*\\{\\s*\"keys\"\\s*:\\s*\"hidden\"\\s*\\}.*"));
 
         // PATCH with relative JSON pointer, must fail
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         response = rh.executePatchRequest("/_opendistro/_security/api/actiongroups/CRUD", "[{ \"op\": \"add\", \"path\": \"1/INTERNAL/permissions/-\", \"value\": \"DELETE\" }]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // PATCH new format
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         response = rh.executePatchRequest("/_opendistro/_security/api/actiongroups/CRUD", "[{ \"op\": \"add\", \"path\": \"/permissions/-\", \"value\": \"DELETE\" }]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         response = rh.executeGetRequest("/_opendistro/_security/api/actiongroups/CRUD", new Header[0]);
@@ -223,41 +224,47 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
 
         // -- PATCH on whole config resource
         // PATCH read only resource, must be forbidden
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         response = rh.executePatchRequest("/_opendistro/_security/api/actiongroups", "[{ \"op\": \"add\", \"path\": \"/GET/a\", \"value\": [ \"foo\", \"bar\" ] }]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+
+        rh.sendAdminCertificate = true;
+        response = rh.executePatchRequest("/_opendistro/_security/api/actiongroups", "[{ \"op\": \"add\", \"path\": \"/GET/description\", \"value\": \"foo\" }]", new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // PATCH hidden resource, must be bad request
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         response = rh.executePatchRequest("/_opendistro/_security/api/actiongroups", "[{ \"op\": \"add\", \"path\": \"/INTERNAL/a\", \"value\": [ \"foo\", \"bar\" ] }]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // PATCH delete read only resource, must be forbidden
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         response = rh.executePatchRequest("/_opendistro/_security/api/actiongroups", "[{ \"op\": \"remove\", \"path\": \"/GET\" }]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         // PATCH delete hidden resource, must be bad request
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         response = rh.executePatchRequest("/_opendistro/_security/api/actiongroups", "[{ \"op\": \"remove\", \"path\": \"/INTERNAL\" }]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
 
         // PATCH value of hidden flag, must fail with validation error
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         response = rh.executePatchRequest("/_opendistro/_security/api/actiongroups", "[{ \"op\": \"add\", \"path\": \"/CRUD/hidden\", \"value\": true }]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
         Assert.assertTrue(response.getBody().matches(".*\"invalid_keys\"\\s*:\\s*\\{\\s*\"keys\"\\s*:\\s*\"hidden\"\\s*\\}.*"));
 
         // add new resource with hidden flag, must fail with validation error
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         response = rh.executePatchRequest("/_opendistro/_security/api/actiongroups", "[{ \"op\": \"add\", \"path\": \"/NEWNEWNEW\", \"value\": {\"permissions\": [\"indices:data/write*\"], \"hidden\":true }}]", new Header[0]);
+
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
         Assert.assertTrue(response.getBody().matches(".*\"invalid_keys\"\\s*:\\s*\\{\\s*\"keys\"\\s*:\\s*\"hidden\"\\s*\\}.*"));
 
         // add new valid resources
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         response = rh.executePatchRequest("/_opendistro/_security/api/actiongroups", "[{ \"op\": \"add\", \"path\": \"/BULKNEW1\", \"value\": {\"permissions\": [\"indices:data/*\", \"cluster:monitor/*\"] } }," + "{ \"op\": \"add\", \"path\": \"/BULKNEW2\", \"value\": {\"permissions\": [\"READ\"] } }]", new Header[0]);
+
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         response = rh.executeGetRequest("/_opendistro/_security/api/actiongroups/BULKNEW1", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
@@ -291,4 +298,36 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(1, permissions.size());
         Assert.assertTrue(permissions.contains("READ"));
 	}
+
+    @Test
+    public void testActionGroupsApiForNonSuperAdmin() throws Exception {
+
+        setupWithRestRoles();
+
+        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.sendAdminCertificate = false;
+        rh.sendHTTPClientCredentials = true;
+
+        HttpResponse response;
+
+        response = rh.executeGetRequest("/_opendistro/_security/api/actiongroups" , new Header[0]);
+
+        // Delete read only actiongroups
+        response = rh.executeDeleteRequest("/_opendistro/_security/api/actiongroups/GET" , new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+
+        // Put read only actiongroups
+        response = rh.executePutRequest("/_opendistro/_security/api/actiongroups/GET", FileHelper.loadFile("restapi/actiongroup_crud.json"), new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+
+        // Patch single read only actiongroups
+        response = rh.executePatchRequest("/_opendistro/_security/api/actiongroups/GET", "[{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"foo\" }]", new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+
+        // Patch multiple read only actiongroups
+        response = rh.executePatchRequest("/_opendistro/_security/api/actiongroups", "[{ \"op\": \"replace\", \"path\": \"/GET/permissions\", \"value\": [\"foobar\"] }]", new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+
+    }
+
 }
