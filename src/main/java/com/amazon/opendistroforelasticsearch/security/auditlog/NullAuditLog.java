@@ -45,8 +45,6 @@ import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.transport.TransportRequest;
 
-import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
-
 public class NullAuditLog implements AuditLog {
 
     @Override
@@ -115,12 +113,12 @@ public class NullAuditLog implements AuditLog {
     }
 
     @Override
-    public void logDocumentRead(String index, String id, ShardId shardId, Map<String, String> fieldNameValues, ComplianceConfig complianceConfig) {
+    public void logDocumentRead(String index, String id, ShardId shardId, Map<String, String> fieldNameValues) {
         //noop, intentionally left empty
     }
 
     @Override
-    public void logDocumentWritten(ShardId shardId, GetResult originalIndex, Index currentIndex, IndexResult result, ComplianceConfig complianceConfig) {
+    public void logDocumentWritten(ShardId shardId, GetResult originalIndex, Index currentIndex, IndexResult result) {
         //noop, intentionally left empty
     }
 
@@ -135,8 +133,13 @@ public class NullAuditLog implements AuditLog {
     }
     
     @Override
-    public void setComplianceConfig(ComplianceConfig complianceConfig) {
+    public void setAuditConfig(AuditConfig auditConfig) {
     	//noop, intentionally left empty
     }
-    
+
+    @Override
+    public AuditConfig getAuditConfig() {
+        return null;
+    }
+
 }

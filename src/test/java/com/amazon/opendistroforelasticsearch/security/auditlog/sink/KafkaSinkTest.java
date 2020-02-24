@@ -27,16 +27,12 @@ import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.springframework.kafka.test.rule.EmbeddedKafkaRule;
-import org.springframework.kafka.test.rule.KafkaEmbedded;
 
 import scala.util.Random;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AbstractAuditlogiUnitTest;
 import com.amazon.opendistroforelasticsearch.security.auditlog.helper.MockAuditMessageFactory;
-import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage.Category;
-import com.amazon.opendistroforelasticsearch.security.auditlog.sink.AuditLogSink;
-import com.amazon.opendistroforelasticsearch.security.auditlog.sink.KafkaSink;
-import com.amazon.opendistroforelasticsearch.security.auditlog.sink.SinkProvider;
+import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
 import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
 
 public class KafkaSinkTest extends AbstractAuditlogiUnitTest {
@@ -57,7 +53,7 @@ public class KafkaSinkTest extends AbstractAuditlogiUnitTest {
 	        AuditLogSink sink = provider.getDefaultSink();
 	        try {
 	            Assert.assertEquals(KafkaSink.class, sink.getClass());
-    	        boolean success = sink.doStore(MockAuditMessageFactory.validAuditMessage(Category.MISSING_PRIVILEGES));
+    	        boolean success = sink.doStore(MockAuditMessageFactory.validAuditMessage(AuditCategory.MISSING_PRIVILEGES));
     	        Assert.assertTrue(success);
     	        ConsumerRecords<Long, String> records = consumer.poll(Duration.ofSeconds(10));
     	        Assert.assertEquals(1, records.count());

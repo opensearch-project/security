@@ -39,9 +39,7 @@ import com.amazon.opendistroforelasticsearch.security.auditlog.helper.LoggingSin
 import com.amazon.opendistroforelasticsearch.security.auditlog.helper.MockAuditMessageFactory;
 import com.amazon.opendistroforelasticsearch.security.auditlog.helper.TestHttpHandler;
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage;
-import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage.Category;
-import com.amazon.opendistroforelasticsearch.security.auditlog.sink.AuditLogSink;
-import com.amazon.opendistroforelasticsearch.security.auditlog.sink.WebhookSink;
+import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
 import com.amazon.opendistroforelasticsearch.security.auditlog.sink.WebhookSink.WebhookFormat;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
@@ -132,7 +130,7 @@ public class WebhookAuditLogTest {
 		Assert.assertEquals(WebhookFormat.TEXT, auditlog.webhookFormat);
 		Assert.assertEquals(ContentType.TEXT_PLAIN, auditlog.webhookFormat.getContentType());
 		Assert.assertTrue(auditlog.payload, !auditlog.payload.startsWith("{\"text\":"));
-		Assert.assertTrue(auditlog.payload, auditlog.payload.contains(AuditMessage.UTC_TIMESTAMP));
+		Assert.assertTrue(auditlog.payload, auditlog.payload.contains(AuditMessage.Builder.UTC_TIMESTAMP));
 		Assert.assertTrue(auditlog.payload, auditlog.payload.contains("audit_request_remote_address"));
 
 		// JSON
@@ -149,7 +147,7 @@ public class WebhookAuditLogTest {
 		Assert.assertEquals(WebhookFormat.JSON, auditlog.webhookFormat);
 		Assert.assertEquals(ContentType.APPLICATION_JSON, auditlog.webhookFormat.getContentType());
 		Assert.assertTrue(auditlog.payload, !auditlog.payload.startsWith("{\"text\":"));
-		Assert.assertTrue(auditlog.payload, auditlog.payload.contains(AuditMessage.UTC_TIMESTAMP));
+		Assert.assertTrue(auditlog.payload, auditlog.payload.contains(AuditMessage.Builder.UTC_TIMESTAMP));
         Assert.assertTrue(auditlog.payload, auditlog.payload.contains("audit_request_remote_address"));
 
 		// SLACK
@@ -165,7 +163,7 @@ public class WebhookAuditLogTest {
 		Assert.assertEquals(WebhookFormat.SLACK, auditlog.webhookFormat);
 		Assert.assertEquals(ContentType.APPLICATION_JSON, auditlog.webhookFormat.getContentType());
 		Assert.assertTrue(auditlog.payload, auditlog.payload.startsWith("{\"text\":"));
-		Assert.assertTrue(auditlog.payload, auditlog.payload.contains(AuditMessage.UTC_TIMESTAMP));
+		Assert.assertTrue(auditlog.payload, auditlog.payload.contains(AuditMessage.Builder.UTC_TIMESTAMP));
         Assert.assertTrue(auditlog.payload, auditlog.payload.contains("audit_request_remote_address"));
 	}
 
@@ -224,14 +222,14 @@ public class WebhookAuditLogTest {
 		TestHttpHandler handler = new TestHttpHandler();
 
 		server = ServerBootstrap.bootstrap()
-				.setListenerPort(8080)
+				.setListenerPort(8082)
 				.setServerInfo("Test/1.1")
 				.registerHandler("*", handler)
 				.create();
 
 		server.start();
 
-		String url = "http://localhost:8080/endpoint";
+		String url = "http://localhost:8082/endpoint";
 
 		// SLACK
 		Settings settings = Settings.builder()
@@ -718,15 +716,14 @@ public class WebhookAuditLogTest {
 
 	private void assertStringContainsAllKeysAndValues(String in) {
 	    System.out.println(in);
-		Assert.assertTrue(in, in.contains(AuditMessage.FORMAT_VERSION));
-		Assert.assertTrue(in, in.contains(AuditMessage.CATEGORY));
-		Assert.assertTrue(in, in.contains(AuditMessage.FORMAT_VERSION));
-		Assert.assertTrue(in, in.contains(AuditMessage.REMOTE_ADDRESS));
-		Assert.assertTrue(in, in.contains(AuditMessage.ORIGIN));
-		Assert.assertTrue(in, in.contains(AuditMessage.REQUEST_LAYER));
-		Assert.assertTrue(in, in.contains(AuditMessage.TRANSPORT_REQUEST_TYPE));
-		Assert.assertTrue(in, in.contains(AuditMessage.UTC_TIMESTAMP));
-		Assert.assertTrue(in, in.contains(Category.FAILED_LOGIN.name()));
+		Assert.assertTrue(in, in.contains(AuditMessage.Builder.FORMAT_VERSION));
+		Assert.assertTrue(in, in.contains(AuditMessage.Builder.CATEGORY));
+		Assert.assertTrue(in, in.contains(AuditMessage.Builder.REMOTE_ADDRESS));
+		Assert.assertTrue(in, in.contains(AuditMessage.Builder.ORIGIN));
+		Assert.assertTrue(in, in.contains(AuditMessage.Builder.REQUEST_LAYER));
+		Assert.assertTrue(in, in.contains(AuditMessage.Builder.TRANSPORT_REQUEST_TYPE));
+		Assert.assertTrue(in, in.contains(AuditMessage.Builder.UTC_TIMESTAMP));
+		Assert.assertTrue(in, in.contains(AuditCategory.FAILED_LOGIN.name()));
 		Assert.assertTrue(in, in.contains("FAILED_LOGIN"));
 		Assert.assertTrue(in, in.contains("John Doe"));
 		Assert.assertTrue(in, in.contains("8.8.8.8"));

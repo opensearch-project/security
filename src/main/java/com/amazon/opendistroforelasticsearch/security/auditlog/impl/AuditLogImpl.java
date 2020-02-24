@@ -15,17 +15,31 @@
 
 package com.amazon.opendistroforelasticsearch.security.auditlog.impl;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
-import java.util.Map;
-
+import com.amazon.opendistroforelasticsearch.security.auditlog.AuditConfig;
+import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
+import com.amazon.opendistroforelasticsearch.security.auditlog.filter.AuditFilter;
+import com.amazon.opendistroforelasticsearch.security.auditlog.routing.AuditMessageRouter;
+import com.amazon.opendistroforelasticsearch.security.dlic.rest.support.Utils;
+import com.amazon.opendistroforelasticsearch.security.support.Base64Helper;
+import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
+import com.amazon.opendistroforelasticsearch.security.user.User;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.SpecialPermission;
+import org.elasticsearch.action.bulk.BulkRequest;
+import org.elasticsearch.action.bulk.BulkShardRequest;
+import org.elasticsearch.action.delete.DeleteRequest;
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.engine.Engine.Delete;
 import org.elasticsearch.index.engine.Engine.DeleteResult;
@@ -38,179 +52,473 @@ import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportRequest;
 
-import com.amazon.opendistroforelasticsearch.security.auditlog.routing.AuditMessageRouter;
-import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-public final class AuditLogImpl extends AbstractAuditLog {
+public final class AuditLogImpl implements AuditLog {
 
-	private final AuditMessageRouter messageRouter;
-	private final boolean enabled;
+    private final Logger log = LogManager.getLogger(this.getClass());
+    private final ThreadPool threadPool;
+    private final ClusterService clusterService;
+    private final Settings settings;
+    private final RequestResolver requestResolver;
+    private final ComplianceResolver complianceResolver;
+    private final AuditMessageRouter messageRouter;
+    private final String opendistrosecurityIndex;
 
-	public AuditLogImpl(final Settings settings, final Path configPath, Client clientProvider, ThreadPool threadPool,
-						final IndexNameExpressionResolver resolver, final ClusterService clusterService) {
-		super(settings, threadPool, resolver, clusterService);
+    private AuditConfig auditConfig;
 
-		this.messageRouter = new AuditMessageRouter(settings, clientProvider, threadPool, configPath);
-		this.enabled = messageRouter.isEnabled();
+    private static final List<String> writeClasses = Arrays.asList(
+            IndexRequest.class.getSimpleName(),
+            UpdateRequest.class.getSimpleName(),
+            BulkRequest.class.getSimpleName(),
+            BulkShardRequest.class.getSimpleName(),
+            DeleteRequest.class.getSimpleName()
+    );
 
-		log.info("Message routing enabled: {}", this.enabled);
+    public AuditLogImpl(final Settings settings,
+                        final Path configPath,
+                        final Client clientProvider,
+                        final ThreadPool threadPool,
+                        final IndexNameExpressionResolver indexNameExpressionResolver,
+                        final ClusterService clusterService) {
+        this.threadPool = threadPool;
+        this.settings = settings;
+        this.clusterService = clusterService;
+        this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
+        this.requestResolver = new RequestResolver(clusterService, indexNameExpressionResolver, opendistrosecurityIndex, threadPool);
+        this.complianceResolver = new ComplianceResolver(clusterService, indexNameExpressionResolver, opendistrosecurityIndex);
+        this.messageRouter = new AuditMessageRouter(settings, clientProvider, threadPool, configPath);
 
-		final SecurityManager sm = System.getSecurityManager();
+        final SecurityManager sm = System.getSecurityManager();
 
-		if (sm != null) {
-			log.debug("Security Manager present");
-			sm.checkPermission(new SpecialPermission());
-		}
+        if (sm != null) {
+            log.debug("Security Manager present");
+            sm.checkPermission(new SpecialPermission());
+        }
 
-		AccessController.doPrivileged(new PrivilegedAction<Object>() {
-			@Override
-			public Object run() {
-				Runtime.getRuntime().addShutdownHook(new Thread() {
+        AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                try {
+                    close();
+                } catch (final IOException e) {
+                    log.warn("Exception while shutting down message router", e);
+                }
+            }));
+            log.debug("Shutdown Hook registered");
+            return null;
+        });
+    }
 
-					@Override
-					public void run() {
-						try {
-							close();
-						} catch (final IOException e) {
-							log.warn("Exception while shutting down message router", e);
-						}
-					}
-				});
-				log.debug("Shutdown Hook registered");
-				return null;
-			}
-		});
 
-	}
+    @Override
+    public void setAuditConfig(final AuditConfig auditConfig) {
+        this.auditConfig = auditConfig;
+        messageRouter.setAuditConfig(auditConfig);
+    }
 
-	@Override
-	public void setComplianceConfig(ComplianceConfig complianceConfig) {
-		messageRouter.setComplianceConfig(complianceConfig);
-	}
+    @Override
+    public AuditConfig getAuditConfig() {
+        return auditConfig;
+    }
 
-	@Override
-	public void close() throws IOException {
-		messageRouter.close();
-	}
+    @Override
+    public void close() throws IOException {
+        messageRouter.close();
+    }
 
-	@Override
-	protected void save(final AuditMessage msg) {
-		if (enabled) {
-			messageRouter.route(msg);
-		}
-	}
+    protected void save(final AuditMessage msg) {
+        if (isEnabled()) {
+            messageRouter.route(msg);
+        }
+    }
 
-	@Override
-	public void logFailedLogin(String effectiveUser, boolean securityAdmin, String initiatingUser, TransportRequest request, Task task) {
-		if (enabled) {
-			super.logFailedLogin(effectiveUser, securityAdmin, initiatingUser, request, task);
-		}
-	}
+    public boolean isEnabled() {
+        return auditConfig != null && auditConfig.isEnabled() && messageRouter.isEnabled();
+    }
 
-	@Override
-	public void logFailedLogin(String effectiveUser, boolean securityAdmin, String initiatingUser, RestRequest request) {
-		if (enabled) {
-			super.logFailedLogin(effectiveUser, securityAdmin, initiatingUser, request);
-		}
-	}
+    @Override
+    public void logFailedLogin(final String effectiveUser,
+                               final boolean securityAdmin,
+                               final String initiatingUser,
+                               final TransportRequest request,
+                               final Task task) {
+        if (!isEnabled()) return;
+        if (!AuditFilter.checkTransportFilter(AuditCategory.FAILED_LOGIN, null, effectiveUser, request, auditConfig)) {
+            return;
+        }
 
-	@Override
-	public void logSucceededLogin(String effectiveUser, boolean securityAdmin, String initiatingUser, TransportRequest request, String action, Task task) {
-		if (enabled) {
-			super.logSucceededLogin(effectiveUser, securityAdmin, initiatingUser, request, action, task);
-		}
-	}
+        List<AuditMessage> msgs = requestResolver.resolve(AuditCategory.FAILED_LOGIN, getOrigin(), null, null,
+                effectiveUser, securityAdmin, initiatingUser, getRemoteAddress(), request, task, auditConfig, null);
 
-	@Override
-	public void logSucceededLogin(String effectiveUser, boolean securityAdmin, String initiatingUser, RestRequest request) {
-		if (enabled) {
-			super.logSucceededLogin(effectiveUser, securityAdmin, initiatingUser, request);
-		}
-	}
+        msgs.forEach(this::save);
+    }
 
-	@Override
-	public void logMissingPrivileges(String privilege, String effectiveUser, RestRequest request) {
-		if (enabled) {
-			super.logMissingPrivileges(privilege, effectiveUser, request);
-		}
-	}
+    @Override
+    public void logFailedLogin(final String effectiveUser,
+                               final boolean securityAdmin,
+                               final String initiatingUser,
+                               final RestRequest request) {
+        if (!isEnabled()) return;
+        if (!AuditFilter.checkRestFilter(AuditCategory.FAILED_LOGIN, effectiveUser, request, auditConfig)) {
+            return;
+        }
 
-	@Override
-	public void logMissingPrivileges(String privilege, TransportRequest request, Task task) {
-		if (enabled) {
-			super.logMissingPrivileges(privilege, request, task);
-		}
-	}
+        AuditMessage msg = new AuditMessage.Builder(AuditCategory.FAILED_LOGIN)
+                .addClusterServiceInfo(clusterService)
+                .addOrigin(getOrigin())
+                .addLayer(Origin.REST)
+                .addRemoteAddress(getRemoteAddress())
+                .addRequestInfo(request, auditConfig.shouldExcludeSensitiveHeaders())
+                .addRequestBody(request, auditConfig.shouldLogRequestBody())
+                .addInitiatingUser(initiatingUser)
+                .addEffectiveUser(effectiveUser)
+                .addIsAdminDn(securityAdmin)
+                .build();
 
-	@Override
-	public void logGrantedPrivileges(String privilege, TransportRequest request, Task task) {
-		if (enabled) {
-			super.logGrantedPrivileges(privilege, request, task);
-		}
-	}
+        save(msg);
+    }
 
-	@Override
-	public void logBadHeaders(TransportRequest request, String action, Task task) {
-		if (enabled) {
-			super.logBadHeaders(request, action, task);
-		}
-	}
+    @Override
+    public void logSucceededLogin(final String effectiveUser,
+                                  final boolean securityAdmin,
+                                  final String initiatingUser,
+                                  final TransportRequest request,
+                                  final String action,
+                                  final Task task) {
+        if (!isEnabled()) return;
+        if (!AuditFilter.checkTransportFilter(AuditCategory.AUTHENTICATED, action, effectiveUser, request, auditConfig)) {
+            return;
+        }
 
-	@Override
-	public void logBadHeaders(RestRequest request) {
-		if (enabled) {
-			super.logBadHeaders(request);
-		}
-	}
+        List<AuditMessage> msgs = requestResolver.resolve(AuditCategory.AUTHENTICATED, getOrigin(), action, null,
+                effectiveUser, securityAdmin, initiatingUser, getRemoteAddress(), request, task, auditConfig, null);
 
-	@Override
-	public void logSecurityIndexAttempt (TransportRequest request, String action, Task task) {
-		if (enabled) {
-			super.logSecurityIndexAttempt(request, action, task);
-		}
-	}
+        msgs.forEach(this::save);
+    }
 
-	@Override
-	public void logSSLException(TransportRequest request, Throwable t, String action, Task task) {
-		if (enabled) {
-			super.logSSLException(request, t, action, task);
-		}
-	}
+    @Override
+    public void logSucceededLogin(String effectiveUser, boolean securityAdmin, String initiatingUser, RestRequest request) {
+        if (!isEnabled()) return;
+        if (!AuditFilter.checkRestFilter(AuditCategory.AUTHENTICATED, effectiveUser, request, auditConfig)) {
+            return;
+        }
 
-	@Override
-	public void logSSLException(RestRequest request, Throwable t) {
-		if (enabled) {
-			super.logSSLException(request, t);
-		}
-	}
+        AuditMessage msg = new AuditMessage.Builder(AuditCategory.AUTHENTICATED)
+                .addClusterServiceInfo(clusterService)
+                .addOrigin(getOrigin())
+                .addLayer(Origin.REST)
+                .addRemoteAddress(getRemoteAddress())
+                .addRequestInfo(request, auditConfig.shouldExcludeSensitiveHeaders())
+                .addRequestBody(request, auditConfig.shouldLogRequestBody())
+                .addInitiatingUser(initiatingUser)
+                .addEffectiveUser(effectiveUser)
+                .addIsAdminDn(securityAdmin)
+                .build();
 
-	@Override
-	public void logDocumentRead(String index, String id, ShardId shardId, Map<String, String> fieldNameValues, ComplianceConfig complianceConfig) {
-		if (enabled) {
-			super.logDocumentRead(index, id, shardId, fieldNameValues, complianceConfig);
-		}
-	}
+        save(msg);
+    }
 
-	@Override
-	public void logDocumentWritten(ShardId shardId, GetResult originalResult, Index currentIndex, IndexResult result,
-								   ComplianceConfig complianceConfig) {
-		if (enabled) {
-			super.logDocumentWritten(shardId, originalResult, currentIndex, result, complianceConfig);
-		}
-	}
+    @Override
+    public void logMissingPrivileges(final String privilege,
+                                     final String effectiveUser,
+                                     final RestRequest request) {
+        if (!isEnabled()) return;
+        if (!AuditFilter.checkRestFilter(AuditCategory.MISSING_PRIVILEGES, effectiveUser, request, auditConfig)) {
+            return;
+        }
 
-	@Override
-	public void logDocumentDeleted(ShardId shardId, Delete delete, DeleteResult result) {
-		if (enabled) {
-			super.logDocumentDeleted(shardId, delete, result);
-		}
-	}
+        AuditMessage msg = new AuditMessage.Builder(AuditCategory.MISSING_PRIVILEGES)
+                .addClusterServiceInfo(clusterService)
+                .addOrigin(getOrigin())
+                .addLayer(Origin.REST)
+                .addRemoteAddress(getRemoteAddress())
+                .addRequestInfo(request, auditConfig.shouldExcludeSensitiveHeaders())
+                .addRequestBody(request, auditConfig.shouldLogRequestBody())
+                .addEffectiveUser(effectiveUser)
+                .build();
 
-	@Override
-	public void logExternalConfig(Settings settings, Environment environment) {
-		if (enabled) {
-			super.logExternalConfig(settings, environment);
-		}
-	}
+        save(msg);
+    }
 
+    @Override
+    public void logMissingPrivileges(final String privilege,
+                                     final TransportRequest request,
+                                     final Task task) {
+        if (!isEnabled()) return;
+        if (!AuditFilter.checkTransportFilter(AuditCategory.MISSING_PRIVILEGES, privilege, getUser(), request, auditConfig)) {
+            return;
+        }
+
+        List<AuditMessage> msgs = requestResolver.resolve(AuditCategory.MISSING_PRIVILEGES, getOrigin(), null, privilege,
+                getUser(), null, null, getRemoteAddress(), request, task, auditConfig, null);
+
+        msgs.forEach(this::save);
+    }
+
+    @Override
+    public void logGrantedPrivileges(final String privilege,
+                                     final TransportRequest request,
+                                     final Task task) {
+        if (!isEnabled()) return;
+        if (!AuditFilter.checkTransportFilter(AuditCategory.GRANTED_PRIVILEGES, privilege, getUser(), request, auditConfig)) {
+            return;
+        }
+
+        List<AuditMessage> msgs = requestResolver.resolve(AuditCategory.GRANTED_PRIVILEGES, getOrigin(), null,
+                privilege, getUser(), null, null, getRemoteAddress(), request, task, auditConfig, null);
+
+        msgs.forEach(this::save);
+    }
+
+    @Override
+    public void logBadHeaders(final TransportRequest request,
+                              final String action,
+                              final Task task) {
+        if (!isEnabled()) return;
+        if (!AuditFilter.checkTransportFilter(AuditCategory.BAD_HEADERS, action, getUser(), request, auditConfig)) {
+            return;
+        }
+
+        List<AuditMessage> msgs = requestResolver.resolve(AuditCategory.BAD_HEADERS, getOrigin(), action, null,
+                getUser(), null, null, getRemoteAddress(), request, task, auditConfig, null);
+
+        msgs.forEach(this::save);
+    }
+
+    @Override
+    public void logBadHeaders(final RestRequest request) {
+        if (!isEnabled()) return;
+        if (!AuditFilter.checkRestFilter(AuditCategory.BAD_HEADERS, getUser(), request, auditConfig)) {
+            return;
+        }
+
+        AuditMessage msg = new AuditMessage.Builder(AuditCategory.BAD_HEADERS)
+                .addClusterServiceInfo(clusterService)
+                .addOrigin(getOrigin())
+                .addLayer(Origin.REST)
+                .addRemoteAddress(getRemoteAddress())
+                .addRequestInfo(request, auditConfig.shouldExcludeSensitiveHeaders())
+                .addRequestBody(request, auditConfig.shouldLogRequestBody())
+                .addEffectiveUser(getUser())
+                .build();
+        save(msg);
+    }
+
+    @Override
+    public void logSecurityIndexAttempt(final TransportRequest request,
+                                        final String action,
+                                        final Task task) {
+        if (!isEnabled()) return;
+        if (!AuditFilter.checkTransportFilter(AuditCategory.OPENDISTRO_SECURITY_INDEX_ATTEMPT, action, getUser(), request, auditConfig)) {
+            return;
+        }
+
+        List<AuditMessage> msgs = requestResolver.resolve(AuditCategory.OPENDISTRO_SECURITY_INDEX_ATTEMPT, getOrigin(),
+                action, null, getUser(), false, null, getRemoteAddress(), request,
+                task, auditConfig, null);
+
+        msgs.forEach(this::save);
+    }
+
+    @Override
+    public void logSSLException(final TransportRequest request,
+                                final Throwable t,
+                                final String action,
+                                final Task task) {
+        if (!isEnabled()) return;
+        if (!AuditFilter.checkTransportFilter(AuditCategory.SSL_EXCEPTION, action, getUser(), request, auditConfig)) {
+            return;
+        }
+
+        List<AuditMessage> msgs = requestResolver.resolve(AuditCategory.SSL_EXCEPTION, Origin.TRANSPORT, action,
+                null, getUser(), false, null, getRemoteAddress(), request, task, auditConfig, t);
+
+        msgs.forEach(this::save);
+    }
+
+    @Override
+    public void logSSLException(final RestRequest request,
+                                final Throwable t) {
+        if (!isEnabled()) return;
+        if (!AuditFilter.checkRestFilter(AuditCategory.SSL_EXCEPTION, getUser(), request, auditConfig)) {
+            return;
+        }
+
+        AuditMessage msg = new AuditMessage.Builder(AuditCategory.SSL_EXCEPTION)
+                .addClusterServiceInfo(clusterService)
+                .addOrigin(Origin.REST)
+                .addLayer(Origin.REST)
+                .addRemoteAddress(getRemoteAddress())
+                .addRequestInfo(request, auditConfig.shouldExcludeSensitiveHeaders())
+                .addRequestBody(request, auditConfig.shouldLogRequestBody())
+                .addEffectiveUser(getUser())
+                .addException(t)
+                .build();
+        save(msg);
+    }
+
+    @Override
+    public void logDocumentRead(final String index,
+                                final String id,
+                                final ShardId shardId,
+                                final Map<String, String> fieldNameValues) {
+        if (!isEnabled()) return;
+
+        if (auditConfig == null || !auditConfig.isReadHistoryEnabledForIndex(index)) {
+            return;
+        }
+
+        final String initiatingRequestClass = threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER);
+        if (initiatingRequestClass != null && writeClasses.contains(initiatingRequestClass)) {
+            return;
+        }
+
+        AuditCategory category = opendistrosecurityIndex.equals(index) ? AuditCategory.COMPLIANCE_INTERNAL_CONFIG_READ : AuditCategory.COMPLIANCE_DOC_READ;
+        String effectiveUser = getUser();
+        if (!AuditFilter.checkComplianceFilter(category, effectiveUser, getOrigin(), auditConfig)) {
+            return;
+        }
+
+        if (fieldNameValues != null && !fieldNameValues.isEmpty()) {
+            AuditMessage msg = complianceResolver.resolve(getOrigin(), getRemoteAddress(), index, id, shardId, fieldNameValues, effectiveUser, auditConfig);
+            save(msg);
+        }
+    }
+
+    @Override
+    public void logDocumentWritten(final ShardId shardId,
+                                   final GetResult originalResult,
+                                   final Index currentIndex,
+                                   final IndexResult result) {
+        if (!isEnabled()) return;
+
+        String effectiveUser = getUser();
+        AuditCategory category = opendistrosecurityIndex.equals(shardId.getIndexName()) ? AuditCategory.COMPLIANCE_INTERNAL_CONFIG_WRITE : AuditCategory.COMPLIANCE_DOC_WRITE;
+        if (!AuditFilter.checkComplianceFilter(category, effectiveUser, getOrigin(), auditConfig)) {
+            return;
+        }
+
+        if (auditConfig == null || !auditConfig.isWriteHistoryEnabledForIndex(shardId.getIndexName())) {
+            return;
+        }
+
+        AuditMessage msg = complianceResolver.resolve(getOrigin(), getRemoteAddress(), shardId, originalResult,
+                currentIndex, result, effectiveUser, auditConfig);
+
+        save(msg);
+    }
+
+    @Override
+    public void logDocumentDeleted(final ShardId shardId,
+                                   final Delete delete,
+                                   final DeleteResult result) {
+        if (!isEnabled()) return;
+
+        String effectiveUser = getUser();
+        if (!AuditFilter.checkComplianceFilter(AuditCategory.COMPLIANCE_DOC_WRITE, effectiveUser, getOrigin(), auditConfig)) {
+            return;
+        }
+
+        AuditMessage msg = new AuditMessage.Builder(AuditCategory.COMPLIANCE_DOC_WRITE)
+                .addClusterServiceInfo(clusterService)
+                .addOrigin(getOrigin())
+                .addRemoteAddress(getRemoteAddress())
+                .addEffectiveUser(effectiveUser)
+                .addIndices(new String[]{shardId.getIndexName()})
+                .addResolvedIndices(new String[]{shardId.getIndexName()})
+                .addId(delete.id())
+                .addShardId(shardId)
+                .addComplianceDocVersion(result.getVersion())
+                .addComplianceOperation(Operation.DELETE)
+                .build();
+        save(msg);
+    }
+
+    @Override
+    public void logExternalConfig(final Settings settings, final Environment environment) {
+        if (!isEnabled()) return;
+        if (!AuditFilter.checkComplianceFilter(AuditCategory.COMPLIANCE_EXTERNAL_CONFIG, null, getOrigin(), auditConfig)) {
+            return;
+        }
+
+        final Map<String, Object> configAsMap = Utils.convertJsonToxToStructuredMap(settings);
+
+        final SecurityManager sm = System.getSecurityManager();
+        if (sm != null) {
+            sm.checkPermission(new SpecialPermission());
+        }
+
+        final Map<String, String> envAsMap = AccessController.doPrivileged((PrivilegedAction<Map<String, String>>) () -> System.getenv());
+        final Map propsAsMap = AccessController.doPrivileged((PrivilegedAction<Map>) () -> System.getProperties());
+
+        final String sha256 = DigestUtils.sha256Hex(configAsMap.toString() + envAsMap.toString() + propsAsMap.toString());
+
+        AuditMessage.Builder auditMessageBuilder = new AuditMessage.Builder(AuditCategory.COMPLIANCE_EXTERNAL_CONFIG)
+                .addClusterServiceInfo(clusterService);
+
+        try (XContentBuilder builder = XContentBuilder.builder(XContentType.JSON.xContent())) {
+            builder.startObject()
+                    .startObject("external_configuration")
+                    .field("elasticsearch_yml", configAsMap)
+                    .field("os_environment", envAsMap)
+                    .field("java_properties", propsAsMap)
+                    .field("sha256_checksum", sha256)
+                    .endObject()
+                    .endObject()
+                    .close();
+            auditMessageBuilder.addUnescapedJsonToRequestBody(Strings.toString(builder));
+        } catch (Exception e) {
+            log.error("Unable to build message", e);
+        }
+
+        Map<String, Path> paths = new HashMap<>();
+        for (String key : settings.keySet()) {
+            if (key.startsWith("opendistro_security") &&
+                    (key.contains("filepath") || key.contains("file_path"))) {
+                String value = settings.get(key);
+                if (value != null && !value.isEmpty()) {
+                    Path path = value.startsWith("/") ? Paths.get(value) : environment.configFile().resolve(value);
+                    paths.put(key, path);
+                }
+            }
+        }
+        auditMessageBuilder.addFileInfos(paths);
+
+        save(auditMessageBuilder.build());
+    }
+
+    private Origin getOrigin() {
+        String origin = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN);
+
+        if (origin == null && threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER) != null) {
+            origin = threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER);
+        }
+
+        return origin == null ? null : Origin.valueOf(origin);
+    }
+
+    private TransportAddress getRemoteAddress() {
+        TransportAddress address = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
+        if (address == null && threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER) != null) {
+            address = new TransportAddress((InetSocketAddress) Base64Helper.deserializeObject(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER)));
+        }
+        return address;
+    }
+
+    private String getUser() {
+        User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        if (user == null && threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER) != null) {
+            user = (User) Base64Helper.deserializeObject(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER));
+        }
+        return user == null ? null : user.getName();
+    }
 }
