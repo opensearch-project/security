@@ -81,7 +81,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         rh.keystore = "kirk-keystore.jks";
 
         HttpResponse response = rh.executePutRequest("_opendistro/_security/api/internalusers/compuser?pretty", body);
@@ -117,7 +117,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         rh.keystore = "kirk-keystore.jks";
         System.out.println("----rest");
         HttpResponse response = rh.executeGetRequest("_opendistro/_security/api/rolesmapping/opendistro_security_all_access?pretty");
@@ -209,7 +209,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         rh.keystore = "kirk-keystore.jks";
         System.out.println("req");
         HttpResponse response = rh.executeGetRequest("_opendistro/_security/api/internalusers/admin?pretty");

@@ -24,12 +24,13 @@ import com.amazon.opendistroforelasticsearch.security.dlic.rest.validation.Abstr
 
 public class ActionGroupValidator extends AbstractConfigurationValidator {
 
-	public ActionGroupValidator(final RestRequest request, BytesReference ref, final Settings esSettings, Object... param) {
+	public ActionGroupValidator(final RestRequest request, boolean isSuperAdmin, BytesReference ref, final Settings esSettings, Object... param) {
 		super(request, ref, esSettings, param);
 		this.payloadMandatory = true;
 		allowedKeys.put("allowed_actions", DataType.ARRAY);
 	    allowedKeys.put("description", DataType.STRING);
 	    allowedKeys.put("type", DataType.STRING);
+	    if (isSuperAdmin) allowedKeys.put("reserved" , DataType.BOOLEAN);
 
 		mandatoryKeys.add("allowed_actions");
 	}

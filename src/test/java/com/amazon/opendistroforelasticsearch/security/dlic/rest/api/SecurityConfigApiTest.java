@@ -33,7 +33,7 @@ public class SecurityConfigApiTest extends AbstractRestApiUnitTest {
 		setup();
 
 		rh.keystore = "restapi/kirk-keystore.jks";
-		rh.sendHTTPClientCertificate = true;
+		rh.sendAdminCertificate = true;
 
 		HttpResponse response = rh.executeGetRequest("/_opendistro/_security/api/securityconfig", new Header[0]);
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
@@ -59,7 +59,7 @@ public class SecurityConfigApiTest extends AbstractRestApiUnitTest {
         setup(settings);
 
         rh.keystore = "restapi/kirk-keystore.jks";
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
 
         HttpResponse response = rh.executeGetRequest("/_opendistro/_security/api/securityconfig", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
