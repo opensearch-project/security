@@ -183,8 +183,8 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("\"audit_request_effective_user\" : \"admin\""));
         Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("REST"));
         Assert.assertFalse(TestAuditlogImpl.sb.toString().toLowerCase().contains("authorization"));
-        Assert.assertEquals(TestAuditlogImpl.messages.get(0).getAsMap().get(AuditMessage.TASK_ID),
-        TestAuditlogImpl.messages.get(1).getAsMap().get(AuditMessage.TASK_ID));
+        Assert.assertEquals(TestAuditlogImpl.messages.get(0).getAsMap().get(AuditMessage.Builder.TASK_ID),
+        TestAuditlogImpl.messages.get(1).getAsMap().get(AuditMessage.Builder.TASK_ID));
         Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
     }
 
@@ -283,7 +283,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         Thread.sleep(500);
         Assert.assertTrue(TestAuditlogImpl.sb.toString(),TestAuditlogImpl.sb.toString().contains("FAILED_LOGIN"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString(),TestAuditlogImpl.sb.toString().contains("wronguser"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString(),TestAuditlogImpl.sb.toString().contains(AuditMessage.UTC_TIMESTAMP));
+        Assert.assertTrue(TestAuditlogImpl.sb.toString(),TestAuditlogImpl.sb.toString().contains(AuditMessage.Builder.UTC_TIMESTAMP));
         Assert.assertFalse(TestAuditlogImpl.sb.toString(),TestAuditlogImpl.sb.toString().contains("AUTHENTICATED"));
         Assert.assertEquals(1, TestAuditlogImpl.messages.size());
         Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
@@ -296,7 +296,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("FAILED_LOGIN"));
         Assert.assertFalse(TestAuditlogImpl.sb.toString(),TestAuditlogImpl.sb.toString().contains("Basic dW5rbm93bjp1bmtub3du"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains(AuditMessage.UTC_TIMESTAMP));
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains(AuditMessage.Builder.UTC_TIMESTAMP));
         Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("AUTHENTICATED"));
         Assert.assertEquals(1, TestAuditlogImpl.messages.size());
         Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
@@ -314,7 +314,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("FAILED_LOGIN"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("<NONE>"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("/_search"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains(AuditMessage.UTC_TIMESTAMP));
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains(AuditMessage.Builder.UTC_TIMESTAMP));
         Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("AUTHENTICATED"));
         Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
 
@@ -335,7 +335,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("MISSING_PRIVILEGES"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("OPENDISTRO_SECURITY_INDEX_ATTEMPT"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("admin"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains(AuditMessage.UTC_TIMESTAMP));
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains(AuditMessage.Builder.UTC_TIMESTAMP));
         Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("AUTHENTICATED"));
         Assert.assertEquals(2, TestAuditlogImpl.messages.size());
         Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
@@ -362,7 +362,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("indices:data/read/search"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("worf"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("\"sf\""));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains(AuditMessage.UTC_TIMESTAMP));
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains(AuditMessage.Builder.UTC_TIMESTAMP));
         Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("AUTHENTICATED"));
         Assert.assertEquals(1, TestAuditlogImpl.messages.size());
         Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));

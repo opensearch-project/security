@@ -27,18 +27,18 @@ import org.elasticsearch.common.transport.TransportAddress;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog.Origin;
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage;
-import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage.Category;
+import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
 
 public class MockAuditMessageFactory {
 
-	public static AuditMessage validAuditMessage() {
-		return validAuditMessage(Category.FAILED_LOGIN);
-	}
+    public static AuditMessage validAuditMessage() {
+        return validAuditMessage(AuditCategory.FAILED_LOGIN);
+    }
 
-	public static AuditMessage validAuditMessage(Category category) {
+    public static AuditMessage validAuditMessage(AuditCategory category) {
 
-	    ClusterService cs = mock(ClusterService.class);
-	    DiscoveryNode dn = mock(DiscoveryNode.class);
+        ClusterService cs = mock(ClusterService.class);
+        DiscoveryNode dn = mock(DiscoveryNode.class);
 
         when(dn.getHostAddress()).thenReturn("hostaddress");
         when(dn.getId()).thenReturn("hostaddress");
@@ -46,13 +46,16 @@ public class MockAuditMessageFactory {
         when(cs.localNode()).thenReturn(dn);
         when(cs.getClusterName()).thenReturn(new ClusterName("testcluster"));
 
-		TransportAddress ta = new TransportAddress(new InetSocketAddress("8.8.8.8",80));
+        TransportAddress ta = new TransportAddress(new InetSocketAddress("8.8.8.8", 80));
 
-		AuditMessage msg = new AuditMessage(category, cs, Origin.TRANSPORT, Origin.TRANSPORT);
-		msg.addEffectiveUser("John Doe");
-		msg.addRemoteAddress(ta);
-		msg.addRequestType("IndexRequest");
-		return msg;
-	}
+        return new AuditMessage.Builder(category)
+                .addClusterServiceInfo(cs)
+                .addOrigin(Origin.TRANSPORT)
+                .addLayer(Origin.TRANSPORT)
+                .addEffectiveUser("John Doe")
+				.addRemoteAddress(ta)
+                .addRequestType("IndexRequest")
+				.build();
+    }
 
 }

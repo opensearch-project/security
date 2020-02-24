@@ -29,8 +29,7 @@ import com.amazon.opendistroforelasticsearch.security.auditlog.helper.FailingSin
 import com.amazon.opendistroforelasticsearch.security.auditlog.helper.LoggingSink;
 import com.amazon.opendistroforelasticsearch.security.auditlog.helper.MockAuditMessageFactory;
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage;
-import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage.Category;
-import com.amazon.opendistroforelasticsearch.security.auditlog.routing.AuditMessageRouter;
+import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
 import com.amazon.opendistroforelasticsearch.security.auditlog.sink.AuditLogSink;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
@@ -45,11 +44,11 @@ public class FallbackTest extends AbstractAuditlogiUnitTest {
 
 		AuditMessageRouter router = createMessageRouterComplianceEnabled(settings);
 
-		AuditMessage msg = MockAuditMessageFactory.validAuditMessage(Category.MISSING_PRIVILEGES);
+		AuditMessage msg = MockAuditMessageFactory.validAuditMessage(AuditCategory.MISSING_PRIVILEGES);
 		router.route(msg);
 
 		// endpoint 1 is failing, endoint2 and default work
-		List<AuditLogSink> sinks = router.categorySinks.get(Category.MISSING_PRIVILEGES);
+		List<AuditLogSink> sinks = router.categorySinks.get(AuditCategory.MISSING_PRIVILEGES);
 		Assert.assertEquals(3, sinks.size());
 		// this sink has failed, message must be logged to fallback sink
 		AuditLogSink sink = sinks.get(0);
@@ -75,9 +74,9 @@ public class FallbackTest extends AbstractAuditlogiUnitTest {
 
 		// has only one end point which fails
 		router = createMessageRouterComplianceEnabled(settings);
-		msg = MockAuditMessageFactory.validAuditMessage(Category.COMPLIANCE_DOC_READ);
+		msg = MockAuditMessageFactory.validAuditMessage(AuditCategory.COMPLIANCE_DOC_READ);
 		router.route(msg);
-		sinks = router.categorySinks.get(Category.COMPLIANCE_DOC_READ);
+		sinks = router.categorySinks.get(AuditCategory.COMPLIANCE_DOC_READ);
 		sink = sinks.get(0);
 		Assert.assertEquals("endpoint3", sink.getName());
 		Assert.assertEquals(FailingSink.class, sink.getClass());
@@ -89,9 +88,9 @@ public class FallbackTest extends AbstractAuditlogiUnitTest {
 
 		// has only default which succeeds
 		router = createMessageRouterComplianceEnabled(settings);
-		msg = MockAuditMessageFactory.validAuditMessage(Category.COMPLIANCE_DOC_WRITE);
+		msg = MockAuditMessageFactory.validAuditMessage(AuditCategory.COMPLIANCE_DOC_WRITE);
 		router.route(msg);
-		sinks = router.categorySinks.get(Category.COMPLIANCE_DOC_WRITE);
+		sinks = router.categorySinks.get(AuditCategory.COMPLIANCE_DOC_WRITE);
 		sink = sinks.get(0);
 		Assert.assertEquals("default", sink.getName());
 		Assert.assertEquals(LoggingSink.class, sink.getClass());
@@ -107,9 +106,9 @@ public class FallbackTest extends AbstractAuditlogiUnitTest {
 
 		// test non configured categories, must be logged to default only
 		router = createMessageRouterComplianceEnabled(settings);
-		msg = MockAuditMessageFactory.validAuditMessage(Category.FAILED_LOGIN);
+		msg = MockAuditMessageFactory.validAuditMessage(AuditCategory.FAILED_LOGIN);
 		router.route(msg);
-		sinks = router.categorySinks.get(Category.FAILED_LOGIN);
+		sinks = router.categorySinks.get(AuditCategory.FAILED_LOGIN);
 		sink = sinks.get(0);
 		Assert.assertEquals("default", sink.getName());
 		Assert.assertEquals(LoggingSink.class, sink.getClass());
@@ -117,11 +116,11 @@ public class FallbackTest extends AbstractAuditlogiUnitTest {
 		Assert.assertEquals(1, loggingSkin.messages.size());
 		Assert.assertEquals(msg, loggingSkin.messages.get(0));
 		// all others must be empty
-		assertLoggingSinksEmpty(router, Category.FAILED_LOGIN);
+		assertLoggingSinksEmpty(router, AuditCategory.FAILED_LOGIN);
 
 	}
 
-	private void assertLoggingSinksEmpty(AuditMessageRouter router, Category exclude) {
+	private void assertLoggingSinksEmpty(AuditMessageRouter router, AuditCategory exclude) {
 		// get all sinks
 		List<AuditLogSink> allSinks = router.categorySinks.values().stream().flatMap(Collection::stream).collect(Collectors.toList());
 		allSinks = allSinks.stream().filter(sink -> (sink instanceof LoggingSink)).collect(Collectors.toList());

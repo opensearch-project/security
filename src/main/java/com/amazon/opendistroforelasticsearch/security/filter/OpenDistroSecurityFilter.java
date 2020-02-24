@@ -33,6 +33,7 @@ package com.amazon.opendistroforelasticsearch.security.filter;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import com.amazon.opendistroforelasticsearch.security.resolver.IndexResolverReplacer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchSecurityException;
@@ -92,10 +93,11 @@ public class OpenDistroSecurityFilter implements ActionFilter {
     private final ClusterService cs;
     private final ComplianceConfig complianceConfig;
     private final CompatConfig compatConfig;
+    private final IndexResolverReplacer indexResolverReplacer;
 
     public OpenDistroSecurityFilter(final PrivilegesEvaluator evalp, final AdminDNs adminDns,
-            DlsFlsRequestValve dlsFlsValve, AuditLog auditLog, ThreadPool threadPool, ClusterService cs,
-            ComplianceConfig complianceConfig, final CompatConfig compatConfig) {
+                                    DlsFlsRequestValve dlsFlsValve, AuditLog auditLog, ThreadPool threadPool, ClusterService cs,
+                                    ComplianceConfig complianceConfig, final CompatConfig compatConfig, final IndexResolverReplacer indexResolverReplacer) {
         this.evalp = evalp;
         this.adminDns = adminDns;
         this.dlsFlsValve = dlsFlsValve;
@@ -104,6 +106,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
         this.cs = cs;
         this.complianceConfig = complianceConfig;
         this.compatConfig = compatConfig;
+        this.indexResolverReplacer = indexResolverReplacer;
     }
 
     @Override
@@ -311,7 +314,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
                 || request instanceof IndicesAliasesRequest //TODO only remove index
                 ) {
             
-            if(complianceConfig != null && complianceConfig.isIndexImmutable(request)) {
+            if(complianceConfig != null && complianceConfig.isIndexImmutable(request, indexResolverReplacer)) {
                 //auditLog.log
                 
                 //check index for type = remove index
@@ -330,7 +333,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
         }
         
         if(request instanceof IndexRequest) {
-            if(complianceConfig != null && complianceConfig.isIndexImmutable(request)) {
+            if(complianceConfig != null && complianceConfig.isIndexImmutable(request, indexResolverReplacer)) {
                 ((IndexRequest) request).opType(OpType.CREATE);
             }
         }

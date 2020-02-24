@@ -18,6 +18,7 @@ package com.amazon.opendistroforelasticsearch.security.auditlog.impl;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.cluster.ClusterName;
@@ -54,7 +55,7 @@ public class AuditlogTest {
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .put("opendistro_security.audit.threadpool.size", 0)
                 .build();
-        AbstractAuditLog al = new AuditLogImpl(settings, null, null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
+        AuditLog al = new AuditLogImpl(settings, null, null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
         TestAuditlogImpl.clear();
         al.logGrantedPrivileges("indices:data/read/search", new ClusterHealthRequest(), null);
         Assert.assertEquals(1, TestAuditlogImpl.messages.size());
@@ -72,7 +73,7 @@ public class AuditlogTest {
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .put("opendistro_security.audit.threadpool.size", 0)
                 .build();
-        AbstractAuditLog al = new AuditLogImpl(settings, null,  null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
+        AuditLog al = new AuditLogImpl(settings, null,  null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
         TestAuditlogImpl.clear();
         al.logGrantedPrivileges("indices:data/read/search", sr, null);
         Assert.assertEquals(1, TestAuditlogImpl.messages.size());
@@ -88,7 +89,7 @@ public class AuditlogTest {
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
                 .put("opendistro_security.audit.threadpool.size", 0)
                 .build();
-        AbstractAuditLog al = new AuditLogImpl(settings, null,  null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
+        AuditLog al = new AuditLogImpl(settings, null,  null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
         TestAuditlogImpl.clear();
         al.logSSLException(null, new Exception("test rest"));
         al.logSSLException(null, new Exception("test rest"), null, null);
@@ -110,7 +111,7 @@ public class AuditlogTest {
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RETRY_DELAY_MS, 500)
                 .put("opendistro_security.audit.threadpool.size", 0)
                 .build();
-        AbstractAuditLog al = new AuditLogImpl(settings, null,  null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
+        AuditLog al = new AuditLogImpl(settings, null,  null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
         al.logSSLException(null, new Exception("test retry"));
         Assert.assertNotNull(RetrySink.getMsg());
         Assert.assertTrue(RetrySink.getMsg().toJson().contains("test retry"));
@@ -130,7 +131,7 @@ public class AuditlogTest {
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RETRY_DELAY_MS, 500)
                 .put("opendistro_security.audit.threadpool.size", 0)
                 .build();
-        AbstractAuditLog al = new AuditLogImpl(settings, null,  null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
+        AuditLog al = new AuditLogImpl(settings, null,  null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
         al.logSSLException(null, new Exception("test retry"));
         Assert.assertNull(RetrySink.getMsg());
     }

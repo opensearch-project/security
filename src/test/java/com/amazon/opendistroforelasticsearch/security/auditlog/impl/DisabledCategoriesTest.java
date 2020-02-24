@@ -29,7 +29,6 @@ import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.settings.Settings.Builder;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.transport.TransportRequest;
 import org.junit.Assert;
@@ -38,7 +37,6 @@ import org.junit.Test;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
 import com.amazon.opendistroforelasticsearch.security.auditlog.helper.MockRestRequest;
-import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage.Category;
 import com.amazon.opendistroforelasticsearch.security.auditlog.integration.TestAuditlogImpl;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.google.common.base.Joiner;
@@ -60,7 +58,7 @@ public class DisabledCategoriesTest {
 
 	@Test
 	public void completetlyInvalidConfigurationTest() throws Exception {
-		Builder settingsBuilder = Settings.builder();
+		Settings.Builder settingsBuilder = Settings.builder();
 		settingsBuilder.put("opendistro_security.audit.type", TestAuditlogImpl.class.getName());
 		settingsBuilder.put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "nonexistent");
         settingsBuilder.put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "nonexistent");
@@ -70,24 +68,24 @@ public class DisabledCategoriesTest {
 		auditLog.close();
 
 		String result = TestAuditlogImpl.sb.toString();
-		Assert.assertTrue(categoriesPresentInLog(result, filterComplianceCategories(Category.values())));
+		Assert.assertTrue(categoriesPresentInLog(result, filterComplianceCategories(AuditCategory.values())));
 
 	}
 
 	@Test
 	public void invalidConfigurationTest() {
-		Builder settingsBuilder  = Settings.builder();
+		Settings.Builder settingsBuilder  = Settings.builder();
 		settingsBuilder.put("opendistro_security.audit.type", "debug");
 		settingsBuilder.put("opendistro_security.audit.config.disabled_categories", "nonexistant, bad_headers");
 		AuditLog auditLog = new AuditLogImpl(settingsBuilder.build(), null, null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
 		logAll(auditLog);
 		String result = TestAuditlogImpl.sb.toString();
-		Assert.assertFalse(categoriesPresentInLog(result, Category.BAD_HEADERS));
+		Assert.assertFalse(categoriesPresentInLog(result, AuditCategory.BAD_HEADERS));
 	}
 
 	@Test
 	public void enableAllCategoryTest() throws Exception {
-		final Builder settingsBuilder  = Settings.builder();
+		final Settings.Builder settingsBuilder  = Settings.builder();
 
 		settingsBuilder.put("opendistro_security.audit.type", TestAuditlogImpl.class.getName());
 		settingsBuilder.put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE");
@@ -105,7 +103,7 @@ public class DisabledCategoriesTest {
 
 		String result = TestAuditlogImpl.sb.toString();
 
-		Assert.assertTrue(Category.values()+"#"+result, categoriesPresentInLog(result, filterComplianceCategories(Category.values())));
+		Assert.assertTrue(AuditCategory.values()+"#"+result, categoriesPresentInLog(result, filterComplianceCategories(AuditCategory.values())));
 
 		Assert.assertThat(result, containsString("testuser.transport.succeededlogin"));
 		Assert.assertThat(result, containsString("testuser.rest.succeededlogin"));
@@ -120,7 +118,7 @@ public class DisabledCategoriesTest {
 
 	@Test
 	public void disableSingleCategoryTest() throws Exception {
-		for (Category category : Category.values()) {
+		for (AuditCategory category : AuditCategory.values()) {
 		    TestAuditlogImpl.clear();
 			checkCategoriesDisabled(category);
 		}
@@ -128,12 +126,12 @@ public class DisabledCategoriesTest {
 
 	@Test
 	public void disableAllCategoryTest() throws Exception{
-		checkCategoriesDisabled(Category.values());
+		checkCategoriesDisabled(AuditCategory.values());
 	}
 
 	@Test
 	public void disableSomeCategoryTest() throws Exception{
-		checkCategoriesDisabled(Category.AUTHENTICATED, Category.BAD_HEADERS, Category.FAILED_LOGIN);
+		checkCategoriesDisabled(AuditCategory.AUTHENTICATED, AuditCategory.BAD_HEADERS, AuditCategory.FAILED_LOGIN);
 	}
 
 	/*@After
@@ -141,15 +139,15 @@ public class DisabledCategoriesTest {
 		System.setOut(new PrintStream(new FileOutputStream(FileDescriptor.out)));
 	}*/
 
-	protected void checkCategoriesDisabled(Category ... disabledCategories) throws Exception {
+	protected void checkCategoriesDisabled(AuditCategory... disabledCategories) throws Exception {
 
 		List<String> categoryNames = new LinkedList<>();
-		for (Category category : disabledCategories) {
+		for (AuditCategory category : disabledCategories) {
 			categoryNames.add(category.name().toLowerCase());
 		}
 		String disabledCategoriesString = Joiner.on(",").join(categoryNames);
 
-		Builder settingsBuilder  = Settings.builder();
+		Settings.Builder settingsBuilder  = Settings.builder();
 		settingsBuilder.put("opendistro_security.audit.type", TestAuditlogImpl.class.getName());
 		settingsBuilder.put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, disabledCategoriesString);
         settingsBuilder.put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, disabledCategoriesString);
@@ -165,20 +163,20 @@ public class DisabledCategoriesTest {
 
 		String result = TestAuditlogImpl.sb.toString();
 
-		List<Category> allButDisablesCategories = new LinkedList<>(Arrays.asList(Category.values()));
+		List<AuditCategory> allButDisablesCategories = new LinkedList<>(Arrays.asList(AuditCategory.values()));
 		allButDisablesCategories.removeAll(Arrays.asList(disabledCategories));
 
 		System.out.println(result+"###"+disabledCategoriesString);
 		Assert.assertFalse(categoriesPresentInLog(result, disabledCategories));
-		Assert.assertTrue(categoriesPresentInLog(result, filterComplianceCategories(allButDisablesCategories.toArray(new Category[] {}))));
+		Assert.assertTrue(categoriesPresentInLog(result, filterComplianceCategories(allButDisablesCategories.toArray(new AuditCategory[] {}))));
 	}
 
-	protected boolean categoriesPresentInLog(String result, Category ... categories) {
+	protected boolean categoriesPresentInLog(String result, AuditCategory... categories) {
 		// since we're logging a JSON structure, whitespaces between keys and
 		// values must not matter
 		result = result.replaceAll(" ", "");
-		for (Category category : categories) {
-			if(!result.contains("\""+AuditMessage.CATEGORY+"\":\""+category.name()+"\"")) {
+		for (AuditCategory category : categories) {
+			if(!result.contains("\""+ AuditMessage.Builder.CATEGORY+"\":\""+category.name()+"\"")) {
 				System.out.println("MISSING: "+category.name());
 			    return false;
 			}
@@ -248,14 +246,14 @@ public class DisabledCategoriesTest {
     	auditLog.logGrantedPrivileges("action.success", new TransportRequest.Empty(), null);
     }
 
-    private static final Category[] filterComplianceCategories(Category[] cats) {
-        List<Category> retval = new ArrayList<AuditMessage.Category>();
-        for(Category c: cats) {
+    private static final AuditCategory[] filterComplianceCategories(AuditCategory[] cats) {
+        List<AuditCategory> retval = new ArrayList<AuditCategory>();
+        for(AuditCategory c: cats) {
             if(!c.toString().startsWith("COMPLIANCE")) {
                 retval.add(c);
             }
         }
-        return retval.toArray(new Category[0]);
+        return retval.toArray(new AuditCategory[0]);
     }
 
 }
