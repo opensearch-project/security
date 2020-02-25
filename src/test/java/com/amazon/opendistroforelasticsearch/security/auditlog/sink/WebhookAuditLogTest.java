@@ -55,7 +55,7 @@ public class WebhookAuditLogTest {
     public void tearDown() {
         if(server != null) {
             try {
-                server.stop();
+                server.shutdown(3l, TimeUnit.SECONDS);
             } catch (Exception e) {
                 //ignore
             }
