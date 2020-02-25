@@ -307,4 +307,36 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(1, permissions.size());
         Assert.assertTrue(permissions.contains("READ_UT"));        
 	}
+
+    @Test
+    public void testActionGroupsApiWithoutCertificate() throws Exception {
+
+        setupWithRestRoles();
+
+        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.sendHTTPClientCertificate = false;
+        rh.sendHTTPClientCredentials = true;
+
+        HttpResponse response;
+
+        response = rh.executeGetRequest("/_opendistro/_security/api/actiongroups" , new Header[0]);
+
+        // Delete read only actiongroups
+        response = rh.executeDeleteRequest("/_opendistro/_security/api/actiongroups/create_index" , new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+
+        // Put read only actiongroups
+        response = rh.executePutRequest("/_opendistro/_security/api/actiongroups/create_index", FileHelper.loadFile("restapi/actiongroup_crud.json"), new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+
+        // Patch single read only actiongroups
+        response = rh.executePatchRequest("/_opendistro/_security/api/actiongroups/create_index", "[{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"foo\" }]", new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+
+        // Patch multiple read only actiongroups
+        response = rh.executePatchRequest("/_opendistro/_security/api/actiongroups", "[{ \"op\": \"replace\", \"path\": \"/create_index/description\", \"value\": \"foo\" }]", new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+
+    }
+
 }

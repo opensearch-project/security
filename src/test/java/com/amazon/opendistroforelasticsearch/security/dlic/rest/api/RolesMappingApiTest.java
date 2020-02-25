@@ -332,4 +332,37 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
 		rh.sendHTTPClientCertificate = false;
 		return response;
 	}
+
+	@Test
+	public void testRolesMappingApiWithoutCertificate() throws Exception {
+
+		setupWithRestRoles();
+
+		rh.keystore = "restapi/kirk-keystore.jks";
+		rh.sendHTTPClientCertificate = false;
+		rh.sendHTTPClientCredentials = true;
+
+		HttpResponse response;
+
+		response = rh.executeGetRequest("/_opendistro/_security/api/rolesmapping" , new Header[0]);
+
+		// Delete read only roles mapping
+		response = rh.executeDeleteRequest("/_opendistro/_security/api/rolesmapping/opendistro_security_role_starfleet_library" , new Header[0]);
+		Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+
+		// Put read only roles mapping
+		response = rh.executePutRequest("/_opendistro/_security/api/rolesmapping/opendistro_security_role_starfleet_library",
+				FileHelper.loadFile("restapi/rolesmapping_all_access.json"), new Header[0]);
+		Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+
+		// Patch single read only roles mapping
+		response = rh.executePatchRequest("/_opendistro/_security/api/rolesmapping/opendistro_security_role_starfleet_library", "[{ \"op\": \"add\", \"path\": \"/description\", \"value\": \"foo\" }]", new Header[0]);
+		Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+
+		// Patch multiple read only roles mapping
+		response = rh.executePatchRequest("/_opendistro/_security/api/rolesmapping", "[{ \"op\": \"add\", \"path\": \"/opendistro_security_role_starfleet_library/description\", \"value\": \"foo\" }]", new Header[0]);
+		Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+
+
+	}
 }

@@ -496,5 +496,35 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
     }
 
+    @Test
+    public void testUserApiWithoutCertificate() throws Exception {
+
+        setupWithRestRoles();
+
+        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.sendHTTPClientCertificate = false;
+        rh.sendHTTPClientCredentials = true;
+
+        HttpResponse response;
+
+        response = rh.executeGetRequest("/_opendistro/_security/api/internalusers" , new Header[0]);
+
+        // Delete read only user
+        response = rh.executeDeleteRequest("/_opendistro/_security/api/internalusers/sarek" , new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+
+        // Put read only users
+        response = rh.executePutRequest("/_opendistro/_security/api/internalusers/sarek", "[{ \"op\": \"add\", \"path\": \"/sarek/description\", \"value\": \"foo\" }]", new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+
+        // Patch single read only user
+        response = rh.executePatchRequest("/_opendistro/_security/api/internalusers/sarek", "[{ \"op\": \"add\", \"path\": \"/description\", \"value\": \"foo\" }]", new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+
+        // Patch multiple read only users
+        response = rh.executePatchRequest("/_opendistro/_security/api/internalusers", "[{ \"op\": \"add\", \"path\": \"/sarek/description\", \"value\": \"foo\" }]", new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+
+    }
 
 }

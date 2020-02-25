@@ -448,4 +448,36 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
     }
+
+    @Test
+    public void testRolesApiWithoutCertificate() throws Exception {
+
+        setupWithRestRoles();
+
+        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.sendHTTPClientCertificate = false;
+        rh.sendHTTPClientCredentials = true;
+
+        HttpResponse response;
+
+        response = rh.executeGetRequest("_opendistro/_security/api/roles");
+
+        // Delete read only roles
+        response = rh.executeDeleteRequest("/_opendistro/_security/api/roles/opendistro_security_transport_client" , new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+
+        // Put read only roles
+        response = rh.executePutRequest("/_opendistro/_security/api/roles/opendistro_security_transport_client", "[{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"foo\" }]", new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+
+        // Patch single read only roles
+        response = rh.executePatchRequest("/_opendistro/_security/api/roles/opendistro_security_transport_client", "[{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"foo\" }]", new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+
+        // Patch multiple read only roles
+        response = rh.executePatchRequest("/_opendistro/_security/api/roles/", "[{ \"op\": \"add\", \"path\": \"/opendistro_security_transport_client/description\", \"value\": \"foo\" }]", new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+
+    }
+
 }

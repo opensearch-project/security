@@ -43,6 +43,9 @@ import javax.net.ssl.SSLContext;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
@@ -56,6 +59,7 @@ import org.apache.http.config.SocketConfig;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
@@ -75,6 +79,7 @@ public class RestHelper {
 	public boolean enableHTTPClientSSLv3Only = false;
 	public boolean sendHTTPClientCertificate = false;
 	public boolean trustHTTPServerCertificate = true;
+	public boolean sendHTTPClientCredentials = false;
 	public String keystore = "node-0-keystore.jks";
 	public final String prefix;
 	//public String truststore = "truststore.jks";
@@ -194,6 +199,13 @@ public class RestHelper {
 	protected final CloseableHttpClient getHTTPClient() throws Exception {
 
 		final HttpClientBuilder hcb = HttpClients.custom();
+
+		if (sendHTTPClientCredentials) {
+			CredentialsProvider provider = new BasicCredentialsProvider();
+			UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("sarek", "sarek");
+			provider.setCredentials(AuthScope.ANY, credentials);
+			hcb.setDefaultCredentialsProvider(provider);
+		}
 
 		if (enableHTTPClientSSL) {
 
