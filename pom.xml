@@ -39,7 +39,7 @@
 
   <artifactId>opendistro_security</artifactId>
   <packaging>jar</packaging>
-  <version>0.10.0.4</version>
+  <version>0.10.1.0</version>
   <name>Open Distro Security for Elasticsearch</name>
   <description>Open Distro For Elasticsearch Security</description>
   <inceptionYear>2015</inceptionYear>
@@ -52,9 +52,9 @@
   </licenses>
 
   <properties>
-    <opendistro_security_ssl.version>0.10.0.4</opendistro_security_ssl.version>
-    <opendistro_security_advanced_modules.version>0.10.0.4</opendistro_security_advanced_modules.version>
-    <elasticsearch.version>6.8.1</elasticsearch.version>
+    <opendistro_security_ssl.version>0.10.1.0</opendistro_security_ssl.version>
+    <opendistro_security_advanced_modules.version>0.10.1.0</opendistro_security_advanced_modules.version>
+    <elasticsearch.version>6.8.6</elasticsearch.version>
     
     <!-- deps -->
     <netty-native.version>2.0.20.Final</netty-native.version>
@@ -76,7 +76,7 @@
     <url>https://github.com/opendistro-for-elasticsearch/security</url>
     <connection>scm:git:git@github.com:opendistro-for-elasticsearch/security.git</connection>
     <developerConnection>scm:git:git@github.com:opendistro-for-elasticsearch/security.git</developerConnection>
-    <tag>0.10.0.4</tag>
+    <tag>0.10.1.0</tag>
   </scm>
 
   <issueManagement>
