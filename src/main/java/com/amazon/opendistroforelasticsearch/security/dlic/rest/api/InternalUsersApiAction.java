@@ -103,7 +103,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         }
 
         // check if resource is writeable
-        if (isReservedAndAccessibleToSuperAdmin(configuration, username)) {
+        if (isReservedAndAccessible(configuration, username)) {
             forbidden(channel, "Resource '" + username + "' is read-only.");
             return;
         }
