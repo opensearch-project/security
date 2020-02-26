@@ -70,7 +70,7 @@ public class ActionGroupsApiAction extends PatchableResourceApiAction {
 
 	@Override
 	protected AbstractConfigurationValidator getValidator(final RestRequest request, BytesReference ref, Object... param) {
-		return new ActionGroupValidator(request, ref, this.settings, param);
+		return new ActionGroupValidator(request, isSuperAdmin(), ref, this.settings, param);
 	}
 
 	@Override

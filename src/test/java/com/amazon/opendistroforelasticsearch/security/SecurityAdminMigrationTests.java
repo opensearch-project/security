@@ -49,7 +49,7 @@ public class SecurityAdminMigrationTests extends SingleClusterTest {
 
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         rh.keystore = "kirk-keystore.jks";
         
         final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
@@ -95,7 +95,7 @@ public class SecurityAdminMigrationTests extends SingleClusterTest {
 
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         rh.keystore = "kirk-keystore.jks";
         
         final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
