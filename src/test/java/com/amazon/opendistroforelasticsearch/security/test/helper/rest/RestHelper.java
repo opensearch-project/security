@@ -77,7 +77,7 @@ public class RestHelper {
 	
 	public boolean enableHTTPClientSSL = true;
 	public boolean enableHTTPClientSSLv3Only = false;
-	public boolean sendHTTPClientCertificate = false;
+	public boolean sendAdminCertificate = false;
 	public boolean trustHTTPServerCertificate = true;
 	public boolean sendHTTPClientCredentials = false;
 	public String keystore = "node-0-keystore.jks";
@@ -230,7 +230,7 @@ public class RestHelper {
 				sslContextbBuilder.loadTrustMaterial(myTrustStore, null);
 			}
 
-			if (sendHTTPClientCertificate) {
+			if (sendAdminCertificate) {
 				sslContextbBuilder.loadKeyMaterial(keyStore, "changeit".toCharArray());
 			}
 

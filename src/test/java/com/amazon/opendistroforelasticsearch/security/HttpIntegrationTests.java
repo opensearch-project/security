@@ -367,7 +367,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
         
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         rh.keystore = "spock-keystore.jks";
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_search").getStatusCode());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest(".opendistro_security/"+getType()+"/x", "{}").getStatusCode());
