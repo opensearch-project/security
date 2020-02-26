@@ -159,7 +159,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 			return;
 		}
 
-		if (isReservedAndAccessible(existingConfiguration, name)) {
+		if (!isReservedAndAccessible(existingConfiguration, name)) {
 			forbidden(channel, "Resource '"+ name +"' is read-only.");
 			return;
 		}
@@ -197,7 +197,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 			return;
 		}
 
-		if (isReservedAndAccessible(existingConfiguration, name)) {
+		if (!isReservedAndAccessible(existingConfiguration, name)) {
 			forbidden(channel, "Resource '"+ name +"' is read-only.");
 			return;
 		}
@@ -546,9 +546,9 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 	protected boolean isReservedAndAccessible(final SecurityDynamicConfiguration<?> existingConfiguration,
 											  String name) {
 		if( isReserved(existingConfiguration, name) && !isSuperAdmin()) {
-			return true;
+			return false;
 		}
-		return false;
+		return true;
 	}
 
 }
