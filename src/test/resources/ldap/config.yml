@@ -1,0 +1,37 @@
+#
+# HTTP
+#   basic (challenging) PREAUTH?
+#   proxy (not challenging, needs xff)
+#   kerberos (challenging)  PREAUTH?
+#   clientcert (not challenging, needs https)
+
+# Authc
+#   internal
+#   noop
+#   ldap  
+
+# Authz
+#   ldap  
+#   noop
+
+
+
+opendistro_security:
+  dynamic:
+    http:
+      anonymous_auth_enabled: false
+      xff:
+        enabled: false
+    authc:
+      authentication_ldap:
+        enabled: true
+        order: 0
+        http_authenticator:
+          type: basic
+        authentication_backend:
+          type: ldap
+          config:
+            hosts: localhost:${ldapsPort}
+            usersearch: "(uid={0})"
+            enable_ssl: true
+            verify_hostnames: false

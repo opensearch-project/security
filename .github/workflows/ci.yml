@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - master
+      - opendistro-*
 
 jobs:
   build:
@@ -15,26 +16,25 @@ jobs:
 
     steps:
 
-      - name: Checkout security-parent
-        uses: actions/checkout@v1
-        with:
-          repository: opendistro-for-elasticsearch/security-parent
-          ref: opendistro-0.10
-      - name: Install security-parent
-        run: mvn clean install -DskipTests --file ../security-parent/pom.xml
-
-      - name: Checkout security-ssl
-        uses: actions/checkout@v1
-        with:
-          repository: opendistro-for-elasticsearch/security-ssl
-          ref: opendistro-0.10
-      - name: Install security-ssl
-        run: mvn clean install -DskipTests --file ../security-ssl/pom.xml
-
       - name: Checkout security
         uses: actions/checkout@v1
-      - name: Install security
-        run: mvn clean install -DskipTests
+
+      - name: Checkstyle
+        run: mvn checkstyle:checkstyle
 
       - name: Test
         run: mvn test
+
+      - name: Coverage
+        uses: codecov/codecov-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Package
+        run: mvn clean package -Padvanced -DskipTests
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: artifacts
+          path: target/releases/

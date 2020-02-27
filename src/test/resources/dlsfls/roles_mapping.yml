@@ -1,0 +1,102 @@
+opendistro_security_all_access:
+  users:
+    - admin
+    - user_combined
+    
+opendistro_security_public:
+  users:
+    - '*'
+
+opendistro_security_midsized_deals:
+  users:
+    - dept_manager
+    
+opendistro_security_deals_without_amount:
+  users:
+    - dept_manager_fls
+    
+opendistro_security_deals_without_amount_reversed_fields:
+  users:
+    - dept_manager_fls_reversed_fields
+    
+opendistro_security_dls_without_field_perm:
+  users:
+    - dept_manager_fls_dls
+
+opendistro_security_dls_multi1:
+  users:
+    - dept_manager_multi
+
+opendistro_security_dls_multi2:
+  users:
+    - dept_manager_multi
+    
+opendistro_security_fls_fields:
+  users:
+    - fls_fields
+    
+opendistro_security_logstash:
+  users:
+    - logstash
+    
+opendistro_security_fls_fields_wc:
+  users:
+    - fls_fields_wc
+    
+opendistro_security_regex:
+  users:
+    - regex
+    
+opendistro_security_perf_named_only:
+  users:
+    - perf_named_only
+    
+opendistro_security_perf_wc_in:
+  users:
+    - perf_wc_in
+    
+opendistro_security_perf_named_ex:
+  users:
+    - perf_named_ex
+    
+opendistro_security_perf_wc_ex:
+  users:
+    - perf_wc_ex
+    
+opendistro_security_human_resources_trainee:
+  users:
+    - human_resources_trainee
+
+opendistro_security_aaa:
+  users:
+    - user_aaa
+opendistro_security_bbb:
+  users:
+    - user_bbb
+
+opendistro_security_combined:
+  users:
+    - user_combined
+
+opendistro_security_masked:
+  users:
+    - user_masked
+    
+opendistro_security_masked_custom:
+  users:
+    - user_masked_custom
+    
+opendistro_security_masked_nowc:
+  users:
+    - user_masked_nowc
+    
+opendistro_security_masked_nowc1:
+  users:
+    - user_masked_nowc1
+    
+opendistro_security_prop_replace:
+  users:
+    - prop_replace
+opendistro_security_date_math:
+  users:
+    - opendistro_security_date_math

@@ -1,0 +1,47 @@
+opendistro_security_all_access:
+  cluster:
+    - '*'
+  indices:
+    '*':
+      '*':  
+        - '*'
+        
+opendistro_security_worf:
+  cluster:
+    - '*'
+  indices:
+    'worf*':
+      '*':  
+        - '*'
+
+opendistro_security_dls_without_field_perm:
+  cluster:
+    - '*'
+  indices:
+    'deals':
+       '*':  
+         - READ
+       _fls_:
+         - 'customer.*'
+         - zip
+       _dls_: | 
+                 {
+                   "range" : {
+                      "amount" : {
+                          "gte" : 1000,
+                          "lte" : 20000
+                      }
+                    }
+                 }
+                 
+opendistro_security_dls_without_field_perm3:
+  cluster:
+    - '*'
+  indices:
+    'deals':
+       '*':  
+         - READ
+       _fls_:
+         - 'customer.*'
+         - zip
+       _dls_: '{"term" : {"msgid" : "12"}}'

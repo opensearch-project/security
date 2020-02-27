@@ -1,0 +1,21 @@
+{
+  "indices": {
+    "hulla": {
+      "dulla": [
+        "blafasel"
+      ]
+    },
+    "pub": {
+      "*": [
+        "CRUD"
+      ]
+    }
+  },
+  "cluster": [
+    "cluster:monitor*"
+  ],
+  "tenants": {
+    "tenant1": "RO",
+    "tenant2": "RW"
+  }
+}

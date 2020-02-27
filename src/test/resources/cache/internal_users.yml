@@ -1,0 +1,84 @@
+# This is the internal user database
+# The hash value is a bcrypt hash and can be generated with plugin/tools/hash.sh
+admin:
+  hash: $2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG
+  #password is: admin
+#keys cannot contain dots
+#if you have a username with dots then specify it with username: XXX
+
+snapshotrestore:
+  hash: $2a$12$6sre4JH7O4Rgh7ubWmeyWus6UIIA13MqW8eR8KD5Qbxn06CDbJG/G
+
+hr_employee:
+  hash: $2a$12$7QIoVBGdO41qSCNoecU3L.yyXb9vGrCvEtVlpnC4oWLt/q0AsAN52
+  #password is: hr_employee
+
+hr.employee:
+  hash: $2a$12$LRNG7ETwMcO68VNh14B3AuKPkvOaC0k26.QnSrv9AvbmT1JRNMJum
+  #password is: hr.employee
+
+hr_trainee:
+  hash: $2a$12$s6rC7o345lvXp.JpTrA91O6xYAGVCCxKdVclsNkWJTaquW4GK9E9u
+  #password is: hr_trainee
+
+finance_employee:
+  hash: $2a$12$Kv.4sU5r1zy2ZqnSDm99Ae6ImCMKtjJq4enT.9d3c55cA0O2LGNH6
+  #password is: finance_employee
+
+finance_trainee:
+  hash: $2a$12$c26Pnq6yiZcgi8PxNEyp5O3wIn1G1eJfCvJFifEKosQJeojUZf/D6
+  #password is: finance_trainee
+
+no_roles:
+  hash: $2a$12$gxsE8oEicXy3mNBkGEO5K.P3J/CDq3GHXDYeQTmVI/v3AA84vqIXm
+  #password is: no_roles
+
+mister_picard:
+  username: mister.picard
+  hash: $2a$12$wkY2BsRneCU5za1OPYlzsehQit6gu2vprVv/4jHiSEEBv2ThunaTS
+  #password is: picard
+spock:
+  hash: $2a$12$GI9JXffO3WUjTsU7Yy3E4.LBxC2ILo66Zg/rr79BpikSL2IIRezQa
+  #password is: spock
+  roles:
+    - vulcan
+    - starfleet
+kirk:
+  hash: $2a$12$xZOcnwYPYQ3zIadnlQIJ0eNhX1ngwMkTN.oMwkKxoGvDVPn4/6XtO
+  #password is: kirk
+  roles:
+    - captains
+    - starfleet
+worf:
+  hash: $2a$12$A41IxPXV1/Dx46C6i1ufGubv.p3qYX7xVcY46q33sylYbIqQVwTMu
+  #password is: worf
+logstash:
+  hash: $2a$12$u1ShR4l4uBS3Uv59Pa2y5.1uQuZBrZtmNfqB3iM/.jL0XoV9sghS2
+  #password is: logstash
+kibanaserver:
+  hash: $2a$12$4AcgAt3xwOWadA5s5blL6ev39OXDNhmOesEoo33eZtrq2N0YrU3H.
+  #password is: kibanaserver
+kibanaro:
+  hash: $2a$12$JJSXNfTowz7Uu5ttXfeYpeYE0arACvcwlPBStB1F.MI7f0U9Z4DGC
+  #password is: kibanaro
+readall:
+  hash: $2a$12$ae4ycwzwvLtZxwZ82RmiEunBbIPiAmGZduBAjKN0TXdwQFtCwARz2
+  #password is: readall
+dlsflsuser:
+  hash: $2a$12$30rb6oabnodiSdysdWJnhO.4sVRkyNudPC1woYCJFhXja3rkyXbam
+  #password is: dlsflsuser
+test:
+  hash: $2a$12$1HqHxm3QTfzwkse7vwzhFOV4gDv787cZ8BwmCwNEyJhn0CZoo8VVu
+  #password is: test
+
+user_a:
+  hash: $2a$04$NDy7mGbRNrmPMh9nSnIB.OTMFkcioEd69A04ReSGkJDd7QHxnCcVC
+  #password is: user_a
+  roles:
+    - ua
+  
+user_b:
+  hash: $2a$04$idGSEpNOhFbyiRL6toGPT.orh7ENOEU8kAqwkRFaXWRdA6wVgyqUu
+  #password is: user_b
+  roles:
+    - ub

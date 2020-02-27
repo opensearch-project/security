@@ -1,11 +1,9 @@
-netty*/
 smoketests/
 target/
 test-output/
 kibana*/
 logstash*/
 deploy_all.sh
-/build.gradle
 *.log
 .externalToolBuilders
 maven-eclipse.xml
@@ -37,3 +35,8 @@ test.sh
 .idea/
 *.iml
 *.rej
+
+# gradle
+build/
+gradle-build/
+.gradle/

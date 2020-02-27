@@ -1,0 +1,24 @@
+opendistro_security_human_resources_trainee:
+  cluster:
+    - '*'
+  indices:
+    'humanresources':
+      '*':
+        - READ
+        - indices:admin/shards/search_shards # needed for CCS
+      _dls_: '{ "bool": { "must_not": { "match": { "Designation": "CEO"  }}}}'
+      _fls_:
+        - 'Designation'
+        - 'FirstName'
+        - 'LastName'
+        - 'Salary'
+        - 'LocalRules'
+    '?kibana':
+      '*':
+        - ALL
+    '*':
+      '*':
+        - indices:data/read/field_caps
+  tenants:
+    human_resources: RO
+    performance_data: RO

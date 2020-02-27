@@ -1,0 +1,7 @@
+{
+  "password": 123,
+  "roles": [
+    "role1",
+    "role2"
+  ]
+}

@@ -1,0 +1,331 @@
+#<role_name>:
+#  cluster:
+#    - '<permission>'
+#  indices:
+#    '<indexname or alias>':
+#      '<type>':  
+#        - '<permission>'
+#      _dls_: '<querydsl query>'
+#      _fls_:
+#        - '<field>'
+#        - '<field>'
+
+# When a user make a request to elasticsearch then the following roles will be evaluated to see if the user has
+# permissions for the request. A request is always associated with an action and is executed against and index (or alias)
+# and a type. If a request is executed against all indices (or all types) then the asterix ('*') is needed.
+# Every role a user has will be examined if it allows the action against an index (or type). At least one role must match
+# for the request to be successful. If no role match then the request will be denied. Currently a match must happen within
+# one single role - that means that permissions can not span multiple roles. 
+
+# For <permission>, <indexname or alias> and <type> simple wildcards are possible. 
+# A asterix (*) will match any character sequence (or an empty sequence)
+# A question mark (?) will match any single character (but NOT empty character)
+# Example: '*my*index' will match 'my_first_index' as well as 'myindex' but not 'myindex1'
+# Example: '?kibana' will match '.kibana' but not 'kibana'
+
+# For <permission>, <indexname or alias> and <type> are also regular expressions possible. 
+# You have to pre- and apend a '/' to use regex instead of simple wildcards
+# '/<java regex>/'
+# Example: '/\S*/' will match any non whitespace characters
+
+# DLS (Document level security) - NOT FREE FOR COMMERCIAL
+# Install https://github.com/floragunncom/search-guard-module-dlsfls
+# Per Index you can define a DLS query
+# If more than one DLS query match they will be OR'ed
+
+# FLS (Field level security) - NOT FREE FOR COMMERCIAL
+# Per Index you can define a FLS fields
+# If more than one FLS config match the field will be appended
+# Install https://github.com/floragunncom/search-guard-module-dlsfls
+
+# Kibana multitenancy - NOT FREE FOR COMMERCIAL
+# Per role you can define on ore more tenants
+# https://github.com/floragunncom/search-guard-docs/blob/master/multitenancy.md
+
+# Demo roles for sample data (Kibana included)
+human_resources:
+  cluster:
+    - CLUSTER_COMPOSITE_OPS
+  indices:
+    'humanresources':
+      '*':
+        - '*'
+    '?kibana':
+      '*':
+        - ALL
+  tenants:
+    human_resources: RW
+    performance_data: RW
+    business_intelligence: RO
+    management: RW
+    PerFormance    ___Reviews/&%%/&&/ : RW
+    PerFormance ___Reviews%%%!!! : RW
+
+human_resources_trainee:
+  cluster:
+    - CLUSTER_COMPOSITE_OPS_RO
+  indices:
+    'humanresources':
+      '*':
+        - CRUD
+      _dls_: '{ "bool": { "must_not": { "match": { "Designation": "CEO"  }}}}'
+      _fls_:
+        - 'Designation'
+        - 'FirstName'
+        - 'LastName'
+        - 'Salary'
+    '?kibana':
+      '*':
+        - ALL
+  tenants:
+    human_resources: RO
+    performance_data: RO
+    business_intelligence: RO
+
+finance:
+  cluster:
+    - CLUSTER_COMPOSITE_OPS_RO
+  indices:
+    'finance':
+      '*':
+        - '*'
+    'humanresources':
+      '*':
+        - READ
+      _fls_:
+        - 'Designation'
+        - 'FirstName'
+        - 'LastName'
+        - 'Salary'
+    '?kibana':
+      '*':
+        - ALL
+  tenants:
+    finance: RW
+    finance_management: RW
+    performance_data: RW
+    management: RW
+    business_intelligence: RW
+    human_resources: RO
+
+finance_trainee:
+  cluster:
+    - CLUSTER_COMPOSITE_OPS_RO
+  indices:
+    'finance':
+      'revenue':
+        - CRUD
+    '?kibana':
+      '*':
+        - ALL
+  tenants:
+    finance: RO
+
+# End sample data demo, default roles below
+
+# Default role for all users (including anonymous)
+public:
+  cluster:
+    - cluster:monitor/main
+    - CLUSTER_COMPOSITE_OPS_RO
+
+# Allows everything
+# but not changes to searchguard config/index
+all_access:
+  cluster:
+    - UNLIMITED
+  indices:
+    '*':
+      '*':
+        - UNLIMITED
+  tenants:
+    adm_tenant: RW
+    test_tenant_ro: RW
+
+# Read all and monitor, but no write permissions 
+readonly_and_monitor:
+  cluster:
+    - CLUSTER_MONITOR
+    - CLUSTER_COMPOSITE_OPS_RO
+  indices:
+    '*':
+      '*':
+        - INDICES_ALL
+
+# Read all, but no write permissions
+readall:
+  cluster:
+    - CLUSTER_COMPOSITE_OPS_RO
+  indices:
+    '*':
+      '*':
+        - READ
+
+# For users which use kibana
+kibana:
+  cluster:
+    - MONITOR
+    - CLUSTER_COMPOSITE_OPS_RO
+  indices:
+    '?kibana':
+      '*':
+        - MANAGE
+        - INDEX
+        - READ
+        - DELETE
+    '?kibana-6':
+      '*':
+        - MANAGE
+        - INDEX
+        - READ
+        - DELETE
+    '*':
+      '*':
+        - indices:data/read/field_caps*
+
+# For the kibana server
+kibana_server:
+  cluster:
+      - CLUSTER_MONITOR
+      - CLUSTER_COMPOSITE_OPS
+  indices:
+    '?kibana':
+      '*':
+        - INDICES_ALL
+
+# For logstash and beats
+logstash:
+  cluster:
+    - indices:admin/template/get
+    - indices:admin/template/put
+    - CLUSTER_MONITOR
+    - CLUSTER_COMPOSITE_OPS
+  indices:
+    'logstash-*':
+      '*':
+        - CRUD
+        - CREATE_INDEX
+    '*beat*':
+      '*':
+        - CRUD
+        - CREATE_INDEX
+
+# Allows each user to access own named index
+own_index:
+  cluster:
+    - CLUSTER_COMPOSITE_OPS
+  indices:
+    '${user_name}':
+      '*':
+        - INDICES_ALL
+
+# Allows adding and modifying repositories
+# and creating and restoring snapshots
+manage_snapshots:
+  cluster:
+    - MANAGE_SNAPSHOTS
+  indices:
+    '*':
+      '*':
+        - "indices:data/write/index"
+        - "indices:admin/create"
+
+# Make xpack monitoring work
+monitor:
+  cluster:
+    - "cluster:admin/xpack/monitoring/*"
+    - "indices:admin/template/get"
+    - "indices:admin/template/put"
+    - "indices:admin/*get"
+    - CLUSTER_MONITOR
+    - CLUSTER_COMPOSITE_OPS
+  indices:
+    '.monitoring*':
+      '*':
+        - INDICES_ALL
+    
+# Examples
+role_starfleet:
+  cluster:
+    - CLUSTER_COMPOSITE_OPS
+  indices:
+    sf:
+       ships:  
+         - READ
+       public:  
+         - INDICES_ALL
+       students:  
+         - READ
+       alumni:  
+         - READ
+    'pub*':
+       '*':  
+         - READ
+  tenants:
+    enterprise_tenant: RW
+    test_tenant_ro: RW
+
+role_starfleet_captains:
+  indices:
+    sf:
+       '*':  
+         - CRUD
+    pub*:
+       '*':  
+         - CRUD 
+  cluster:
+    - 'cluster:monitor*'
+    - CLUSTER_COMPOSITE_OPS
+  tenants:
+    command_tenant: RW
+    
+readonly_dlsfls:
+  cluster:
+    - CLUSTER_COMPOSITE_OPS_RO
+  indices:
+    '/\S*/':
+      '*':
+        - READ    
+      _dls_: '{"term" : {"_type" : "legends"}}'
+      _fls_:
+        - 'aaa'
+        - 'bbb'
+
+kibana_testindex:
+  cluster:
+    - CLUSTER_COMPOSITE_OPS_RO
+  indices:
+    'test*':
+      '*':
+        - READ
+        - indices:admin/mappings/fields/get*
+    '.kibana':
+      '*':
+        - INDICES_ALL
+  tenants:
+    test_tenant_rw: RW
+    test_tenant_ro: RO
+    
+ua:
+  cluster:
+    - '*'
+  indices:
+    'indexa*':
+      '*':
+        - '*'
+    'permitnotexistentindex':
+      '*':
+        - '*'
+    '?kibana':
+      '*':
+        - ALL
+    '*':
+      '*':
+        - indices:data/read/field_caps
+ub:
+  cluster:
+    - '*'
+  indices:
+    'indexb':
+      '*':
+        - '*'
