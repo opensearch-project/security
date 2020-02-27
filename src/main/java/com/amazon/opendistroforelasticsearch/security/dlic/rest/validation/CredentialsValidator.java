@@ -62,15 +62,9 @@ public class CredentialsValidator extends AbstractConfigurationValidator {
                 if (contentAsMap != null && contentAsMap.containsKey("password")) {
                     final String password = (String) contentAsMap.get("password");
 
-                    if (password == null || password.isEmpty()) {
-                        if (log.isDebugEnabled()) {
-                            log.debug("Unable to validate password because no password is given");
-                        }
-                        return false;
-                    }
-
-                    if (!regex.isEmpty() && !Pattern.compile("^" + regex + "$").matcher(password).matches()) {
-                        if (log.isDebugEnabled()) {
+                    // Password can be null/empty for an existing user. Regex will validate password if present
+                    if (password != null && !password.isEmpty() && !regex.isEmpty() && !Pattern.compile("^"+regex+"$").matcher(password).matches()) {
+                        if(log.isDebugEnabled()) {
                             log.debug("Regex does not match password");
                         }
                         this.errorType = ErrorType.INVALID_PASSWORD;

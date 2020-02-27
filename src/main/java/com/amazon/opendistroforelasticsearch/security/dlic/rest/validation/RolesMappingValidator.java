@@ -21,7 +21,7 @@ import org.elasticsearch.rest.RestRequest;
 
 public class RolesMappingValidator extends AbstractConfigurationValidator {
 
-	public RolesMappingValidator(final RestRequest request, final BytesReference ref, final Settings esSettings, Object... param) {
+	public RolesMappingValidator(final RestRequest request, boolean isSuperAdmin, final BytesReference ref, final Settings esSettings, Object... param) {
 		super(request, ref, esSettings, param);
 		this.payloadMandatory = true;
 		allowedKeys.put("backend_roles", DataType.ARRAY);
@@ -29,6 +29,7 @@ public class RolesMappingValidator extends AbstractConfigurationValidator {
 		allowedKeys.put("hosts", DataType.ARRAY);
 		allowedKeys.put("users", DataType.ARRAY);
 		allowedKeys.put("description", DataType.STRING);
+		if (isSuperAdmin) allowedKeys.put("reserved", DataType.BOOLEAN);
 
 		mandatoryOrKeys.add("backend_roles");
 		mandatoryOrKeys.add("and_backend_roles");

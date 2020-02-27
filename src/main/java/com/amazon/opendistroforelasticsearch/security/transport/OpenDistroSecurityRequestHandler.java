@@ -126,16 +126,9 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
 
             String channelType = transportChannel.getChannelType();
 
-            if(!channelType.equals("direct") && !channelType.equals("transport")) {
-                Class wrappedChannelCls = transportChannel.getClass();
-
-                try {
-                    Method getInnerChannel = wrappedChannelCls.getMethod("getInnerChannel", null);
-                    TransportChannel innerChannel = (TransportChannel)(getInnerChannel.invoke(transportChannel));
-                    channelType = innerChannel.getChannelType();
-                } catch (NoSuchMethodException ex) {
-                    throw new RuntimeException("Unknown channel type " + channelType + " does not implement getInnerChannel method.");
-                }
+            if (!channelType.equals("direct") && !channelType.equals("transport")) {
+                TransportChannel innerChannel = getInnerChannel(transportChannel);
+                channelType = innerChannel.getChannelType();
             }
 
             getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_CHANNEL_TYPE, channelType);

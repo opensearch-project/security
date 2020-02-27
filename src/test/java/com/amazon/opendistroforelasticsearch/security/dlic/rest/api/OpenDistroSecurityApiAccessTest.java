@@ -36,7 +36,7 @@ public class OpenDistroSecurityApiAccessTest extends AbstractRestApiUnitTest {
 
 		// test with non-admin cert, must fail
 		rh.keystore = "restapi/node-0-keystore.jks";
-		rh.sendHTTPClientCertificate = true;
+		rh.sendAdminCertificate = true;
 		Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED,
 				rh.executeGetRequest("_opendistro/_security/api/internalusers").getStatusCode());
 		Assert.assertEquals(HttpStatus.SC_FORBIDDEN,
