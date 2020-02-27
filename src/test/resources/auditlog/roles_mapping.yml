@@ -1,0 +1,13 @@
+opendistro_security_all_access:
+  users:
+    - admin
+    - admin2
+    - 'CN=spock,OU=client,O=client,L=Test,C=DE'
+    
+opendistro_security_public:
+  users:
+    - '*'
+
+opendistro_security_worf:
+  users:
+    - worf

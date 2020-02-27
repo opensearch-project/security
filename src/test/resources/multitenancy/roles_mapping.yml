@@ -1,0 +1,90 @@
+# In this file users, backendroles and hosts can be mapped to security plugin roles.
+# What a role is allowed to do you specify in roles.yml
+
+# For sample data demo
+opendistro_security_human_resources:
+  backendroles:
+    - hr
+    - jwt_hr
+  users:
+    - hr_employee
+    - hr.employee
+    - kerberos_hr_employee
+
+opendistro_security_human_resources_trainee:
+  users:
+    - hr_trainee
+  backendroles:
+    - hr_trainee
+
+opendistro_security_finance:
+  backendroles:
+    - finance
+  users:
+    - finance_employee
+    - kerberos_finance_employee
+
+opendistro_security_finance_trainee:
+  users:
+    - finance_trainee
+  backendroles:
+    - finance_trainee
+
+opendistro_security_manage_snapshots:
+  users:
+    - snapshotrestore
+
+opendistro_security_role_starfleet:
+  backendroles:
+    - starfleet
+    - captains
+    - defectors
+    - 'cn=ldaprole,ou=groups,dc=example,dc=com'
+  hosts:
+    - "*.starfleetintranet.com"
+  users:
+    - worf
+
+opendistro_security_role_starfleet_captains:
+  backendroles:
+    - captains
+
+opendistro_security_role_klingons1:
+  backendroles:
+    - klingon
+  hosts:
+    - "*.klingongov.kli"
+  users:
+    - worf
+
+opendistro_security_logstash:
+  users:
+    - logstash
+    
+opendistro_security_kibana_server:
+  users:
+    - kibanaserver
+
+opendistro_security_kibana:
+  users:
+    - kibanaro
+
+opendistro_security_all_access:
+  users:
+    - admin
+    - adm
+    - 'cn=admin2,ou=people,dc=example,dc=com'
+
+opendistro_security_readall:
+  users:
+    - readall
+    - riker
+    - troid
+    
+opendistro_security_readonly_dlsfls:
+  users:
+    - dlsflsuser
+    
+opendistro_security_kibana4_testindex:
+  users:
+    - test    

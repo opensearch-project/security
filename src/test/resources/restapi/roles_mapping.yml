@@ -1,0 +1,92 @@
+opendistro_security_role_starfleet:
+  backendroles:
+    - starfleet
+    - captains
+    - defectors
+  hosts:
+    - "*.starfleetintranet.com"
+  users:
+    - nagilum
+
+opendistro_security_role_starfleet_captains:
+  backendroles:
+    - captains
+
+opendistro_security_role_starfleet_library:
+  readonly: true
+  backendroles:
+    - 'starfleet*'
+    - ambassador
+
+opendistro_security_role_internal:
+  hidden: true
+  backendroles:
+    - 'starfleet*'
+    - ambassador
+
+opendistro_security_role_vulcans:
+  backendroles:
+    - vulcangov
+  users:
+    - kirk
+    - sarek
+
+opendistro_security_role_vulcans_admin:
+  backendroles:
+    - vulcanadmin
+
+opendistro_security_role_klingons:
+  backendroles:
+    - klingon
+  users:
+    - worf
+    
+opendistro_security_role_klingons1:
+  backendroles:
+    - klingon
+
+opendistro_security_role_klingons2:
+  backendroles:
+    - klingon
+
+
+opendistro_security_all_access:
+  users:
+    - nagilum
+    
+opendistro_security_public:
+  users:
+    - '*'
+opendistro_security_flsdls:
+  users:
+    - sarek
+
+opendistro_security_kibana4:
+  users:
+    - bug108
+    
+opendistro_security_zdummy_all:
+  users:
+    - bug108
+
+opendistro_security_unittest_1:
+  users:
+    - 'CN=spock,OU=client,O=client,L=Test,C=DE'
+    
+opendistro_security_role_host1:
+  hosts:
+    - 127.0.0.1
+    - localhost
+    
+opendistro_security_role_host2:
+  users:
+    - opendistro_security_host_127.0.0.1
+    - opendistro_security_host_localhost
+
+opendistro_security_theindex_admin:
+  users:
+    - theindexadmin
+
+opendistro_security_test:
+  users:
+    - test
