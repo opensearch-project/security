@@ -61,7 +61,7 @@ public class RolesApiAction extends PatchableResourceApiAction {
 
 	@Override
 	protected AbstractConfigurationValidator getValidator(RestRequest request, BytesReference ref, Object... param) {
-		return new RolesValidator(request, ref, this.settings, param);
+		return new RolesValidator(request, isSuperAdmin(), ref, this.settings, param);
 	}
 
 	@Override
