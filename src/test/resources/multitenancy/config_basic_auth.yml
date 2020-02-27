@@ -1,0 +1,27 @@
+opendistro_security:
+  dynamic:
+    kibana:
+      do_not_fail_on_forbidden: true
+    composite_enabled: true
+    http:
+      anonymous_auth_enabled: false
+      xff:
+        enabled: true
+        #internalProxies: '192\.168\.0\.10|192\.168\.0\.11' # regex pattern
+        internalProxies: '.*' # trust all internal proxies, regex pattern
+        remoteIpHeader:  'x-forwarded-for'
+        proxiesHeader:   'x-forwarded-by'
+        trustedProxies: '.*' # trust all external proxies, regex pattern
+        ###### see https://docs.oracle.com/javase/7/docs/api/java/util/regex/Pattern.html for regex help
+        ###### more information about XFF https://en.wikipedia.org/wiki/X-Forwarded-For
+        ###### and here https://tools.ietf.org/html/rfc7239
+        ###### and https://tomcat.apache.org/tomcat-8.0-doc/config/valve.html#Remote_IP_Valve
+    authc:
+      basic_internal_auth_domain: 
+        enabled: true
+        order: 0
+        http_authenticator:
+          type: basic
+          challenge: true
+        authentication_backend:
+          type: intern

@@ -1,0 +1,11 @@
+{
+  "indices": {
+    "sf": {
+      "ships": [
+        "READ"
+      ],
+      "public": [
+        "indices:*"
+      ]
+    },
+{[}

@@ -1,0 +1,92 @@
+# In this file users, backendroles and hosts can be mapped to search guard roles.
+# What a role is allowed to do you specify in roles.yml
+
+# For sample data demo
+human_resources:
+  backendroles:
+    - hr
+    - jwt_hr
+  users:
+    - hr_employee
+    - hr.employee
+    - kerberos_hr_employee
+
+human_resources_trainee:
+  users:
+    - hr_trainee
+  backendroles:
+    - hr_trainee
+
+finance:
+  backendroles:
+    - finance
+  users:
+    - finance_employee
+    - kerberos_finance_employee
+
+finance_trainee:
+  users:
+    - finance_trainee
+  backendroles:
+    - finance_trainee
+
+manage_snapshots:
+  users:
+    - snapshotrestore
+
+role_starfleet:
+  backendroles:
+    - starfleet
+    - captains
+    - defectors
+    - 'cn=ldaprole,ou=groups,dc=example,dc=com'
+  hosts:
+    - "*.starfleetintranet.com"
+  users:
+    - worf
+
+role_starfleet_captains:
+  backendroles:
+    - captains
+
+role_klingons1:
+  backendroles:
+    - klingon
+  hosts:
+    - "*.klingongov.kli"
+  users:
+    - worf
+
+logstash:
+  users:
+    #- 'CN=logstash,OU=client,O=client,L=Test,C=DE'
+    #- 'CN=topbeat,OU=IT Department,O=floragunn,L=City,ST=Berlin,C=DE'
+    - logstash
+    
+kibana_server:
+  users:
+    - kibanaserver
+
+kibana:
+  users:
+    - kibanaro
+
+all_access:
+  users:
+    - admin
+    - adm
+    - 'cn=admin2,ou=people,dc=example,dc=com'
+
+readall:
+  users:
+    - readall
+    - riker
+    - troid
+    
+readonly_dlsfls:
+  users:
+    - dlsflsuser
+    
+kibana4_testindex:
+  users:
+    - test    

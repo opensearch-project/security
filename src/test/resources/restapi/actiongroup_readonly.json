@@ -1,0 +1,4 @@
+{
+ "permissions": ["READ", "WRITE"],
+ "readonly": "true"
+}
