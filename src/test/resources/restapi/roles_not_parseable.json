@@ -1,0 +1,22 @@
+{
+  "indices": [
+    ,
+  "sf": {
+    "ships": [
+      "READ"
+    ]
+    "public": [
+      "indices:*"
+    ]
+  }
+  "pub": {
+    "*": [
+      "READ"
+    ]
+  }
+  ],
+  "cluster": [
+    "cluster:monitor*",
+    "indices:data/read/scroll"
+  ]
+}

@@ -1,0 +1,43 @@
+ALL:
+  - "indices:*"
+MANAGE:
+  - "indices:monitor/*"
+  - "indices:admin/*"
+CREATE_INDEX:
+  - "indices:admin/create"
+MANAGE_ALIASES:
+  - "indices:admin/aliases*"
+MONITOR:
+  - "indices:monitor/*"
+DATA_ACCESS:
+  - "indices:data/*"
+WRITE:
+  - "indices:data/write*"
+READ:
+  - "indices:data/read*"
+DELETE:
+  - "indices:data/write/delete*"
+CRUD:
+  - READ
+  - WRITE
+SEARCH:
+  - "indices:data/read/search*"
+  - "indices:data/read/msearch*"
+  - SUGGEST
+SUGGEST:
+  - "indices:data/read/suggest*"
+INDEX:
+  - "indices:data/write/index*"
+  - "indices:data/write/update*"
+GET:
+  - "indices:data/read/get*"
+  - "indices:data/read/mget*"
+
+# CLUSTER
+CLUSTER_ALL:
+  - cluster:*
+CLUSTER_MONITOR:
+  - cluster:monitor/*
+  
+# HEALTH_AND_STATS = n"cluster:monitor/health*", "cluster:monitor/stats*", "indices:monitor/stats*", "cluster:monitor/nodes/stats*"
+# ALL = cluster:*", "indices:admin/template/*

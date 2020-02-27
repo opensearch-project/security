@@ -1,0 +1,54 @@
+#dc=TEST
+
+dn: ou=people2,o=TEST
+objectclass: organizationalUnit
+objectclass: top
+ou: people2
+
+dn: ou=groups2,o=TEST
+objectclass: organizationalUnit
+objectclass: top
+ou: groups2
+
+dn: cn=Michael Jackson2,ou=people2,o=TEST
+objectclass: inetOrgPerson
+cn: Michael Jackson
+sn: jackson
+uid: jacksonm
+userpassword: secret
+mail: jacksonm@example.com
+ou: Human Resources
+
+dn: cn=Elvis Presley,ou=people2,o=TEST
+objectclass: inetOrgPerson
+cn: Elvis Presley
+sn: presley
+uid: presleye
+userpassword: secret
+mail: presleye@example.com
+ou: Human Resources
+
+dn: cn=Freddy Mercury,ou=people2,o=TEST
+objectclass: inetOrgPerson
+cn: Freddy Mercury
+sn: mercury
+uid: mercuryf
+userpassword: secret
+mail: mercuryf@example.com
+ou: Human Resources
+
+dn: cn=king,ou=groups2,o=TEST
+objectClass: groupOfUniqueNames
+cn: king
+uniqueMember: cn=Michael Jackson,ou=people,o=TEST
+uniqueMember: cn=Elvis Presley,ou=people,o=TEST
+
+dn: cn=crossnested1,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: crossnested1
+uniqueMember: cn=crossnested2,ou=groups2,o=TEST
+
+dn: cn=crossnested2,ou=groups2,o=TEST
+objectClass: groupOfUniqueNames
+cn: crossnested2
+uniqueMember: cn=Freddy Mercury,ou=people2,o=TEST

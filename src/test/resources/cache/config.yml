@@ -1,0 +1,20 @@
+opendistro_security:
+  dynamic:
+    http:
+      anonymous_auth_enabled: false
+      xff:
+        enabled: false
+    authc:
+      dummy_c_domain:
+        enabled: true
+        order: 0
+        http_authenticator:
+          type: com.amazon.opendistroforelasticsearch.security.cache.DummyHTTPAuthenticator
+          challenge: false
+        authentication_backend:
+          type: com.amazon.opendistroforelasticsearch.security.cache.DummyAuthenticationBackend
+    authz:
+      dummy_z_domain:
+        enabled: true
+        authorization_backend:
+          type: com.amazon.opendistroforelasticsearch.security.cache.DummyAuthorizer

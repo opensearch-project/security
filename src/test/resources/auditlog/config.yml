@@ -1,0 +1,39 @@
+#
+# HTTP
+#   basic (challenging) PREAUTH?
+#   proxy (not challenging, needs xff)
+#   kerberos (challenging)  PREAUTH?
+#   clientcert (not challenging, needs https)
+
+# Authc
+#   internal
+#   noop
+#   ldap  
+
+# Authz
+#   ldap  
+#   noop
+
+
+
+opendistro_security:
+  dynamic:
+    http:
+      anonymous_auth_enabled: false
+      xff:
+        enabled: false
+    authc:
+      authentication_domain_basic_internal:
+        enabled: true
+        order: 2
+        http_authenticator:
+          type: basic
+        authentication_backend:
+          type: intern
+      authentication_domain_clientcert:
+        enabled: true
+        order: 1
+        http_authenticator:
+          type: clientcert
+        authentication_backend:
+          type: noop
