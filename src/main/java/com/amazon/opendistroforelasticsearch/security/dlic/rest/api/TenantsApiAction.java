@@ -48,7 +48,7 @@ public class TenantsApiAction extends PatchableResourceApiAction {
 
     @Override
     protected AbstractConfigurationValidator getValidator(final RestRequest request, BytesReference ref, Object... param) {
-        return new TenantValidator(request, ref, this.settings, param);
+        return new TenantValidator(request, isSuperAdmin(), ref, this.settings, param);
     }
 
     @Override
