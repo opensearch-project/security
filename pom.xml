@@ -567,25 +567,52 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-
                 <configuration>
                     <argLine>-Xmx3072m</argLine>
                     <rerunFailingTestsCount>3</rerunFailingTestsCount>
-                    <forkCount>3</forkCount>
-                    <reuseForks>true</reuseForks>
-                    <!--
-                    <parallel>methods</parallel>
-                    <threadCount>1</threadCount>
-                     -->
                     <systemPropertyVariables>
                         <forkno>fork_${surefire.forkNumber}</forkno>
                     </systemPropertyVariables>
-
-                    <includes>
-                        <include>**/*.java</include>
-                    </includes>
                     <argLine>${argLine}</argLine>
                 </configuration>
+
+                <executions>
+                    <!-- Parallel tests -->
+                    <execution>
+                        <id>parallel-tests</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <forkCount>3</forkCount>
+                            <reuseForks>true</reuseForks>
+                            <includes>
+                                <include>**/*.java</include>
+                            </includes>
+                            <excludes>
+                                <exclude>com.amazon.opendistroforelasticsearch.security.auditlog.sink.*</exclude>
+                            </excludes>
+                        </configuration>
+                    </execution>
+                    <!-- Sequential tests -->
+                    <execution>
+                        <id>sequential-tests</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <forkCount>1</forkCount>
+                            <reuseForks>false</reuseForks>
+                            <includes>
+                                <include>com.amazon.opendistroforelasticsearch.security.auditlog.sink.*</include>
+                            </includes>
+                        </configuration>
+                    </execution>
+                </executions>
+
+
             </plugin>
             <!-- Code Coverage -->
             <plugin>
@@ -723,7 +750,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
-                    <version>3.0.0-M3</version>
+                    <version>3.0.0-M4</version>
                     <configuration>
                         <includes>
                             <include>**/*.java</include>
@@ -733,7 +760,7 @@
                 <plugin>
                     <groupId>org.jacoco</groupId>
                     <artifactId>jacoco-maven-plugin</artifactId>
-                    <version>0.8.3</version>
+                    <version>${jacoco.version}</version>
                 </plugin>
                 <plugin>
                     <artifactId>maven-assembly-plugin</artifactId>
