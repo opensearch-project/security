@@ -34,31 +34,6 @@ import java.util.List;
 public class UserApiTest extends AbstractRestApiUnitTest {
 
     @Test
-    public void testOpenDistroSecurityRoles() throws Exception {
-
-        setup();
-
-        rh.keystore = "restapi/kirk-keystore.jks";
-        rh.sendAdminCertificate = true;
-
-        // initial configuration, 5 users
-        HttpResponse response = rh
-                .executeGetRequest("_opendistro/_security/api/" + CType.INTERNALUSERS.toLCString());
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
-        Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(35, settings.size());
-
-        response = rh.executePatchRequest("/_opendistro/_security/api/internalusers", "[{ \"op\": \"add\", \"path\": \"/newuser\", \"value\": {\"password\": \"newuser\", \"opendistro_security_roles\": [\"all_access\"] } }]", new Header[0]);
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
-
-        response = rh.executeGetRequest("/_opendistro/_security/api/internalusers/newuser", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-        Assert.assertTrue(response.getBody().contains("\"opendistro_security_roles\":[\"all_access\"]"));
-
-        checkGeneralAccess(HttpStatus.SC_OK, "newuser", "newuser");
-    }
-
-    @Test
     public void testUserApi() throws Exception {
 
         setup();
