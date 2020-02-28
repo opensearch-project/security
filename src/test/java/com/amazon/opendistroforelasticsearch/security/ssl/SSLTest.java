@@ -99,7 +99,7 @@ public class SSLTest extends SingleClusterTest {
         RestHelper rh = restHelper();
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         rh.keystore = "node-untspec5-keystore.p12";
         
         System.out.println(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty&show_dn=true"));
@@ -223,7 +223,7 @@ public class SSLTest extends SingleClusterTest {
         RestHelper rh = restHelper();
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
 
         System.out.println(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty"));
         Assert.assertTrue(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty").contains("TLS"));
@@ -257,7 +257,7 @@ public class SSLTest extends SingleClusterTest {
         RestHelper rh = restHelper();
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         
         System.out.println(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty"));
         Assert.assertTrue(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty").contains("TLS"));
@@ -298,7 +298,7 @@ public class SSLTest extends SingleClusterTest {
         RestHelper rh = restHelper();
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         
         System.out.println(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty"));
         Assert.assertTrue(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty").contains("TLS"));
@@ -335,7 +335,7 @@ public class SSLTest extends SingleClusterTest {
         RestHelper rh = restHelper();
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         
         System.out.println(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty"));
         Assert.assertTrue(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty").contains("TLS"));
@@ -398,7 +398,7 @@ public class SSLTest extends SingleClusterTest {
         RestHelper rh = restHelper();
         rh.enableHTTPClientSSL = false;
         rh.trustHTTPServerCertificate = true;
-        rh.sendHTTPClientCertificate = false;
+        rh.sendAdminCertificate = false;
         
         Assert.assertTrue(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty").length() > 0);
         Assert.assertTrue(rh.executeSimpleRequest("_nodes/settings?pretty").contains(clusterInfo.clustername));
@@ -422,7 +422,7 @@ public class SSLTest extends SingleClusterTest {
         RestHelper rh = restHelper();
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
-        rh.sendHTTPClientCertificate = false;
+        rh.sendAdminCertificate = false;
         
         Assert.assertTrue(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty").length() > 0);
         Assert.assertTrue(rh.executeSimpleRequest("_nodes/settings?pretty").contains(clusterInfo.clustername));
@@ -446,7 +446,7 @@ public class SSLTest extends SingleClusterTest {
         RestHelper rh = restHelper();
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
-        rh.sendHTTPClientCertificate = false;
+        rh.sendAdminCertificate = false;
         
         try {
             rh.executeSimpleRequest("");
@@ -478,7 +478,7 @@ public class SSLTest extends SingleClusterTest {
         RestHelper rh = restHelper();
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
-        rh.sendHTTPClientCertificate = false;
+        rh.sendAdminCertificate = false;
         rh.enableHTTPClientSSLv3Only = true;
         
         Assert.assertTrue(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty").length() > 0);
@@ -713,7 +713,7 @@ public class SSLTest extends SingleClusterTest {
         RestHelper rh = restHelper();
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         
         log.debug("Elasticsearch started");
 
@@ -773,7 +773,7 @@ public class SSLTest extends SingleClusterTest {
         RestHelper rh = restHelper();
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         
         Assert.assertTrue(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty").contains("TLS"));
     }
@@ -799,7 +799,7 @@ public class SSLTest extends SingleClusterTest {
         RestHelper rh = restHelper();
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
 
         Assert.assertTrue(rh.executeSimpleRequest("_nodes/settings?pretty").contains(clusterInfo.clustername));
         
@@ -904,7 +904,7 @@ public class SSLTest extends SingleClusterTest {
         RestHelper rh = restHelper();
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         
         System.out.println(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty"));
         Assert.assertTrue(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty").contains("TLS"));
@@ -946,7 +946,7 @@ public class SSLTest extends SingleClusterTest {
         RestHelper rh = restHelper();
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         
         Assert.assertTrue(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty").contains("TLS"));
     
