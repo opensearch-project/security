@@ -42,7 +42,7 @@ public class MigrationTests extends SingleClusterTest {
 
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         rh.keystore = "kirk-keystore.jks";
 
         HttpResponse res = rh.executePostRequest("_opendistro/_security/api/migrate?pretty", "");
@@ -72,7 +72,7 @@ public class MigrationTests extends SingleClusterTest {
 
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         rh.keystore = "kirk-keystore.jks";
 
         HttpResponse res = rh.executePostRequest("_opendistro/_security/api/migrate?pretty", "");
@@ -100,7 +100,7 @@ public class MigrationTests extends SingleClusterTest {
 
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         rh.keystore = "kirk-keystore.jks";
 
         HttpResponse res = rh.executeGetRequest("_opendistro/_security/api/validate?pretty");
@@ -122,7 +122,7 @@ public class MigrationTests extends SingleClusterTest {
 
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         rh.keystore = "kirk-keystore.jks";
 
         HttpResponse res = rh.executeGetRequest("_opendistro/_security/api/validate?accept_invalid=true&pretty");
