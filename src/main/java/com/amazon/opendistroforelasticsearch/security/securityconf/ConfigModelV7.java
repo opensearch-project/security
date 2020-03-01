@@ -47,7 +47,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 
 import com.amazon.opendistroforelasticsearch.security.resolver.IndexResolverReplacer.Resolved;
-import com.amazon.opendistroforelasticsearch.security.securityconf.ConfigModelV6.SecurityRole;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.ActionGroupsV7;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.RoleMappingsV7;
@@ -936,26 +935,26 @@ public class ConfigModelV7 extends ConfigModel {
         }));
     }
 
-    static final class ResolvedIndexPattern{
+    static final class IndexPatternsAndPermissions {
         public String[] pattern;
         public Set<String> perms;
-        public ResolvedIndexPattern(String[] pattern, Set<String> perms) {
+        public IndexPatternsAndPermissions(String[] pattern, Set<String> perms) {
             this.pattern = pattern;
             this.perms = perms;
         }
     }
 
-    private static boolean impliesTypePerm(Set<IndexPattern> ipatterns, Resolved resolved, User user, String[] actions,
+    private static boolean impliesTypePerm(Set<IndexPattern> ipatterns, Resolved resolved, User user, String[] requestedActions,
                                            IndexNameExpressionResolver resolver, ClusterService cs) {
-        Set<String> resolvedIndices = resolved.getAllIndices();
-        List<ResolvedIndexPattern> resolvedIndexPatterns = ipatterns
+        Set<String> resolvedRequestedIndices = resolved.getAllIndices();
+        List<IndexPatternsAndPermissions> indexPatternsAndPermissions = ipatterns
                 .stream()
-                .map(p -> new ResolvedIndexPattern(p.getResolvedIndexPattern(user, resolver, cs), p.perms))
+                .map(p -> new IndexPatternsAndPermissions(p.getResolvedIndexPattern(user, resolver, cs), p.perms))
                 .collect(Collectors.toList());
-        return resolvedIndices
+        return resolvedRequestedIndices
                 .stream()
                 .allMatch(index ->
-                        Arrays.stream(actions).allMatch(action -> resolvedIndexPatterns
+                        Arrays.stream(requestedActions).allMatch(action -> indexPatternsAndPermissions
                                 .stream()
                                 .anyMatch(rip -> WildcardMatcher.matchAny(rip.pattern, index) && WildcardMatcher.matchAny(rip.perms, action))
                         )
