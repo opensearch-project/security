@@ -107,7 +107,8 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
             return;
         }
 
-        if (isReadOnly(existingAsSettings.v2(), name)) {
+
+        if (!isReadOnlyAndAccessible(existingAsSettings.v2(), name)) {
             forbidden(channel, "Resource '" + name + "' is read-only.");
             return;
         }
@@ -186,7 +187,7 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
 
             if (oldResource != null && !oldResource.equals(patchedResource)) {
 
-                if (isReadOnly(existingAsSettings.v2(), resourceName)) {
+                if (!isReadOnlyAndAccessible(existingAsSettings.v2(), resourceName)) {
                     forbidden(channel, "Resource '" + resourceName + "' is read-only.");
                     return;
                 }

@@ -195,7 +195,7 @@ public class AccountApiAction extends AbstractApiAction {
             return;
         }
 
-        if (isReadOnly(existingAsSettings.v2(), username)) {
+        if (!isReadOnlyAndAccessible(existingAsSettings.v2(), username)) {
             forbidden(channel, "Resource '"+ username +"' is read-only.");
             return;
         }

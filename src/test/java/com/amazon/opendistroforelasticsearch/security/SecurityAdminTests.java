@@ -117,7 +117,7 @@ public class SecurityAdminTests extends SingleClusterTest {
 
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
-        rh.sendHTTPClientCertificate = true;
+        rh.sendAdminCertificate = true;
         rh.keystore = "kirk-keystore.jks";
         System.out.println(rh.executePutRequest(".opendistro_security/security/roles", FileHelper.loadFile("roles_invalidxcontent.yml")).getBody());;
         Assert.assertEquals(HttpStatus.SC_OK, rh.executePutRequest(".opendistro_security/security/roles", "{\"roles\":\"dummy\"}").getStatusCode());
