@@ -115,9 +115,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         }
 
         // check if resource is writeable
-        Boolean readOnly = configurationSettings.v2().getAsBoolean(username + "." + ConfigConstants.CONFIGKEY_READONLY,
-                Boolean.FALSE);
-        if (readOnly) {
+        if (!isReadOnlyAndAccessible(configurationSettings.v2(), username)) {
             forbidden(channel, "Resource '" + username + "' is read-only.");
             return;
         }
@@ -228,6 +226,6 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
 
     @Override
     protected AbstractConfigurationValidator getValidator(RestRequest request, BytesReference ref, Object... params) {
-        return new InternalUsersValidator(request, ref, this.settings, params);
+        return new InternalUsersValidator(request, isSuperAdmin(), ref, this.settings, params);
     }
 }

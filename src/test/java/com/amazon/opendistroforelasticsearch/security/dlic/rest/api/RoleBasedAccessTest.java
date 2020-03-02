@@ -31,7 +31,7 @@ public class RoleBasedAccessTest extends AbstractRestApiUnitTest {
 
 		setupWithRestRoles();
 
-		rh.sendHTTPClientCertificate = false;
+		rh.sendAdminCertificate = false;
 
 		// worf and sarek have access, worf has some endpoints disabled
 
@@ -206,7 +206,7 @@ public class RoleBasedAccessTest extends AbstractRestApiUnitTest {
 		Assert.assertEquals(settings.getAsList("opendistro_security_role_starfleet_captains.indices.hulla.dulla").get(0), "blafasel");
 
 		// Try the same, but now with admin certificate
-		rh.sendHTTPClientCertificate = true;
+		rh.sendAdminCertificate = true;
 
 		// admin
 		response = rh.executeGetRequest("/_opendistro/_security/api/user/admin", encodeBasicHeader("la", "lu"));
@@ -225,7 +225,7 @@ public class RoleBasedAccessTest extends AbstractRestApiUnitTest {
 
 		// -- test user, does not have any endpoints disabled, but has access to API, i.e. full access
 
-		rh.sendHTTPClientCertificate = false;
+		rh.sendAdminCertificate = false;
 
 		// GET actiongroups
 		response = rh.executeGetRequest("_opendistro/_security/api/configuration/actiongroups", encodeBasicHeader("test", "test"));
