@@ -81,6 +81,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 	private final RestApiPrivilegesEvaluator restApiPrivilegesEvaluator;
 	protected final AuditLog auditLog;
 	protected final Settings settings;
+	private AdminDNs adminDNs;
 
 	protected AbstractApiAction(final Settings settings, final Path configPath, final RestController controller,
 								final Client client, final AdminDNs adminDNs, final ConfigurationRepository cl,
@@ -91,7 +92,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		this.opendistroIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME,
 				ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
 
-
+		this.adminDNs = adminDNs;
 		this.cl = cl;
 		this.cs = cs;
 		this.threadPool = threadPool;
@@ -160,7 +161,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 			return;
 		}
 
-		if (isReserved(existingConfiguration, name)) {
+		if (!isReservedAndAccessible(existingConfiguration, name)) {
 			forbidden(channel, "Resource '"+ name +"' is read-only.");
 			return;
 		}
@@ -198,7 +199,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 			return;
 		}
 
-		if (isReserved(existingConfiguration, name)) {
+		if (!isReservedAndAccessible(existingConfiguration, name)) {
 			forbidden(channel, "Resource '"+ name +"' is read-only.");
 			return;
 		}
@@ -543,5 +544,18 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 	}
 
 	protected abstract Endpoint getEndpoint();
+
+	protected boolean isSuperAdmin() {
+		User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+		return adminDNs.isAdmin(user);
+	}
+
+	protected boolean isReservedAndAccessible(final SecurityDynamicConfiguration<?> existingConfiguration,
+											  String name) {
+		if( isReserved(existingConfiguration, name) && !isSuperAdmin()) {
+			return false;
+		}
+		return true;
+	}
 
 }
