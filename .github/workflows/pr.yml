@@ -1,0 +1,30 @@
+name: Test
+
+on:
+  pull_request:
+    branches :
+      - master
+    types: [closed]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
+    strategy:
+      matrix:
+        branch: [opendistro-1.4]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2.0.0
+        with:
+          ref: ${{ matrix.branch }}
+      - name: Get changes
+        run: |
+          git config --global user.email "palashhedau900@gmail.com"
+          git config --global user.name "Palash Hedau"
+          git fetch origin
+          git cherry-pick ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
