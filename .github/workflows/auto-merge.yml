@@ -1,0 +1,34 @@
+name: Auto Merge
+
+on:
+  pull_request:
+    branches:
+      - opendistro-*
+    types:
+      - labeled
+      - reopened
+      - edited
+  pull_request_review:
+    types:
+      - submitted
+  status: {}
+
+jobs:
+  automerge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Wait for status checks'
+        id: waitforstatuschecks
+        uses: "WyriHaximus/github-action-wait-for-status@master"
+        with:
+          ignoreActions: automerge
+          checkInterval: 13
+        env:
+          GITHUB_TOKEN: "${{ secrets.PAT }}"
+      - name: 'Merge'
+        uses: "pascalgn/automerge-action@master"
+        if: steps.waitforstatuschecks.outputs.status == 'success'
+        env:
+          GITHUB_TOKEN: "${{ secrets.PAT }}"
+          MERGE_LABELS: automerge
+          MERGE_FORKS: false

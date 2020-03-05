@@ -1,0 +1,35 @@
+name: Create Backporting PRs
+
+on:
+  pull_request:
+    branches:
+      - master
+    types: [closed]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'backport')
+    strategy:
+      matrix:
+        branch: [opendistro-1.0, opendistro-1.1, opendistro-1.2, opendistro-1.3, opendistro-1.4, opendistro-1.5]
+      fail-fast: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2.0.0
+        with:
+          ref: ${{ matrix.branch }}
+      - name: Get changes
+        env:
+          GIT_CHERRY_PICK : "git cherry-pick ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
+        run: |
+          git config --global user.email "palashhedau900@gmail.com"
+          git config --global user.name "Palash Hedau"
+          git fetch origin
+          $GIT_CHERRY_PICK
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v2
+        with:
+          token: ${{ secrets.PAT }}
+          branch-suffix: short-commit-hash
+          labels: automerge
