@@ -49,6 +49,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.lucene.index.DirectoryReader;
+import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenDistroSecuritySSLReloadCertsAction;
+import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenDistroSecuritySSLCertsInfoAction;
 import org.apache.lucene.search.QueryCachingPolicy;
 import org.apache.lucene.search.Weight;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -168,6 +170,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     private static final String KEYWORD = ".keyword";
     private final boolean dlsFlsAvailable;
     private final Constructor<?> dlsFlsConstructor;
+    private boolean sslCertReloadEnabled;
     private volatile OpenDistroSecurityRestFilter securityRestHandler;
     private volatile OpenDistroSecurityInterceptor odsi;
     private volatile PrivilegesEvaluator evaluator;
@@ -210,28 +213,40 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     private static boolean isSslOnlyMode(final Settings settings) {
         return settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_SSL_ONLY, false);
     }
-    
+
+    /**
+     * SSL Cert Reload will be enabled only if security is not disabled and not in we are not using sslOnly mode.
+     * @param settings Elastic configuration settings
+     * @return true if ssl cert reload is enabled else false
+     */
+    private static boolean isSslCertReloadEnabled(final Settings settings) {
+        return settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_SSL_CERT_RELOAD_ENABLED, false);
+    }
+
     public OpenDistroSecurityPlugin(final Settings settings, final Path configPath) {
         super(settings, configPath, isDisabled(settings));
 
         disabled = isDisabled(settings);
+        sslCertReloadEnabled = isSslCertReloadEnabled(settings);
 
         if (disabled) {
             this.dlsFlsAvailable = false;
             this.dlsFlsConstructor = null;
             this.advancedModulesEnabled = false;
             this.sslOnly = false;
+            this.sslCertReloadEnabled = false;
             complianceConfig = null;
             log.warn("Open Distro Security plugin installed but disabled. This can expose your configuration (including passwords) to the public.");
             return;
         }
         
         sslOnly = isSslOnlyMode(settings);
-        
+
         if (sslOnly) {
             this.dlsFlsAvailable = false;
             this.dlsFlsConstructor = null;
             this.advancedModulesEnabled = false;
+            this.sslCertReloadEnabled = false;
             complianceConfig = null;
             log.warn("Open Distro Security plugin run in ssl only mode. No authentication or authorization is performed");
             return;
@@ -433,9 +448,13 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                 handlers.add(new OpenDistroSecurityInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool)));
                 handlers.add(new KibanaInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool)));
                 handlers.add(new OpenDistroSecurityHealthAction(settings, restController, Objects.requireNonNull(backendRegistry)));
-                handlers.add(new TenantInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool), 
-                		Objects.requireNonNull(cs), Objects.requireNonNull(adminDns)));    
-                
+                handlers.add(new OpenDistroSecuritySSLCertsInfoAction(settings, restController, odsks, Objects.requireNonNull(threadPool), Objects.requireNonNull(adminDns)));
+                handlers.add(new TenantInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool),
+				Objects.requireNonNull(cs), Objects.requireNonNull(adminDns)));
+
+                if (sslCertReloadEnabled) {
+                    handlers.add(new OpenDistroSecuritySSLReloadCertsAction(settings, restController, odsks, Objects.requireNonNull(threadPool), Objects.requireNonNull(adminDns)));
+                }
                 Collection<RestHandler> apiHandler = ReflectionHelper
                         .instantiateMngtRestApiHandler(settings, configPath, restController, localClient, adminDns, cr, cs, Objects.requireNonNull(principalExtractor),  evaluator, threadPool, Objects.requireNonNull(auditLog));
                 handlers.addAll(apiHandler);
@@ -965,6 +984,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_ALLOW_NOW_IN_DLS, false, Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, false, Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES, true, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_SSL_CERT_RELOAD_ENABLED, false, Property.NodeScope, Property.Filtered));
         }
         
         return settings;
