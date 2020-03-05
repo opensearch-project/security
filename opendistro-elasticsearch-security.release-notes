@@ -1,4 +1,9 @@
-## 2020-01-29, Version 0.10.0.4 (Current)
+## 2020-03-05, Version 0.10.1.1 (Current)
+
+- Adding capability to hot reload ssl certificates
+- Added changes for SuperAdmin to update/add/delete reserved configs
+
+## 2020-01-29, Version 0.10.0.4 
 
 - New API to fetch and update account details (currently used for password update)
 
