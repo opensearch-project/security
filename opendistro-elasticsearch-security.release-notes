@@ -1,9 +1,4 @@
-## 2020-03-04, Version 1.1.0.5 (Current)
-
-- Adding capability to hot reload ssl certificates
-- Added changes for SuperAdmin to update/add/delete reserved configs
-
-## 2020-01-27, Version 1.1.0.4
+## 2020-01-27, Version 1.1.0.4 (Current)
 
 - Merging all security repos (security-parent and security-advanced-modules into security)
 - New API to fetch and update account details (currently used for password update)
