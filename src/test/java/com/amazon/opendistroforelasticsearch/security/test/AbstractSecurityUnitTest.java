@@ -32,7 +32,6 @@ package com.amazon.opendistroforelasticsearch.security.test;
 
 import io.netty.handler.ssl.OpenSsl;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -215,31 +214,26 @@ public abstract class AbstractSecurityUnitTest {
         }
     }
 
-    protected Settings.Builder minimumSecuritySettingsBuilder(int node, boolean sslOnly) {
+    protected Settings.Builder minimumSecuritySettingsBuilder(int node, boolean sslOnly, boolean hasCustomTransportSettings) {
 
         final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
 
-
-
         Settings.Builder builder = Settings.builder()
-                //.put("opendistro_security.ssl.transport.enabled", true)
-                //.put("opendistro_security.no_default_init", true)
-                //.put("opendistro_security.ssl.http.enable_openssl_if_available", false)
-                //.put("opendistro_security.ssl.transport.enable_openssl_if_available", false)
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-                .put("opendistro_security.ssl.transport.keystore_alias", "node-0")
-                .put("opendistro_security.ssl.transport.keystore_filepath",
-                        FileHelper.getAbsoluteFilePathFromClassPath(prefix+"node-0-keystore.jks"))
-                .put("opendistro_security.ssl.transport.truststore_filepath",
-                        FileHelper.getAbsoluteFilePathFromClassPath(prefix+"truststore.jks"))
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL);
+
+        // If custom transport settings are not defined use defaults
+        if (!hasCustomTransportSettings) {
+            builder.put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
+                    FileHelper.getAbsoluteFilePathFromClassPath(prefix+"node-0-keystore.jks"))
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath(prefix+"truststore.jks"))
                 .put("opendistro_security.ssl.transport.enforce_hostname_verification", false);
+        }
 
         if(!sslOnly) {
             builder.putList("opendistro_security.authcz.admin_dn", "CN=kirk,OU=client,O=client,l=tEst, C=De");
             builder.put(ConfigConstants.OPENDISTRO_SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, false);
-
-            //.put(other==null?Settings.EMPTY:other);
         }
 
         return builder;
@@ -249,7 +243,7 @@ public abstract class AbstractSecurityUnitTest {
         return new NodeSettingsSupplier() {
             @Override
             public Settings get(int i) {
-                return minimumSecuritySettingsBuilder(i, false).put(other).build();
+                return minimumSecuritySettingsBuilder(i, false, hasCustomTransportSettings(other)).put(other).build();
             }
         };
     }
@@ -259,7 +253,7 @@ public abstract class AbstractSecurityUnitTest {
         return new NodeSettingsSupplier() {
             @Override
             public Settings get(int i) {
-                return minimumSecuritySettingsBuilder(i, true).put(other).build();
+                return minimumSecuritySettingsBuilder(i, true, false).put(other).build();
             }
         };
     }
@@ -287,5 +281,15 @@ public abstract class AbstractSecurityUnitTest {
 
     protected String getType() {
         return "_doc";
+    }
+
+    /**
+     * Check if transport certs are is mentioned in the custom settings
+     * @param customSettings custom settings from the test class
+     * @return boolean flag indicating if transport settings are defined
+     */
+    protected boolean hasCustomTransportSettings(Settings customSettings) {
+        // Note: current only doing this for PEMCERT settings
+        return customSettings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH) != null;
     }
 }
