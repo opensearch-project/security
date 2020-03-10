@@ -69,7 +69,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 import com.amazon.opendistroforelasticsearch.security.action.whoami.WhoAmIAction;
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog.Origin;
-import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
 import com.amazon.opendistroforelasticsearch.security.configuration.AdminDNs;
 import com.amazon.opendistroforelasticsearch.security.configuration.CompatConfig;
 import com.amazon.opendistroforelasticsearch.security.configuration.DlsFlsRequestValve;
@@ -91,20 +90,18 @@ public class OpenDistroSecurityFilter implements ActionFilter {
     private final AuditLog auditLog;
     private final ThreadContext threadContext;
     private final ClusterService cs;
-    private final ComplianceConfig complianceConfig;
     private final CompatConfig compatConfig;
     private final IndexResolverReplacer indexResolverReplacer;
 
     public OpenDistroSecurityFilter(final PrivilegesEvaluator evalp, final AdminDNs adminDns,
                                     DlsFlsRequestValve dlsFlsValve, AuditLog auditLog, ThreadPool threadPool, ClusterService cs,
-                                    ComplianceConfig complianceConfig, final CompatConfig compatConfig, final IndexResolverReplacer indexResolverReplacer) {
+                                    final CompatConfig compatConfig, final IndexResolverReplacer indexResolverReplacer) {
         this.evalp = evalp;
         this.adminDns = adminDns;
         this.dlsFlsValve = dlsFlsValve;
         this.auditLog = auditLog;
         this.threadContext = threadPool.getThreadContext();
         this.cs = cs;
-        this.complianceConfig = complianceConfig;
         this.compatConfig = compatConfig;
         this.indexResolverReplacer = indexResolverReplacer;
     }
@@ -132,7 +129,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
                 threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, Origin.LOCAL.toString());
             }
             
-            if(complianceConfig != null && complianceConfig.isEnabled()) {
+            if(auditLog.getConfig() != null && auditLog.getConfig().isEnabled()) {
                 attachSourceFieldContext(request);
             }
 
@@ -193,7 +190,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
             }
             
             
-            if(complianceConfig != null && complianceConfig.isEnabled()) {
+            if(auditLog.getConfig() != null && auditLog.getConfig().isEnabled()) {
             
                 boolean isImmutable = false;
                 
@@ -314,7 +311,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
                 || request instanceof IndicesAliasesRequest //TODO only remove index
                 ) {
             
-            if(complianceConfig != null && complianceConfig.isIndexImmutable(request, indexResolverReplacer)) {
+            if(auditLog.getConfig() != null && auditLog.getConfig().isIndexImmutable(request, indexResolverReplacer)) {
                 //auditLog.log
                 
                 //check index for type = remove index
@@ -333,7 +330,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
         }
         
         if(request instanceof IndexRequest) {
-            if(complianceConfig != null && complianceConfig.isIndexImmutable(request, indexResolverReplacer)) {
+            if(auditLog.getConfig() != null && auditLog.getConfig().isIndexImmutable(request, indexResolverReplacer)) {
                 ((IndexRequest) request).opType(OpType.CREATE);
             }
         }

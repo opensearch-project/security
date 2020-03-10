@@ -30,7 +30,6 @@
 
 package com.amazon.opendistroforelasticsearch.security.auditlog;
 
-import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.engine.Engine.Delete;
@@ -77,16 +76,15 @@ public interface AuditLog extends Closeable {
     void logSSLException(RestRequest request, Throwable t);
 
     //compliance
-    void logDocumentRead(String index, String id, ShardId shardId, Map<String, String> fieldNameValues, ComplianceConfig complianceConfig);
+    void logDocumentRead(String index, String id, ShardId shardId, Map<String, String> fieldNameValues);
 
-    void logDocumentWritten(ShardId shardId, GetResult originalIndex, Index currentIndex, IndexResult result, ComplianceConfig complianceConfig);
+    void logDocumentWritten(ShardId shardId, GetResult originalIndex, Index currentIndex, IndexResult result);
 
     void logDocumentDeleted(ShardId shardId, Delete delete, DeleteResult result);
 
     void logExternalConfig(Settings settings, Environment environment);
 
-    // compliance config
-    void setComplianceConfig(ComplianceConfig complianceConfig);
+    AuditConfig getConfig();
 
     enum Origin {
         REST, TRANSPORT, LOCAL

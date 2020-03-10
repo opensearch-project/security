@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import com.amazon.opendistroforelasticsearch.security.auditlog.AuditConfig;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.Client;
@@ -33,7 +34,6 @@ import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
 import com.amazon.opendistroforelasticsearch.security.auditlog.sink.AuditLogSink;
 import com.amazon.opendistroforelasticsearch.security.auditlog.sink.SinkProvider;
-import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
 import com.amazon.opendistroforelasticsearch.security.dlic.rest.support.Utils;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 
@@ -46,7 +46,7 @@ public class AuditMessageRouter {
 	final AsyncStoragePool storagePool;
 	final boolean enabled;
 	boolean hasMultipleEndpoints;
-	private ComplianceConfig complianceConfig;
+	private AuditConfig auditConfig;
 
 	public AuditMessageRouter(final Settings settings, final Client clientProvider, ThreadPool threadPool, final Path configPath) {
 		this.sinkProvider = new SinkProvider(settings, clientProvider, threadPool, configPath);
@@ -64,8 +64,8 @@ public class AuditMessageRouter {
 		}
 	}
 
-	public void setComplianceConfig(ComplianceConfig complianceConfig) {
-		this.complianceConfig = complianceConfig;
+	public void setComplianceConfig(AuditConfig auditConfig) {
+		this.auditConfig = auditConfig;
 	}
 
 	public boolean isEnabled() {
@@ -79,7 +79,7 @@ public class AuditMessageRouter {
 			return;
 		}
 		// if we do not run the compliance features or no extended configuration is present, only log to default.
-		if (!hasMultipleEndpoints || complianceConfig == null || !complianceConfig.isEnabled()) {
+		if (!hasMultipleEndpoints || auditConfig == null || !auditConfig.isEnabled()) {
 			store(defaultSink, msg);
 		} else {
 			for (AuditLogSink sink : categorySinks.get(msg.getCategory())) {

@@ -26,7 +26,6 @@ import org.elasticsearch.common.settings.Settings;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage;
 import com.amazon.opendistroforelasticsearch.security.auditlog.routing.AuditMessageRouter;
-import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
 import com.amazon.opendistroforelasticsearch.security.test.DynamicSecurityConfig;
 import com.amazon.opendistroforelasticsearch.security.test.SingleClusterTest;
 import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
@@ -109,7 +108,7 @@ public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
 
     protected AuditMessageRouter createMessageRouterComplianceEnabled(Settings settings) {
     	AuditMessageRouter router = new AuditMessageRouter(settings, null, null, null);
-    	ComplianceConfig mockConfig = mock(ComplianceConfig.class);
+    	AuditConfig mockConfig = mock(AuditConfig.class);
     	when(mockConfig.isEnabled()).thenReturn(true);
     	router.setComplianceConfig(mockConfig);
     	return router;

@@ -1,8 +1,8 @@
 package com.amazon.opendistroforelasticsearch.security.auditlog.impl;
 
 import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
+import com.amazon.opendistroforelasticsearch.security.auditlog.AuditConfig;
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
-import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
 import com.amazon.opendistroforelasticsearch.security.dlic.rest.support.Utils;
 import com.amazon.opendistroforelasticsearch.security.support.OpenDistroSecurityDeprecationHandler;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -55,7 +55,7 @@ public class ComplianceResolver {
                                 final ShardId shardId,
                                 final Map<String, String> fieldNameValues,
                                 final String effectiveUser,
-                                final ComplianceConfig complianceConfig) {
+                                final AuditConfig auditConfig) {
         AuditCategory category = opendistrosecurityIndex.equals(index) ? AuditCategory.COMPLIANCE_INTERNAL_CONFIG_READ : AuditCategory.COMPLIANCE_DOC_READ;
 
         AuditMessage.Builder auditMessageBuilder = new AuditMessage.Builder(category)
@@ -69,7 +69,7 @@ public class ComplianceResolver {
                 .addId(id);
 
         try {
-            if (complianceConfig.logReadMetadataOnly()) {
+            if (auditConfig.shouldLogReadMetadataOnly()) {
                 try {
                     XContentBuilder builder = XContentBuilder.builder(JsonXContent.jsonXContent);
                     builder.startObject()
@@ -107,7 +107,7 @@ public class ComplianceResolver {
                                 final Index currentIndex,
                                 final IndexResult result,
                                 final String effectiveUser,
-                                final ComplianceConfig complianceConfig) {
+                                final AuditConfig auditConfig) {
 
         AuditCategory category = opendistrosecurityIndex.equals(shardId.getIndexName()) ? AuditCategory.COMPLIANCE_INTERNAL_CONFIG_WRITE : AuditCategory.COMPLIANCE_DOC_WRITE;
 
@@ -125,7 +125,7 @@ public class ComplianceResolver {
                 .addComplianceDocVersion(result.getVersion())
                 .addComplianceOperation(result.isCreated() ? AuditLog.Operation.CREATE : AuditLog.Operation.UPDATE);
 
-        if (complianceConfig.logDiffsForWrite() && originalResult != null && originalResult.isExists() && originalResult.internalSourceRef() != null) {
+        if (auditConfig.shouldLogDiffsForWrite() && originalResult != null && originalResult.isExists() && originalResult.internalSourceRef() != null) {
             try {
                 String originalSource = null;
                 String currentSource = null;
@@ -162,7 +162,7 @@ public class ComplianceResolver {
             }
         }
 
-        if (!complianceConfig.logWriteMetadataOnly()) {
+        if (!auditConfig.shouldLogWriteMetadataOnly()) {
             if (opendistrosecurityIndex.equals(shardId.getIndexName())) {
                 //current source, normally not null or empty
                 try (XContentParser parser = XContentHelper.createParser(NamedXContentRegistry.EMPTY, OpenDistroSecurityDeprecationHandler.INSTANCE, currentIndex.source(), XContentType.JSON)) {

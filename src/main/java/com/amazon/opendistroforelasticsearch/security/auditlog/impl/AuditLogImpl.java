@@ -19,7 +19,6 @@ import com.amazon.opendistroforelasticsearch.security.auditlog.AuditConfig;
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
 import com.amazon.opendistroforelasticsearch.security.auditlog.filter.AuditFilter;
 import com.amazon.opendistroforelasticsearch.security.auditlog.routing.AuditMessageRouter;
-import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
 import com.amazon.opendistroforelasticsearch.security.dlic.rest.support.Utils;
 import com.amazon.opendistroforelasticsearch.security.support.Base64Helper;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
@@ -99,6 +98,7 @@ public final class AuditLogImpl implements AuditLog {
         this.requestResolver = new RequestResolver(clusterService, indexNameExpressionResolver, opendistrosecurityIndex, threadPool);
         this.complianceResolver = new ComplianceResolver(clusterService, indexNameExpressionResolver, opendistrosecurityIndex);
         this.messageRouter = new AuditMessageRouter(settings, clientProvider, threadPool, configPath);
+        this.messageRouter.setComplianceConfig(auditConfig);
         this.enabled = messageRouter.isEnabled();
 
         log.info("Message routing enabled: {}", this.enabled);
@@ -124,13 +124,13 @@ public final class AuditLogImpl implements AuditLog {
     }
 
     @Override
-    public void setComplianceConfig(final ComplianceConfig complianceConfig) {
-        messageRouter.setComplianceConfig(complianceConfig);
+    public void close() throws IOException {
+        messageRouter.close();
     }
 
     @Override
-    public void close() throws IOException {
-        messageRouter.close();
+    public AuditConfig getConfig() {
+        return auditConfig;
     }
 
     protected void save(final AuditMessage msg) {
@@ -364,11 +364,10 @@ public final class AuditLogImpl implements AuditLog {
     public void logDocumentRead(final String index,
                                 final String id,
                                 final ShardId shardId,
-                                final Map<String, String> fieldNameValues,
-                                final ComplianceConfig complianceConfig) {
+                                final Map<String, String> fieldNameValues) {
         if (!enabled) return;
 
-        if (complianceConfig == null || !complianceConfig.readHistoryEnabledForIndex(index)) {
+        if (auditConfig == null || !auditConfig.readHistoryEnabledForIndex(index)) {
             return;
         }
 
@@ -384,7 +383,7 @@ public final class AuditLogImpl implements AuditLog {
         }
 
         if (fieldNameValues != null && !fieldNameValues.isEmpty()) {
-            AuditMessage msg = complianceResolver.resolve(getOrigin(), getRemoteAddress(), index, id, shardId, fieldNameValues, effectiveUser, complianceConfig);
+            AuditMessage msg = complianceResolver.resolve(getOrigin(), getRemoteAddress(), index, id, shardId, fieldNameValues, effectiveUser, auditConfig);
             save(msg);
         }
     }
@@ -393,8 +392,7 @@ public final class AuditLogImpl implements AuditLog {
     public void logDocumentWritten(final ShardId shardId,
                                    final GetResult originalResult,
                                    final Index currentIndex,
-                                   final IndexResult result,
-                                   final ComplianceConfig complianceConfig) {
+                                   final IndexResult result) {
         if (!enabled) return;
 
         String effectiveUser = getUser();
@@ -403,12 +401,12 @@ public final class AuditLogImpl implements AuditLog {
             return;
         }
 
-        if (complianceConfig == null || !complianceConfig.writeHistoryEnabledForIndex(shardId.getIndexName())) {
+        if (auditConfig == null || !auditConfig.writeHistoryEnabledForIndex(shardId.getIndexName())) {
             return;
         }
 
         AuditMessage msg = complianceResolver.resolve(getOrigin(), getRemoteAddress(), shardId, originalResult,
-                currentIndex, result, effectiveUser, complianceConfig);
+                currentIndex, result, effectiveUser, auditConfig);
 
         save(msg);
     }
