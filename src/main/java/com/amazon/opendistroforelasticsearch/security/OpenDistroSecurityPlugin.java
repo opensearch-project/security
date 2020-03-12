@@ -188,7 +188,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     private final List<String> demoCertHashes = new ArrayList<String>(3);
     private volatile OpenDistroSecurityFilter odsf;
     private volatile Environment environment;
-    private volatile AuditConfig auditConfig;
+
     private volatile IndexResolverReplacer irr;
     private volatile NamedXContentRegistry namedXContentRegistry = null;
     private volatile DlsFlsRequestValve dlsFlsValve = null;
@@ -236,7 +236,6 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             this.advancedModulesEnabled = false;
             this.sslOnly = false;
             this.sslCertReloadEnabled = false;
-            auditConfig = null;
             log.warn("Open Distro Security plugin installed but disabled. This can expose your configuration (including passwords) to the public.");
             return;
         }
@@ -248,7 +247,6 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             this.dlsFlsConstructor = null;
             this.advancedModulesEnabled = false;
             this.sslCertReloadEnabled = false;
-            auditConfig = null;
             log.warn("Open Distro Security plugin run in ssl only mode. No authentication or authorization is performed");
             return;
         }
@@ -509,12 +507,13 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         //called for every index!
 
         if (!disabled && !client && !sslOnly) {
+            AuditConfig auditConfig = auditLog.getConfig();
             log.debug("Handle complianceConfig="+auditConfig+"/dlsFlsAvailable: "+dlsFlsAvailable+"/auditLog="+auditLog.getClass()+" for onIndexModule() of index "+indexModule.getIndex().getName());
             if (dlsFlsAvailable) {
 
                 final ComplianceIndexingOperationListener ciol;
 
-                assert auditConfig!=null:"compliance config must not be null here";
+                assert auditConfig!=null:"audit config must not be null here";
                 
                 if(auditConfig.writeHistoryEnabledForIndex(indexModule.getIndex().getName())) {
                     ciol = ReflectionHelper.instantiateComplianceListener(Objects.requireNonNull(auditLog));
@@ -751,7 +750,6 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         final IndexNameExpressionResolver resolver = new IndexNameExpressionResolver();
         irr = new IndexResolverReplacer(resolver, clusterService, cih);
         auditLog = ReflectionHelper.instantiateAuditLog(settings, configPath, localClient, threadPool, resolver, clusterService);
-        auditConfig = auditLog.getConfig();
         this.environment = environment;
 
         sslExceptionHandler = new AuditLogSslExceptionHandler(auditLog);
@@ -1008,10 +1006,14 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         }
         final Set<ModuleInfo> securityModules = ReflectionHelper.getModulesLoaded();
         log.info("{} Open Distro Security modules loaded so far: {}", securityModules.size(), securityModules);
-        if(auditLog != null && auditLog.getConfig() != null && auditLog.getConfig().isEnabled() && auditLog.getConfig().isLogExternalConfig() && !auditLog.getConfig().isExternalConfigLogged()) {
-        	log.info("logging external config");
-        	auditLog.logExternalConfig(environment.settings(), environment);
-            auditLog.getConfig().setExternalConfigLogged(true);
+
+        if (auditLog != null && auditLog.isEnabled()) {
+            AuditConfig auditConfig = auditLog.getConfig();
+            if (auditConfig.isLogExternalConfig() && !auditConfig.isExternalConfigLogged()) {
+                log.info("logging external config");
+                auditLog.logExternalConfig(environment.settings(), environment);
+                auditConfig.setExternalConfigLogged(true);
+            }
         }
     }
 

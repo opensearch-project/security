@@ -67,7 +67,7 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
 
     @Override
     public void postDelete(final ShardId shardId, final Delete delete, final DeleteResult result) {
-        if(auditlog.getConfig().isEnabled()) {
+        if(auditlog.isEnabled()) {
             Objects.requireNonNull(is);
             if(result.getFailure() == null && result.isFound() && delete.origin() == org.elasticsearch.index.engine.Engine.Operation.Origin.PRIMARY) {
                 auditlog.logDocumentDeleted(shardId, delete, result);
@@ -77,7 +77,7 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
 
     @Override
     public Index preIndex(final ShardId shardId, final Index index) {
-        if(auditlog.getConfig().isEnabled() && auditlog.getConfig().shouldLogDiffsForWrite()) {
+        if(auditlog.isEnabled() && auditlog.getConfig().shouldLogDiffsForWrite()) {
             Objects.requireNonNull(is);
 
             final IndexShard shard;
@@ -119,14 +119,14 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
 
     @Override
     public void postIndex(final ShardId shardId, final Index index, final Exception ex) {
-        if(auditlog.getConfig().isEnabled() && auditlog.getConfig().shouldLogDiffsForWrite()) {
+        if(auditlog.isEnabled() && auditlog.getConfig().shouldLogDiffsForWrite()) {
             threadContext.remove();
         }
     }
 
     @Override
     public void postIndex(ShardId shardId, Index index, IndexResult result) {
-        if(auditlog.getConfig().isEnabled() && auditlog.getConfig().shouldLogDiffsForWrite()) {
+        if(auditlog.isEnabled() && auditlog.getConfig().shouldLogDiffsForWrite()) {
             final Context context = threadContext.get();
             final GetResult previousContent = context==null?null:context.getGetResult();
             threadContext.remove();
@@ -154,7 +154,7 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
             }
 
             auditlog.logDocumentWritten(shardId, previousContent, index, result);
-        } else if (auditlog.getConfig().isEnabled()) {
+        } else if (auditlog.isEnabled()) {
             //no diffs
             if (result.getFailure() != null || index.origin() != org.elasticsearch.index.engine.Engine.Operation.Origin.PRIMARY) {
                 return;

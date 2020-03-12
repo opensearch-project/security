@@ -83,10 +83,10 @@ public class ComplianceResolver {
             } else {
                 if (opendistrosecurityIndex.equals(index) && !"tattr".equals(id)) {
                     try {
-                        Map<String, String> map = fieldNameValues.entrySet()
+                        Map<String, String> fieldKeys = fieldNameValues.entrySet()
                                 .stream()
                                 .collect(Collectors.toMap(entry -> "id", entry -> new String(BaseEncoding.base64().decode(entry.getValue()), StandardCharsets.UTF_8)));
-                        auditMessageBuilder.addMapToRequestBody(Utils.convertJsonToxToStructuredMap(map.get("id")));
+                        auditMessageBuilder.addMapToRequestBody(Utils.convertJsonToxToStructuredMap(fieldKeys.get("id")));
                     } catch (Exception e) {
                         auditMessageBuilder.addMapToRequestBody(new HashMap<>(fieldNameValues));
                     }

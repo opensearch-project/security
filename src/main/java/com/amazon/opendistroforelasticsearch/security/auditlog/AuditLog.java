@@ -86,6 +86,8 @@ public interface AuditLog extends Closeable {
 
     AuditConfig getConfig();
 
+    boolean isEnabled();
+
     enum Origin {
         REST, TRANSPORT, LOCAL
     }

@@ -118,7 +118,7 @@ class DlsFlsFilterLeafReader extends FilterLeafReader {
         super(delegate);
 
         this.auditlog = auditlog;
-        maskFields = (auditlog.getConfig().isEnabled() && maskedFields != null && maskedFields.size() > 0);
+        maskFields = (auditlog.isEnabled() && maskedFields != null && maskedFields.size() > 0);
 
         this.indexService = indexService;
         this.threadContext = threadContext;
@@ -1094,7 +1094,7 @@ class DlsFlsFilterLeafReader extends FilterLeafReader {
     @SuppressWarnings("unchecked")
     private Map<String, MaskedField> getRuntimeMaskedFieldInfo() {
 
-        if(!auditlog.getConfig().isEnabled()) {
+        if(!auditlog.isEnabled()) {
             return null;
         }
 

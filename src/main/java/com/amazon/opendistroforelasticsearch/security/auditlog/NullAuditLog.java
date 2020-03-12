@@ -136,4 +136,9 @@ public class NullAuditLog implements AuditLog {
     public AuditConfig getConfig() {
         return null;
     }
+
+    @Override
+    public boolean isEnabled() {
+        return false;
+    }
 }

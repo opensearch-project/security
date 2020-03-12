@@ -73,7 +73,6 @@ public final class AuditLogImpl implements AuditLog {
     private final RequestResolver requestResolver;
     private final ComplianceResolver complianceResolver;
     private final AuditMessageRouter messageRouter;
-    private final boolean enabled;
     private final String opendistrosecurityIndex;
 
     private static final List<String> writeClasses = Arrays.asList(
@@ -99,9 +98,8 @@ public final class AuditLogImpl implements AuditLog {
         this.complianceResolver = new ComplianceResolver(clusterService, indexNameExpressionResolver, opendistrosecurityIndex);
         this.messageRouter = new AuditMessageRouter(settings, clientProvider, threadPool, configPath);
         this.messageRouter.setComplianceConfig(auditConfig);
-        this.enabled = messageRouter.isEnabled();
 
-        log.info("Message routing enabled: {}", this.enabled);
+        log.info("Message routing enabled: {}", this.isEnabled());
 
         final SecurityManager sm = System.getSecurityManager();
 
@@ -133,8 +131,13 @@ public final class AuditLogImpl implements AuditLog {
         return auditConfig;
     }
 
+    @Override
+    public boolean isEnabled() {
+        return messageRouter.isEnabled() && auditConfig != null && auditConfig.isEnabled();
+    }
+
     protected void save(final AuditMessage msg) {
-        if (enabled) {
+        if (isEnabled()) {
             messageRouter.route(msg);
         }
     }
@@ -145,7 +148,7 @@ public final class AuditLogImpl implements AuditLog {
                                final String initiatingUser,
                                final TransportRequest request,
                                final Task task) {
-        if (!enabled) return;
+        if (!isEnabled()) return;
         if (!AuditFilter.checkTransportFilter(AuditCategory.FAILED_LOGIN, null, effectiveUser, request, auditConfig)) {
             return;
         }
@@ -161,7 +164,7 @@ public final class AuditLogImpl implements AuditLog {
                                final boolean securityAdmin,
                                final String initiatingUser,
                                final RestRequest request) {
-        if (!enabled) return;
+        if (!isEnabled()) return;
         if (!AuditFilter.checkRestFilter(AuditCategory.FAILED_LOGIN, effectiveUser, request, auditConfig)) {
             return;
         }
@@ -188,7 +191,7 @@ public final class AuditLogImpl implements AuditLog {
                                   final TransportRequest request,
                                   final String action,
                                   final Task task) {
-        if (!enabled) return;
+        if (!isEnabled()) return;
         if (!AuditFilter.checkTransportFilter(AuditCategory.AUTHENTICATED, action, effectiveUser, request, auditConfig)) {
             return;
         }
@@ -201,7 +204,7 @@ public final class AuditLogImpl implements AuditLog {
 
     @Override
     public void logSucceededLogin(String effectiveUser, boolean securityAdmin, String initiatingUser, RestRequest request) {
-        if (!enabled) return;
+        if (!isEnabled()) return;
         if (!AuditFilter.checkRestFilter(AuditCategory.AUTHENTICATED, effectiveUser, request, auditConfig)) {
             return;
         }
@@ -225,7 +228,7 @@ public final class AuditLogImpl implements AuditLog {
     public void logMissingPrivileges(final String privilege,
                                      final String effectiveUser,
                                      final RestRequest request) {
-        if (!enabled) return;
+        if (!isEnabled()) return;
         if (!AuditFilter.checkRestFilter(AuditCategory.MISSING_PRIVILEGES, effectiveUser, request, auditConfig)) {
             return;
         }
@@ -247,7 +250,7 @@ public final class AuditLogImpl implements AuditLog {
     public void logMissingPrivileges(final String privilege,
                                      final TransportRequest request,
                                      final Task task) {
-        if (!enabled) return;
+        if (!isEnabled()) return;
         if (!AuditFilter.checkTransportFilter(AuditCategory.MISSING_PRIVILEGES, privilege, getUser(), request, auditConfig)) {
             return;
         }
@@ -262,7 +265,7 @@ public final class AuditLogImpl implements AuditLog {
     public void logGrantedPrivileges(final String privilege,
                                      final TransportRequest request,
                                      final Task task) {
-        if (!enabled) return;
+        if (!isEnabled()) return;
         if (!AuditFilter.checkTransportFilter(AuditCategory.GRANTED_PRIVILEGES, privilege, getUser(), request, auditConfig)) {
             return;
         }
@@ -277,7 +280,7 @@ public final class AuditLogImpl implements AuditLog {
     public void logBadHeaders(final TransportRequest request,
                               final String action,
                               final Task task) {
-        if (!enabled) return;
+        if (!isEnabled()) return;
         if (!AuditFilter.checkTransportFilter(AuditCategory.BAD_HEADERS, action, getUser(), request, auditConfig)) {
             return;
         }
@@ -290,7 +293,7 @@ public final class AuditLogImpl implements AuditLog {
 
     @Override
     public void logBadHeaders(final RestRequest request) {
-        if (!enabled) return;
+        if (!isEnabled()) return;
         if (!AuditFilter.checkRestFilter(AuditCategory.BAD_HEADERS, getUser(), request, auditConfig)) {
             return;
         }
@@ -311,7 +314,7 @@ public final class AuditLogImpl implements AuditLog {
     public void logSecurityIndexAttempt(final TransportRequest request,
                                         final String action,
                                         final Task task) {
-        if (!enabled) return;
+        if (!isEnabled()) return;
         if (!AuditFilter.checkTransportFilter(AuditCategory.OPENDISTRO_SECURITY_INDEX_ATTEMPT, action, getUser(), request, auditConfig)) {
             return;
         }
@@ -328,7 +331,7 @@ public final class AuditLogImpl implements AuditLog {
                                 final Throwable t,
                                 final String action,
                                 final Task task) {
-        if (!enabled) return;
+        if (!isEnabled()) return;
         if (!AuditFilter.checkTransportFilter(AuditCategory.SSL_EXCEPTION, action, getUser(), request, auditConfig)) {
             return;
         }
@@ -342,7 +345,7 @@ public final class AuditLogImpl implements AuditLog {
     @Override
     public void logSSLException(final RestRequest request,
                                 final Throwable t) {
-        if (!enabled) return;
+        if (!isEnabled()) return;
         if (!AuditFilter.checkRestFilter(AuditCategory.SSL_EXCEPTION, getUser(), request, auditConfig)) {
             return;
         }
@@ -365,7 +368,7 @@ public final class AuditLogImpl implements AuditLog {
                                 final String id,
                                 final ShardId shardId,
                                 final Map<String, String> fieldNameValues) {
-        if (!enabled) return;
+        if (!isEnabled()) return;
 
         if (auditConfig == null || !auditConfig.readHistoryEnabledForIndex(index)) {
             return;
@@ -393,7 +396,7 @@ public final class AuditLogImpl implements AuditLog {
                                    final GetResult originalResult,
                                    final Index currentIndex,
                                    final IndexResult result) {
-        if (!enabled) return;
+        if (!isEnabled()) return;
 
         String effectiveUser = getUser();
         AuditCategory category = opendistrosecurityIndex.equals(shardId.getIndexName()) ? AuditCategory.COMPLIANCE_INTERNAL_CONFIG_WRITE : AuditCategory.COMPLIANCE_DOC_WRITE;
@@ -415,7 +418,7 @@ public final class AuditLogImpl implements AuditLog {
     public void logDocumentDeleted(final ShardId shardId,
                                    final Delete delete,
                                    final DeleteResult result) {
-        if (!enabled) return;
+        if (!isEnabled()) return;
 
         String effectiveUser = getUser();
         if (!AuditFilter.checkComplianceFilter(AuditCategory.COMPLIANCE_DOC_WRITE, effectiveUser, getOrigin(), auditConfig)) {
@@ -439,7 +442,7 @@ public final class AuditLogImpl implements AuditLog {
 
     @Override
     public void logExternalConfig(final Settings settings, final Environment environment) {
-        if (!enabled) return;
+        if (!isEnabled()) return;
         if (!AuditFilter.checkComplianceFilter(AuditCategory.COMPLIANCE_EXTERNAL_CONFIG, null, getOrigin(), auditConfig)) {
             return;
         }
