@@ -1,4 +1,8 @@
-## 2020-03-05 Version 1.5.0.1 (Current)
+## 2020-03-12 Version 1.6.0.0 (Current)
+
+- Support for Elasticsearch 7.6.1
+
+## 2020-03-05 Version 1.5.0.1
 
 - Adding capability to hot reload ssl certificates
 - Added changes for SuperAdmin to update/add/delete reserved configs
