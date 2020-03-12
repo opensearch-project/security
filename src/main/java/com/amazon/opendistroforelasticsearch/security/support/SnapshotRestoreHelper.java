@@ -39,6 +39,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.SpecialPermission;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
+import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.snapshots.SnapshotId;
@@ -72,8 +73,8 @@ public class SnapshotRestoreHelper {
         SnapshotInfo snapshotInfo = null;
         
         try {
-            setCurrentThreadName(ThreadPool.Names.GENERIC);            
-            for (final SnapshotId snapshotId : repository.getRepositoryData().getSnapshotIds()) {
+            setCurrentThreadName(ThreadPool.Names.GENERIC);
+            for (SnapshotId snapshotId : PlainActionFuture.get(repository::getRepositoryData).getSnapshotIds()) {
                 if (snapshotId.getName().equals(restoreRequest.snapshot())) {
 
                     if(log.isDebugEnabled()) {

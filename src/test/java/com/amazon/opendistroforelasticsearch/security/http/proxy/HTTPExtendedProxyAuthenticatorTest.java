@@ -197,7 +197,16 @@ public class HTTPExtendedProxyAuthenticatorTest {
             // TODO Auto-generated method stub
             return null;
         }
-        
+
+        @Override
+        public void release() {
+
+        }
+
+        @Override
+        public HttpRequest releaseAndCopy() {
+            return null;
+        }
     }
     
     static class HttpChannelImpl implements HttpChannel {
