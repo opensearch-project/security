@@ -33,12 +33,13 @@ package com.amazon.opendistroforelasticsearch.security;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 import java.util.Map;
 
+import com.amazon.opendistroforelasticsearch.security.support.wildcard.Wildcard;
 import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
 import org.elasticsearch.common.settings.Settings;
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
@@ -46,32 +47,73 @@ import com.amazon.opendistroforelasticsearch.security.support.OpenDistroSecurity
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 
 public class UtilTests {
-    
+
+    static private Wildcard wc(String pattern) {
+        return Wildcard.caseSensitive(pattern);
+    }
+
+    static private Wildcard iwc(String pattern) {
+        return Wildcard.caseInsensitive(pattern);
+    }
+
+    @Test
+    public void testWildcardClasses() {
+        assertFalse(wc("a*?").matches("a"));
+        assertTrue(wc("a*?").matches("aa"));
+        assertTrue(wc("a*?").matches("ab"));
+        assertTrue(wc("a*?").matches("abb"));
+        assertTrue(wc("*my*index").matches("myindex"));
+        assertFalse(wc("*my*index").matches("myindex1"));
+        assertTrue(wc("*my*index?").matches("myindex1"));
+        assertTrue(wc("*my*index").matches("this_is_my_great_index"));
+        assertFalse(wc("*my*index").matches("MYindex"));
+        assertFalse(wc("?kibana").matches("kibana"));
+        assertTrue(wc("?kibana").matches(".kibana"));
+        assertFalse(wc("?kibana").matches("kibana."));
+        assertTrue(wc("?kibana?").matches("?kibana."));
+        assertTrue(wc("/(\\d{3}-?\\d{2}-?\\d{4})/").matches("123-45-6789"));
+        assertFalse(wc("(\\d{3}-?\\d{2}-?\\d{4})").matches("123-45-6789"));
+        assertTrue(wc("/\\S+/").matches("abc"));
+        assertTrue(wc("abc").matches("abc"));
+        assertFalse(wc("ABC").matches("abc"));
+    }
+
+    @Test
+    public void testWildcardClassesCaseInsensitive() {
+        assertTrue(iwc("AbC").matches("abc"));
+        assertTrue(iwc("abc").matches("aBC"));
+        assertTrue(iwc("A*b").matches("ab"));
+        assertTrue(iwc("A*b").matches("aab"));
+        assertTrue(iwc("A*b").matches("abB"));
+        assertFalse(iwc("abc").matches("AB"));
+        assertTrue(iwc("/^\\w+$/").matches("AbCd"));
+    }
+
     @Test
     public void testWildcards() {
-        Assert.assertTrue(!WildcardMatcher.match("a*?", "a"));
-        Assert.assertTrue(WildcardMatcher.match("a*?", "aa"));
-        Assert.assertTrue(WildcardMatcher.match("a*?", "ab"));
-        //Assert.assertTrue(WildcardMatcher.match("a*?", "abb"));
-        Assert.assertTrue(WildcardMatcher.match("*my*index", "myindex"));
-        Assert.assertTrue(!WildcardMatcher.match("*my*index", "myindex1"));
-        Assert.assertTrue(WildcardMatcher.match("*my*index?", "myindex1"));
-        Assert.assertTrue(WildcardMatcher.match("*my*index", "this_is_my_great_index"));
-        Assert.assertTrue(!WildcardMatcher.match("*my*index", "MYindex"));
-        Assert.assertTrue(!WildcardMatcher.match("?kibana", "kibana"));
-        Assert.assertTrue(WildcardMatcher.match("?kibana", ".kibana"));
-        Assert.assertTrue(!WildcardMatcher.match("?kibana", "kibana."));
-        Assert.assertTrue(WildcardMatcher.match("?kibana?", "?kibana."));
-        Assert.assertTrue(WildcardMatcher.match("/(\\d{3}-?\\d{2}-?\\d{4})/", "123-45-6789"));
-        Assert.assertTrue(!WildcardMatcher.match("(\\d{3}-?\\d{2}-?\\d{4})", "123-45-6789"));
-        Assert.assertTrue(WildcardMatcher.match("/\\S*/", "abc"));
-        Assert.assertTrue(WildcardMatcher.match("abc", "abc"));
-        Assert.assertTrue(!WildcardMatcher.match("ABC", "abc"));
-        Assert.assertTrue(!WildcardMatcher.containsWildcard("abc"));
-        Assert.assertTrue(!WildcardMatcher.containsWildcard("abc$"));
-        Assert.assertTrue(WildcardMatcher.containsWildcard("abc*"));
-        Assert.assertTrue(WildcardMatcher.containsWildcard("a?bc"));
-        Assert.assertTrue(WildcardMatcher.containsWildcard("/(\\d{3}-\\d{2}-?\\d{4})/"));
+        assertTrue(!WildcardMatcher.match("a*?", "a"));
+        assertTrue(WildcardMatcher.match("a*?", "aa"));
+        assertTrue(WildcardMatcher.match("a*?", "ab"));
+        //assertTrue(WildcardMatcher.match("a*?", "abb"));
+        assertTrue(WildcardMatcher.match("*my*index", "myindex"));
+        assertTrue(!WildcardMatcher.match("*my*index", "myindex1"));
+        assertTrue(WildcardMatcher.match("*my*index?", "myindex1"));
+        assertTrue(WildcardMatcher.match("*my*index", "this_is_my_great_index"));
+        assertTrue(!WildcardMatcher.match("*my*index", "MYindex"));
+        assertTrue(!WildcardMatcher.match("?kibana", "kibana"));
+        assertTrue(WildcardMatcher.match("?kibana", ".kibana"));
+        assertTrue(!WildcardMatcher.match("?kibana", "kibana."));
+        assertTrue(WildcardMatcher.match("?kibana?", "?kibana."));
+        assertTrue(WildcardMatcher.match("/(\\d{3}-?\\d{2}-?\\d{4})/", "123-45-6789"));
+        assertTrue(!WildcardMatcher.match("(\\d{3}-?\\d{2}-?\\d{4})", "123-45-6789"));
+        assertTrue(WildcardMatcher.match("/\\S*/", "abc"));
+        assertTrue(WildcardMatcher.match("abc", "abc"));
+        assertTrue(!WildcardMatcher.match("ABC", "abc"));
+        assertTrue(!WildcardMatcher.containsWildcard("abc"));
+        assertTrue(!WildcardMatcher.containsWildcard("abc$"));
+        assertTrue(WildcardMatcher.containsWildcard("abc*"));
+        assertTrue(WildcardMatcher.containsWildcard("a?bc"));
+        assertTrue(WildcardMatcher.containsWildcard("/(\\d{3}-\\d{2}-?\\d{4})/"));
     }
 
     @Test
@@ -106,18 +148,18 @@ public class UtilTests {
     @Test
     public void testEnvReplace() {
         Settings settings = Settings.EMPTY;
-        Assert.assertEquals("abv${env.MYENV}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env.MYENV}xyz",settings));
-        Assert.assertEquals("abv${envbc.MYENV}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${envbc.MYENV}xyz",settings));
-        Assert.assertEquals("abvtTtxyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz",settings));
-        Assert.assertTrue(OpenBSDBCrypt.checkPassword(OpenDistroSecurityUtils.replaceEnvVars("${envbc.MYENV:-tTt}",settings), "tTt".toCharArray()));
-        Assert.assertEquals("abvtTtxyzxxx", OpenDistroSecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${env.MYENV:-xxx}",settings));
-        Assert.assertTrue(OpenDistroSecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${envbc.MYENV:-xxx}",settings).startsWith("abvtTtxyz$2y$"));
-        Assert.assertEquals("abv${env.MYENV:tTt}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env.MYENV:tTt}xyz",settings));
-        Assert.assertEquals("abv${env.MYENV-tTt}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env.MYENV-tTt}xyz",settings));
-        //Assert.assertEquals("abvabcdefgxyz", OpenDistroSecurityUtils.replaceEnvVars("abv${envbase64.B64TEST}xyz",settings));
+        assertEquals("abv${env.MYENV}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env.MYENV}xyz",settings));
+        assertEquals("abv${envbc.MYENV}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${envbc.MYENV}xyz",settings));
+        assertEquals("abvtTtxyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz",settings));
+        assertTrue(OpenBSDBCrypt.checkPassword(OpenDistroSecurityUtils.replaceEnvVars("${envbc.MYENV:-tTt}",settings), "tTt".toCharArray()));
+        assertEquals("abvtTtxyzxxx", OpenDistroSecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${env.MYENV:-xxx}",settings));
+        assertTrue(OpenDistroSecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${envbc.MYENV:-xxx}",settings).startsWith("abvtTtxyz$2y$"));
+        assertEquals("abv${env.MYENV:tTt}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env.MYENV:tTt}xyz",settings));
+        assertEquals("abv${env.MYENV-tTt}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env.MYENV-tTt}xyz",settings));
+        //assertEquals("abvabcdefgxyz", OpenDistroSecurityUtils.replaceEnvVars("abv${envbase64.B64TEST}xyz",settings));
 
         Map<String, String> env = System.getenv();
-        Assert.assertTrue(env.size() > 0);
+        assertTrue(env.size() > 0);
         
         boolean checked = false;
 
@@ -126,37 +168,37 @@ public class UtilTests {
             if(val == null || val.isEmpty()) {
                 continue;
             }
-            Assert.assertEquals("abv"+val+"xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env."+k+"}xyz",settings));
-            Assert.assertEquals("abv${"+k+"}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${"+k+"}xyz",settings));
-            Assert.assertEquals("abv"+val+"xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env."+k+":-k182765ggh}xyz",settings));
-            Assert.assertEquals("abv"+val+"xyzabv"+val+"xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env."+k+"}xyzabv${env."+k+"}xyz",settings));
-            Assert.assertEquals("abv"+val+"xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env."+k+":-k182765ggh}xyz",settings));
-            Assert.assertTrue(OpenBSDBCrypt.checkPassword(OpenDistroSecurityUtils.replaceEnvVars("${envbc."+k+"}",settings), val.toCharArray()));
+            assertEquals("abv"+val+"xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env."+k+"}xyz",settings));
+            assertEquals("abv${"+k+"}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${"+k+"}xyz",settings));
+            assertEquals("abv"+val+"xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env."+k+":-k182765ggh}xyz",settings));
+            assertEquals("abv"+val+"xyzabv"+val+"xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env."+k+"}xyzabv${env."+k+"}xyz",settings));
+            assertEquals("abv"+val+"xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env."+k+":-k182765ggh}xyz",settings));
+            assertTrue(OpenBSDBCrypt.checkPassword(OpenDistroSecurityUtils.replaceEnvVars("${envbc."+k+"}",settings), val.toCharArray()));
             checked = true;
         }
         
-        Assert.assertTrue(checked);
+        assertTrue(checked);
     }
     
     @Test
     public void testNoEnvReplace() {
         Settings settings = Settings.builder().put(ConfigConstants.OPENDISTRO_SECURITY_DISABLE_ENVVAR_REPLACEMENT, true).build();
-        Assert.assertEquals("abv${env.MYENV}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env.MYENV}xyz",settings));
-        Assert.assertEquals("abv${envbc.MYENV}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${envbc.MYENV}xyz",settings));
-        Assert.assertEquals("abv${env.MYENV:-tTt}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz",settings));
-        Assert.assertEquals("abv${env.MYENV:-tTt}xyz${env.MYENV:-xxx}", OpenDistroSecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${env.MYENV:-xxx}",settings));
-        Assert.assertFalse(OpenDistroSecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${envbc.MYENV:-xxx}",settings).startsWith("abvtTtxyz$2y$"));
-        Assert.assertEquals("abv${env.MYENV:tTt}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env.MYENV:tTt}xyz",settings));
-        Assert.assertEquals("abv${env.MYENV-tTt}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env.MYENV-tTt}xyz",settings));
+        assertEquals("abv${env.MYENV}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env.MYENV}xyz",settings));
+        assertEquals("abv${envbc.MYENV}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${envbc.MYENV}xyz",settings));
+        assertEquals("abv${env.MYENV:-tTt}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz",settings));
+        assertEquals("abv${env.MYENV:-tTt}xyz${env.MYENV:-xxx}", OpenDistroSecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${env.MYENV:-xxx}",settings));
+        assertFalse(OpenDistroSecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${envbc.MYENV:-xxx}",settings).startsWith("abvtTtxyz$2y$"));
+        assertEquals("abv${env.MYENV:tTt}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env.MYENV:tTt}xyz",settings));
+        assertEquals("abv${env.MYENV-tTt}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env.MYENV-tTt}xyz",settings));
         Map<String, String> env = System.getenv();
-        Assert.assertTrue(env.size() > 0);
+        assertTrue(env.size() > 0);
         
         for(String k: env.keySet()) {
-            Assert.assertEquals("abv${env."+k+"}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env."+k+"}xyz",settings));
-            Assert.assertEquals("abv${"+k+"}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${"+k+"}xyz",settings));
-            Assert.assertEquals("abv${env."+k+":-k182765ggh}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env."+k+":-k182765ggh}xyz",settings));
-            Assert.assertEquals("abv${env."+k+"}xyzabv${env."+k+"}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env."+k+"}xyzabv${env."+k+"}xyz",settings));
-            Assert.assertEquals("abv${env."+k+":-k182765ggh}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env."+k+":-k182765ggh}xyz",settings));
+            assertEquals("abv${env."+k+"}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env."+k+"}xyz",settings));
+            assertEquals("abv${"+k+"}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${"+k+"}xyz",settings));
+            assertEquals("abv${env."+k+":-k182765ggh}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env."+k+":-k182765ggh}xyz",settings));
+            assertEquals("abv${env."+k+"}xyzabv${env."+k+"}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env."+k+"}xyzabv${env."+k+"}xyz",settings));
+            assertEquals("abv${env."+k+":-k182765ggh}xyz", OpenDistroSecurityUtils.replaceEnvVars("abv${env."+k+":-k182765ggh}xyz",settings));
         }
     }
 }
