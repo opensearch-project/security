@@ -9,20 +9,21 @@ import java.util.stream.Collectors;
 public interface Wildcard {
     boolean matches(String candidate);
 
-    Wildcard ANY = new Wildcard() {
-        @Override
-        public boolean matches(String candidate) {
-            return true;
-        }
-    };
+    default boolean matchesAny(Collection<String> candidates) {
+        return candidates.stream().anyMatch(this::matches);
+    }
+
+    Wildcard ANY = candidate -> true;
+
+    Wildcard NONE = candidate -> false;
 
     // This may in future use more optimized techniques to combine multiple wildcards in a single automaton
     static Wildcard caseSensitiveAny(Collection<String> patterns) {
-        return new MultiWildcard(patterns.stream().map(Wildcard::caseSensitive).collect(Collectors.toList()));
+        return patterns.isEmpty() ? Wildcard.NONE : new MultiWildcard(patterns.stream().map(Wildcard::caseSensitive).collect(Collectors.toList()));
     }
 
     static Wildcard caseInsensitiveAny(Collection<String> patterns) {
-        return new MultiWildcard(patterns.stream().map(Wildcard::caseInsensitive).collect(Collectors.toList()));
+        return patterns.isEmpty() ? Wildcard.NONE : new MultiWildcard(patterns.stream().map(Wildcard::caseInsensitive).collect(Collectors.toList()));
     }
 
     static Wildcard caseSensitive(String pattern) {
