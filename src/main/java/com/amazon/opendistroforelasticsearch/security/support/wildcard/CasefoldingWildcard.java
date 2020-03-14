@@ -2,7 +2,7 @@ package com.amazon.opendistroforelasticsearch.security.support.wildcard;
 
 import java.util.function.Function;
 
-public class CasefoldingWildcard implements Wildcard {
+public final class CasefoldingWildcard implements Wildcard {
     private final Wildcard inner;
 
     public CasefoldingWildcard(String pattern, Function<String,Wildcard> simpleWildcard) {

@@ -2,7 +2,7 @@ package com.amazon.opendistroforelasticsearch.security.support.wildcard;
 
 import java.util.regex.Pattern;
 
-public class RegexWildcard implements Wildcard {
+public final class RegexWildcard implements Wildcard {
     private final Pattern pattern;
 
     public RegexWildcard(String pattern, boolean caseInsensitive) {

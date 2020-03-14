@@ -43,6 +43,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 
+import com.amazon.opendistroforelasticsearch.security.support.wildcard.Wildcard;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchSecurityException;
@@ -52,7 +53,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.ldaptive.BindRequest;
 import org.ldaptive.Connection;
 import org.ldaptive.ConnectionConfig;
-import org.ldaptive.Credential;
 import org.ldaptive.DefaultConnectionFactory;
 import org.ldaptive.LdapAttribute;
 import org.ldaptive.LdapEntry;
@@ -98,12 +98,15 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
 
     protected static final Logger log = LogManager.getLogger(LDAPAuthorizationBackend.class);
     private final Settings settings;
+    private final Wildcard skipUsersWildcard;
     private final Path configPath;
     private final List<Map.Entry<String, Settings>> roleBaseSettings;
     private final List<Map.Entry<String, Settings>> userBaseSettings;
 
     public LDAPAuthorizationBackend(final Settings settings, final Path configPath) {
         this.settings = settings;
+        this.skipUsersWildcard = Wildcard.caseSensitiveAny(settings.getAsList(ConfigConstants.LDAP_AUTHZ_SKIP_USERS,
+                Collections.emptyList()));
         this.configPath = configPath;
         this.roleBaseSettings = getRoleSearchSettings(settings);
         this.userBaseSettings = LDAPAuthenticationBackend.getUserBaseSettings(settings);
@@ -697,10 +700,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
             log.trace("dn: {}", dn);
         }
 
-        final List<String> skipUsers = settings.getAsList(ConfigConstants.LDAP_AUTHZ_SKIP_USERS,
-                Collections.emptyList());
-        if (!skipUsers.isEmpty() && (WildcardMatcher.matchAny(skipUsers, originalUserName)
-                || WildcardMatcher.matchAny(skipUsers, authenticatedUser))) {
+        if (skipUsersWildcard.matches(originalUserName) || skipUsersWildcard.matches(authenticatedUser)) {
             if (log.isDebugEnabled()) {
                 log.debug("Skipped search roles of user {}/{}", authenticatedUser, originalUserName);
             }

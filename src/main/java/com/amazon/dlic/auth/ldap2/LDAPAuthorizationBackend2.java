@@ -31,6 +31,7 @@ import java.util.Set;
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 
+import com.amazon.opendistroforelasticsearch.security.support.wildcard.Wildcard;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchSecurityException;
@@ -70,6 +71,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
 
     protected static final Logger log = LogManager.getLogger(LDAPAuthorizationBackend2.class);
     private final Settings settings;
+    private final Wildcard skipUsersWildcard;
     private final List<Map.Entry<String, Settings>> roleBaseSettings;
     private ConnectionPool connectionPool;
     private ConnectionFactory connectionFactory;
@@ -77,6 +79,8 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
 
     public LDAPAuthorizationBackend2(final Settings settings, final Path configPath) throws SSLConfigException {
         this.settings = settings;
+        this.skipUsersWildcard = Wildcard.caseSensitiveAny(settings.getAsList(ConfigConstants.LDAP_AUTHZ_SKIP_USERS,
+                Collections.emptyList()));
         this.roleBaseSettings = getRoleSearchSettings(settings);
 
         LDAPConnectionFactoryFactory ldapConnectionFactoryFactory = new LDAPConnectionFactoryFactory(settings,
@@ -179,9 +183,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
             log.trace("dn: {}", dn);
         }
 
-        final List<String> skipUsers = settings.getAsList(ConfigConstants.LDAP_AUTHZ_SKIP_USERS,
-                Collections.emptyList());
-        if (!skipUsers.isEmpty() && WildcardMatcher.matchAny(skipUsers, authenticatedUser)) {
+        if (skipUsersWildcard.matches(authenticatedUser)) {
             if (log.isDebugEnabled()) {
                 log.debug("Skipped search roles of user {}/{}", authenticatedUser, originalUserName);
             }
