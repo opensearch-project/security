@@ -98,14 +98,18 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
 
     protected static final Logger log = LogManager.getLogger(LDAPAuthorizationBackend.class);
     private final Settings settings;
-    private final Wildcard skipUsersWildcard;
+    private final Wildcard skipUsersFilter;
+    private final Wildcard nestedRoleFilter;
+
     private final Path configPath;
     private final List<Map.Entry<String, Settings>> roleBaseSettings;
     private final List<Map.Entry<String, Settings>> userBaseSettings;
 
     public LDAPAuthorizationBackend(final Settings settings, final Path configPath) {
         this.settings = settings;
-        this.skipUsersWildcard = Wildcard.caseSensitiveAny(settings.getAsList(ConfigConstants.LDAP_AUTHZ_SKIP_USERS,
+        this.skipUsersFilter = Wildcard.caseSensitiveAny(settings.getAsList(ConfigConstants.LDAP_AUTHZ_SKIP_USERS,
+                Collections.emptyList()));
+        this.nestedRoleFilter = Wildcard.caseSensitiveAny(settings.getAsList(ConfigConstants.LDAP_AUTHZ_NESTEDROLEFILTER,
                 Collections.emptyList()));
         this.configPath = configPath;
         this.roleBaseSettings = getRoleSearchSettings(settings);
@@ -700,7 +704,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
             log.trace("dn: {}", dn);
         }
 
-        if (skipUsersWildcard.matches(originalUserName) || skipUsersWildcard.matches(authenticatedUser)) {
+        if (skipUsersFilter.matches(originalUserName) || skipUsersFilter.matches(authenticatedUser)) {
             if (log.isDebugEnabled()) {
                 log.debug("Skipped search roles of user {}/{}", authenticatedUser, originalUserName);
             }
@@ -874,8 +878,6 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
             // nested roles, makes only sense for DN style role names
             if (settings.getAsBoolean(ConfigConstants.LDAP_AUTHZ_RESOLVE_NESTED_ROLES, false)) {
 
-                final List<String> nestedRoleFilter = settings.getAsList(ConfigConstants.LDAP_AUTHZ_NESTEDROLEFILTER,
-                        Collections.emptyList());
 
                 if (log.isTraceEnabled()) {
                     log.trace("Evaluate nested roles");
@@ -953,10 +955,10 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
 
     protected Set<LdapName> resolveNestedRoles(final LdapName roleDn, final Connection ldapConnection,
             String userRoleName, int depth, final boolean rolesearchEnabled,
-            Set<Map.Entry<String, Settings>> roleSearchBaseSettingsSet, final List<String> roleFilter)
+            Set<Map.Entry<String, Settings>> roleSearchBaseSettingsSet, final Wildcard roleFilter)
             throws ElasticsearchSecurityException, LdapException {
 
-        if (!roleFilter.isEmpty() && WildcardMatcher.matchAny(roleFilter, roleDn.toString())) {
+        if (roleFilter.matches(roleDn.toString())) {
 
             if (log.isTraceEnabled()) {
                 log.trace("Filter nested role {}", roleDn);
