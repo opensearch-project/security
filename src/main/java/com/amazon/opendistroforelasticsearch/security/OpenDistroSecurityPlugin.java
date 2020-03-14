@@ -48,6 +48,7 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.amazon.opendistroforelasticsearch.security.support.wildcard.Wildcard;
 import org.apache.lucene.index.DirectoryReader;
 import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenDistroSecuritySSLReloadCertsAction;
 import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenDistroSecuritySSLCertsInfoAction;
@@ -1058,8 +1059,8 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             } else {
 
                 final Set<String> includesExcludes = allowedFlsFields.get(eval);
-                final Set includesSet = new HashSet<>(includesExcludes.size());
-                final Set excludesSet = new HashSet<>(includesExcludes.size());
+                final Set<String> includesSet = new HashSet<>(includesExcludes.size());
+                final Set<String> excludesSet = new HashSet<>(includesExcludes.size());
 
 
                 for (final String incExc : includesExcludes) {
@@ -1073,9 +1074,11 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                 }
 
                 if (!excludesSet.isEmpty()) {
-                    return field -> !WildcardMatcher.matchAny(excludesSet, handleKeyword(field));
+                    Wildcard wildcard = Wildcard.caseSensitiveAny(excludesSet);
+                    return field -> !wildcard.matches(handleKeyword(field));
                 } else {
-                    return field -> WildcardMatcher.matchAny(includesSet, handleKeyword(field));
+                    Wildcard wildcard = Wildcard.caseSensitiveAny(includesSet);
+                    return field -> wildcard.matches(handleKeyword(field));
                 }
             }
         };

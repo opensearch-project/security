@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import com.amazon.opendistroforelasticsearch.security.support.wildcard.Wildcard;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -58,7 +59,7 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
     private final Path configPath;
     private final List<Map.Entry<String, Settings>> userBaseSettings;
     private final int customAttrMaxValueLen;
-    private final List<String> whitelistedAttributes;
+    private final Wildcard whitelistedAttributes;
 
     public LDAPAuthenticationBackend(final Settings settings, final Path configPath) {
         this.settings = settings;
@@ -66,8 +67,8 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
         this.userBaseSettings = getUserBaseSettings(settings);
 
         customAttrMaxValueLen = settings.getAsInt(ConfigConstants.LDAP_CUSTOM_ATTR_MAXVAL_LEN, 36);
-        whitelistedAttributes = settings.getAsList(ConfigConstants.LDAP_CUSTOM_ATTR_WHITELIST,
-                null);
+        whitelistedAttributes = Wildcard.caseSensitiveAny(settings.getAsList(ConfigConstants.LDAP_CUSTOM_ATTR_WHITELIST,
+                null));
     }
 
     @Override

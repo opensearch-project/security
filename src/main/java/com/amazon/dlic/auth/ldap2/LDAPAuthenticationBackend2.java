@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
+import com.amazon.opendistroforelasticsearch.security.support.wildcard.Wildcard;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchSecurityException;
@@ -59,7 +60,7 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
     private ConnectionFactory authConnectionFactory;
     private LDAPUserSearcher userSearcher;
     private final int customAttrMaxValueLen;
-    private final List<String> whitelistedAttributes;
+    private final Wildcard whitelistedAttributes;
 
     public LDAPAuthenticationBackend2(final Settings settings, final Path configPath) throws SSLConfigException {
         this.settings = settings;
@@ -78,8 +79,8 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
 
         this.userSearcher = new LDAPUserSearcher(settings);
         customAttrMaxValueLen = settings.getAsInt(ConfigConstants.LDAP_CUSTOM_ATTR_MAXVAL_LEN, 36);
-        whitelistedAttributes = settings.getAsList(ConfigConstants.LDAP_CUSTOM_ATTR_WHITELIST,
-                null);
+        whitelistedAttributes = Wildcard.caseSensitiveAny(settings.getAsList(ConfigConstants.LDAP_CUSTOM_ATTR_WHITELIST,
+                null));
     }
 
     @Override

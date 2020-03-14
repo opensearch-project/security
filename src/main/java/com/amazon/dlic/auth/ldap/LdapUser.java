@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.amazon.opendistroforelasticsearch.security.support.wildcard.Wildcard;
 import org.ldaptive.LdapAttribute;
 import org.ldaptive.LdapEntry;
 
@@ -35,7 +36,7 @@ public class LdapUser extends User {
     private final String originalUsername;
 
     public LdapUser(final String name, String originalUsername, final LdapEntry userEntry,
-            final AuthCredentials credentials, int customAttrMaxValueLen, List<String> whiteListedAttributes) {
+            final AuthCredentials credentials, int customAttrMaxValueLen, Wildcard whiteListedAttributes) {
         super(name, null, credentials);
         this.originalUsername = originalUsername;
         this.userEntry = userEntry;
@@ -61,7 +62,7 @@ public class LdapUser extends User {
     }
     
     public static Map<String, String> extractLdapAttributes(String originalUsername, final LdapEntry userEntry
-            , int customAttrMaxValueLen, List<String> whiteListedAttributes) {
+            , int customAttrMaxValueLen, Wildcard whiteListedAttributes) {
         Map<String, String> attributes = new HashMap<>();
         attributes.put("ldap.original.username", originalUsername);
         attributes.put("ldap.dn", userEntry.getDn());
@@ -73,10 +74,9 @@ public class LdapUser extends User {
                     // only consider attributes which are not binary and where its value is not
                     // longer than customAttrMaxValueLen characters
                     if (val != null && val.length() > 0 && val.length() <= customAttrMaxValueLen) {
-                        if (whiteListedAttributes != null && !whiteListedAttributes.isEmpty()) {
-                            if (WildcardMatcher.matchAny(whiteListedAttributes, attr.getName())) {
-                                attributes.put("attr.ldap." + attr.getName(), val);
-                            }
+                        //FIXME: this is strange - shouldn't we skip not matched attributes?
+                        if (whiteListedAttributes.matches(attr.getName())) {
+                            attributes.put("attr.ldap." + attr.getName(), val);
                         } else {
                             attributes.put("attr.ldap." + attr.getName(), val);
                         }
