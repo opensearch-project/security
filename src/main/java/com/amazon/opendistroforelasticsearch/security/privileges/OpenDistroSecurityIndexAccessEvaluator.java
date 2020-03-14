@@ -35,6 +35,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.amazon.opendistroforelasticsearch.security.support.wildcard.Wildcard;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionRequest;
@@ -55,7 +56,7 @@ public class OpenDistroSecurityIndexAccessEvaluator {
     
     private final String opendistrosecurityIndex;
     private final AuditLog auditLog;
-    private final String[] securityDeniedActionPatterns;
+    private final Wildcard securityDeniedActionPatterns;
     private final IndexResolverReplacer irr;
     private final boolean filterSecurityIndex;
     
@@ -81,7 +82,7 @@ public class OpenDistroSecurityIndexAccessEvaluator {
         securityIndexDeniedActionPatternsListNoSnapshot.add("indices:admin/close*");
         securityIndexDeniedActionPatternsListNoSnapshot.add("cluster:admin/snapshot/restore*");
 
-        securityDeniedActionPatterns = (restoreSecurityIndexEnabled?securityIndexDeniedActionPatternsList:securityIndexDeniedActionPatternsListNoSnapshot).toArray(new String[0]);
+        securityDeniedActionPatterns = Wildcard.caseSensitiveAny(restoreSecurityIndexEnabled ? securityIndexDeniedActionPatternsList : securityIndexDeniedActionPatternsListNoSnapshot);
     }
     
     public PrivilegesEvaluatorResponse evaluate(final ActionRequest request, final Task task, final String action, final Resolved requestedResolved,
@@ -89,7 +90,7 @@ public class OpenDistroSecurityIndexAccessEvaluator {
 
         
         if (requestedResolved.getAllIndices().contains(opendistrosecurityIndex)
-                && WildcardMatcher.matchAny(securityDeniedActionPatterns, action)) {
+                && securityDeniedActionPatterns.matches(action)) {
             if(filterSecurityIndex) {
                 Set<String> allWithoutSecurity = new HashSet<>(requestedResolved.getAllIndices());
                 allWithoutSecurity.remove(opendistrosecurityIndex);
@@ -114,7 +115,7 @@ public class OpenDistroSecurityIndexAccessEvaluator {
         }
 
         if (requestedResolved.isLocalAll()
-                && WildcardMatcher.matchAny(securityDeniedActionPatterns, action)) {
+                && securityDeniedActionPatterns.matches(action)) {
             if(filterSecurityIndex) {
                 irr.replace(request, false, "*","-"+opendistrosecurityIndex);
                 if(log.isDebugEnabled()) {
