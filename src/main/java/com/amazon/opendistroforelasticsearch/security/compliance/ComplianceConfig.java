@@ -75,7 +75,7 @@ public class ComplianceConfig {
     private final boolean logReadMetadataOnly;
     private final boolean logExternalConfig;
     private final boolean logInternalConfig;
-    private final LoadingCache<String, Set<String>> cache;
+    private final LoadingCache<String, Wildcard> cache;
     private final Wildcard immutableIndicesPatterns;
     private final byte[] salt16;
     private final String opendistrosecurityIndex;
@@ -151,10 +151,10 @@ public class ComplianceConfig {
 
         cache = CacheBuilder.newBuilder()
                 .maximumSize(1000)
-                .build(new CacheLoader<String, Set<String>>() {
+                .build(new CacheLoader<String, Wildcard>() {
                     @Override
-                    public Set<String> load(String index) throws Exception {
-                        return getFieldsForIndex0(index);
+                    public Wildcard load(String index) throws Exception {
+                        return Wildcard.caseSensitiveAny(getFieldsForIndex0(index));
                     }
                 });
     }
@@ -246,7 +246,7 @@ public class ComplianceConfig {
         }
         
         try {
-            return !cache.get(index).isEmpty();
+            return cache.get(index) != Wildcard.NONE;
         } catch (ExecutionException e) {
             log.error(e);
             return true;
@@ -266,12 +266,7 @@ public class ComplianceConfig {
         }
         
         try {
-            final Set<String> fields = cache.get(index);
-            if(fields.isEmpty()) {
-                return false;
-            }
-
-            return WildcardMatcher.matchAny(fields, field);
+            return  cache.get(index).matches(field);
         } catch (ExecutionException e) {
             log.error(e);
             return true;
