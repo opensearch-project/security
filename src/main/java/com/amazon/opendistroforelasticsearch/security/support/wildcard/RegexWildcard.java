@@ -28,4 +28,7 @@ public final class RegexWildcard implements Wildcard {
     public int hashCode() {
         return pattern.pattern().hashCode();
     }
+
+    @Override
+    public String toString(){ return "/" + pattern.pattern() + "/"; }
 }

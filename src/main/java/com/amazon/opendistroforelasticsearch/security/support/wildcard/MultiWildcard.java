@@ -28,4 +28,7 @@ public final class MultiWildcard implements Wildcard {
     public int hashCode() {
         return Objects.hashCode(wildcards);
     }
+
+    @Override
+    public String toString() { return wildcards.toString(); }
 }

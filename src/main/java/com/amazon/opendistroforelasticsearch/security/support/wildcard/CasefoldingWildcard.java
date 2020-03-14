@@ -28,4 +28,9 @@ public final class CasefoldingWildcard implements Wildcard {
     public int hashCode() {
         return inner.hashCode();
     }
+
+    @Override
+    public String toString() {
+        return inner.toString();
+    }
 }

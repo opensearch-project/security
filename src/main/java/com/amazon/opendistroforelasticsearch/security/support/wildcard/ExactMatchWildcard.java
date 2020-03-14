@@ -26,4 +26,9 @@ public final class ExactMatchWildcard implements Wildcard {
     public int hashCode() {
         return pattern.hashCode();
     }
+
+    @Override
+    public String toString() {
+        return pattern;
+    }
 }
