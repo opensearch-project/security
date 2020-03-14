@@ -1,5 +1,7 @@
 package com.amazon.opendistroforelasticsearch.security.support.wildcard;
 
+import com.google.common.base.Objects;
+
 public final class SimpleWildcard implements Wildcard {
     private final String pattern;
 
@@ -30,5 +32,18 @@ public final class SimpleWildcard implements Wildcard {
         }
         while (j < m && pattern.charAt(j) == '*') j++;
         return j >= m;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        SimpleWildcard that = (SimpleWildcard) o;
+        return Objects.equal(pattern, that.pattern);
+    }
+
+    @Override
+    public int hashCode() {
+        return pattern.hashCode();
     }
 }

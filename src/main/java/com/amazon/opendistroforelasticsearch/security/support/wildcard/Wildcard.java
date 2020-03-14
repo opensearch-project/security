@@ -9,6 +9,13 @@ import java.util.stream.Collectors;
 public interface Wildcard {
     boolean matches(String candidate);
 
+    Wildcard ANY = new Wildcard() {
+        @Override
+        public boolean matches(String candidate) {
+            return true;
+        }
+    };
+
     // This may in future use more optimized techniques to combine multiple wildcards in a single automaton
     static Wildcard caseSensitiveAny(Collection<String> patterns) {
         return new MultiWildcard(patterns.stream().map(Wildcard::caseSensitive).collect(Collectors.toList()));

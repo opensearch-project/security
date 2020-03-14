@@ -41,6 +41,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
+import com.amazon.opendistroforelasticsearch.security.support.wildcard.Wildcard;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
@@ -65,7 +66,7 @@ public class ComplianceConfig {
 
     private final Logger log = LogManager.getLogger(getClass());
     private final Settings settings;
-	private final Map<String, Set<String>> readEnabledFields = new HashMap<>(100);
+	private final Map<Wildcard, Set<String>> readEnabledFields = new HashMap<>(100);
     private final List<String> watchedWriteIndices;
     private DateTimeFormatter auditLogPattern = null;
     private String auditLogIndex = null;
@@ -125,10 +126,10 @@ public class ComplianceConfig {
             if(split.isEmpty()) {
                 continue;
             } else if(split.size() == 1) {
-                readEnabledFields.put(split.get(0), Collections.singleton("*"));
+                readEnabledFields.put(Wildcard.caseSensitive(split.get(0)), Collections.singleton("*"));
             } else {
                 Set<String> _fields = new HashSet<String>(split.subList(1, split.size()));
-                readEnabledFields.put(split.get(0), _fields);
+                readEnabledFields.put(Wildcard.caseSensitive(split.get(0)), _fields);
             }
         }
 
@@ -193,9 +194,9 @@ public class ComplianceConfig {
         }
 
         final Set<String> tmp = new HashSet<String>(100);
-        for(String indexPattern: readEnabledFields.keySet()) {
-            if(indexPattern != null && !indexPattern.isEmpty() && WildcardMatcher.match(indexPattern, index)) {
-                tmp.addAll(readEnabledFields.get(indexPattern));
+        for(Map.Entry<Wildcard, Set<String>> patternToFields: readEnabledFields.entrySet()) {
+            if(patternToFields.getKey().matches(index)) {
+                tmp.addAll(patternToFields.getValue());
             }
         }
         return tmp;
