@@ -935,28 +935,33 @@ public class ConfigModelV7 extends ConfigModel {
         }));
     }
 
-    static final class IndexPatternsAndPermissions {
-        public String[] pattern;
-        public Set<String> perms;
+    private static final class IndexPatternsAndPermissions {
+        private String[] pattern;
+        private Set<String> perms;
         public IndexPatternsAndPermissions(String[] pattern, Set<String> perms) {
             this.pattern = pattern;
             this.perms = perms;
+        }
+
+        public boolean matches(String index, String action) {
+            return WildcardMatcher.matchAny(pattern, index) && WildcardMatcher.matchAny(perms, action);
         }
     }
 
     private static boolean impliesTypePerm(Set<IndexPattern> ipatterns, Resolved resolved, User user, String[] requestedActions,
                                            IndexNameExpressionResolver resolver, ClusterService cs) {
         Set<String> resolvedRequestedIndices = resolved.getAllIndices();
-        List<IndexPatternsAndPermissions> indexPatternsAndPermissions = ipatterns
+        IndexPatternsAndPermissions[] indexPatternsAndPermissions = ipatterns
                 .stream()
                 .map(p -> new IndexPatternsAndPermissions(p.getResolvedIndexPattern(user, resolver, cs), p.perms))
-                .collect(Collectors.toList());
+                .toArray(IndexPatternsAndPermissions[]::new);
         return resolvedRequestedIndices
                 .stream()
                 .allMatch(index ->
-                        Arrays.stream(requestedActions).allMatch(action -> indexPatternsAndPermissions
-                                .stream()
-                                .anyMatch(rip -> WildcardMatcher.matchAny(rip.pattern, index) && WildcardMatcher.matchAny(rip.perms, action))
+                        Arrays.stream(requestedActions).allMatch(action ->
+                                Arrays.stream(indexPatternsAndPermissions).anyMatch(ipap ->
+                                        ipap.matches(index, action)
+                                )
                         )
                 );
     }
