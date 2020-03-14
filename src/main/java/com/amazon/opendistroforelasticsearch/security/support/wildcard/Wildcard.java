@@ -13,13 +13,33 @@ public interface Wildcard {
         return candidates.stream().anyMatch(this::matches);
     }
 
-    Wildcard ANY = candidate -> true;
+    default boolean matchesAny(String[] candidates) {
+        return Arrays.stream(candidates).anyMatch(this::matches);
+    }
 
-    Wildcard NONE = candidate -> false;
+    // TODO: make serializable, hashable etc.
+    Wildcard ANY = new Wildcard() {
+        @Override
+        public boolean matches(String candidate) {
+            return true;
+        }
+    };
+
+    // TODO: make serializable, hashable etc.
+    Wildcard NONE = new Wildcard() {
+        @Override
+        public boolean matches(String candidate) {
+            return false;
+        }
+    };
 
     // This may in future use more optimized techniques to combine multiple wildcards in a single automaton
     static Wildcard caseSensitiveAny(Collection<String> patterns) {
         return patterns.isEmpty() ? Wildcard.NONE : new MultiWildcard(patterns.stream().map(Wildcard::caseSensitive).collect(Collectors.toList()));
+    }
+
+    static Wildcard caseSensitiveAny(String[] patterns) {
+        return patterns.length == 0 ? Wildcard.NONE : new MultiWildcard(Arrays.stream(patterns).map(Wildcard::caseSensitive).collect(Collectors.toList()));
     }
 
     static Wildcard caseInsensitiveAny(Collection<String> patterns) {

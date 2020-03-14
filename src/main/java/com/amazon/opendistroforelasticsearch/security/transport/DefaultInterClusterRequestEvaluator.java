@@ -40,9 +40,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigFactory;
-import com.amazon.opendistroforelasticsearch.security.securityconf.NodesDnModel;
-import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
@@ -51,6 +48,9 @@ import org.elasticsearch.transport.TransportRequest;
 
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
+import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigFactory;
+import com.amazon.opendistroforelasticsearch.security.securityconf.NodesDnModel;
+import com.google.common.collect.ImmutableList;
 import org.greenrobot.eventbus.Subscribe;
 
 public final class DefaultInterClusterRequestEvaluator implements InterClusterRequestEvaluator {
@@ -60,10 +60,11 @@ public final class DefaultInterClusterRequestEvaluator implements InterClusterRe
     private final List<String> staticNodesDnFromEsYml;
     private boolean dynamicNodesDnConfigEnabled;
     private volatile Map<String, List<String>> dynamicNodesDn;
+    private final Wildcard nodesDn;
 
     public DefaultInterClusterRequestEvaluator(final Settings settings) {
         this.certOid = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CERT_OID, "1.2.3.4.5.5");
-        this.staticNodesDnFromEsYml = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_NODES_DN, Collections.emptyList());
+        this.staticNodesDnFromEsYml = Wildcard.caseInsensitiveAny(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_NODES_DN, Collections.emptyList()));
         this.dynamicNodesDnConfigEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, false);
         this.dynamicNodesDn = Collections.emptyMap();
     }
@@ -95,8 +96,8 @@ public final class DefaultInterClusterRequestEvaluator implements InterClusterRe
         }
 
         List<String> nodesDn = this.getNodesDnToEvaluate();
-        
-        if (principals[0] != null && WildcardMatcher.matchAny(nodesDn, principals, true)) {
+
+        if (principals[0] != null && nodesDn.matchesAny(principals)) {
             
             if (log.isTraceEnabled()) {
                 log.trace("Treat certificate with principal {} as other node because of it matches one of {}", Arrays.toString(principals),

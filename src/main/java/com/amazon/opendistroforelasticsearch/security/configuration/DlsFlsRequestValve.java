@@ -33,6 +33,7 @@ package com.amazon.opendistroforelasticsearch.security.configuration;
 import java.util.Map;
 import java.util.Set;
 
+import com.amazon.opendistroforelasticsearch.security.support.wildcard.Wildcard;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
@@ -47,14 +48,14 @@ public interface DlsFlsRequestValve {
      * @param listener
      * @return false to stop
      */
-    boolean invoke(ActionRequest request, ActionListener<?> listener, Map<String,Set<String>> allowedFlsFields, final Map<String,Set<String>> maskedFields, Map<String,Set<String>> queries);
+    boolean invoke(ActionRequest request, ActionListener<?> listener, Map<Wildcard,Set<String>> allowedFlsFields, final Map<Wildcard,Set<String>> maskedFields, Map<Wildcard,Set<String>> queries);
 
     void handleSearchContext(SearchContext context, ThreadPool threadPool, NamedXContentRegistry namedXContentRegistry);
     
     public static class NoopDlsFlsRequestValve implements DlsFlsRequestValve {
 
         @Override
-        public boolean invoke(ActionRequest request, ActionListener<?> listener, Map<String,Set<String>> allowedFlsFields, final Map<String,Set<String>> maskedFields, Map<String,Set<String>> queries) {
+        public boolean invoke(ActionRequest request, ActionListener<?> listener, Map<Wildcard,Set<String>> allowedFlsFields, final Map<Wildcard,Set<String>> maskedFields, Map<Wildcard,Set<String>> queries) {
             return true;
         }
 

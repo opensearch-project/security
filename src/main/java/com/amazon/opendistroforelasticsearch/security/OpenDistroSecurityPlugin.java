@@ -544,14 +544,14 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
 
                     @Override
                     public Weight doCache(Weight weight, QueryCachingPolicy policy) {
-                        final Map<String, Set<String>> allowedFlsFields = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadPool.getThreadContext(),
+                        final Map<Wildcard, Set<String>> allowedFlsFields = (Map<Wildcard, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadPool.getThreadContext(),
                                 ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER);
                         
                         if(OpenDistroSecurityUtils.evalMap(allowedFlsFields, index().getName()) != null) {
                             return weight;
                         } else {
                             
-                            final Map<String, Set<String>> maskedFieldsMap = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadPool.getThreadContext(),
+                            final Map<Wildcard, Set<String>> maskedFieldsMap = (Map<Wildcard, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadPool.getThreadContext(),
                                     ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER);
                             
                             if(OpenDistroSecurityUtils.evalMap(maskedFieldsMap, index().getName()) != null) {
@@ -1049,10 +1049,10 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             if (threadPool == null) {
                 return field -> true;
             }
-            final Map<String, Set<String>> allowedFlsFields = (Map<String, Set<String>>) HeaderHelper
+            final Map<Wildcard, Set<String>> allowedFlsFields = (Map<Wildcard, Set<String>>) HeaderHelper
                     .deserializeSafeFromHeader(threadPool.getThreadContext(), ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER);
 
-            final String eval = OpenDistroSecurityUtils.evalMap(allowedFlsFields, index);
+            final Wildcard eval = OpenDistroSecurityUtils.evalMap(allowedFlsFields, index);
 
             if (eval == null) {
                 return field -> true;

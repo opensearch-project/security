@@ -31,6 +31,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 
+import com.amazon.opendistroforelasticsearch.security.support.wildcard.Wildcard;
 import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.FieldInfo;
@@ -1105,9 +1106,9 @@ class DlsFlsFilterLeafReader extends FilterLeafReader {
             return null;
         }
 
-        final Map<String, Set<String>> maskedFieldsMap = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadContext,
+        final Map<Wildcard, Set<String>> maskedFieldsMap = (Map<Wildcard, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadContext,
                 ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER);
-        final String maskedEval = OpenDistroSecurityUtils.evalMap(maskedFieldsMap, indexService.index().getName());
+        final Wildcard maskedEval = OpenDistroSecurityUtils.evalMap(maskedFieldsMap, indexService.index().getName());
 
         if(maskedEval != null) {
             final Set<String> mf = maskedFieldsMap.get(maskedEval);

@@ -22,6 +22,7 @@ import java.util.Set;
 import java.util.function.LongSupplier;
 
 import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvaluator;
+import com.amazon.opendistroforelasticsearch.security.support.wildcard.Wildcard;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -80,16 +81,16 @@ public class OpenDistroSecurityFlsDlsIndexSearcherWrapper extends OpenDistroSecu
 
         if(!isAdmin) {
 
-            final Map<String, Set<String>> allowedFlsFields = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadContext,
+            final Map<Wildcard, Set<String>> allowedFlsFields = (Map<Wildcard, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadContext,
                     ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER);
-            final Map<String, Set<String>> queries = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadContext,
+            final Map<Wildcard, Set<String>> queries = (Map<Wildcard, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadContext,
                     ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER);
-            final Map<String, Set<String>> maskedFieldsMap = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadContext,
+            final Map<Wildcard, Set<String>> maskedFieldsMap = (Map<Wildcard, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadContext,
                     ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER);
 
-            final String flsEval = OpenDistroSecurityUtils.evalMap(allowedFlsFields, index.getName());
-            final String dlsEval = OpenDistroSecurityUtils.evalMap(queries, index.getName());
-            final String maskedEval = OpenDistroSecurityUtils.evalMap(maskedFieldsMap, index.getName());
+            final Wildcard flsEval = OpenDistroSecurityUtils.evalMap(allowedFlsFields, index.getName());
+            final Wildcard dlsEval = OpenDistroSecurityUtils.evalMap(queries, index.getName());
+            final Wildcard maskedEval = OpenDistroSecurityUtils.evalMap(maskedFieldsMap, index.getName());
 
             if (flsEval != null) {
                 flsFields = new HashSet<>(metaFields);
