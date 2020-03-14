@@ -187,7 +187,8 @@ public final class IndexResolverReplacer {
             final Iterator<String> iterator = localRequestedPatterns.iterator();
             while (iterator.hasNext()) {
                 final String[] split = iterator.next().split(String.valueOf(RemoteClusterService.REMOTE_CLUSTER_INDEX_SEPARATOR), 2);
-                if (split.length > 1 && WildcardMatcher.matchAny(split[0], remoteClusters)) {
+                final WildcardMatcher pat = WildcardMatcher.pattern(split[0]);
+                if (split.length > 1 && pat.matchAny(remoteClusters)) {
                     iterator.remove();
                 }
             }
@@ -224,13 +225,14 @@ public final class IndexResolverReplacer {
                             .stream()
                             .map(resolver::resolveDateMathExpression)
                             .collect(Collectors.toSet());
+            final WildcardMatcher dateResolvedPattern = WildcardMatcher.pattern(dateResolvedLocalRequestedPatterns);
             //fill matchingAliases
             final Map<String, AliasOrIndex> lookup = state.metaData().getAliasAndIndexLookup();
             matchingAliases = lookup.entrySet()
                     .stream()
                     .filter(e -> e.getValue().isAlias())
                     .map(Map.Entry::getKey)
-                    .filter(alias -> WildcardMatcher.matchAny(dateResolvedLocalRequestedPatterns, alias))
+                    .filter(dateResolvedPattern)
                     .collect(Collectors.toSet());
 
             try {
@@ -262,10 +264,10 @@ public final class IndexResolverReplacer {
             @Override
             public String[] provide(String[] original, Object request, boolean supportsReplace) {
                 if(supportsReplace) {
-
                     if(retainMode && !isAllWithNoRemote(original)) {
                         final Resolved resolved = resolveRequest(request);
-                        final List<String> retained = WildcardMatcher.getMatchAny(resolved.getAllIndices(), replacements);
+                        WildcardMatcher pattern = WildcardMatcher.pattern(resolved.getAllIndices());
+                        final List<String> retained = pattern.getMatchAny(replacements);
                         retained.addAll(resolved.getRemoteIndices());
                         return retained.toArray(new String[0]);
                     }

@@ -473,7 +473,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
 
         res = rh.executeGetRequest("/*:.abc-6,.abc-6/_search", encodeBasicHeader("ccsresolv", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
-        //TODO: Change for 25.0 to be forbidden (possible bug in ES regarding ccs wildcard)
+        //TODO: Change for 25.0 to be forbidden (possible bug in ES regarding ccs WildcardMatcher)
     }
 
     @Test

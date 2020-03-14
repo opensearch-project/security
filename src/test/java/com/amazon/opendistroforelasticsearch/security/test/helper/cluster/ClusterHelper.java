@@ -153,19 +153,15 @@ public final class ClusterHelper {
                             .put(nodeSettingsSupplier == null ? Settings.Builder.EMPTY_SETTINGS : nodeSettingsSupplier.get(nodeNum)).build(), setting.getPlugins());
             System.out.println(node.settings());
 
-            new Thread(new Runnable() {
-
-                @Override
-                public void run() {
-                    try {
-                        node.start();
-                        latch.countDown();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        log.error("Unable to start node: "+e);
-                        err.set(e);
-                        latch.countDown();
-                    }
+            new Thread(() -> {
+                try {
+                    node.start();
+                    latch.countDown();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    log.error("Unable to start node: "+e);
+                    err.set(e);
+                    latch.countDown();
                 }
             }).start();
             esNodes.add(node);

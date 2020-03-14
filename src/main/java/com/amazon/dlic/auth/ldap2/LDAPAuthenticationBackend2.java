@@ -22,7 +22,7 @@ import java.security.PrivilegedAction;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
-import java.util.List;
+import java.util.Collections;
 import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
@@ -47,6 +47,7 @@ import com.amazon.opendistroforelasticsearch.security.auth.AuthenticationBackend
 import com.amazon.opendistroforelasticsearch.security.auth.Destroyable;
 import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
 import com.amazon.opendistroforelasticsearch.security.user.User;
+import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 
 public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destroyable {
 
@@ -59,7 +60,7 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
     private ConnectionFactory authConnectionFactory;
     private LDAPUserSearcher userSearcher;
     private final int customAttrMaxValueLen;
-    private final List<String> whitelistedAttributes;
+    private final WildcardMatcher whitelistedAttributes;
 
     public LDAPAuthenticationBackend2(final Settings settings, final Path configPath) throws SSLConfigException {
         this.settings = settings;
@@ -78,8 +79,8 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
 
         this.userSearcher = new LDAPUserSearcher(settings);
         customAttrMaxValueLen = settings.getAsInt(ConfigConstants.LDAP_CUSTOM_ATTR_MAXVAL_LEN, 36);
-        whitelistedAttributes = settings.getAsList(ConfigConstants.LDAP_CUSTOM_ATTR_WHITELIST,
-                null);
+        whitelistedAttributes = WildcardMatcher.pattern(settings.getAsList(ConfigConstants.LDAP_CUSTOM_ATTR_WHITELIST,
+                Collections.emptyList()));
     }
 
     @Override

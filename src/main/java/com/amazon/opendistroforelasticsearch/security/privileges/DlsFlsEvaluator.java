@@ -73,7 +73,7 @@ public class DlsFlsEvaluator {
         ThreadContext threadContext = threadPool.getThreadContext();
 
         // maskedFields
-        final Map<String, Set<String>> maskedFieldsMap = securityRoles.getMaskedFields(user, resolver, clusterService);
+        final Map<WildcardMatcher, Set<String>> maskedFieldsMap = securityRoles.getMaskedFields(user, resolver, clusterService);
 
 
         if (maskedFieldsMap != null && !maskedFieldsMap.isEmpty()) {
@@ -103,21 +103,16 @@ public class DlsFlsEvaluator {
             presponse.maskedFields = new HashMap<>(maskedFieldsMap);
 
             if (!requestedResolved.getAllIndices().isEmpty()) {
-                for (Iterator<Entry<String, Set<String>>> it = presponse.maskedFields.entrySet().iterator(); it.hasNext();) {
-                    Entry<String, Set<String>> entry = it.next();
-                    if (!WildcardMatcher.matchAny(entry.getKey(), requestedResolved.getAllIndices(), false)) {
-                        it.remove();
-                    }
-                }
+                presponse.maskedFields.entrySet().removeIf(entry -> !entry.getKey().matchAny(requestedResolved.getAllIndices()));
             }
         }
 
 
 
         // attach dls/fls map if not already done
-        final Tuple<Map<String, Set<String>>, Map<String, Set<String>>> dlsFls = securityRoles.getDlsFls(user, resolver, clusterService);
-        final Map<String, Set<String>> dlsQueries = dlsFls.v1();
-        final Map<String, Set<String>> flsFields = dlsFls.v2();
+        final Tuple<Map<WildcardMatcher, Set<String>>, Map<WildcardMatcher, Set<String>>> dlsFls = securityRoles.getDlsFls(user, resolver, clusterService);
+        final Map<WildcardMatcher, Set<String>> dlsQueries = dlsFls.v1();
+        final Map<WildcardMatcher, Set<String>> flsFields = dlsFls.v2();
 
         if (!dlsQueries.isEmpty()) {
 
@@ -142,12 +137,9 @@ public class DlsFlsEvaluator {
             presponse.queries = new HashMap<>(dlsQueries);
 
             if (!requestedResolved.getAllIndices().isEmpty()) {
-                for (Iterator<Entry<String, Set<String>>> it = presponse.queries.entrySet().iterator(); it.hasNext();) {
-                    Entry<String, Set<String>> entry = it.next();
-                    if (!WildcardMatcher.matchAny(entry.getKey(), requestedResolved.getAllIndices(), false)) {
-                        it.remove();
-                    }
-                }
+                presponse.queries.entrySet().removeIf(entry ->
+                        !entry.getKey().matchAny(requestedResolved.getAllIndices())
+                );
             }
 
         }
@@ -179,12 +171,9 @@ public class DlsFlsEvaluator {
             presponse.allowedFlsFields = new HashMap<>(flsFields);
 
             if (!requestedResolved.getAllIndices().isEmpty()) {
-                for (Iterator<Entry<String, Set<String>>> it = presponse.allowedFlsFields.entrySet().iterator(); it.hasNext();) {
-                    Entry<String, Set<String>> entry = it.next();
-                    if (!WildcardMatcher.matchAny(entry.getKey(), requestedResolved.getAllIndices(), false)) {
-                        it.remove();
-                    }
-                }
+                presponse.allowedFlsFields.entrySet().removeIf(entry ->
+                        !entry.getKey().matchAny(requestedResolved.getAllIndices())
+                );
             }
         }
 

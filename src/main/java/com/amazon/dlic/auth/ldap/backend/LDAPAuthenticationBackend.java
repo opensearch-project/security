@@ -45,6 +45,7 @@ import com.amazon.dlic.auth.ldap.util.Utils;
 import com.amazon.opendistroforelasticsearch.security.auth.AuthenticationBackend;
 import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
 import com.amazon.opendistroforelasticsearch.security.user.User;
+import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 
 public class LDAPAuthenticationBackend implements AuthenticationBackend {
 
@@ -58,7 +59,7 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
     private final Path configPath;
     private final List<Map.Entry<String, Settings>> userBaseSettings;
     private final int customAttrMaxValueLen;
-    private final List<String> whitelistedAttributes;
+    private final WildcardMatcher whitelistedAttributes;
 
     public LDAPAuthenticationBackend(final Settings settings, final Path configPath) {
         this.settings = settings;
@@ -66,8 +67,8 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
         this.userBaseSettings = getUserBaseSettings(settings);
 
         customAttrMaxValueLen = settings.getAsInt(ConfigConstants.LDAP_CUSTOM_ATTR_MAXVAL_LEN, 36);
-        whitelistedAttributes = settings.getAsList(ConfigConstants.LDAP_CUSTOM_ATTR_WHITELIST,
-                null);
+        whitelistedAttributes = WildcardMatcher.pattern(settings.getAsList(ConfigConstants.LDAP_CUSTOM_ATTR_WHITELIST,
+                Collections.singletonList("*")));
     }
 
     @Override

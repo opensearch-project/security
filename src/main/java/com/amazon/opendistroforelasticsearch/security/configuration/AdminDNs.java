@@ -31,6 +31,7 @@
 package com.amazon.opendistroforelasticsearch.security.configuration;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -45,16 +46,14 @@ import org.elasticsearch.common.settings.Settings;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.amazon.opendistroforelasticsearch.security.user.User;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ListMultimap;
 
 public class AdminDNs {
 
     protected final Logger log = LogManager.getLogger(AdminDNs.class);
     private final Set<LdapName> adminDn = new HashSet<LdapName>();
     private final Set<String> adminUsernames = new HashSet<String>();
-    private final ListMultimap<LdapName, String> allowedImpersonations = ArrayListMultimap.<LdapName, String> create();
-    private final ListMultimap<String, String> allowedRestImpersonations = ArrayListMultimap.<String, String> create();
+    private final HashMap<LdapName, WildcardMatcher> allowedImpersonations = new HashMap<>();
+    private final HashMap<String, WildcardMatcher> allowedRestImpersonations = new HashMap<>();
     private boolean injectUserEnabled;
     private boolean injectAdminUserEnabled;
     
@@ -88,7 +87,8 @@ public class AdminDNs {
         
         for (String dnString:impersonationDns.keySet()) {
             try {
-                allowedImpersonations.putAll(new LdapName(dnString), settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_IMPERSONATION_DN+"."+dnString));
+                allowedImpersonations.put(new LdapName(dnString),
+                        WildcardMatcher.pattern(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_IMPERSONATION_DN+"."+dnString)));
             } catch (final InvalidNameException e) {
                 log.error("Unable to parse allowedImpersonations dn {}",dnString, e);
             }
@@ -99,7 +99,8 @@ public class AdminDNs {
         final Settings impersonationUsersRest = settings.getByPrefix(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".");
 
         for (String user:impersonationUsersRest.keySet()) {
-            allowedRestImpersonations.putAll(user, settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+"."+user));
+            allowedRestImpersonations.put(user,
+                    WildcardMatcher.pattern(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+"."+user)));
         }
         
         log.debug("Loaded {} impersonation users for REST {}",allowedRestImpersonations.size(), allowedRestImpersonations);
@@ -147,13 +148,13 @@ public class AdminDNs {
             return true;
         }
 
-        return WildcardMatcher.matchAny(this.allowedImpersonations.get(dn), impersonated);
+        return allowedImpersonations.get(dn).test(impersonated);
     }
     
     public boolean isRestImpersonationAllowed(final String originalUser, final String impersonated) {
         if(originalUser == null) {
             return false;    
         }
-        return WildcardMatcher.matchAny(this.allowedRestImpersonations.get(originalUser), impersonated);
+        return allowedRestImpersonations.get(originalUser).test(impersonated);
     }
 }

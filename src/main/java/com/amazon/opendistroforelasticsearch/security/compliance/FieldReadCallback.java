@@ -54,7 +54,7 @@ public final class FieldReadCallback {
     //private final ThreadContext threadContext;
     //private final ClusterService clusterService;
     private final Index index;
-    private final Set<String> maskedFields;
+    private final WildcardMatcher maskedFields;
     private final AuditLog auditLog;
     private Function<Map<String, ?>, Map<String, Object>> filterFunction;
     private SourceFieldsContext sfc;
@@ -63,13 +63,13 @@ public final class FieldReadCallback {
 
     public FieldReadCallback(final ThreadContext threadContext, final IndexService indexService,
             final ClusterService clusterService, final AuditLog auditLog,
-            final Set<String> maskedFields, ShardId shardId) {
+            final Set<WildcardMatcher> maskedFields, ShardId shardId) {
         super();
         //this.threadContext = Objects.requireNonNull(threadContext);
         //this.clusterService = Objects.requireNonNull(clusterService);
         this.index = Objects.requireNonNull(indexService).index();
         this.auditLog = auditLog;
-        this.maskedFields = maskedFields;
+        this.maskedFields = WildcardMatcher.merge(maskedFields);
         this.shardId = shardId;
         try {
             sfc = (SourceFieldsContext) HeaderHelper.deserializeSafeFromHeader(threadContext, "_opendistro_security_source_field_context");
@@ -89,8 +89,8 @@ public final class FieldReadCallback {
 
     private boolean recordField(final String fieldName, boolean isStringField) {
         boolean masked = false;
-        if(isStringField && maskedFields != null && maskedFields.size() > 0) {
-            masked = WildcardMatcher.matchAny(maskedFields, fieldName);
+        if(isStringField) {
+            masked = maskedFields.test(fieldName);
         }
         return !masked && auditLog.getComplianceConfig().readHistoryEnabledForField(index.getName(), fieldName);
     }

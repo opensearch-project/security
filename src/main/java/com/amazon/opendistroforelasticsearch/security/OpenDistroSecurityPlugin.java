@@ -543,14 +543,14 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
 
                     @Override
                     public Weight doCache(Weight weight, QueryCachingPolicy policy) {
-                        final Map<String, Set<String>> allowedFlsFields = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadPool.getThreadContext(),
+                        final Map<WildcardMatcher, Set<String>> allowedFlsFields = (Map<WildcardMatcher, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadPool.getThreadContext(),
                                 ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER);
                         
                         if(OpenDistroSecurityUtils.evalMap(allowedFlsFields, index().getName()) != null) {
                             return weight;
                         } else {
                             
-                            final Map<String, Set<String>> maskedFieldsMap = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadPool.getThreadContext(),
+                            final Map<WildcardMatcher, Set<String>> maskedFieldsMap = (Map<WildcardMatcher, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadPool.getThreadContext(),
                                     ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER);
                             
                             if(OpenDistroSecurityUtils.evalMap(maskedFieldsMap, index().getName()) != null) {
@@ -1045,18 +1045,18 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             if (threadPool == null) {
                 return field -> true;
             }
-            final Map<String, Set<String>> allowedFlsFields = (Map<String, Set<String>>) HeaderHelper
+            final Map<WildcardMatcher, Set<String>> allowedFlsFields = (Map<WildcardMatcher, Set<String>>) HeaderHelper
                     .deserializeSafeFromHeader(threadPool.getThreadContext(), ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER);
 
-            final String eval = OpenDistroSecurityUtils.evalMap(allowedFlsFields, index);
+            final WildcardMatcher eval = OpenDistroSecurityUtils.evalMap(allowedFlsFields, index);
 
             if (eval == null) {
                 return field -> true;
             } else {
 
                 final Set<String> includesExcludes = allowedFlsFields.get(eval);
-                final Set includesSet = new HashSet<>(includesExcludes.size());
-                final Set excludesSet = new HashSet<>(includesExcludes.size());
+                final Set<String> includesSet = new HashSet<>(includesExcludes.size());
+                final Set<String> excludesSet = new HashSet<>(includesExcludes.size());
 
 
                 for (final String incExc : includesExcludes) {
@@ -1070,9 +1070,11 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                 }
 
                 if (!excludesSet.isEmpty()) {
-                    return field -> !WildcardMatcher.matchAny(excludesSet, handleKeyword(field));
+                    WildcardMatcher matcher = WildcardMatcher.pattern(excludesSet);
+                    return field -> !matcher.test(handleKeyword(field));
                 } else {
-                    return field -> WildcardMatcher.matchAny(includesSet, handleKeyword(field));
+                    WildcardMatcher matcher = WildcardMatcher.pattern(includesSet);
+                    return field -> matcher.test(handleKeyword(field));
                 }
             }
         };

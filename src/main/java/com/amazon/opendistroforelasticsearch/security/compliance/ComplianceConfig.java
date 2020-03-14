@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -75,12 +76,12 @@ public class ComplianceConfig {
     private final boolean logReadMetadataOnly;
     private final boolean logWriteMetadataOnly;
     private final boolean logDiffsForWrite;
-    private final List<String> watchedWriteIndicesPatterns;
-    private final Set<String> immutableIndicesPatterns;
+    private final WildcardMatcher watchedWriteIndicesPatterns;
+    private final WildcardMatcher immutableIndicesPatterns;
     private final String opendistrosecurityIndex;
 
-    private final Map<String, Set<String>> readEnabledFields;
-    private final LoadingCache<String, Set<String>> readEnabledFieldsCache;
+    private final Map<WildcardMatcher, Set<String>> readEnabledFields;
+    private final LoadingCache<String, WildcardMatcher> readEnabledFieldsCache;
     private final byte[] salt16;
     private final DateTimeFormatter auditLogPattern;
     private final String auditLogIndex;
@@ -104,8 +105,8 @@ public class ComplianceConfig {
         this.logReadMetadataOnly = logReadMetadataOnly;
         this.logWriteMetadataOnly = logWriteMetadataOnly;
         this.logDiffsForWrite = logDiffsForWrite;
-        this.watchedWriteIndicesPatterns = watchedWriteIndicesPatterns;
-        this.immutableIndicesPatterns = immutableIndicesPatterns;
+        this.watchedWriteIndicesPatterns = WildcardMatcher.pattern(watchedWriteIndicesPatterns);
+        this.immutableIndicesPatterns = WildcardMatcher.pattern(immutableIndicesPatterns);
         this.opendistrosecurityIndex = opendistrosecurityIndex;
 
         this.salt16 = new byte[SALT_SIZE];
@@ -128,7 +129,7 @@ public class ComplianceConfig {
                 .map(watchedReadField -> watchedReadField.split(","))
                 .filter(split -> split.length != 0 && !Strings.isNullOrEmpty(split[0]))
                 .collect(Collectors.toMap(
-                        split -> split[0],
+                        split -> WildcardMatcher.pattern(split[0]),
                         split -> split.length == 1 ?
                                 Collections.singleton("*") : Arrays.stream(split).skip(1).collect(Collectors.toSet())
                 ));
@@ -150,10 +151,10 @@ public class ComplianceConfig {
 
         this.readEnabledFieldsCache = CacheBuilder.newBuilder()
                 .maximumSize(CACHE_SIZE)
-                .build(new CacheLoader<String, Set<String>>() {
+                .build(new CacheLoader<String, WildcardMatcher>() {
                     @Override
-                    public Set<String> load(String index) throws Exception {
-                        return getFieldsForIndex(index);
+                    public WildcardMatcher load(String index) throws Exception {
+                        return WildcardMatcher.pattern(getFieldsForIndex(index));
                     }
                 });
     }
@@ -259,7 +260,7 @@ public class ComplianceConfig {
      * Get set of immutable index pattern
      * @return set of index patterns
      */
-    public Set<String> getImmutableIndicesPatterns() {
+    public WildcardMatcher getImmutableIndicesPatterns() {
         return immutableIndicesPatterns;
     }
 
@@ -292,7 +293,7 @@ public class ComplianceConfig {
         }
 
         return readEnabledFields.entrySet().stream()
-                .filter(entry -> WildcardMatcher.match(entry.getKey(), index))
+                .filter(entry -> entry.getKey().test(index))
                 .flatMap(entry -> entry.getValue().stream())
                 .collect(Collectors.toSet());
     }
@@ -334,7 +335,8 @@ public class ComplianceConfig {
                 return false;
             }
         }
-        return WildcardMatcher.matchAny(watchedWriteIndicesPatterns, index);
+
+        return watchedWriteIndicesPatterns.test(index);
     }
 
     /**
@@ -352,7 +354,7 @@ public class ComplianceConfig {
             return logInternalConfig;
         }
         try {
-            return !readEnabledFieldsCache.get(index).isEmpty();
+            return readEnabledFieldsCache.get(index) != WildcardMatcher.NONE;
         } catch (ExecutionException e) {
             log.warn("Failed to get index {} fields enabled for read from cache. Bypassing cache.", index, e);
             return getFieldsForIndex(index).isEmpty();
@@ -373,16 +375,13 @@ public class ComplianceConfig {
         if (opendistrosecurityIndex.equals(index)) {
             return logInternalConfig;
         }
-        Set<String> fields;
+        WildcardMatcher matcher;
         try {
-            fields = readEnabledFieldsCache.get(index);
-            if (fields.isEmpty()) {
-                return false;
-            }
+            matcher = readEnabledFieldsCache.get(index);
         } catch (ExecutionException e) {
             log.warn("Failed to get index {} fields enabled for read from cache. Bypassing cache.", index, e);
-            fields = getFieldsForIndex(index);
+            matcher = WildcardMatcher.pattern(getFieldsForIndex(index));
         }
-        return WildcardMatcher.matchAny(fields, field);
+        return matcher.test(field);
     }
 }

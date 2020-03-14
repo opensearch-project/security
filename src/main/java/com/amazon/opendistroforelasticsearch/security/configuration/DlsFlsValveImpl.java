@@ -38,6 +38,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.HeaderHelper;
 import com.amazon.opendistroforelasticsearch.security.support.OpenDistroSecurityUtils;
+import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 
 public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
@@ -48,9 +49,9 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
      * @return false on error
      */
     public boolean invoke(final ActionRequest request, final ActionListener<?> listener,
-            final Map<String,Set<String>> allowedFlsFields,
-            final Map<String,Set<String>> maskedFields,
-            final Map<String,Set<String>> queries) {
+            final Map<WildcardMatcher,Set<String>> allowedFlsFields,
+            final Map<WildcardMatcher,Set<String>> maskedFields,
+            final Map<WildcardMatcher,Set<String>> queries) {
 
         final boolean fls = allowedFlsFields != null && !allowedFlsFields.isEmpty();
         final boolean masked = maskedFields != null && !maskedFields.isEmpty();
@@ -114,10 +115,10 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
     @Override
     public void handleSearchContext(SearchContext context, ThreadPool threadPool, NamedXContentRegistry namedXContentRegistry) {
         try {
-            final Map<String, Set<String>> queries = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadPool.getThreadContext(),
+            final Map<WildcardMatcher, Set<String>> queries = (Map<WildcardMatcher, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadPool.getThreadContext(),
                     ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER);
 
-            final String dlsEval = OpenDistroSecurityUtils.evalMap(queries, context.indexShard().indexSettings().getIndex().getName());
+            final WildcardMatcher dlsEval = OpenDistroSecurityUtils.evalMap(queries, context.indexShard().indexSettings().getIndex().getName());
 
             if (dlsEval != null) {
 
