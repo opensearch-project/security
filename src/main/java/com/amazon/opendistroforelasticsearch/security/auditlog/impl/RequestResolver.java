@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.amazon.opendistroforelasticsearch.security.support.wildcard.Wildcard;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.DocWriteRequest;
@@ -348,7 +349,8 @@ public final class RequestResolver {
         final String[] _indices = indices == null?new String[0]:indices;
         msg.addIndices(_indices);
 
-        final Set<String> allIndices;
+        final Wildcard allIndicesPattern;
+        final HashSet<String> allIndices;
 
         if(resolveIndices) {
             final String[] resolvedIndices = (resolver==null)?new String[0]:resolver.concreteIndexNames(cs.state(), IndicesOptions.lenientExpandOpen(), indices);
@@ -357,19 +359,20 @@ public final class RequestResolver {
             allIndices.addAll(Arrays.asList(_indices));
             allIndices.addAll(Arrays.asList(resolvedIndices));
             if(allIndices.contains("_all")) {
-                allIndices.add("*");
+                allIndices.add("*"); //TODO: maybe replace allIndices instead of add?
             }
         } else {
             allIndices = new HashSet<String>(_indices.length);
             allIndices.addAll(Arrays.asList(_indices));
             if(allIndices.contains("_all")) {
-                allIndices.add("*");
+                allIndices.add("*"); //TODO: maybe replace allIndices instead of add?
             }
         }
 
+        allIndicesPattern = Wildcard.caseSensitiveAny(allIndices);
         if(addSource) {
             if(sourceIsSensitive && source != null) {
-                if(!WildcardMatcher.matchAny(allIndices.toArray(new String[0]), opendistrosecurityIndex)) {
+                if(!allIndicesPattern.matches(opendistrosecurityIndex)) {
                     if(source instanceof BytesReference) {
                        msg.addTupleToRequestBody(convertSource(xContentType, (BytesReference) source));
                     } else {

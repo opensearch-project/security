@@ -24,6 +24,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 
+import com.amazon.opendistroforelasticsearch.security.support.wildcard.Wildcard;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.FieldInfo;
@@ -55,7 +56,7 @@ public final class FieldReadCallback {
     //private final ClusterService clusterService;
     private final Index index;
     private final ComplianceConfig complianceConfig;
-    private final Set<String> maskedFields;
+    private final Wildcard maskedFields;
     private final AuditLog auditLog;
     private Function<Map<String, ?>, Map<String, Object>> filterFunction;
     private SourceFieldsContext sfc;
@@ -71,7 +72,7 @@ public final class FieldReadCallback {
         this.index = Objects.requireNonNull(indexService).index();
         this.complianceConfig = complianceConfig;
         this.auditLog = auditLog;
-        this.maskedFields = maskedFields;
+        this.maskedFields = Wildcard.caseSensitiveAny(maskedFields);
         this.shardId = shardId;
         try {
             sfc = (SourceFieldsContext) HeaderHelper.deserializeSafeFromHeader(threadContext, "_opendistro_security_source_field_context");
@@ -91,8 +92,8 @@ public final class FieldReadCallback {
 
     private boolean recordField(final String fieldName, boolean isStringField) {
         boolean masked = false;
-        if(isStringField && maskedFields != null && maskedFields.size() > 0) {
-            masked = WildcardMatcher.matchAny(maskedFields, fieldName);
+        if(isStringField) {
+            masked = maskedFields.matches(fieldName);
         }
         return !masked && complianceConfig.readHistoryEnabledForField(index.getName(), fieldName);
     }
