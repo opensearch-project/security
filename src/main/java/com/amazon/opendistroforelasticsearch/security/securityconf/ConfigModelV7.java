@@ -47,7 +47,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 
 import com.amazon.opendistroforelasticsearch.security.resolver.IndexResolverReplacer.Resolved;
-import com.amazon.opendistroforelasticsearch.security.securityconf.ConfigModelV6.SecurityRole;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.ActionGroupsV7;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.RoleMappingsV7;
@@ -936,38 +935,35 @@ public class ConfigModelV7 extends ConfigModel {
         }));
     }
 
-    private static boolean impliesTypePerm(Set<IndexPattern> ipatterns, Resolved resolved, User user, String[] actions,
-            IndexNameExpressionResolver resolver, ClusterService cs) {
-        Set<String> matchingIndex = new HashSet<>(resolved.getAllIndices());
-
-        for (String in : resolved.getAllIndices()) {
-            //find index patterns who are matching
-            Set<String> matchingActions = new HashSet<>(Arrays.asList(actions));
-            //Set<String> matchingTypes = new HashSet<>(resolved.getTypes(-));
-            for (IndexPattern p : ipatterns) {
-                if (WildcardMatcher.matchAny(p.getResolvedIndexPattern(user, resolver, cs), in)) {
-                    //per resolved index per pattern
-                    //for (String t : resolved.getTypes(-)) {
-                        //for (TypePerm tp : p.typePerms) {
-                            //if (WildcardMatcher.match(tp.typePattern, t)) {
-                                //matchingTypes.remove(t);
-                                for (String a : Arrays.asList(actions)) {
-                                    if (WildcardMatcher.matchAny(p.perms, a)) {
-                                        matchingActions.remove(a);
-                                    }
-                                }
-                            //}
-                        //}
-                    //}
-                }
-            }
-
-            if (matchingActions.isEmpty() /*&& matchingTypes.isEmpty()*/) {
-                matchingIndex.remove(in);
-            }
+    private static final class IndexPatternsAndPermissions {
+        private String[] pattern;
+        private Set<String> perms;
+        public IndexPatternsAndPermissions(String[] pattern, Set<String> perms) {
+            this.pattern = pattern;
+            this.perms = perms;
         }
 
-        return matchingIndex.isEmpty();
+        public boolean matches(String index, String action) {
+            return WildcardMatcher.matchAny(pattern, index) && WildcardMatcher.matchAny(perms, action);
+        }
+    }
+
+    private static boolean impliesTypePerm(Set<IndexPattern> ipatterns, Resolved resolved, User user, String[] requestedActions,
+                                           IndexNameExpressionResolver resolver, ClusterService cs) {
+        Set<String> resolvedRequestedIndices = resolved.getAllIndices();
+        IndexPatternsAndPermissions[] indexPatternsAndPermissions = ipatterns
+                .stream()
+                .map(p -> new IndexPatternsAndPermissions(p.getResolvedIndexPattern(user, resolver, cs), p.perms))
+                .toArray(IndexPatternsAndPermissions[]::new);
+        return resolvedRequestedIndices
+                .stream()
+                .allMatch(index ->
+                        Arrays.stream(requestedActions).allMatch(action ->
+                                Arrays.stream(indexPatternsAndPermissions).anyMatch(ipap ->
+                                        ipap.matches(index, action)
+                                )
+                        )
+                );
     }
     
     
