@@ -946,40 +946,66 @@ public class ConfigModelV6 extends ConfigModel {
         }));
     }
 
-    private static boolean impliesTypePerm(Set<IndexPattern> ipatterns, Resolved resolved, User user, String[] actions,
-            IndexNameExpressionResolver resolver, ClusterService cs) {
-        Set<String> matchingIndex = new HashSet<>(resolved.getAllIndices());
+    private static final class IndexPatternsAndTypePermissions {
+        private static final Logger log = LogManager.getLogger(IndexPatternsAndTypePermissions.class);
 
-        for (String in : resolved.getAllIndices()) {
-            //find index patterns who are matching
-            Set<String> matchingActions = new HashSet<>(Arrays.asList(actions));
-            Set<String> matchingTypes = new HashSet<>(resolved.getTypes());
-            for (IndexPattern p : ipatterns) {
-                if (WildcardMatcher.matchAny(p.getResolvedIndexPattern(user, resolver, cs), in)) {
-                    //per resolved index per pattern
-                    for (String t : resolved.getTypes()) {
-                        for (TypePerm tp : p.typePerms) {
-                            if (WildcardMatcher.match(tp.typePattern, t)) {
-                                matchingTypes.remove(t);
-                                for (String a : Arrays.asList(actions)) {
-                                    if (WildcardMatcher.matchAny(tp.perms, a)) {
-                                        matchingActions.remove(a);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+        private final String[] pattern;
+        private final Set<TypePerm> typePerms;
 
-            if (matchingActions.isEmpty() && matchingTypes.isEmpty()) {
-                matchingIndex.remove(in);
-            }
+        public IndexPatternsAndTypePermissions(String[] pattern, Set<TypePerm> typePerms) {
+            this.pattern = pattern;
+            this.typePerms = typePerms;
         }
 
-        return matchingIndex.isEmpty();
+        private static String b2s(boolean matches) {
+            return matches ? "matches" : "does not match";
+        }
+
+        public boolean matches(String index, String type, String action) {
+            boolean matchIndex = WildcardMatcher.matchAny(pattern, index);
+            if (log.isDebugEnabled()) {
+                log.debug("index {} {} index pattern {}", index, b2s(matchIndex), pattern);
+            }
+            if (matchIndex) {
+                return typePerms.stream().anyMatch(tp -> {
+                    boolean matchType = WildcardMatcher.match(tp.getTypePattern(), type);
+                    if (log.isDebugEnabled()) {
+                        log.debug("type {} {} type pattern {}", type, b2s(matchType), tp.getTypePattern());
+                    }
+                    if (matchType) {
+                        boolean matchAction = WildcardMatcher.matchAny(tp.getPerms(), action);
+                        if (log.isDebugEnabled()) {
+                            log.debug("action {} {} action pattern {}", action, b2s(matchAction), tp.getPerms());
+                        }
+                        return matchAction;
+                    }
+                    return false;
+                });
+            }
+            return false;
+        }
     }
-    
+
+    private static boolean impliesTypePerm(Set<IndexPattern> ipatterns, Resolved resolved, User user, String[] requestedActions,
+                                           IndexNameExpressionResolver resolver, ClusterService cs) {
+
+        IndexPatternsAndTypePermissions[] indexPatternsAndTypePermissions = ipatterns
+                .stream()
+                .map(p -> new IndexPatternsAndTypePermissions(p.getResolvedIndexPattern(user, resolver, cs), p.getTypePerms()))
+                .toArray(IndexPatternsAndTypePermissions[]::new);
+
+        return resolved.getAllIndices()
+                .stream().allMatch(index ->
+                        resolved.getTypes().stream().allMatch(type ->
+                                Arrays.stream(requestedActions).allMatch(action ->
+                                        Arrays.stream(indexPatternsAndTypePermissions).anyMatch(ipatp ->
+                                                ipatp.matches(index, type, action)
+                                        )
+                                )
+                        )
+                );
+    }
+
     
     
     //#######
