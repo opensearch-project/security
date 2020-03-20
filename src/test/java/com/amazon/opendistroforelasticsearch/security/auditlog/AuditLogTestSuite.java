@@ -30,7 +30,6 @@ import com.amazon.opendistroforelasticsearch.security.auditlog.integration.SSLAu
 import com.amazon.opendistroforelasticsearch.security.auditlog.routing.FallbackTest;
 import com.amazon.opendistroforelasticsearch.security.auditlog.routing.RouterTest;
 import com.amazon.opendistroforelasticsearch.security.auditlog.routing.RoutingConfigurationTest;
-import com.amazon.opendistroforelasticsearch.security.auditlog.routing.ThreadPoolSettingsTest;
 import com.amazon.opendistroforelasticsearch.security.auditlog.sink.KafkaSinkTest;
 import com.amazon.opendistroforelasticsearch.security.auditlog.sink.SinkProviderTLSTest;
 import com.amazon.opendistroforelasticsearch.security.auditlog.sink.SinkProviderTest;
@@ -51,7 +50,6 @@ import com.amazon.opendistroforelasticsearch.security.auditlog.sink.WebhookAudit
 	FallbackTest.class,
 	RouterTest.class,
 	RoutingConfigurationTest.class,
-	ThreadPoolSettingsTest.class,
 	SinkProviderTest.class,
 	SinkProviderTLSTest.class,
 	WebhookAuditLogTest.class,
