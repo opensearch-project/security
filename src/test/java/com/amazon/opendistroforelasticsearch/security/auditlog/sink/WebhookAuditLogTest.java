@@ -39,9 +39,7 @@ import com.amazon.opendistroforelasticsearch.security.auditlog.helper.LoggingSin
 import com.amazon.opendistroforelasticsearch.security.auditlog.helper.MockAuditMessageFactory;
 import com.amazon.opendistroforelasticsearch.security.auditlog.helper.TestHttpHandler;
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage;
-import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage.Category;
-import com.amazon.opendistroforelasticsearch.security.auditlog.sink.AuditLogSink;
-import com.amazon.opendistroforelasticsearch.security.auditlog.sink.WebhookSink;
+import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
 import com.amazon.opendistroforelasticsearch.security.auditlog.sink.WebhookSink.WebhookFormat;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
@@ -726,7 +724,7 @@ public class WebhookAuditLogTest {
 		Assert.assertTrue(in, in.contains(AuditMessage.REQUEST_LAYER));
 		Assert.assertTrue(in, in.contains(AuditMessage.TRANSPORT_REQUEST_TYPE));
 		Assert.assertTrue(in, in.contains(AuditMessage.UTC_TIMESTAMP));
-		Assert.assertTrue(in, in.contains(Category.FAILED_LOGIN.name()));
+		Assert.assertTrue(in, in.contains(AuditCategory.FAILED_LOGIN.name()));
 		Assert.assertTrue(in, in.contains("FAILED_LOGIN"));
 		Assert.assertTrue(in, in.contains("John Doe"));
 		Assert.assertTrue(in, in.contains("8.8.8.8"));
