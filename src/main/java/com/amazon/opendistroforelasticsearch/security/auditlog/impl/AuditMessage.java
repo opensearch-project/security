@@ -106,9 +106,9 @@ public final class AuditMessage {
 
     private static final DateTimeFormatter DEFAULT_FORMAT = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZZ");
     private final Map<String, Object> auditInfo = new HashMap<String, Object>(50);
-    private final Category msgCategory;
+    private final AuditCategory msgCategory;
 
-    public AuditMessage(final Category msgCategory, final ClusterService clusterService, final Origin origin, final Origin layer) {
+    public AuditMessage(final AuditCategory msgCategory, final ClusterService clusterService, final Origin origin, final Origin layer) {
         this.msgCategory = Objects.requireNonNull(msgCategory);
         final String currentTime = currentTime();
         auditInfo.put(FORMAT_VERSION, 4);
@@ -356,7 +356,7 @@ public final class AuditMessage {
         return (String) this.auditInfo.get(TRANSPORT_REQUEST_TYPE);
     }
 
-	public Category getCategory() {
+	public AuditCategory getCategory() {
 		return msgCategory;
 	}
 
@@ -423,20 +423,4 @@ public final class AuditMessage {
 
         return String.valueOf(object);
     }
-
-	public static enum Category {
-        BAD_HEADERS,
-        FAILED_LOGIN,
-        MISSING_PRIVILEGES,
-        GRANTED_PRIVILEGES,
-        OPENDISTRO_SECURITY_INDEX_ATTEMPT,
-        SSL_EXCEPTION,
-        AUTHENTICATED,
-        COMPLIANCE_DOC_READ,
-        COMPLIANCE_DOC_WRITE,
-        COMPLIANCE_EXTERNAL_CONFIG,
-        COMPLIANCE_INTERNAL_CONFIG_READ,
-        COMPLIANCE_INTERNAL_CONFIG_WRITE
-    }
-
 }
