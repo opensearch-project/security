@@ -45,7 +45,6 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
                 .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS, "emp")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
-                .put("opendistro_security.audit.threadpool.size", 0)
                 .build();
 
         setup(additionalSettings);
@@ -99,7 +98,6 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
                 .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS, "emp")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
-                .put("opendistro_security.audit.threadpool.size", 0)
                 .build();
 
         setup(additionalSettings);
@@ -169,7 +167,6 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
                 .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
-                .put("opendistro_security.audit.threadpool.size", 0)
                 .build();
 
         TestAuditlogImpl.clear();
@@ -216,7 +213,6 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
                 .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, false)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
-                .put("opendistro_security.audit.threadpool.size", 0)
                 .build();
 
         TestAuditlogImpl.clear();
@@ -255,7 +251,6 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
                 .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, false)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, "finance")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS, "humanresources,Designation,FirstName,LastName")
-                .put("opendistro_security.audit.threadpool.size", 0)
                 .build();
 
         setup(additionalSettings);
@@ -293,7 +288,6 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
                 .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, false)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, "humanresources")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS, "humanresources,*")
-                .put("opendistro_security.audit.threadpool.size", 0)
                 .build();
 
         setup(additionalSettings);
@@ -342,7 +336,6 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, "humanresources")
-                .put("opendistro_security.audit.threadpool.size", 0)
                 .build();
 
         setup(additionalSettings);
