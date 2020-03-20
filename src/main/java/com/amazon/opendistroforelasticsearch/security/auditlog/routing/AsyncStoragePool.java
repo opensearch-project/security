@@ -20,40 +20,25 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import com.amazon.opendistroforelasticsearch.security.auditlog.config.ThreadPoolConfig;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.settings.Settings;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage;
 import com.amazon.opendistroforelasticsearch.security.auditlog.sink.AuditLogSink;
-import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 
 public class AsyncStoragePool {
+	private static final Logger log = LogManager.getLogger(AsyncStoragePool.class);
+	private final ExecutorService pool;
+	private final ThreadPoolConfig threadPoolConfig;
 
-	protected final Logger log = LogManager.getLogger(this.getClass());
+	public AsyncStoragePool(final ThreadPoolConfig threadPoolConfig) {
+		this.threadPoolConfig = threadPoolConfig;
+		this.pool = createExecutor(threadPoolConfig);
+	}
 
-	private static final int DEFAULT_THREAD_POOL_SIZE = 10;
-	private static final int DEFAULT_THREAD_POOL_MAX_QUEUE_LEN = 100 * 1000;
-
-	// package private for unit tests
-	final ExecutorService pool;
-
-	int threadPoolSize;
-	int threadPoolMaxQueueLen;
-
-	public AsyncStoragePool(final Settings settings) {
-		this.threadPoolSize = settings.getAsInt(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_THREADPOOL_SIZE, DEFAULT_THREAD_POOL_SIZE).intValue();
-		this.threadPoolMaxQueueLen = settings.getAsInt(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_THREADPOOL_MAX_QUEUE_LEN, DEFAULT_THREAD_POOL_MAX_QUEUE_LEN).intValue();
-
-		if (threadPoolSize <= 0) {
-			threadPoolSize = DEFAULT_THREAD_POOL_SIZE;
-		}
-
-		if (threadPoolMaxQueueLen <= 0) {
-			threadPoolMaxQueueLen = DEFAULT_THREAD_POOL_MAX_QUEUE_LEN;
-		}
-
-		this.pool = createExecutor(threadPoolSize, threadPoolMaxQueueLen);
+	public ThreadPoolConfig getConfig() {
+		return this.threadPoolConfig;
 	}
 
 	public void submit(AuditMessage message, AuditLogSink sink) {
@@ -72,11 +57,18 @@ public class AsyncStoragePool {
 		}
 	}
 
-	private ThreadPoolExecutor createExecutor(final int threadPoolSize, final int maxQueueLen) {
+	private static ThreadPoolExecutor createExecutor(final ThreadPoolConfig config) {
 		if (log.isDebugEnabled()) {
-			log.debug("Create new executor with threadPoolSize: {} and maxQueueLen: {}", threadPoolSize, maxQueueLen);
+			log.debug("Create new executor with threadPoolSize: {} and maxQueueLen: {}",
+					config.getThreadPoolSize(),
+					config.getThreadPoolMaxQueueLen());
 		}
-		return new ThreadPoolExecutor(threadPoolSize, threadPoolSize, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(maxQueueLen));
+		return new ThreadPoolExecutor(
+				config.getThreadPoolSize(),
+				config.getThreadPoolSize(),
+				0L,
+				TimeUnit.MILLISECONDS,
+				new LinkedBlockingQueue<>(config.getThreadPoolMaxQueueLen()));
 	}
 
 	public void close() {

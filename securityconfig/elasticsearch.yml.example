@@ -66,8 +66,8 @@ opendistro_security.roles_mapping_resolution: MAPPING_ONLY
 #opendistro_security.audit.config.disabled_categories: ["AUTHENTICATED","GRANTED_PRIVILEGES"]
 # Disable some requests (wildcard or regex of actions or rest request paths)
 #opendistro_security.audit.ignore_requests: ["indices:data/read/*","*_bulk"]
-# Tune threadpool size, default is 10 and 0 means disabled
-#opendistro_security.audit.threadpool.size: 0
+# Tune threadpool size, default is 10
+#opendistro_security.audit.threadpool.size: 10
 # Tune threadpool max size queue length, default is 100000
 #opendistro_security.audit.threadpool.max_queue_len: 100000
 

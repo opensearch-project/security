@@ -50,7 +50,6 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "authenticated")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "authenticated")
-                .put("opendistro_security.audit.threadpool.size", 0)
                 .build();
 
         setup(additionalSettings);
@@ -82,7 +81,6 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
                 .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
-                .put("opendistro_security.audit.threadpool.size", 0)
                 .build();
 
         setup(additionalSettings);
@@ -114,7 +112,6 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
-                .put("opendistro_security.audit.threadpool.size", 0)
                 .build();
 
         setup(additionalSettings);
@@ -154,7 +151,6 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
                 .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
-                .put("opendistro_security.audit.threadpool.size", 0)
                 .build();
 
         setup(additionalSettings);
@@ -195,7 +191,6 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
                 .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
-                .put("opendistro_security.audit.threadpool.size", 0)
                 .build();
 
         setup(additionalSettings);
@@ -227,7 +222,6 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
-                .put("opendistro_security.audit.threadpool.size", 0)
                 .build();
 
         setup(additionalSettings);
@@ -252,7 +246,6 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
         Settings additionalSettings = Settings.builder()
                 .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
-                .put("opendistro_security.audit.threadpool.size", -1)
                 .build();
 
         setup(additionalSettings);
@@ -510,7 +503,6 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
-                .put("opendistro_security.audit.threadpool.size", 0)
                 .build();
 
         setup(additionalSettings);
@@ -555,7 +547,6 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
-                .put("opendistro_security.audit.threadpool.size", 0)
                 .build();
 
         setup(additionalSettings);
@@ -597,7 +588,6 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, false)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
-                .put("opendistro_security.audit.threadpool.size", 0)
                 .build();
 
         setup(additionalSettings);
@@ -630,7 +620,6 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
-                .put("opendistro_security.audit.threadpool.size", 0)
                 .build();
 
         setup(additionalSettings);
@@ -657,7 +646,6 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
-                .put("opendistro_security.audit.threadpool.size", 0)
                 .build();
 
         setup(additionalSettings);
