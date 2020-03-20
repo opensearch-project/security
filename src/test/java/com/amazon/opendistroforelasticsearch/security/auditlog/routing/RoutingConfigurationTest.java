@@ -17,6 +17,7 @@ package com.amazon.opendistroforelasticsearch.security.auditlog.routing;
 
 import java.util.List;
 
+import com.amazon.opendistroforelasticsearch.security.auditlog.config.ThreadPoolConfig;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Assert;
 import org.junit.Test;
@@ -24,8 +25,6 @@ import org.junit.Test;
 import com.amazon.opendistroforelasticsearch.security.auditlog.AbstractAuditlogiUnitTest;
 import com.amazon.opendistroforelasticsearch.security.auditlog.helper.MockAuditMessageFactory;
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage;
-import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage.Category;
-import com.amazon.opendistroforelasticsearch.security.auditlog.routing.AuditMessageRouter;
 import com.amazon.opendistroforelasticsearch.security.auditlog.sink.AuditLogSink;
 import com.amazon.opendistroforelasticsearch.security.auditlog.sink.DebugSink;
 import com.amazon.opendistroforelasticsearch.security.auditlog.sink.ExternalESSink;
@@ -163,5 +162,14 @@ public class RoutingConfigurationTest extends AbstractAuditlogiUnitTest{
 		sinks = router.categorySinks.get(AuditMessage.Category.COMPLIANCE_DOC_READ);
 		Assert.assertEquals("default", sinks.get(0).getName());
 		Assert.assertEquals(DebugSink.class, sinks.get(0).getClass());
+	}
+
+	@Test
+	public void testNoMultipleEndpointsConfiguration() throws Exception {
+		Settings settings = Settings.builder().loadFromPath(FileHelper.getAbsoluteFilePathFromClassPath("auditlog/endpoints/sink/configuration_no_multiple_endpoints.yml")).build();
+		AuditMessageRouter router = createMessageRouterComplianceEnabled(settings);
+		ThreadPoolConfig config = router.storagePool.getConfig();
+		Assert.assertEquals(5, config.getThreadPoolSize());
+		Assert.assertEquals(200000, config.getThreadPoolMaxQueueLen());
 	}
 }
