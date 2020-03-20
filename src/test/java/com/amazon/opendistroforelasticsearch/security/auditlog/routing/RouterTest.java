@@ -27,8 +27,7 @@ import com.amazon.opendistroforelasticsearch.security.auditlog.AbstractAuditlogi
 import com.amazon.opendistroforelasticsearch.security.auditlog.helper.LoggingSink;
 import com.amazon.opendistroforelasticsearch.security.auditlog.helper.MockAuditMessageFactory;
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage;
-import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage.Category;
-import com.amazon.opendistroforelasticsearch.security.auditlog.routing.AuditMessageRouter;
+import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
 import com.amazon.opendistroforelasticsearch.security.auditlog.sink.AuditLogSink;
 import com.amazon.opendistroforelasticsearch.security.auditlog.sink.DebugSink;
 import com.amazon.opendistroforelasticsearch.security.auditlog.sink.ExternalESSink;
@@ -47,7 +46,7 @@ public class RouterTest extends AbstractAuditlogiUnitTest{
 		Assert.assertEquals("default", router.defaultSink.getName());
 		Assert.assertEquals(ExternalESSink.class, router.defaultSink.getClass());
 		// test category sinks
-		List<AuditLogSink> sinks = router.categorySinks.get(AuditMessage.Category.MISSING_PRIVILEGES);
+		List<AuditLogSink> sinks = router.categorySinks.get(AuditCategory.MISSING_PRIVILEGES);
 		Assert.assertNotNull(sinks);
 		// 3, since we include default as well
 		Assert.assertEquals(3, sinks.size());
@@ -57,7 +56,7 @@ public class RouterTest extends AbstractAuditlogiUnitTest{
 		Assert.assertEquals(ExternalESSink.class, sinks.get(1).getClass());
 		Assert.assertEquals("default", sinks.get(2).getName());
 		Assert.assertEquals(ExternalESSink.class, sinks.get(2).getClass());
-		sinks = router.categorySinks.get(AuditMessage.Category.COMPLIANCE_DOC_READ);
+		sinks = router.categorySinks.get(AuditCategory.COMPLIANCE_DOC_READ);
 		// 1, since we do not include default
 		Assert.assertEquals(1, sinks.size());
 		Assert.assertEquals("endpoint3", sinks.get(0).getName());
@@ -75,35 +74,35 @@ public class RouterTest extends AbstractAuditlogiUnitTest{
                 .build();
 
 		AuditMessageRouter router = createMessageRouterComplianceEnabled(settings);
-        AuditMessage msg = MockAuditMessageFactory.validAuditMessage(Category.MISSING_PRIVILEGES);
+        AuditMessage msg = MockAuditMessageFactory.validAuditMessage(AuditCategory.MISSING_PRIVILEGES);
         router.route(msg);
-        testMessageDeliveredForCategory(router, msg, Category.MISSING_PRIVILEGES, "endpoint1", "endpoint2", "default");
+        testMessageDeliveredForCategory(router, msg, AuditCategory.MISSING_PRIVILEGES, "endpoint1", "endpoint2", "default");
 
         router = createMessageRouterComplianceEnabled(settings);
-        msg = MockAuditMessageFactory.validAuditMessage(Category.COMPLIANCE_DOC_READ);
+        msg = MockAuditMessageFactory.validAuditMessage(AuditCategory.COMPLIANCE_DOC_READ);
         router.route(msg);
-        testMessageDeliveredForCategory(router, msg, Category.COMPLIANCE_DOC_READ, "endpoint3");
+        testMessageDeliveredForCategory(router, msg, AuditCategory.COMPLIANCE_DOC_READ, "endpoint3");
 
         router = createMessageRouterComplianceEnabled(settings);
-        msg = MockAuditMessageFactory.validAuditMessage(Category.COMPLIANCE_DOC_WRITE);
+        msg = MockAuditMessageFactory.validAuditMessage(AuditCategory.COMPLIANCE_DOC_WRITE);
         router.route(msg);
-        testMessageDeliveredForCategory(router, msg, Category.COMPLIANCE_DOC_WRITE, "default");
+        testMessageDeliveredForCategory(router, msg, AuditCategory.COMPLIANCE_DOC_WRITE, "default");
 
         router = createMessageRouterComplianceEnabled(settings);
-        msg = MockAuditMessageFactory.validAuditMessage(Category.FAILED_LOGIN);
+        msg = MockAuditMessageFactory.validAuditMessage(AuditCategory.FAILED_LOGIN);
         router.route(msg);
-        testMessageDeliveredForCategory(router, msg, Category.FAILED_LOGIN, "default");
+        testMessageDeliveredForCategory(router, msg, AuditCategory.FAILED_LOGIN, "default");
 
         router = createMessageRouterComplianceEnabled(settings);
-        msg = MockAuditMessageFactory.validAuditMessage(Category.GRANTED_PRIVILEGES);
+        msg = MockAuditMessageFactory.validAuditMessage(AuditCategory.GRANTED_PRIVILEGES);
         router.route(msg);
-        testMessageDeliveredForCategory(router, msg, Category.GRANTED_PRIVILEGES, "default");
+        testMessageDeliveredForCategory(router, msg, AuditCategory.GRANTED_PRIVILEGES, "default");
 
     }
 
-    private void testMessageDeliveredForCategory(AuditMessageRouter router, AuditMessage msg, Category categoryToCheck, String ... sinkNames) {
-    	Map<Category, List<AuditLogSink>> sinksForCategory = router.categorySinks;
-    	for(Category category : Category.values()) {
+    private void testMessageDeliveredForCategory(AuditMessageRouter router, AuditMessage msg, AuditCategory categoryToCheck, String ... sinkNames) {
+    	Map<AuditCategory, List<AuditLogSink>> sinksForCategory = router.categorySinks;
+    	for(AuditCategory category : AuditCategory.values()) {
     		if (category.equals(categoryToCheck)) {
     			List<AuditLogSink> sinks = sinksForCategory.get(category);
     			// each sink must contain our message
