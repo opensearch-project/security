@@ -41,7 +41,7 @@ public class FallbackTest extends AbstractAuditlogiUnitTest {
 	public void testFallback() throws Exception {
 		Settings.Builder settingsBuilder = Settings.builder().loadFromPath(FileHelper.getAbsoluteFilePathFromClassPath("auditlog/endpoints/routing/fallback.yml"));
 
-		Settings settings = settingsBuilder.put("path.home", ".").put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE").put("opendistro_security.audit.threadpool.size", 0).build();
+		Settings settings = settingsBuilder.put("path.home", ".").put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE").build();
 
 		AuditMessageRouter router = createMessageRouterComplianceEnabled(settings);
 
