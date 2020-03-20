@@ -72,7 +72,6 @@ public class RouterTest extends AbstractAuditlogiUnitTest{
 		Settings settings = settingsBuilder
     			.put("path.home", ".")
     			.put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
-                .put("opendistro_security.audit.threadpool.size", 0)
                 .build();
 
 		AuditMessageRouter router = createMessageRouterComplianceEnabled(settings);

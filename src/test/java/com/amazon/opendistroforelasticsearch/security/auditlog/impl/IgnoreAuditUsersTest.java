@@ -76,7 +76,6 @@ public class IgnoreAuditUsersTest {
                 .put("opendistro_security.audit.ignore_users", ignoreUser)
                 .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
                 .put("opendistro_security.audit.enable_request_details", true)
-                .put("opendistro_security.audit.threadpool.size", 0)
                 .build();
         AbstractAuditLog al = new AuditLogImpl(settings, null, null, newThreadPool(ConfigConstants.OPENDISTRO_SECURITY_USER, ignoreUserObj), null, cs);
         TestAuditlogImpl.clear();
@@ -91,7 +90,6 @@ public class IgnoreAuditUsersTest {
                 .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
-                .put("opendistro_security.audit.threadpool.size", 0)
                 .build();
         AbstractAuditLog al = new AuditLogImpl(settings, null, null, newThreadPool(ConfigConstants.OPENDISTRO_SECURITY_USER, ignoreUserObj), null, cs);
         TestAuditlogImpl.clear();
@@ -105,7 +103,6 @@ public class IgnoreAuditUsersTest {
                 .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
-                .put("opendistro_security.audit.threadpool.size", 0)
                 .build();
         AbstractAuditLog al = new AuditLogImpl(settings, null, null, newThreadPool(ConfigConstants.OPENDISTRO_SECURITY_USER, ignoreUserObj), null, cs);
         TestAuditlogImpl.clear();
@@ -130,7 +127,6 @@ public class IgnoreAuditUsersTest {
                 .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
                 .put("opendistro_security.audit.enable_request_details", true)
-                .put("opendistro_security.audit.threadpool.size", 0)
                 .putList("opendistro_security.audit.ignore_users", "*")
                 .build();
 
@@ -146,7 +142,6 @@ public class IgnoreAuditUsersTest {
 
         settings = Settings.builder()
                 .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
-                .put("opendistro_security.audit.threadpool.size", 0)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
                 .putList("opendistro_security.audit.ignore_users", "xxx")
@@ -163,7 +158,6 @@ public class IgnoreAuditUsersTest {
                 .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
-                .put("opendistro_security.audit.threadpool.size", 0)
                 .putList("opendistro_security.audit.ignore_users", "John Doe","Capatin Kirk")
                 .build();
         al = new AuditLogImpl(settings, null, null, newThreadPool(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, ta,
@@ -180,7 +174,6 @@ public class IgnoreAuditUsersTest {
                 .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
-                .put("opendistro_security.audit.threadpool.size", 0)
                 .putList("opendistro_security.audit.ignore_users", "Wil Riker","Capatin Kirk")
                 .build();
         al = new AuditLogImpl(settings, null, null, newThreadPool(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, ta,
