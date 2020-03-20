@@ -27,15 +27,15 @@ import org.elasticsearch.common.transport.TransportAddress;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog.Origin;
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage;
-import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage.Category;
+import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
 
 public class MockAuditMessageFactory {
 
 	public static AuditMessage validAuditMessage() {
-		return validAuditMessage(Category.FAILED_LOGIN);
+		return validAuditMessage(AuditCategory.FAILED_LOGIN);
 	}
 
-	public static AuditMessage validAuditMessage(Category category) {
+	public static AuditMessage validAuditMessage(AuditCategory category) {
 
 	    ClusterService cs = mock(ClusterService.class);
 	    DiscoveryNode dn = mock(DiscoveryNode.class);
