@@ -59,7 +59,7 @@ import org.elasticsearch.tasks.Task;
 import org.elasticsearch.transport.TransportRequest;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog.Origin;
-import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage.Category;
+import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
 import com.amazon.opendistroforelasticsearch.security.dlic.rest.support.Utils;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 
@@ -68,7 +68,7 @@ public final class RequestResolver {
     private static final Logger log = LogManager.getLogger(RequestResolver.class);
 
     public static List<AuditMessage> resolve(
-            final Category category,
+            final AuditCategory category,
             final Origin origin,
             final String action,
             final String privilege,
@@ -125,9 +125,9 @@ public final class RequestResolver {
 
         if(request instanceof BulkShardRequest) {
 
-            if(category != Category.FAILED_LOGIN
-                    && category != Category.MISSING_PRIVILEGES
-                    && category != Category.OPENDISTRO_SECURITY_INDEX_ATTEMPT) {
+            if(category != AuditCategory.FAILED_LOGIN
+                    && category != AuditCategory.MISSING_PRIVILEGES
+                    && category != AuditCategory.OPENDISTRO_SECURITY_INDEX_ATTEMPT) {
 
                 return Collections.emptyList();
             }
@@ -156,7 +156,7 @@ public final class RequestResolver {
     }
 
 
-    private static AuditMessage resolveInner(final Category category,
+    private static AuditMessage resolveInner(final AuditCategory category,
             final String effectiveUser,
             final Boolean securityadmin,
             final String initiatingUser,
