@@ -18,12 +18,12 @@ package com.amazon.opendistroforelasticsearch.security.auditlog.routing;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.EnumMap;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import com.amazon.opendistroforelasticsearch.security.auditlog.config.ThreadPoolConfig;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.Client;
@@ -51,7 +51,7 @@ public class AuditMessageRouter {
 
 	public AuditMessageRouter(final Settings settings, final Client clientProvider, ThreadPool threadPool, final Path configPath) {
 		this.sinkProvider = new SinkProvider(settings, clientProvider, threadPool, configPath);
-		this.storagePool = new AsyncStoragePool(settings);
+		this.storagePool = new AsyncStoragePool(ThreadPoolConfig.getConfig(settings));
 
 		// get the default sink
 		this.defaultSink = sinkProvider.getDefaultSink();
