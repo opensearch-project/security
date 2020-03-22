@@ -226,18 +226,16 @@ public final class IndexResolverReplacer implements DCFListener {
         else {
 
             ClusterState state = clusterService.state();
-
-            final SortedMap<String, AliasOrIndex> lookup = state.metaData().getAliasAndIndexLookup();
-            final List<String> aliases = lookup.entrySet().stream().filter(e -> e.getValue().isAlias()).map(e -> e.getKey())
-                    .collect(Collectors.toList());
-
             Set<String> dateResolvedLocalRequestedPatterns = localRequestedPatterns
                             .stream()
                             .map(resolver::resolveDateMathExpression)
                             .collect(Collectors.toSet());
             //fill matchingAliases
-            matchingAliases = aliases
+            final SortedMap<String, AliasOrIndex> lookup = state.metaData().getAliasAndIndexLookup();
+            matchingAliases = lookup.entrySet()
                     .stream()
+                    .filter(e -> e.getValue().isAlias())
+                    .map(Map.Entry::getKey)
                     .filter(alias -> WildcardMatcher.matchAny(dateResolvedLocalRequestedPatterns, alias))
                     .collect(Collectors.toSet());
 
