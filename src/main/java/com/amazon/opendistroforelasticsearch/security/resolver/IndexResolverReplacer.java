@@ -319,7 +319,8 @@ public final class IndexResolverReplacer implements DCFListener {
         final AtomicBoolean isIndicesRequest = new AtomicBoolean();
 
         getOrReplaceAllIndices(request, new IndicesProvider() {
-            // resolve cache helps us big time on bulk requests
+            // resolve cache - keep track of already completed resolve index requests
+            // help us big time for bulk requests
             final Set<IndexResolveKey> resolvedBefore = new HashSet<>();
 
             @Override
@@ -327,7 +328,7 @@ public final class IndexResolverReplacer implements DCFListener {
                 final IndicesOptions indicesOptions = indicesOptionsFrom(localRequest);
                 final boolean isSearchOrFieldCapabilities = localRequest instanceof FieldCapabilitiesRequest || localRequest instanceof SearchRequest;
                 final IndexResolveKey key = new IndexResolveKey(indicesOptions, isSearchOrFieldCapabilities, original);
-                // skip the whole thing if we have seen this exact resolveIndexPatterns result
+                // skip the whole thing if we have seen this exact resolveIndexPatterns request
                 if (!resolvedBefore.contains(key)) {
                     final Resolved iResolved = resolveIndexPatterns(key.opts, key.isSearchOrFieldCapabilities, key.original);
                     resolvedBefore.add(key);
