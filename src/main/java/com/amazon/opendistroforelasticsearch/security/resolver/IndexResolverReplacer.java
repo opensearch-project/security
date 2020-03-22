@@ -36,7 +36,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -142,7 +141,7 @@ public final class IndexResolverReplacer implements DCFListener {
         return false;
     }
 
-    private static final boolean isLocalAll(final String... requestedPatterns) {
+    private static boolean isLocalAll(final String... requestedPatterns) {
 
         final List<String> patterns = requestedPatterns==null?null:Arrays.asList(requestedPatterns);
 
@@ -237,9 +236,9 @@ public final class IndexResolverReplacer implements DCFListener {
                             .map(resolver::resolveDateMathExpression)
                             .collect(Collectors.toSet());
             //fill matchingAliases
-            matchingAliases = dateResolvedLocalRequestedPatterns
+            matchingAliases = aliases
                     .stream()
-                    .filter(pattern -> WildcardMatcher.matchAny(pattern, aliases))
+                    .filter(alias -> WildcardMatcher.matchAny(dateResolvedLocalRequestedPatterns, alias))
                     .collect(Collectors.toSet());
 
             Set<String> _indices;
@@ -287,10 +286,10 @@ public final class IndexResolverReplacer implements DCFListener {
         }, false);
     }
 
-    static final class IndexResolveKey {
-        final IndicesOptions opts;
-        final boolean isSearchOrFieldCapabilities;
-        final String[] original;
+    private static final class IndexResolveKey {
+        private final IndicesOptions opts;
+        private final boolean isSearchOrFieldCapabilities;
+        private final String[] original;
         public IndexResolveKey(IndicesOptions opts, boolean isSearchOrFieldCapabilities, String[] original) {
             this.opts = opts;
             this.isSearchOrFieldCapabilities = isSearchOrFieldCapabilities;
@@ -323,18 +322,17 @@ public final class IndexResolverReplacer implements DCFListener {
 
         getOrReplaceAllIndices(request, new IndicesProvider() {
             // resolve cache helps us big time on bulk requests
-            final HashMap<IndexResolveKey, Resolved> cache = new HashMap<>();
+            final Set<IndexResolveKey> resolvedBefore = new HashSet<>();
 
             @Override
             public String[] provide(String[] original, Object localRequest, boolean supportsReplace) {
                 final IndicesOptions indicesOptions = indicesOptionsFrom(localRequest);
                 final boolean isSearchOrFieldCapabilities = localRequest instanceof FieldCapabilitiesRequest || localRequest instanceof SearchRequest;
-                final IndexResolveKey lookup = new IndexResolveKey(indicesOptions, isSearchOrFieldCapabilities, original);
+                final IndexResolveKey key = new IndexResolveKey(indicesOptions, isSearchOrFieldCapabilities, original);
                 // skip the whole thing if we have seen this exact resolveIndexPatterns result
-                if (cache.get(lookup) == null) {
-                    final Resolved iResolved = cache.computeIfAbsent(lookup, key ->
-                            resolveIndexPatterns(key.opts, key.isSearchOrFieldCapabilities, key.original)
-                    );
+                if (!resolvedBefore.contains(key)) {
+                    final Resolved iResolved = resolveIndexPatterns(key.opts, key.isSearchOrFieldCapabilities, key.original);
+                    resolvedBefore.add(key);
                     resolvedBuilder.add(iResolved);
                     isIndicesRequest.set(true);
 
