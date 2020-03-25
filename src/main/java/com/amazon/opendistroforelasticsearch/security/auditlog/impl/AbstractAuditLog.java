@@ -130,15 +130,29 @@ public abstract class AbstractAuditLog implements AuditLog {
         restAuditingEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, true);
         transportAuditingEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true);
 
-        disabledRestCategories = AuditCategory.parse(getConfigList(
-                settings,
-                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES,
-                DEFAULT_DISABLED_CATEGORIES));
+        final List<String> disabledRestCategoriesList = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, DEFAULT_DISABLED_CATEGORIES);
 
-        disabledTransportCategories = AuditCategory.parse(getConfigList(
-                settings,
-                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES,
-                DEFAULT_DISABLED_CATEGORIES));
+        if (disabledRestCategoriesList.size() == 1 && "NONE".equalsIgnoreCase(disabledRestCategoriesList.get(0))) {
+            disabledRestCategories = EnumSet.noneOf(AuditCategory.class);
+        } else {
+            disabledRestCategories = AuditCategory.parse(disabledRestCategoriesList);
+        }
+
+        if (!disabledRestCategories.isEmpty()) {
+            log.info("Configured categories on rest layer to ignore: {}", disabledRestCategories);
+        }
+
+        final List<String> disabledTransportCategoriesList = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, DEFAULT_DISABLED_CATEGORIES);
+
+        if (disabledTransportCategoriesList.size() == 1 && "NONE".equalsIgnoreCase(disabledTransportCategoriesList.get(0))) {
+            disabledTransportCategories = EnumSet.noneOf(AuditCategory.class);
+        } else {
+            disabledTransportCategories = AuditCategory.parse(disabledTransportCategoriesList);
+        }
+
+        if (!disabledTransportCategories.isEmpty()) {
+            log.info("Configured categories on transport layer to ignore: {}", disabledTransportCategories);
+        }
 
         logRequestBody = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY, true);
         resolveIndices = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_INDICES, true);
@@ -179,16 +193,6 @@ public abstract class AbstractAuditLog implements AuditLog {
         }
 
         this.excludeSensitiveHeaders = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS, true);
-    }
-
-    private static List<String> getConfigList(final Settings settings,
-                                              final String key,
-                                              final List<String> defaultList) {
-        List<String> list = settings.getAsList(key, defaultList);
-        if (list.size() == 1 && "NONE".equals(list.get(0))) {
-            return Collections.emptyList();
-        }
-        return list;
     }
 
     @Override
