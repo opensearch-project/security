@@ -21,12 +21,11 @@ public enum AuditCategory {
 
     public static EnumSet<AuditCategory> parse(final Collection<String> categories) {
         EnumSet<AuditCategory> set = EnumSet.noneOf(AuditCategory.class);
-        if (categories == null)
+        if (categories.isEmpty())
             return set;
 
         return categories
                 .stream()
-                .filter(Objects::nonNull)
                 .map(String::toUpperCase)
                 .map(AuditCategory::valueOf)
                 .collect(Collectors.toCollection(() -> set));

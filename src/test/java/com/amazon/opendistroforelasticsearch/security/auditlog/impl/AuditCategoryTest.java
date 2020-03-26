@@ -31,7 +31,6 @@ public class AuditCategoryTest {
         @Parameterized.Parameters
         public static Collection<Object[]> data() {
             return Arrays.asList(new Object[][]{
-                    {null, EnumSet.noneOf(AuditCategory.class)},
                     {Arrays.asList(), EnumSet.noneOf(AuditCategory.class)},
                     {Arrays.asList("BAD_HEADERS"), EnumSet.of(BAD_HEADERS)},
                     {Arrays.asList("bad_headers"), EnumSet.of(BAD_HEADERS)},
@@ -73,6 +72,11 @@ public class AuditCategoryTest {
         @Test(expected = IllegalArgumentException.class)
         public void testAuditCategoryEnumSetGenerationWhenEmpty() {
             AuditCategory.parse(input);
+        }
+
+        @Test(expected = NullPointerException.class)
+        public void testNullPointerExceptionForNullInput() {
+            AuditCategory.parse(null);
         }
     }
 }
