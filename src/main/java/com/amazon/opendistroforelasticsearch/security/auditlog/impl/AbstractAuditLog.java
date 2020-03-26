@@ -132,7 +132,7 @@ public abstract class AbstractAuditLog implements AuditLog {
 
         final List<String> disabledRestCategoriesList = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, DEFAULT_DISABLED_CATEGORIES);
 
-        if (disabledRestCategoriesList.size() == 1 && "NONE".equalsIgnoreCase(disabledRestCategoriesList.get(0))) {
+        if (disabledRestCategoriesList.isEmpty() || (disabledRestCategoriesList.size() == 1 && "NONE".equalsIgnoreCase(disabledRestCategoriesList.get(0)))) {
             disabledRestCategories = EnumSet.noneOf(AuditCategory.class);
         } else {
             disabledRestCategories = AuditCategory.parse(disabledRestCategoriesList);
@@ -144,7 +144,7 @@ public abstract class AbstractAuditLog implements AuditLog {
 
         final List<String> disabledTransportCategoriesList = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, DEFAULT_DISABLED_CATEGORIES);
 
-        if (disabledTransportCategoriesList.size() == 1 && "NONE".equalsIgnoreCase(disabledTransportCategoriesList.get(0))) {
+        if (disabledTransportCategoriesList.isEmpty() || (disabledTransportCategoriesList.size() == 1 && "NONE".equalsIgnoreCase(disabledTransportCategoriesList.get(0)))) {
             disabledTransportCategories = EnumSet.noneOf(AuditCategory.class);
         } else {
             disabledTransportCategories = AuditCategory.parse(disabledTransportCategoriesList);
