@@ -5,14 +5,11 @@ import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.google.common.collect.ImmutableSet;
 import org.elasticsearch.common.settings.Settings;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
-
-import static com.amazon.opendistroforelasticsearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES;
 
 public class AuditConfig {
     private static final List<String> DEFAULT_IGNORED_USERS = Collections.singletonList("kibanaserver");

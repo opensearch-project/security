@@ -4,18 +4,13 @@ import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategor
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.google.common.collect.ImmutableSet;
 import org.elasticsearch.common.settings.Settings;
-import org.hamcrest.Matcher;
 import org.junit.Test;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import static com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory.*;
-import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.*;
 
 public class AuditConfigTest {
