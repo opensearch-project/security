@@ -133,11 +133,11 @@ public class AuditConfig {
         return list;
     }
 
-    public boolean isRestAuditingEnabled() {
+    public boolean isRestApiAuditEnabled() {
         return isRestApiAuditEnabled;
     }
 
-    public boolean isTransportAuditingEnabled() {
+    public boolean isTransportApiAuditEnabled() {
         return isTransportAuditEnabled;
     }
 

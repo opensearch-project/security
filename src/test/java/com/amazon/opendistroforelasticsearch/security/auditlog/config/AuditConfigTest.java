@@ -23,8 +23,8 @@ public class AuditConfigTest {
         // act
         final AuditConfig auditConfig = AuditConfig.getConfig(Settings.EMPTY);
         // assert
-        assertTrue(auditConfig.isRestAuditingEnabled());
-        assertTrue(auditConfig.isTransportAuditingEnabled());
+        assertTrue(auditConfig.isRestApiAuditEnabled());
+        assertTrue(auditConfig.isTransportApiAuditEnabled());
         assertTrue(auditConfig.shouldLogRequestBody());
         assertTrue(auditConfig.shouldResolveIndices());
         assertFalse(auditConfig.shouldResolveBulkRequests());
@@ -63,8 +63,8 @@ public class AuditConfigTest {
         // act
         final AuditConfig auditConfig = AuditConfig.getConfig(settings);
         // assert
-        assertFalse(auditConfig.isRestAuditingEnabled());
-        assertFalse(auditConfig.isTransportAuditingEnabled());
+        assertFalse(auditConfig.isRestApiAuditEnabled());
+        assertFalse(auditConfig.isTransportApiAuditEnabled());
         assertFalse(auditConfig.shouldLogRequestBody());
         assertFalse(auditConfig.shouldResolveIndices());
         assertTrue(auditConfig.shouldResolveBulkRequests());

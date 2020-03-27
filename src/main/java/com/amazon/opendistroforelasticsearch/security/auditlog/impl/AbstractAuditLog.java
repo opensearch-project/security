@@ -104,7 +104,13 @@ public abstract class AbstractAuditLog implements AuditLog {
         this.clusterService = clusterService;
         this.auditConfig = AuditConfig.getConfig(settings);
 
-        log.info("Configured audit settings: {}", auditConfig.toString());
+        log.info("Configured audit setting for auditing on rest layer : {}", auditConfig.isRestApiAuditEnabled());
+        log.info("Configured audit setting for auditing on transport layer : {}", auditConfig.isTransportApiAuditEnabled());
+        log.info("Configured audit setting to log request body : {}", auditConfig.shouldLogRequestBody());
+        log.info("Configured audit setting to resolve bulk requests : {}", auditConfig.shouldResolveBulkRequests());
+        log.info("Configured audit setting to resolve indices : {}", auditConfig.shouldResolveIndices());
+        log.info("Configured audit setting to exclude sensitive headers : {}", auditConfig.shouldExcludeSensitiveHeaders());
+        log.info("All configured audit settings : {}", auditConfig.toString());
     }
 
     @Override
@@ -625,7 +631,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         }
 
 
-        if (!auditConfig.isTransportAuditingEnabled()) {
+        if (!auditConfig.isTransportApiAuditEnabled()) {
             //ignore for certain categories
             if(category != AuditCategory.FAILED_LOGIN
                     && category != AuditCategory.MISSING_PRIVILEGES
@@ -738,7 +744,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             log.trace("Check for REST category:{}, effectiveUser:{}, request:{}", category, effectiveUser, request==null?null:request.path());
         }
 
-        if (!auditConfig.isRestAuditingEnabled()) {
+        if (!auditConfig.isRestApiAuditEnabled()) {
             //ignore for certain categories
             if(category != AuditCategory.FAILED_LOGIN
                     && category != AuditCategory.MISSING_PRIVILEGES
