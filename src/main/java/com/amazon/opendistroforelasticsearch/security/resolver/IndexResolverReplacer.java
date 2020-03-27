@@ -159,7 +159,7 @@ public final class IndexResolverReplacer implements DCFListener {
         return false;
     }
 
-    private Resolved resolveIndexPatterns(final IndicesOptions indicesOptions, final boolean isSearchOrFieldsCapabilities, final String... requestedPatterns0) {
+    private Resolved resolveIndexPatterns(final IndicesOptions indicesOptions, final boolean enableCrossClusterResolution, final String... requestedPatterns0) {
 
         if(log.isTraceEnabled()) {
             log.trace("resolve requestedPatterns: "+ Arrays.toString(requestedPatterns0));
@@ -177,7 +177,7 @@ public final class IndexResolverReplacer implements DCFListener {
 
         final RemoteClusterService remoteClusterService = OpenDistroSecurityPlugin.GuiceHolder.getRemoteClusterService();
 
-        if(remoteClusterService.isCrossClusterSearchEnabled() && isSearchOrFieldsCapabilities) {
+        if(remoteClusterService.isCrossClusterSearchEnabled() && enableCrossClusterResolution) {
             remoteIndices = new HashSet<>();
             final Map<String, OriginalIndices> remoteClusterIndices = OpenDistroSecurityPlugin.GuiceHolder.getRemoteClusterService()
                     .groupIndices(indicesOptions, requestedPatterns0, idx -> resolver.hasIndexOrAlias(idx, clusterService.state()));
@@ -315,11 +315,11 @@ public final class IndexResolverReplacer implements DCFListener {
 
     private static final class IndexResolveKey {
         private final IndicesOptions opts;
-        private final boolean isSearchOrFieldCapabilities;
+        private final boolean enableCrossClusterResolution;
         private final String[] original;
-        public IndexResolveKey(IndicesOptions opts, boolean isSearchOrFieldCapabilities, String[] original) {
+        public IndexResolveKey(IndicesOptions opts, boolean enableCrossClusterResolution, String[] original) {
             this.opts = opts;
-            this.isSearchOrFieldCapabilities = isSearchOrFieldCapabilities;
+            this.enableCrossClusterResolution = enableCrossClusterResolution;
             this.original = original;
         }
 
@@ -328,14 +328,14 @@ public final class IndexResolverReplacer implements DCFListener {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             IndexResolveKey that = (IndexResolveKey) o;
-            return isSearchOrFieldCapabilities == that.isSearchOrFieldCapabilities &&
+            return enableCrossClusterResolution == that.enableCrossClusterResolution &&
                     opts.equals(that.opts) &&
                     Arrays.equals(original, that.original);
         }
 
         @Override
         public int hashCode() {
-            return Boolean.hashCode(isSearchOrFieldCapabilities) + 31 * opts.hashCode() + 127*Arrays.hashCode(original);
+            return Boolean.hashCode(enableCrossClusterResolution) + 31 * opts.hashCode() + 127*Arrays.hashCode(original);
         }
     }
 
@@ -352,11 +352,11 @@ public final class IndexResolverReplacer implements DCFListener {
 
         getOrReplaceAllIndices(request, (original, localRequest, supportsReplace) -> {
             final IndicesOptions indicesOptions = indicesOptionsFrom(localRequest);
-            final boolean isSearchOrFieldCapabilities = localRequest instanceof FieldCapabilitiesRequest || localRequest instanceof SearchRequest;
-            final IndexResolveKey key = new IndexResolveKey(indicesOptions, isSearchOrFieldCapabilities, original);
+            final boolean enableCrossClusterResolution = localRequest instanceof FieldCapabilitiesRequest || localRequest instanceof SearchRequest;
+            final IndexResolveKey key = new IndexResolveKey(indicesOptions, enableCrossClusterResolution, original);
             // skip the whole thing if we have seen this exact resolveIndexPatterns request
             if (!alreadyResolved.contains(key)) {
-                final Resolved iResolved = resolveIndexPatterns(key.opts, key.isSearchOrFieldCapabilities, key.original);
+                final Resolved iResolved = resolveIndexPatterns(key.opts, key.enableCrossClusterResolution, key.original);
                 alreadyResolved.add(key);
                 resolvedBuilder.add(iResolved);
                 isIndicesRequest.set(true);
