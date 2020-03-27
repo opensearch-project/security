@@ -21,7 +21,7 @@ public class AuditConfigTest {
         final Set<String> defaultIgnoredUser = Collections.singleton("kibanaserver");
         final EnumSet<AuditCategory> defaultDisabledCategories = EnumSet.of(AUTHENTICATED, GRANTED_PRIVILEGES);
         // act
-        final AuditConfig auditConfig = AuditConfig.getConfig(Settings.EMPTY);
+        final AuditConfig auditConfig = AuditConfig.from(Settings.EMPTY);
         // assert
         assertTrue(auditConfig.isRestApiAuditEnabled());
         assertTrue(auditConfig.isTransportApiAuditEnabled());
@@ -61,7 +61,7 @@ public class AuditConfigTest {
                         FAILED_LOGIN.toString(), MISSING_PRIVILEGES.toString())
                 .build();
         // act
-        final AuditConfig auditConfig = AuditConfig.getConfig(settings);
+        final AuditConfig auditConfig = AuditConfig.from(settings);
         // assert
         assertFalse(auditConfig.isRestApiAuditEnabled());
         assertFalse(auditConfig.isTransportApiAuditEnabled());
@@ -93,7 +93,32 @@ public class AuditConfigTest {
                         "none")
                 .build();
         // act
-        final AuditConfig auditConfig = AuditConfig.getConfig(settings);
+        final AuditConfig auditConfig = AuditConfig.from(settings);
+        // assert
+        assertTrue(auditConfig.getIgnoredAuditUsers().isEmpty());
+        assertTrue(auditConfig.getIgnoredComplianceUsersForRead().isEmpty());
+        assertTrue(auditConfig.getIgnoredComplianceUsersForWrite().isEmpty());
+        assertTrue(auditConfig.getDisabledRestCategories().isEmpty());
+        assertTrue(auditConfig.getDisabledTransportCategories().isEmpty());
+    }
+
+    @Test
+    public void testEmpty() {
+        // arrange
+        final Settings settings = Settings.builder()
+                .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS, Collections.emptyList())
+                .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS,  Collections.emptyList())
+                .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS,
+                        Collections.emptyList())
+                .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS,
+                        Collections.emptyList())
+                .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES,
+                        Collections.emptyList())
+                .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES,
+                        Collections.emptyList())
+                .build();
+        // act
+        final AuditConfig auditConfig = AuditConfig.from(settings);
         // assert
         assertTrue(auditConfig.getIgnoredAuditUsers().isEmpty());
         assertTrue(auditConfig.getIgnoredComplianceUsersForRead().isEmpty());

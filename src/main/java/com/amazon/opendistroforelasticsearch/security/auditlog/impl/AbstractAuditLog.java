@@ -102,15 +102,15 @@ public abstract class AbstractAuditLog implements AuditLog {
         this.settings = settings;
         this.resolver = resolver;
         this.clusterService = clusterService;
-        this.auditConfig = AuditConfig.getConfig(settings);
+        this.auditConfig = AuditConfig.from(settings);
 
-        log.info("Configured audit setting for auditing on rest layer : {}", auditConfig.isRestApiAuditEnabled());
-        log.info("Configured audit setting for auditing on transport layer : {}", auditConfig.isTransportApiAuditEnabled());
+        log.info("Auditing on REST API is {}", auditConfig.isRestApiAuditEnabled() ? "enabled" : "disabled");
+        log.info("Auditing on Transport API is {}", auditConfig.isTransportApiAuditEnabled() ? "enabled" : "disabled");
         log.info("Configured audit setting to log request body : {}", auditConfig.shouldLogRequestBody());
         log.info("Configured audit setting to resolve bulk requests : {}", auditConfig.shouldResolveBulkRequests());
         log.info("Configured audit setting to resolve indices : {}", auditConfig.shouldResolveIndices());
         log.info("Configured audit setting to exclude sensitive headers : {}", auditConfig.shouldExcludeSensitiveHeaders());
-        log.info("All configured audit settings : {}", auditConfig.toString());
+
     }
 
     @Override

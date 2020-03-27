@@ -59,7 +59,7 @@ public class AuditConfig {
         this.opendistrosecurityIndex = opendistrosecurityIndex;
     }
 
-    public static AuditConfig getConfig(Settings settings) {
+    public static AuditConfig from(Settings settings) {
         final boolean isRestApiAuditEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, true);
         final boolean isTransportAuditEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true);
         final boolean resolveBulkRequests = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, false);
@@ -119,16 +119,8 @@ public class AuditConfig {
 
     private static List<String> getSettingAsList(final Settings settings, final String key, final List<String> defaultList, final boolean ignoreCaseForNone) {
         final List<String> list = settings.getAsList(key, defaultList);
-        if (list.size() == 1) {
-            final String elem = list.get(0);
-            final String none = "NONE";
-
-            if (ignoreCaseForNone && none.equalsIgnoreCase(elem)) {
-                return Collections.emptyList();
-            }
-            if (!ignoreCaseForNone && none.equals(elem)) {
-                return Collections.emptyList();
-            }
+        if (list.size() == 1 && "NONE".equals(ignoreCaseForNone? list.get(0).toUpperCase() : list.get(0))) {
+            return Collections.emptyList();
         }
         return list;
     }
