@@ -53,12 +53,12 @@ public final class AuditLogImpl extends AbstractAuditLog {
 		this.messageRouter = new AuditMessageRouter(settings, clientProvider, threadPool, configPath);
 		this.enabled = messageRouter.isEnabled();
 
-		logger.info("Message routing enabled: {}", this.enabled);
+		log.info("Message routing enabled: {}", this.enabled);
 
 		final SecurityManager sm = System.getSecurityManager();
 
 		if (sm != null) {
-			logger.debug("Security Manager present");
+			log.debug("Security Manager present");
 			sm.checkPermission(new SpecialPermission());
 		}
 
@@ -72,11 +72,11 @@ public final class AuditLogImpl extends AbstractAuditLog {
 						try {
 							close();
 						} catch (final IOException e) {
-							logger.warn("Exception while shutting down message router", e);
+							log.warn("Exception while shutting down message router", e);
 						}
 					}
 				});
-				logger.debug("Shutdown Hook registered");
+				log.debug("Shutdown Hook registered");
 				return null;
 			}
 		});
