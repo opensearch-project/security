@@ -190,7 +190,7 @@ public class AuditConfig {
         logger.info("Compliance write operation requests auditing from {} users is disabled.", ignoredComplianceUsersForWrite);
         logger.info("{} are excluded from REST API auditing.", disabledRestCategories);
         logger.info("{} are excluded from Transport API auditing.", disabledTransportCategories);
-        logger.info("Open distro auditing uses {} index(alias?) to write auditing events.", opendistrosecurityIndex);
+        logger.info("Open distro auditing uses {} index for internal configuration change events.", opendistrosecurityIndex);
     }
 
     @Override
