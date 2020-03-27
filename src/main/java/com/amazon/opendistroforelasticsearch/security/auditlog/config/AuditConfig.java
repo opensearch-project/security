@@ -3,6 +3,7 @@ package com.amazon.opendistroforelasticsearch.security.auditlog.config;
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.google.common.collect.ImmutableSet;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.Arrays;
@@ -18,7 +19,7 @@ public class AuditConfig {
                     AuditCategory.GRANTED_PRIVILEGES.toString());
 
     private final boolean isRestApiAuditEnabled;
-    private final boolean isTransportAuditEnabled;
+    private final boolean isTransportApiAuditEnabled;
     private final boolean resolveBulkRequests;
     private final boolean logRequestBody;
     private final boolean resolveIndices;
@@ -32,7 +33,7 @@ public class AuditConfig {
     private final String opendistrosecurityIndex;
 
     private AuditConfig(final boolean isRestApiAuditEnabled,
-                        final boolean isTransportAuditEnabled,
+                        final boolean isTransportApiAuditEnabled,
                         final boolean resolveBulkRequests,
                         final boolean logRequestBody,
                         final boolean resolveIndices,
@@ -45,7 +46,7 @@ public class AuditConfig {
                         final EnumSet<AuditCategory> disabledTransportCategories,
                         final String opendistrosecurityIndex) {
         this.isRestApiAuditEnabled = isRestApiAuditEnabled;
-        this.isTransportAuditEnabled = isTransportAuditEnabled;
+        this.isTransportApiAuditEnabled = isTransportApiAuditEnabled;
         this.resolveBulkRequests = resolveBulkRequests;
         this.logRequestBody = logRequestBody;
         this.resolveIndices = resolveIndices;
@@ -130,7 +131,7 @@ public class AuditConfig {
     }
 
     public boolean isTransportApiAuditEnabled() {
-        return isTransportAuditEnabled;
+        return isTransportApiAuditEnabled;
     }
 
     public boolean shouldResolveBulkRequests() {
@@ -177,11 +178,26 @@ public class AuditConfig {
         return opendistrosecurityIndex;
     }
 
+    public void log(Logger logger) {
+        logger.info("Auditing on REST API is {}", isRestApiAuditEnabled ? "enabled" : "disabled");
+        logger.info("Auditing on Transport API is {}", isTransportApiAuditEnabled ? "enabled" : "disabled");
+        logger.info("Auditing of request body is {}", logRequestBody ? "enabled" : "disabled");
+        logger.info("Auditing should {} resolve bulk requests", resolveBulkRequests ? "" : "not");
+        logger.info("Auditing should {} resolve indices", resolveBulkRequests ? "" : "not");
+        logger.info("Auditing should {} exclude sensitive headers", excludeSensitiveHeaders ? "" : "not");
+        logger.info("Auditing will ignore users {}", ignoredAuditUsers);
+        logger.info("Auditing of compliance read operation will ignore users {}", ignoredComplianceUsersForRead);
+        logger.info("Auditing of compliance write operation will ignore users {}", ignoredComplianceUsersForWrite);
+        logger.info("Auditing has disabled rest categories {}", disabledRestCategories);
+        logger.info("Auditing has disabled transport categories {}", disabledTransportCategories);
+        logger.info("Auditing is configured to use opendistro security index {}", opendistrosecurityIndex);
+    }
+
     @Override
     public String toString() {
         return "AuditConfig{" +
                 "isRestApiAuditEnabled=" + isRestApiAuditEnabled +
-                ", isTransportAuditEnabled=" + isTransportAuditEnabled +
+                ", isTransportAuditEnabled=" + isTransportApiAuditEnabled +
                 ", resolveBulkRequests=" + resolveBulkRequests +
                 ", logRequestBody=" + logRequestBody +
                 ", resolveIndices=" + resolveIndices +

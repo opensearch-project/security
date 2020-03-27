@@ -79,7 +79,7 @@ import com.flipkart.zjsonpatch.JsonDiff;
 import com.google.common.io.BaseEncoding;
 
 public abstract class AbstractAuditLog implements AuditLog {
-    protected final Logger log = LogManager.getLogger(this.getClass());
+    protected final Logger logger = LogManager.getLogger(this.getClass());
 
     private final ThreadPool threadPool;
     private final IndexNameExpressionResolver resolver;
@@ -103,14 +103,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         this.resolver = resolver;
         this.clusterService = clusterService;
         this.auditConfig = AuditConfig.from(settings);
-
-        log.info("Auditing on REST API is {}", auditConfig.isRestApiAuditEnabled() ? "enabled" : "disabled");
-        log.info("Auditing on Transport API is {}", auditConfig.isTransportApiAuditEnabled() ? "enabled" : "disabled");
-        log.info("Configured audit setting to log request body : {}", auditConfig.shouldLogRequestBody());
-        log.info("Configured audit setting to resolve bulk requests : {}", auditConfig.shouldResolveBulkRequests());
-        log.info("Configured audit setting to resolve indices : {}", auditConfig.shouldResolveIndices());
-        log.info("Configured audit setting to exclude sensitive headers : {}", auditConfig.shouldExcludeSensitiveHeaders());
-
+        this.auditConfig.log(logger);
     }
 
     @Override
@@ -389,7 +382,7 @@ public abstract class AbstractAuditLog implements AuditLog {
                         builder.close();
                         msg.addUnescapedJsonToRequestBody(Strings.toString(builder));
                     } catch (IOException e) {
-                        log.error(e.toString(), e);
+                        logger.error(e.toString(), e);
                     }
                 } else {
                     if(auditConfig.getOpendistrosecurityIndex().equals(index) && !"tattr".equals(id)) {
@@ -405,7 +398,7 @@ public abstract class AbstractAuditLog implements AuditLog {
                     }
                 }
             } catch (Exception e) {
-                log.error("Unable to generate request body for {} and {}",msg.toPrettyString(),fieldNameValues, e);
+                logger.error("Unable to generate request body for {} and {}",msg.toPrettyString(),fieldNameValues, e);
             }
 
             save(msg);
@@ -452,7 +445,7 @@ public abstract class AbstractAuditLog implements AuditLog {
                             originalSource = XContentHelper.convertToJson(originalResult.internalSourceRef(), false, XContentType.JSON);
                         }
                     } catch (Exception e) {
-                        log.error(e);
+                        logger.error(e);
                     }
 
                     try (XContentParser parser = XContentHelper.createParser(NamedXContentRegistry.EMPTY, OpenDistroSecurityDeprecationHandler.INSTANCE, currentIndex.source(), XContentType.JSON)) {
@@ -463,7 +456,7 @@ public abstract class AbstractAuditLog implements AuditLog {
                             currentSource = XContentHelper.convertToJson(currentIndex.source(), false, XContentType.JSON);
                         }
                     } catch (Exception e) {
-                        log.error(e);
+                        logger.error(e);
                     }
                 } else {
                     originalSource = XContentHelper.convertToJson(originalResult.internalSourceRef(), false, XContentType.JSON);
@@ -472,7 +465,7 @@ public abstract class AbstractAuditLog implements AuditLog {
                 final JsonNode diffnode = JsonDiff.asJson(DefaultObjectMapper.objectMapper.readTree(originalSource), DefaultObjectMapper.objectMapper.readTree(currentSource));
                 msg.addComplianceWriteDiffSource(diffnode.size() == 0?"":diffnode.toString());
             } catch (Exception e) {
-                log.error("Unable to generate diff for {}",msg.toPrettyString(),e);
+                logger.error("Unable to generate diff for {}",msg.toPrettyString(),e);
             }
         }
 
@@ -488,7 +481,7 @@ public abstract class AbstractAuditLog implements AuditLog {
                         msg.addTupleToRequestBody(new Tuple<XContentType, BytesReference>(XContentType.JSON, currentIndex.source()));
                     }
                 } catch (Exception e) {
-                    log.error(e);
+                    logger.error(e);
                 }
 
                 //if we want to have msg.ComplianceWritePreviousSource we need to do the same as above
@@ -574,7 +567,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             builder.close();
             msg.addUnescapedJsonToRequestBody(Strings.toString(builder));
         } catch (Exception e) {
-            log.error("Unable to build message",e);
+            logger.error("Unable to build message",e);
         }
 
         Map<String, Path> paths = new HashMap<String, Path>();
@@ -626,8 +619,8 @@ public abstract class AbstractAuditLog implements AuditLog {
 
     private boolean checkTransportFilter(final AuditCategory category, final String action, final String effectiveUser, TransportRequest request) {
 
-        if(log.isTraceEnabled()) {
-            log.trace("Check category:{}, action:{}, effectiveUser:{}, request:{}", category, action, effectiveUser, request==null?null:request.getClass().getSimpleName());
+        if(logger.isTraceEnabled()) {
+            logger.trace("Check category:{}, action:{}, effectiveUser:{}, request:{}", category, action, effectiveUser, request==null?null:request.getClass().getSimpleName());
         }
 
 
@@ -662,8 +655,8 @@ public abstract class AbstractAuditLog implements AuditLog {
         final Collection<String>ignoredAuditUsers = auditConfig.getIgnoredAuditUsers();
         if (!ignoredAuditUsers.isEmpty() && WildcardMatcher.matchAny(ignoredAuditUsers, effectiveUser)) {
 
-            if(log.isTraceEnabled()) {
-                log.trace("Skipped audit log message because of user {} is ignored", effectiveUser);
+            if(logger.isTraceEnabled()) {
+                logger.trace("Skipped audit log message because of user {} is ignored", effectiveUser);
             }
 
             return false;
@@ -673,8 +666,8 @@ public abstract class AbstractAuditLog implements AuditLog {
         if (request != null && !ignoredAuditRequests.isEmpty()
                 && (WildcardMatcher.matchAny(ignoredAuditRequests, action) || WildcardMatcher.matchAny(ignoredAuditRequests, request.getClass().getSimpleName()))) {
 
-            if(log.isTraceEnabled()) {
-                log.trace("Skipped audit log message because request {} is ignored", action+"#"+request.getClass().getSimpleName());
+            if(logger.isTraceEnabled()) {
+                logger.trace("Skipped audit log message because request {} is ignored", action+"#"+request.getClass().getSimpleName());
             }
 
             return false;
@@ -683,8 +676,8 @@ public abstract class AbstractAuditLog implements AuditLog {
         if (!auditConfig.getDisabledTransportCategories().contains(category)) {
             return true;
         } else {
-            if(log.isTraceEnabled()) {
-                log.trace("Skipped audit log message because category {} not enabled", category);
+            if(logger.isTraceEnabled()) {
+                logger.trace("Skipped audit log message because category {} not enabled", category);
             }
             return false;
         }
@@ -699,13 +692,13 @@ public abstract class AbstractAuditLog implements AuditLog {
     }
 
     private boolean checkComplianceFilter(final AuditCategory category, final String effectiveUser, Origin origin) {
-        if(log.isTraceEnabled()) {
-            log.trace("Check for COMPLIANCE category:{}, effectiveUser:{}, origin: {}", category, effectiveUser, origin);
+        if(logger.isTraceEnabled()) {
+            logger.trace("Check for COMPLIANCE category:{}, effectiveUser:{}, origin: {}", category, effectiveUser, origin);
         }
 
         if(origin == Origin.LOCAL && effectiveUser == null && category != AuditCategory.COMPLIANCE_EXTERNAL_CONFIG) {
-            if(log.isTraceEnabled()) {
-                log.trace("Skipped compliance log message because of null user and local origin");
+            if(logger.isTraceEnabled()) {
+                logger.trace("Skipped compliance log message because of null user and local origin");
             }
             return false;
         }
@@ -716,8 +709,8 @@ public abstract class AbstractAuditLog implements AuditLog {
             if (!ignoredComplianceUsersForRead.isEmpty() && effectiveUser != null
                     && WildcardMatcher.matchAny(ignoredComplianceUsersForRead, effectiveUser)) {
 
-                if(log.isTraceEnabled()) {
-                    log.trace("Skipped compliance log message because of user {} is ignored", effectiveUser);
+                if(logger.isTraceEnabled()) {
+                    logger.trace("Skipped compliance log message because of user {} is ignored", effectiveUser);
                 }
                 return false;
             }
@@ -728,8 +721,8 @@ public abstract class AbstractAuditLog implements AuditLog {
             if (!ignoredComplianceUsersForWrite.isEmpty() && effectiveUser != null
                     && WildcardMatcher.matchAny(ignoredComplianceUsersForWrite, effectiveUser)) {
 
-                if(log.isTraceEnabled()) {
-                    log.trace("Skipped compliance log message because of user {} is ignored", effectiveUser);
+                if(logger.isTraceEnabled()) {
+                    logger.trace("Skipped compliance log message because of user {} is ignored", effectiveUser);
                 }
                 return false;
             }
@@ -740,8 +733,8 @@ public abstract class AbstractAuditLog implements AuditLog {
 
 
     private boolean checkRestFilter(final AuditCategory category, final String effectiveUser, RestRequest request) {
-        if(log.isTraceEnabled()) {
-            log.trace("Check for REST category:{}, effectiveUser:{}, request:{}", category, effectiveUser, request==null?null:request.path());
+        if(logger.isTraceEnabled()) {
+            logger.trace("Check for REST category:{}, effectiveUser:{}, request:{}", category, effectiveUser, request==null?null:request.path());
         }
 
         if (!auditConfig.isRestApiAuditEnabled()) {
@@ -758,8 +751,8 @@ public abstract class AbstractAuditLog implements AuditLog {
         final Collection<String> ignoredAuditUsers = auditConfig.getIgnoredAuditUsers();
         if (!ignoredAuditUsers.isEmpty() && WildcardMatcher.matchAny(ignoredAuditUsers, effectiveUser)) {
 
-            if(log.isTraceEnabled()) {
-                log.trace("Skipped audit log message because of user {} is ignored", effectiveUser);
+            if(logger.isTraceEnabled()) {
+                logger.trace("Skipped audit log message because of user {} is ignored", effectiveUser);
             }
 
             return false;
@@ -769,8 +762,8 @@ public abstract class AbstractAuditLog implements AuditLog {
         if (request != null && !ignoredAuditRequests.isEmpty()
                 && (WildcardMatcher.matchAny(ignoredAuditRequests, request.path()))) {
 
-            if(log.isTraceEnabled()) {
-                log.trace("Skipped audit log message because request {} is ignored", request.path());
+            if(logger.isTraceEnabled()) {
+                logger.trace("Skipped audit log message because request {} is ignored", request.path());
             }
 
             return false;
@@ -779,8 +772,8 @@ public abstract class AbstractAuditLog implements AuditLog {
         if (!auditConfig.getDisabledRestCategories().contains(category)) {
             return true;
         } else {
-            if(log.isTraceEnabled()) {
-                log.trace("Skipped audit log message because category {} not enabled", category);
+            if(logger.isTraceEnabled()) {
+                logger.trace("Skipped audit log message because category {} not enabled", category);
             }
             return false;
         }
