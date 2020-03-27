@@ -2,6 +2,7 @@ package com.amazon.opendistroforelasticsearch.security.auditlog.config;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
+import com.google.common.collect.ImmutableSet;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.ArrayList;
@@ -108,13 +109,21 @@ public class AuditConfig {
                 logRequestBody,
                 resolveIndices,
                 excludeSensitiveHeaders,
-                new HashSet<>(ignoredAuditUsers),
-                new HashSet<>(ignoredComplianceUsersForRead),
-                new HashSet<>(ignoredComplianceUsersForWrite),
-                new HashSet<>(ignoreAuditRequests),
+                ImmutableSet.copyOf(ignoredAuditUsers),
+                ImmutableSet.copyOf(ignoredComplianceUsersForRead),
+                ImmutableSet.copyOf(ignoredComplianceUsersForWrite),
+                ImmutableSet.copyOf(ignoreAuditRequests),
                 disabledRestCategories,
                 disabledTransportCategories,
                 opendistrosecurityIndex);
+    }
+
+    private static List<String> getSettingAsList(final Settings settings, final String key, final List<String> defaultList) {
+        final List<String> list = settings.getAsList(key, defaultList);
+        if (list.size() == 1 && "NONE".equals(list.get(0))) {
+            return Collections.emptyList();
+        }
+        return list;
     }
 
     public boolean isRestAuditingEnabled() {

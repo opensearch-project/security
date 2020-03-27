@@ -2,6 +2,7 @@ package com.amazon.opendistroforelasticsearch.security.auditlog.config;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
+import com.google.common.collect.ImmutableSet;
 import org.elasticsearch.common.settings.Settings;
 import org.hamcrest.Matcher;
 import org.junit.Test;
@@ -22,7 +23,7 @@ public class AuditConfigTest {
     @Test
     public void testDefault() {
         // arrange
-        final Settings settings = Settings.builder().build();
+        final Settings settings = Settings.EMPTY;
         final Set<String> defaultIgnoredUser = Collections.singleton("kibanaserver");
         final EnumSet<AuditCategory> defaultDisabledCategories = EnumSet.of(AUTHENTICATED, GRANTED_PRIVILEGES);
         // act
@@ -76,8 +77,8 @@ public class AuditConfigTest {
         assertFalse(auditConfig.shouldExcludeSensitiveHeaders());
         assertEquals(auditConfig.getIgnoredAuditUsers(), Collections.singleton("test-user"));
         assertEquals(auditConfig.getIgnoredAuditRequests(), Collections.singleton("test-request"));
-        assertEquals(auditConfig.getIgnoredComplianceUsersForRead(), new HashSet<>(Arrays.asList("test-user-1", "test-user-2")));
-        assertEquals(auditConfig.getIgnoredComplianceUsersForWrite(), new HashSet<>(Arrays.asList("test-user-3", "test-user-4")));
+        assertEquals(auditConfig.getIgnoredComplianceUsersForRead(), ImmutableSet.of("test-user-1", "test-user-2"));
+        assertEquals(auditConfig.getIgnoredComplianceUsersForWrite(), ImmutableSet.of("test-user-3", "test-user-4"));
         assertEquals(auditConfig.getDisabledRestCategories(), EnumSet.of(BAD_HEADERS, SSL_EXCEPTION));
         assertEquals(auditConfig.getDisabledTransportCategories(), EnumSet.of(FAILED_LOGIN, MISSING_PRIVILEGES));
         assertEquals("test-index", auditConfig.getOpendistrosecurityIndex());
