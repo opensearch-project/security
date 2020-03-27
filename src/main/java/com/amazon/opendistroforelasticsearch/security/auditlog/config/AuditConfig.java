@@ -179,18 +179,18 @@ public class AuditConfig {
     }
 
     public void log(Logger logger) {
-        logger.info("Auditing on REST API is {}", isRestApiAuditEnabled ? "enabled" : "disabled");
-        logger.info("Auditing on Transport API is {}", isTransportApiAuditEnabled ? "enabled" : "disabled");
-        logger.info("Auditing of request body is {}", logRequestBody ? "enabled" : "disabled");
-        logger.info("Auditing should {} resolve bulk requests", resolveBulkRequests ? "" : "not");
-        logger.info("Auditing should {} resolve indices", resolveBulkRequests ? "" : "not");
-        logger.info("Auditing should {} exclude sensitive headers", excludeSensitiveHeaders ? "" : "not");
-        logger.info("Auditing will ignore users {}", ignoredAuditUsers);
-        logger.info("Auditing of compliance read operation will ignore users {}", ignoredComplianceUsersForRead);
-        logger.info("Auditing of compliance write operation will ignore users {}", ignoredComplianceUsersForWrite);
-        logger.info("Auditing has disabled rest categories {}", disabledRestCategories);
-        logger.info("Auditing has disabled transport categories {}", disabledTransportCategories);
-        logger.info("Auditing is configured to use opendistro security index {}", opendistrosecurityIndex);
+        logger.info("Auditing on REST API is {}.", isRestApiAuditEnabled ? "enabled" : "disabled");
+        logger.info("Auditing on Transport API is {}.", isTransportApiAuditEnabled ? "enabled" : "disabled");
+        logger.info("Auditing of request body is {}.", logRequestBody ? "enabled" : "disabled");
+        logger.info("Bulk requests resolution is {} during request auditing.", resolveBulkRequests ? "enabled" : "disabled");
+        logger.info("Index resolution is {} during request auditing.", resolveIndices ? "enabled" : "disabled");
+        logger.info("Sensitive headers auditing is {}.", excludeSensitiveHeaders ? "enabled" : "disabled");
+        logger.info("Auditing requests from {} users is disabled.", ignoredAuditUsers);
+        logger.info("Compliance read operation requests auditing from {} users is disabled.", ignoredComplianceUsersForRead);
+        logger.info("Compliance write operation requests auditing from {} users is disabled.", ignoredComplianceUsersForWrite);
+        logger.info("{} are excluded from REST API auditing.", disabledRestCategories);
+        logger.info("{} are excluded from Transport API auditing.", disabledTransportCategories);
+        logger.info("Open distro auditing uses {} index(alias?) to write auditing events.", opendistrosecurityIndex);
     }
 
     @Override
