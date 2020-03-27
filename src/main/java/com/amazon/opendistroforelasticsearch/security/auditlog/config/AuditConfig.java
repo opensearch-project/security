@@ -9,9 +9,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import static com.amazon.opendistroforelasticsearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES;
 
 public class AuditConfig {
     private static final List<String> DEFAULT_IGNORED_USERS = Collections.singletonList("kibanaserver");
@@ -70,38 +71,39 @@ public class AuditConfig {
         final boolean excludeSensitiveHeaders = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS, true);
         final String opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
 
-        final EnumSet<AuditCategory> disabledRestCategories;
-        final List<String> disabledRestCategoriesList = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, DEFAULT_DISABLED_CATEGORIES);
-        if (disabledRestCategoriesList.isEmpty() || (disabledRestCategoriesList.size() == 1 && "NONE".equalsIgnoreCase(disabledRestCategoriesList.get(0)))) {
-            disabledRestCategories = EnumSet.noneOf(AuditCategory.class);
-        } else {
-            disabledRestCategories = AuditCategory.parse(disabledRestCategoriesList);
-        }
+        final EnumSet<AuditCategory> disabledRestCategories = AuditCategory.parse(getSettingAsList(
+                settings,
+                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES,
+                DEFAULT_DISABLED_CATEGORIES,
+                true));
 
-        final EnumSet<AuditCategory> disabledTransportCategories;
-        final List<String> disabledTransportCategoriesList = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, DEFAULT_DISABLED_CATEGORIES);
-        if (disabledTransportCategoriesList.isEmpty() || (disabledTransportCategoriesList.size() == 1 && "NONE".equalsIgnoreCase(disabledTransportCategoriesList.get(0)))) {
-            disabledTransportCategories = EnumSet.noneOf(AuditCategory.class);
-        } else {
-            disabledTransportCategories = AuditCategory.parse(disabledTransportCategoriesList);
-        }
+        final EnumSet<AuditCategory> disabledTransportCategories = AuditCategory.parse(getSettingAsList(
+                settings,
+                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES,
+                DEFAULT_DISABLED_CATEGORIES,
+                true));
 
-        final List<String> ignoredAuditUsers = new ArrayList<>(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS, DEFAULT_IGNORED_USERS));
-        if (ignoredAuditUsers.size() == 1 && "NONE".equals(ignoredAuditUsers.get(0))) {
-            ignoredAuditUsers.clear();
-        }
+        final Set<String> ignoredAuditUsers = ImmutableSet.copyOf(getSettingAsList(
+                settings,
+                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS,
+                DEFAULT_IGNORED_USERS,
+                false));
 
-        final List<String> ignoredComplianceUsersForRead = new ArrayList<>(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS, DEFAULT_IGNORED_USERS));
-        if (ignoredComplianceUsersForRead.size() == 1 && "NONE".equals(ignoredComplianceUsersForRead.get(0))) {
-            ignoredComplianceUsersForRead.clear();
-        }
+        final Set<String> ignoredComplianceUsersForRead = ImmutableSet.copyOf(getSettingAsList(
+                settings,
+                ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS,
+                DEFAULT_IGNORED_USERS,
+                false));
 
-        final List<String> ignoredComplianceUsersForWrite = new ArrayList<>(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS, DEFAULT_IGNORED_USERS));
-        if (ignoredComplianceUsersForWrite.size() == 1 && "NONE".equals(ignoredComplianceUsersForWrite.get(0))) {
-            ignoredComplianceUsersForWrite.clear();
-        }
+        final Set<String> ignoredComplianceUsersForWrite = ImmutableSet.copyOf(getSettingAsList(
+                settings,
+                ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS,
+                DEFAULT_IGNORED_USERS,
+                false));
 
-        final List<String> ignoreAuditRequests = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS, Collections.emptyList());
+        final Set<String> ignoreAuditRequests = ImmutableSet.copyOf(settings.getAsList(
+                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS,
+                Collections.emptyList()));
 
         return new AuditConfig(isRestApiAuditEnabled,
                 isTransportAuditEnabled,
@@ -109,19 +111,27 @@ public class AuditConfig {
                 logRequestBody,
                 resolveIndices,
                 excludeSensitiveHeaders,
-                ImmutableSet.copyOf(ignoredAuditUsers),
-                ImmutableSet.copyOf(ignoredComplianceUsersForRead),
-                ImmutableSet.copyOf(ignoredComplianceUsersForWrite),
-                ImmutableSet.copyOf(ignoreAuditRequests),
+                ignoredAuditUsers,
+                ignoredComplianceUsersForRead,
+                ignoredComplianceUsersForWrite,
+                ignoreAuditRequests,
                 disabledRestCategories,
                 disabledTransportCategories,
                 opendistrosecurityIndex);
     }
 
-    private static List<String> getSettingAsList(final Settings settings, final String key, final List<String> defaultList) {
+    private static List<String> getSettingAsList(final Settings settings, final String key, final List<String> defaultList, final boolean ignoreCaseForNone) {
         final List<String> list = settings.getAsList(key, defaultList);
-        if (list.size() == 1 && "NONE".equals(list.get(0))) {
-            return Collections.emptyList();
+        if (list.size() == 1) {
+            final String elem = list.get(0);
+            final String none = "NONE";
+
+            if (ignoreCaseForNone && none.equalsIgnoreCase(elem)) {
+                return Collections.emptyList();
+            }
+            if (!ignoreCaseForNone && none.equals(elem)) {
+                return Collections.emptyList();
+            }
         }
         return list;
     }
