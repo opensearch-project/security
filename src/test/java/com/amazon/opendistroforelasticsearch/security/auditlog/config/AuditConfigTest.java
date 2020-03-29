@@ -35,7 +35,6 @@ public class AuditConfigTest {
         assertEquals(auditConfig.getIgnoredComplianceUsersForWrite(), defaultIgnoredUser);
         assertEquals(auditConfig.getDisabledRestCategories(), defaultDisabledCategories);
         assertEquals(auditConfig.getDisabledTransportCategories(), defaultDisabledCategories);
-        assertEquals(".opendistro_security", auditConfig.getOpendistrosecurityIndex());
     }
 
     @Test
@@ -48,7 +47,6 @@ public class AuditConfigTest {
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY, false)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_INDICES, false)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS, false)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, "test-index")
                 .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS, "test-request")
                 .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS, "test-user")
                 .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS,
@@ -75,7 +73,6 @@ public class AuditConfigTest {
         assertEquals(auditConfig.getIgnoredComplianceUsersForWrite(), ImmutableSet.of("test-user-3", "test-user-4"));
         assertEquals(auditConfig.getDisabledRestCategories(), EnumSet.of(BAD_HEADERS, SSL_EXCEPTION));
         assertEquals(auditConfig.getDisabledTransportCategories(), EnumSet.of(FAILED_LOGIN, MISSING_PRIVILEGES));
-        assertEquals("test-index", auditConfig.getOpendistrosecurityIndex());
     }
 
     @Test
