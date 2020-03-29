@@ -30,7 +30,6 @@ public class AuditConfig {
     private final Set<String> ignoreAuditRequests;
     private final EnumSet<AuditCategory> disabledRestCategories;
     private final EnumSet<AuditCategory> disabledTransportCategories;
-    private final String opendistrosecurityIndex;
 
     private AuditConfig(final boolean isRestApiAuditEnabled,
                         final boolean isTransportApiAuditEnabled,
@@ -43,8 +42,7 @@ public class AuditConfig {
                         final Set<String> ignoredComplianceUsersForWrite,
                         final Set<String> ignoredAuditRequests,
                         final EnumSet<AuditCategory> disabledRestCategories,
-                        final EnumSet<AuditCategory> disabledTransportCategories,
-                        final String opendistrosecurityIndex) {
+                        final EnumSet<AuditCategory> disabledTransportCategories) {
         this.isRestApiAuditEnabled = isRestApiAuditEnabled;
         this.isTransportApiAuditEnabled = isTransportApiAuditEnabled;
         this.resolveBulkRequests = resolveBulkRequests;
@@ -57,7 +55,6 @@ public class AuditConfig {
         this.ignoreAuditRequests = ignoredAuditRequests;
         this.disabledRestCategories = disabledRestCategories;
         this.disabledTransportCategories = disabledTransportCategories;
-        this.opendistrosecurityIndex = opendistrosecurityIndex;
     }
 
     public static AuditConfig from(Settings settings) {
@@ -114,8 +111,7 @@ public class AuditConfig {
                 ignoredComplianceUsersForWrite,
                 ignoreAuditRequests,
                 disabledRestCategories,
-                disabledTransportCategories,
-                opendistrosecurityIndex);
+                disabledTransportCategories);
     }
 
     private static List<String> getSettingAsList(final Settings settings, final String key, final List<String> defaultList, final boolean ignoreCaseForNone) {
@@ -174,10 +170,6 @@ public class AuditConfig {
         return disabledTransportCategories;
     }
 
-    public String getOpendistrosecurityIndex() {
-        return opendistrosecurityIndex;
-    }
-
     public void log(Logger logger) {
         logger.info("Auditing on REST API is {}.", isRestApiAuditEnabled ? "enabled" : "disabled");
         logger.info("Auditing on Transport API is {}.", isTransportApiAuditEnabled ? "enabled" : "disabled");
@@ -190,7 +182,6 @@ public class AuditConfig {
         logger.info("Compliance write operation requests auditing from {} users is disabled.", ignoredComplianceUsersForWrite);
         logger.info("{} are excluded from REST API auditing.", disabledRestCategories);
         logger.info("{} are excluded from Transport API auditing.", disabledTransportCategories);
-        logger.info("Open distro auditing uses {} index for internal configuration change events.", opendistrosecurityIndex);
     }
 
     @Override
@@ -208,7 +199,6 @@ public class AuditConfig {
                 ", ignoreAuditRequests=" + ignoreAuditRequests +
                 ", disabledRestCategories=" + disabledRestCategories +
                 ", disabledTransportCategories=" + disabledTransportCategories +
-                ", opendistrosecurityIndex='" + opendistrosecurityIndex + '\'' +
                 '}';
     }
 }
