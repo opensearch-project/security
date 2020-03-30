@@ -32,23 +32,21 @@ package com.amazon.opendistroforelasticsearch.security.resolver;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionRequest;
@@ -209,7 +207,7 @@ public final class IndexResolverReplacer implements DCFListener {
         }
 
         final Set<String> matchingAliases;
-        final Set<String> matchingAllIndices;
+        Set<String> matchingAllIndices;
 
         if (isLocalAll(requestedPatterns0)) {
             if (log.isTraceEnabled()) {
@@ -222,18 +220,18 @@ public final class IndexResolverReplacer implements DCFListener {
             if (log.isTraceEnabled()) {
                 log.trace(Arrays.toString(requestedPatterns0) + " is an LOCAL EMPTY request");
             }
-            return new Resolved(Collections.emptySet(), Collections.emptySet(), Collections.emptySet(), Sets.newHashSet(requestedPatterns0), remoteIndices);
+            matchingAllIndices = Collections.emptySet();
+            matchingAliases = Collections.emptySet();
         }
 
         else {
-
-            ClusterState state = clusterService.state();
-            Set<String> dateResolvedLocalRequestedPatterns = localRequestedPatterns
+            final ClusterState state = clusterService.state();
+            final Set<String> dateResolvedLocalRequestedPatterns = localRequestedPatterns
                             .stream()
                             .map(resolver::resolveDateMathExpression)
                             .collect(Collectors.toSet());
             //fill matchingAliases
-            final SortedMap<String, AliasOrIndex> lookup = state.metaData().getAliasAndIndexLookup();
+            final Map<String, AliasOrIndex> lookup = state.metaData().getAliasAndIndexLookup();
             matchingAliases = lookup.entrySet()
                     .stream()
                     .filter(e -> e.getValue().isAlias())
@@ -241,24 +239,21 @@ public final class IndexResolverReplacer implements DCFListener {
                     .filter(alias -> WildcardMatcher.matchAny(dateResolvedLocalRequestedPatterns, alias))
                     .collect(Collectors.toSet());
 
-            Set<String> _indices;
             try {
-                _indices = Sets.newHashSet(resolver.concreteIndexNames(state, indicesOptions, localRequestedPatterns.toArray(new String[0])));
+                matchingAllIndices = Sets.newHashSet(resolver.concreteIndexNames(state, indicesOptions, localRequestedPatterns.toArray(new String[0])));
                 if (log.isDebugEnabled()) {
-                    log.debug("Resolved pattern {} to {}", localRequestedPatterns, _indices);
+                    log.debug("Resolved pattern {} to {}", localRequestedPatterns, matchingAllIndices);
                 }
             } catch (IndexNotFoundException e1) {
                 if (log.isDebugEnabled()) {
                     log.debug("No such indices for pattern {}, use raw value", localRequestedPatterns);
                 }
 
-                _indices = dateResolvedLocalRequestedPatterns;
+                matchingAllIndices = dateResolvedLocalRequestedPatterns;
             }
-
-            matchingAllIndices = _indices;
         }
 
-        return new Resolved(matchingAliases, matchingAllIndices, Collections.emptySet(), Sets.newHashSet(requestedPatterns0), remoteIndices);
+        return new Resolved(matchingAliases, matchingAllIndices, new HashSet<>(Arrays.asList(requestedPatterns0)), remoteIndices);
 
     }
 
@@ -329,28 +324,21 @@ public final class IndexResolverReplacer implements DCFListener {
          */
         private static final Set<String> All_SET = Collections.singleton("*");
         private static final long serialVersionUID = 1L;
-        public final static Resolved _LOCAL_ALL = new Resolved(All_SET, All_SET, All_SET, Collections.emptySet(), Collections.emptySet());
+        public final static Resolved _LOCAL_ALL = new Resolved(All_SET, All_SET, All_SET, Collections.emptySet());
         private final Set<String> aliases;
         private final Set<String> allIndices;
-        private final Set<String> types;
+        private final Set<String> types = ImmutableSet.of("*");
 
         private final Set<String> originalRequested;
         private final Set<String> remoteIndices;
 
         private Resolved(final Set<String> aliases, final Set<String> allIndices,
-                         final Set<String> types, final Set<String> originalRequested, final Set<String> remoteIndices) {
+                         final Set<String> originalRequested, final Set<String> remoteIndices) {
             super();
             this.aliases = aliases;
             this.allIndices = allIndices;
-            this.types = types;
             this.originalRequested = originalRequested;
             this.remoteIndices = remoteIndices;
-
-            if(!aliases.isEmpty() || !allIndices.isEmpty()) {
-                if(types.isEmpty()) {
-                    //throw new ElasticsearchException("Empty types for nonempty indices or aliases");
-                }
-            }
         }
 
         public boolean isLocalAll() {
@@ -442,16 +430,15 @@ public final class IndexResolverReplacer implements DCFListener {
 
             private final Set<String> aliases = new HashSet<String>();
             private final Set<String> allIndices = new HashSet<String>();
-            //private final Set<String> types = new HashSet<String>();
             private final Set<String> originalRequested = new HashSet<String>();
             private final Set<String> remoteIndices = new HashSet<String>();
 
             public Builder() {
-                this(null, null, null, null, null);
+                this(null, null, null, null);
             }
 
             public Builder(Collection<String> aliases, Collection<String> allIndices,
-                           Collection<String> types, String[] originalRequested, Collection<String> remoteIndices) {
+                           String[] originalRequested, Collection<String> remoteIndices) {
 
                 if(aliases != null) {
                     this.aliases.addAll(aliases);
@@ -460,10 +447,6 @@ public final class IndexResolverReplacer implements DCFListener {
 
                 if(allIndices != null) {
                     this.allIndices.addAll(allIndices);
-                }
-
-                if(types != null) {
-                    //this.types.addAll(types);
                 }
 
                 if(originalRequested != null) {
@@ -475,22 +458,11 @@ public final class IndexResolverReplacer implements DCFListener {
                 }
             }
 
-            /*public Builder addTypes(Collection<String> types) {
-                if(types != null && types.size() > 0) {
-                    if(this.types.contains("*")) {
-                        this.types.remove("*");
-                    }
-                    this.types.addAll(types);
-                }
-                return this;
-            }*/
-
             public Builder add(Resolved r) {
                 this.aliases.addAll(r.aliases);
                 this.allIndices.addAll(r.allIndices);
                 this.originalRequested.addAll(r.originalRequested);
                 this.remoteIndices.addAll(r.remoteIndices);
-                //addTypes(r.types);
                 return this;
             }
             
@@ -509,19 +481,14 @@ public final class IndexResolverReplacer implements DCFListener {
             }
 
             public Resolved build() {
-//                if(types.isEmpty()) {
-//                    types.add("*");
-//                }
-
-                return new Resolved(aliases, allIndices,
-                        Collections.singleton("*"), originalRequested, remoteIndices);
+                return new Resolved(aliases, allIndices, originalRequested, remoteIndices);
             }
         }
 
         public Resolved(final StreamInput in) throws IOException {
             aliases = new HashSet<String>(in.readList(StreamInput::readString));
             allIndices = new HashSet<String>(in.readList(StreamInput::readString));
-            types = new HashSet<String>(in.readList(StreamInput::readString));
+            in.readList(StreamInput::readString); //read but discard types from stream, for v6-v7 compatibility
             originalRequested = new HashSet<String>(in.readList(StreamInput::readString));
             remoteIndices = new HashSet<String>(in.readList(StreamInput::readString));
         }
