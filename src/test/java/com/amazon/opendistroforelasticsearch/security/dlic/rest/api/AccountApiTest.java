@@ -101,8 +101,18 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         response = rh.executePutRequest(ENDPOINT, payload, encodeBasicHeader(testUser, testPass));
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
-        // test - bad request as hash/password is empty
+        // test - bad request as password is empty
         payload = "{\"password\":\"" + "" + "\", \"current_password\":\"" + testPass + "\"}";
+        response = rh.executePutRequest(ENDPOINT, payload, encodeBasicHeader(testUser, testPass));
+        assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+
+        // test - bad request as hash is empty
+        payload = "{\"hash\":\"" + "" + "\", \"current_password\":\"" + testPass + "\"}";
+        response = rh.executePutRequest(ENDPOINT, payload, encodeBasicHeader(testUser, testPass));
+        assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+
+        // test - bad request as hash and password are empty
+        payload = "{\"hash\": \"\", \"password\": \"\", \"current_password\":\"" + testPass + "\"}";
         response = rh.executePutRequest(ENDPOINT, payload, encodeBasicHeader(testUser, testPass));
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 

@@ -199,26 +199,27 @@ public class AccountApiAction extends AbstractApiAction {
         final SecurityJsonNode securityJsonNode = new SecurityJsonNode(content);
         final String currentPassword = content.get("current_password").asText();
         final Hashed internalUserEntry = (Hashed) internalUser.getCEntry(username);
-        final String hash = internalUserEntry.getHash();
+        final String currentHash = internalUserEntry.getHash();
 
-        if (hash == null || !OpenBSDBCrypt.checkPassword(hash, currentPassword.toCharArray())) {
+        if (currentHash == null || !OpenBSDBCrypt.checkPassword(currentHash, currentPassword.toCharArray())) {
             badRequestResponse(channel, "Could not validate your current password.");
             return;
         }
 
         // if password is set, it takes precedence over hash
-        final String providedPassword = securityJsonNode.get("password").asString();
-        final String providedHash = securityJsonNode.get("hash").asString();
-        if (Strings.isNullOrEmpty(providedPassword) && Strings.isNullOrEmpty(providedHash)) {
+        final String password = securityJsonNode.get("password").asString();
+        final String hash;
+        if (Strings.isNullOrEmpty(password)) {
+            hash = securityJsonNode.get("hash").asString();
+        } else {
+            hash = hash(password.toCharArray());
+        }
+        if (Strings.isNullOrEmpty(hash)) {
             badRequestResponse(channel, "Both provided password and hash cannot be null/empty.");
             return;
         }
 
-        final String newHash = Strings.isNullOrEmpty(providedPassword)
-                ? providedHash
-                : hash(providedPassword.toCharArray());
-
-        internalUserEntry.setHash(newHash);
+        internalUserEntry.setHash(hash);
 
         saveAnUpdateConfigs(client, request, CType.INTERNALUSERS, internalUser, new OnSucessActionListener<IndexResponse>(channel) {
             @Override
