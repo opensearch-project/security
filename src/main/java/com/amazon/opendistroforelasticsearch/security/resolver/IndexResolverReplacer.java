@@ -46,7 +46,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionRequest;
@@ -102,12 +101,11 @@ import com.amazon.opendistroforelasticsearch.security.securityconf.InternalUsers
 import com.amazon.opendistroforelasticsearch.security.support.SnapshotRestoreHelper;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 
-
-import com.google.common.collect.Sets;
+import com.google.common.collect.ImmutableSet;
 
 public final class IndexResolverReplacer implements DCFListener {
 
-    private static final Set<String> NULL_SET = Sets.newHashSet((String)null);
+    private static final Set<String> NULL_SET = new HashSet<>(Collections.singleton(null));
     private final Logger log = LogManager.getLogger(this.getClass());
     private final IndexNameExpressionResolver resolver;
     private final ClusterService clusterService;
@@ -115,7 +113,6 @@ public final class IndexResolverReplacer implements DCFListener {
     private volatile boolean respectRequestIndicesOptions = false;
 
     public IndexResolverReplacer(IndexNameExpressionResolver resolver, ClusterService clusterService, ClusterInfoHolder clusterInfoHolder) {
-        super();
         this.resolver = resolver;
         this.clusterService = clusterService;
         this.clusterInfoHolder = clusterInfoHolder;
@@ -240,7 +237,9 @@ public final class IndexResolverReplacer implements DCFListener {
                     .collect(Collectors.toSet());
 
             try {
-                matchingAllIndices = Sets.newHashSet(resolver.concreteIndexNames(state, indicesOptions, localRequestedPatterns.toArray(new String[0])));
+                matchingAllIndices = new HashSet<>(Arrays.asList(
+                        resolver.concreteIndexNames(state, indicesOptions, localRequestedPatterns.toArray(new String[0]))
+                ));
                 if (log.isDebugEnabled()) {
                     log.debug("Resolved pattern {} to {}", localRequestedPatterns, matchingAllIndices);
                 }
@@ -327,14 +326,13 @@ public final class IndexResolverReplacer implements DCFListener {
         public final static Resolved _LOCAL_ALL = new Resolved(All_SET, All_SET, All_SET, Collections.emptySet());
         private final Set<String> aliases;
         private final Set<String> allIndices;
-        private final Set<String> types = ImmutableSet.of("*");
+        private static final Set<String> types = ImmutableSet.of("*");
 
         private final Set<String> originalRequested;
         private final Set<String> remoteIndices;
 
         private Resolved(final Set<String> aliases, final Set<String> allIndices,
                          final Set<String> originalRequested, final Set<String> remoteIndices) {
-            super();
             this.aliases = aliases;
             this.allIndices = allIndices;
             this.originalRequested = originalRequested;
