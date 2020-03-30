@@ -27,5 +27,7 @@ public class AccountValidator extends CredentialsValidator {
         super(request, ref, esSettings, param);
         allowedKeys.put("current_password", DataType.STRING);
         mandatoryKeys.add("current_password");
+        mandatoryOrKeys.add("hash");
+        mandatoryOrKeys.add("password");
     }
 }
