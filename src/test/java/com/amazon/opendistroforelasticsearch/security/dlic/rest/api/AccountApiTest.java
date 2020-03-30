@@ -170,7 +170,7 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         setup();
         final String testUsername = "test";
         final String testPassword = "test-password";
-        final String newPassword = "test-password";
+        final String newPassword = "new-password";
         final String createInternalUserPayload = "{\n" +
                 "  \"password\": \"" + testPassword + "\",\n" +
                 "  \"backend_roles\": [\"test-backend-role-1\"],\n" +
