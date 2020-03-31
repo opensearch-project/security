@@ -24,6 +24,8 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.Collections;
+
 import static org.junit.Assert.*;
 
 public class AccountApiTest extends AbstractRestApiUnitTest {
@@ -94,6 +96,26 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         response = rh.executePutRequest(ENDPOINT, payload, encodeBasicHeader(testUser, testPass));
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
+        // test - bad request as hash/password is missing
+        payload = "{\"current_password\":\"" + testPass + "\"}";
+        response = rh.executePutRequest(ENDPOINT, payload, encodeBasicHeader(testUser, testPass));
+        assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+
+        // test - bad request as password is empty
+        payload = "{\"password\":\"" + "" + "\", \"current_password\":\"" + testPass + "\"}";
+        response = rh.executePutRequest(ENDPOINT, payload, encodeBasicHeader(testUser, testPass));
+        assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+
+        // test - bad request as hash is empty
+        payload = "{\"hash\":\"" + "" + "\", \"current_password\":\"" + testPass + "\"}";
+        response = rh.executePutRequest(ENDPOINT, payload, encodeBasicHeader(testUser, testPass));
+        assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+
+        // test - bad request as hash and password are empty
+        payload = "{\"hash\": \"\", \"password\": \"\", \"current_password\":\"" + testPass + "\"}";
+        response = rh.executePutRequest(ENDPOINT, payload, encodeBasicHeader(testUser, testPass));
+        assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+
         // test - bad request as invalid parameters are present
         payload = "{\"password\":\"new-pass\", \"current_password\":\"" + testPass + "\", \"backend_roles\": []}";
         response = rh.executePutRequest(ENDPOINT, payload, encodeBasicHeader(testUser, testPass));
@@ -150,5 +172,46 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         payload = "{\"password\":\"" + testPass + "\", \"current_password\":\"" + "admin" + "\"}";
         response = rh.executePutRequest(ENDPOINT, payload, encodeBasicHeader("admin", "admin"));
         assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+    }
+
+    @Test
+    public void testPutAccountRetainsAccountInformation() throws Exception {
+        // arrange
+        setup();
+        final String testUsername = "test";
+        final String testPassword = "test-password";
+        final String newPassword = "new-password";
+        final String createInternalUserPayload = "{\n" +
+                "  \"password\": \"" + testPassword + "\",\n" +
+                "  \"backend_roles\": [\"test-backend-role-1\"],\n" +
+                "  \"opendistro_security_roles\": [\"all_access\"],\n" +
+                "  \"attributes\": {\n" +
+                "    \"attribute1\": \"value1\"\n" +
+                "  }\n" +
+                "}";
+        final String changePasswordPayload = "{\"password\":\"" + newPassword + "\", \"current_password\":\"" + testPassword + "\"}";
+        final String internalUserEndpoint = "/_opendistro/_security/api/internalusers/" + testUsername;
+
+        // create user
+        rh.sendAdminCertificate = true;
+        HttpResponse response = rh.executePutRequest(internalUserEndpoint, createInternalUserPayload);
+        assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        rh.sendAdminCertificate = false;
+
+        // change password to new-password
+        response = rh.executePutRequest(ENDPOINT, changePasswordPayload, encodeBasicHeader(testUsername, testPassword));
+        assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+
+        // assert account information has not changed
+        rh.sendAdminCertificate = true;
+        response = rh.executeGetRequest(internalUserEndpoint);
+        assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        Settings responseBody = Settings.builder()
+                .loadFromSource(response.getBody(), XContentType.JSON)
+                .build()
+                .getAsSettings(testUsername);
+        assertTrue(responseBody.getAsList("backend_roles").contains("test-backend-role-1"));
+        assertTrue(responseBody.getAsList("opendistro_security_roles").contains("all_access"));
+        assertEquals(responseBody.getAsSettings("attributes").get("attribute1"), "value1");
     }
 }
