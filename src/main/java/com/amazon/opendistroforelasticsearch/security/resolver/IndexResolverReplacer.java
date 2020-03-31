@@ -356,7 +356,7 @@ public final class IndexResolverReplacer implements DCFListener {
         }
 
         public Set<String> getTypes() {
-            return Collections.unmodifiableSet(types);
+            return types;
         }
 
         public Set<String> getOriginalRequested() {
@@ -381,7 +381,6 @@ public final class IndexResolverReplacer implements DCFListener {
             result = prime * result + ((allIndices == null) ? 0 : allIndices.hashCode());
             result = prime * result + ((originalRequested == null) ? 0 : originalRequested.hashCode());
             result = prime * result + ((remoteIndices == null) ? 0 : remoteIndices.hashCode());
-            result = prime * result + ((types == null) ? 0 : types.hashCode());
             return result;
         }
 
@@ -414,14 +413,8 @@ public final class IndexResolverReplacer implements DCFListener {
                     return false;
             } else if (!remoteIndices.equals(other.remoteIndices))
                 return false;
-            if (types == null) {
-                if (other.types != null)
-                    return false;
-            } else if (!types.equals(other.types))
-                return false;
             return true;
         }
-
 
 
         private static class Builder {
@@ -486,7 +479,6 @@ public final class IndexResolverReplacer implements DCFListener {
         public Resolved(final StreamInput in) throws IOException {
             aliases = new HashSet<String>(in.readList(StreamInput::readString));
             allIndices = new HashSet<String>(in.readList(StreamInput::readString));
-            in.readList(StreamInput::readString); //read but discard types from stream, for v6-v7 compatibility
             originalRequested = new HashSet<String>(in.readList(StreamInput::readString));
             remoteIndices = new HashSet<String>(in.readList(StreamInput::readString));
         }
@@ -496,7 +488,6 @@ public final class IndexResolverReplacer implements DCFListener {
         public void writeTo(StreamOutput out) throws IOException {
             out.writeStringCollection(new ArrayList<>(aliases));
             out.writeStringCollection(new ArrayList<>(allIndices));
-            out.writeStringCollection(new ArrayList<>(types));
             out.writeStringCollection(new ArrayList<>(originalRequested));
             out.writeStringCollection(new ArrayList<>(remoteIndices));
         }
