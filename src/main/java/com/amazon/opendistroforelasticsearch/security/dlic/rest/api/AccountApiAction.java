@@ -35,6 +35,7 @@ import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
@@ -197,32 +198,28 @@ public class AccountApiAction extends AbstractApiAction {
 
         final SecurityJsonNode securityJsonNode = new SecurityJsonNode(content);
         final String currentPassword = content.get("current_password").asText();
-        final String hash = ((Hashed) internalUser.getCEntry(username)).getHash();
+        final Hashed internalUserEntry = (Hashed) internalUser.getCEntry(username);
+        final String currentHash = internalUserEntry.getHash();
 
-        if (hash == null || !OpenBSDBCrypt.checkPassword(hash, currentPassword.toCharArray())) {
+        if (currentHash == null || !OpenBSDBCrypt.checkPassword(currentHash, currentPassword.toCharArray())) {
             badRequestResponse(channel, "Could not validate your current password.");
             return;
         }
 
-        ObjectNode contentAsNode = (ObjectNode) content;
-        contentAsNode.remove("current_password");
-
         // if password is set, it takes precedence over hash
-        final String plainTextPassword = securityJsonNode.get("password").asString();
-        final String origHash = securityJsonNode.get("hash").asString();
-        if (plainTextPassword != null && plainTextPassword.length() > 0) {
-            contentAsNode.remove("password");
-            contentAsNode.put("hash", hash(plainTextPassword.toCharArray()));
-        } else if (origHash != null && origHash.length() > 0) {
-            contentAsNode.remove("password");
-        } else if (plainTextPassword != null && plainTextPassword.isEmpty() && origHash == null) {
-            contentAsNode.remove("password");
+        final String password = securityJsonNode.get("password").asString();
+        final String hash;
+        if (Strings.isNullOrEmpty(password)) {
+            hash = securityJsonNode.get("hash").asString();
+        } else {
+            hash = hash(password.toCharArray());
+        }
+        if (Strings.isNullOrEmpty(hash)) {
+            badRequestResponse(channel, "Both provided password and hash cannot be null/empty.");
+            return;
         }
 
-        internalUser.remove(username);
-
-        // checks complete, update the user
-        internalUser.putCObject(username, DefaultObjectMapper.readTree(contentAsNode, internalUser.getImplementingClass()));
+        internalUserEntry.setHash(hash);
 
         saveAnUpdateConfigs(client, request, CType.INTERNALUSERS, internalUser, new OnSucessActionListener<IndexResponse>(channel) {
             @Override
