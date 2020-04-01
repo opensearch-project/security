@@ -21,6 +21,7 @@ package com.amazon.opendistroforelasticsearch.security.configuration;
 //https://github.com/salyh/elasticsearch-security-plugin/blob/4b53974a43b270ae77ebe79d635e2484230c9d01/src/main/java/org/elasticsearch/plugins/security/filter/DlsWriteFilter.java
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -132,7 +133,7 @@ class DlsFlsFilterLeafReader extends FilterLeafReader {
         if(maskedFieldsMap != null) {
             maskedFieldsKeySet = maskedFieldsMap.keySet();
         } else {
-            maskedFieldsKeySet = null;
+            maskedFieldsKeySet = Collections.emptySet();
         }
 
         this.shardId = shardId;

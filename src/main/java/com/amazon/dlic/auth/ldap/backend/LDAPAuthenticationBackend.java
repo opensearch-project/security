@@ -68,7 +68,7 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
 
         customAttrMaxValueLen = settings.getAsInt(ConfigConstants.LDAP_CUSTOM_ATTR_MAXVAL_LEN, 36);
         whitelistedAttributes = Wildcard.caseSensitiveAny(settings.getAsList(ConfigConstants.LDAP_CUSTOM_ATTR_WHITELIST,
-                null));
+                Collections.emptyList()));
     }
 
     @Override
