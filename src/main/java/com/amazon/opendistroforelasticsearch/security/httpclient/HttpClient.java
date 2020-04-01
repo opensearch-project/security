@@ -253,7 +253,7 @@ public class HttpClient implements Closeable {
         }
 
         // TODO: set a timeout until we have a proper way to deal with back pressure
-        int timeout = 5;
+        int timeout = 10;
 
         RequestConfig config = RequestConfig.custom()
           .setConnectTimeout(timeout * 1000)
