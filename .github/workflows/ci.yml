@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - master
+      - opendistro-*
 
 jobs:
   build:
@@ -20,7 +21,7 @@ jobs:
         java-version: 11.0.x
 
     - name: Checkout security
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
 
     - name: Checkstyle
       run: mvn checkstyle:checkstyle
@@ -41,4 +42,3 @@ jobs:
       with:
         name: artifacts
         path: target/releases/
-
