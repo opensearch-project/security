@@ -7,6 +7,8 @@ on:
   push:
     branches:
       - master
+      - opendistro-*
+
 jobs:
   build:
     runs-on: ubuntu-latest
