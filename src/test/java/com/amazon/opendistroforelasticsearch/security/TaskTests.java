@@ -42,5 +42,6 @@ public class TaskTests extends SingleClusterTest {
                 , new BasicHeader(Task.X_OPAQUE_ID, "myOpaqueId12"))).getStatusCode());
         System.out.println(res.getBody());
         Assert.assertTrue(res.getBody().split("X-Opaque-Id").length > 2);
+        Assert.assertTrue(!res.getBody().contains("failures"));
     }
 }
