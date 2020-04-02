@@ -38,11 +38,20 @@ public class SSLAuditlogTest extends AbstractAuditlogiUnitTest {
     private final ClusterHelper monitoringCluster = new ClusterHelper("mon_n"+num.incrementAndGet()+"_f"+System.getProperty("forkno")+"_t"+System.nanoTime());
 
     @After
-    public void tearDown() throws Exception {
-        monitoringCluster.stopCluster();
+    @Override
+    public void tearDown() {
+        super.tearDown();
+        try {
+            monitoringCluster.stopCluster();
+            monitoringClusterInfo = null;
+        } catch (Exception e) {
+            log.error("Failed to stop monitoring cluster {}.", monitoringClusterInfo.clustername, e);
+            Assert.fail("Failed to stop monitoring cluster " + monitoringClusterInfo.clustername + ".");
+        }
     }
 
     private void setupMonitoring() throws Exception {
+        Assert.assertNull("No monitoring cluster", monitoringClusterInfo);
         monitoringClusterInfo =  monitoringCluster.startCluster(minimumSecuritySettings(defaultNodeSettings(Settings.EMPTY)), ClusterConfiguration.DEFAULT);
         initialize(monitoringClusterInfo, Settings.EMPTY, new DynamicSecurityConfig());
         rhMon = new RestHelper(monitoringClusterInfo, getResourceFolder());
