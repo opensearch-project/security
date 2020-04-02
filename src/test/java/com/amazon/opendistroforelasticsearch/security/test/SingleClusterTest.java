@@ -33,6 +33,7 @@ package com.amazon.opendistroforelasticsearch.security.test;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.After;
+import org.junit.Assert;
 
 import com.amazon.opendistroforelasticsearch.security.test.helper.cluster.ClusterConfiguration;
 import com.amazon.opendistroforelasticsearch.security.test.helper.cluster.ClusterHelper;
@@ -43,6 +44,9 @@ public abstract class SingleClusterTest extends AbstractSecurityUnitTest {
 
     protected ClusterHelper clusterHelper = new ClusterHelper("utest_n"+num.incrementAndGet()+"_f"+System.getProperty("forkno")+"_t"+System.nanoTime());
     protected ClusterInfo clusterInfo;
+    private ClusterHelper remoteClusterHelper = withRemoteCluster ?
+            new ClusterHelper("crl2_n"+num.incrementAndGet()+"_f"+System.getProperty("forkno")+"_t"+System.nanoTime()) : null;
+    private ClusterInfo remoteClusterInfo;
 
     protected void setup(Settings nodeOverride) throws Exception {
         setup(Settings.EMPTY, new DynamicSecurityConfig(), nodeOverride, true);
@@ -64,14 +68,13 @@ public abstract class SingleClusterTest extends AbstractSecurityUnitTest {
         setup(initTransportClientSettings, dynamicSecuritySettings, nodeOverride, initOpendistroSecurityIndex, ClusterConfiguration.DEFAULT);
     }
 
-    ClusterHelper remoteClusterHelper = null;
     private Settings ccs(Settings nodeOverride) throws Exception {
-        if(withRemoteCluster) {
-            remoteClusterHelper = new ClusterHelper("crl2_n"+num.incrementAndGet()+"_f"+System.getProperty("forkno")+"_t"+System.nanoTime());
-            ClusterInfo cl2Info = remoteClusterHelper.startCluster(minimumSecuritySettings(Settings.EMPTY), ClusterConfiguration.SINGLENODE);
+        if(remoteClusterHelper != null) {
+            Assert.assertNull("No remote clusters", remoteClusterInfo);
+            remoteClusterInfo = remoteClusterHelper.startCluster(minimumSecuritySettings(Settings.EMPTY), ClusterConfiguration.SINGLENODE);
             Settings.Builder builder = Settings.builder()
                     .put(nodeOverride)
-                    .putList("cluster.remote.cross_cluster_two.seeds", cl2Info.nodeHost+":"+cl2Info.nodePort);
+                    .putList("cluster.remote.cross_cluster_two.seeds", remoteClusterInfo.nodeHost+":"+remoteClusterInfo.nodePort);
             return builder.build();
         } else {
             return nodeOverride;
@@ -80,6 +83,7 @@ public abstract class SingleClusterTest extends AbstractSecurityUnitTest {
 
 
     protected void setup(Settings initTransportClientSettings, DynamicSecurityConfig dynamicSecuritySettings, Settings nodeOverride, boolean initOpendistroSecurityIndex, ClusterConfiguration clusterConfiguration) throws Exception {
+        Assert.assertNull("No cluster", clusterInfo);
         clusterInfo = clusterHelper.startCluster(minimumSecuritySettings(ccs(nodeOverride)), clusterConfiguration);
         if(initOpendistroSecurityIndex && dynamicSecuritySettings != null) {
             initialize(clusterInfo, initTransportClientSettings, dynamicSecuritySettings);
@@ -88,6 +92,7 @@ public abstract class SingleClusterTest extends AbstractSecurityUnitTest {
 
     protected void setup(Settings initTransportClientSettings, DynamicSecurityConfig dynamicSecuritySettings, Settings nodeOverride
             , boolean initOpendistroSecurityIndex, ClusterConfiguration clusterConfiguration, int timeout, Integer nodes) throws Exception {
+        Assert.assertNull("No cluster", clusterInfo);
         clusterInfo = clusterHelper.startCluster(minimumSecuritySettings(ccs(nodeOverride)), clusterConfiguration, timeout, nodes);
         if(initOpendistroSecurityIndex) {
             initialize(clusterInfo, initTransportClientSettings, dynamicSecuritySettings);
@@ -95,6 +100,7 @@ public abstract class SingleClusterTest extends AbstractSecurityUnitTest {
     }
 
     protected void setupSslOnlyMode(Settings nodeOverride) throws Exception {
+        Assert.assertNull("No cluster", clusterInfo);
         clusterInfo = clusterHelper.startCluster(minimumSecuritySettingsSslOnly(nodeOverride), ClusterConfiguration.DEFAULT);
     }
 
@@ -111,14 +117,26 @@ public abstract class SingleClusterTest extends AbstractSecurityUnitTest {
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
 
-        if(remoteClusterHelper != null) {
-            remoteClusterHelper.stopCluster();
+        if(remoteClusterInfo != null) {
+            try {
+                remoteClusterHelper.stopCluster();
+            } catch (Exception e) {
+                log.error("Failed to stop remote cluster {}.", remoteClusterInfo.clustername, e);
+                Assert.fail("Failed to stop remote cluster " + remoteClusterInfo.clustername + ".");
+            }
+            remoteClusterInfo = null;
         }
 
         if(clusterInfo != null) {
-            clusterHelper.stopCluster();
+            try {
+                clusterHelper.stopCluster();
+            } catch (Exception e) {
+                log.error("Failed to stop cluster {}.", clusterInfo.clustername, e);
+                Assert.fail("Failed to stop cluster " + clusterInfo.clustername + ".");
+            }
+            clusterInfo = null;
         }
 
     }
