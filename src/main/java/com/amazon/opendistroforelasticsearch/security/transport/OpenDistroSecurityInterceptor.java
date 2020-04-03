@@ -137,7 +137,6 @@ public class OpenDistroSecurityInterceptor {
                             || (k.equals("_opendistro_security_source_field_context") && ! (request instanceof SearchRequest) && !(request instanceof GetRequest))
                             || k.startsWith("_opendistro_security_trace")
                             || k.startsWith(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER)
-                            || k.equals(Task.X_OPAQUE_ID)
             )));
 
             if (OpenDistroSecurityPlugin.GuiceHolder.getRemoteClusterService().isCrossClusterSearchEnabled()
