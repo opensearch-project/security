@@ -32,6 +32,7 @@ import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
@@ -200,32 +201,29 @@ public class AccountApiAction extends AbstractApiAction {
             return;
         }
 
-        final Settings settings = indexBaseConfigurationRepository.getConfiguration(ConfigConstants.CONFIGNAME_INTERNAL_USERS);
         final String currentPassword = additionalSettingsBuilder.get("current_password");
-        final String hash = settings.get(username + ".hash");
-        if (hash == null || !OpenBSDBCrypt.checkPassword(hash, currentPassword.toCharArray())) {
+        @SuppressWarnings("unchecked")
+        Map<String, String> internalUserEntry = (Map<String, String>) config.get(username);
+        final String currentHash = internalUserEntry.get("hash");
+        if (currentHash == null || !OpenBSDBCrypt.checkPassword(currentHash, currentPassword.toCharArray())) {
             badRequestResponse(channel, "Could not validate your current password.");
             return;
         }
 
-        additionalSettingsBuilder.remove("current_password");
-
         // if password is set, it takes precedence over hash
-        final String plainTextPassword = additionalSettingsBuilder.get("password");
-        final String origHash = additionalSettingsBuilder.get("hash");
-        if (plainTextPassword != null && plainTextPassword.length() > 0) {
-            additionalSettingsBuilder.remove("password");
-            additionalSettingsBuilder.put("hash", hash(plainTextPassword.toCharArray()));
-        } else if (origHash != null && origHash.length() > 0) {
-            additionalSettingsBuilder.remove("password");
-        } else if (plainTextPassword != null && plainTextPassword.isEmpty() && origHash == null) {
-            additionalSettingsBuilder.remove("password");
+        final String password = additionalSettingsBuilder.get("password");
+        final String hash;
+        if (Strings.isNullOrEmpty(password)) {
+            hash = additionalSettingsBuilder.get("hash");
+        } else {
+            hash = hash(password.toCharArray());
+        }
+        if (Strings.isNullOrEmpty(hash)) {
+            badRequestResponse(channel, "Both provided password and hash cannot be null/empty.");
+            return;
         }
 
-        config.remove(username);
-
-        // checks complete, create or update the user
-        config.put(username, Utils.convertJsonToxToStructuredMap(additionalSettingsBuilder.build()));
+        internalUserEntry.put("hash", hash);
 
         saveAnUpdateConfigs(client, request, ConfigConstants.CONFIGNAME_INTERNAL_USERS, Utils.convertStructuredMapToBytes(config), new OnSucessActionListener<IndexResponse>(channel) {
             @Override
