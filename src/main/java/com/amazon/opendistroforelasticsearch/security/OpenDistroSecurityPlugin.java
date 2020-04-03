@@ -823,6 +823,14 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             }
         });
 
+        // NOTE: We need to create DefaultInterClusterRequestEvaluator before creating ConfigurationRepository since the latter requires security index to be accessible which means
+        // communication with other nodes is already up. However for the communication to be up, there needs to be trusted nodes_dn. Hence the base values from elasticsearch.yml
+        // is used to first establish trust between same cluster nodes and there after dynamic config is loaded if enabled.
+        if (DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS.equals(className)) {
+            DefaultInterClusterRequestEvaluator e = (DefaultInterClusterRequestEvaluator) interClusterRequestEvaluator;
+            e.subscribeForChanges(cr);
+        }
+
         components.add(adminDns);
         //components.add(auditLog);
         components.add(cr);
@@ -878,7 +886,8 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     
             settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_CERT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS, Property.NodeScope, Property.Filtered));
             settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_NODES_DN, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
-    
+            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, false, Property.NodeScope));//not filtered here
+
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE,
                     Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES,

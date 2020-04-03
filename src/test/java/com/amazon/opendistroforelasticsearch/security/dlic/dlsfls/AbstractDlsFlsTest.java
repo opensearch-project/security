@@ -46,7 +46,7 @@ public abstract class AbstractDlsFlsTest extends SingleClusterTest {
         try(TransportClient tc = getInternalTransportClient(this.clusterInfo, Settings.EMPTY)) {
             populate(tc);
             ConfigUpdateResponse cur = tc
-                    .execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(ConfigConstants.CONFIG_NAMES.toArray(new String[0])))
+                    .execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(ConfigConstants.ALL_CONFIG_NAMES.toArray(new String[0])))
                     .actionGet();
             Assert.assertEquals(this.clusterInfo.numNodes, cur.getNodes().size());
         }

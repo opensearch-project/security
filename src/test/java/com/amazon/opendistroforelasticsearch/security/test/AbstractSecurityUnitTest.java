@@ -35,6 +35,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -188,12 +189,13 @@ public abstract class AbstractSecurityUnitTest {
                 //ignore
             }
 
-            for(IndexRequest ir: securityConfig.getDynamicConfig(getResourceFolder())) {
+            List<IndexRequest> indexRequests = securityConfig.getDynamicConfig(getResourceFolder());
+            for(IndexRequest ir: indexRequests) {
                 tc.index(ir).actionGet();
             }
 
             ConfigUpdateResponse cur = tc
-                    .execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(ConfigConstants.CONFIG_NAMES.toArray(new String[0])))
+                    .execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(ConfigConstants.ALL_CONFIG_NAMES.toArray(new String[0])))
                     .actionGet();
             Assert.assertFalse(cur.failures().toString(), cur.hasFailures());
             Assert.assertEquals(info.numNodes, cur.getNodes().size());
@@ -211,6 +213,9 @@ public abstract class AbstractSecurityUnitTest {
             Assert.assertTrue(tc.get(new GetRequest(".opendistro_security","security","actiongroups")).actionGet().isExists());
             Assert.assertFalse(tc.get(new GetRequest(".opendistro_security","security","rolesmapping_xcvdnghtu165759i99465")).actionGet().isExists());
             Assert.assertTrue(tc.get(new GetRequest(".opendistro_security","security","config")).actionGet().isExists());
+            if (indexRequests.stream().anyMatch(i -> ConfigConstants.CONFIGNAME_NODES_DN.equals(i.id()))) {
+                Assert.assertTrue(tc.get(new GetRequest(".opendistro_security","security","nodesdn")).actionGet().isExists());
+            }
         }
     }
 

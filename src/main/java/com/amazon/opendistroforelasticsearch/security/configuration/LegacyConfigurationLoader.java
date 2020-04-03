@@ -104,6 +104,10 @@ class LegacyConfigurationLoader {
             @Override
             public void noData(String type) {
                 log.warn("No data for {} while retrieving configuration for {}  (index={})", type, Arrays.toString(events), opendistrosecurityIndex);
+                if (ConfigConstants.NEW_CONFIG_NAMES.contains(type)) {
+                    rs.put(type, new Tuple<>(IndexBaseConfigurationRepository.EMPTY_DOCUMENT_VERSION, Settings.builder().build()));
+                    latch.countDown();
+                }
             }
             
             @Override

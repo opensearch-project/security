@@ -30,6 +30,7 @@
 
 package com.amazon.opendistroforelasticsearch.security.test;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -48,6 +49,7 @@ public class DynamicSecurityConfig {
     private String securityRolesMapping = "roles_mapping.yml";
     private String securityInternalUsers = "internal_users.yml";
     private String securityActionGroups = "action_groups.yml";
+    private String securityNodesDn = "nodes_dn.yml";
     private String securityConfigAsYamlString = null;
 
     public String getSecurityIndexName() {
@@ -87,6 +89,11 @@ public class DynamicSecurityConfig {
         this.securityActionGroups = securityActionGroups;
         return this;
     }
+
+    public DynamicSecurityConfig setSecurityNodesDn(String securityNodesDn) {
+        this.securityNodesDn = securityNodesDn;
+        return this;
+    }
     
     public List<IndexRequest> getDynamicConfig(String folder) {
         
@@ -123,8 +130,14 @@ public class DynamicSecurityConfig {
         .id(ConfigConstants.CONFIGNAME_ROLES_MAPPING)
         .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
         .source(ConfigConstants.CONFIGNAME_ROLES_MAPPING, FileHelper.readYamlContent(prefix+securityRolesMapping)));
- 
-        
+
+        if (null != FileHelper.getAbsoluteFilePathFromClassPath(prefix + securityNodesDn)) {
+            ret.add(new IndexRequest(securityIndexName).type("security")
+                .id(ConfigConstants.CONFIGNAME_NODES_DN)
+                .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                .source(ConfigConstants.CONFIGNAME_NODES_DN, FileHelper.readYamlContent(prefix + securityNodesDn)));
+        }
+
         return Collections.unmodifiableList(ret);
     }
 

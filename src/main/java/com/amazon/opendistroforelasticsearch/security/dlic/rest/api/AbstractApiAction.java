@@ -346,7 +346,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		@Override
 		public void onResponse(Response response) {
 
-			final ConfigUpdateRequest cur = new ConfigUpdateRequest(new String[] { "config", "roles", "rolesmapping", "internalusers", "actiongroups" });
+			final ConfigUpdateRequest cur = new ConfigUpdateRequest(ConfigConstants.ALL_CONFIG_NAMES.toArray(new String[0]));
 
 			client.execute(ConfigUpdateAction.INSTANCE, cur, new ActionListener<ConfigUpdateResponse>() {
 				@Override
