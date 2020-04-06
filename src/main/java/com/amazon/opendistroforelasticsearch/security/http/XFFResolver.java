@@ -32,6 +32,7 @@ package com.amazon.opendistroforelasticsearch.security.http;
 
 import java.net.InetSocketAddress;
 
+import com.amazon.opendistroforelasticsearch.security.securityconf.NodesDnModel;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchSecurityException;
@@ -95,7 +96,7 @@ public class XFFResolver implements DCFListener {
     }
 
     @Override
-    public void onChanged(ConfigModel cm, DynamicConfigModel dcm, InternalUsersModel ium) {
+    public void onChanged(ConfigModel cm, DynamicConfigModel dcm, InternalUsersModel ium, NodesDnModel nm) {
         enabled = dcm.isXffEnabled();
         if(enabled) {
             detector = new RemoteIpDetector();

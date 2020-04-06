@@ -30,6 +30,7 @@
 
 package com.amazon.opendistroforelasticsearch.security.configuration;
 
+import com.amazon.opendistroforelasticsearch.security.securityconf.NodesDnModel;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.Settings;
@@ -53,7 +54,7 @@ public class CompatConfig implements DCFListener {
     }
     
     @Override
-    public void onChanged(ConfigModel cm, DynamicConfigModel dcm, InternalUsersModel ium) {
+    public void onChanged(ConfigModel cm, DynamicConfigModel dcm, InternalUsersModel ium, NodesDnModel nm) {
         this.dcm = dcm;
         log.debug("dynamicSecurityConfig updated?: {}", (dcm != null));
     }

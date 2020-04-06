@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import com.amazon.opendistroforelasticsearch.security.securityconf.NodesDnModel;
 import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
 import org.elasticsearch.ElasticsearchSecurityException;
 
@@ -165,7 +166,7 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Aut
     }
 
     @Override
-    public void onChanged(ConfigModel cf, DynamicConfigModel dcf, InternalUsersModel ium) {
+    public void onChanged(ConfigModel cf, DynamicConfigModel dcf, InternalUsersModel ium, NodesDnModel nm) {
         this.internalUsersModel = ium;
     }
 

@@ -21,6 +21,9 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import com.amazon.opendistroforelasticsearch.security.support.ConfigHelper;
 import org.apache.http.HttpStatus;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Assert;
@@ -35,7 +38,7 @@ import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelpe
 import com.amazon.opendistroforelasticsearch.security.tools.OpenDistroSecurityAdmin;
 
 public class SecurityAdminMigrationTests extends SingleClusterTest {
-    
+
     @Test
     public void testSecurityMigrate() throws Exception {
         final Settings settings = Settings.builder()

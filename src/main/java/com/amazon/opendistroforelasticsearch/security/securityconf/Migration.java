@@ -96,7 +96,20 @@ public class Migration {
         }
         return c7;
     }
-    
+
+    public static SecurityDynamicConfiguration<NodesDnV7> migrateNodesDn(SecurityDynamicConfiguration<NodesDnV6> n6) {
+        final SecurityDynamicConfiguration<NodesDnV7> n7 = SecurityDynamicConfiguration.empty();
+        n7.setCType(n6.getCType());
+        n7.set_meta(new Meta());
+        n7.get_meta().setConfig_version(2);
+        n7.get_meta().setType("nodesdn");
+
+        for(final Entry<String, NodesDnV6> r6c: n6.getCEntries().entrySet()) {
+            n7.putCEntry(r6c.getKey(), new NodesDnV7(r6c.getValue()));
+        }
+        return n7;
+    }
+
     public static SecurityDynamicConfiguration<InternalUserV7>  migrateInternalUsers(SecurityDynamicConfiguration<InternalUserV6> r6is) throws MigrationException {
         final SecurityDynamicConfiguration<InternalUserV7> i7 = SecurityDynamicConfiguration.empty();
         i7.setCType(r6is.getCType());
