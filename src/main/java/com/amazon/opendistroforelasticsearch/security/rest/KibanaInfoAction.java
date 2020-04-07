@@ -30,10 +30,13 @@
 
 package com.amazon.opendistroforelasticsearch.security.rest;
 
+import static java.util.Collections.unmodifiableList;
 import static org.elasticsearch.rest.RestRequest.Method.GET;
 import static org.elasticsearch.rest.RestRequest.Method.POST;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -63,8 +66,14 @@ public class KibanaInfoAction extends BaseRestHandler {
         super();
         this.threadContext = threadPool.getThreadContext();
         this.evaluator = evaluator;
-        controller.registerHandler(GET, "/_opendistro/_security/kibanainfo", this);
-        controller.registerHandler(POST, "/_opendistro/_security/kibanainfo", this);
+    }
+
+    @Override
+    public List<Route> routes() {
+        return unmodifiableList(Arrays.asList(
+                new Route(GET, "/_opendistro/_security/kibanainfo"),
+                new Route(POST, "/_opendistro/_security/kibanainfo")
+        ));
     }
 
     @Override

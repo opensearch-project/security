@@ -30,6 +30,7 @@
 
 package com.amazon.opendistroforelasticsearch.security.rest;
 
+import static java.util.Collections.unmodifiableList;
 import static org.elasticsearch.rest.RestRequest.Method.GET;
 import static org.elasticsearch.rest.RestRequest.Method.POST;
 
@@ -37,6 +38,8 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
@@ -71,8 +74,14 @@ public class OpenDistroSecurityInfoAction extends BaseRestHandler {
         super();
         this.threadContext = threadPool.getThreadContext();
         this.evaluator = evaluator;
-        controller.registerHandler(GET, "/_opendistro/_security/authinfo", this);
-        controller.registerHandler(POST, "/_opendistro/_security/authinfo", this);
+    }
+
+    @Override
+    public List<Route> routes() {
+        return unmodifiableList(Arrays.asList(
+                new Route(GET, "/_opendistro/_security/authinfo"),
+                new Route(POST, "/_opendistro/_security/authinfo")
+        ));
     }
 
     @Override

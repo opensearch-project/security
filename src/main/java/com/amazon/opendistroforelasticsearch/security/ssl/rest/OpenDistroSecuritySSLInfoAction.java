@@ -17,13 +17,17 @@
 
 package com.amazon.opendistroforelasticsearch.security.ssl.rest;
 
+import static java.util.Collections.unmodifiableList;
 import static org.elasticsearch.rest.RestRequest.Method.GET;
+import static org.elasticsearch.rest.RestRequest.Method.POST;
+
 import io.netty.handler.ssl.OpenSsl;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -58,7 +62,13 @@ public class OpenDistroSecuritySSLInfoAction extends BaseRestHandler {
         this.odsks = odsks;
         this.principalExtractor = principalExtractor;
         this.configPath = configPath;
-        controller.registerHandler(GET, "/_opendistro/_security/sslinfo", this);
+    }
+
+    @Override
+    public List<Route> routes() {
+        return unmodifiableList(Arrays.asList(
+                new Route(GET, "/_opendistro/_security/sslinfo")
+        ));
     }
     
     @Override

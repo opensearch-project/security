@@ -15,8 +15,14 @@
 
 package com.amazon.opendistroforelasticsearch.security.dlic.rest.api;
 
-import java.nio.file.Path;
-
+import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
+import com.amazon.opendistroforelasticsearch.security.configuration.AdminDNs;
+import com.amazon.opendistroforelasticsearch.security.configuration.ConfigurationRepository;
+import com.amazon.opendistroforelasticsearch.security.dlic.rest.validation.AbstractConfigurationValidator;
+import com.amazon.opendistroforelasticsearch.security.dlic.rest.validation.RolesMappingValidator;
+import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvaluator;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
+import com.amazon.opendistroforelasticsearch.security.ssl.transport.PrincipalExtractor;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -27,14 +33,11 @@ import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.rest.RestRequest.Method;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
-import com.amazon.opendistroforelasticsearch.security.configuration.AdminDNs;
-import com.amazon.opendistroforelasticsearch.security.configuration.ConfigurationRepository;
-import com.amazon.opendistroforelasticsearch.security.dlic.rest.validation.AbstractConfigurationValidator;
-import com.amazon.opendistroforelasticsearch.security.dlic.rest.validation.RolesMappingValidator;
-import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvaluator;
-import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
-import com.amazon.opendistroforelasticsearch.security.ssl.transport.PrincipalExtractor;
+import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.List;
+
+import static java.util.Collections.unmodifiableList;
 
 public class RolesMappingApiAction extends PatchableResourceApiAction {
 
@@ -46,13 +49,15 @@ public class RolesMappingApiAction extends PatchableResourceApiAction {
 	}
 
 	@Override
-	protected void registerHandlers(RestController controller, Settings settings) {
-		controller.registerHandler(Method.GET, "/_opendistro/_security/api/rolesmapping/", this);
-		controller.registerHandler(Method.GET, "/_opendistro/_security/api/rolesmapping/{name}", this);
-		controller.registerHandler(Method.DELETE, "/_opendistro/_security/api/rolesmapping/{name}", this);
-		controller.registerHandler(Method.PUT, "/_opendistro/_security/api/rolesmapping/{name}", this);
-		controller.registerHandler(Method.PATCH, "/_opendistro/_security/api/rolesmapping/", this);
-		controller.registerHandler(Method.PATCH, "/_opendistro/_security/api/rolesmapping/{name}", this);
+	public List<Route> routes() {
+		return unmodifiableList(Arrays.asList(
+				new Route(Method.GET, "/_opendistro/_security/api/rolesmapping/"),
+				new Route(Method.GET, "/_opendistro/_security/api/rolesmapping/{name}"),
+				new Route(Method.DELETE, "/_opendistro/_security/api/rolesmapping/{name}"),
+				new Route(Method.PUT, "/_opendistro/_security/api/rolesmapping/{name}"),
+				new Route(Method.PATCH, "/_opendistro/_security/api/rolesmapping/"),
+				new Route(Method.PATCH, "/_opendistro/_security/api/rolesmapping/{name}")
+		));
 	}
 
 	@Override

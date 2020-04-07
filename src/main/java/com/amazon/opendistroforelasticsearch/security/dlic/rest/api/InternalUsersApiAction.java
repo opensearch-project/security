@@ -45,8 +45,11 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.List;
 
 import static com.amazon.opendistroforelasticsearch.security.dlic.rest.support.Utils.hash;
+import static java.util.Collections.unmodifiableList;
 
 public class InternalUsersApiAction extends PatchableResourceApiAction {
 
@@ -60,21 +63,21 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
     }
 
     @Override
-    protected void registerHandlers(RestController controller, Settings settings) {
-        // legacy mapping for backwards compatibility
-        // TODO: remove in next version
-        controller.registerHandler(Method.GET, "/_opendistro/_security/api/user/{name}", this);
-        controller.registerHandler(Method.GET, "/_opendistro/_security/api/user/", this);
-        controller.registerHandler(Method.DELETE, "/_opendistro/_security/api/user/{name}", this);
-        controller.registerHandler(Method.PUT, "/_opendistro/_security/api/user/{name}", this);
+    public List<Route> routes() {
+        return unmodifiableList(Arrays.asList(
+                new Route(Method.GET, "/_opendistro/_security/api/user/{name}"),
+                new Route(Method.GET, "/_opendistro/_security/api/user/"),
+                new Route(Method.DELETE, "/_opendistro/_security/api/user/{name}"),
+                new Route(Method.PUT, "/_opendistro/_security/api/user/{name}"),
 
-        // corrected mapping, introduced in Open Distro Security
-        controller.registerHandler(Method.GET, "/_opendistro/_security/api/internalusers/{name}", this);
-        controller.registerHandler(Method.GET, "/_opendistro/_security/api/internalusers/", this);
-        controller.registerHandler(Method.DELETE, "/_opendistro/_security/api/internalusers/{name}", this);
-        controller.registerHandler(Method.PUT, "/_opendistro/_security/api/internalusers/{name}", this);
-        controller.registerHandler(Method.PATCH, "/_opendistro/_security/api/internalusers/", this);
-        controller.registerHandler(Method.PATCH, "/_opendistro/_security/api/internalusers/{name}", this);
+                // corrected mapping, introduced in Open Distro Security
+                new Route(Method.GET, "/_opendistro/_security/api/internalusers/{name}"),
+                new Route(Method.GET, "/_opendistro/_security/api/internalusers/"),
+                new Route(Method.DELETE, "/_opendistro/_security/api/internalusers/{name}"),
+                new Route(Method.PUT, "/_opendistro/_security/api/internalusers/{name}"),
+                new Route(Method.PATCH, "/_opendistro/_security/api/internalusers/"),
+                new Route(Method.PATCH, "/_opendistro/_security/api/internalusers/{name}")
+        ));
     }
 
     @Override

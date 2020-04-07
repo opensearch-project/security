@@ -50,9 +50,13 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 
 import static com.amazon.opendistroforelasticsearch.security.dlic.rest.support.Utils.hash;
+import static java.util.Collections.unmodifiableList;
+import static org.elasticsearch.rest.RestRequest.Method;
 
 /**
  * Rest API action to fetch or update account details of the signed-in user.
@@ -81,9 +85,11 @@ public class AccountApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected void registerHandlers(RestController controller, Settings settings) {
-        controller.registerHandler(RestRequest.Method.GET, "/_opendistro/_security/api/account", this);
-        controller.registerHandler(RestRequest.Method.PUT, "/_opendistro/_security/api/account", this);
+    public List<Route> routes() {
+        return unmodifiableList(Arrays.asList(
+                new Route(Method.GET, "/_opendistro/_security/api/account"),
+                new Route(Method.PUT, "/_opendistro/_security/api/account")
+        ));
     }
 
     /**

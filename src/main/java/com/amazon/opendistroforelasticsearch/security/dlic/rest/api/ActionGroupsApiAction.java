@@ -16,6 +16,8 @@
 package com.amazon.opendistroforelasticsearch.security.dlic.rest.api;
 
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.List;
 
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -36,6 +38,8 @@ import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvalu
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.PrincipalExtractor;
 
+import static java.util.Collections.unmodifiableList;
+
 public class ActionGroupsApiAction extends PatchableResourceApiAction {
 
 	@Override
@@ -51,21 +55,23 @@ public class ActionGroupsApiAction extends PatchableResourceApiAction {
 	}
 
 	@Override
-	protected void registerHandlers(RestController controller, Settings settings) {
-		// legacy mapping for backwards compatibility
-		// TODO: remove in next version
-		controller.registerHandler(Method.GET, "/_opendistro/_security/api/actiongroup/{name}", this);
-		controller.registerHandler(Method.GET, "/_opendistro/_security/api/actiongroup/", this);
-		controller.registerHandler(Method.DELETE, "/_opendistro/_security/api/actiongroup/{name}", this);
-		controller.registerHandler(Method.PUT, "/_opendistro/_security/api/actiongroup/{name}", this);
+	public List<Route> routes() {
+		return unmodifiableList(Arrays.asList(
+				// legacy mapping for backwards compatibility
+				// TODO: remove in next version
+				new Route(Method.GET, "/_opendistro/_security/api/actiongroup/{name}"),
+				new Route(Method.GET, "/_opendistro/_security/api/actiongroup/"),
+				new Route(Method.DELETE, "/_opendistro/_security/api/actiongroup/{name}"),
+				new Route(Method.PUT, "/_opendistro/_security/api/actiongroup/{name}"),
 
-		// corrected mapping, introduced in Open Distro Security
-		controller.registerHandler(Method.GET, "/_opendistro/_security/api/actiongroups/{name}", this);
-		controller.registerHandler(Method.GET, "/_opendistro/_security/api/actiongroups/", this);
-		controller.registerHandler(Method.DELETE, "/_opendistro/_security/api/actiongroups/{name}", this);
-		controller.registerHandler(Method.PUT, "/_opendistro/_security/api/actiongroups/{name}", this);
-		controller.registerHandler(Method.PATCH, "/_opendistro/_security/api/actiongroups/", this);
-		controller.registerHandler(Method.PATCH, "/_opendistro/_security/api/actiongroups/{name}", this);
+				// corrected mapping, introduced in Open Distro Security
+				new Route(Method.GET, "/_opendistro/_security/api/actiongroups/{name}"),
+				new Route(Method.GET, "/_opendistro/_security/api/actiongroups/"),
+				new Route(Method.DELETE, "/_opendistro/_security/api/actiongroups/{name}"),
+				new Route(Method.PUT, "/_opendistro/_security/api/actiongroups/{name}"),
+				new Route(Method.PATCH, "/_opendistro/_security/api/actiongroups/"),
+				new Route(Method.PATCH, "/_opendistro/_security/api/actiongroups/{name}")
+		));
 	}
 
 	@Override

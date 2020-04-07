@@ -17,6 +17,8 @@ package com.amazon.opendistroforelasticsearch.security.dlic.rest.api;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.List;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.client.Client;
@@ -24,7 +26,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.settings.Settings.Builder;
 import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestRequest;
@@ -44,6 +45,8 @@ import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvalu
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.PrincipalExtractor;
 
+import static java.util.Collections.unmodifiableList;
+
 public class FlushCacheApiAction extends AbstractApiAction {
 
 	@Inject
@@ -54,11 +57,13 @@ public class FlushCacheApiAction extends AbstractApiAction {
 	}
 
 	@Override
-	protected void registerHandlers(RestController controller, Settings settings) {
-		controller.registerHandler(Method.DELETE, "/_opendistro/_security/api/cache", this);
-		controller.registerHandler(Method.GET, "/_opendistro/_security/api/cache", this);
-		controller.registerHandler(Method.PUT, "/_opendistro/_security/api/cache", this);
-		controller.registerHandler(Method.POST, "/_opendistro/_security/api/cache", this);
+	public List<Route> routes() {
+		return unmodifiableList(Arrays.asList(
+				new Route(Method.DELETE, "/_opendistro/_security/api/cache"),
+				new Route(Method.GET, "/_opendistro/_security/api/cache"),
+				new Route(Method.PUT, "/_opendistro/_security/api/cache"),
+				new Route(Method.POST, "/_opendistro/_security/api/cache")
+		));
 	}
 
 	@Override
@@ -106,7 +111,7 @@ public class FlushCacheApiAction extends AbstractApiAction {
 
 	@Override
 	protected void handleGet(RestChannel channel, final RestRequest request, final Client client, final JsonNode content) throws IOException{
-		notImplemented(channel, Method.GET);
+		notImplemented(channel,Method.GET);
 	}
 
 	@Override
@@ -134,5 +139,4 @@ public class FlushCacheApiAction extends AbstractApiAction {
 	protected void consumeParameters(final RestRequest request) {
 		// not needed
 	}
-
 }

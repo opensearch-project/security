@@ -30,10 +30,13 @@
 
 package com.amazon.opendistroforelasticsearch.security.rest;
 
+import static java.util.Collections.unmodifiableList;
 import static org.elasticsearch.rest.RestRequest.Method.GET;
 import static org.elasticsearch.rest.RestRequest.Method.POST;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.settings.Settings;
@@ -54,8 +57,14 @@ public class OpenDistroSecurityHealthAction extends BaseRestHandler {
     public OpenDistroSecurityHealthAction(final Settings settings, final RestController controller, final BackendRegistry registry) {
         super();
         this.registry = registry;
-        controller.registerHandler(GET, "/_opendistro/_security/health", this);
-        controller.registerHandler(POST, "/_opendistro/_security/health", this);
+    }
+
+    @Override
+    public List<Route> routes() {
+        return unmodifiableList(Arrays.asList(
+                new Route(GET, "/_opendistro/_security/health"),
+                new Route(POST, "/_opendistro/_security/health")
+        ));
     }
 
     @Override

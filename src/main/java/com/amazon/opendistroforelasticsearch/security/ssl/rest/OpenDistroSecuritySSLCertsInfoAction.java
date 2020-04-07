@@ -28,7 +28,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static java.util.Collections.unmodifiableList;
 import static org.elasticsearch.rest.RestRequest.Method.GET;
+import static org.elasticsearch.rest.RestRequest.Method.POST;
 
 /**
  * Rest API action to get SSL certificate information related to http and transport encryption.
@@ -53,7 +55,13 @@ public class OpenDistroSecuritySSLCertsInfoAction extends BaseRestHandler {
         this.odsks = odsks;
         this.adminDns = adminDns;
         this.threadContext = threadPool.getThreadContext();
-        restController.registerHandler(GET, "/_opendistro/_security/api/ssl/certs", this);
+    }
+
+    @Override
+    public List<Route> routes() {
+        return unmodifiableList(Arrays.asList(
+                new Route(GET, "/_opendistro/_security/api/ssl/certs")
+        ));
     }
 
     /**

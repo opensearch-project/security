@@ -16,6 +16,8 @@
 package com.amazon.opendistroforelasticsearch.security.dlic.rest.api;
 
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.List;
 
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -36,6 +38,8 @@ import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvalu
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.PrincipalExtractor;
 
+import static java.util.Collections.unmodifiableList;
+
 public class RolesApiAction extends PatchableResourceApiAction {
 
 	@Inject
@@ -45,13 +49,15 @@ public class RolesApiAction extends PatchableResourceApiAction {
 	}
 
 	@Override
-	protected void registerHandlers(RestController controller, Settings settings) {
-		controller.registerHandler(Method.GET, "/_opendistro/_security/api/roles/", this);
-		controller.registerHandler(Method.GET, "/_opendistro/_security/api/roles/{name}", this);
-		controller.registerHandler(Method.DELETE, "/_opendistro/_security/api/roles/{name}", this);
-		controller.registerHandler(Method.PUT, "/_opendistro/_security/api/roles/{name}", this);
-		controller.registerHandler(Method.PATCH, "/_opendistro/_security/api/roles/", this);
-		controller.registerHandler(Method.PATCH, "/_opendistro/_security/api/roles/{name}", this);
+	public List<Route> routes() {
+		return unmodifiableList(Arrays.asList(
+				new Route(Method.GET, "/_opendistro/_security/api/roles/"),
+				new Route(Method.GET, "/_opendistro/_security/api/roles/{name}"),
+				new Route(Method.DELETE, "/_opendistro/_security/api/roles/{name}"),
+				new Route(Method.PUT, "/_opendistro/_security/api/roles/{name}"),
+				new Route(Method.PATCH, "/_opendistro/_security/api/roles/"),
+				new Route(Method.PATCH, "/_opendistro/_security/api/roles/{name}")
+		));
 	}
 
 	@Override

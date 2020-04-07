@@ -17,6 +17,9 @@ package com.amazon.opendistroforelasticsearch.security.dlic.rest.api;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import com.amazon.opendistroforelasticsearch.security.dlic.rest.validation.SecurityConfigValidator;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
@@ -43,6 +46,8 @@ import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvalu
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.PrincipalExtractor;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 
+import static java.util.Collections.unmodifiableList;
+
 public class OpenDistroSecurityConfigAction extends PatchableResourceApiAction {
 
     private final boolean allowPutOrPatch;
@@ -58,20 +63,17 @@ public class OpenDistroSecurityConfigAction extends PatchableResourceApiAction {
     }
 
     @Override
-    protected void registerHandlers(RestController controller, Settings settings) {
-        controller.registerHandler(Method.GET, "/_opendistro/_security/api/securityconfig/", this);
-
-        //controller.registerHandler(Method.GET, "/_opendistro/_security/api/config/", this);
+    public List<Route> routes() {
+        List<Route> routes = new ArrayList<>();
+        routes.add(new Route(Method.GET, "/_opendistro/_security/api/securityconfig/"));
 
         boolean enablePutOrPatch = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, false);
         if (enablePutOrPatch) {
-
-            //deprecated, will be removed with ODFE 8, use opendistro_security_config instead of config
-            controller.registerHandler(Method.PUT, "/_opendistro/_security/api/securityconfig/{name}", this);
-            controller.registerHandler(Method.PATCH, "/_opendistro/_security/api/securityconfig/", this);
+            routes.add(new Route(Method.PUT, "/_opendistro/_security/api/securityconfig/{name}"));
+            routes.add(new Route(Method.PATCH, "/_opendistro/_security/api/securityconfig/"));
         }
+        return routes;
     }
-
 
     @Override
     protected void handleGet(RestChannel channel, RestRequest request, Client client, final JsonNode content) throws IOException{

@@ -30,10 +30,13 @@
 
 package com.amazon.opendistroforelasticsearch.security.rest;
 
+import static java.util.Collections.unmodifiableList;
 import static org.elasticsearch.rest.RestRequest.Method.GET;
 import static org.elasticsearch.rest.RestRequest.Method.POST;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.SortedMap;
 
 import org.apache.logging.log4j.LogManager;
@@ -72,8 +75,14 @@ public class TenantInfoAction extends BaseRestHandler {
         this.evaluator = evaluator;
         this.clusterService = clusterService;
         this.adminDns = adminDns;
-        controller.registerHandler(GET, "/_opendistro/_security/tenantinfo", this);
-        controller.registerHandler(POST, "/_opendistro/_security/tenantinfo", this);
+    }
+
+    @Override
+    public List<Route> routes() {
+        return unmodifiableList(Arrays.asList(
+                new Route(GET, "/_opendistro/_security/tenantinfo"),
+                new Route(POST, "/_opendistro/_security/tenantinfo")
+        ));
     }
 
     @Override
