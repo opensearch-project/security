@@ -15,11 +15,20 @@ jobs:
 
     steps:
 
-    - name: Set up JDK 11
+    - name: Set up JDK 13
       uses: actions/setup-java@v1
       with:
-        java-version: 11.0.x
+        java-version: 13.0.x
+        
+    - name: Checkout Elasticsearch
+      uses: actions/checkout@v2
+      with:
+        repository: elastic/elasticsearch
+        ref: refs/heads/7.7
 
+    - name: Build Elasticsearch 7.7
+      run: ./gradlew publishToMavenLocal
+    
     - name: Checkout security
       uses: actions/checkout@v2
 
