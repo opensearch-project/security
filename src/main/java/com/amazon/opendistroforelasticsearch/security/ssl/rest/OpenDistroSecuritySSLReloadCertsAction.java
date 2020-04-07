@@ -38,6 +38,9 @@ import static org.elasticsearch.rest.RestRequest.Method.PUT;
  * Currently this action serves PUT request for /_opendistro/_security/ssl/http/reloadcerts or /_opendistro/_security/ssl/transport/reloadcerts endpoint
  */
 public class OpenDistroSecuritySSLReloadCertsAction extends BaseRestHandler {
+    private static final List<Route> routes = Collections.singletonList(
+            new Route(PUT, "_opendistro/_security/api/ssl/{certType}/reloadcerts/")
+    );
 
     private final Settings settings;
     private final OpenDistroSecurityKeyStore odsks;
@@ -58,7 +61,7 @@ public class OpenDistroSecuritySSLReloadCertsAction extends BaseRestHandler {
 
     @Override
     public List<Route> routes() {
-        return Collections.singletonList(new Route(PUT, "_opendistro/_security/api/ssl/{certType}/reloadcerts/"));
+        return routes;
     }
 
     /**

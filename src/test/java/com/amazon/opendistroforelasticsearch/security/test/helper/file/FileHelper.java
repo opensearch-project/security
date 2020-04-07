@@ -31,7 +31,6 @@
 package com.amazon.opendistroforelasticsearch.security.test.helper.file;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileReader;
@@ -57,7 +56,7 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 
-import com.amazon.opendistroforelasticsearch.security.support.OpenDistroSecurityDeprecationHandler;
+import static org.elasticsearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
 
 public class FileHelper {
 
@@ -108,7 +107,7 @@ public class FileHelper {
         
         XContentParser parser = null;
         try {
-            parser = XContentFactory.xContent(XContentType.YAML).createParser(NamedXContentRegistry.EMPTY, OpenDistroSecurityDeprecationHandler.INSTANCE, new StringReader(loadFile(file)));
+            parser = XContentFactory.xContent(XContentType.YAML).createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, new StringReader(loadFile(file)));
             parser.nextToken();
             final XContentBuilder builder = XContentFactory.jsonBuilder();
             builder.copyCurrentStructure(parser);
@@ -131,7 +130,7 @@ public class FileHelper {
         
         XContentParser parser = null;
         try {
-            parser = XContentFactory.xContent(XContentType.YAML).createParser(NamedXContentRegistry.EMPTY, OpenDistroSecurityDeprecationHandler.INSTANCE, new StringReader(yaml));
+            parser = XContentFactory.xContent(XContentType.YAML).createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, new StringReader(yaml));
             parser.nextToken();
             final XContentBuilder builder = XContentFactory.jsonBuilder();
             builder.copyCurrentStructure(parser);

@@ -26,9 +26,6 @@ jobs:
         repository: elastic/elasticsearch
         ref: refs/heads/7.7
 
-    - name: Build Elasticsearch 7.7
-      run: ./gradlew publishToMavenLocal
-    
     - name: Checkout security
       uses: actions/checkout@v2
 

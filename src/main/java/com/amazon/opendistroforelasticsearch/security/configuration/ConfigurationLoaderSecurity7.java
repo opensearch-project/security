@@ -63,8 +63,9 @@ import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
-import com.amazon.opendistroforelasticsearch.security.support.OpenDistroSecurityDeprecationHandler;
 import com.amazon.opendistroforelasticsearch.security.support.OpenDistroSecurityUtils;
+
+import static org.elasticsearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
 
 public class ConfigurationLoaderSecurity7 {
 
@@ -230,7 +231,7 @@ public class ConfigurationLoaderSecurity7 {
         XContentParser parser = null;
 
         try {
-            parser = XContentHelper.createParser(NamedXContentRegistry.EMPTY, OpenDistroSecurityDeprecationHandler.INSTANCE, ref, XContentType.JSON);
+            parser = XContentHelper.createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, ref, XContentType.JSON);
             parser.nextToken();
             parser.nextToken();
 

@@ -17,7 +17,6 @@ package com.amazon.opendistroforelasticsearch.security.dlic.rest.api;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.List;
 
 import org.elasticsearch.action.ActionListener;
@@ -45,9 +44,16 @@ import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvalu
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.PrincipalExtractor;
 
-import static java.util.Collections.unmodifiableList;
+import com.google.common.collect.ImmutableList;
+
 
 public class FlushCacheApiAction extends AbstractApiAction {
+	private static final List<Route> routes = ImmutableList.of(
+			new Route(Method.DELETE, "/_opendistro/_security/api/cache"),
+			new Route(Method.GET, "/_opendistro/_security/api/cache"),
+			new Route(Method.PUT, "/_opendistro/_security/api/cache"),
+			new Route(Method.POST, "/_opendistro/_security/api/cache")
+	);
 
 	@Inject
 	public FlushCacheApiAction(final Settings settings, final Path configPath, final RestController controller, final Client client,
@@ -58,12 +64,7 @@ public class FlushCacheApiAction extends AbstractApiAction {
 
 	@Override
 	public List<Route> routes() {
-		return unmodifiableList(Arrays.asList(
-				new Route(Method.DELETE, "/_opendistro/_security/api/cache"),
-				new Route(Method.GET, "/_opendistro/_security/api/cache"),
-				new Route(Method.PUT, "/_opendistro/_security/api/cache"),
-				new Route(Method.POST, "/_opendistro/_security/api/cache")
-		));
+		return routes;
 	}
 
 	@Override

@@ -199,26 +199,19 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin,
     }
 
     @Override
-    public Map<String, Supplier<HttpServerTransport>> getHttpTransports(Settings settings,
-                                                                        ThreadPool threadPool,
-                                                                        BigArrays bigArrays,
-                                                                        PageCacheRecycler pageCacheRecycler,
-                                                                        CircuitBreakerService circuitBreakerService,
-                                                                        NamedXContentRegistry xContentRegistry,
-                                                                        NetworkService networkService,
-                                                                        Dispatcher dispatcher,
-                                                                        ClusterSettings clusterSettings) {
+    public Map<String, Supplier<HttpServerTransport>> getHttpTransports(Settings settings, ThreadPool threadPool, BigArrays bigArrays,
+            PageCacheRecycler pageCacheRecycler, CircuitBreakerService circuitBreakerService, NamedXContentRegistry xContentRegistry,
+            NetworkService networkService, Dispatcher dispatcher, ClusterSettings clusterSettings) {
         
-        final Map<String, Supplier<HttpServerTransport>> httpTransports = new HashMap<String, Supplier<HttpServerTransport>>(1);
         if (!client && httpSSLEnabled) {
             
             final ValidatingDispatcher validatingDispatcher = new ValidatingDispatcher(threadPool.getThreadContext(), dispatcher, settings, configPath, NOOP_SSL_EXCEPTION_HANDLER);
             final OpenDistroSecuritySSLNettyHttpServerTransport sgsnht = new OpenDistroSecuritySSLNettyHttpServerTransport(settings, networkService, bigArrays, threadPool, odsks, xContentRegistry, validatingDispatcher, NOOP_SSL_EXCEPTION_HANDLER, clusterSettings);
-            
-            httpTransports.put("com.amazon.opendistroforelasticsearch.security.ssl.http.netty.OpenDistroSecuritySSLNettyHttpServerTransport", () -> sgsnht);
+
+            return Collections.singletonMap("com.amazon.opendistroforelasticsearch.security.ssl.http.netty.OpenDistroSecuritySSLNettyHttpServerTransport", () -> sgsnht);
             
         }
-        return httpTransports;
+        return Collections.emptyMap();
 
     }
 

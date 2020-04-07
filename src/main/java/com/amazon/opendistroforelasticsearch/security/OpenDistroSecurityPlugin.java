@@ -702,8 +702,6 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
              networkService, dispatcher, clusterSettings);
         }
         
-        Map<String, Supplier<HttpServerTransport>> httpTransports = new HashMap<String, Supplier<HttpServerTransport>>(1);
-
         if(!disabled) {
             if (!client && httpSSLEnabled) {
 
@@ -713,14 +711,14 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                 final OpenDistroSecurityHttpServerTransport odshst = new OpenDistroSecurityHttpServerTransport(settings, networkService, bigArrays,
                         threadPool, odsks, evaluateSslExceptionHandler(), xContentRegistry, validatingDispatcher, clusterSettings);
 
-                httpTransports.put("com.amazon.opendistroforelasticsearch.security.http.OpenDistroSecurityHttpServerTransport",
+                return Collections.singletonMap("com.amazon.opendistroforelasticsearch.security.http.OpenDistroSecurityHttpServerTransport",
                         () -> odshst);
             } else if (!client) {
-                httpTransports.put("com.amazon.opendistroforelasticsearch.security.http.OpenDistroSecurityHttpServerTransport",
+                return Collections.singletonMap("com.amazon.opendistroforelasticsearch.security.http.OpenDistroSecurityHttpServerTransport",
                         () -> new OpenDistroSecurityNonSslHttpServerTransport(settings, networkService, bigArrays, threadPool, xContentRegistry, dispatcher, clusterSettings));
             }
         }
-        return httpTransports;
+        return Collections.emptyMap();
     }
 
 

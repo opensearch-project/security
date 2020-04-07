@@ -45,13 +45,28 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.List;
 
+import com.google.common.collect.ImmutableList;
+
+
 import static com.amazon.opendistroforelasticsearch.security.dlic.rest.support.Utils.hash;
-import static java.util.Collections.unmodifiableList;
 
 public class InternalUsersApiAction extends PatchableResourceApiAction {
+    private static final List<Route> routes = ImmutableList.of(
+            new Route(Method.GET, "/_opendistro/_security/api/user/{name}"),
+            new Route(Method.GET, "/_opendistro/_security/api/user/"),
+            new Route(Method.DELETE, "/_opendistro/_security/api/user/{name}"),
+            new Route(Method.PUT, "/_opendistro/_security/api/user/{name}"),
+
+            // corrected mapping, introduced in Open Distro Security
+            new Route(Method.GET, "/_opendistro/_security/api/internalusers/{name}"),
+            new Route(Method.GET, "/_opendistro/_security/api/internalusers/"),
+            new Route(Method.DELETE, "/_opendistro/_security/api/internalusers/{name}"),
+            new Route(Method.PUT, "/_opendistro/_security/api/internalusers/{name}"),
+            new Route(Method.PATCH, "/_opendistro/_security/api/internalusers/"),
+            new Route(Method.PATCH, "/_opendistro/_security/api/internalusers/{name}")
+    );
 
     @Inject
     public InternalUsersApiAction(final Settings settings, final Path configPath, final RestController controller,
@@ -64,20 +79,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
 
     @Override
     public List<Route> routes() {
-        return unmodifiableList(Arrays.asList(
-                new Route(Method.GET, "/_opendistro/_security/api/user/{name}"),
-                new Route(Method.GET, "/_opendistro/_security/api/user/"),
-                new Route(Method.DELETE, "/_opendistro/_security/api/user/{name}"),
-                new Route(Method.PUT, "/_opendistro/_security/api/user/{name}"),
-
-                // corrected mapping, introduced in Open Distro Security
-                new Route(Method.GET, "/_opendistro/_security/api/internalusers/{name}"),
-                new Route(Method.GET, "/_opendistro/_security/api/internalusers/"),
-                new Route(Method.DELETE, "/_opendistro/_security/api/internalusers/{name}"),
-                new Route(Method.PUT, "/_opendistro/_security/api/internalusers/{name}"),
-                new Route(Method.PATCH, "/_opendistro/_security/api/internalusers/"),
-                new Route(Method.PATCH, "/_opendistro/_security/api/internalusers/{name}")
-        ));
+        return routes;
     }
 
     @Override

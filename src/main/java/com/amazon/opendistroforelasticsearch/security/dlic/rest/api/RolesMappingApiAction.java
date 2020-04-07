@@ -34,12 +34,19 @@ import org.elasticsearch.rest.RestRequest.Method;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.List;
 
-import static java.util.Collections.unmodifiableList;
+import com.google.common.collect.ImmutableList;
 
 public class RolesMappingApiAction extends PatchableResourceApiAction {
+	private static final List<Route> routes = ImmutableList.of(
+			new Route(Method.GET, "/_opendistro/_security/api/rolesmapping/"),
+			new Route(Method.GET, "/_opendistro/_security/api/rolesmapping/{name}"),
+			new Route(Method.DELETE, "/_opendistro/_security/api/rolesmapping/{name}"),
+			new Route(Method.PUT, "/_opendistro/_security/api/rolesmapping/{name}"),
+			new Route(Method.PATCH, "/_opendistro/_security/api/rolesmapping/"),
+			new Route(Method.PATCH, "/_opendistro/_security/api/rolesmapping/{name}")
+	);
 
 	@Inject
 	public RolesMappingApiAction(final Settings settings, final Path configPath, final RestController controller, final Client client,
@@ -50,14 +57,7 @@ public class RolesMappingApiAction extends PatchableResourceApiAction {
 
 	@Override
 	public List<Route> routes() {
-		return unmodifiableList(Arrays.asList(
-				new Route(Method.GET, "/_opendistro/_security/api/rolesmapping/"),
-				new Route(Method.GET, "/_opendistro/_security/api/rolesmapping/{name}"),
-				new Route(Method.DELETE, "/_opendistro/_security/api/rolesmapping/{name}"),
-				new Route(Method.PUT, "/_opendistro/_security/api/rolesmapping/{name}"),
-				new Route(Method.PATCH, "/_opendistro/_security/api/rolesmapping/"),
-				new Route(Method.PATCH, "/_opendistro/_security/api/rolesmapping/{name}")
-		));
+		return routes;
 	}
 
 	@Override

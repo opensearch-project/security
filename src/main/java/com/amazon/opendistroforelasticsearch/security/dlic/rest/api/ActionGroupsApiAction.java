@@ -38,9 +38,27 @@ import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvalu
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.PrincipalExtractor;
 
-import static java.util.Collections.unmodifiableList;
+import com.google.common.collect.ImmutableList;
+
 
 public class ActionGroupsApiAction extends PatchableResourceApiAction {
+
+	private static final List<Route> routes = ImmutableList.of(
+			// legacy mapping for backwards compatibility
+			// TODO: remove in next version
+			new Route(Method.GET, "/_opendistro/_security/api/actiongroup/{name}"),
+			new Route(Method.GET, "/_opendistro/_security/api/actiongroup/"),
+			new Route(Method.DELETE, "/_opendistro/_security/api/actiongroup/{name}"),
+			new Route(Method.PUT, "/_opendistro/_security/api/actiongroup/{name}"),
+
+			// corrected mapping, introduced in Open Distro Security
+			new Route(Method.GET, "/_opendistro/_security/api/actiongroups/{name}"),
+			new Route(Method.GET, "/_opendistro/_security/api/actiongroups/"),
+			new Route(Method.DELETE, "/_opendistro/_security/api/actiongroups/{name}"),
+			new Route(Method.PUT, "/_opendistro/_security/api/actiongroups/{name}"),
+			new Route(Method.PATCH, "/_opendistro/_security/api/actiongroups/"),
+			new Route(Method.PATCH, "/_opendistro/_security/api/actiongroups/{name}")
+	);
 
 	@Override
 	protected Endpoint getEndpoint() {
@@ -56,22 +74,7 @@ public class ActionGroupsApiAction extends PatchableResourceApiAction {
 
 	@Override
 	public List<Route> routes() {
-		return unmodifiableList(Arrays.asList(
-				// legacy mapping for backwards compatibility
-				// TODO: remove in next version
-				new Route(Method.GET, "/_opendistro/_security/api/actiongroup/{name}"),
-				new Route(Method.GET, "/_opendistro/_security/api/actiongroup/"),
-				new Route(Method.DELETE, "/_opendistro/_security/api/actiongroup/{name}"),
-				new Route(Method.PUT, "/_opendistro/_security/api/actiongroup/{name}"),
-
-				// corrected mapping, introduced in Open Distro Security
-				new Route(Method.GET, "/_opendistro/_security/api/actiongroups/{name}"),
-				new Route(Method.GET, "/_opendistro/_security/api/actiongroups/"),
-				new Route(Method.DELETE, "/_opendistro/_security/api/actiongroups/{name}"),
-				new Route(Method.PUT, "/_opendistro/_security/api/actiongroups/{name}"),
-				new Route(Method.PATCH, "/_opendistro/_security/api/actiongroups/"),
-				new Route(Method.PATCH, "/_opendistro/_security/api/actiongroups/{name}")
-		));
+		return routes;
 	}
 
 	@Override

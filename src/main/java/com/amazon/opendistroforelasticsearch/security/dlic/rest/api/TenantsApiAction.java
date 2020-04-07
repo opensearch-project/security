@@ -24,9 +24,17 @@ import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvalu
 
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.PrincipalExtractor;
 
-import static java.util.Collections.unmodifiableList;
+import com.google.common.collect.ImmutableList;
 
 public class TenantsApiAction extends PatchableResourceApiAction {
+    private static final List<Route> routes = ImmutableList.of(
+            new Route(Method.GET, "/_opendistro/_security/api/tenants/{name}"),
+            new Route(Method.GET, "/_opendistro/_security/api/tenants/"),
+            new Route(Method.DELETE, "/_opendistro/_security/api/tenants/{name}"),
+            new Route(Method.PUT, "/_opendistro/_security/api/tenants/{name}"),
+            new Route(Method.PATCH, "/_opendistro/_security/api/tenants/"),
+            new Route(Method.PATCH, "/_opendistro/_security/api/tenants/{name}")
+    );
 
     @Inject
     public TenantsApiAction(final Settings settings, final Path configPath, final RestController controller, final Client client,
@@ -37,14 +45,7 @@ public class TenantsApiAction extends PatchableResourceApiAction {
 
     @Override
     public List<Route> routes() {
-        return unmodifiableList(Arrays.asList(
-                new Route(Method.GET, "/_opendistro/_security/api/tenants/{name}"),
-                new Route(Method.GET, "/_opendistro/_security/api/tenants/"),
-                new Route(Method.DELETE, "/_opendistro/_security/api/tenants/{name}"),
-                new Route(Method.PUT, "/_opendistro/_security/api/tenants/{name}"),
-                new Route(Method.PATCH, "/_opendistro/_security/api/tenants/"),
-                new Route(Method.PATCH, "/_opendistro/_security/api/tenants/{name}")
-        ));
+        return routes;
     }
 
     @Override

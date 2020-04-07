@@ -24,6 +24,7 @@ import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvalu
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.PrincipalExtractor;
 import com.fasterxml.jackson.databind.JsonNode;
+
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -37,12 +38,15 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
-import static java.util.Collections.unmodifiableList;
 
 public class AuthTokenProcessorAction extends AbstractApiAction {
+	private static final List<Route> routes = Collections.singletonList(
+			new Route(Method.POST, "/_opendistro/_security/api/authtoken")
+	);
+
 	@Inject
 	public AuthTokenProcessorAction(final Settings settings, final Path configPath, final RestController controller,
 			final Client client, final AdminDNs adminDNs, final ConfigurationRepository cl,
@@ -54,9 +58,7 @@ public class AuthTokenProcessorAction extends AbstractApiAction {
 
 	@Override
 	public List<Route> routes() {
-		return unmodifiableList(Arrays.asList(
-				new Route(Method.POST, "/_opendistro/_security/api/authtoken")
-		));
+		return routes;
 	}
 
 	@Override

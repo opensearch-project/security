@@ -53,6 +53,8 @@ import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SecurityDynamicConfiguration;
 
+import static org.elasticsearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
+
 public class ConfigHelper {
     
     private static final Logger LOGGER = LogManager.getLogger(ConfigHelper.class);
@@ -112,7 +114,7 @@ public class ConfigHelper {
         BytesReference retVal;
         XContentParser parser = null;
         try {
-            parser = XContentFactory.xContent(xContentType).createParser(NamedXContentRegistry.EMPTY, OpenDistroSecurityDeprecationHandler.INSTANCE, reader);
+            parser = XContentFactory.xContent(xContentType).createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, reader);
             parser.nextToken();
             final XContentBuilder builder = XContentFactory.jsonBuilder();
             builder.copyCurrentStructure(parser);
