@@ -10,7 +10,13 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Set;
 
-import static com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory.*;
+import static com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory.AUTHENTICATED;
+import static com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory.GRANTED_PRIVILEGES;
+import static com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory.BAD_HEADERS;
+import static com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory.SSL_EXCEPTION;
+import static com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory.FAILED_LOGIN;
+import static com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory.MISSING_PRIVILEGES;
+
 import static org.junit.Assert.*;
 
 public class AuditConfigFilterTest {
