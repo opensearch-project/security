@@ -2,7 +2,6 @@ package com.amazon.opendistroforelasticsearch.security.auditlog.impl;
 
 import java.util.Collection;
 import java.util.EnumSet;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 public enum AuditCategory {

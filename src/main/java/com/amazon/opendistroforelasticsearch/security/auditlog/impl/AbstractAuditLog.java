@@ -23,9 +23,7 @@ import java.nio.file.Paths;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.EnumSet;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +31,7 @@ import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
 import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
+import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -80,33 +79,16 @@ import com.flipkart.zjsonpatch.JsonDiff;
 import com.google.common.io.BaseEncoding;
 
 public abstract class AbstractAuditLog implements AuditLog {
-
-    private static final List<String> DEFAULT_DISABLED_CATEGORIES = Arrays.asList(AuditCategory.AUTHENTICATED.toString(), AuditCategory.GRANTED_PRIVILEGES.toString());
-
     protected final Logger log = LogManager.getLogger(this.getClass());
-    protected final ThreadPool threadPool;
-    protected final IndexNameExpressionResolver resolver;
-    protected final ClusterService clusterService;
-    protected final Settings settings;
-    protected final boolean restAuditingEnabled;
-    protected final boolean transportAuditingEnabled;
-    protected final boolean resolveBulkRequests;
 
-    protected final boolean logRequestBody;
-    protected final boolean resolveIndices;
-
-    private List<String> ignoredAuditUsers;
-    private List<String> ignoredComplianceUsersForRead;
-    private List<String> ignoredComplianceUsersForWrite;
-    private final List<String> ignoreAuditRequests;
-    private final EnumSet<AuditCategory> disabledRestCategories;
-    private final EnumSet<AuditCategory> disabledTransportCategories;
-    private final List<String> defaultIgnoredUsers = Arrays.asList("kibanaserver");
-    private final boolean excludeSensitiveHeaders;
-
+    private final ThreadPool threadPool;
+    private final IndexNameExpressionResolver resolver;
+    private final ClusterService clusterService;
+    private final Settings settings;
+    private final AuditConfig.Filter auditConfigFilter;
     private final String opendistrosecurityIndex;
-    private static final List<String> writeClasses = new ArrayList<>();
 
+    private static final List<String> writeClasses = new ArrayList<>();
     {
         writeClasses.add(IndexRequest.class.getSimpleName());
         writeClasses.add(UpdateRequest.class.getSimpleName());
@@ -118,81 +100,12 @@ public abstract class AbstractAuditLog implements AuditLog {
     protected AbstractAuditLog(Settings settings, final ThreadPool threadPool, final IndexNameExpressionResolver resolver, final ClusterService clusterService) {
         super();
         this.threadPool = threadPool;
-
         this.settings = settings;
         this.resolver = resolver;
         this.clusterService = clusterService;
-
+        this.auditConfigFilter = AuditConfig.Filter.from(settings);
+        this.auditConfigFilter.log(log);
         this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
-
-        resolveBulkRequests = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, false);
-
-        restAuditingEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, true);
-        transportAuditingEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true);
-
-        final List<String> disabledRestCategoriesList = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, DEFAULT_DISABLED_CATEGORIES);
-
-        if (disabledRestCategoriesList.isEmpty() || (disabledRestCategoriesList.size() == 1 && "NONE".equalsIgnoreCase(disabledRestCategoriesList.get(0)))) {
-            disabledRestCategories = EnumSet.noneOf(AuditCategory.class);
-        } else {
-            disabledRestCategories = AuditCategory.parse(disabledRestCategoriesList);
-        }
-
-        if (!disabledRestCategories.isEmpty()) {
-            log.info("Configured categories on rest layer to ignore: {}", disabledRestCategories);
-        }
-
-        final List<String> disabledTransportCategoriesList = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, DEFAULT_DISABLED_CATEGORIES);
-
-        if (disabledTransportCategoriesList.isEmpty() || (disabledTransportCategoriesList.size() == 1 && "NONE".equalsIgnoreCase(disabledTransportCategoriesList.get(0)))) {
-            disabledTransportCategories = EnumSet.noneOf(AuditCategory.class);
-        } else {
-            disabledTransportCategories = AuditCategory.parse(disabledTransportCategoriesList);
-        }
-
-        if (!disabledTransportCategories.isEmpty()) {
-            log.info("Configured categories on transport layer to ignore: {}", disabledTransportCategories);
-        }
-
-        logRequestBody = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY, true);
-        resolveIndices = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_INDICES, true);
-
-        ignoredAuditUsers = new ArrayList<>(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS, defaultIgnoredUsers));
-
-        if(ignoredAuditUsers.size() == 1 && "NONE".equals(ignoredAuditUsers.get(0))) {
-            ignoredAuditUsers.clear();
-        }
-
-        if (ignoredAuditUsers.size() > 0) {
-            log.info("Configured Users to ignore: {}", ignoredAuditUsers);
-        }
-
-        ignoredComplianceUsersForRead = new ArrayList<>(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS, defaultIgnoredUsers));
-
-        if(ignoredComplianceUsersForRead.size() == 1 && "NONE".equals(ignoredComplianceUsersForRead.get(0))) {
-            ignoredComplianceUsersForRead.clear();
-        }
-
-        if (ignoredComplianceUsersForRead.size() > 0) {
-            log.info("Configured Users to ignore for read compliance events: {}", ignoredComplianceUsersForRead);
-        }
-
-        ignoredComplianceUsersForWrite = new ArrayList<>(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS, defaultIgnoredUsers));
-
-        if(ignoredComplianceUsersForWrite.size() == 1 && "NONE".equals(ignoredComplianceUsersForWrite.get(0))) {
-            ignoredComplianceUsersForWrite.clear();
-        }
-
-        if (ignoredComplianceUsersForWrite.size() > 0) {
-            log.info("Configured Users to ignore for write compliance events: {}", ignoredComplianceUsersForWrite);
-        }
-
-        ignoreAuditRequests = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS, Collections.emptyList());
-        if (ignoreAuditRequests.size() > 0) {
-            log.info("Configured Requests to ignore: {}", ignoreAuditRequests);
-        }
-
-        this.excludeSensitiveHeaders = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS, true);
     }
 
     @Override
@@ -204,7 +117,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         }
 
         final TransportAddress remoteAddress = getRemoteAddress();
-        final List<AuditMessage> msgs = RequestResolver.resolve(AuditCategory.FAILED_LOGIN, getOrigin(), action, null, effectiveUser, securityadmin, initiatingUser, remoteAddress, request, getThreadContextHeaders(), task, resolver, clusterService, settings, logRequestBody, resolveIndices, resolveBulkRequests, opendistrosecurityIndex, excludeSensitiveHeaders, null);
+        final List<AuditMessage> msgs = RequestResolver.resolve(AuditCategory.FAILED_LOGIN, getOrigin(), action, null, effectiveUser, securityadmin, initiatingUser, remoteAddress, request, getThreadContextHeaders(), task, resolver, clusterService, settings, auditConfigFilter.shouldLogRequestBody(), auditConfigFilter.shouldResolveIndices(), auditConfigFilter.shouldResolveBulkRequests(), opendistrosecurityIndex, auditConfigFilter.shouldExcludeSensitiveHeaders(), null);
 
         for(AuditMessage msg: msgs) {
             save(msg);
@@ -222,13 +135,13 @@ public abstract class AbstractAuditLog implements AuditLog {
         AuditMessage msg = new AuditMessage(AuditCategory.FAILED_LOGIN, clusterService, getOrigin(), Origin.REST);
         TransportAddress remoteAddress = getRemoteAddress();
         msg.addRemoteAddress(remoteAddress);
-        if(request != null && logRequestBody && request.hasContentOrSourceParam()) {
+        if(request != null && auditConfigFilter.shouldLogRequestBody() && request.hasContentOrSourceParam()) {
             msg.addTupleToRequestBody(request.contentOrSourceParam());
         }
 
         if(request != null) {
             msg.addPath(request.path());
-            msg.addRestHeaders(request.getHeaders(), excludeSensitiveHeaders);
+            msg.addRestHeaders(request.getHeaders(), auditConfigFilter.shouldExcludeSensitiveHeaders());
             msg.addRestParams(request.params());
         }
 
@@ -247,7 +160,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         }
 
         final TransportAddress remoteAddress = getRemoteAddress();
-        final List<AuditMessage> msgs = RequestResolver.resolve(AuditCategory.AUTHENTICATED, getOrigin(), action, null, effectiveUser, securityadmin, initiatingUser,remoteAddress, request, getThreadContextHeaders(), task, resolver, clusterService, settings, logRequestBody, resolveIndices, resolveBulkRequests, opendistrosecurityIndex, excludeSensitiveHeaders, null);
+        final List<AuditMessage> msgs = RequestResolver.resolve(AuditCategory.AUTHENTICATED, getOrigin(), action, null, effectiveUser, securityadmin, initiatingUser,remoteAddress, request, getThreadContextHeaders(), task, resolver, clusterService, settings, auditConfigFilter.shouldLogRequestBody(), auditConfigFilter.shouldResolveIndices(), auditConfigFilter.shouldResolveBulkRequests(), opendistrosecurityIndex, auditConfigFilter.shouldExcludeSensitiveHeaders(), null);
 
         for(AuditMessage msg: msgs) {
             save(msg);
@@ -264,13 +177,13 @@ public abstract class AbstractAuditLog implements AuditLog {
         AuditMessage msg = new AuditMessage(AuditCategory.AUTHENTICATED, clusterService, getOrigin(), Origin.REST);
         TransportAddress remoteAddress = getRemoteAddress();
         msg.addRemoteAddress(remoteAddress);
-        if(request != null && logRequestBody && request.hasContentOrSourceParam()) {
-           msg.addTupleToRequestBody(request.contentOrSourceParam());
+        if(request != null && auditConfigFilter.shouldLogRequestBody() && request.hasContentOrSourceParam()) {
+            msg.addTupleToRequestBody(request.contentOrSourceParam());
         }
 
         if(request != null) {
             msg.addPath(request.path());
-            msg.addRestHeaders(request.getHeaders(), excludeSensitiveHeaders);
+            msg.addRestHeaders(request.getHeaders(), auditConfigFilter.shouldExcludeSensitiveHeaders());
             msg.addRestParams(request.params());
         }
 
@@ -289,12 +202,12 @@ public abstract class AbstractAuditLog implements AuditLog {
         AuditMessage msg = new AuditMessage(AuditCategory.MISSING_PRIVILEGES, clusterService, getOrigin(), Origin.REST);
         TransportAddress remoteAddress = getRemoteAddress();
         msg.addRemoteAddress(remoteAddress);
-        if(request != null && logRequestBody && request.hasContentOrSourceParam()) {
-           msg.addTupleToRequestBody(request.contentOrSourceParam());
+        if(request != null && auditConfigFilter.shouldLogRequestBody() && request.hasContentOrSourceParam()) {
+            msg.addTupleToRequestBody(request.contentOrSourceParam());
         }
         if(request != null) {
             msg.addPath(request.path());
-            msg.addRestHeaders(request.getHeaders(), excludeSensitiveHeaders);
+            msg.addRestHeaders(request.getHeaders(), auditConfigFilter.shouldExcludeSensitiveHeaders());
             msg.addRestParams(request.params());
         }
 
@@ -311,7 +224,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         }
 
         final TransportAddress remoteAddress = getRemoteAddress();
-        final List<AuditMessage> msgs = RequestResolver.resolve(AuditCategory.MISSING_PRIVILEGES, getOrigin(), action, privilege, getUser(), null, null, remoteAddress, request, getThreadContextHeaders(), task, resolver, clusterService, settings, logRequestBody, resolveIndices, resolveBulkRequests, opendistrosecurityIndex, excludeSensitiveHeaders, null);
+        final List<AuditMessage> msgs = RequestResolver.resolve(AuditCategory.MISSING_PRIVILEGES, getOrigin(), action, privilege, getUser(), null, null, remoteAddress, request, getThreadContextHeaders(), task, resolver, clusterService, settings, auditConfigFilter.shouldLogRequestBody(), auditConfigFilter.shouldResolveIndices(), auditConfigFilter.shouldResolveBulkRequests(), opendistrosecurityIndex, auditConfigFilter.shouldExcludeSensitiveHeaders(), null);
 
         for(AuditMessage msg: msgs) {
             save(msg);
@@ -327,7 +240,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         }
 
         final TransportAddress remoteAddress = getRemoteAddress();
-        final List<AuditMessage> msgs = RequestResolver.resolve(AuditCategory.GRANTED_PRIVILEGES, getOrigin(), action, privilege, getUser(), null, null, remoteAddress, request, getThreadContextHeaders(), task, resolver, clusterService, settings, logRequestBody, resolveIndices, resolveBulkRequests, opendistrosecurityIndex, excludeSensitiveHeaders, null);
+        final List<AuditMessage> msgs = RequestResolver.resolve(AuditCategory.GRANTED_PRIVILEGES, getOrigin(), action, privilege, getUser(), null, null, remoteAddress, request, getThreadContextHeaders(), task, resolver, clusterService, settings, auditConfigFilter.shouldLogRequestBody(), auditConfigFilter.shouldResolveIndices(), auditConfigFilter.shouldResolveBulkRequests(), opendistrosecurityIndex, auditConfigFilter.shouldExcludeSensitiveHeaders(), null);
 
         for(AuditMessage msg: msgs) {
             save(msg);
@@ -342,7 +255,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         }
 
         final TransportAddress remoteAddress = getRemoteAddress();
-        final List<AuditMessage> msgs = RequestResolver.resolve(AuditCategory.BAD_HEADERS, getOrigin(), action, null, getUser(), null, null, remoteAddress, request, getThreadContextHeaders(), task, resolver, clusterService, settings, logRequestBody, resolveIndices, resolveBulkRequests, opendistrosecurityIndex, excludeSensitiveHeaders, null);
+        final List<AuditMessage> msgs = RequestResolver.resolve(AuditCategory.BAD_HEADERS, getOrigin(), action, null, getUser(), null, null, remoteAddress, request, getThreadContextHeaders(), task, resolver, clusterService, settings, auditConfigFilter.shouldLogRequestBody(), auditConfigFilter.shouldResolveIndices(), auditConfigFilter.shouldResolveBulkRequests(), opendistrosecurityIndex, auditConfigFilter.shouldExcludeSensitiveHeaders(), null);
 
         for(AuditMessage msg: msgs) {
             save(msg);
@@ -359,12 +272,12 @@ public abstract class AbstractAuditLog implements AuditLog {
         AuditMessage msg = new AuditMessage(AuditCategory.BAD_HEADERS, clusterService, getOrigin(), Origin.REST);
         TransportAddress remoteAddress = getRemoteAddress();
         msg.addRemoteAddress(remoteAddress);
-        if(request != null && logRequestBody && request.hasContentOrSourceParam()) {
+        if(request != null && auditConfigFilter.shouldLogRequestBody() && request.hasContentOrSourceParam()) {
             msg.addTupleToRequestBody(request.contentOrSourceParam());
         }
         if(request != null) {
             msg.addPath(request.path());
-            msg.addRestHeaders(request.getHeaders(), excludeSensitiveHeaders);
+            msg.addRestHeaders(request.getHeaders(), auditConfigFilter.shouldExcludeSensitiveHeaders());
             msg.addRestParams(request.params());
         }
 
@@ -381,7 +294,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         }
 
         final TransportAddress remoteAddress = getRemoteAddress();
-        final List<AuditMessage> msgs = RequestResolver.resolve(AuditCategory.OPENDISTRO_SECURITY_INDEX_ATTEMPT, getOrigin(), action, null, getUser(), false, null, remoteAddress, request, getThreadContextHeaders(), task, resolver, clusterService, settings, logRequestBody, resolveIndices, resolveBulkRequests, opendistrosecurityIndex, excludeSensitiveHeaders, null);
+        final List<AuditMessage> msgs = RequestResolver.resolve(AuditCategory.OPENDISTRO_SECURITY_INDEX_ATTEMPT, getOrigin(), action, null, getUser(), false, null, remoteAddress, request, getThreadContextHeaders(), task, resolver, clusterService, settings, auditConfigFilter.shouldLogRequestBody(), auditConfigFilter.shouldResolveIndices(), auditConfigFilter.shouldResolveBulkRequests(), opendistrosecurityIndex, auditConfigFilter.shouldExcludeSensitiveHeaders(), null);
 
         for(AuditMessage msg: msgs) {
             save(msg);
@@ -398,7 +311,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         final TransportAddress remoteAddress = getRemoteAddress();
 
         final List<AuditMessage> msgs = RequestResolver.resolve(AuditCategory.SSL_EXCEPTION, Origin.TRANSPORT, action, null, getUser(), false, null, remoteAddress, request,
-                getThreadContextHeaders(), task, resolver, clusterService, settings, logRequestBody, resolveIndices, resolveBulkRequests, opendistrosecurityIndex, excludeSensitiveHeaders, t);
+                getThreadContextHeaders(), task, resolver, clusterService, settings, auditConfigFilter.shouldLogRequestBody(), auditConfigFilter.shouldResolveIndices(), auditConfigFilter.shouldResolveBulkRequests(), opendistrosecurityIndex, auditConfigFilter.shouldExcludeSensitiveHeaders(), t);
 
         for(AuditMessage msg: msgs) {
             save(msg);
@@ -416,13 +329,13 @@ public abstract class AbstractAuditLog implements AuditLog {
 
         TransportAddress remoteAddress = getRemoteAddress();
         msg.addRemoteAddress(remoteAddress);
-        if(request != null && logRequestBody && request.hasContentOrSourceParam()) {
+        if(request != null && auditConfigFilter.shouldLogRequestBody() && request.hasContentOrSourceParam()) {
             msg.addTupleToRequestBody(request.contentOrSourceParam());
         }
 
         if(request != null) {
             msg.addPath(request.path());
-            msg.addRestHeaders(request.getHeaders(), excludeSensitiveHeaders);
+            msg.addRestHeaders(request.getHeaders(), auditConfigFilter.shouldExcludeSensitiveHeaders());
             msg.addRestParams(request.params());
         }
         msg.addException(t);
@@ -477,14 +390,14 @@ public abstract class AbstractAuditLog implements AuditLog {
                     if(opendistrosecurityIndex.equals(index) && !"tattr".equals(id)) {
                         try {
                             Map<String, String> map = fieldNameValues.entrySet().stream()
-                            .collect(Collectors.toMap(entry -> "id", entry -> new String(BaseEncoding.base64().decode(((Entry<String, String>) entry).getValue()), StandardCharsets.UTF_8)));
+                                    .collect(Collectors.toMap(entry -> "id", entry -> new String(BaseEncoding.base64().decode(((Entry<String, String>) entry).getValue()), StandardCharsets.UTF_8)));
                             msg.addMapToRequestBody(Utils.convertJsonToxToStructuredMap(map.get("id")));
                         } catch (Exception e) {
                             msg.addMapToRequestBody(new HashMap<String, Object>(fieldNameValues));
                         }
-                     } else {
+                    } else {
                         msg.addMapToRequestBody(new HashMap<String, Object>(fieldNameValues));
-                     }
+                    }
                 }
             } catch (Exception e) {
                 log.error("Unable to generate request body for {} and {}",msg.toPrettyString(),fieldNameValues, e);
@@ -530,23 +443,23 @@ public abstract class AbstractAuditLog implements AuditLog {
                         Object base64 = parser.map().values().iterator().next();
                         if(base64 instanceof String) {
                             originalSource = (new String(BaseEncoding.base64().decode((String) base64)));
-                         } else {
-                             originalSource = XContentHelper.convertToJson(originalResult.internalSourceRef(), false, XContentType.JSON);
+                        } else {
+                            originalSource = XContentHelper.convertToJson(originalResult.internalSourceRef(), false, XContentType.JSON);
                         }
-                     } catch (Exception e) {
-                         log.error(e);
-                     }
+                    } catch (Exception e) {
+                        log.error(e);
+                    }
 
                     try (XContentParser parser = XContentHelper.createParser(NamedXContentRegistry.EMPTY, OpenDistroSecurityDeprecationHandler.INSTANCE, currentIndex.source(), XContentType.JSON)) {
                         Object base64 = parser.map().values().iterator().next();
                         if(base64 instanceof String) {
                             currentSource = (new String(BaseEncoding.base64().decode((String) base64)));
-                         } else {
+                        } else {
                             currentSource = XContentHelper.convertToJson(currentIndex.source(), false, XContentType.JSON);
                         }
-                     } catch (Exception e) {
-                         log.error(e);
-                     }
+                    } catch (Exception e) {
+                        log.error(e);
+                    }
                 } else {
                     originalSource = XContentHelper.convertToJson(originalResult.internalSourceRef(), false, XContentType.JSON);
                     currentSource = XContentHelper.convertToJson(currentIndex.source(), false, XContentType.JSON);
@@ -556,19 +469,19 @@ public abstract class AbstractAuditLog implements AuditLog {
             } catch (Exception e) {
                 log.error("Unable to generate diff for {}",msg.toPrettyString(),e);
             }
-         }
+        }
 
 
-         if (!complianceConfig.logWriteMetadataOnly()){
+        if (!complianceConfig.logWriteMetadataOnly()){
             if(opendistrosecurityIndex.equals(shardId.getIndexName())) {
                 //current source, normally not null or empty
                 try (XContentParser parser = XContentHelper.createParser(NamedXContentRegistry.EMPTY, OpenDistroSecurityDeprecationHandler.INSTANCE, currentIndex.source(), XContentType.JSON)) {
-                   Object base64 = parser.map().values().iterator().next();
-                   if(base64 instanceof String) {
-                       msg.addUnescapedJsonToRequestBody(new String(BaseEncoding.base64().decode((String) base64)));
+                    Object base64 = parser.map().values().iterator().next();
+                    if(base64 instanceof String) {
+                        msg.addUnescapedJsonToRequestBody(new String(BaseEncoding.base64().decode((String) base64)));
                     } else {
-                       msg.addTupleToRequestBody(new Tuple<XContentType, BytesReference>(XContentType.JSON, currentIndex.source()));
-                   }
+                        msg.addTupleToRequestBody(new Tuple<XContentType, BytesReference>(XContentType.JSON, currentIndex.source()));
+                    }
                 } catch (Exception e) {
                     log.error(e);
                 }
@@ -584,7 +497,7 @@ public abstract class AbstractAuditLog implements AuditLog {
                 msg.addTupleToRequestBody(new Tuple<XContentType, BytesReference>(XContentType.JSON, currentIndex.source()));
             }
 
-         }
+        }
 
 
         save(msg);
@@ -713,7 +626,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         }
 
 
-        if(!transportAuditingEnabled) {
+        if (!auditConfigFilter.isTransportApiAuditEnabled()) {
             //ignore for certain categories
             if(category != AuditCategory.FAILED_LOGIN
                     && category != AuditCategory.MISSING_PRIVILEGES
@@ -728,10 +641,10 @@ public abstract class AbstractAuditLog implements AuditLog {
         if(action != null
                 &&
                 ( action.startsWith("internal:")
-                  || action.startsWith("cluster:monitor")
-                  || action.startsWith("indices:monitor")
+                        || action.startsWith("cluster:monitor")
+                        || action.startsWith("indices:monitor")
                 )
-                ) {
+        ) {
 
 
             //if(log.isTraceEnabled()) {
@@ -741,7 +654,8 @@ public abstract class AbstractAuditLog implements AuditLog {
             return false;
         }
 
-        if (ignoredAuditUsers.size() > 0 && WildcardMatcher.matchAny(ignoredAuditUsers, effectiveUser)) {
+        final Collection<String>ignoredAuditUsers = auditConfigFilter.getIgnoredAuditUsers();
+        if (!ignoredAuditUsers.isEmpty() && WildcardMatcher.matchAny(ignoredAuditUsers, effectiveUser)) {
 
             if(log.isTraceEnabled()) {
                 log.trace("Skipped audit log message because of user {} is ignored", effectiveUser);
@@ -750,8 +664,9 @@ public abstract class AbstractAuditLog implements AuditLog {
             return false;
         }
 
-        if (request != null && ignoreAuditRequests.size() > 0
-                && (WildcardMatcher.matchAny(ignoreAuditRequests, action) || WildcardMatcher.matchAny(ignoreAuditRequests, request.getClass().getSimpleName()))) {
+        final Collection<String> ignoredAuditRequests = auditConfigFilter.getIgnoredAuditRequests();
+        if (request != null && !ignoredAuditRequests.isEmpty()
+                && (WildcardMatcher.matchAny(ignoredAuditRequests, action) || WildcardMatcher.matchAny(ignoredAuditRequests, request.getClass().getSimpleName()))) {
 
             if(log.isTraceEnabled()) {
                 log.trace("Skipped audit log message because request {} is ignored", action+"#"+request.getClass().getSimpleName());
@@ -760,7 +675,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             return false;
         }
 
-        if (!disabledTransportCategories.contains(category)) {
+        if (!auditConfigFilter.getDisabledTransportCategories().contains(category)) {
             return true;
         } else {
             if(log.isTraceEnabled()) {
@@ -791,7 +706,9 @@ public abstract class AbstractAuditLog implements AuditLog {
         }
 
         if(category == AuditCategory.COMPLIANCE_DOC_READ || category == AuditCategory.COMPLIANCE_INTERNAL_CONFIG_READ) {
-            if (ignoredComplianceUsersForRead.size() > 0 && effectiveUser != null
+
+            final Collection<String> ignoredComplianceUsersForRead = auditConfigFilter.getIgnoredComplianceUsersForRead();
+            if (!ignoredComplianceUsersForRead.isEmpty() && effectiveUser != null
                     && WildcardMatcher.matchAny(ignoredComplianceUsersForRead, effectiveUser)) {
 
                 if(log.isTraceEnabled()) {
@@ -802,7 +719,8 @@ public abstract class AbstractAuditLog implements AuditLog {
         }
 
         if(category == AuditCategory.COMPLIANCE_DOC_WRITE || category == AuditCategory.COMPLIANCE_INTERNAL_CONFIG_WRITE) {
-            if (ignoredComplianceUsersForWrite.size() > 0 && effectiveUser != null
+            final Collection<String> ignoredComplianceUsersForWrite = auditConfigFilter.getIgnoredComplianceUsersForWrite();
+            if (!ignoredComplianceUsersForWrite.isEmpty() && effectiveUser != null
                     && WildcardMatcher.matchAny(ignoredComplianceUsersForWrite, effectiveUser)) {
 
                 if(log.isTraceEnabled()) {
@@ -821,7 +739,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             log.trace("Check for REST category:{}, effectiveUser:{}, request:{}", category, effectiveUser, request==null?null:request.path());
         }
 
-        if(!restAuditingEnabled) {
+        if (!auditConfigFilter.isRestApiAuditEnabled()) {
             //ignore for certain categories
             if(category != AuditCategory.FAILED_LOGIN
                     && category != AuditCategory.MISSING_PRIVILEGES
@@ -832,7 +750,8 @@ public abstract class AbstractAuditLog implements AuditLog {
 
         }
 
-        if (ignoredAuditUsers.size() > 0 && WildcardMatcher.matchAny(ignoredAuditUsers, effectiveUser)) {
+        final Collection<String> ignoredAuditUsers = auditConfigFilter.getIgnoredAuditUsers();
+        if (!ignoredAuditUsers.isEmpty() && WildcardMatcher.matchAny(ignoredAuditUsers, effectiveUser)) {
 
             if(log.isTraceEnabled()) {
                 log.trace("Skipped audit log message because of user {} is ignored", effectiveUser);
@@ -841,8 +760,9 @@ public abstract class AbstractAuditLog implements AuditLog {
             return false;
         }
 
-        if (request != null && ignoreAuditRequests.size() > 0
-                && (WildcardMatcher.matchAny(ignoreAuditRequests, request.path()))) {
+        final Collection<String> ignoredAuditRequests = auditConfigFilter.getIgnoredAuditRequests();
+        if (request != null && !ignoredAuditRequests.isEmpty()
+                && (WildcardMatcher.matchAny(ignoredAuditRequests, request.path()))) {
 
             if(log.isTraceEnabled()) {
                 log.trace("Skipped audit log message because request {} is ignored", request.path());
@@ -851,7 +771,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             return false;
         }
 
-        if (!disabledRestCategories.contains(category)) {
+        if (!auditConfigFilter.getDisabledRestCategories().contains(category)) {
             return true;
         } else {
             if(log.isTraceEnabled()) {
