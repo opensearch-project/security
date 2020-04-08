@@ -17,6 +17,8 @@ import java.util.Set;
  */
 public class AuditConfig {
 
+    private AuditConfig() { }
+
     /**
      * Filter represents set of filtering configuration settings for audit logging.
      * Audit logger will use these settings to determine what audit logs are to be generated.
