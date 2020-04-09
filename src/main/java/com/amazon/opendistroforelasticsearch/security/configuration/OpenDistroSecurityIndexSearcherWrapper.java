@@ -36,9 +36,6 @@ import java.util.Set;
 
 import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvaluator;
 import com.amazon.opendistroforelasticsearch.security.securityconf.ConfigModel;
-import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigFactory;
-import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigModel;
-import com.amazon.opendistroforelasticsearch.security.securityconf.InternalUsersModel;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -54,7 +51,9 @@ import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.HeaderHelper;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 
-public class OpenDistroSecurityIndexSearcherWrapper implements CheckedFunction<DirectoryReader, DirectoryReader, IOException>, DynamicConfigFactory.DCFListener  {
+import com.google.common.eventbus.Subscribe;
+
+public class OpenDistroSecurityIndexSearcherWrapper implements CheckedFunction<DirectoryReader, DirectoryReader, IOException>  {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
     protected final ThreadContext threadContext;
@@ -79,8 +78,8 @@ public class OpenDistroSecurityIndexSearcherWrapper implements CheckedFunction<D
         this.protectedIndexEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_DEFAULT);
     }
 
-    @Override
-    public void onChanged(ConfigModel cm, DynamicConfigModel dcm, InternalUsersModel ium) {
+    @Subscribe
+    public void onConfigModelChanged(ConfigModel cm) {
         this.configModel = cm;
     }
 
