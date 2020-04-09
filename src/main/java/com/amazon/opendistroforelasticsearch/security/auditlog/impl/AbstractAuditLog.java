@@ -375,7 +375,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             msg.addId(id);
 
             try {
-                if(complianceConfig.logReadMetadataOnly()) {
+                if(complianceConfig.shouldLogReadMetadataOnly()) {
                     try {
                         XContentBuilder builder = XContentBuilder.builder(JsonXContent.jsonXContent);
                         builder.startObject();
@@ -434,7 +434,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         msg.addComplianceDocVersion(result.getVersion());
         msg.addComplianceOperation(result.isCreated()?Operation.CREATE:Operation.UPDATE);
 
-        if(complianceConfig.logDiffsForWrite() && originalResult != null && originalResult.isExists() && originalResult.internalSourceRef() != null) {
+        if(complianceConfig.shouldLogDiffsForWrite() && originalResult != null && originalResult.isExists() && originalResult.internalSourceRef() != null) {
             try {
                 String originalSource = null;
                 String currentSource = null;
@@ -472,7 +472,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         }
 
 
-        if (!complianceConfig.logWriteMetadataOnly()){
+        if (!complianceConfig.shouldLogWriteMetadataOnly()){
             if(opendistrosecurityIndex.equals(shardId.getIndexName())) {
                 //current source, normally not null or empty
                 try (XContentParser parser = XContentHelper.createParser(NamedXContentRegistry.EMPTY, OpenDistroSecurityDeprecationHandler.INSTANCE, currentIndex.source(), XContentType.JSON)) {

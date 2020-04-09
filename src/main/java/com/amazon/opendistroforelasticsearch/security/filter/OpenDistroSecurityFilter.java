@@ -30,9 +30,12 @@
 
 package com.amazon.opendistroforelasticsearch.security.filter;
 
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import com.amazon.opendistroforelasticsearch.security.resolver.IndexResolverReplacer;
+import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchSecurityException;
@@ -92,10 +95,11 @@ public class OpenDistroSecurityFilter implements ActionFilter {
     private final ClusterService cs;
     private final ComplianceConfig complianceConfig;
     private final CompatConfig compatConfig;
+    private final IndexResolverReplacer indexResolverReplacer;
 
     public OpenDistroSecurityFilter(final PrivilegesEvaluator evalp, final AdminDNs adminDns,
             DlsFlsRequestValve dlsFlsValve, AuditLog auditLog, ThreadPool threadPool, ClusterService cs,
-            ComplianceConfig complianceConfig, final CompatConfig compatConfig) {
+            ComplianceConfig complianceConfig, final CompatConfig compatConfig, final IndexResolverReplacer indexResolverReplacer) {
         this.evalp = evalp;
         this.adminDns = adminDns;
         this.dlsFlsValve = dlsFlsValve;
@@ -104,6 +108,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
         this.cs = cs;
         this.complianceConfig = complianceConfig;
         this.compatConfig = compatConfig;
+        this.indexResolverReplacer = indexResolverReplacer;
     }
 
     @Override
@@ -311,7 +316,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
                 || request instanceof IndicesAliasesRequest //TODO only remove index
                 ) {
             
-            if(complianceConfig != null && complianceConfig.isIndexImmutable(request)) {
+            if(complianceConfig != null && isIndexImmutable(request)) {
                 //auditLog.log
                 
                 //check index for type = remove index
@@ -330,7 +335,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
         }
         
         if(request instanceof IndexRequest) {
-            if(complianceConfig != null && complianceConfig.isIndexImmutable(request)) {
+            if(complianceConfig != null && isIndexImmutable(request)) {
                 ((IndexRequest) request).opType(OpType.CREATE);
             }
         }
@@ -338,4 +343,19 @@ public class OpenDistroSecurityFilter implements ActionFilter {
         return false;
     }
 
+    private boolean isIndexImmutable(Object request) {
+        if (!complianceConfig.isEnabled()) {
+            return false;
+        }
+
+        final Set<String> immutableIndicesPatterns = complianceConfig.getImmutableIndicesPatterns();
+        if (immutableIndicesPatterns.isEmpty()) {
+            return false;
+        }
+
+        final IndexResolverReplacer.Resolved resolved = indexResolverReplacer.resolveRequest(request);
+        final Set<String> allIndices = resolved.getAllIndices();
+
+        return WildcardMatcher.matchAny(immutableIndicesPatterns, allIndices);
+    }
 }

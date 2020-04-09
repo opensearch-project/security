@@ -30,8 +30,6 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
-import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
-import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceIndexingOperationListener;
 
 public final class ComplianceIndexingOperationListenerImpl extends ComplianceIndexingOperationListener {
 
@@ -81,7 +79,7 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
 
     @Override
     public Index preIndex(final ShardId shardId, final Index index) {
-        if(complianceConfig.isEnabled() && complianceConfig.logDiffsForWrite()) {
+        if(complianceConfig.isEnabled() && complianceConfig.shouldLogDiffsForWrite()) {
             Objects.requireNonNull(is);
 
             final IndexShard shard;
@@ -123,14 +121,14 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
 
     @Override
     public void postIndex(final ShardId shardId, final Index index, final Exception ex) {
-        if(complianceConfig.isEnabled() && complianceConfig.logDiffsForWrite()) {
+        if(complianceConfig.isEnabled() && complianceConfig.shouldLogDiffsForWrite()) {
             threadContext.remove();
         }
     }
 
     @Override
     public void postIndex(ShardId shardId, Index index, IndexResult result) {
-        if(complianceConfig.isEnabled() && complianceConfig.logDiffsForWrite()) {
+        if(complianceConfig.isEnabled() && complianceConfig.shouldLogDiffsForWrite()) {
             final Context context = threadContext.get();
             final GetResult previousContent = context==null?null:context.getGetResult();
             threadContext.remove();
