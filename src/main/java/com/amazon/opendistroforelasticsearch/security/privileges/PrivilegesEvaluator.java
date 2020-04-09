@@ -82,16 +82,15 @@ import com.amazon.opendistroforelasticsearch.security.configuration.Configuratio
 import com.amazon.opendistroforelasticsearch.security.resolver.IndexResolverReplacer;
 import com.amazon.opendistroforelasticsearch.security.resolver.IndexResolverReplacer.Resolved;
 import com.amazon.opendistroforelasticsearch.security.securityconf.ConfigModel;
-import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigFactory.DCFListener;
 import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigModel;
-import com.amazon.opendistroforelasticsearch.security.securityconf.InternalUsersModel;
 import com.amazon.opendistroforelasticsearch.security.securityconf.SecurityRoles;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 
+import com.google.common.eventbus.Subscribe;
 
-public class PrivilegesEvaluator implements DCFListener {
+public class PrivilegesEvaluator {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
     protected final Logger actionTrace = LogManager.getLogger("opendistro_security_action_trace");
@@ -146,11 +145,14 @@ public class PrivilegesEvaluator implements DCFListener {
         this.advancedModulesEnabled = advancedModulesEnabled;
     }
 
+    @Subscribe
+    public void onConfigModelChanged(ConfigModel configModel) {
+        this.configModel = configModel;
+    }
 
-    @Override
-    public void onChanged(ConfigModel cm, DynamicConfigModel dcm, InternalUsersModel ium) {
+    @Subscribe
+    public void onDynamicConfigModelChanged(DynamicConfigModel dcm) {
         this.dcm = dcm;
-        this.configModel = cm;
     }
 
     private SecurityRoles getSecurityRoles(Set<String> roles) {
