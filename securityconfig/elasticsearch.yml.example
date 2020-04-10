@@ -71,9 +71,6 @@ opendistro_security.roles_mapping_resolution: MAPPING_ONLY
 # Tune threadpool max size queue length, default is 100000
 #opendistro_security.audit.threadpool.max_queue_len: 100000
 
-# If enable_request_details is true then the audit log event will also contain
-# details like the search query. Default is false. 
-#opendistro_security.audit.enable_request_details: true
 # Ignore users, e.g. do not log audit requests from that users (default: no ignored users)
 #opendistro_security.audit.ignore_users: ['kibanaserver','some*user','/also.*regex possible/']"
 
