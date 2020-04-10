@@ -42,11 +42,11 @@ import java.util.stream.Collectors;
 
 import com.amazon.opendistroforelasticsearch.security.securityconf.ConfigModel;
 import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigFactory;
-import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigFactory.DCFListener;
 import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigModel;
 import com.amazon.opendistroforelasticsearch.security.securityconf.InternalUsersModel;
 import com.amazon.opendistroforelasticsearch.security.securityconf.NodesDnModel;
 import com.google.common.collect.ImmutableList;
+import com.google.common.eventbus.Subscribe;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
@@ -56,7 +56,7 @@ import org.elasticsearch.transport.TransportRequest;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 
-public final class DefaultInterClusterRequestEvaluator implements InterClusterRequestEvaluator, DCFListener {
+public final class DefaultInterClusterRequestEvaluator implements InterClusterRequestEvaluator {
 
     private final Logger log = LogManager.getLogger(this.getClass());
     private final String certOid;
@@ -169,8 +169,8 @@ public final class DefaultInterClusterRequestEvaluator implements InterClusterRe
         return false;
     }
 
-    @Override
-    public void onChanged(ConfigModel cm, DynamicConfigModel dcm, InternalUsersModel ium, NodesDnModel nm) {
-        this.dynamicNodesDn = nm.getNodesDn();
+    @Subscribe
+    public void onNodesDnModelChanged(NodesDnModel nm) {
+        this.dynamicNodesDn = Collections.unmodifiableMap(nm.getNodesDn());
     }
 }

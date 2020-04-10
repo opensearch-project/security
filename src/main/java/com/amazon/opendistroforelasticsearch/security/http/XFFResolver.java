@@ -42,13 +42,12 @@ import org.elasticsearch.http.netty4.Netty4HttpChannel;
 import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import com.amazon.opendistroforelasticsearch.security.securityconf.ConfigModel;
-import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigFactory.DCFListener;
 import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigModel;
-import com.amazon.opendistroforelasticsearch.security.securityconf.InternalUsersModel;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 
-public class XFFResolver implements DCFListener {
+import com.google.common.eventbus.Subscribe;
+
+public class XFFResolver {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
     private volatile boolean enabled;
@@ -95,8 +94,8 @@ public class XFFResolver implements DCFListener {
         }
     }
 
-    @Override
-    public void onChanged(ConfigModel cm, DynamicConfigModel dcm, InternalUsersModel ium, NodesDnModel nm) {
+    @Subscribe
+    public void onDynamicConfigModelChanged(DynamicConfigModel dcm) {
         enabled = dcm.isXffEnabled();
         if(enabled) {
             detector = new RemoteIpDetector();

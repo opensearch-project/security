@@ -2,7 +2,6 @@ package com.amazon.opendistroforelasticsearch.security.securityconf;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +38,8 @@ import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.RoleM
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.RoleV7;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.TenantV7;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
+
+import com.google.common.eventbus.EventBus;
 
 public class DynamicConfigFactory implements Initializable, ConfigurationChangeListener {
 
@@ -85,7 +86,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     protected final Logger log = LogManager.getLogger(this.getClass());
     private final ConfigurationRepository cr;
     private final AtomicBoolean initialized = new AtomicBoolean();
-    private final List<DCFListener> listeners = new ArrayList<>();
+    private final EventBus eventBus = new EventBus("DynamicConfig");
     private final Settings esSettings;
     private final Path configPath;
     private final InternalAuthenticationBackend iab = new InternalAuthenticationBackend();
@@ -147,6 +148,10 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
             
         }
 
+        final DynamicConfigModel dcm;
+        final InternalUsersModel ium;
+        final ConfigModel cm;
+        final NodesDnModel nm;
         if(config.getImplementingClass() == ConfigV7.class) {
                 //statics
                 
@@ -186,31 +191,26 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
             
 
             //rebuild v7 Models
-            DynamicConfigModel dcm = new DynamicConfigModelV7(getConfigV7(config), esSettings, configPath, iab);
-            InternalUsersModel ium = new InternalUsersModelV7((SecurityDynamicConfiguration<InternalUserV7>) internalusers);
-            ConfigModel cm = new ConfigModelV7((SecurityDynamicConfiguration<RoleV7>) roles,(SecurityDynamicConfiguration<RoleMappingsV7>)rolesmapping, (SecurityDynamicConfiguration<ActionGroupsV7>)actionGroups, (SecurityDynamicConfiguration<TenantV7>) tenants,dcm, esSettings);
-            NodesDnModel nm = new NodesDnModelV7(nodesDn);
+            dcm = new DynamicConfigModelV7(getConfigV7(config), esSettings, configPath, iab);
+            ium = new InternalUsersModelV7((SecurityDynamicConfiguration<InternalUserV7>) internalusers);
+            cm = new ConfigModelV7((SecurityDynamicConfiguration<RoleV7>) roles,(SecurityDynamicConfiguration<RoleMappingsV7>)rolesmapping, (SecurityDynamicConfiguration<ActionGroupsV7>)actionGroups, (SecurityDynamicConfiguration<TenantV7>) tenants,dcm, esSettings);
+            nm = new NodesDnModelV7(nodesDn);
 
-            //notify listeners
-            
-            for(DCFListener listener: listeners) {
-                listener.onChanged(cm, dcm, ium, nm);
-            }
-        
         } else {
 
             //rebuild v6 Models
-            DynamicConfigModel dcmv6 = new DynamicConfigModelV6(getConfigV6(config), esSettings, configPath, iab);
-            InternalUsersModel iumv6 = new InternalUsersModelV6((SecurityDynamicConfiguration<InternalUserV6>) internalusers);
-            ConfigModel cmv6 = new ConfigModelV6((SecurityDynamicConfiguration<RoleV6>) roles, (SecurityDynamicConfiguration<ActionGroupsV6>)actionGroups, (SecurityDynamicConfiguration<RoleMappingsV6>)rolesmapping, dcmv6, esSettings);
-            NodesDnModel nm6 = new NodesDnModelV6(nodesDn);
-
-            //notify listeners
+            dcm = new DynamicConfigModelV6(getConfigV6(config), esSettings, configPath, iab);
+            ium = new InternalUsersModelV6((SecurityDynamicConfiguration<InternalUserV6>) internalusers);
+            cm = new ConfigModelV6((SecurityDynamicConfiguration<RoleV6>) roles, (SecurityDynamicConfiguration<ActionGroupsV6>)actionGroups, (SecurityDynamicConfiguration<RoleMappingsV6>)rolesmapping, dcm, esSettings);
+            nm = new NodesDnModelV6(nodesDn);
             
-            for(DCFListener listener: listeners) {
-                listener.onChanged(cmv6, dcmv6, iumv6, nm6);
-            }
         }
+
+        //notify subscribers
+        eventBus.post(cm);
+        eventBus.post(dcm);
+        eventBus.post(ium);
+        eventBus.post(nm);
 
         initialized.set(true);
         
@@ -233,12 +233,12 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         return initialized.get();
     }
     
-    public void registerDCFListener(DCFListener listener) {
-        listeners.add(listener);
+    public void registerDCFListener(Object listener) {
+        eventBus.register(listener);
     }
-    
-    public static interface DCFListener {
-        void onChanged(ConfigModel cm, DynamicConfigModel dcm, InternalUsersModel ium, NodesDnModel nm);
+
+    public void unregisterDCFListener(Object listener) {
+        eventBus.unregister(listener);
     }
     
     private static class InternalUsersModelV7 extends InternalUsersModel {
