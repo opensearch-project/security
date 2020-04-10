@@ -40,11 +40,10 @@ import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.http.netty4.Netty4HttpChannel;
 import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.greenrobot.eventbus.Subscribe;
 
 import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigModel;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
-
-import com.google.common.eventbus.Subscribe;
 
 public class XFFResolver {
 
