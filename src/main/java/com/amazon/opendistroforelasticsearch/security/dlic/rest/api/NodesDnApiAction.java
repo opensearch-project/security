@@ -140,6 +140,6 @@ public class NodesDnApiAction extends PatchableResourceApiAction {
 
     @Override
     protected AbstractConfigurationValidator getValidator(RestRequest request, BytesReference ref, Object... params) {
-        return new NodesDnValidator(request, isSuperAdmin(), ref, this.settings, params);
+        return new NodesDnValidator(request, ref, this.settings, params);
     }
 }

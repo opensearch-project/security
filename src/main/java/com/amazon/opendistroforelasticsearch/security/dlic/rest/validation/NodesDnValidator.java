@@ -6,7 +6,7 @@ import org.elasticsearch.rest.RestRequest;
 
 public class NodesDnValidator extends AbstractConfigurationValidator {
 
-    public NodesDnValidator(final RestRequest request, boolean isSuperAdmin, final BytesReference ref, final Settings esSettings, Object... param) {
+    public NodesDnValidator(final RestRequest request, final BytesReference ref, final Settings esSettings, Object... param) {
         super(request, ref, esSettings, param);
         this.payloadMandatory = true;
 
