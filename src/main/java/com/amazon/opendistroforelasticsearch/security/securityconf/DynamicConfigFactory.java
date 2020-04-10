@@ -9,8 +9,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
-import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v6.NodesDnV6;
-import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.NodesDnV7;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.NodesDn;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.Client;
@@ -151,7 +150,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         final DynamicConfigModel dcm;
         final InternalUsersModel ium;
         final ConfigModel cm;
-        final NodesDnModel nm;
+        final NodesDnModel nm = new NodesDnModelImpl(nodesDn);
         if(config.getImplementingClass() == ConfigV7.class) {
                 //statics
                 
@@ -194,7 +193,6 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
             dcm = new DynamicConfigModelV7(getConfigV7(config), esSettings, configPath, iab);
             ium = new InternalUsersModelV7((SecurityDynamicConfiguration<InternalUserV7>) internalusers);
             cm = new ConfigModelV7((SecurityDynamicConfiguration<RoleV7>) roles,(SecurityDynamicConfiguration<RoleMappingsV7>)rolesmapping, (SecurityDynamicConfiguration<ActionGroupsV7>)actionGroups, (SecurityDynamicConfiguration<TenantV7>) tenants,dcm, esSettings);
-            nm = new NodesDnModelV7(nodesDn);
 
         } else {
 
@@ -202,8 +200,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
             dcm = new DynamicConfigModelV6(getConfigV6(config), esSettings, configPath, iab);
             ium = new InternalUsersModelV6((SecurityDynamicConfiguration<InternalUserV6>) internalusers);
             cm = new ConfigModelV6((SecurityDynamicConfiguration<RoleV6>) roles, (SecurityDynamicConfiguration<ActionGroupsV6>)actionGroups, (SecurityDynamicConfiguration<RoleMappingsV6>)rolesmapping, dcm, esSettings);
-            nm = new NodesDnModelV6(nodesDn);
-            
+
         }
 
         //notify subscribers
@@ -329,31 +326,14 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         }
     }
 
-    private static class NodesDnModelV7 extends NodesDnModel {
+    private static class NodesDnModelImpl extends NodesDnModel {
 
-        SecurityDynamicConfiguration<NodesDnV7> configuration;
+        SecurityDynamicConfiguration<NodesDn> configuration;
 
-        public NodesDnModelV7(SecurityDynamicConfiguration<?> configuration) {
+        public NodesDnModelImpl(SecurityDynamicConfiguration<?> configuration) {
             super();
             this.configuration = null == configuration.getCType() ? SecurityDynamicConfiguration.empty() :
-                (SecurityDynamicConfiguration<NodesDnV7>)configuration;
-        }
-
-        @Override
-        public Map<String, List<String>> getNodesDn() {
-            return this.configuration.getCEntries().entrySet().stream().collect(
-                Collectors.toMap(Entry::getKey, entry -> entry.getValue().getNodesDn()));
-        }
-    }
-
-    private static class NodesDnModelV6 extends NodesDnModel {
-
-        SecurityDynamicConfiguration<NodesDnV6> configuration;
-
-        public NodesDnModelV6(SecurityDynamicConfiguration<?> configuration) {
-            super();
-            this.configuration = null == configuration.getCType() ? SecurityDynamicConfiguration.empty() :
-                (SecurityDynamicConfiguration<NodesDnV6>)configuration;
+                (SecurityDynamicConfiguration<NodesDn>)configuration;
         }
 
         @Override

@@ -8,8 +8,7 @@ import com.amazon.opendistroforelasticsearch.security.dlic.rest.validation.Nodes
 import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvaluator;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SecurityDynamicConfiguration;
-import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v6.NodesDnV6;
-import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.NodesDnV7;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.NodesDn;
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.PrincipalExtractor;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -115,14 +114,10 @@ public class NodesDnApiAction extends PatchableResourceApiAction {
     }
 
     private void putStaticEntry(SecurityDynamicConfiguration<?> configuration) {
-        if (NodesDnV7.class.equals(configuration.getImplementingClass())) {
-            NodesDnV7 nodesDnV7 = new NodesDnV7();
-            nodesDnV7.setNodesDn(staticNodesDnFromEsYml);
-            ((SecurityDynamicConfiguration<NodesDnV7>)configuration).putCEntry(STATIC_ES_YML_NODES_DN, nodesDnV7);
-        } else if (NodesDnV6.class.equals(configuration.getImplementingClass())) {
-            NodesDnV6 nodesDnV6 = new NodesDnV6();
-            nodesDnV6.setNodesDn(staticNodesDnFromEsYml);
-            ((SecurityDynamicConfiguration<NodesDnV6>)configuration).putCEntry(STATIC_ES_YML_NODES_DN, nodesDnV6);
+        if (NodesDn.class.equals(configuration.getImplementingClass())) {
+            NodesDn nodesDn = new NodesDn();
+            nodesDn.setNodesDn(staticNodesDnFromEsYml);
+            ((SecurityDynamicConfiguration<NodesDn>)configuration).putCEntry(STATIC_ES_YML_NODES_DN, nodesDn);
         } else {
             throw new RuntimeException("Unknown class type - " + configuration.getImplementingClass());
         }

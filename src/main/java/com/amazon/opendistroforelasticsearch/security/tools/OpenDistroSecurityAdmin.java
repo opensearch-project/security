@@ -49,7 +49,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.NodesDnV7;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.NodesDn;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -1268,7 +1268,7 @@ public class OpenDistroSecurityAdmin {
             SecurityDynamicConfiguration<RoleMappingsV6> rolesmappingV6 = SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir,"roles_mapping.yml")), CType.ROLESMAPPING, 1, 0, 0);
             Tuple<SecurityDynamicConfiguration<RoleV7>, SecurityDynamicConfiguration<TenantV7>> rolesTenantsV7 = Migration.migrateRoles(SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir,"roles.yml")), CType.ROLES, 1, 0, 0), rolesmappingV6);
             SecurityDynamicConfiguration<RoleMappingsV7> rolesmappingV7 = Migration.migrateRoleMappings(rolesmappingV6);
-            SecurityDynamicConfiguration<NodesDnV7> nodesDnV7 =
+            SecurityDynamicConfiguration<NodesDn> nodesDn =
                 Migration.migrateNodesDn(SecurityDynamicConfiguration.fromNode(
                     DefaultObjectMapper.YAML_MAPPER.readTree(ConfigHelper.createFileOrStringReader(CType.NODESDN, 1, new File(backupDir,"nodes_dn.yml").getAbsolutePath(), true)),
                     CType.NODESDN, 1, 0, 0));
@@ -1279,7 +1279,7 @@ public class OpenDistroSecurityAdmin {
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/roles.yml"), rolesTenantsV7.v1());
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/tenants.yml"), rolesTenantsV7.v2());
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/roles_mapping.yml"), rolesmappingV7);
-            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/nodes_dn.yml"), nodesDnV7);
+            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/nodes_dn.yml"), nodesDn);
         } catch (Exception e) {
             System.out.println("ERR: Unable to migrate config files due to "+e);
             e.printStackTrace();

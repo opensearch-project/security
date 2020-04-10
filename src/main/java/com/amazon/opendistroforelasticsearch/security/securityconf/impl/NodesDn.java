@@ -1,21 +1,21 @@
-package com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7;
+package com.amazon.opendistroforelasticsearch.security.securityconf.impl;
 
-import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v6.NodesDnV6;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class NodesDnV7 {
+public class NodesDn {
     @JsonProperty(value = "nodes_dn")
-    private List<String> nodesDn = Collections.emptyList();
+    private List<String> nodesDn;
 
-    public NodesDnV7() {
+    public NodesDn() {
+        this.nodesDn = Collections.emptyList();
     }
 
-    public NodesDnV7(NodesDnV6 nodesDnV6) {
-        this.nodesDn = new ArrayList<>(nodesDnV6.getNodesDn());
+    public NodesDn(NodesDn nodesDn) {
+        this.nodesDn = new ArrayList<>(nodesDn.getNodesDn());
     }
 
     @JsonProperty(value = "nodes_dn")
@@ -30,6 +30,6 @@ public class NodesDnV7 {
 
     @Override
     public String toString() {
-        return "NodesDnV7 [nodes_dn=" + nodesDn + ']';
+        return "NodesDn [nodes_dn=" + nodesDn + ']';
     }
 }

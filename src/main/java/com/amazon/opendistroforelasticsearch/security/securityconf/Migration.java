@@ -7,6 +7,7 @@ import java.util.Set;
 
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.Meta;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.NodesDn;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v6.*;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.*;
@@ -97,17 +98,17 @@ public class Migration {
         return c7;
     }
 
-    public static SecurityDynamicConfiguration<NodesDnV7> migrateNodesDn(SecurityDynamicConfiguration<NodesDnV6> n6) {
-        final SecurityDynamicConfiguration<NodesDnV7> n7 = SecurityDynamicConfiguration.empty();
-        n7.setCType(n6.getCType());
-        n7.set_meta(new Meta());
-        n7.get_meta().setConfig_version(2);
-        n7.get_meta().setType("nodesdn");
+    public static SecurityDynamicConfiguration<NodesDn> migrateNodesDn(SecurityDynamicConfiguration<NodesDn> nodesDn) {
+        final SecurityDynamicConfiguration<NodesDn> migrated = SecurityDynamicConfiguration.empty();
+        migrated.setCType(nodesDn.getCType());
+        migrated.set_meta(new Meta());
+        migrated.get_meta().setConfig_version(2);
+        migrated.get_meta().setType("nodesdn");
 
-        for(final Entry<String, NodesDnV6> r6c: n6.getCEntries().entrySet()) {
-            n7.putCEntry(r6c.getKey(), new NodesDnV7(r6c.getValue()));
+        for(final Entry<String, NodesDn> entry: nodesDn.getCEntries().entrySet()) {
+            migrated.putCEntry(entry.getKey(), new NodesDn(entry.getValue()));
         }
-        return n7;
+        return migrated;
     }
 
     public static SecurityDynamicConfiguration<InternalUserV7>  migrateInternalUsers(SecurityDynamicConfiguration<InternalUserV6> r6is) throws MigrationException {
