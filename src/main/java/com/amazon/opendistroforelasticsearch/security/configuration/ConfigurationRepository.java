@@ -147,7 +147,7 @@ public class ConfigurationRepository {
                                             ConfigHelper.uploadFile(client, cd+"tenants.yml", opendistrosecurityIndex, CType.TENANTS, DEFAULT_CONFIG_VERSION);
                                         }
                                         final boolean populateEmptyIfFileMissing = true;
-                                        ConfigHelper.uploadFile(client, cd+"nodesdn.yml", opendistrosecurityIndex, CType.NODESDN, DEFAULT_CONFIG_VERSION, populateEmptyIfFileMissing);
+                                        ConfigHelper.uploadFile(client, cd+"nodes_dn.yml", opendistrosecurityIndex, CType.NODESDN, DEFAULT_CONFIG_VERSION, populateEmptyIfFileMissing);
                                         LOGGER.info("Default config applied");
                                     } else {
                                         LOGGER.error("Can not create {} index", opendistrosecurityIndex);

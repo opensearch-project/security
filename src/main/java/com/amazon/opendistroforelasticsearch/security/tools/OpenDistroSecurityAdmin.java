@@ -1210,7 +1210,7 @@ public class OpenDistroSecurityAdmin {
         if(!legacy) {
             success = retrieveFile(tc, backupDir.getAbsolutePath()+"/tenants.yml", index, "tenants", legacy) && success;
         }
-        success = retrieveFile(tc, backupDir.getAbsolutePath()+"/nodesdn.yml", index, "nodesdn", legacy, true) && success;
+        success = retrieveFile(tc, backupDir.getAbsolutePath()+"/nodes_dn.yml", index, "nodesdn", legacy, true) && success;
 
         return success?0:-1;
     }
