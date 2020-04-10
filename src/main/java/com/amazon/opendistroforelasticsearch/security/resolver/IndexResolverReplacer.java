@@ -91,6 +91,7 @@ import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotUtils;
 import org.elasticsearch.transport.RemoteClusterService;
 import org.elasticsearch.transport.TransportRequest;
+import org.greenrobot.eventbus.Subscribe;
 
 import com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin;
 import com.amazon.opendistroforelasticsearch.security.configuration.ClusterInfoHolder;
@@ -99,7 +100,6 @@ import com.amazon.opendistroforelasticsearch.security.support.SnapshotRestoreHel
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.eventbus.Subscribe;
 
 public final class IndexResolverReplacer {
 

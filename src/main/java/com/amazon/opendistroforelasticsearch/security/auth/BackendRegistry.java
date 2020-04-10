@@ -59,6 +59,7 @@ import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportRequest;
+import org.greenrobot.eventbus.Subscribe;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
 import com.amazon.opendistroforelasticsearch.security.auth.blocking.ClientBlockRegistry;
@@ -78,7 +79,6 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.Multimap;
-import com.google.common.eventbus.Subscribe;
 
 public class BackendRegistry {
 
