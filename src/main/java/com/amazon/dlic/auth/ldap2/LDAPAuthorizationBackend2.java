@@ -31,7 +31,7 @@ import java.util.Set;
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 
-import com.amazon.opendistroforelasticsearch.security.support.wildcard.Wildcard;
+import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchSecurityException;
@@ -70,8 +70,8 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
 
     protected static final Logger log = LogManager.getLogger(LDAPAuthorizationBackend2.class);
     private final Settings settings;
-    private final Wildcard skipUsersFilter;
-    private final Wildcard nestedRoleFilter;
+    private final WildcardMatcher skipUsersFilter;
+    private final WildcardMatcher nestedRoleFilter;
     private final List<Map.Entry<String, Settings>> roleBaseSettings;
     private ConnectionPool connectionPool;
     private ConnectionFactory connectionFactory;
@@ -79,9 +79,9 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
 
     public LDAPAuthorizationBackend2(final Settings settings, final Path configPath) throws SSLConfigException {
         this.settings = settings;
-        this.skipUsersFilter = Wildcard.caseSensitiveAny(settings.getAsList(ConfigConstants.LDAP_AUTHZ_SKIP_USERS,
+        this.skipUsersFilter = WildcardMatcher.pattern(settings.getAsList(ConfigConstants.LDAP_AUTHZ_SKIP_USERS,
                 Collections.emptyList()));
-        this.nestedRoleFilter = Wildcard.caseSensitiveAny(settings.getAsList(ConfigConstants.LDAP_AUTHZ_NESTEDROLEFILTER,
+        this.nestedRoleFilter = WildcardMatcher.pattern(settings.getAsList(ConfigConstants.LDAP_AUTHZ_NESTEDROLEFILTER,
                 Collections.emptyList()));
         this.roleBaseSettings = getRoleSearchSettings(settings);
 
@@ -185,7 +185,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
             log.trace("dn: {}", dn);
         }
 
-        if (skipUsersFilter.matches(authenticatedUser)) {
+        if (skipUsersFilter.test(authenticatedUser)) {
             if (log.isDebugEnabled()) {
                 log.debug("Skipped search roles of user {}/{}", authenticatedUser, originalUserName);
             }
@@ -409,10 +409,10 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
 
     protected Set<LdapName> resolveNestedRoles(final LdapName roleDn, final Connection ldapConnection,
                                                String userRoleName, int depth, final boolean rolesearchEnabled,
-                                               Set<Map.Entry<String, Settings>> roleSearchBaseSettingsSet, final Wildcard roleFilter)
+                                               Set<Map.Entry<String, Settings>> roleSearchBaseSettingsSet, final WildcardMatcher roleFilter)
             throws ElasticsearchSecurityException, LdapException {
 
-        if (roleFilter.matches(roleDn.toString())) {
+        if (roleFilter.test(roleDn.toString())) {
 
             if (log.isTraceEnabled()) {
                 log.trace("Filter nested role {}", roleDn);

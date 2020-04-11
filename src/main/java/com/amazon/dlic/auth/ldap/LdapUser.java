@@ -20,7 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.amazon.opendistroforelasticsearch.security.support.wildcard.Wildcard;
+import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import org.ldaptive.LdapAttribute;
 import org.ldaptive.LdapEntry;
 
@@ -36,7 +36,7 @@ public class LdapUser extends User {
     private final String originalUsername;
 
     public LdapUser(final String name, String originalUsername, final LdapEntry userEntry,
-            final AuthCredentials credentials, int customAttrMaxValueLen, Wildcard whiteListedAttributes) {
+            final AuthCredentials credentials, int customAttrMaxValueLen, WildcardMatcher whiteListedAttributes) {
         super(name, null, credentials);
         this.originalUsername = originalUsername;
         this.userEntry = userEntry;
@@ -62,7 +62,7 @@ public class LdapUser extends User {
     }
     
     public static Map<String, String> extractLdapAttributes(String originalUsername, final LdapEntry userEntry
-            , int customAttrMaxValueLen, Wildcard whiteListedAttributes) {
+            , int customAttrMaxValueLen, WildcardMatcher whiteListedAttributes) {
         Map<String, String> attributes = new HashMap<>();
         attributes.put("ldap.original.username", originalUsername);
         attributes.put("ldap.dn", userEntry.getDn());
@@ -75,7 +75,7 @@ public class LdapUser extends User {
                     // longer than customAttrMaxValueLen characters
                     if (val != null && val.length() > 0 && val.length() <= customAttrMaxValueLen) {
                         //FIXME: this is strange - shouldn't we skip not matched attributes?
-                        if (whiteListedAttributes.matches(attr.getName())) {
+                        if (whiteListedAttributes.test(attr.getName())) {
                             attributes.put("attr.ldap." + attr.getName(), val);
                         } else {
                             attributes.put("attr.ldap." + attr.getName(), val);

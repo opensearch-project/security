@@ -3,7 +3,7 @@ package com.amazon.opendistroforelasticsearch.security.securityconf;
 import java.util.Map;
 import java.util.Set;
 
-import com.amazon.opendistroforelasticsearch.security.support.wildcard.Wildcard;
+import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.Tuple;
@@ -26,9 +26,9 @@ public abstract class SecurityRoles {
     public abstract boolean get(Resolved requestedResolved, User user, String[] allIndexPermsRequiredA, IndexNameExpressionResolver resolver,
             ClusterService clusterService);
 
-    public abstract Map<Wildcard, Set<String>> getMaskedFields(User user, IndexNameExpressionResolver resolver, ClusterService clusterService);
+    public abstract Map<WildcardMatcher, Set<String>> getMaskedFields(User user, IndexNameExpressionResolver resolver, ClusterService clusterService);
 
-    public abstract Tuple<Map<Wildcard, Set<String>>, Map<Wildcard, Set<String>>> getDlsFls(User user, IndexNameExpressionResolver resolver,
+    public abstract Tuple<Map<WildcardMatcher, Set<String>>, Map<WildcardMatcher, Set<String>>> getDlsFls(User user, IndexNameExpressionResolver resolver,
                                                                                             ClusterService clusterService);
 
     public abstract Set<String> getAllPermittedIndicesForKibana(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs);

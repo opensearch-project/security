@@ -48,7 +48,7 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.amazon.opendistroforelasticsearch.security.support.wildcard.Wildcard;
+import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import org.apache.lucene.index.DirectoryReader;
 import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenDistroSecuritySSLReloadCertsAction;
 import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenDistroSecuritySSLCertsInfoAction;
@@ -159,7 +159,6 @@ import com.amazon.opendistroforelasticsearch.security.support.HeaderHelper;
 import com.amazon.opendistroforelasticsearch.security.support.ModuleInfo;
 import com.amazon.opendistroforelasticsearch.security.support.OpenDistroSecurityUtils;
 import com.amazon.opendistroforelasticsearch.security.support.ReflectionHelper;
-import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.amazon.opendistroforelasticsearch.security.transport.DefaultInterClusterRequestEvaluator;
 import com.amazon.opendistroforelasticsearch.security.transport.InterClusterRequestEvaluator;
 import com.amazon.opendistroforelasticsearch.security.transport.OpenDistroSecurityInterceptor;
@@ -544,14 +543,14 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
 
                     @Override
                     public Weight doCache(Weight weight, QueryCachingPolicy policy) {
-                        final Map<Wildcard, Set<String>> allowedFlsFields = (Map<Wildcard, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadPool.getThreadContext(),
+                        final Map<WildcardMatcher, Set<String>> allowedFlsFields = (Map<WildcardMatcher, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadPool.getThreadContext(),
                                 ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER);
                         
                         if(OpenDistroSecurityUtils.evalMap(allowedFlsFields, index().getName()) != null) {
                             return weight;
                         } else {
                             
-                            final Map<Wildcard, Set<String>> maskedFieldsMap = (Map<Wildcard, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadPool.getThreadContext(),
+                            final Map<WildcardMatcher, Set<String>> maskedFieldsMap = (Map<WildcardMatcher, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadPool.getThreadContext(),
                                     ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER);
                             
                             if(OpenDistroSecurityUtils.evalMap(maskedFieldsMap, index().getName()) != null) {
@@ -1049,10 +1048,10 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             if (threadPool == null) {
                 return field -> true;
             }
-            final Map<Wildcard, Set<String>> allowedFlsFields = (Map<Wildcard, Set<String>>) HeaderHelper
+            final Map<WildcardMatcher, Set<String>> allowedFlsFields = (Map<WildcardMatcher, Set<String>>) HeaderHelper
                     .deserializeSafeFromHeader(threadPool.getThreadContext(), ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER);
 
-            final Wildcard eval = OpenDistroSecurityUtils.evalMap(allowedFlsFields, index);
+            final WildcardMatcher eval = OpenDistroSecurityUtils.evalMap(allowedFlsFields, index);
 
             if (eval == null) {
                 return field -> true;
@@ -1074,11 +1073,11 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                 }
 
                 if (!excludesSet.isEmpty()) {
-                    Wildcard wildcard = Wildcard.caseSensitiveAny(excludesSet);
-                    return field -> !wildcard.matches(handleKeyword(field));
+                    WildcardMatcher matcher = WildcardMatcher.pattern(excludesSet);
+                    return field -> !matcher.test(handleKeyword(field));
                 } else {
-                    Wildcard wildcard = Wildcard.caseSensitiveAny(includesSet);
-                    return field -> wildcard.matches(handleKeyword(field));
+                    WildcardMatcher matcher = WildcardMatcher.pattern(includesSet);
+                    return field -> matcher.test(handleKeyword(field));
                 }
             }
         };

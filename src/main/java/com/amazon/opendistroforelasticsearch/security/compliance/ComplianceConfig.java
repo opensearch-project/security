@@ -41,7 +41,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
-import com.amazon.opendistroforelasticsearch.security.support.wildcard.Wildcard;
+import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
@@ -56,7 +56,6 @@ import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
 import com.amazon.opendistroforelasticsearch.security.resolver.IndexResolverReplacer;
 import com.amazon.opendistroforelasticsearch.security.resolver.IndexResolverReplacer.Resolved;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
-import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -66,8 +65,8 @@ public class ComplianceConfig {
 
     private final Logger log = LogManager.getLogger(getClass());
     private final Settings settings;
-	private final Map<Wildcard, Set<String>> readEnabledFields = new HashMap<>(100);
-    private final Wildcard watchedWriteIndices;
+	private final Map<WildcardMatcher, Set<String>> readEnabledFields = new HashMap<>(100);
+    private final WildcardMatcher watchedWriteIndices;
     private DateTimeFormatter auditLogPattern = null;
     private String auditLogIndex = null;
     private final boolean logDiffsForWrite;
@@ -75,8 +74,8 @@ public class ComplianceConfig {
     private final boolean logReadMetadataOnly;
     private final boolean logExternalConfig;
     private final boolean logInternalConfig;
-    private final LoadingCache<String, Wildcard> cache;
-    private final Wildcard immutableIndicesPatterns;
+    private final LoadingCache<String, WildcardMatcher> cache;
+    private final WildcardMatcher immutableIndicesPatterns;
     private final byte[] salt16;
     private final String opendistrosecurityIndex;
     private final IndexResolverReplacer irr;
@@ -94,13 +93,13 @@ public class ComplianceConfig {
         final List<String> watchedReadFields = this.settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS,
                 Collections.emptyList(), false);
 
-        watchedWriteIndices = Wildcard.caseSensitiveAny(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, Collections.emptyList()));
+        watchedWriteIndices = WildcardMatcher.pattern(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, Collections.emptyList()));
         logDiffsForWrite = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS, false);
         logWriteMetadataOnly = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_METADATA_ONLY, false);
         logReadMetadataOnly = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_METADATA_ONLY, false);
         logExternalConfig = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED, false);
         logInternalConfig = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, false);
-        immutableIndicesPatterns = Wildcard.caseSensitiveAny(new HashSet<>(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList())));
+        immutableIndicesPatterns = WildcardMatcher.pattern(new HashSet<>(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList())));
         final String saltAsString = settings.get(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT, ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT_DEFAULT);
         final byte[] saltAsBytes = saltAsString.getBytes(StandardCharsets.UTF_8);
 
@@ -126,10 +125,10 @@ public class ComplianceConfig {
             if(split.isEmpty()) {
                 continue;
             } else if(split.size() == 1) {
-                readEnabledFields.put(Wildcard.caseSensitive(split.get(0)), Collections.singleton("*"));
+                readEnabledFields.put(WildcardMatcher.pattern(split.get(0)), Collections.singleton("*"));
             } else {
                 Set<String> _fields = new HashSet<String>(split.subList(1, split.size()));
-                readEnabledFields.put(Wildcard.caseSensitive(split.get(0)), _fields);
+                readEnabledFields.put(WildcardMatcher.pattern(split.get(0)), _fields);
             }
         }
 
@@ -151,10 +150,10 @@ public class ComplianceConfig {
 
         cache = CacheBuilder.newBuilder()
                 .maximumSize(1000)
-                .build(new CacheLoader<String, Wildcard>() {
+                .build(new CacheLoader<String, WildcardMatcher>() {
                     @Override
-                    public Wildcard load(String index) throws Exception {
-                        return Wildcard.caseSensitiveAny(getFieldsForIndex0(index));
+                    public WildcardMatcher load(String index) throws Exception {
+                        return WildcardMatcher.pattern(getFieldsForIndex0(index));
                     }
                 });
     }
@@ -194,8 +193,8 @@ public class ComplianceConfig {
         }
 
         final Set<String> tmp = new HashSet<String>(100);
-        for(Map.Entry<Wildcard, Set<String>> patternToFields: readEnabledFields.entrySet()) {
-            if(patternToFields.getKey().matches(index)) {
+        for(Map.Entry<WildcardMatcher, Set<String>> patternToFields: readEnabledFields.entrySet()) {
+            if(patternToFields.getKey().test(index)) {
                 tmp.addAll(patternToFields.getValue());
             }
         }
@@ -230,7 +229,7 @@ public class ComplianceConfig {
             }
         }
 
-        return watchedWriteIndices.matches(index);
+        return watchedWriteIndices.test(index);
     }
 
     //no patterns here as parameters
@@ -246,7 +245,7 @@ public class ComplianceConfig {
         }
         
         try {
-            return cache.get(index) != Wildcard.NONE;
+            return cache.get(index) != WildcardMatcher.NONE;
         } catch (ExecutionException e) {
             log.error(e);
             return true;
@@ -266,7 +265,7 @@ public class ComplianceConfig {
         }
         
         try {
-            return  cache.get(index).matches(field);
+            return  cache.get(index).test(field);
         } catch (ExecutionException e) {
             log.error(e);
             return true;
@@ -301,7 +300,7 @@ public class ComplianceConfig {
             return false;
         }
         
-        if(immutableIndicesPatterns == Wildcard.NONE) {
+        if(immutableIndicesPatterns == WildcardMatcher.NONE) {
             return false;
         }
         
@@ -309,7 +308,7 @@ public class ComplianceConfig {
         final Set<String> allIndices = resolved.getAllIndices();
 
 
-        return immutableIndicesPatterns.matchesAny(allIndices);
+        return immutableIndicesPatterns.matchAny(allIndices);
     }
 
     public byte[] getSalt16() {

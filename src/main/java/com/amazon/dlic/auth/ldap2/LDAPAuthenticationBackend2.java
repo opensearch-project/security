@@ -23,10 +23,9 @@ import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 import java.util.UUID;
 
-import com.amazon.opendistroforelasticsearch.security.support.wildcard.Wildcard;
+import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchSecurityException;
@@ -61,7 +60,7 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
     private ConnectionFactory authConnectionFactory;
     private LDAPUserSearcher userSearcher;
     private final int customAttrMaxValueLen;
-    private final Wildcard whitelistedAttributes;
+    private final WildcardMatcher whitelistedAttributes;
 
     public LDAPAuthenticationBackend2(final Settings settings, final Path configPath) throws SSLConfigException {
         this.settings = settings;
@@ -80,7 +79,7 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
 
         this.userSearcher = new LDAPUserSearcher(settings);
         customAttrMaxValueLen = settings.getAsInt(ConfigConstants.LDAP_CUSTOM_ATTR_MAXVAL_LEN, 36);
-        whitelistedAttributes = Wildcard.caseSensitiveAny(settings.getAsList(ConfigConstants.LDAP_CUSTOM_ATTR_WHITELIST,
+        whitelistedAttributes = WildcardMatcher.pattern(settings.getAsList(ConfigConstants.LDAP_CUSTOM_ATTR_WHITELIST,
                 Collections.emptyList()));
     }
 
@@ -163,7 +162,7 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
             // by default all ldap attributes which are not binary and with a max value
             // length of 36 are included in the user object
             // if the whitelist contains at least one value then all attributes will be
-            // additional check if whitelisted (whitelist can contain wildcard and regex)
+            // additional check if whitelisted (whitelist can contain WildcardMatcher and regex)
             return new LdapUser(username, user, entry, credentials, customAttrMaxValueLen, whitelistedAttributes);
 
         } catch (final Exception e) {

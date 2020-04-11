@@ -31,8 +31,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
-import com.amazon.opendistroforelasticsearch.security.support.wildcard.Wildcard;
+import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.FieldInfo;
@@ -85,9 +86,7 @@ import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.HeaderHelper;
 import com.amazon.opendistroforelasticsearch.security.support.MapUtils;
 import com.amazon.opendistroforelasticsearch.security.support.OpenDistroSecurityUtils;
-import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.google.common.base.Joiner;
-import com.google.common.base.Predicate;
 import com.google.common.collect.Iterators;
 
 class DlsFlsFilterLeafReader extends FilterLeafReader {
@@ -108,7 +107,7 @@ class DlsFlsFilterLeafReader extends FilterLeafReader {
     private final ComplianceConfig complianceConfig;
     private final AuditLog auditlog;
     private final Map<String, MaskedField> maskedFieldsMap;
-    private final Set<String> maskedFieldsKeySet;
+    private final Set<WildcardMatcher> maskedFieldsKeyPatterns;
     private final ShardId shardId;
     private final boolean maskFields;
 
@@ -131,9 +130,11 @@ class DlsFlsFilterLeafReader extends FilterLeafReader {
         this.maskedFieldsMap = maskFields?extractMaskedFields(maskedFields):null;
 
         if(maskedFieldsMap != null) {
-            maskedFieldsKeySet = maskedFieldsMap.keySet();
+            maskedFieldsKeyPatterns = maskedFieldsMap.keySet().stream()
+                    .map(WildcardMatcher::pattern)
+                    .collect(Collectors.toSet());
         } else {
-            maskedFieldsKeySet = Collections.emptySet();
+            maskedFieldsKeyPatterns = Collections.emptySet();
         }
 
         this.shardId = shardId;
@@ -179,8 +180,9 @@ class DlsFlsFilterLeafReader extends FilterLeafReader {
                 }
             } else {
                 if (!excludesSet.isEmpty()) {
+                    WildcardMatcher pattern = WildcardMatcher.pattern(excludesSet);
                     for (final FieldInfo info : infos) {
-                        if (!WildcardMatcher.matchAny(excludesSet, info.name)) {
+                        if (!pattern.test(info.name)) {
                             fa[i++] = info;
                         }
                     }
@@ -188,8 +190,9 @@ class DlsFlsFilterLeafReader extends FilterLeafReader {
                     this.excludes = excludesSet.toArray(EMPTY_STRING_ARRAY);
 
                 } else {
+                    WildcardMatcher pattern = WildcardMatcher.pattern(includesSet);
                     for (final FieldInfo info : infos) {
-                        if (WildcardMatcher.matchAny(includesSet, info.name)) {
+                        if (pattern.test(info.name)) {
                             fa[i++] = info;
                         }
                     }
@@ -420,7 +423,7 @@ class DlsFlsFilterLeafReader extends FilterLeafReader {
 
         private final StoredFieldVisitor delegate;
         private FieldReadCallback fieldReadCallback =
-                new FieldReadCallback(threadContext, indexService, clusterService, complianceConfig, auditlog, maskedFieldsKeySet, shardId);
+                new FieldReadCallback(threadContext, indexService, clusterService, complianceConfig, auditlog, maskedFieldsKeyPatterns, shardId);
 
         public ComplianceAwareStoredFieldVisitor(final StoredFieldVisitor delegate) {
             super();
@@ -606,11 +609,10 @@ class DlsFlsFilterLeafReader extends FilterLeafReader {
 
         @Override
         public void stringField(final FieldInfo fieldInfo, final byte[] value) throws IOException {
-
-            final Optional<String> matchedPattern = WildcardMatcher.getFirstMatchingPattern(maskedFieldsKeySet, fieldInfo.name);
+            final Optional<WildcardMatcher> matchedPattern = WildcardMatcher.getFirstMatchingPattern(maskedFieldsKeyPatterns, fieldInfo.name);
 
             if(matchedPattern.isPresent()) {
-                delegate.stringField(fieldInfo, maskedFieldsMap.get(matchedPattern.get()).mask(value));
+                delegate.stringField(fieldInfo, maskedFieldsMap.get(matchedPattern.get().toString()).mask(value));
             } else {
                 delegate.stringField(fieldInfo, value);
             }
@@ -655,19 +657,19 @@ class DlsFlsFilterLeafReader extends FilterLeafReader {
         public void call(String key, Map<String, Object> map, List<String> stack) {
             Object v = map.get(key);
 
-            if (v != null && (v instanceof List)) {
+            if (v instanceof List) {
                 final String field = stack.isEmpty() ? key : Joiner.on('.').join(stack) + "." + key;
-                final Optional<String> matchedPattern = WildcardMatcher.getFirstMatchingPattern(maskedFieldsKeySet,
-                        field);
+                final Optional<WildcardMatcher> matchedPattern = WildcardMatcher.getFirstMatchingPattern(
+                        maskedFieldsKeyPatterns, field);
                 if (matchedPattern.isPresent()) {
                     final List listField = (List) v;
                     for (ListIterator iterator = listField.listIterator(); iterator.hasNext();) {
                         final Object listFieldItem = iterator.next();
 
                         if (listFieldItem instanceof String) {
-                            iterator.set(maskedFieldsMap.get(matchedPattern.get()).mask(((String) listFieldItem)));
+                            iterator.set(maskedFieldsMap.get(matchedPattern.get().toString()).mask(((String) listFieldItem)));
                         } else if (listFieldItem instanceof byte[]) {
-                            iterator.set(maskedFieldsMap.get(matchedPattern.get()).mask(((byte[]) listFieldItem)));
+                            iterator.set(maskedFieldsMap.get(matchedPattern.get().toString()).mask(((byte[]) listFieldItem)));
                         }
                     }
                 }
@@ -676,13 +678,13 @@ class DlsFlsFilterLeafReader extends FilterLeafReader {
             if (v != null && (v instanceof String || v instanceof byte[])) {
 
                 final String field = stack.isEmpty() ? key : Joiner.on('.').join(stack) + "." + key;
-                final Optional<String> matchedPattern = WildcardMatcher.getFirstMatchingPattern(maskedFieldsKeySet,
+                final Optional<WildcardMatcher> matchedPattern = WildcardMatcher.getFirstMatchingPattern(maskedFieldsKeyPatterns,
                         field);
                 if (matchedPattern.isPresent()) {
                     if (v instanceof String) {
-                        map.replace(key, maskedFieldsMap.get(matchedPattern.get()).mask(((String) v)));
+                        map.replace(key, maskedFieldsMap.get(matchedPattern.get().toString()).mask(((String) v)));
                     } else {
-                        map.replace(key, maskedFieldsMap.get(matchedPattern.get()).mask(((byte[]) v)));
+                        map.replace(key, maskedFieldsMap.get(matchedPattern.get().toString()).mask(((byte[]) v)));
                     }
                 }
             }
@@ -702,13 +704,7 @@ class DlsFlsFilterLeafReader extends FilterLeafReader {
 
             @Override
             public Iterator<String> iterator() {
-                return Iterators.<String> filter(fields.iterator(), new Predicate<String>() {
-
-                    @Override
-                    public boolean apply(final String input) {
-                        return isFls(input);
-                    }
-                });
+                return Iterators.<String> filter(fields.iterator(), input -> isFls(input));
             }
 
             @Override
@@ -745,47 +741,52 @@ class DlsFlsFilterLeafReader extends FilterLeafReader {
         final Map<String, MaskedField> rtMask;
         final String matchedPattern;
 
-        if (binaryDocValues != null && (rtMask=getRuntimeMaskedFieldInfo())!=null
-                && (matchedPattern = WildcardMatcher.getFirstMatchingPattern(rtMask.keySet(), handleKeyword(field)).orElse(null)) != null) {
+        if (binaryDocValues != null && ((rtMask=getRuntimeMaskedFieldInfo()) != null)) {
+            final List<WildcardMatcher> patterns = rtMask.keySet().stream().map(WildcardMatcher::pattern).collect(Collectors.toList());
+            matchedPattern = WildcardMatcher.getFirstMatchingPattern(patterns, handleKeyword(field))
+                    .map(Object::toString).orElse(null);
+            if (matchedPattern != null) {
+                final MaskedField mf = rtMask.get(matchedPattern);
 
-            final MaskedField mf = rtMask.get(matchedPattern);
+                if (mf == null) {
+                    return binaryDocValues;
+                }
 
-            if(mf == null) {
-                return binaryDocValues;
+                return new BinaryDocValues() {
+
+                    @Override
+                    public int nextDoc() throws IOException {
+                        return binaryDocValues.nextDoc();
+                    }
+
+                    @Override
+                    public int docID() {
+                        return binaryDocValues.docID();
+                    }
+
+                    @Override
+                    public long cost() {
+                        return binaryDocValues.cost();
+                    }
+
+                    @Override
+                    public int advance(int target) throws IOException {
+                        return binaryDocValues.advance(target);
+                    }
+
+                    @Override
+                    public boolean advanceExact(int target) throws IOException {
+                        return binaryDocValues.advanceExact(target);
+                    }
+
+                    @Override
+                    public BytesRef binaryValue() throws IOException {
+                        return mf.mask(binaryDocValues.binaryValue());
+                    }
+                };
             }
-
-            return new BinaryDocValues() {
-
-                @Override
-                public int nextDoc() throws IOException {
-                    return binaryDocValues.nextDoc();
-                }
-
-                @Override
-                public int docID() {
-                    return binaryDocValues.docID();
-                }
-
-                @Override
-                public long cost() {
-                    return binaryDocValues.cost();
-                }
-
-                @Override
-                public int advance(int target) throws IOException {
-                    return binaryDocValues.advance(target);
-                }
-
-                @Override
-                public boolean advanceExact(int target) throws IOException {
-                    return binaryDocValues.advanceExact(target);
-                }
-
-                @Override
-                public BytesRef binaryValue() throws IOException {
-                    return mf.mask(binaryDocValues.binaryValue());
-                }
-            };
+            else
+                return binaryDocValues;
         } else {
             return binaryDocValues;
         }
@@ -800,80 +801,86 @@ class DlsFlsFilterLeafReader extends FilterLeafReader {
     private SortedDocValues wrapSortedDocValues(final String field, final SortedDocValues sortedDocValues) {
 
         final Map<String, MaskedField> rtMask;
-        final String matchedPattern;
+        
+        if (sortedDocValues != null && (rtMask=getRuntimeMaskedFieldInfo())!=null) {
+            List<WildcardMatcher> patterns = rtMask.keySet().stream()
+                    .map(WildcardMatcher::pattern)
+                    .collect(Collectors.toList());
+            final String matchedPattern = WildcardMatcher.getFirstMatchingPattern(patterns, handleKeyword(field)).
+                    map(Object::toString).orElse(null);
+            if (matchedPattern != null) {
+                final MaskedField mf = rtMask.get(matchedPattern);
 
-        if (sortedDocValues != null && (rtMask=getRuntimeMaskedFieldInfo())!=null
-                && (matchedPattern = WildcardMatcher.getFirstMatchingPattern(rtMask.keySet(), handleKeyword(field)).orElse(null)) != null) {
+                if (mf == null) {
+                    return sortedDocValues;
+                }
 
-            final MaskedField mf = rtMask.get(matchedPattern);
+                return new SortedDocValues() {
 
-            if(mf == null) {
-                return sortedDocValues;
+                    @Override
+                    public BytesRef binaryValue() throws IOException {
+                        return mf.mask(sortedDocValues.binaryValue());
+                    }
+
+                    @Override
+                    public int lookupTerm(BytesRef key) throws IOException {
+                        return sortedDocValues.lookupTerm(key);
+                    }
+
+
+                    @Override
+                    public TermsEnum termsEnum() throws IOException {
+                        return new MaskedTermsEnum(sortedDocValues.termsEnum(), mf);
+                    }
+
+                    @Override
+                    public TermsEnum intersect(CompiledAutomaton automaton) throws IOException {
+                        return new MaskedTermsEnum(sortedDocValues.intersect(automaton), mf);
+                    }
+
+                    @Override
+                    public int nextDoc() throws IOException {
+                        return sortedDocValues.nextDoc();
+                    }
+
+                    @Override
+                    public int docID() {
+                        return sortedDocValues.docID();
+                    }
+
+                    @Override
+                    public long cost() {
+                        return sortedDocValues.cost();
+                    }
+
+                    @Override
+                    public int advance(int target) throws IOException {
+                        return sortedDocValues.advance(target);
+                    }
+
+                    @Override
+                    public boolean advanceExact(int target) throws IOException {
+                        return sortedDocValues.advanceExact(target);
+                    }
+
+                    @Override
+                    public int ordValue() throws IOException {
+                        return sortedDocValues.ordValue();
+                    }
+
+                    @Override
+                    public BytesRef lookupOrd(int ord) throws IOException {
+                        return mf.mask(sortedDocValues.lookupOrd(ord));
+                    }
+
+                    @Override
+                    public int getValueCount() {
+                        return sortedDocValues.getValueCount();
+                    }
+                };
             }
-
-            return new SortedDocValues() {
-
-                @Override
-                public BytesRef binaryValue() throws IOException {
-                    return mf.mask(sortedDocValues.binaryValue());
-                }
-
-                @Override
-                public int lookupTerm(BytesRef key) throws IOException {
-                    return sortedDocValues.lookupTerm(key);
-                }
-
-
-                @Override
-                public TermsEnum termsEnum() throws IOException {
-                    return new MaskedTermsEnum(sortedDocValues.termsEnum(), mf);
-                }
-
-                @Override
-                public TermsEnum intersect(CompiledAutomaton automaton) throws IOException {
-                    return new MaskedTermsEnum(sortedDocValues.intersect(automaton), mf);
-                }
-
-                @Override
-                public int nextDoc() throws IOException {
-                    return sortedDocValues.nextDoc();
-                }
-
-                @Override
-                public int docID() {
-                    return sortedDocValues.docID();
-                }
-
-                @Override
-                public long cost() {
-                    return sortedDocValues.cost();
-                }
-
-                @Override
-                public int advance(int target) throws IOException {
-                    return sortedDocValues.advance(target);
-                }
-
-                @Override
-                public boolean advanceExact(int target) throws IOException {
-                    return sortedDocValues.advanceExact(target);
-                }
-
-                @Override
-                public int ordValue() throws IOException {
-                    return sortedDocValues.ordValue();
-                }
-
-                @Override
-                public BytesRef lookupOrd(int ord) throws IOException {
-                    return mf.mask(sortedDocValues.lookupOrd(ord));
-                }
-
-                @Override
-                public int getValueCount() {
-                    return sortedDocValues.getValueCount();
-                }
-            };
+            else 
+                return sortedDocValues;
         } else {
             return sortedDocValues;
         }
@@ -892,77 +899,81 @@ class DlsFlsFilterLeafReader extends FilterLeafReader {
     private SortedSetDocValues wrapSortedSetDocValues(final String field, final SortedSetDocValues sortedSetDocValues) {
 
         final Map<String, MaskedField> rtMask;
-        final String matchedPattern;
 
-        if (sortedSetDocValues != null && (rtMask=getRuntimeMaskedFieldInfo()) !=null
-                && (matchedPattern = WildcardMatcher.getFirstMatchingPattern(rtMask.keySet(), handleKeyword(field)).orElse(null)) != null) {
 
-            final MaskedField mf = rtMask.get(matchedPattern);
+        if (sortedSetDocValues != null && ((rtMask = getRuntimeMaskedFieldInfo()) !=null)) {
+            List<WildcardMatcher> patterns = rtMask.keySet().stream()
+                    .map(WildcardMatcher::pattern)
+                    .collect(Collectors.toList());
+            final String matchedPattern = WildcardMatcher.getFirstMatchingPattern(patterns, handleKeyword(field)).
+                    map(Object::toString).orElse(null);
+            if (matchedPattern != null) {
+                final MaskedField mf = rtMask.get(matchedPattern);
 
-            if(mf == null) {
-                return sortedSetDocValues;
+                if (mf == null) {
+                    return sortedSetDocValues;
+                }
+
+                return new SortedSetDocValues() {
+
+                    @Override
+                    public long lookupTerm(BytesRef key) throws IOException {
+                        return sortedSetDocValues.lookupTerm(key);
+                    }
+
+                    @Override
+                    public TermsEnum termsEnum() throws IOException {
+                        return new MaskedTermsEnum(sortedSetDocValues.termsEnum(), mf);
+                    }
+
+                    @Override
+                    public TermsEnum intersect(CompiledAutomaton automaton) throws IOException {
+                        return new MaskedTermsEnum(sortedSetDocValues.intersect(automaton), mf);
+                    }
+
+                    @Override
+                    public int nextDoc() throws IOException {
+                        return sortedSetDocValues.nextDoc();
+                    }
+
+                    @Override
+                    public int docID() {
+                        return sortedSetDocValues.docID();
+                    }
+
+                    @Override
+                    public long cost() {
+                        return sortedSetDocValues.cost();
+                    }
+
+                    @Override
+                    public int advance(int target) throws IOException {
+                        return sortedSetDocValues.advance(target);
+                    }
+
+                    @Override
+                    public boolean advanceExact(int target) throws IOException {
+                        return sortedSetDocValues.advanceExact(target);
+                    }
+
+                    @Override
+                    public long nextOrd() throws IOException {
+                        return sortedSetDocValues.nextOrd();
+                    }
+
+                    @Override
+                    public BytesRef lookupOrd(long ord) throws IOException {
+                        return mf.mask(sortedSetDocValues.lookupOrd(ord));
+                    }
+
+                    @Override
+                    public long getValueCount() {
+                        return sortedSetDocValues.getValueCount();
+                    }
+                };
             }
-
-            return new SortedSetDocValues() {
-
-                @Override
-                public long lookupTerm(BytesRef key) throws IOException {
-                    return sortedSetDocValues.lookupTerm(key);
-                }
-
-                @Override
-                public TermsEnum termsEnum() throws IOException {
-                    return new MaskedTermsEnum(sortedSetDocValues.termsEnum(), mf);
-                }
-
-                @Override
-                public TermsEnum intersect(CompiledAutomaton automaton) throws IOException {
-                    return new MaskedTermsEnum(sortedSetDocValues.intersect(automaton), mf);
-                }
-
-                @Override
-                public int nextDoc() throws IOException {
-                    return sortedSetDocValues.nextDoc();
-                }
-
-                @Override
-                public int docID() {
-                    return sortedSetDocValues.docID();
-                }
-
-                @Override
-                public long cost() {
-                    return sortedSetDocValues.cost();
-                }
-
-                @Override
-                public int advance(int target) throws IOException {
-                    return sortedSetDocValues.advance(target);
-                }
-
-                @Override
-                public boolean advanceExact(int target) throws IOException {
-                    return sortedSetDocValues.advanceExact(target);
-                }
-
-                @Override
-                public long nextOrd() throws IOException {
-                    return sortedSetDocValues.nextOrd();
-                }
-
-                @Override
-                public BytesRef lookupOrd(long ord) throws IOException {
-                    return mf.mask(sortedSetDocValues.lookupOrd(ord));
-                }
-
-                @Override
-                public long getValueCount() {
-                    return sortedSetDocValues.getValueCount();
-                }
-            };
-        } else {
-            return sortedSetDocValues;
         }
+        return sortedSetDocValues;
     }
 
     @Override
@@ -985,15 +996,19 @@ class DlsFlsFilterLeafReader extends FilterLeafReader {
         if(terms == null) {
             return null;
         }
+
         Map<String, MaskedField> rtMask = getRuntimeMaskedFieldInfo();
-        if(rtMask != null && WildcardMatcher.matchAny(rtMask.keySet(), handleKeyword(field))) {
-            return null;
-        } else {
-            if("_field_names".equals(field)) {
-                return new FilteredTerms(terms);
+        if(rtMask != null) {
+            WildcardMatcher patterns = WildcardMatcher.pattern(rtMask.keySet());
+            if (patterns.test(handleKeyword(field))) {
+                return null;
             }
-            return terms;
         }
+
+        if("_field_names".equals(field)) {
+            return new FilteredTerms(terms);
+        }
+        return terms;
     }
 
     private final class FilteredTermsEnum extends FilterTermsEnum {
@@ -1107,9 +1122,9 @@ class DlsFlsFilterLeafReader extends FilterLeafReader {
             return null;
         }
 
-        final Map<Wildcard, Set<String>> maskedFieldsMap = (Map<Wildcard, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadContext,
+        final Map<WildcardMatcher, Set<String>> maskedFieldsMap = (Map<WildcardMatcher, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadContext,
                 ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER);
-        final Wildcard maskedEval = OpenDistroSecurityUtils.evalMap(maskedFieldsMap, indexService.index().getName());
+        final WildcardMatcher maskedEval = OpenDistroSecurityUtils.evalMap(maskedFieldsMap, indexService.index().getName());
 
         if(maskedEval != null) {
             final Set<String> mf = maskedFieldsMap.get(maskedEval);

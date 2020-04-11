@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import com.amazon.opendistroforelasticsearch.security.support.wildcard.Wildcard;
+import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -59,7 +59,7 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
     private final Path configPath;
     private final List<Map.Entry<String, Settings>> userBaseSettings;
     private final int customAttrMaxValueLen;
-    private final Wildcard whitelistedAttributes;
+    private final WildcardMatcher whitelistedAttributes;
 
     public LDAPAuthenticationBackend(final Settings settings, final Path configPath) {
         this.settings = settings;
@@ -67,7 +67,7 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
         this.userBaseSettings = getUserBaseSettings(settings);
 
         customAttrMaxValueLen = settings.getAsInt(ConfigConstants.LDAP_CUSTOM_ATTR_MAXVAL_LEN, 36);
-        whitelistedAttributes = Wildcard.caseSensitiveAny(settings.getAsList(ConfigConstants.LDAP_CUSTOM_ATTR_WHITELIST,
+        whitelistedAttributes = WildcardMatcher.pattern(settings.getAsList(ConfigConstants.LDAP_CUSTOM_ATTR_WHITELIST,
                 Collections.emptyList()));
     }
 
@@ -128,7 +128,7 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
             // by default all ldap attributes which are not binary and with a max value
             // length of 36 are included in the user object
             // if the whitelist contains at least one value then all attributes will be
-            // additional check if whitelisted (whitelist can contain wildcard and regex)
+            // additional check if whitelisted (whitelist can contain WildcardMatcher and regex)
             return new LdapUser(username, user, entry, credentials, customAttrMaxValueLen, whitelistedAttributes);
 
         } catch (final Exception e) {

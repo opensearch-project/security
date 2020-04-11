@@ -8,6 +8,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.amazon.opendistroforelasticsearch.security.securityconf.Hideable;
 import com.amazon.opendistroforelasticsearch.security.securityconf.StaticDefinable;
@@ -149,8 +150,8 @@ public class RoleV7 implements Hideable, StaticDefinable {
             super();
         }
 
-        public List<String> getTenant_patterns() {
-            return tenant_patterns;
+        public WildcardMatcher getTenant_patterns() {
+            return WildcardMatcher.pattern(tenant_patterns);
         }
 
         public void setTenant_patterns(List<String> tenant_patterns) {

@@ -37,7 +37,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import com.amazon.opendistroforelasticsearch.security.support.wildcard.Wildcard;
+import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchSecurityException;
@@ -74,7 +74,7 @@ public class DlsFlsEvaluator {
         ThreadContext threadContext = threadPool.getThreadContext();
 
         // maskedFields
-        final Map<Wildcard, Set<String>> maskedFieldsMap = securityRoles.getMaskedFields(user, resolver, clusterService);
+        final Map<WildcardMatcher, Set<String>> maskedFieldsMap = securityRoles.getMaskedFields(user, resolver, clusterService);
 
 
         if (maskedFieldsMap != null && !maskedFieldsMap.isEmpty()) {
@@ -104,16 +104,16 @@ public class DlsFlsEvaluator {
             presponse.maskedFields = new HashMap<>(maskedFieldsMap);
 
             if (!requestedResolved.getAllIndices().isEmpty()) {
-                presponse.maskedFields.entrySet().removeIf(entry -> !entry.getKey().matchesAny(requestedResolved.getAllIndices()));
+                presponse.maskedFields.entrySet().removeIf(entry -> !entry.getKey().matchAny(requestedResolved.getAllIndices()));
             }
         }
 
 
 
         // attach dls/fls map if not already done
-        final Tuple<Map<Wildcard, Set<String>>, Map<Wildcard, Set<String>>> dlsFls = securityRoles.getDlsFls(user, resolver, clusterService);
-        final Map<Wildcard, Set<String>> dlsQueries = dlsFls.v1();
-        final Map<Wildcard, Set<String>> flsFields = dlsFls.v2();
+        final Tuple<Map<WildcardMatcher, Set<String>>, Map<WildcardMatcher, Set<String>>> dlsFls = securityRoles.getDlsFls(user, resolver, clusterService);
+        final Map<WildcardMatcher, Set<String>> dlsQueries = dlsFls.v1();
+        final Map<WildcardMatcher, Set<String>> flsFields = dlsFls.v2();
 
         if (!dlsQueries.isEmpty()) {
 
@@ -139,7 +139,7 @@ public class DlsFlsEvaluator {
 
             if (!requestedResolved.getAllIndices().isEmpty()) {
                 presponse.queries.entrySet().removeIf(entry ->
-                        !entry.getKey().matchesAny(requestedResolved.getAllIndices())
+                        !entry.getKey().matchAny(requestedResolved.getAllIndices())
                 );
             }
 
@@ -173,7 +173,7 @@ public class DlsFlsEvaluator {
 
             if (!requestedResolved.getAllIndices().isEmpty()) {
                 presponse.allowedFlsFields.entrySet().removeIf(entry ->
-                        !entry.getKey().matchesAny(requestedResolved.getAllIndices())
+                        !entry.getKey().matchAny(requestedResolved.getAllIndices())
                 );
             }
         }

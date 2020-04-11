@@ -491,7 +491,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         Assert.assertTrue(ccs.getBody().contains("crl1_"));
         Assert.assertTrue(ccs.getBody().contains("crl2_"));
 
-        //wildcard in remote cluster names
+        //WildcardMatcher in remote cluster names
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("*cross*:*twit*,*/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips, encodeBasicHeader("twitter","nagilum"));
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());

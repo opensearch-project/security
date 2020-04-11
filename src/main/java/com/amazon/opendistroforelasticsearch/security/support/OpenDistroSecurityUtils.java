@@ -41,7 +41,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.amazon.opendistroforelasticsearch.security.support.wildcard.Wildcard;
+import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.Settings;
@@ -81,7 +81,7 @@ public final class OpenDistroSecurityUtils {
         return Locale.getDefault();
     }
 
-    public static Wildcard evalMap(final Map<Wildcard,Set<String>> map, final String index) {
+    public static WildcardMatcher evalMap(final Map<WildcardMatcher,Set<String>> map, final String index) {
 
         if (map == null) {
             return null;
@@ -97,8 +97,8 @@ public final class OpenDistroSecurityUtils {
             return "_all";
         }*/
 
-        for(final Wildcard key: map.keySet()) {
-            if(key.matches(index)) {
+        for(final WildcardMatcher key: map.keySet()) {
+            if(key.test(index)) {
                 return key;
             }
         }

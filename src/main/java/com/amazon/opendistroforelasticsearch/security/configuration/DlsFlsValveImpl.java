@@ -18,7 +18,7 @@ package com.amazon.opendistroforelasticsearch.security.configuration;
 import java.util.Map;
 import java.util.Set;
 
-import com.amazon.opendistroforelasticsearch.security.support.wildcard.Wildcard;
+import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
@@ -49,9 +49,9 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
      * @return false on error
      */
     public boolean invoke(final ActionRequest request, final ActionListener<?> listener,
-            final Map<Wildcard,Set<String>> allowedFlsFields,
-            final Map<Wildcard,Set<String>> maskedFields,
-            final Map<Wildcard,Set<String>> queries) {
+            final Map<WildcardMatcher,Set<String>> allowedFlsFields,
+            final Map<WildcardMatcher,Set<String>> maskedFields,
+            final Map<WildcardMatcher,Set<String>> queries) {
 
         final boolean fls = allowedFlsFields != null && !allowedFlsFields.isEmpty();
         final boolean masked = maskedFields != null && !maskedFields.isEmpty();
@@ -115,10 +115,10 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
     @Override
     public void handleSearchContext(SearchContext context, ThreadPool threadPool, NamedXContentRegistry namedXContentRegistry) {
         try {
-            final Map<Wildcard, Set<String>> queries = (Map<Wildcard, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadPool.getThreadContext(),
+            final Map<WildcardMatcher, Set<String>> queries = (Map<WildcardMatcher, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadPool.getThreadContext(),
                     ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER);
 
-            final Wildcard dlsEval = OpenDistroSecurityUtils.evalMap(queries, context.indexShard().indexSettings().getIndex().getName());
+            final WildcardMatcher dlsEval = OpenDistroSecurityUtils.evalMap(queries, context.indexShard().indexSettings().getIndex().getName());
 
             if (dlsEval != null) {
 

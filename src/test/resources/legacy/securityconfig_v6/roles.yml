@@ -17,13 +17,13 @@
 # for the request to be successful. If no role match then the request will be denied. Currently a match must happen within
 # one single role - that means that permissions can not span multiple roles. 
 
-# For <permission>, <indexname or alias> and <type> simple wildcards and regular expressions are possible. 
+# For <permission>, <indexname or alias> and <type> simple WildcardMatchers and regular expressions are possible.
 # A asterix (*) will match any character sequence (or an empty sequence)
 # A question mark (?) will match any single character (but NOT empty character)
 # Example: '*my*index' will match 'my_first_index' as well as 'myindex' but not 'myindex1'
 # Example: '?kibana' will match '.kibana' but not 'kibana'
 
-# To use a full blown regex you have to pre- and apend a '/' to use regex instead of simple wildcards
+# To use a full blown regex you have to pre- and apend a '/' to use regex instead of simple WildcardMatchers
 # '/<java regex>/'
 # Example: '/\S*/' will match any non whitespace characters
 

@@ -207,7 +207,7 @@ opendistro_security:
             # Filter to search for users (currently in the whole subtree beneath userbase)
             # {0} is substituted with the username 
             usersearch: '(uid={0})'
-            # Skip users matching a user name, a wildcard or a regex pattern
+            # Skip users matching a user name, a WildcardMatcher or a regex pattern
             #skip_users: 
             #  - 'cn=Michael Jackson,ou*people,o=TEST'
             #  - '/\S*/'    

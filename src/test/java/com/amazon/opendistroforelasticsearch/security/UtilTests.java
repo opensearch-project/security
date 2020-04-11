@@ -37,83 +37,77 @@ import static org.junit.Assert.assertFalse;
 
 import java.util.Map;
 
-import com.amazon.opendistroforelasticsearch.security.support.wildcard.Wildcard;
+import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.OpenDistroSecurityUtils;
-import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 
 public class UtilTests {
 
-    static private Wildcard wc(String pattern) {
-        return Wildcard.caseSensitive(pattern);
+    static private WildcardMatcher wc(String pattern) {
+        return WildcardMatcher.pattern(pattern);
     }
 
-    static private Wildcard iwc(String pattern) {
-        return Wildcard.caseInsensitive(pattern);
-    }
-
-    @Test
-    public void testWildcardClasses() {
-        assertFalse(wc("a*?").matches("a"));
-        assertTrue(wc("a*?").matches("aa"));
-        assertTrue(wc("a*?").matches("ab"));
-        assertTrue(wc("a*?").matches("abb"));
-        assertTrue(wc("*my*index").matches("myindex"));
-        assertFalse(wc("*my*index").matches("myindex1"));
-        assertTrue(wc("*my*index?").matches("myindex1"));
-        assertTrue(wc("*my*index").matches("this_is_my_great_index"));
-        assertFalse(wc("*my*index").matches("MYindex"));
-        assertFalse(wc("?kibana").matches("kibana"));
-        assertTrue(wc("?kibana").matches(".kibana"));
-        assertFalse(wc("?kibana").matches("kibana."));
-        assertTrue(wc("?kibana?").matches("?kibana."));
-        assertTrue(wc("/(\\d{3}-?\\d{2}-?\\d{4})/").matches("123-45-6789"));
-        assertFalse(wc("(\\d{3}-?\\d{2}-?\\d{4})").matches("123-45-6789"));
-        assertTrue(wc("/\\S+/").matches("abc"));
-        assertTrue(wc("abc").matches("abc"));
-        assertFalse(wc("ABC").matches("abc"));
+    static private WildcardMatcher iwc(String pattern) {
+        return WildcardMatcher.pattern(pattern, false);
     }
 
     @Test
-    public void testWildcardClassesCaseInsensitive() {
-        assertTrue(iwc("AbC").matches("abc"));
-        assertTrue(iwc("abc").matches("aBC"));
-        assertTrue(iwc("A*b").matches("ab"));
-        assertTrue(iwc("A*b").matches("aab"));
-        assertTrue(iwc("A*b").matches("abB"));
-        assertFalse(iwc("abc").matches("AB"));
-        assertTrue(iwc("/^\\w+$/").matches("AbCd"));
+    public void testWildcardMatcherClasses() {
+        assertFalse(wc("a*?").test("a"));
+        assertTrue(wc("a*?").test("aa"));
+        assertTrue(wc("a*?").test("ab"));
+        assertTrue(wc("a*?").test("abb"));
+        assertTrue(wc("*my*index").test("myindex"));
+        assertFalse(wc("*my*index").test("myindex1"));
+        assertTrue(wc("*my*index?").test("myindex1"));
+        assertTrue(wc("*my*index").test("this_is_my_great_index"));
+        assertFalse(wc("*my*index").test("MYindex"));
+        assertFalse(wc("?kibana").test("kibana"));
+        assertTrue(wc("?kibana").test(".kibana"));
+        assertFalse(wc("?kibana").test("kibana."));
+        assertTrue(wc("?kibana?").test("?kibana."));
+        assertTrue(wc("/(\\d{3}-?\\d{2}-?\\d{4})/").test("123-45-6789"));
+        assertFalse(wc("(\\d{3}-?\\d{2}-?\\d{4})").test("123-45-6789"));
+        assertTrue(wc("/\\S+/").test("abc"));
+        assertTrue(wc("abc").test("abc"));
+        assertFalse(wc("ABC").test("abc"));
     }
 
     @Test
-    public void testWildcards() {
-        assertTrue(!WildcardMatcher.match("a*?", "a"));
-        assertTrue(WildcardMatcher.match("a*?", "aa"));
-        assertTrue(WildcardMatcher.match("a*?", "ab"));
-        //assertTrue(WildcardMatcher.match("a*?", "abb"));
-        assertTrue(WildcardMatcher.match("*my*index", "myindex"));
-        assertTrue(!WildcardMatcher.match("*my*index", "myindex1"));
-        assertTrue(WildcardMatcher.match("*my*index?", "myindex1"));
-        assertTrue(WildcardMatcher.match("*my*index", "this_is_my_great_index"));
-        assertTrue(!WildcardMatcher.match("*my*index", "MYindex"));
-        assertTrue(!WildcardMatcher.match("?kibana", "kibana"));
-        assertTrue(WildcardMatcher.match("?kibana", ".kibana"));
-        assertTrue(!WildcardMatcher.match("?kibana", "kibana."));
-        assertTrue(WildcardMatcher.match("?kibana?", "?kibana."));
-        assertTrue(WildcardMatcher.match("/(\\d{3}-?\\d{2}-?\\d{4})/", "123-45-6789"));
-        assertTrue(!WildcardMatcher.match("(\\d{3}-?\\d{2}-?\\d{4})", "123-45-6789"));
-        assertTrue(WildcardMatcher.match("/\\S*/", "abc"));
-        assertTrue(WildcardMatcher.match("abc", "abc"));
-        assertTrue(!WildcardMatcher.match("ABC", "abc"));
-        assertTrue(!WildcardMatcher.containsWildcard("abc"));
-        assertTrue(!WildcardMatcher.containsWildcard("abc$"));
-        assertTrue(WildcardMatcher.containsWildcard("abc*"));
-        assertTrue(WildcardMatcher.containsWildcard("a?bc"));
-        assertTrue(WildcardMatcher.containsWildcard("/(\\d{3}-\\d{2}-?\\d{4})/"));
+    public void testWildcardMatcherClassesCaseInsensitive() {
+        assertTrue(iwc("AbC").test("abc"));
+        assertTrue(iwc("abc").test("aBC"));
+        assertTrue(iwc("A*b").test("ab"));
+        assertTrue(iwc("A*b").test("aab"));
+        assertTrue(iwc("A*b").test("abB"));
+        assertFalse(iwc("abc").test("AB"));
+        assertTrue(iwc("/^\\w+$/").test("AbCd"));
+    }
+
+    @Test
+    public void testWildcardMatchers() {
+        assertTrue(!WildcardMatcher.pattern("a*?").test( "a"));
+        assertTrue(WildcardMatcher.pattern("a*?").test( "aa"));
+        assertTrue(WildcardMatcher.pattern("a*?").test( "ab"));
+        //assertTrue(WildcardMatcher.pattern("a*?").test( "abb"));
+        assertTrue(WildcardMatcher.pattern("*my*index").test( "myindex"));
+        assertTrue(!WildcardMatcher.pattern("*my*index").test( "myindex1"));
+        assertTrue(WildcardMatcher.pattern("*my*index?").test( "myindex1"));
+        assertTrue(WildcardMatcher.pattern("*my*index").test( "this_is_my_great_index"));
+        assertTrue(!WildcardMatcher.pattern("*my*index").test( "MYindex"));
+        assertTrue(!WildcardMatcher.pattern("?kibana").test( "kibana"));
+        assertTrue(WildcardMatcher.pattern("?kibana").test( ".kibana"));
+        assertTrue(!WildcardMatcher.pattern("?kibana").test( "kibana."));
+        assertTrue(WildcardMatcher.pattern("?kibana?").test( "?kibana."));
+        assertTrue(WildcardMatcher.pattern("/(\\d{3}-?\\d{2}-?\\d{4})/").test( "123-45-6789"));
+        assertTrue(!WildcardMatcher.pattern("(\\d{3}-?\\d{2}-?\\d{4})").test( "123-45-6789"));
+        assertTrue(WildcardMatcher.pattern("/\\S*/").test( "abc"));
+        assertTrue(WildcardMatcher.pattern("abc").test( "abc"));
+        assertTrue(!WildcardMatcher.pattern("ABC").test( "abc"));
     }
 
     @Test

@@ -24,7 +24,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 
-import com.amazon.opendistroforelasticsearch.security.support.wildcard.Wildcard;
+import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.FieldInfo;
@@ -56,7 +56,7 @@ public final class FieldReadCallback {
     //private final ClusterService clusterService;
     private final Index index;
     private final ComplianceConfig complianceConfig;
-    private final Wildcard maskedFields;
+    private final WildcardMatcher maskedFields;
     private final AuditLog auditLog;
     private Function<Map<String, ?>, Map<String, Object>> filterFunction;
     private SourceFieldsContext sfc;
@@ -65,14 +65,14 @@ public final class FieldReadCallback {
 
     public FieldReadCallback(final ThreadContext threadContext, final IndexService indexService,
             final ClusterService clusterService, final ComplianceConfig complianceConfig, final AuditLog auditLog,
-            final Set<String> maskedFields, ShardId shardId) {
+            final Set<WildcardMatcher> maskedFields, ShardId shardId) {
         super();
         //this.threadContext = Objects.requireNonNull(threadContext);
         //this.clusterService = Objects.requireNonNull(clusterService);
         this.index = Objects.requireNonNull(indexService).index();
         this.complianceConfig = complianceConfig;
         this.auditLog = auditLog;
-        this.maskedFields = Wildcard.caseSensitiveAny(maskedFields);
+        this.maskedFields = WildcardMatcher.merge(maskedFields);
         this.shardId = shardId;
         try {
             sfc = (SourceFieldsContext) HeaderHelper.deserializeSafeFromHeader(threadContext, "_opendistro_security_source_field_context");
@@ -93,7 +93,7 @@ public final class FieldReadCallback {
     private boolean recordField(final String fieldName, boolean isStringField) {
         boolean masked = false;
         if(isStringField) {
-            masked = maskedFields.matches(fieldName);
+            masked = maskedFields.test(fieldName);
         }
         return !masked && complianceConfig.readHistoryEnabledForField(index.getName(), fieldName);
     }

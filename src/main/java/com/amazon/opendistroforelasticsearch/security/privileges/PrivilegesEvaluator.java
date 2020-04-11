@@ -581,7 +581,7 @@ public class PrivilegesEvaluator {
                 }
             }
 
-            if(filteredAliases.size() > 1 && WildcardMatcher.match("indices:data/read/*search*", action)) {
+            if(filteredAliases.size() > 1 && WildcardMatcher.pattern("indices:data/read/*search*").test(action)) {
                 //TODO add queries as dls queries (works only if dls module is installed)
                 final String faMode = dcm.getFilteredAliasMode();// getConfigSettings().dynamic.filtered_alias_mode;
                 if(faMode.equals("warn")) {
