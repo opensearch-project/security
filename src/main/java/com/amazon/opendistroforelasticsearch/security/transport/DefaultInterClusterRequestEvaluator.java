@@ -40,13 +40,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import com.amazon.opendistroforelasticsearch.security.securityconf.ConfigModel;
 import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigFactory;
-import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigModel;
-import com.amazon.opendistroforelasticsearch.security.securityconf.InternalUsersModel;
 import com.amazon.opendistroforelasticsearch.security.securityconf.NodesDnModel;
 import com.google.common.collect.ImmutableList;
-import com.google.common.eventbus.Subscribe;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
@@ -55,6 +51,7 @@ import org.elasticsearch.transport.TransportRequest;
 
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
+import org.greenrobot.eventbus.Subscribe;
 
 public final class DefaultInterClusterRequestEvaluator implements InterClusterRequestEvaluator {
 
