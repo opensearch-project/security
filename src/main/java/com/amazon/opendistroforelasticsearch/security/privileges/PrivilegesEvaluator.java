@@ -39,7 +39,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import com.amazon.opendistroforelasticsearch.security.securityconf.NodesDnModel;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchSecurityException;

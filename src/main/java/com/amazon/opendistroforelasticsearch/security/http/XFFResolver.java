@@ -32,7 +32,6 @@ package com.amazon.opendistroforelasticsearch.security.http;
 
 import java.net.InetSocketAddress;
 
-import com.amazon.opendistroforelasticsearch.security.securityconf.NodesDnModel;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchSecurityException;
