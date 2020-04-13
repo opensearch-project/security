@@ -75,7 +75,6 @@ public class IgnoreAuditUsersTest {
         Settings settings = Settings.builder()
                 .put("opendistro_security.audit.ignore_users", ignoreUser)
                 .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
-                .put("opendistro_security.audit.enable_request_details", true)
                 .build();
         AbstractAuditLog al = new AuditLogImpl(settings, null, null, newThreadPool(ConfigConstants.OPENDISTRO_SECURITY_USER, ignoreUserObj), null, cs);
         TestAuditlogImpl.clear();
@@ -126,7 +125,6 @@ public class IgnoreAuditUsersTest {
         Settings settings = Settings.builder()
                 .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
-                .put("opendistro_security.audit.enable_request_details", true)
                 .putList("opendistro_security.audit.ignore_users", "*")
                 .build();
 
