@@ -82,6 +82,7 @@ public class ComplianceConfig {
     private final byte[] salt16;
     private final DateTimeFormatter auditLogPattern;
     private final String auditLogIndex;
+    private volatile boolean enabled = true;
 
     private ComplianceConfig(
             final boolean logExternalConfig,
@@ -225,7 +226,7 @@ public class ComplianceConfig {
      * @return true/false
      */
     public boolean isEnabled() {
-        return true;
+        return this.enabled;
     }
 
     /**
