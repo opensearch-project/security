@@ -316,7 +316,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
                 || request instanceof IndicesAliasesRequest //TODO only remove index
                 ) {
             
-            if(complianceConfig != null && isIndexImmutable(request)) {
+            if (isIndexImmutable(request)) {
                 //auditLog.log
                 
                 //check index for type = remove index
@@ -335,7 +335,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
         }
         
         if(request instanceof IndexRequest) {
-            if(complianceConfig != null && isIndexImmutable(request)) {
+            if (isIndexImmutable(request)) {
                 ((IndexRequest) request).opType(OpType.CREATE);
             }
         }
@@ -344,7 +344,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
     }
 
     private boolean isIndexImmutable(Object request) {
-        if (!complianceConfig.isEnabled()) {
+        if (complianceConfig == null || !complianceConfig.isEnabled()) {
             return false;
         }
 
