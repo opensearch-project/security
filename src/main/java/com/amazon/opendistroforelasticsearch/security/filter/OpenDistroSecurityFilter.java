@@ -195,7 +195,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
             }
             
             
-            if(complianceConfig != null && complianceConfig.isEnabled()) {
+            if(complianceConfig != null && complianceConfig.isEnabled() && !complianceConfig.getImmutableIndicesPatterns().isEmpty()) {
             
                 boolean isImmutable = false;
                 
@@ -305,57 +305,31 @@ public class OpenDistroSecurityFilter implements ActionFilter {
     
     @SuppressWarnings("rawtypes")
     private boolean checkImmutableIndices(Object request, ActionListener listener) {
-
-        if(        request instanceof DeleteRequest 
-                || request instanceof UpdateRequest 
-                || request instanceof UpdateByQueryRequest 
+        final boolean isModifyIndexRequest = request instanceof DeleteRequest
+                || request instanceof UpdateRequest
+                || request instanceof UpdateByQueryRequest
                 || request instanceof DeleteByQueryRequest
                 || request instanceof DeleteIndexRequest
                 || request instanceof RestoreSnapshotRequest
                 || request instanceof CloseIndexRequest
-                || request instanceof IndicesAliasesRequest //TODO only remove index
-                ) {
-            
-            if (isIndexImmutable(request)) {
-                //auditLog.log
-                
-                //check index for type = remove index
-                //IndicesAliasesRequest iar = (IndicesAliasesRequest) request;
-                //for(AliasActions aa: iar.getAliasActions()) {
-                //    if(aa.actionType() == Type.REMOVE_INDEX) {
-                        
-                //    }
-                //}
-                
-                
-                
-                listener.onFailure(new ElasticsearchSecurityException("Index is immutable", RestStatus.FORBIDDEN));
-                return true;
-            }
+                || request instanceof IndicesAliasesRequest;
+
+        if (isModifyIndexRequest && isRequestIndexImmutable(request)) {
+            listener.onFailure(new ElasticsearchSecurityException("Index is immutable", RestStatus.FORBIDDEN));
+            return true;
         }
         
-        if(request instanceof IndexRequest) {
-            if (isIndexImmutable(request)) {
-                ((IndexRequest) request).opType(OpType.CREATE);
-            }
+        if ((request instanceof IndexRequest) && isRequestIndexImmutable(request)) {
+            ((IndexRequest) request).opType(OpType.CREATE);
         }
         
         return false;
     }
 
-    private boolean isIndexImmutable(Object request) {
-        if (complianceConfig == null || !complianceConfig.isEnabled()) {
-            return false;
-        }
-
-        final Set<String> immutableIndicesPatterns = complianceConfig.getImmutableIndicesPatterns();
-        if (immutableIndicesPatterns.isEmpty()) {
-            return false;
-        }
-
+    private boolean isRequestIndexImmutable(Object request) {
         final IndexResolverReplacer.Resolved resolved = indexResolverReplacer.resolveRequest(request);
         final Set<String> allIndices = resolved.getAllIndices();
 
-        return WildcardMatcher.matchAny(immutableIndicesPatterns, allIndices);
+        return WildcardMatcher.matchAny(complianceConfig.getImmutableIndicesPatterns(), allIndices);
     }
 }

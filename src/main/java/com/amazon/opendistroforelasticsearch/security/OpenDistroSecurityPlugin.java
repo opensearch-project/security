@@ -41,6 +41,7 @@ import java.security.MessageDigest;
 import java.security.PrivilegedAction;
 import java.security.Security;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -190,7 +191,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     private volatile ComplianceConfig complianceConfig;
     private volatile Environment environment;
     private volatile IndexResolverReplacer irr;
-    private volatile boolean externalConfigLogged = false;
+    private AtomicBoolean externalConfigLogged = new AtomicBoolean();
     private volatile NamedXContentRegistry namedXContentRegistry = null;
     private volatile DlsFlsRequestValve dlsFlsValve = null;
 
@@ -1015,10 +1016,9 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         }
         final Set<ModuleInfo> securityModules = ReflectionHelper.getModulesLoaded();
         log.info("{} Open Distro Security modules loaded so far: {}", securityModules.size(), securityModules);
-        if(complianceConfig != null && complianceConfig.isEnabled() && complianceConfig.shouldLogExternalConfig() && !externalConfigLogged) {
+        if(complianceConfig != null && complianceConfig.isEnabled() && complianceConfig.shouldLogExternalConfig() && !externalConfigLogged.getAndSet(true)) {
             log.info("logging external config");
             auditLog.logExternalConfig(settings, environment);
-            externalConfigLogged = true;
         }
     }
 
