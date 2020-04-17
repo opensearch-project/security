@@ -1,0 +1,6 @@
+---
+# Define nodesdn mapping name and corresponding values after removing "{}"
+# cluster1:
+#   nodes_dn:
+#       - CN=*.example.com
+{}
