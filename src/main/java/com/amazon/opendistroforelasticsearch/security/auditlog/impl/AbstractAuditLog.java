@@ -87,6 +87,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     private final Settings settings;
     private final AuditConfig.Filter auditConfigFilter;
     private final String opendistrosecurityIndex;
+    protected ComplianceConfig complianceConfig;
 
     private static final List<String> writeClasses = new ArrayList<>();
     {
@@ -106,6 +107,16 @@ public abstract class AbstractAuditLog implements AuditLog {
         this.auditConfigFilter = AuditConfig.Filter.from(settings);
         this.auditConfigFilter.log(log);
         this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
+    }
+
+    @Override
+    public void setComplianceConfig(ComplianceConfig complianceConfig) {
+        this.complianceConfig = complianceConfig;
+    }
+
+    @Override
+    public ComplianceConfig getCurrentComplianceConfig() {
+        return this.complianceConfig;
     }
 
     @Override
@@ -344,7 +355,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     }
 
     @Override
-    public void logDocumentRead(String index, String id, ShardId shardId, Map<String, String> fieldNameValues, ComplianceConfig complianceConfig) {
+    public void logDocumentRead(String index, String id, ShardId shardId, Map<String, String> fieldNameValues) {
 
         if(complianceConfig == null || !complianceConfig.readHistoryEnabledForIndex(index)) {
             return;
@@ -409,7 +420,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     }
 
     @Override
-    public void logDocumentWritten(ShardId shardId, GetResult originalResult, Index currentIndex, IndexResult result, ComplianceConfig complianceConfig) {
+    public void logDocumentWritten(ShardId shardId, GetResult originalResult, Index currentIndex, IndexResult result) {
 
         if(complianceConfig == null || !complianceConfig.writeHistoryEnabledForIndex(shardId.getIndexName())) {
             return;

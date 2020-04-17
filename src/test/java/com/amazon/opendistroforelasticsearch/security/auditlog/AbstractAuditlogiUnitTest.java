@@ -111,7 +111,6 @@ public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
     	AuditMessageRouter router = new AuditMessageRouter(settings, null, null, null);
     	ComplianceConfig mockConfig = mock(ComplianceConfig.class);
     	when(mockConfig.isEnabled()).thenReturn(true);
-    	router.setComplianceConfig(mockConfig);
     	return router;
     }
 }

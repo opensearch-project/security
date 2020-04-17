@@ -52,9 +52,6 @@ import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.action.get.GetResponse;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -64,14 +61,10 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.util.concurrent.ThreadContext.StoredContext;
-import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.env.Environment;
-import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
-import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
 import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigFactory;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -93,7 +86,6 @@ public class ConfigurationRepository {
     private final Settings settings;
     private final ClusterService clusterService;
     private final AuditLog auditLog;
-    private final ComplianceConfig complianceConfig;
     private final ThreadPool threadPool;
     private DynamicConfigFactory dynamicConfigFactory;
     private final int configVersion = 2;
@@ -101,14 +93,13 @@ public class ConfigurationRepository {
     private final AtomicBoolean installDefaultConfig = new AtomicBoolean();
 
     private ConfigurationRepository(Settings settings, final Path configPath, ThreadPool threadPool,
-                                    Client client, ClusterService clusterService, AuditLog auditLog, ComplianceConfig complianceConfig) {
+                                    Client client, ClusterService clusterService, AuditLog auditLog) {
         this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
         this.settings = settings;
         this.client = client;
         this.threadPool = threadPool;
         this.clusterService = clusterService;
         this.auditLog = auditLog;
-        this.complianceConfig = complianceConfig;
         this.configurationChangedListener = new ArrayList<>();
         cl = new ConfigurationLoaderSecurity7(client, threadPool, settings, clusterService);
 
@@ -249,8 +240,8 @@ public class ConfigurationRepository {
     }
 
     public static ConfigurationRepository create(Settings settings, final Path configPath, final ThreadPool threadPool,
-                                                 Client client,  ClusterService clusterService, AuditLog auditLog, ComplianceConfig complianceConfig) {
-        final ConfigurationRepository repository = new ConfigurationRepository(settings, configPath, threadPool, client, clusterService, auditLog, complianceConfig);
+                                                 Client client,  ClusterService clusterService, AuditLog auditLog) {
+        final ConfigurationRepository repository = new ConfigurationRepository(settings, configPath, threadPool, client, clusterService, auditLog);
         return repository;
     }
 
@@ -349,11 +340,11 @@ public class ConfigurationRepository {
             throw new ElasticsearchException(e);
         }
 
-        if(logComplianceEvent && complianceConfig.isEnabled()) {
+        if (logComplianceEvent && auditLog.getCurrentComplianceConfig().isEnabled()) {
             CType configurationType = configTypes.iterator().next();
             Map<String, String> fields = new HashMap<String, String>();
             fields.put(configurationType.toLCString(), Strings.toString(retVal.get(configurationType)));
-            auditLog.logDocumentRead(this.opendistrosecurityIndex, configurationType.toLCString(), null, fields, complianceConfig);
+            auditLog.logDocumentRead(this.opendistrosecurityIndex, configurationType.toLCString(), null, fields);
         }
 
         return retVal;
