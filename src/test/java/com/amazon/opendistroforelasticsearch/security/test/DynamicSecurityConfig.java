@@ -49,6 +49,7 @@ public class DynamicSecurityConfig {
     private String securityRolesMapping = "roles_mapping.yml";
     private String securityInternalUsers = "internal_users.yml";
     private String securityActionGroups = "action_groups.yml";
+    private String securityNodesDn = "nodes_dn.yml";
     private String securityConfigAsYamlString = null;
     private String type = "_doc";
     private String legacyConfigFolder = "";
@@ -88,6 +89,11 @@ public class DynamicSecurityConfig {
 
     public DynamicSecurityConfig setSecurityActionGroups(String securityActionGroups) {
         this.securityActionGroups = securityActionGroups;
+        return this;
+    }
+
+    public DynamicSecurityConfig setSecurityNodesDn(String nodesDn) {
+        this.securityNodesDn = nodesDn;
         return this;
     }
 
@@ -141,6 +147,14 @@ public class DynamicSecurityConfig {
                     .id(CType.TENANTS.toLCString())
                     .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                     .source(CType.TENANTS.toLCString(), FileHelper.readYamlContent(prefix+securityTenants)));
+        }
+
+        if (null != FileHelper.getAbsoluteFilePathFromClassPath(prefix + securityNodesDn)) {
+            ret.add(new IndexRequest(securityIndexName)
+                .type(type)
+                .id(CType.NODESDN.toLCString())
+                .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                .source(CType.NODESDN.toLCString(), FileHelper.readYamlContent(prefix+securityNodesDn)));
         }
 
         return Collections.unmodifiableList(ret);
