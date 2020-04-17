@@ -1,0 +1,4 @@
+---
+cluster1:
+    nodes_dn:
+        - cn=popeye
