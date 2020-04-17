@@ -87,7 +87,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     private final Settings settings;
     private final AuditConfig.Filter auditConfigFilter;
     private final String opendistrosecurityIndex;
-    protected ComplianceConfig complianceConfig;
+    protected volatile ComplianceConfig complianceConfig;
 
     private static final List<String> writeClasses = new ArrayList<>();
     {
