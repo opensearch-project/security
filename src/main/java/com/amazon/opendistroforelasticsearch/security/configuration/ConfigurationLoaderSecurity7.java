@@ -38,6 +38,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import com.amazon.opendistroforelasticsearch.security.support.ConfigHelper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
@@ -108,6 +109,7 @@ public class ConfigurationLoaderSecurity7 {
 
             @Override
             public void noData(String id, String type) {
+                CType cType = CType.fromString(id);
 
                 //when index was created with ES 6 there are no separate tenants. So we load just empty ones.
                 //when index was created with ES 7 and type not "security" (ES 6 type) there are no rolemappings anymore.
@@ -119,10 +121,23 @@ public class ConfigurationLoaderSecurity7 {
                         log.debug("Skip tenants because we not yet migrated to ES 7 (index was created with ES 6 and type is legacy [{}])", type);
                     }
 
-                    if(CType.fromString(id) == CType.TENANTS) {
-                        rs.put(CType.fromString(id), SecurityDynamicConfiguration.empty());
+                    if(cType == CType.TENANTS) {
+                        rs.put(cType, SecurityDynamicConfiguration.empty());
                         latch.countDown();
                         return;
+                    }
+                }
+
+                // Since NODESDN is newly introduced data-type applying for existing clusters as well, we make it backward compatible by returning valid empty
+                // SecurityDynamicConfiguration.
+                if(cType == CType.NODESDN) {
+                    try {
+                        SecurityDynamicConfiguration<?> empty = ConfigHelper.createEmptySdc(cType, ConfigurationRepository.getDefaultConfigVersion());
+                        rs.put(cType, empty);
+                        latch.countDown();
+                        return;
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
                     }
                 }
 
