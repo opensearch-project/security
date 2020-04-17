@@ -264,7 +264,7 @@ public class ComplianceConfig {
      * @return salt in bytes
      */
     public byte[] getSalt16() {
-        return salt16.clone();
+        return Arrays.copyOf(salt16, salt16.length);
     }
 
     /**
@@ -287,13 +287,10 @@ public class ComplianceConfig {
             }
         }
 
-        final Set<String> tmp = new HashSet<String>(100);
-        for (String indexPattern : readEnabledFields.keySet()) {
-            if (indexPattern != null && !indexPattern.isEmpty() && WildcardMatcher.match(indexPattern, index)) {
-                tmp.addAll(readEnabledFields.get(indexPattern));
-            }
-        }
-        return tmp;
+        return readEnabledFields.entrySet().stream()
+                .filter(entry -> WildcardMatcher.match(entry.getKey(), index))
+                .flatMap(entry -> entry.getValue().stream())
+                .collect(Collectors.toSet());
     }
 
     /**
