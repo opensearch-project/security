@@ -37,6 +37,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -186,7 +187,8 @@ public abstract class AbstractSecurityUnitTest {
                 //ignore
             }
 
-            for(IndexRequest ir: securityConfig.getDynamicConfig(getResourceFolder())) {
+            List<IndexRequest> indexRequests = securityConfig.getDynamicConfig(getResourceFolder());
+            for(IndexRequest ir: indexRequests) {
                 tc.index(ir).actionGet();
             }
 
@@ -211,6 +213,9 @@ public abstract class AbstractSecurityUnitTest {
             Assert.assertTrue(tc.get(new GetRequest(".opendistro_security", type,"actiongroups")).actionGet().isExists());
             Assert.assertFalse(tc.get(new GetRequest(".opendistro_security", type,"rolesmapping_xcvdnghtu165759i99465")).actionGet().isExists());
             Assert.assertTrue(tc.get(new GetRequest(".opendistro_security", type,"config")).actionGet().isExists());
+            if (indexRequests.stream().anyMatch(i -> CType.NODESDN.toLCString().equals(i.id()))) {
+                Assert.assertTrue(tc.get(new GetRequest(".opendistro_security", type,"nodesdn")).actionGet().isExists());
+            }
         }
     }
 

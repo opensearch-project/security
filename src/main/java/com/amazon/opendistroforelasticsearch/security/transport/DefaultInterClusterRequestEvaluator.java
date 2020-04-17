@@ -37,7 +37,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
+import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigFactory;
+import com.amazon.opendistroforelasticsearch.security.securityconf.NodesDnModel;
+import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
@@ -46,16 +51,36 @@ import org.elasticsearch.transport.TransportRequest;
 
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
+import org.greenrobot.eventbus.Subscribe;
 
 public final class DefaultInterClusterRequestEvaluator implements InterClusterRequestEvaluator {
 
     private final Logger log = LogManager.getLogger(this.getClass());
     private final String certOid;
-    private final List<String> nodesDn;
+    private final List<String> staticNodesDnFromEsYml;
+    private boolean dynamicNodesDnConfigEnabled;
+    private volatile Map<String, List<String>> dynamicNodesDn;
 
     public DefaultInterClusterRequestEvaluator(final Settings settings) {
         this.certOid = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CERT_OID, "1.2.3.4.5.5");
-        this.nodesDn = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_NODES_DN, Collections.emptyList());
+        this.staticNodesDnFromEsYml = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_NODES_DN, Collections.emptyList());
+        this.dynamicNodesDnConfigEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, false);
+        this.dynamicNodesDn = Collections.emptyMap();
+    }
+
+    public void subscribeForChanges(DynamicConfigFactory dynamicConfigFactory) {
+        if (this.dynamicNodesDnConfigEnabled) {
+            dynamicConfigFactory.registerDCFListener(this);
+        }
+    }
+
+    private List<String> getNodesDnToEvaluate() {
+        ImmutableList.Builder<String> retVal = ImmutableList.<String>builder()
+            .addAll(this.staticNodesDnFromEsYml);
+        if (dynamicNodesDnConfigEnabled) {
+            retVal.addAll(dynamicNodesDn.values().stream().flatMap(Collection::stream).collect(Collectors.toList()));
+        }
+        return retVal.build();
     }
 
     @Override
@@ -68,6 +93,8 @@ public final class DefaultInterClusterRequestEvaluator implements InterClusterRe
             principals[0] = principal;
             principals[1] = principal.replace(" ","");
         }
+
+        List<String> nodesDn = this.getNodesDnToEvaluate();
         
         if (principals[0] != null && WildcardMatcher.matchAny(nodesDn, principals, true)) {
             
@@ -139,4 +166,8 @@ public final class DefaultInterClusterRequestEvaluator implements InterClusterRe
         return false;
     }
 
+    @Subscribe
+    public void onNodesDnModelChanged(NodesDnModel nm) {
+        this.dynamicNodesDn = Collections.unmodifiableMap(nm.getNodesDn());
+    }
 }
