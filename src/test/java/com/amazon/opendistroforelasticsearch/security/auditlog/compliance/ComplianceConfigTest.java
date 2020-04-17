@@ -3,8 +3,11 @@ package com.amazon.opendistroforelasticsearch.security.auditlog.compliance;
 import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.google.common.collect.ImmutableSet;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.settings.Settings;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.nio.charset.StandardCharsets;
 
@@ -14,6 +17,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertArrayEquals;
 
 public class ComplianceConfigTest {
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
 
     @Test
     public void testDefault() {
@@ -82,5 +88,35 @@ public class ComplianceConfigTest {
         assertTrue(complianceConfig.readHistoryEnabledForField("read_index_pattern_2", "field1"));
         assertFalse(complianceConfig.readHistoryEnabledForField("read_index_pattern_2", "field2"));
         assertTrue(complianceConfig.readHistoryEnabledForField("read_index_pattern_2", "field_pattern_1"));
+    }
+
+    @Test
+    public void testSaltThrowsExceptionWhenInsufficientBytesProvided() {
+        // assert
+        thrown.expect(ElasticsearchException.class);
+        thrown.expectMessage("Provided compliance salt abcd must at least contain 16 bytes");
+
+        // arrange
+        final String testSalt = "abcd";
+        final Settings settings = Settings.builder()
+                .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT, testSalt)
+                .build();
+        // act
+        ComplianceConfig.from(settings);
+    }
+
+    @Test
+    public void testSaltUsesOnlyFirst16Bytes() {
+        // arrange
+        final String testSalt = "abcdefghijklmnopqrstuvwxyz";
+        final Settings settings = Settings.builder()
+                .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT, testSalt)
+                .build();
+        // act
+        final ComplianceConfig complianceConfig = ComplianceConfig.from(settings);
+
+        // assert
+        assertEquals(16, complianceConfig.getSalt16().length);
+        assertArrayEquals(testSalt.substring(0, 16).getBytes(StandardCharsets.UTF_8), complianceConfig.getSalt16());
     }
 }

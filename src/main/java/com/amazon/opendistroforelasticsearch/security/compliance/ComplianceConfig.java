@@ -31,15 +31,14 @@
 package com.amazon.opendistroforelasticsearch.security.compliance;
 
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -74,12 +73,12 @@ public class ComplianceConfig {
     private final boolean logReadMetadataOnly;
     private final boolean logWriteMetadataOnly;
     private final boolean logDiffsForWrite;
-    private final List<String> watchedWriteIndices;
+    private final List<String> watchedWriteIndicesPatterns;
     private final Set<String> immutableIndicesPatterns;
     private final String opendistrosecurityIndex;
 
-    private final Map<String, Set<String>> readEnabledFields = new HashMap<>(100);
-    private final LoadingCache<String, Set<String>> cache;
+    private final Map<String, Set<String>> readEnabledFields;
+    private final LoadingCache<String, Set<String>> readEnabledFieldsCache;
     private final byte[] salt16;
     private final DateTimeFormatter auditLogPattern;
     private final String auditLogIndex;
@@ -92,7 +91,7 @@ public class ComplianceConfig {
             final boolean logWriteMetadataOnly,
             final boolean logDiffsForWrite,
             final List<String> watchedReadFields,
-            final List<String> watchedWriteIndices,
+            final List<String> watchedWriteIndicesPatterns,
             final Set<String> immutableIndicesPatterns,
             final String saltAsString,
             final String opendistrosecurityIndex,
@@ -103,7 +102,7 @@ public class ComplianceConfig {
         this.logReadMetadataOnly = logReadMetadataOnly;
         this.logWriteMetadataOnly = logWriteMetadataOnly;
         this.logDiffsForWrite = logDiffsForWrite;
-        this.watchedWriteIndices = watchedWriteIndices;
+        this.watchedWriteIndicesPatterns = watchedWriteIndicesPatterns;
         this.immutableIndicesPatterns = immutableIndicesPatterns;
         this.opendistrosecurityIndex = opendistrosecurityIndex;
 
@@ -121,17 +120,14 @@ public class ComplianceConfig {
 
         //opendistro_security.compliance.pii_fields:
         //  - indexpattern,fieldpattern,fieldpattern,....
-        for (String watchedReadField : watchedReadFields) {
-            final List<String> split = new ArrayList<>(Arrays.asList(watchedReadField.split(",")));
-            if (split.isEmpty()) {
-                continue;
-            } else if (split.size() == 1) {
-                this.readEnabledFields.put(split.get(0), Collections.singleton("*"));
-            } else {
-                Set<String> _fields = new HashSet<String>(split.subList(1, split.size()));
-                this.readEnabledFields.put(split.get(0), _fields);
-            }
-        }
+        this.readEnabledFields = watchedReadFields.stream()
+                .map(watchedReadField -> watchedReadField.split(","))
+                .filter(split -> split.length != 0)
+                .collect(Collectors.toMap(
+                        split -> split[0],
+                        split -> split.length == 1 ?
+                                Collections.singleton("*") : Arrays.stream(split).skip(1).collect(Collectors.toSet())
+                ));
 
         DateTimeFormatter auditLogPattern = null;
         String auditLogIndex = null;
@@ -148,7 +144,7 @@ public class ComplianceConfig {
         this.auditLogPattern = auditLogPattern;
         this.auditLogIndex = auditLogIndex;
 
-        this.cache = CacheBuilder.newBuilder()
+        this.readEnabledFieldsCache = CacheBuilder.newBuilder()
                 .maximumSize(CACHE_SIZE)
                 .build(new CacheLoader<String, Set<String>>() {
                     @Override
@@ -165,7 +161,7 @@ public class ComplianceConfig {
         logger.info("Auditing will watch {} for read requests.", readEnabledFields);
         logger.info("Auditing only metadata information for write request is {}.", logWriteMetadataOnly ? "enabled" : "disabled");
         logger.info("Auditing diffs for write requests is {}.", logDiffsForWrite ? "enabled" : "disabled");
-        logger.info("Auditing will watch {} for write requests.", watchedWriteIndices);
+        logger.info("Auditing will watch {} for write requests.", watchedWriteIndicesPatterns);
         logger.info("{} indices are made immutable.", immutableIndicesPatterns);
         logger.info("{} is used as internal security index.", opendistrosecurityIndex);
         logger.info("Internal index used for posting audit logs is {}", auditLogIndex);
@@ -337,7 +333,7 @@ public class ComplianceConfig {
                 return false;
             }
         }
-        return WildcardMatcher.matchAny(watchedWriteIndices, index);
+        return WildcardMatcher.matchAny(watchedWriteIndicesPatterns, index);
     }
 
     /**
@@ -355,7 +351,7 @@ public class ComplianceConfig {
             return logInternalConfig;
         }
         try {
-            return !cache.get(index).isEmpty();
+            return !readEnabledFieldsCache.get(index).isEmpty();
         } catch (ExecutionException e) {
             log.error(e);
             return true;
@@ -377,7 +373,7 @@ public class ComplianceConfig {
             return logInternalConfig;
         }
         try {
-            final Set<String> fields = cache.get(index);
+            final Set<String> fields = readEnabledFieldsCache.get(index);
             if (fields.isEmpty()) {
                 return false;
             }

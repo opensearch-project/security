@@ -1011,10 +1011,12 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         }
         final Set<ModuleInfo> securityModules = ReflectionHelper.getModulesLoaded();
         log.info("{} Open Distro Security modules loaded so far: {}", securityModules.size(), securityModules);
-        final ComplianceConfig complianceConfig = auditLog.getCurrentComplianceConfig();
-        if(complianceConfig != null && complianceConfig.isEnabled() && complianceConfig.shouldLogExternalConfig() && !externalConfigLogged.getAndSet(true)) {
-            log.info("logging external config");
-            auditLog.logExternalConfig(settings, environment);
+        if (auditLog != null) {
+            final ComplianceConfig complianceConfig = auditLog.getCurrentComplianceConfig();
+            if(complianceConfig != null && complianceConfig.isEnabled() && complianceConfig.shouldLogExternalConfig() && !externalConfigLogged.getAndSet(true)) {
+                log.info("logging external config");
+                auditLog.logExternalConfig(settings, environment);
+            }
         }
     }
 
