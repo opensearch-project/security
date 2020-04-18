@@ -67,7 +67,7 @@ public class RoutingConfigurationTest extends AbstractAuditlogiUnitTest{
 		Assert.assertEquals(null, router.defaultSink);
 		Assert.assertEquals(0, router.categorySinks.size());
 		// make sure no exception is thrown
-		router.route(MockAuditMessageFactory.validAuditMessage(), false);
+		router.route(MockAuditMessageFactory.validAuditMessage());
 	}
 
 	@Test

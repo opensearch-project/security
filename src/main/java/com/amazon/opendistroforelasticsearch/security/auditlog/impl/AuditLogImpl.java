@@ -57,6 +57,12 @@ public final class AuditLogImpl extends AbstractAuditLog {
 
 		this.messageRouter = new AuditMessageRouter(settings, clientProvider, threadPool, configPath);
 		this.enabled = messageRouter.isEnabled();
+		if (enabled) {
+			ComplianceConfig complianceConfig = getComplianceConfig();
+			if (complianceConfig != null && complianceConfig.isEnabled()) {
+				messageRouter.enableRoutes(settings);
+			}
+		}
 
 		log.info("Message routing enabled: {}", this.enabled);
 
@@ -96,9 +102,7 @@ public final class AuditLogImpl extends AbstractAuditLog {
 	@Override
 	protected void save(final AuditMessage msg) {
 		if (enabled) {
-			final ComplianceConfig complianceConfig = getComplianceConfig();
-			final boolean isComplianceConfigEnabled = complianceConfig != null && complianceConfig.isEnabled();
-			messageRouter.route(msg, isComplianceConfigEnabled);
+			messageRouter.route(msg);
 		}
 	}
 

@@ -44,8 +44,8 @@ public class AuditMessageRouter {
 	final Map<AuditCategory, List<AuditLogSink>> categorySinks = new EnumMap<>(AuditCategory.class);
 	final SinkProvider sinkProvider;
 	final AsyncStoragePool storagePool;
-	final boolean enabled;
-	boolean hasMultipleEndpoints;
+	private boolean hasMultipleEndpoints;
+	private boolean areRoutesEnabled;
 
 	public AuditMessageRouter(final Settings settings, final Client clientProvider, ThreadPool threadPool, final Path configPath) {
 		this.sinkProvider = new SinkProvider(settings, clientProvider, threadPool, configPath);
@@ -55,26 +55,21 @@ public class AuditMessageRouter {
 		this.defaultSink = sinkProvider.getDefaultSink();
 		if (defaultSink == null) {
 			log.warn("No default storage available, audit log may not work properly. Please check configuration.");
-			enabled = false;
-		} else {
-			// create sinks for all categories. Only do that if we have any extended setting, otherwise there is just the default category
-			setupRoutes(settings);
-			enabled = true;
 		}
 	}
 
 	public boolean isEnabled() {
-		return this.enabled;
+		return defaultSink == null;
 	}
 
-	public final void route(final AuditMessage msg, final boolean isComplianceConfigEnabled) {
-		if (!enabled) {
+	public final void route(final AuditMessage msg) {
+		if (!isEnabled()) {
 			// should not happen since we check in AuditLogImpl, so this is just a safeguard
 			log.error("#route(AuditMessage) called but message router is disabled");
 			return;
 		}
 		// if we do not run the compliance features or no extended configuration is present, only log to default.
-		if (!hasMultipleEndpoints || !isComplianceConfigEnabled) {
+		if (!areRoutesEnabled || !hasMultipleEndpoints) {
 			store(defaultSink, msg);
 		} else {
 			for (AuditLogSink sink : categorySinks.get(msg.getCategory())) {
@@ -101,7 +96,8 @@ public class AuditMessageRouter {
 		}
 	}
 
-	private final void setupRoutes(Settings settings) {
+	public final boolean enableRoutes(Settings settings) {
+		areRoutesEnabled = true;
 		Map<String, Object> routesConfiguration = Utils.convertJsonToxToStructuredMap(settings.getAsSettings(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_ROUTES));
 		if (!routesConfiguration.isEmpty()) {
 			hasMultipleEndpoints = true;
@@ -141,6 +137,7 @@ public class AuditMessageRouter {
 				}
 			}
 		}
+		return hasMultipleEndpoints;
 	}
 
 	private final List<AuditLogSink> createSinksForCategory(AuditCategory category, Settings configuration) {

@@ -45,7 +45,7 @@ public class PerfTest extends AbstractAuditlogiUnitTest {
 		int limit = 150000;
 		while(limit > 0) {
 			AuditMessage msg = MockAuditMessageFactory.validAuditMessage(AuditCategory.MISSING_PRIVILEGES);
-			router.route(msg, true);
+			router.route(msg);
 			limit--;
 		}
 		LoggingSink loggingSink = (LoggingSink)router.defaultSink.getFallbackSink();

@@ -75,27 +75,27 @@ public class RouterTest extends AbstractAuditlogiUnitTest{
 
 		AuditMessageRouter router = createMessageRouterComplianceEnabled(settings);
         AuditMessage msg = MockAuditMessageFactory.validAuditMessage(AuditCategory.MISSING_PRIVILEGES);
-        router.route(msg, true);
+        router.route(msg);
         testMessageDeliveredForCategory(router, msg, AuditCategory.MISSING_PRIVILEGES, "endpoint1", "endpoint2", "default");
 
         router = createMessageRouterComplianceEnabled(settings);
         msg = MockAuditMessageFactory.validAuditMessage(AuditCategory.COMPLIANCE_DOC_READ);
-        router.route(msg, true);
+        router.route(msg);
         testMessageDeliveredForCategory(router, msg, AuditCategory.COMPLIANCE_DOC_READ, "endpoint3");
 
         router = createMessageRouterComplianceEnabled(settings);
         msg = MockAuditMessageFactory.validAuditMessage(AuditCategory.COMPLIANCE_DOC_WRITE);
-        router.route(msg, true);
+        router.route(msg);
         testMessageDeliveredForCategory(router, msg, AuditCategory.COMPLIANCE_DOC_WRITE, "default");
 
         router = createMessageRouterComplianceEnabled(settings);
         msg = MockAuditMessageFactory.validAuditMessage(AuditCategory.FAILED_LOGIN);
-        router.route(msg, true);
+        router.route(msg);
         testMessageDeliveredForCategory(router, msg, AuditCategory.FAILED_LOGIN, "default");
 
         router = createMessageRouterComplianceEnabled(settings);
         msg = MockAuditMessageFactory.validAuditMessage(AuditCategory.GRANTED_PRIVILEGES);
-        router.route(msg, true);
+        router.route(msg);
         testMessageDeliveredForCategory(router, msg, AuditCategory.GRANTED_PRIVILEGES, "default");
 
     }
