@@ -30,6 +30,8 @@
 
 package com.amazon.opendistroforelasticsearch.security.compliance;
 
+import java.nio.BufferUnderflowException;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
@@ -107,17 +109,19 @@ public class ComplianceConfig {
         this.immutableIndicesPatterns = immutableIndicesPatterns;
         this.opendistrosecurityIndex = opendistrosecurityIndex;
 
-        final byte[] saltAsBytes = saltAsString.getBytes(StandardCharsets.UTF_8);
+        this.salt16 = new byte[SALT_SIZE];
         if (saltAsString.equals(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT_DEFAULT)) {
             log.warn("If you plan to use field masking pls configure compliance salt {} to be a random string of 16 chars length identical on all nodes", saltAsString);
         }
-        if (saltAsBytes.length < SALT_SIZE) {
-            throw new ElasticsearchException("Provided compliance salt " + saltAsString + " must at least contain 16 bytes");
+        try {
+            ByteBuffer byteBuffer = StandardCharsets.UTF_8.encode(saltAsString);
+            byteBuffer.get(salt16);
+            if (byteBuffer.remaining() > 0) {
+                log.warn("Provided compliance salt {} is greater than 16 bytes. Only the first 16 bytes are used for salting", saltAsString);
+            }
+        } catch (BufferUnderflowException e) {
+            throw new ElasticsearchException("Provided compliance salt " + saltAsString + " must at least contain 16 bytes", e);
         }
-        if (saltAsBytes.length > SALT_SIZE) {
-            log.warn("Provided compliance salt {} is greater than 16 bytes. Only the first 16 bytes are used for salting", saltAsString);
-        }
-        this.salt16 = Arrays.copyOf(saltAsBytes, SALT_SIZE);
 
         //opendistro_security.compliance.pii_fields:
         //  - indexpattern,fieldpattern,fieldpattern,....
