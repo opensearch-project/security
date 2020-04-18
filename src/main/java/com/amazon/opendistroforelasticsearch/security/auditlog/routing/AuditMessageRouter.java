@@ -97,6 +97,9 @@ public class AuditMessageRouter {
 	}
 
 	public final boolean enableRoutes(Settings settings) {
+		if (!isEnabled()) {
+			throw new IllegalStateException("AuditMessageRouter is disable");
+		}
 		areRoutesEnabled = true;
 		Map<String, Object> routesConfiguration = Utils.convertJsonToxToStructuredMap(settings.getAsSettings(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_ROUTES));
 		if (!routesConfiguration.isEmpty()) {
