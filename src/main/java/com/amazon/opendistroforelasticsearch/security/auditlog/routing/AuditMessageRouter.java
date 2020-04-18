@@ -67,14 +67,14 @@ public class AuditMessageRouter {
 		return this.enabled;
 	}
 
-	public final void route(final AuditMessage msg, final boolean complianceDisabled) {
+	public final void route(final AuditMessage msg, final boolean isComplianceConfigEnabled) {
 		if (!enabled) {
 			// should not happen since we check in AuditLogImpl, so this is just a safeguard
 			log.error("#route(AuditMessage) called but message router is disabled");
 			return;
 		}
 		// if we do not run the compliance features or no extended configuration is present, only log to default.
-		if (!hasMultipleEndpoints || complianceDisabled) {
+		if (!hasMultipleEndpoints || !isComplianceConfigEnabled) {
 			store(defaultSink, msg);
 		} else {
 			for (AuditLogSink sink : categorySinks.get(msg.getCategory())) {

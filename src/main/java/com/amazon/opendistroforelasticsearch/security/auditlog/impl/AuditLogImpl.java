@@ -97,8 +97,8 @@ public final class AuditLogImpl extends AbstractAuditLog {
 	protected void save(final AuditMessage msg) {
 		if (enabled) {
 			final ComplianceConfig complianceConfig = getComplianceConfig();
-			final boolean complianceDisabled = complianceConfig == null || !complianceConfig.isEnabled();
-			messageRouter.route(msg, complianceDisabled);
+			final boolean isComplianceConfigEnabled = complianceConfig != null && complianceConfig.isEnabled();
+			messageRouter.route(msg, isComplianceConfigEnabled);
 		}
 	}
 

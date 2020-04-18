@@ -45,7 +45,7 @@ public class FallbackTest extends AbstractAuditlogiUnitTest {
 		AuditMessageRouter router = createMessageRouterComplianceEnabled(settings);
 
 		AuditMessage msg = MockAuditMessageFactory.validAuditMessage(AuditCategory.MISSING_PRIVILEGES);
-		router.route(msg, false);
+		router.route(msg, true);
 
 		// endpoint 1 is failing, endoint2 and default work
 		List<AuditLogSink> sinks = router.categorySinks.get(AuditCategory.MISSING_PRIVILEGES);
@@ -75,7 +75,7 @@ public class FallbackTest extends AbstractAuditlogiUnitTest {
 		// has only one end point which fails
 		router = createMessageRouterComplianceEnabled(settings);
 		msg = MockAuditMessageFactory.validAuditMessage(AuditCategory.COMPLIANCE_DOC_READ);
-		router.route(msg, false);
+		router.route(msg, true);
 		sinks = router.categorySinks.get(AuditCategory.COMPLIANCE_DOC_READ);
 		sink = sinks.get(0);
 		Assert.assertEquals("endpoint3", sink.getName());
@@ -89,7 +89,7 @@ public class FallbackTest extends AbstractAuditlogiUnitTest {
 		// has only default which succeeds
 		router = createMessageRouterComplianceEnabled(settings);
 		msg = MockAuditMessageFactory.validAuditMessage(AuditCategory.COMPLIANCE_DOC_WRITE);
-		router.route(msg, false);
+		router.route(msg, true);
 		sinks = router.categorySinks.get(AuditCategory.COMPLIANCE_DOC_WRITE);
 		sink = sinks.get(0);
 		Assert.assertEquals("default", sink.getName());
@@ -107,7 +107,7 @@ public class FallbackTest extends AbstractAuditlogiUnitTest {
 		// test non configured categories, must be logged to default only
 		router = createMessageRouterComplianceEnabled(settings);
 		msg = MockAuditMessageFactory.validAuditMessage(AuditCategory.FAILED_LOGIN);
-		router.route(msg, false);
+		router.route(msg, true);
 		sinks = router.categorySinks.get(AuditCategory.FAILED_LOGIN);
 		sink = sinks.get(0);
 		Assert.assertEquals("default", sink.getName());
