@@ -21,6 +21,7 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Map;
 
+import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
 import org.elasticsearch.SpecialPermission;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -45,9 +46,14 @@ public final class AuditLogImpl extends AbstractAuditLog {
 	private final AuditMessageRouter messageRouter;
 	private final boolean enabled;
 
+	AuditLogImpl(final Settings settings, final Path configPath, Client clientProvider, ThreadPool threadPool,
+				 final IndexNameExpressionResolver resolver, final ClusterService clusterService) {
+		this(settings, configPath, clientProvider, threadPool, resolver, clusterService, false);
+	}
+
 	public AuditLogImpl(final Settings settings, final Path configPath, Client clientProvider, ThreadPool threadPool,
-						final IndexNameExpressionResolver resolver, final ClusterService clusterService) {
-		super(settings, threadPool, resolver, clusterService);
+						final IndexNameExpressionResolver resolver, final ClusterService clusterService, final boolean dlsFlsAvailable) {
+		super(settings, threadPool, resolver, clusterService, dlsFlsAvailable);
 
 		this.messageRouter = new AuditMessageRouter(settings, clientProvider, threadPool, configPath);
 		this.enabled = messageRouter.isEnabled();
@@ -90,6 +96,7 @@ public final class AuditLogImpl extends AbstractAuditLog {
 	@Override
 	protected void save(final AuditMessage msg) {
 		if (enabled) {
+			final ComplianceConfig complianceConfig = getComplianceConfig();
 			final boolean complianceDisabled = complianceConfig == null || !complianceConfig.isEnabled();
 			messageRouter.route(msg, complianceDisabled);
 		}

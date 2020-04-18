@@ -43,6 +43,7 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.settings.Settings;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -122,7 +123,7 @@ public class ComplianceConfig {
         //  - indexpattern,fieldpattern,fieldpattern,....
         this.readEnabledFields = watchedReadFields.stream()
                 .map(watchedReadField -> watchedReadField.split(","))
-                .filter(split -> split.length != 0)
+                .filter(split -> split.length != 0 && !Strings.isNullOrEmpty(split[0]))
                 .collect(Collectors.toMap(
                         split -> split[0],
                         split -> split.length == 1 ?

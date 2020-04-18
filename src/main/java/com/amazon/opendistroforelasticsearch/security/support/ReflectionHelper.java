@@ -41,6 +41,7 @@ import java.util.Set;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
+import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditLogImpl;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
@@ -171,18 +172,15 @@ public class ReflectionHelper {
     }
 
     public static AuditLog instantiateAuditLog(final Settings settings, final Path configPath, final Client localClient, final ThreadPool threadPool,
-            final IndexNameExpressionResolver resolver, final ClusterService clusterService) {
+            final IndexNameExpressionResolver resolver, final ClusterService clusterService, final boolean dlsFlsAvailable) {
 
         if (advancedModulesDisabled()) {
             return new NullAuditLog();
         }
 
         try {
-            final Class<?> clazz = Class.forName("com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditLogImpl");
-            final AuditLog impl = (AuditLog) clazz
-                    .getConstructor(Settings.class, Path.class, Client.class, ThreadPool.class, IndexNameExpressionResolver.class, ClusterService.class)
-                    .newInstance(settings, configPath, localClient, threadPool, resolver, clusterService);
-            addLoadedModule(clazz);
+            final AuditLog impl = new AuditLogImpl(settings, configPath, localClient, threadPool, resolver, clusterService, dlsFlsAvailable);
+            addLoadedModule(AuditLogImpl.class);
             return impl;
         } catch (final Throwable e) {
             log.warn("Unable to enable Auditlog Module due to {}", e.toString());

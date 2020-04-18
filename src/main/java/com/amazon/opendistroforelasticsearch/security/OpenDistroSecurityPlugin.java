@@ -751,12 +751,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
 
         final IndexNameExpressionResolver resolver = new IndexNameExpressionResolver();
         irr = new IndexResolverReplacer(resolver, clusterService, cih);
-        auditLog = ReflectionHelper.instantiateAuditLog(settings, configPath, localClient, threadPool, resolver, clusterService);
-        final ComplianceConfig complianceConfig = (dlsFlsAvailable && (auditLog.getClass() != NullAuditLog.class)) ? ComplianceConfig.from(settings) : null;
-        log.debug("Compliance config is "+complianceConfig+" because of dlsFlsAvailable: "+dlsFlsAvailable+" and auditLog="+auditLog.getClass());
-        if (complianceConfig != null)
-            complianceConfig.log(log);
-        auditLog.setComplianceConfig(complianceConfig);
+        auditLog = ReflectionHelper.instantiateAuditLog(settings, configPath, localClient, threadPool, resolver, clusterService, dlsFlsAvailable);
         
         sslExceptionHandler = new AuditLogSslExceptionHandler(auditLog);
 

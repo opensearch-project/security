@@ -75,8 +75,6 @@ public interface AuditLog extends Closeable {
     void logExternalConfig(Settings settings, Environment environment);
     
     // compliance config
-    void setComplianceConfig(ComplianceConfig complianceConfig);
-
     ComplianceConfig getComplianceConfig();
     
     public enum Origin {
