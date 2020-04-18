@@ -18,7 +18,6 @@ package com.amazon.opendistroforelasticsearch.security.configuration;
 import java.util.Map;
 import java.util.Set;
 
-import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
@@ -39,6 +38,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.HeaderHelper;
 import com.amazon.opendistroforelasticsearch.security.support.OpenDistroSecurityUtils;
+import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 
 public class DlsFlsValveImpl implements DlsFlsRequestValve {
 

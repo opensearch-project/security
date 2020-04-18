@@ -10,6 +10,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.NodesDn;
+import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.Client;
@@ -338,9 +339,9 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         }
 
         @Override
-        public Map<String, List<String>> getNodesDn() {
+        public Map<String, WildcardMatcher> getNodesDn() {
             return this.configuration.getCEntries().entrySet().stream().collect(
-                Collectors.toMap(Entry::getKey, entry -> entry.getValue().getNodesDn()));
+                Collectors.toMap(Entry::getKey, entry -> WildcardMatcher.pattern(entry.getValue().getNodesDn(), false)));
         }
     }
    

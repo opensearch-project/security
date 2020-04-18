@@ -8,11 +8,11 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.amazon.opendistroforelasticsearch.security.securityconf.Hideable;
 import com.amazon.opendistroforelasticsearch.security.securityconf.StaticDefinable;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v6.RoleV6;
+import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 
 public class RoleV7 implements Hideable, StaticDefinable {
 

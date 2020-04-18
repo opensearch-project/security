@@ -20,7 +20,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import org.ldaptive.LdapAttribute;
 import org.ldaptive.LdapEntry;
 

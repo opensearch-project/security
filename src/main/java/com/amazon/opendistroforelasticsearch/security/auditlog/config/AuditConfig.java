@@ -2,6 +2,7 @@ package com.amazon.opendistroforelasticsearch.security.auditlog.config;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
+import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.Settings;
@@ -35,10 +36,10 @@ public class AuditConfig {
         private final boolean logRequestBody;
         private final boolean resolveIndices;
         private final boolean excludeSensitiveHeaders;
-        private final Set<String> ignoredAuditUsers;
-        private final Set<String> ignoredComplianceUsersForRead;
-        private final Set<String> ignoredComplianceUsersForWrite;
-        private final Set<String> ignoreAuditRequests;
+        private final WildcardMatcher ignoredAuditUsers;
+        private final WildcardMatcher ignoredComplianceUsersForRead;
+        private final WildcardMatcher ignoredComplianceUsersForWrite;
+        private final WildcardMatcher ignoreAuditRequests;
         private final EnumSet<AuditCategory> disabledRestCategories;
         private final EnumSet<AuditCategory> disabledTransportCategories;
 
@@ -60,10 +61,10 @@ public class AuditConfig {
             this.logRequestBody = logRequestBody;
             this.resolveIndices = resolveIndices;
             this.excludeSensitiveHeaders = excludeSensitiveHeaders;
-            this.ignoredAuditUsers = ignoredAuditUsers;
-            this.ignoredComplianceUsersForRead = ignoredComplianceUsersForRead;
-            this.ignoredComplianceUsersForWrite = ignoredComplianceUsersForWrite;
-            this.ignoreAuditRequests = ignoredAuditRequests;
+            this.ignoredAuditUsers = WildcardMatcher.pattern(ignoredAuditUsers);
+            this.ignoredComplianceUsersForRead = WildcardMatcher.pattern(ignoredComplianceUsersForRead);
+            this.ignoredComplianceUsersForWrite = WildcardMatcher.pattern(ignoredComplianceUsersForWrite);
+            this.ignoreAuditRequests = WildcardMatcher.pattern(ignoredAuditRequests);
             this.disabledRestCategories = disabledRestCategories;
             this.disabledTransportCategories = disabledTransportCategories;
         }
@@ -189,7 +190,7 @@ public class AuditConfig {
          * Set of users for whom auditing must be ignored.
          * @return set of users
          */
-        public Set<String> getIgnoredAuditUsers() {
+        public WildcardMatcher getIgnoredAuditUsers() {
             return ignoredAuditUsers;
         }
 
@@ -197,7 +198,7 @@ public class AuditConfig {
          * Set of users for whom compliance read auditing must be ignored.
          * @return set of users
          */
-        public Set<String> getIgnoredComplianceUsersForRead() {
+        public WildcardMatcher getIgnoredComplianceUsersForRead() {
             return ignoredComplianceUsersForRead;
         }
 
@@ -205,7 +206,7 @@ public class AuditConfig {
          * Set of users for whom compliance write auditing must be ignored.
          * @return set of users
          */
-        public Set<String> getIgnoredComplianceUsersForWrite() {
+        public WildcardMatcher getIgnoredComplianceUsersForWrite() {
             return ignoredComplianceUsersForWrite;
         }
 
@@ -213,7 +214,7 @@ public class AuditConfig {
          * Request patterns that must be ignored.
          * @return set of request patterns
          */
-        public Set<String> getIgnoredAuditRequests() {
+        public WildcardMatcher getIgnoredAuditRequests() {
             return ignoreAuditRequests;
         }
 

@@ -2,6 +2,7 @@ package com.amazon.opendistroforelasticsearch.security.auditlog.config;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
+import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.google.common.collect.ImmutableSet;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
@@ -17,6 +18,7 @@ import static com.amazon.opendistroforelasticsearch.security.auditlog.impl.Audit
 import static com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory.FAILED_LOGIN;
 import static com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory.MISSING_PRIVILEGES;
 
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertEquals;
@@ -37,7 +39,7 @@ public class AuditConfigFilterTest {
         assertTrue(auditConfigFilter.shouldResolveIndices());
         assertFalse(auditConfigFilter.shouldResolveBulkRequests());
         assertTrue(auditConfigFilter.shouldExcludeSensitiveHeaders());
-        assertTrue(auditConfigFilter.getIgnoredAuditRequests().isEmpty());
+        assertSame(auditConfigFilter.getIgnoredAuditRequests(), WildcardMatcher.NONE);
         assertEquals(auditConfigFilter.getIgnoredAuditUsers(), defaultIgnoredUser);
         assertEquals(auditConfigFilter.getIgnoredComplianceUsersForRead(), defaultIgnoredUser);
         assertEquals(auditConfigFilter.getIgnoredComplianceUsersForWrite(), defaultIgnoredUser);
@@ -100,11 +102,11 @@ public class AuditConfigFilterTest {
         // act
         final AuditConfig.Filter auditConfigFilter = AuditConfig.Filter.from(settings);
         // assert
-        assertTrue(auditConfigFilter.getIgnoredAuditUsers().isEmpty());
-        assertTrue(auditConfigFilter.getIgnoredComplianceUsersForRead().isEmpty());
-        assertTrue(auditConfigFilter.getIgnoredComplianceUsersForWrite().isEmpty());
-        assertTrue(auditConfigFilter.getDisabledRestCategories().isEmpty());
-        assertTrue(auditConfigFilter.getDisabledTransportCategories().isEmpty());
+        assertSame(auditConfigFilter.getIgnoredAuditUsers(), WildcardMatcher.NONE);
+        assertSame(auditConfigFilter.getIgnoredComplianceUsersForRead(), WildcardMatcher.NONE);
+        assertSame(auditConfigFilter.getIgnoredComplianceUsersForWrite(), WildcardMatcher.NONE);
+        assertSame(auditConfigFilter.getDisabledRestCategories().isEmpty(), WildcardMatcher.NONE);
+        assertSame(auditConfigFilter.getDisabledTransportCategories().isEmpty(), WildcardMatcher.NONE);
     }
 
     @Test
@@ -125,10 +127,10 @@ public class AuditConfigFilterTest {
         // act
         final AuditConfig.Filter auditConfigFilter = AuditConfig.Filter.from(settings);
         // assert
-        assertTrue(auditConfigFilter.getIgnoredAuditUsers().isEmpty());
-        assertTrue(auditConfigFilter.getIgnoredComplianceUsersForRead().isEmpty());
-        assertTrue(auditConfigFilter.getIgnoredComplianceUsersForWrite().isEmpty());
-        assertTrue(auditConfigFilter.getDisabledRestCategories().isEmpty());
-        assertTrue(auditConfigFilter.getDisabledTransportCategories().isEmpty());
+        assertSame(auditConfigFilter.getIgnoredAuditUsers(), WildcardMatcher.NONE);
+        assertSame(auditConfigFilter.getIgnoredComplianceUsersForRead(), WildcardMatcher.NONE);
+        assertSame(auditConfigFilter.getIgnoredComplianceUsersForWrite(), WildcardMatcher.NONE);
+        assertSame(auditConfigFilter.getDisabledRestCategories(), WildcardMatcher.NONE);
+        assertSame(auditConfigFilter.getDisabledTransportCategories(), WildcardMatcher.NONE);
     }
 }

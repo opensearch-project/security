@@ -21,8 +21,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.LongSupplier;
 
-import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvaluator;
-import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
+
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -39,7 +38,7 @@ import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvalu
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.HeaderHelper;
 import com.amazon.opendistroforelasticsearch.security.support.OpenDistroSecurityUtils;
-
+import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.google.common.collect.Sets;
 
 public class OpenDistroSecurityFlsDlsIndexSearcherWrapper extends OpenDistroSecurityIndexSearcherWrapper {

@@ -24,7 +24,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 
-import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.FieldInfo;

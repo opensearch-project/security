@@ -33,12 +33,13 @@ package com.amazon.opendistroforelasticsearch.security.configuration;
 import java.util.Map;
 import java.util.Set;
 
-import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.threadpool.ThreadPool;
+
+import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 
 public interface DlsFlsRequestValve {
     

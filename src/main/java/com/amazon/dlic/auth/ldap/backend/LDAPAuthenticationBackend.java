@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -46,6 +45,7 @@ import com.amazon.dlic.auth.ldap.util.Utils;
 import com.amazon.opendistroforelasticsearch.security.auth.AuthenticationBackend;
 import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
 import com.amazon.opendistroforelasticsearch.security.user.User;
+import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 
 public class LDAPAuthenticationBackend implements AuthenticationBackend {
 
@@ -128,7 +128,7 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
             // by default all ldap attributes which are not binary and with a max value
             // length of 36 are included in the user object
             // if the whitelist contains at least one value then all attributes will be
-            // additional check if whitelisted (whitelist can contain WildcardMatcher and regex)
+            // additional check if whitelisted (whitelist can contain wildcard and regex)
             return new LdapUser(username, user, entry, credentials, customAttrMaxValueLen, whitelistedAttributes);
 
         } catch (final Exception e) {
