@@ -77,7 +77,7 @@ public interface AuditLog extends Closeable {
     // compliance config
     void setComplianceConfig(ComplianceConfig complianceConfig);
 
-    ComplianceConfig getCurrentComplianceConfig();
+    ComplianceConfig getComplianceConfig();
     
     public enum Origin {
         REST, TRANSPORT, LOCAL

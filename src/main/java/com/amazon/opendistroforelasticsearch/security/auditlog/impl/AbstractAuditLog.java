@@ -115,7 +115,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     }
 
     @Override
-    public ComplianceConfig getCurrentComplianceConfig() {
+    public ComplianceConfig getComplianceConfig() {
         return this.complianceConfig;
     }
 

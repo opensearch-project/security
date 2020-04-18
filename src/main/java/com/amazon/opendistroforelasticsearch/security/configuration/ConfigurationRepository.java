@@ -340,7 +340,7 @@ public class ConfigurationRepository {
             throw new ElasticsearchException(e);
         }
 
-        if (logComplianceEvent && auditLog.getCurrentComplianceConfig().isEnabled()) {
+        if (logComplianceEvent && auditLog.getComplianceConfig().isEnabled()) {
             CType configurationType = configTypes.iterator().next();
             Map<String, String> fields = new HashMap<String, String>();
             fields.put(configurationType.toLCString(), Strings.toString(retVal.get(configurationType)));

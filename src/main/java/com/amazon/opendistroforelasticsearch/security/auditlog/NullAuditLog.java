@@ -140,7 +140,7 @@ public class NullAuditLog implements AuditLog {
     }
 
     @Override
-    public ComplianceConfig getCurrentComplianceConfig() {
+    public ComplianceConfig getComplianceConfig() {
         return null;
     }
 

@@ -508,7 +508,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         //called for every index!
 
         if (!disabled && !client && !sslOnly) {
-            final ComplianceConfig complianceConfig = auditLog.getCurrentComplianceConfig();
+            final ComplianceConfig complianceConfig = auditLog.getComplianceConfig();
             log.debug("Handle complianceConfig="+complianceConfig+"/dlsFlsAvailable: "+dlsFlsAvailable+"/auditLog="+auditLog.getClass()+" for onIndexModule() of index "+indexModule.getIndex().getName());
             if (dlsFlsAvailable) {
 
@@ -1012,7 +1012,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         final Set<ModuleInfo> securityModules = ReflectionHelper.getModulesLoaded();
         log.info("{} Open Distro Security modules loaded so far: {}", securityModules.size(), securityModules);
         if (auditLog != null) {
-            final ComplianceConfig complianceConfig = auditLog.getCurrentComplianceConfig();
+            final ComplianceConfig complianceConfig = auditLog.getComplianceConfig();
             if(complianceConfig != null && complianceConfig.isEnabled() && complianceConfig.shouldLogExternalConfig() && !externalConfigLogged.getAndSet(true)) {
                 log.info("logging external config");
                 auditLog.logExternalConfig(settings, environment);

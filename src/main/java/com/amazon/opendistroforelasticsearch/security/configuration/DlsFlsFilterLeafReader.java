@@ -117,7 +117,7 @@ class DlsFlsFilterLeafReader extends FilterLeafReader {
                            final AuditLog auditlog, final Set<String> maskedFields, final ShardId shardId) {
         super(delegate);
 
-        maskFields = (auditlog.getCurrentComplianceConfig().isEnabled() && maskedFields != null && maskedFields.size() > 0);
+        maskFields = (auditlog.getComplianceConfig().isEnabled() && maskedFields != null && maskedFields.size() > 0);
 
         this.indexService = indexService;
         this.threadContext = threadContext;
@@ -286,7 +286,7 @@ class DlsFlsFilterLeafReader extends FilterLeafReader {
     private Map<String, MaskedField> extractMaskedFields(Set<String> maskedFields) {
         Map<String, MaskedField> retVal = new HashMap<>(maskedFields.size());
         for(String mfs: maskedFields) {
-            MaskedField mf = new MaskedField(mfs, auditlog.getCurrentComplianceConfig().getSalt16());
+            MaskedField mf = new MaskedField(mfs, auditlog.getComplianceConfig().getSalt16());
             retVal.put(mf.getName(), mf);
         }
         return retVal;
@@ -364,7 +364,7 @@ class DlsFlsFilterLeafReader extends FilterLeafReader {
     @Override
     public void document(final int docID, final StoredFieldVisitor visitor) throws IOException {
 
-        if(auditlog.getCurrentComplianceConfig().readHistoryEnabledForIndex(indexService.index().getName())) {
+        if(auditlog.getComplianceConfig().readHistoryEnabledForIndex(indexService.index().getName())) {
             final ComplianceAwareStoredFieldVisitor cv = new ComplianceAwareStoredFieldVisitor(visitor);
 
             if(flsEnabled) {
@@ -1094,7 +1094,7 @@ class DlsFlsFilterLeafReader extends FilterLeafReader {
     @SuppressWarnings("unchecked")
     private Map<String, MaskedField> getRuntimeMaskedFieldInfo() {
 
-        if(!auditlog.getCurrentComplianceConfig().isEnabled()) {
+        if(!auditlog.getComplianceConfig().isEnabled()) {
             return null;
         }
 
