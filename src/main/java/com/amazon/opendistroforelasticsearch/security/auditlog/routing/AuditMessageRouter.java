@@ -59,7 +59,7 @@ public class AuditMessageRouter {
 	}
 
 	public boolean isEnabled() {
-		return defaultSink == null;
+		return defaultSink != null;
 	}
 
 	public final void route(final AuditMessage msg) {
