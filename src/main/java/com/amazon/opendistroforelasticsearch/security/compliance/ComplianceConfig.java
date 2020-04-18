@@ -351,8 +351,8 @@ public class ComplianceConfig {
         try {
             return !readEnabledFieldsCache.get(index).isEmpty();
         } catch (ExecutionException e) {
-            log.error(e);
-            return true;
+            log.warn("Failed to get index {} fields enabled for read from cache. Bypassing cache.", index, e);
+            return getFieldsForIndex(index).isEmpty();
         }
     }
 
@@ -370,15 +370,16 @@ public class ComplianceConfig {
         if (opendistrosecurityIndex.equals(index)) {
             return logInternalConfig;
         }
+        Set<String> fields;
         try {
-            final Set<String> fields = readEnabledFieldsCache.get(index);
+            fields = readEnabledFieldsCache.get(index);
             if (fields.isEmpty()) {
                 return false;
             }
-            return WildcardMatcher.matchAny(fields, field);
         } catch (ExecutionException e) {
-            log.error(e);
-            return true;
+            log.warn("Failed to get index {} fields enabled for read from cache. Bypassing cache.", index, e);
+            fields = getFieldsForIndex(index);
         }
+        return WildcardMatcher.matchAny(fields, field);
     }
 }
