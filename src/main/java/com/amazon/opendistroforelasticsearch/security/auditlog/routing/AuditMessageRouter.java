@@ -37,6 +37,8 @@ import com.amazon.opendistroforelasticsearch.security.auditlog.sink.SinkProvider
 import com.amazon.opendistroforelasticsearch.security.dlic.rest.support.Utils;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 
+import static com.google.common.base.Preconditions.checkState;
+
 public class AuditMessageRouter {
 
 	protected final Logger log = LogManager.getLogger(this.getClass());
@@ -97,9 +99,7 @@ public class AuditMessageRouter {
 	}
 
 	public final boolean enableRoutes(Settings settings) {
-		if (!isEnabled()) {
-			throw new IllegalStateException("AuditMessageRouter is disabled");
-		}
+		checkState(isEnabled(), "AuditMessageRouter is disabled");
 		areRoutesEnabled = true;
 		Map<String, Object> routesConfiguration = Utils.convertJsonToxToStructuredMap(settings.getAsSettings(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_ROUTES));
 		if (!routesConfiguration.isEmpty()) {
