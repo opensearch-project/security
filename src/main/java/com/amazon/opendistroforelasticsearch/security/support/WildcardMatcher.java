@@ -30,6 +30,7 @@
 
 package com.amazon.opendistroforelasticsearch.security.support;
 
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -43,8 +44,9 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public abstract class WildcardMatcher implements Predicate<String> {
-    
+public abstract class WildcardMatcher implements Predicate<String>, Serializable {
+    static final long serialVersionUID = 1L;
+
     public boolean isPattern() { return true; }
     
     public boolean matchAny(Collection<String> candidates) {
@@ -73,18 +75,44 @@ public abstract class WildcardMatcher implements Predicate<String> {
 
     // TODO: make serializable, hashable etc.
     public static final WildcardMatcher ANY = new WildcardMatcher() {
+        static final long serialVersionUID = 2L;
+
         @Override
         public boolean test(String candidate) {
             return true;
         }
+
+        @Override
+        public boolean equals(Object obj) {
+            return obj == this;
+        }
+
+        @Override
+        public int hashCode() { return 1; }
+
+        @Override
+        public String toString() { return "*"; }
     };
 
     // TODO: make serializable, hashable etc.
     public static final WildcardMatcher NONE = new WildcardMatcher() {
+        static final long serialVersionUID = 3L;
+
         @Override
         public boolean test(String candidate) {
             return false;
         }
+
+        @Override
+        public boolean equals(Object obj) {
+            return obj == this;
+        }
+
+        @Override
+        public int hashCode() { return 2; }
+
+        @Override
+        public String toString() { return "<NONE>"; }
     };
 
     // This may in future use more optimized techniques to combine multiple WildcardMatchers in a single automaton
@@ -186,6 +214,8 @@ public abstract class WildcardMatcher implements Predicate<String> {
     // Casefolding matcher - sits on top of case-sensitive matcher 
     // and proxies toLower() of input string to the wrapped matcher
     private static final class CasefoldingMatcher extends WildcardMatcher {
+        static final long serialVersionUID = 10L;
+
         private final WildcardMatcher inner;
 
         public CasefoldingMatcher(String pattern, Function<String,WildcardMatcher> simpleWildcardMatcher) {
@@ -217,6 +247,8 @@ public abstract class WildcardMatcher implements Predicate<String> {
     }
 
     private static final class ExactMatcher extends WildcardMatcher {
+        static final long serialVersionUID = 20L;
+
         private final String pattern;
 
         ExactMatcher(String pattern) {
@@ -255,6 +287,8 @@ public abstract class WildcardMatcher implements Predicate<String> {
     // RegexMatcher uses JDK Pattern to test for matching, 
     // assumes "/<regex>/" strings as input pattern
     private static final class RegexMatcher extends WildcardMatcher {
+        static final long serialVersionUID = 30L;
+
         private final Pattern pattern;
 
         public RegexMatcher(String pattern, boolean caseSensitive) {
@@ -287,6 +321,8 @@ public abstract class WildcardMatcher implements Predicate<String> {
     // using exlicit stack or recursion (as long as we don't need sub-matches it does work)
     // allows us to save on resources and heap allocations unless Regex is required
     private static final class SimpleMatcher extends WildcardMatcher {
+        static final long serialVersionUID = 40L;
+
         private final String pattern;
 
         SimpleMatcher(String pattern) {
@@ -339,6 +375,8 @@ public abstract class WildcardMatcher implements Predicate<String> {
     // matches if any of the set do
     // Empty MultiMatcher always returns false
     private static final class MultiMatcher extends WildcardMatcher {
+        static final long serialVersionUID = 50L;
+
         private final List<WildcardMatcher> WildcardMatchers;
 
         MultiMatcher(List<WildcardMatcher> WildcardMatchers) {
