@@ -65,7 +65,6 @@ import org.elasticsearch.env.Environment;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
-import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
 import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigFactory;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -87,7 +86,6 @@ public class ConfigurationRepository {
     private final Settings settings;
     private final ClusterService clusterService;
     private final AuditLog auditLog;
-    private final ComplianceConfig complianceConfig;
     private final ThreadPool threadPool;
     private DynamicConfigFactory dynamicConfigFactory;
     private static final int DEFAULT_CONFIG_VERSION = 2;
@@ -95,14 +93,13 @@ public class ConfigurationRepository {
     private final AtomicBoolean installDefaultConfig = new AtomicBoolean();
 
     private ConfigurationRepository(Settings settings, final Path configPath, ThreadPool threadPool,
-                                    Client client, ClusterService clusterService, AuditLog auditLog, ComplianceConfig complianceConfig) {
+                                    Client client, ClusterService clusterService, AuditLog auditLog) {
         this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
         this.settings = settings;
         this.client = client;
         this.threadPool = threadPool;
         this.clusterService = clusterService;
         this.auditLog = auditLog;
-        this.complianceConfig = complianceConfig;
         this.configurationChangedListener = new ArrayList<>();
         cl = new ConfigurationLoaderSecurity7(client, threadPool, settings, clusterService);
 
@@ -245,8 +242,8 @@ public class ConfigurationRepository {
     }
 
     public static ConfigurationRepository create(Settings settings, final Path configPath, final ThreadPool threadPool,
-                                                 Client client,  ClusterService clusterService, AuditLog auditLog, ComplianceConfig complianceConfig) {
-        final ConfigurationRepository repository = new ConfigurationRepository(settings, configPath, threadPool, client, clusterService, auditLog, complianceConfig);
+                                                 Client client,  ClusterService clusterService, AuditLog auditLog) {
+        final ConfigurationRepository repository = new ConfigurationRepository(settings, configPath, threadPool, client, clusterService, auditLog);
         return repository;
     }
 
@@ -345,11 +342,11 @@ public class ConfigurationRepository {
             throw new ElasticsearchException(e);
         }
 
-        if(logComplianceEvent && complianceConfig.isEnabled()) {
+        if (logComplianceEvent && auditLog.getComplianceConfig().isEnabled()) {
             CType configurationType = configTypes.iterator().next();
             Map<String, String> fields = new HashMap<String, String>();
             fields.put(configurationType.toLCString(), Strings.toString(retVal.get(configurationType)));
-            auditLog.logDocumentRead(this.opendistrosecurityIndex, configurationType.toLCString(), null, fields, complianceConfig);
+            auditLog.logDocumentRead(this.opendistrosecurityIndex, configurationType.toLCString(), null, fields);
         }
 
         return retVal;
