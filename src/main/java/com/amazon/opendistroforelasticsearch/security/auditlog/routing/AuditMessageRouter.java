@@ -34,9 +34,10 @@ import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
 import com.amazon.opendistroforelasticsearch.security.auditlog.sink.AuditLogSink;
 import com.amazon.opendistroforelasticsearch.security.auditlog.sink.SinkProvider;
-import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
 import com.amazon.opendistroforelasticsearch.security.dlic.rest.support.Utils;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
+
+import static com.google.common.base.Preconditions.checkState;
 
 public class AuditMessageRouter {
 
@@ -45,9 +46,8 @@ public class AuditMessageRouter {
 	final Map<AuditCategory, List<AuditLogSink>> categorySinks = new EnumMap<>(AuditCategory.class);
 	final SinkProvider sinkProvider;
 	final AsyncStoragePool storagePool;
-	final boolean enabled;
-	boolean hasMultipleEndpoints;
-	private ComplianceConfig complianceConfig;
+	private boolean hasMultipleEndpoints;
+	private boolean areRoutesEnabled;
 
 	public AuditMessageRouter(final Settings settings, final Client clientProvider, ThreadPool threadPool, final Path configPath) {
 		this.sinkProvider = new SinkProvider(settings, clientProvider, threadPool, configPath);
@@ -57,30 +57,21 @@ public class AuditMessageRouter {
 		this.defaultSink = sinkProvider.getDefaultSink();
 		if (defaultSink == null) {
 			log.warn("No default storage available, audit log may not work properly. Please check configuration.");
-			enabled = false;
-		} else {
-			// create sinks for all categories. Only do that if we have any extended setting, otherwise there is just the default category
-			setupRoutes(settings);
-			enabled = true;
 		}
 	}
 
-	public void setComplianceConfig(ComplianceConfig complianceConfig) {
-		this.complianceConfig = complianceConfig;
-	}
-
 	public boolean isEnabled() {
-		return this.enabled;
+		return defaultSink != null;
 	}
 
 	public final void route(final AuditMessage msg) {
-		if (!enabled) {
+		if (!isEnabled()) {
 			// should not happen since we check in AuditLogImpl, so this is just a safeguard
 			log.error("#route(AuditMessage) called but message router is disabled");
 			return;
 		}
 		// if we do not run the compliance features or no extended configuration is present, only log to default.
-		if (!hasMultipleEndpoints || complianceConfig == null || !complianceConfig.isEnabled()) {
+		if (!areRoutesEnabled || !hasMultipleEndpoints) {
 			store(defaultSink, msg);
 		} else {
 			for (AuditLogSink sink : categorySinks.get(msg.getCategory())) {
@@ -107,7 +98,9 @@ public class AuditMessageRouter {
 		}
 	}
 
-	private final void setupRoutes(Settings settings) {
+	public final boolean enableRoutes(Settings settings) {
+		checkState(isEnabled(), "AuditMessageRouter is disabled");
+		areRoutesEnabled = true;
 		Map<String, Object> routesConfiguration = Utils.convertJsonToxToStructuredMap(settings.getAsSettings(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_ROUTES));
 		if (!routesConfiguration.isEmpty()) {
 			hasMultipleEndpoints = true;
@@ -147,6 +140,7 @@ public class AuditMessageRouter {
 				}
 			}
 		}
+		return hasMultipleEndpoints;
 	}
 
 	private final List<AuditLogSink> createSinksForCategory(AuditCategory category, Settings configuration) {
