@@ -32,7 +32,6 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardUtils;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
-import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
 import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceIndexingOperationListener;
 import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvaluator;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
@@ -47,18 +46,16 @@ public class OpenDistroSecurityFlsDlsIndexSearcherWrapper extends OpenDistroSecu
             Sets.newHashSet(MapperService.getAllMetaFields()));
     private final ClusterService clusterService;
     private final IndexService indexService;
-    private final ComplianceConfig complianceConfig;
     private final AuditLog auditlog;
     private final LongSupplier nowInMillis;
 
     public OpenDistroSecurityFlsDlsIndexSearcherWrapper(final IndexService indexService, final Settings settings,
             final AdminDNs adminDNs, final ClusterService clusterService, final AuditLog auditlog,
-            final ComplianceIndexingOperationListener ciol, final ComplianceConfig complianceConfig, final PrivilegesEvaluator evaluator) {
+            final ComplianceIndexingOperationListener ciol, final PrivilegesEvaluator evaluator) {
         super(indexService, settings, adminDNs, evaluator);
         ciol.setIs(indexService);
         this.clusterService = clusterService;
         this.indexService = indexService;
-        this.complianceConfig = complianceConfig;
         this.auditlog = auditlog;
         final boolean allowNowinDlsQueries = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_ALLOW_NOW_IN_DLS, false);
         if (allowNowinDlsQueries) {
@@ -114,6 +111,6 @@ public class OpenDistroSecurityFlsDlsIndexSearcherWrapper extends OpenDistroSecu
         }
 
         return new DlsFlsFilterLeafReader.DlsFlsDirectoryReader(reader, flsFields, dlsQuery,
-                indexService, threadContext, clusterService, complianceConfig, auditlog, maskedFields, shardId);
+                indexService, threadContext, clusterService, auditlog, maskedFields, shardId);
     }
 }
