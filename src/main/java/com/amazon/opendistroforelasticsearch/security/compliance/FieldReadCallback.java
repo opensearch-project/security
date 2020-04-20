@@ -54,7 +54,6 @@ public final class FieldReadCallback {
     //private final ThreadContext threadContext;
     //private final ClusterService clusterService;
     private final Index index;
-    private final ComplianceConfig complianceConfig;
     private final Set<String> maskedFields;
     private final AuditLog auditLog;
     private Function<Map<String, ?>, Map<String, Object>> filterFunction;
@@ -63,13 +62,12 @@ public final class FieldReadCallback {
     private final ShardId shardId;
 
     public FieldReadCallback(final ThreadContext threadContext, final IndexService indexService,
-            final ClusterService clusterService, final ComplianceConfig complianceConfig, final AuditLog auditLog,
+            final ClusterService clusterService, final AuditLog auditLog,
             final Set<String> maskedFields, ShardId shardId) {
         super();
         //this.threadContext = Objects.requireNonNull(threadContext);
         //this.clusterService = Objects.requireNonNull(clusterService);
         this.index = Objects.requireNonNull(indexService).index();
-        this.complianceConfig = complianceConfig;
         this.auditLog = auditLog;
         this.maskedFields = maskedFields;
         this.shardId = shardId;
@@ -94,7 +92,7 @@ public final class FieldReadCallback {
         if(isStringField && maskedFields != null && maskedFields.size() > 0) {
             masked = WildcardMatcher.matchAny(maskedFields, fieldName);
         }
-        return !masked && complianceConfig.readHistoryEnabledForField(index.getName(), fieldName);
+        return !masked && auditLog.getComplianceConfig().readHistoryEnabledForField(index.getName(), fieldName);
     }
 
     public void binaryFieldRead(final FieldInfo fieldInfo, byte[] fieldValue) {
@@ -176,7 +174,7 @@ public final class FieldReadCallback {
             for(Field fi: doc.fields) {
                 f.put(fi.fieldName, String.valueOf(fi.fieldValue));
             }
-            auditLog.logDocumentRead(doc.indexName, doc.id, shardId, f, complianceConfig);
+            auditLog.logDocumentRead(doc.indexName, doc.id, shardId, f);
         } catch (Exception e) {
             log.error("Unexpected error finished compliance read entry {} in index '{}': {}", doc.id, index.getName(), e.toString(), e);
         } finally {
