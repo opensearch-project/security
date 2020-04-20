@@ -96,18 +96,16 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
     private final Settings settings;
     private final ClusterService clusterService;
     private final AuditLog auditLog;
-    private final ComplianceConfig complianceConfig;
     private ThreadPool threadPool;
 
     private IndexBaseConfigurationRepository(Settings settings, final Path configPath, ThreadPool threadPool, 
-            Client client, ClusterService clusterService, AuditLog auditLog, ComplianceConfig complianceConfig) {
+            Client client, ClusterService clusterService, AuditLog auditLog) {
         this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
         this.settings = settings;
         this.client = client;
         this.threadPool = threadPool;
         this.clusterService = clusterService;
         this.auditLog = auditLog;
-        this.complianceConfig = complianceConfig;
         this.typeToConfig = Maps.newConcurrentMap();
         this.configTypeToChancheListener = ArrayListMultimap.create();
         cl = new ConfigurationLoader(client, threadPool, settings);
@@ -274,8 +272,8 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
     }
 
 
-    public static ConfigurationRepository create(Settings settings, final Path configPath, final ThreadPool threadPool, Client client,  ClusterService clusterService, AuditLog auditLog, ComplianceConfig complianceConfig) {
-        final IndexBaseConfigurationRepository repository = new IndexBaseConfigurationRepository(settings, configPath, threadPool, client, clusterService, auditLog, complianceConfig);
+    public static ConfigurationRepository create(Settings settings, final Path configPath, final ThreadPool threadPool, Client client,  ClusterService clusterService, AuditLog auditLog) {
+        final IndexBaseConfigurationRepository repository = new IndexBaseConfigurationRepository(settings, configPath, threadPool, client, clusterService, auditLog);
         return repository;
     }
 
@@ -397,11 +395,11 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
             throw new ElasticsearchException(e);
         }
 
-        if (logComplianceEvent && complianceConfig.isEnabled()) {
+        if (logComplianceEvent && auditLog.getComplianceConfig().isEnabled()) {
             String configurationType = configTypes.iterator().next();
             Map<String, String> fields = new HashMap<String, String>();
             fields.put(configurationType, Strings.toString(retVal.get(configurationType).v2()));
-            auditLog.logDocumentRead(this.opendistrosecurityIndex, configurationType, null, fields, complianceConfig);
+            auditLog.logDocumentRead(this.opendistrosecurityIndex, configurationType, null, fields);
         }
 
         return retVal;
