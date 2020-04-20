@@ -21,6 +21,7 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Map;
 
+import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
 import org.elasticsearch.SpecialPermission;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -39,19 +40,29 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportRequest;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.routing.AuditMessageRouter;
-import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
 
 public final class AuditLogImpl extends AbstractAuditLog {
 
 	private final AuditMessageRouter messageRouter;
 	private final boolean enabled;
 
+	AuditLogImpl(final Settings settings, final Path configPath, Client clientProvider, ThreadPool threadPool,
+				 final IndexNameExpressionResolver resolver, final ClusterService clusterService) {
+		this(settings, configPath, clientProvider, threadPool, resolver, clusterService, false);
+	}
+
 	public AuditLogImpl(final Settings settings, final Path configPath, Client clientProvider, ThreadPool threadPool,
-						final IndexNameExpressionResolver resolver, final ClusterService clusterService) {
-		super(settings, threadPool, resolver, clusterService);
+						final IndexNameExpressionResolver resolver, final ClusterService clusterService, final boolean dlsFlsAvailable) {
+		super(settings, threadPool, resolver, clusterService, dlsFlsAvailable);
 
 		this.messageRouter = new AuditMessageRouter(settings, clientProvider, threadPool, configPath);
 		this.enabled = messageRouter.isEnabled();
+		if (enabled) {
+			ComplianceConfig complianceConfig = getComplianceConfig();
+			if (complianceConfig != null && complianceConfig.isEnabled()) {
+				messageRouter.enableRoutes(settings);
+			}
+		}
 
 		log.info("Message routing enabled: {}", this.enabled);
 
@@ -81,11 +92,6 @@ public final class AuditLogImpl extends AbstractAuditLog {
 			}
 		});
 
-	}
-
-	@Override
-	public void setComplianceConfig(ComplianceConfig complianceConfig) {
-		messageRouter.setComplianceConfig(complianceConfig);
 	}
 
 	@Override
@@ -185,17 +191,16 @@ public final class AuditLogImpl extends AbstractAuditLog {
 	}
 
 	@Override
-	public void logDocumentRead(String index, String id, ShardId shardId, Map<String, String> fieldNameValues, ComplianceConfig complianceConfig) {
+	public void logDocumentRead(String index, String id, ShardId shardId, Map<String, String> fieldNameValues) {
 		if (enabled) {
-			super.logDocumentRead(index, id, shardId, fieldNameValues, complianceConfig);
+			super.logDocumentRead(index, id, shardId, fieldNameValues);
 		}
 	}
 
 	@Override
-	public void logDocumentWritten(ShardId shardId, GetResult originalResult, Index currentIndex, IndexResult result,
-								   ComplianceConfig complianceConfig) {
+	public void logDocumentWritten(ShardId shardId, GetResult originalResult, Index currentIndex, IndexResult result) {
 		if (enabled) {
-			super.logDocumentWritten(shardId, originalResult, currentIndex, result, complianceConfig);
+			super.logDocumentWritten(shardId, originalResult, currentIndex, result);
 		}
 	}
 
