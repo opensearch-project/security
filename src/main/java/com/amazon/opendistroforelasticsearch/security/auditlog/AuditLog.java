@@ -69,13 +69,13 @@ public interface AuditLog extends Closeable {
     void logSSLException(TransportRequest request, Throwable t, String action, Task task);
     void logSSLException(RestRequest request, Throwable t);
 
-    void logDocumentRead(String index, String id, ShardId shardId, Map<String, String> fieldNameValues, ComplianceConfig complianceConfig);
-    void logDocumentWritten(ShardId shardId, GetResult originalIndex, Index currentIndex, IndexResult result, ComplianceConfig complianceConfig);
+    void logDocumentRead(String index, String id, ShardId shardId, Map<String, String> fieldNameValues);
+    void logDocumentWritten(ShardId shardId, GetResult originalIndex, Index currentIndex, IndexResult result);
     void logDocumentDeleted(ShardId shardId, Delete delete, DeleteResult result);
     void logExternalConfig(Settings settings, Environment environment);
     
     // compliance config
-    void setComplianceConfig(ComplianceConfig complianceConfig);
+    ComplianceConfig getComplianceConfig();
     
     public enum Origin {
         REST, TRANSPORT, LOCAL

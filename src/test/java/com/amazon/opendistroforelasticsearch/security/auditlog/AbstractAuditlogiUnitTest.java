@@ -15,9 +15,6 @@
 
 package com.amazon.opendistroforelasticsearch.security.auditlog;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import java.util.Collection;
 
 import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
@@ -26,7 +23,6 @@ import org.elasticsearch.common.settings.Settings;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage;
 import com.amazon.opendistroforelasticsearch.security.auditlog.routing.AuditMessageRouter;
-import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
 import com.amazon.opendistroforelasticsearch.security.test.DynamicSecurityConfig;
 import com.amazon.opendistroforelasticsearch.security.test.SingleClusterTest;
 import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
@@ -108,10 +104,10 @@ public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
     }
 
     protected AuditMessageRouter createMessageRouterComplianceEnabled(Settings settings) {
-    	AuditMessageRouter router = new AuditMessageRouter(settings, null, null, null);
-    	ComplianceConfig mockConfig = mock(ComplianceConfig.class);
-    	when(mockConfig.isEnabled()).thenReturn(true);
-    	router.setComplianceConfig(mockConfig);
-    	return router;
+        AuditMessageRouter router = new AuditMessageRouter(settings, null, null, null);
+        if (router.isEnabled()) {
+            router.enableRoutes(settings);
+        }
+        return router;
     }
 }

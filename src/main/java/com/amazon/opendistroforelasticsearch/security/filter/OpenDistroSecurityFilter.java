@@ -30,9 +30,12 @@
 
 package com.amazon.opendistroforelasticsearch.security.filter;
 
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import com.amazon.opendistroforelasticsearch.security.resolver.IndexResolverReplacer;
+import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchSecurityException;
@@ -90,20 +93,20 @@ public class OpenDistroSecurityFilter implements ActionFilter {
     private final AuditLog auditLog;
     private final ThreadContext threadContext;
     private final ClusterService cs;
-    private final ComplianceConfig complianceConfig;
     private final CompatConfig compatConfig;
+    private final IndexResolverReplacer indexResolverReplacer;
 
     public OpenDistroSecurityFilter(final PrivilegesEvaluator evalp, final AdminDNs adminDns,
             DlsFlsRequestValve dlsFlsValve, AuditLog auditLog, ThreadPool threadPool, ClusterService cs,
-            ComplianceConfig complianceConfig, final CompatConfig compatConfig) {
+            final CompatConfig compatConfig, final IndexResolverReplacer indexResolverReplacer) {
         this.evalp = evalp;
         this.adminDns = adminDns;
         this.dlsFlsValve = dlsFlsValve;
         this.auditLog = auditLog;
         this.threadContext = threadPool.getThreadContext();
         this.cs = cs;
-        this.complianceConfig = complianceConfig;
         this.compatConfig = compatConfig;
+        this.indexResolverReplacer = indexResolverReplacer;
     }
 
     @Override
@@ -128,8 +131,9 @@ public class OpenDistroSecurityFilter implements ActionFilter {
             if(threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN) == null) {
                 threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, Origin.LOCAL.toString());
             }
-            
-            if(complianceConfig != null && complianceConfig.isEnabled()) {
+
+            final ComplianceConfig complianceConfig = auditLog.getComplianceConfig();
+            if (complianceConfig != null && complianceConfig.isEnabled()) {
                 attachSourceFieldContext(request);
             }
 
@@ -190,19 +194,19 @@ public class OpenDistroSecurityFilter implements ActionFilter {
             }
             
             
-            if(complianceConfig != null && complianceConfig.isEnabled()) {
+            if(complianceConfig != null && complianceConfig.isEnabled() && !complianceConfig.getImmutableIndicesPatterns().isEmpty()) {
             
                 boolean isImmutable = false;
                 
                 if(request instanceof BulkShardRequest) {
                     for(BulkItemRequest bsr: ((BulkShardRequest) request).items()) {
-                        isImmutable = checkImmutableIndices(bsr.request(), listener);
+                        isImmutable = checkImmutableIndices(bsr.request(), listener, complianceConfig);
                         if(isImmutable) {
                             break;
                         }
                     }
                 } else {
-                    isImmutable = checkImmutableIndices(request, listener);
+                    isImmutable = checkImmutableIndices(request, listener, complianceConfig);
                 }
     
                 if(isImmutable) {
@@ -299,43 +303,32 @@ public class OpenDistroSecurityFilter implements ActionFilter {
     }
     
     @SuppressWarnings("rawtypes")
-    private boolean checkImmutableIndices(Object request, ActionListener listener) {
-
-        if(        request instanceof DeleteRequest 
-                || request instanceof UpdateRequest 
-                || request instanceof UpdateByQueryRequest 
+    private boolean checkImmutableIndices(Object request, ActionListener listener, final ComplianceConfig complianceConfig) {
+        final boolean isModifyIndexRequest = request instanceof DeleteRequest
+                || request instanceof UpdateRequest
+                || request instanceof UpdateByQueryRequest
                 || request instanceof DeleteByQueryRequest
                 || request instanceof DeleteIndexRequest
                 || request instanceof RestoreSnapshotRequest
                 || request instanceof CloseIndexRequest
-                || request instanceof IndicesAliasesRequest //TODO only remove index
-                ) {
-            
-            if(complianceConfig != null && complianceConfig.isIndexImmutable(request)) {
-                //auditLog.log
-                
-                //check index for type = remove index
-                //IndicesAliasesRequest iar = (IndicesAliasesRequest) request;
-                //for(AliasActions aa: iar.getAliasActions()) {
-                //    if(aa.actionType() == Type.REMOVE_INDEX) {
-                        
-                //    }
-                //}
-                
-                
-                
-                listener.onFailure(new ElasticsearchSecurityException("Index is immutable", RestStatus.FORBIDDEN));
-                return true;
-            }
+                || request instanceof IndicesAliasesRequest;
+
+        if (isModifyIndexRequest && isRequestIndexImmutable(request, complianceConfig)) {
+            listener.onFailure(new ElasticsearchSecurityException("Index is immutable", RestStatus.FORBIDDEN));
+            return true;
         }
         
-        if(request instanceof IndexRequest) {
-            if(complianceConfig != null && complianceConfig.isIndexImmutable(request)) {
-                ((IndexRequest) request).opType(OpType.CREATE);
-            }
+        if ((request instanceof IndexRequest) && isRequestIndexImmutable(request, complianceConfig)) {
+            ((IndexRequest) request).opType(OpType.CREATE);
         }
         
         return false;
     }
 
+    private boolean isRequestIndexImmutable(Object request, final ComplianceConfig complianceConfig) {
+        final IndexResolverReplacer.Resolved resolved = indexResolverReplacer.resolveRequest(request);
+        final Set<String> allIndices = resolved.getAllIndices();
+
+        return WildcardMatcher.matchAny(complianceConfig.getImmutableIndicesPatterns(), allIndices);
+    }
 }

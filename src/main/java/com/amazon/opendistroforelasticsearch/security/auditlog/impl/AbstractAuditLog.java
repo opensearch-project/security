@@ -87,6 +87,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     private final Settings settings;
     private final AuditConfig.Filter auditConfigFilter;
     private final String opendistrosecurityIndex;
+    private volatile ComplianceConfig complianceConfig;
 
     private static final List<String> writeClasses = new ArrayList<>();
     {
@@ -97,7 +98,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         writeClasses.add(DeleteRequest.class.getSimpleName());
     }
 
-    protected AbstractAuditLog(Settings settings, final ThreadPool threadPool, final IndexNameExpressionResolver resolver, final ClusterService clusterService) {
+    protected AbstractAuditLog(Settings settings, final ThreadPool threadPool, final IndexNameExpressionResolver resolver, final ClusterService clusterService, final boolean dlsFlsAvailable) {
         super();
         this.threadPool = threadPool;
         this.settings = settings;
@@ -106,6 +107,18 @@ public abstract class AbstractAuditLog implements AuditLog {
         this.auditConfigFilter = AuditConfig.Filter.from(settings);
         this.auditConfigFilter.log(log);
         this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
+        if (dlsFlsAvailable) {
+            this.complianceConfig = ComplianceConfig.from(settings);
+            this.complianceConfig.log(log);
+        } else {
+            this.complianceConfig = null;
+            log.debug("Compliance config is null because DLS-FLS is not available.");
+        }
+    }
+
+    @Override
+    public ComplianceConfig getComplianceConfig() {
+        return this.complianceConfig;
     }
 
     @Override
@@ -344,7 +357,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     }
 
     @Override
-    public void logDocumentRead(String index, String id, ShardId shardId, Map<String, String> fieldNameValues, ComplianceConfig complianceConfig) {
+    public void logDocumentRead(String index, String id, ShardId shardId, Map<String, String> fieldNameValues) {
 
         if(complianceConfig == null || !complianceConfig.readHistoryEnabledForIndex(index)) {
             return;
@@ -375,7 +388,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             msg.addId(id);
 
             try {
-                if(complianceConfig.logReadMetadataOnly()) {
+                if(complianceConfig.shouldLogReadMetadataOnly()) {
                     try {
                         XContentBuilder builder = XContentBuilder.builder(JsonXContent.jsonXContent);
                         builder.startObject();
@@ -409,7 +422,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     }
 
     @Override
-    public void logDocumentWritten(ShardId shardId, GetResult originalResult, Index currentIndex, IndexResult result, ComplianceConfig complianceConfig) {
+    public void logDocumentWritten(ShardId shardId, GetResult originalResult, Index currentIndex, IndexResult result) {
 
         if(complianceConfig == null || !complianceConfig.writeHistoryEnabledForIndex(shardId.getIndexName())) {
             return;
@@ -434,7 +447,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         msg.addComplianceDocVersion(result.getVersion());
         msg.addComplianceOperation(result.isCreated()?Operation.CREATE:Operation.UPDATE);
 
-        if(complianceConfig.logDiffsForWrite() && originalResult != null && originalResult.isExists() && originalResult.internalSourceRef() != null) {
+        if(complianceConfig.shouldLogDiffsForWrite() && originalResult != null && originalResult.isExists() && originalResult.internalSourceRef() != null) {
             try {
                 String originalSource = null;
                 String currentSource = null;
@@ -472,7 +485,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         }
 
 
-        if (!complianceConfig.logWriteMetadataOnly()){
+        if (!complianceConfig.shouldLogWriteMetadataOnly()){
             if(opendistrosecurityIndex.equals(shardId.getIndexName())) {
                 //current source, normally not null or empty
                 try (XContentParser parser = XContentHelper.createParser(NamedXContentRegistry.EMPTY, OpenDistroSecurityDeprecationHandler.INSTANCE, currentIndex.source(), XContentType.JSON)) {
