@@ -30,19 +30,15 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
-import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
-import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceIndexingOperationListener;
 
 public final class ComplianceIndexingOperationListenerImpl extends ComplianceIndexingOperationListener {
 
     private static final Logger log = LogManager.getLogger(ComplianceIndexingOperationListenerImpl.class);
-    private final ComplianceConfig complianceConfig;
     private final AuditLog auditlog;
     private volatile IndexService is;
 
-    public ComplianceIndexingOperationListenerImpl(final ComplianceConfig complianceConfig, final AuditLog auditlog) {
+    public ComplianceIndexingOperationListenerImpl(final AuditLog auditlog) {
         super();
-        this.complianceConfig = complianceConfig;
         this.auditlog = auditlog;
     }
 
@@ -71,7 +67,7 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
 
     @Override
     public void postDelete(final ShardId shardId, final Delete delete, final DeleteResult result) {
-        if(complianceConfig.isEnabled()) {
+        if (auditlog.getComplianceConfig().isEnabled()) {
             Objects.requireNonNull(is);
             if(result.getFailure() == null && result.isFound() && delete.origin() == org.elasticsearch.index.engine.Engine.Operation.Origin.PRIMARY) {
                 auditlog.logDocumentDeleted(shardId, delete, result);
@@ -81,7 +77,8 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
 
     @Override
     public Index preIndex(final ShardId shardId, final Index index) {
-        if(complianceConfig.isEnabled() && complianceConfig.logDiffsForWrite()) {
+        final ComplianceConfig complianceConfig = auditlog.getComplianceConfig();
+        if (complianceConfig.isEnabled() && complianceConfig.shouldLogDiffsForWrite()) {
             Objects.requireNonNull(is);
 
             final IndexShard shard;
@@ -123,14 +120,16 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
 
     @Override
     public void postIndex(final ShardId shardId, final Index index, final Exception ex) {
-        if(complianceConfig.isEnabled() && complianceConfig.logDiffsForWrite()) {
+        final ComplianceConfig complianceConfig = auditlog.getComplianceConfig();
+        if (complianceConfig.isEnabled() && complianceConfig.shouldLogDiffsForWrite()) {
             threadContext.remove();
         }
     }
 
     @Override
     public void postIndex(ShardId shardId, Index index, IndexResult result) {
-        if(complianceConfig.isEnabled() && complianceConfig.logDiffsForWrite()) {
+        final ComplianceConfig complianceConfig = auditlog.getComplianceConfig();
+        if (complianceConfig.isEnabled() && complianceConfig.shouldLogDiffsForWrite()) {
             final Context context = threadContext.get();
             final GetResult previousContent = context==null?null:context.getGetResult();
             threadContext.remove();
@@ -157,14 +156,14 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
                 assert !result.isCreated():"Previous content and created";
             }
 
-            auditlog.logDocumentWritten(shardId, previousContent, index, result, complianceConfig);
+            auditlog.logDocumentWritten(shardId, previousContent, index, result);
         } else if (complianceConfig.isEnabled()) {
             //no diffs
             if (result.getFailure() != null || index.origin() != org.elasticsearch.index.engine.Engine.Operation.Origin.PRIMARY) {
                 return;
             }
 
-            auditlog.logDocumentWritten(shardId, null, index, result, complianceConfig);
+            auditlog.logDocumentWritten(shardId, null, index, result);
         }
     }
 
