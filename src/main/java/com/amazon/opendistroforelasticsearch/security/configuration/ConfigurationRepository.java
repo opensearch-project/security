@@ -49,7 +49,7 @@ public interface ConfigurationRepository {
      * doesn't have configuration by requested type, or persistence layer not ready yet
      * @throws NullPointerException if specified configuration type is null or empty
      */
-    
+
     Settings getConfiguration(String configurationType);
 
     /**
