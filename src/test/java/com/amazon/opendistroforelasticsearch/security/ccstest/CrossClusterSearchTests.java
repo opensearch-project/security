@@ -30,14 +30,20 @@
 
 package com.amazon.opendistroforelasticsearch.security.ccstest;
 
+import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConfigConstants;
+import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
+import com.amazon.opendistroforelasticsearch.security.test.NodeSettingsSupplier;
+import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
 import org.apache.http.HttpStatus;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
 import org.elasticsearch.client.transport.TransportClient;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
@@ -50,44 +56,91 @@ import com.amazon.opendistroforelasticsearch.security.test.helper.cluster.Cluste
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper.HttpResponse;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
+
 public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
     
     private final ClusterHelper cl1 = new ClusterHelper("crl1_n"+num.incrementAndGet()+"_f"+System.getProperty("forkno")+"_t"+System.nanoTime());
     private final ClusterHelper cl2 = new ClusterHelper("crl2_n"+num.incrementAndGet()+"_f"+System.getProperty("forkno")+"_t"+System.nanoTime());
     private ClusterInfo cl1Info;
     private ClusterInfo cl2Info;
+    private RestHelper rh1;
+    private RestHelper rh2;
 
     private void setupCcs() throws Exception {
         setupCcs(new DynamicSecurityConfig());
     }
 
     private void setupCcs(DynamicSecurityConfig dynamicSecurityConfig) throws Exception {
-        
-        System.setProperty("security.display_lic_none","true");
-        
-        cl2Info = cl2.startCluster(minimumSecuritySettings(Settings.EMPTY), ClusterConfiguration.DEFAULT);
-        initialize(cl2Info, dynamicSecurityConfig);
-        System.out.println("### cl2 complete ###");
-        
-        //cl1 is coordinating
-        cl1Info = cl1.startCluster(minimumSecuritySettings(crossClusterNodeSettings(cl2Info)), ClusterConfiguration.DEFAULT);
-        System.out.println("### cl1 start ###");
-        initialize(cl1Info, dynamicSecurityConfig);
-        System.out.println("### cl1 initialized ###");
+        setupCcs(dynamicSecurityConfig, new ClusterTransportClientSettings(), new ClusterTransportClientSettings());
     }
-    
+
+    private Tuple<ClusterInfo, RestHelper> setupCluster(ClusterHelper ch, ClusterTransportClientSettings cluster, DynamicSecurityConfig dynamicSecurityConfig) throws Exception {
+        NodeSettingsSupplier settings = minimumSecuritySettings(cluster.clusterSettings());
+        ClusterInfo clusterInfo = ch.startCluster(settings, ClusterConfiguration.DEFAULT);
+        initialize(clusterInfo, cluster.transportClientSettings(), dynamicSecurityConfig);
+        boolean httpsEnabled = settings.get(0).getAsBoolean(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLED, false);
+        RestHelper rh = new RestHelper(clusterInfo, httpsEnabled, httpsEnabled, getResourceFolder());
+        rh.sendAdminCertificate = httpsEnabled;
+        rh.keystore = "restapi/kirk-keystore.jks";
+        System.out.println("### " + ch.getClusterName() + " complete ###");
+        return new Tuple<>(clusterInfo, rh);
+    }
+
+    private static class ClusterTransportClientSettings extends Tuple<Settings, Settings> {
+
+        public ClusterTransportClientSettings() {
+            this(Settings.EMPTY, Settings.EMPTY);
+        }
+
+        public ClusterTransportClientSettings(Settings clusterSettings, Settings transportSettings) {
+            super(clusterSettings, transportSettings);
+        }
+
+        public Settings clusterSettings() {
+            return v1();
+        }
+
+        public Settings transportClientSettings() {
+            return v2();
+        }
+    }
+
+    private void setupCcs(DynamicSecurityConfig dynamicSecurityConfig,
+        ClusterTransportClientSettings cluster1Settings, ClusterTransportClientSettings cluster2Settings) throws Exception {
+        System.setProperty("security.display_lic_none","true");
+
+        Tuple<ClusterInfo, RestHelper> cluster2 = setupCluster(cl2, cluster2Settings, dynamicSecurityConfig);
+        cl2Info = cluster2.v1();
+        rh2 = cluster2.v2();
+
+        Tuple<ClusterInfo, RestHelper> cluster1 = setupCluster(cl1, cluster1Settings, dynamicSecurityConfig);
+        cl1Info = cluster1.v1();
+        rh1 = cluster1.v2();
+
+        final String seed = cl2Info.nodeHost + ":" + cl2Info.nodePort;
+        String json =
+            "{" +
+                "\"persistent\" : {" +
+                    "\"cluster.remote.cross_cluster_two.seeds\" : [\"" + seed + "\"]" +
+                "}" +
+            "}";
+
+
+        HttpResponse response = rh1.executePutRequest("_cluster/settings", json, encodeBasicHeader("sarek", "sarek"));
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+
+    }
+
     @After
     public void tearDown() throws Exception {
         cl1.stopCluster();
         cl2.stopCluster();
     }
     
-    private Settings crossClusterNodeSettings(ClusterInfo remote) {
-        Settings.Builder builder = Settings.builder()
-                .putList("search.remote.cross_cluster_two.seeds", remote.nodeHost+":"+remote.nodePort);
-        return builder.build();
-    }
-
     @Test
     public void testCcs() throws Exception {
         setupCcs();
@@ -545,5 +598,113 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         Assert.assertFalse(ccs.getBody().contains("crl1"));
         Assert.assertTrue(ccs.getBody().contains("crl2"));
         Assert.assertTrue(ccs.getBody().contains("cross_cluster_two:twitter"));
+    }
+
+    private ClusterTransportClientSettings getBaseSettingsWithDifferentCert() {
+        Settings cluster = Settings.builder()
+            .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLED, true)
+            .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("restapi/node-0-keystore.jks"))
+            .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("restapi/truststore.jks"))
+            .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("node-untspec5-keystore.p12"))
+            .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "1")
+            .put(ConfigConstants.OPENDISTRO_SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, true)
+            .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, "PKCS12")
+            .putList(ConfigConstants.OPENDISTRO_SECURITY_NODES_DN,
+                "EMAILADDRESS=unt@tst.com,CN=node-untspec5.example.com,OU=SSL,O=Te\\, st,L=Test,C=DE")//, "CN=node-0.example.com,OU=SSL,O=Test,L=Test,C=DE")
+            .putList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_ADMIN_DN,
+                "EMAILADDRESS=unt@xxx.com,CN=node-untspec6.example.com,OU=SSL,O=Te\\, st,L=Test,C=DE",
+                "CN=kirk,OU=client,O=client,l=tEst, C=De")
+            .put(ConfigConstants.OPENDISTRO_SECURITY_CERT_OID,"1.2.3.4.5.6")
+            .build();
+        Settings transport = Settings.builder()
+            .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("node-untspec6-keystore.p12"))
+            .build();
+        return new ClusterTransportClientSettings(cluster, transport);
+    }
+
+    private void populateBaseData(ClusterTransportClientSettings cluster1, ClusterTransportClientSettings cluster2) throws Exception {
+        final String cl1BodyMain = rh1.executeGetRequest("", encodeBasicHeader("twitter","nagilum")).getBody();
+        Assert.assertTrue(cl1BodyMain, cl1BodyMain.contains("crl1"));
+
+        final String cl2BodyMain = rh2.executeGetRequest("", encodeBasicHeader("twitter","nagilum")).getBody();
+        Assert.assertTrue(cl2BodyMain.contains("crl2"));
+
+        try (TransportClient tc = getInternalTransportClient(cl1Info, cluster1.transportClientSettings())) {
+            tc.index(new IndexRequest("twitter").type("tweet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+                .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
+        }
+
+        try (TransportClient tc = getInternalTransportClient(cl2Info, cluster2.transportClientSettings())) {
+            tc.index(new IndexRequest("twitter").type("tweet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+                .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
+        }
+    }
+
+    @Test
+    public void testCcsWithDiffCertsWithNoNodesDnUpdate() throws Exception {
+        final ClusterTransportClientSettings cluster1 = new ClusterTransportClientSettings();
+        final ClusterTransportClientSettings cluster2 = getBaseSettingsWithDifferentCert();
+
+        setupCcs(new DynamicSecurityConfig(), cluster1, cluster2);
+        populateBaseData(cluster1, cluster2);
+
+        String uri = "cross_cluster_two:twitter/tweet/_search?pretty";
+        HttpResponse ccs = rh1.executeGetRequest(uri, encodeBasicHeader("twitter", "nagilum"));
+        System.out.println(ccs.getBody());
+        assertThat(ccs.getStatusCode(), equalTo(HttpStatus.SC_INTERNAL_SERVER_ERROR));
+        assertThat(ccs.getBody(), containsString("no OID or opendistro_security.nodes_dn incorrect configured"));
+    }
+
+    @Test
+    public void testCcsWithDiffCertsWithNodesDnStaticallyAdded() throws Exception {
+        final ClusterTransportClientSettings cluster1 = new ClusterTransportClientSettings();
+        ClusterTransportClientSettings cluster2 = getBaseSettingsWithDifferentCert();
+        Settings updatedCluster2 = Settings.builder()
+            .put(cluster2.clusterSettings())
+            .putList(ConfigConstants.OPENDISTRO_SECURITY_NODES_DN,
+                "EMAILADDRESS=unt@tst.com,CN=node-untspec5.example.com,OU=SSL,O=Te\\, st,L=Test,C=DE",
+                "CN=node-0.example.com,OU=SSL,O=Test,L=Test,C=DE")
+            .build();
+        cluster2 = new ClusterTransportClientSettings(updatedCluster2, cluster2.transportClientSettings());
+
+        setupCcs(new DynamicSecurityConfig(), cluster1, cluster2);
+        populateBaseData(cluster1, cluster2);
+
+        String uri = "cross_cluster_two:twitter/tweet/_search?pretty";
+        HttpResponse ccs = rh1.executeGetRequest(uri, encodeBasicHeader("twitter", "nagilum"));
+        System.out.println(ccs.getBody());
+        assertThat(ccs.getStatusCode(), equalTo(HttpStatus.SC_OK));
+        assertThat(ccs.getBody(), not(containsString("security_exception")));
+        assertThat(ccs.getBody(), containsString("\"timed_out\" : false"));
+        assertThat(ccs.getBody(), not(containsString("crl1")));
+        assertThat(ccs.getBody(), containsString("crl2"));
+        assertThat(ccs.getBody(), containsString("cross_cluster_two:twitter"));
+    }
+
+    @Test
+    public void testCcsWithDiffCertsWithNodesDnDynamicallyAdded() throws Exception {
+        final ClusterTransportClientSettings cluster1 = new ClusterTransportClientSettings();
+        final ClusterTransportClientSettings cluster2 = getBaseSettingsWithDifferentCert();
+
+        setupCcs(new DynamicSecurityConfig().setSecurityNodesDn("nodes_dn_empty.yml"), cluster1, cluster2);
+
+        HttpResponse response = rh2.executePutRequest("_opendistro/_security/api/nodesdn/connection1",
+            "{\"nodes_dn\": [\"CN=node-0.example.com,OU=SSL,O=Test,L=Test,C=DE\"]}",
+            encodeBasicHeader("sarek", "sarek"));
+        assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_CREATED));
+
+        populateBaseData(cluster1, cluster2);
+
+        String uri = "cross_cluster_two:twitter/tweet/_search?pretty";
+        HttpResponse ccs = rh1.executeGetRequest(uri, encodeBasicHeader("twitter", "nagilum"));
+        System.out.println(ccs.getBody());
+        assertThat(ccs.getStatusCode(), equalTo(HttpStatus.SC_OK));
+        assertThat(ccs.getBody(), not(containsString("security_exception")));
+        assertThat(ccs.getBody(), containsString("\"timed_out\" : false"));
+        assertThat(ccs.getBody(), not(containsString("crl1")));
+        assertThat(ccs.getBody(), containsString("crl2"));
+        assertThat(ccs.getBody(), containsString("cross_cluster_two:twitter"));
     }
 }

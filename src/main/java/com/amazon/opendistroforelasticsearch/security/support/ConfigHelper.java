@@ -31,10 +31,14 @@
 package com.amazon.opendistroforelasticsearch.security.support;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
+import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 
+import com.google.common.io.Files;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.index.IndexRequest;
@@ -51,10 +55,14 @@ import org.elasticsearch.common.xcontent.XContentType;
 public class ConfigHelper {
     
     private static final Logger LOGGER = LogManager.getLogger(ConfigHelper.class);
-    
+
     public static void uploadFile(Client tc, String filepath, String index, String id) throws Exception {
-        LOGGER.info("Will update '" + id + "' with " + filepath);
-        try (Reader reader = new FileReader(filepath)) {
+        uploadFile(tc, filepath, index, id, false);
+    }
+
+    public static void uploadFile(Client tc, String filepath, String index, String id, boolean populateEmptyIfFileMissing) throws Exception {
+        LOGGER.info("Will update '" + id + "' with " + filepath + " and populate it with empty doc if file missing and populateEmptyIfFileMissing=" + populateEmptyIfFileMissing);
+        try (Reader reader = ConfigHelper.createFileOrStringReader(filepath, populateEmptyIfFileMissing)) {
 
             final String res = tc
                     .index(new IndexRequest(index).type("security").id(id).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
@@ -64,11 +72,32 @@ public class ConfigHelper {
                 throw new Exception("   FAIL: Configuration for '" + id
                         + "' failed for unknown reasons. Pls. consult logfile of elasticsearch");
             }
-        } catch (Exception e) {
-            throw e;
         }
     }
-    
+
+    private static Reader createFileOrStringReader(String filepath, boolean populateEmptyIfFileMissing) throws Exception {
+        Reader reader;
+        if (populateEmptyIfFileMissing) {
+            File file = new File(filepath);
+            reader = file.exists() ? new FileReader(filepath) : new StringReader(ConfigHelper.emptyYamlConfig());
+        } else {
+            reader = new FileReader(filepath);
+        }
+        return reader;
+    }
+
+    public static String fileContentOrEmptyIfMissing(final String filepath, final boolean populateEmptyIfMissing) throws Exception {
+        File file = new File(filepath);
+        if (!file.exists() && populateEmptyIfMissing) {
+            return ConfigHelper.emptyYamlConfig();
+        }
+        return Files.asCharSource(new File(filepath), StandardCharsets.UTF_8).read();
+    }
+
+    public static String emptyYamlConfig() {
+        return "{}";
+    }
+
     public static BytesReference readXContent(final Reader reader, final XContentType xContentType) throws IOException {
         BytesReference retVal;
         XContentParser parser = null;
