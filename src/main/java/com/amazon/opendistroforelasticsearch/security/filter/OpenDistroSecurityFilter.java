@@ -125,10 +125,11 @@ public class OpenDistroSecurityFilter implements ActionFilter {
             ActionListener<Response> listener, ActionFilterChain<Request, Response> chain) {
         try {
 
+
             if(threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN) == null) {
                 threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, Origin.LOCAL.toString());
             }
-            
+
             if(complianceConfig != null && complianceConfig.isEnabled()) {
                 attachSourceFieldContext(request);
             }

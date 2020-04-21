@@ -74,9 +74,9 @@ public class GetConfigurationApiAction extends AbstractApiAction {
 		final String configname = request.param("configname");
 
 		if (configname == null || configname.length() == 0
-				|| !ConfigConstants.CONFIG_NAMES.contains(configname)) {
+				|| !ConfigConstants.ALL_CONFIG_NAMES.contains(configname)) {
 			badRequestResponse(channel, "No configuration name given, must be one of "
-					+ Joiner.on(",").join(ConfigConstants.CONFIG_NAMES));
+					+ Joiner.on(",").join(ConfigConstants.ALL_CONFIG_NAMES));
 			return;
 
 		}

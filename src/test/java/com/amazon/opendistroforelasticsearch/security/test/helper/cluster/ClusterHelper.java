@@ -82,6 +82,10 @@ public final class ClusterHelper {
         this.clustername = clustername;
     }
 
+    public String getClusterName() {
+		return this.clustername;
+	}
+
     /**
 	 * Start n Elasticsearch nodes with the provided settings
 	 * 
