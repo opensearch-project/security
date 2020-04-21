@@ -5,34 +5,42 @@
 
 Open Distro for Elasticsearch Security is an Elasticsearch plugin that offers encryption, authentication, and authorization. When combined with Open Distro for Elasticsearch Security-Advanced Modules, it supports authentication via Active Directory, LDAP, Kerberos, JSON web tokens, SAML, OpenID and more. It includes fine grained role-based access control to indices, documents and fields. It also provides multi-tenancy support in Kibana.
 
-## Basic features provided by Security
+## Features provided by Security
+
+### Encryption:
 
 * Full data in transit encryption
 * Node-to-node encryption
 * Certificate revocation lists
-* Role-based cluster level access control
-* Role-based index level access control
-* User-, role- and permission management
+* Hot Certificate renewal 
+
+### Authentication: 
 * Internal user database
 * HTTP basic authentication
 * PKI authentication
 * Proxy authentication
 * User Impersonation
-
-
-## Advance features included in Security Advanced Modules:
-
 * Active Directory / LDAP
 * Kerberos / SPNEGO
 * JSON web token (JWT)
 * OpenID Connect (OIDC)
 * SAML
+
+### Access control:
+* Role-based cluster level access control
+* Role-based index level access control
+* User-, role- and permission management
 * Document-level security
 * Field-level security
+* REST management API
+
+### Audit/Complaince logging:
 * Audit logging 
 * Compliance logging for GDPR, HIPAA, PCI, SOX and ISO compliance
+
+### Kibana multi-tenancy
 * True Kibana multi-tenancy
-* REST management API
+
 
 
 ## Documentation
