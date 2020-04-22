@@ -13,7 +13,7 @@
       <includes>
         <include>tools/**</include>
       </includes>
-      <fileMode>0755</fileMode>
+      <fileMode>0750</fileMode>
     </fileSet>
     <fileSet>
       <directory>${project.basedir}</directory>
@@ -21,7 +21,7 @@
       <includes>
         <include>securityconfig/**</include>
       </includes>
-      <fileMode>0755</fileMode>
+      <fileMode>0640</fileMode>
     </fileSet>
   </fileSets>
   <dependencySets>
