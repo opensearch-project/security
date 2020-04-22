@@ -44,13 +44,14 @@ import org.elasticsearch.ElasticsearchSecurityException;
 
 import com.amazon.opendistroforelasticsearch.security.auth.AuthenticationBackend;
 import com.amazon.opendistroforelasticsearch.security.auth.AuthorizationBackend;
+import com.amazon.opendistroforelasticsearch.security.securityconf.ConfigModel;
+import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigFactory.DCFListener;
+import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigModel;
 import com.amazon.opendistroforelasticsearch.security.securityconf.InternalUsersModel;
 import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 
-import com.google.common.eventbus.Subscribe;
-
-public class InternalAuthenticationBackend implements AuthenticationBackend, AuthorizationBackend {
+public class InternalAuthenticationBackend implements AuthenticationBackend, AuthorizationBackend, DCFListener {
 
     private InternalUsersModel internalUsersModel;
 
@@ -163,8 +164,8 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Aut
 
     }
 
-    @Subscribe
-    public void onInternalUsersModelChanged(InternalUsersModel ium) {
+    @Override
+    public void onChanged(ConfigModel cf, DynamicConfigModel dcf, InternalUsersModel ium) {
         this.internalUsersModel = ium;
     }
 

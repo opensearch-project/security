@@ -65,22 +65,23 @@ import com.amazon.opendistroforelasticsearch.security.auth.blocking.ClientBlockR
 import com.amazon.opendistroforelasticsearch.security.auth.internal.NoOpAuthenticationBackend;
 import com.amazon.opendistroforelasticsearch.security.configuration.AdminDNs;
 import com.amazon.opendistroforelasticsearch.security.http.XFFResolver;
+import com.amazon.opendistroforelasticsearch.security.securityconf.ConfigModel;
+import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigFactory.DCFListener;
 import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigModel;
+import com.amazon.opendistroforelasticsearch.security.securityconf.InternalUsersModel;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.Utils;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.HTTPHelper;
 import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
 import com.amazon.opendistroforelasticsearch.security.user.User;
-
 import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.Multimap;
-import com.google.common.eventbus.Subscribe;
 
-public class BackendRegistry {
+public class BackendRegistry implements DCFListener {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
     private SortedSet<AuthDomain> restAuthDomains;
@@ -206,8 +207,8 @@ public class BackendRegistry {
         transportImpersonationCache.invalidateAll();
     }
 
-    @Subscribe
-    public void onDynamicConfigModelChanged(DynamicConfigModel dcm) {
+    @Override
+    public void onChanged(ConfigModel cm, DynamicConfigModel dcm, InternalUsersModel ium) {
 
         invalidateCache();
         transportUsernameAttribute = dcm.getTransportUsernameAttribute();// config.dynamic.transport_userrname_attribute;

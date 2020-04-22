@@ -35,12 +35,13 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 
+import com.amazon.opendistroforelasticsearch.security.securityconf.ConfigModel;
 import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigModel;
+import com.amazon.opendistroforelasticsearch.security.securityconf.InternalUsersModel;
+import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigFactory.DCFListener;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 
-import com.google.common.eventbus.Subscribe;
-
-public class CompatConfig {
+public class CompatConfig implements DCFListener {
 
     private final Logger log = LogManager.getLogger(getClass());
     private final Settings staticSettings;
@@ -51,8 +52,8 @@ public class CompatConfig {
         this.staticSettings = environment.settings(); 
     }
     
-    @Subscribe
-    public void onDynamicConfigModelChanged(DynamicConfigModel dcm) {
+    @Override
+    public void onChanged(ConfigModel cm, DynamicConfigModel dcm, InternalUsersModel ium) {
         this.dcm = dcm;
         log.debug("dynamicSecurityConfig updated?: {}", (dcm != null));
     }
