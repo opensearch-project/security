@@ -47,7 +47,8 @@ import com.amazon.opendistroforelasticsearch.security.auth.AuthorizationBackend;
 import com.amazon.opendistroforelasticsearch.security.securityconf.InternalUsersModel;
 import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
 import com.amazon.opendistroforelasticsearch.security.user.User;
-import org.greenrobot.eventbus.Subscribe;
+
+import com.google.common.eventbus.Subscribe;
 
 public class InternalAuthenticationBackend implements AuthenticationBackend, AuthorizationBackend {
 
