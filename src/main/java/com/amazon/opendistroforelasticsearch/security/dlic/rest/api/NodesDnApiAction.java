@@ -54,7 +54,6 @@ import java.util.List;
  * For existing clusters, {@link com.amazon.opendistroforelasticsearch.security.tools.OpenDistroSecurityAdmin} tool can
  * be used to populate the index.
  *
- *
  * See {@link com.amazon.opendistroforelasticsearch.security.dlic.rest.api.NodesDnApiTest} for usage examples.
  */
 public class NodesDnApiAction extends PatchableResourceApiAction {
