@@ -15,7 +15,6 @@
 
 package com.amazon.opendistroforelasticsearch.security.dlic.rest.api;
 
-import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage;
 import com.amazon.opendistroforelasticsearch.security.auditlog.integration.TestAuditlogImpl;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
@@ -185,10 +184,10 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
 
         System.out.println(TestAuditlogImpl.sb.toString());
 
-        final Map<AuditCategory, Long> expectedCategoryCounts = ImmutableMap.of(
-            AuditCategory.COMPLIANCE_INTERNAL_CONFIG_READ, 4L,
-            AuditCategory.COMPLIANCE_INTERNAL_CONFIG_WRITE, 4L);
-        Map<AuditCategory, Long> actualCategoryCounts = TestAuditlogImpl.messages.stream().collect(Collectors.groupingBy(AuditMessage::getCategory, Collectors.counting()));
+        final Map<AuditMessage.Category, Long> expectedCategoryCounts = ImmutableMap.of(
+            AuditMessage.Category.COMPLIANCE_INTERNAL_CONFIG_READ, 4L,
+            AuditMessage.Category.COMPLIANCE_INTERNAL_CONFIG_WRITE, 4L);
+        Map<AuditMessage.Category, Long> actualCategoryCounts = TestAuditlogImpl.messages.stream().collect(Collectors.groupingBy(AuditMessage::getCategory, Collectors.counting()));
 
         assertThat(actualCategoryCounts, equalTo(expectedCategoryCounts));
     }
