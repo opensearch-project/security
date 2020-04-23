@@ -46,14 +46,19 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
         Settings additionalSettings = Settings.builder()
                 .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .build();
+
+        setup(additionalSettings);
+        setupStarfleetIndex();
+
+        Settings auditSettings = Settings.builder()
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "authenticated")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "authenticated")
                 .build();
+        updateAuditConfig(auditSettings);
 
-        setup(additionalSettings);
-        setupStarfleetIndex();
         TestAuditlogImpl.clear();
 
         System.out.println("#### testSimpleAuthenticated");
@@ -79,11 +84,16 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
                 .put("opendistro_security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/node-0-keystore.jks"))
                 .put("opendistro_security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
                 .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
                 .build();
 
         setup(additionalSettings);
+
+        Settings auditSettings = Settings.builder()
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
+                .build();
+        updateAuditConfig(auditSettings);
+
         TestAuditlogImpl.clear();
 
         try {
@@ -107,15 +117,20 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
         Settings additionalSettings = Settings.builder()
                 .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .build();
+
+        setup(additionalSettings);
+        setupStarfleetIndex();
+
+        Settings auditSettings = Settings.builder()
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, false)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
                 .build();
+        updateAuditConfig(auditSettings);
 
-        setup(additionalSettings);
-        setupStarfleetIndex();
         TestAuditlogImpl.clear();
 
         System.out.println("#### testSimpleAuthenticated");
@@ -149,12 +164,17 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
         Settings additionalSettings = Settings.builder()
                 .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
                 .build();
 
         setup(additionalSettings);
         setupStarfleetIndex();
+
+        Settings auditSettings = Settings.builder()
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
+                .build();
+        updateAuditConfig(auditSettings);
+
         TestAuditlogImpl.clear();
 
         try (TransportClient tc = getUserTransportClient(clusterInfo, "spock-keystore.jks", Settings.EMPTY)) {
@@ -189,12 +209,17 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
         Settings additionalSettings = Settings.builder()
                 .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
                 .build();
 
         setup(additionalSettings);
         setupStarfleetIndex();
+
+        Settings auditSettings = Settings.builder()
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
+                .build();
+        updateAuditConfig(auditSettings);
+
         TestAuditlogImpl.clear();
 
         HttpResponse response = rh.executeGetRequest("_search", encodeBasicHeader("admin", "admin"));
@@ -218,14 +243,19 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
         Settings additionalSettings = Settings.builder()
                 .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .build();
+
+        setup(additionalSettings);
+        setupStarfleetIndex();
+
+        Settings auditSettings = Settings.builder()
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
                 .build();
+        updateAuditConfig(auditSettings);
 
-        setup(additionalSettings);
-        setupStarfleetIndex();
         TestAuditlogImpl.clear();
 
         testMsearch();
@@ -250,6 +280,9 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
         setup(additionalSettings);
         setupStarfleetIndex();
+
+        updateAuditConfig(Settings.EMPTY);
+
         TestAuditlogImpl.clear();
 
         testJustAuthenticated();
@@ -316,6 +349,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
     public void testJustAuthenticated() throws Exception {
         HttpResponse response = rh.executeGetRequest("", encodeBasicHeader("admin", "admin"));
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        System.out.println(TestAuditlogImpl.messages.toString());
         Assert.assertEquals(0, TestAuditlogImpl.messages.size());
         Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
     }
@@ -472,15 +506,20 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
         Settings additionalSettings = Settings.builder()
                 .put("opendistro_security.audit.type", "internal_elasticsearch")
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY, false)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_INDICES, false)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
                 .put("opendistro_security.audit.threadpool.size", 10) //must be greater 0
                 .put("opendistro_security.audit.config.index", "'auditlog-'YYYY.MM.dd.ss")
                 .build();
 
         setup(additionalSettings);
+
+        Settings auditSettings = Settings.builder()
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY, false)
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_INDICES, false)
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
+                .build();
+        updateAuditConfig(auditSettings);
+
         setupStarfleetIndex();
 
         final boolean sendAdminCertificate = rh.sendAdminCertificate;
@@ -499,13 +538,17 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
         Settings additionalSettings = Settings.builder()
                 .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .build();
+
+        setup(additionalSettings);
+
+        Settings auditSettings = Settings.builder()
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
                 .build();
-
-        setup(additionalSettings);
+        updateAuditConfig(auditSettings);
 
         try (TransportClient tc = getInternalTransportClient()) {
             tc.admin().indices().create(new CreateIndexRequest("copysf")).actionGet();
@@ -543,13 +586,17 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
         Settings additionalSettings = Settings.builder()
                 .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .build();
+
+        setup(additionalSettings);
+
+        Settings auditSettings = Settings.builder()
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
                 .build();
-
-        setup(additionalSettings);
+        updateAuditConfig(auditSettings);
 
         try (TransportClient tc = getInternalTransportClient()) {
             for(int i=0; i<3; i++)
@@ -583,15 +630,18 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
         Settings additionalSettings = Settings.builder()
                 .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .build();
+
+        setup(additionalSettings);
+
+        Settings auditSettings = Settings.builder()
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, false)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, false)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
                 .build();
-
-        setup(additionalSettings);
-
+        updateAuditConfig(auditSettings);
 
         try (TransportClient tc = getInternalTransportClient()) {
             for(int i=0; i<3; i++)
@@ -616,13 +666,17 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
         Settings additionalSettings = Settings.builder()
                 .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .build();
+
+        setup(additionalSettings);
+
+        Settings auditSettings = Settings.builder()
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
                 .build();
-
-        setup(additionalSettings);
+        updateAuditConfig(auditSettings);
 
         TestAuditlogImpl.clear();
         HttpResponse response = rh.executeGetRequest("_search?pretty", new BasicHeader("_opendistro_security_user", "xxx"), encodeBasicHeader("admin", "admin"));
@@ -641,14 +695,18 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
         Settings additionalSettings = Settings.builder()
                 .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .build();
+
+        setup(additionalSettings);
+
+        Settings auditSettings = Settings.builder()
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, false)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
                 .build();
-
-        setup(additionalSettings);
+        updateAuditConfig(auditSettings);
 
         try (TransportClient tc = getInternalTransportClient()) {
             tc.admin().indices().create(new CreateIndexRequest("index1")).actionGet();
@@ -673,13 +731,17 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
         final Settings settings = Settings.builder()
                 .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .build();
+        setup(settings);
+
+        final Settings auditSettings = Settings.builder()
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .build();
-        setup(settings);
+        updateAuditConfig(auditSettings);
 
         try (TransportClient tc = getInternalTransportClient()) {
             for(int i=0; i<3; i++)

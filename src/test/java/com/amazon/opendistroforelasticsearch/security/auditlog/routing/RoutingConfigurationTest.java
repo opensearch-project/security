@@ -16,6 +16,7 @@
 package com.amazon.opendistroforelasticsearch.security.auditlog.routing;
 
 import java.util.List;
+import java.util.Objects;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.config.ThreadPoolConfig;
 import org.elasticsearch.common.settings.Settings;
@@ -60,8 +61,8 @@ public class RoutingConfigurationTest extends AbstractAuditlogiUnitTest{
 
 	@Test
 	public void testNoDefaultSink() throws Exception {
-		Settings settings = Settings.builder().loadFromPath(FileHelper.getAbsoluteFilePathFromClassPath("auditlog/endpoints/routing/configuration_no_default.yml")).build();
-		AuditMessageRouter router = createMessageRouterComplianceEnabled(settings);
+		Settings settings = Settings.builder().loadFromPath(Objects.requireNonNull(FileHelper.getAbsoluteFilePathFromClassPath("auditlog/endpoints/routing/configuration_no_default.yml"))).build();
+		AuditMessageRouter router = new AuditMessageRouter(settings, null, null, null);
 		// no default sink, audit log not enabled
 		Assert.assertEquals(false, router.isEnabled());
 		Assert.assertEquals(null, router.defaultSink);

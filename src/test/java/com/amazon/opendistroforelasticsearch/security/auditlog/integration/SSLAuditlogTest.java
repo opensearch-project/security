@@ -66,9 +66,7 @@ public class SSLAuditlogTest extends AbstractAuditlogiUnitTest {
         Settings additionalSettings = Settings.builder()
                 .put("opendistro_security.audit.type", "external_elasticsearch")
                 .put("opendistro_security.audit.config.http_endpoints", monitoringClusterInfo.httpHost+":"+monitoringClusterInfo.httpPort)
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS, "*spock*","admin", "CN=kirk,OU=client,O=client,L=Test,C=DE")
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
+
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_ENABLE_SSL, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_ENABLE_SSL_CLIENT_AUTH, false)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_PEMTRUSTEDCAS_FILEPATH,
@@ -84,6 +82,14 @@ public class SSLAuditlogTest extends AbstractAuditlogiUnitTest {
                 .build();
 
         setup(additionalSettings);
+
+        final Settings auditSettings = Settings.builder()
+                .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS, "*spock*","admin", "CN=kirk,OU=client,O=client,L=Test,C=DE")
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
+                .build();
+        updateAuditConfig(auditSettings);
+
         HttpResponse response = rh.executeGetRequest("_search");
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
         Thread.sleep(5000);
@@ -105,9 +111,6 @@ public class SSLAuditlogTest extends AbstractAuditlogiUnitTest {
         Settings additionalSettings = Settings.builder()
                 .put("opendistro_security.audit.type", "external_elasticsearch")
                 .put("opendistro_security.audit.config.http_endpoints", monitoringClusterInfo.httpHost+":"+monitoringClusterInfo.httpPort)
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS, "*spock*","admin", "CN=kirk,OU=client,O=client,L=Test,C=DE")
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_ENABLE_SSL, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_ENABLE_SSL_CLIENT_AUTH, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_PEMTRUSTEDCAS_FILEPATH,
@@ -119,6 +122,14 @@ public class SSLAuditlogTest extends AbstractAuditlogiUnitTest {
                 .build();
 
         setup(additionalSettings);
+
+        final Settings auditSettings = Settings.builder()
+                .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS, "*spock*","admin", "CN=kirk,OU=client,O=client,L=Test,C=DE")
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
+                .build();
+        updateAuditConfig(auditSettings);
+
         HttpResponse response = rh.executeGetRequest("_search");
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
         Thread.sleep(5000);
@@ -139,9 +150,6 @@ public class SSLAuditlogTest extends AbstractAuditlogiUnitTest {
         Settings additionalSettings = Settings.builder()
                 .put("opendistro_security.audit.type", "external_elasticsearch")
                 .put("opendistro_security.audit.config.http_endpoints", monitoringClusterInfo.httpHost+":"+monitoringClusterInfo.httpPort)
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS, "*spock*","admin", "CN=kirk,OU=client,O=client,L=Test,C=DE")
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_ENABLE_SSL, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_PEMTRUSTEDCAS_FILEPATH,
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/chain-ca.pem"))
@@ -152,6 +160,14 @@ public class SSLAuditlogTest extends AbstractAuditlogiUnitTest {
                 .build();
 
         setup(additionalSettings);
+
+        final Settings auditSettings = Settings.builder()
+                .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS, "*spock*","admin", "CN=kirk,OU=client,O=client,L=Test,C=DE")
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
+                .build();
+        updateAuditConfig(auditSettings);
+
         HttpResponse response = rh.executeGetRequest("_search");
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
         Thread.sleep(5000);

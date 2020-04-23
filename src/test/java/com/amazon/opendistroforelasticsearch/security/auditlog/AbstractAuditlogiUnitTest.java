@@ -16,8 +16,14 @@
 package com.amazon.opendistroforelasticsearch.security.auditlog;
 
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 
 import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.Audit;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableSet;
 import org.apache.http.Header;
 import org.elasticsearch.common.settings.Settings;
 
@@ -105,9 +111,22 @@ public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
 
     protected AuditMessageRouter createMessageRouterComplianceEnabled(Settings settings) {
         AuditMessageRouter router = new AuditMessageRouter(settings, null, null, null);
-        if (router.isEnabled()) {
-            router.enableRoutes(settings);
-        }
+        router.enableRoutes();
         return router;
+    }
+
+    protected void updateAuditConfig(final Settings settings) throws Exception {
+        updateAuditConfig(AuditTestUtils.createAuditPayload(settings));
+    }
+
+    protected void updateAuditConfig(final String payload) throws Exception {
+        final boolean sendAdminCertificate = rh.sendAdminCertificate;
+        final String keystore = rh.keystore;
+        rh.sendAdminCertificate = true;
+        rh.keystore = "auditlog/kirk-keystore.jks";
+        RestHelper.HttpResponse response = rh.executePutRequest("_opendistro/_security/api/audit/config", payload, new Header[0]);
+        System.out.println(response);
+        rh.sendAdminCertificate = sendAdminCertificate;
+        rh.keystore = keystore;
     }
 }
