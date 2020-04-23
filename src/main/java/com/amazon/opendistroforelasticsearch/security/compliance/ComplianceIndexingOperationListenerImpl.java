@@ -67,7 +67,8 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
 
     @Override
     public void postDelete(final ShardId shardId, final Delete delete, final DeleteResult result) {
-        if (auditlog.getComplianceConfig().isEnabled()) {
+        final ComplianceConfig complianceConfig = auditlog.getComplianceConfig();
+        if (complianceConfig != null && complianceConfig.isEnabled()) {
             Objects.requireNonNull(is);
             if(result.getFailure() == null && result.isFound() && delete.origin() == org.elasticsearch.index.engine.Engine.Operation.Origin.PRIMARY) {
                 auditlog.logDocumentDeleted(shardId, delete, result);
@@ -78,7 +79,7 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
     @Override
     public Index preIndex(final ShardId shardId, final Index index) {
         final ComplianceConfig complianceConfig = auditlog.getComplianceConfig();
-        if (complianceConfig.isEnabled() && complianceConfig.shouldLogDiffsForWrite()) {
+        if (complianceConfig != null && complianceConfig.isEnabled() && complianceConfig.shouldLogDiffsForWrite()) {
             Objects.requireNonNull(is);
 
             final IndexShard shard;
@@ -121,7 +122,7 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
     @Override
     public void postIndex(final ShardId shardId, final Index index, final Exception ex) {
         final ComplianceConfig complianceConfig = auditlog.getComplianceConfig();
-        if (complianceConfig.isEnabled() && complianceConfig.shouldLogDiffsForWrite()) {
+        if (complianceConfig != null && complianceConfig.isEnabled() && complianceConfig.shouldLogDiffsForWrite()) {
             threadContext.remove();
         }
     }
@@ -129,7 +130,7 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
     @Override
     public void postIndex(ShardId shardId, Index index, IndexResult result) {
         final ComplianceConfig complianceConfig = auditlog.getComplianceConfig();
-        if (complianceConfig.isEnabled() && complianceConfig.shouldLogDiffsForWrite()) {
+        if (complianceConfig != null && complianceConfig.isEnabled() && complianceConfig.shouldLogDiffsForWrite()) {
             final Context context = threadContext.get();
             final GetResult previousContent = context==null?null:context.getGetResult();
             threadContext.remove();
@@ -157,7 +158,7 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
             }
 
             auditlog.logDocumentWritten(shardId, previousContent, index, result);
-        } else if (complianceConfig.isEnabled()) {
+        } else if (complianceConfig != null && complianceConfig.isEnabled()) {
             //no diffs
             if (result.getFailure() != null || index.origin() != org.elasticsearch.index.engine.Engine.Operation.Origin.PRIMARY) {
                 return;

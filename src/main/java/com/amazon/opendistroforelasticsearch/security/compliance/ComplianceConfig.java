@@ -41,6 +41,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.AuditModel;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
@@ -109,9 +110,6 @@ public class ComplianceConfig {
         this.opendistrosecurityIndex = opendistrosecurityIndex;
 
         this.salt16 = new byte[SALT_SIZE];
-        if (saltAsString.equals(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT_DEFAULT)) {
-            log.warn("If you plan to use field masking pls configure compliance salt {} to be a random string of 16 chars length identical on all nodes", saltAsString);
-        }
         try {
             ByteBuffer byteBuffer = StandardCharsets.UTF_8.encode(saltAsString);
             byteBuffer.get(salt16);
@@ -201,6 +199,36 @@ public class ComplianceConfig {
                 watchedWriteIndices,
                 immutableIndicesPatterns,
                 saltAsString,
+                opendistrosecurityIndex,
+                type,
+                index);
+    }
+
+    /**
+     * Create compliance configuration from auditModel
+     * saltAsString - Read from settings. Not hot-reloaded. Used for anonymization of fields in FLS using consistent hash.
+     * opendistrosecurityIndex - used to determine if internal index is written to or read from.
+     * type - checks if log destination used is internal elasticsearch.
+     * index - the index used for storing audit logs to avoid monitoring it.
+     * @param auditModel audit model
+     * @param settings settings
+     * @return ComplianceConfig
+     */
+    public static ComplianceConfig from(AuditModel auditModel, Settings settings) {
+        final String opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
+        final String type = settings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_TYPE_DEFAULT, null);
+        final String index = settings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ES_INDEX, "'security-auditlog-'YYYY.MM.dd");
+
+        return new ComplianceConfig(
+                auditModel.shouldLogExternalConfig(),
+                auditModel.shouldLogInternalConfig(),
+                auditModel.shouldLogReadMetadataOnly(),
+                auditModel.shouldLogWriteMetadataOnly(),
+                auditModel.shouldLogDiffsForWrite(),
+                auditModel.getReadWatchedFields(),
+                auditModel.getWriteWatchedIndices(),
+                auditModel.getImmutableIndicesPatterns(),
+                auditModel.getSalt(),
                 opendistrosecurityIndex,
                 type,
                 index);

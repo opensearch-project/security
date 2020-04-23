@@ -31,6 +31,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 
+import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
 import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.FieldInfo;
@@ -117,7 +118,8 @@ class DlsFlsFilterLeafReader extends FilterLeafReader {
                            final AuditLog auditlog, final Set<String> maskedFields, final ShardId shardId) {
         super(delegate);
 
-        maskFields = (auditlog.getComplianceConfig().isEnabled() && maskedFields != null && maskedFields.size() > 0);
+        final ComplianceConfig complianceConfig = auditlog.getComplianceConfig();
+        maskFields = (complianceConfig != null && complianceConfig.isEnabled() && maskedFields != null && maskedFields.size() > 0);
 
         this.indexService = indexService;
         this.threadContext = threadContext;
@@ -363,8 +365,8 @@ class DlsFlsFilterLeafReader extends FilterLeafReader {
 
     @Override
     public void document(final int docID, final StoredFieldVisitor visitor) throws IOException {
-
-        if(auditlog.getComplianceConfig().readHistoryEnabledForIndex(indexService.index().getName())) {
+        final ComplianceConfig complianceConfig = auditlog.getComplianceConfig();
+        if(complianceConfig != null && complianceConfig.readHistoryEnabledForIndex(indexService.index().getName())) {
             final ComplianceAwareStoredFieldVisitor cv = new ComplianceAwareStoredFieldVisitor(visitor);
 
             if(flsEnabled) {
@@ -1093,8 +1095,8 @@ class DlsFlsFilterLeafReader extends FilterLeafReader {
 
     @SuppressWarnings("unchecked")
     private Map<String, MaskedField> getRuntimeMaskedFieldInfo() {
-
-        if(!auditlog.getComplianceConfig().isEnabled()) {
+        final ComplianceConfig complianceConfig = auditlog.getComplianceConfig();
+        if(complianceConfig == null || !complianceConfig.isEnabled()) {
             return null;
         }
 

@@ -1,6 +1,7 @@
 package com.amazon.opendistroforelasticsearch.security.auditlog.config;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.AuditModel;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.Logger;
@@ -135,6 +136,26 @@ public class AuditConfig {
                 return Collections.emptySet();
             }
             return ImmutableSet.copyOf(list);
+        }
+
+        /**
+         * Generate audit logging configuration from auditModel
+         * @param auditModel auditModel
+         * @return audit configuration filter
+         */
+        public static Filter from(final AuditModel auditModel) {
+            return new Filter(auditModel.isRestApiAuditEnabled(),
+                    auditModel.isTransportApiAuditEnabled(),
+                    auditModel.shouldResolveBulkRequests(),
+                    auditModel.shouldLogRequestBody(),
+                    auditModel.shouldResolveIndices(),
+                    auditModel.shouldExcludeSensitiveHeaders(),
+                    auditModel.getIgnoredAuditUsers(),
+                    auditModel.getIgnoredComplianceUsersForRead(),
+                    auditModel.getIgnoredComplianceUsersForWrite(),
+                    auditModel.getIgnoredAuditRequests(),
+                    auditModel.getDisabledRestCategories(),
+                    auditModel.getDisabledTransportCategories());
         }
 
         /**

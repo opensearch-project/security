@@ -286,9 +286,15 @@ public abstract class AbstractConfigurationValidator {
     }
 
     public static enum ErrorType {
-        NONE("ok"), INVALID_CONFIGURATION("Invalid configuration"), INVALID_PASSWORD("Invalid password"), WRONG_DATATYPE("Wrong datatype"),
-        BODY_NOT_PARSEABLE("Could not parse content of request."), PAYLOAD_NOT_ALLOWED("Request body not allowed for this action."),
-        PAYLOAD_MANDATORY("Request body required for this action."), SECURITY_NOT_INITIALIZED("Security index not initialized");
+        NONE("ok"),
+        INVALID_CONFIGURATION("Invalid configuration"),
+        INVALID_PASSWORD("Invalid password"),
+        WRONG_DATATYPE("Wrong datatype"),
+        BODY_NOT_PARSEABLE("Could not parse content of request."),
+        PAYLOAD_NOT_ALLOWED("Request body not allowed for this action."),
+        PAYLOAD_MANDATORY("Request body required for this action."),
+        SECURITY_NOT_INITIALIZED("Security index not initialized"),
+        INVALID_SALT("Salt must be atleast 16 chars long. If greater, only the first 16 bytes will used for salting.");
 
         private String message;
 

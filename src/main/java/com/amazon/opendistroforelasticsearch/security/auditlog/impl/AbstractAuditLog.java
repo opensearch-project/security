@@ -85,10 +85,10 @@ public abstract class AbstractAuditLog implements AuditLog {
     private final ThreadPool threadPool;
     private final IndexNameExpressionResolver resolver;
     private final ClusterService clusterService;
-    private final Settings settings;
-    private final AuditConfig.Filter auditConfigFilter;
+    protected final Settings settings;
+    protected volatile AuditConfig.Filter auditConfigFilter;
     private final String opendistrosecurityIndex;
-    private volatile ComplianceConfig complianceConfig;
+    protected volatile ComplianceConfig complianceConfig;
 
     private static final List<String> writeClasses = new ArrayList<>();
     {
@@ -105,16 +105,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         this.settings = settings;
         this.resolver = resolver;
         this.clusterService = clusterService;
-        this.auditConfigFilter = AuditConfig.Filter.from(settings);
-        this.auditConfigFilter.log(log);
         this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
-        if (dlsFlsAvailable) {
-            this.complianceConfig = ComplianceConfig.from(settings);
-            this.complianceConfig.log(log);
-        } else {
-            this.complianceConfig = null;
-            log.debug("Compliance config is null because DLS-FLS is not available.");
-        }
     }
 
     @Override
@@ -359,7 +350,7 @@ public abstract class AbstractAuditLog implements AuditLog {
 
     @Override
     public void logDocumentRead(String index, String id, ShardId shardId, Map<String, String> fieldNameValues) {
-
+        final ComplianceConfig complianceConfig = getComplianceConfig();
         if(complianceConfig == null || !complianceConfig.readHistoryEnabledForIndex(index)) {
             return;
         }
@@ -424,7 +415,7 @@ public abstract class AbstractAuditLog implements AuditLog {
 
     @Override
     public void logDocumentWritten(ShardId shardId, GetResult originalResult, Index currentIndex, IndexResult result) {
-
+        final ComplianceConfig complianceConfig = getComplianceConfig();
         if(complianceConfig == null || !complianceConfig.writeHistoryEnabledForIndex(shardId.getIndexName())) {
             return;
         }

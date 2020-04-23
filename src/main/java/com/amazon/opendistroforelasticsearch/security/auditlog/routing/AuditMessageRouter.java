@@ -37,8 +37,6 @@ import com.amazon.opendistroforelasticsearch.security.auditlog.sink.SinkProvider
 import com.amazon.opendistroforelasticsearch.security.dlic.rest.support.Utils;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 
-import static com.google.common.base.Preconditions.checkState;
-
 public class AuditMessageRouter {
 
 	protected final Logger log = LogManager.getLogger(this.getClass());
@@ -47,21 +45,28 @@ public class AuditMessageRouter {
 	final SinkProvider sinkProvider;
 	final AsyncStoragePool storagePool;
 	private boolean hasMultipleEndpoints;
-	private boolean areRoutesEnabled;
+	private volatile boolean areRoutesEnabled;
+	private Settings settings;
+	final boolean enabled;
 
 	public AuditMessageRouter(final Settings settings, final Client clientProvider, ThreadPool threadPool, final Path configPath) {
 		this.sinkProvider = new SinkProvider(settings, clientProvider, threadPool, configPath);
 		this.storagePool = new AsyncStoragePool(ThreadPoolConfig.getConfig(settings));
+		this.settings = settings;
 
 		// get the default sink
 		this.defaultSink = sinkProvider.getDefaultSink();
 		if (defaultSink == null) {
+			enabled = false;
 			log.warn("No default storage available, audit log may not work properly. Please check configuration.");
+		} else {
+			enabled = true;
+			this.setupRoutes();
 		}
 	}
 
 	public boolean isEnabled() {
-		return defaultSink != null;
+		return enabled;
 	}
 
 	public final void route(final AuditMessage msg) {
@@ -98,9 +103,15 @@ public class AuditMessageRouter {
 		}
 	}
 
-	public final boolean enableRoutes(Settings settings) {
-		checkState(isEnabled(), "AuditMessageRouter is disabled");
-		areRoutesEnabled = true;
+	public void enableRoutes() {
+		this.areRoutesEnabled = true;
+	}
+
+	public void disableRoutes() {
+		this.areRoutesEnabled = false;
+	}
+
+	public final boolean setupRoutes() {
 		Map<String, Object> routesConfiguration = Utils.convertJsonToxToStructuredMap(settings.getAsSettings(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_ROUTES));
 		if (!routesConfiguration.isEmpty()) {
 			hasMultipleEndpoints = true;

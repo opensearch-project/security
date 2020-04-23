@@ -9,6 +9,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.AuditModel;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.NodesDn;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -134,6 +135,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         SecurityDynamicConfiguration<?> rolesmapping = cr.getConfiguration(CType.ROLESMAPPING);
         SecurityDynamicConfiguration<?> tenants = cr.getConfiguration(CType.TENANTS);
         SecurityDynamicConfiguration<?> nodesDn = cr.getConfiguration(CType.NODESDN);
+        SecurityDynamicConfiguration<?> audit = cr.getConfiguration(CType.AUDIT);
 
         if(log.isDebugEnabled()) {
             String logmsg = "current config (because of "+typeToConfig.keySet()+")\n"+
@@ -152,6 +154,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         final InternalUsersModel ium;
         final ConfigModel cm;
         final NodesDnModel nm = new NodesDnModelImpl(nodesDn);
+        final AuditModel am = new AuditModelImpl(audit);
         if(config.getImplementingClass() == ConfigV7.class) {
                 //statics
                 
@@ -209,6 +212,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         eventBus.post(dcm);
         eventBus.post(ium);
         eventBus.post(nm);
+        eventBus.post(am);
 
         initialized.set(true);
         
