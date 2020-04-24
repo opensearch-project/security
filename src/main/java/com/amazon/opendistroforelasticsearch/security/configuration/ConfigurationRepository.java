@@ -52,9 +52,6 @@ import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.action.get.GetResponse;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -64,10 +61,7 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.util.concurrent.ThreadContext.StoredContext;
-import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.env.Environment;
-import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
@@ -96,7 +90,7 @@ public class ConfigurationRepository {
     private final ComplianceConfig complianceConfig;
     private final ThreadPool threadPool;
     private DynamicConfigFactory dynamicConfigFactory;
-    private final int configVersion = 2;
+    private static final int DEFAULT_CONFIG_VERSION = 2;
     private final Thread bgThread;
     private final AtomicBoolean installDefaultConfig = new AtomicBoolean();
 
@@ -144,14 +138,16 @@ public class ConfigurationRepository {
                                             .actionGet().isAcknowledged();
                                     LOGGER.info("Index {} created?: {}", opendistrosecurityIndex, ok);
                                     if(ok) {
-                                        ConfigHelper.uploadFile(client, cd+"config.yml", opendistrosecurityIndex, CType.CONFIG, configVersion);
-                                        ConfigHelper.uploadFile(client, cd+"roles.yml", opendistrosecurityIndex, CType.ROLES, configVersion);
-                                        ConfigHelper.uploadFile(client, cd+"roles_mapping.yml", opendistrosecurityIndex, CType.ROLESMAPPING, configVersion);
-                                        ConfigHelper.uploadFile(client, cd+"internal_users.yml", opendistrosecurityIndex, CType.INTERNALUSERS, configVersion);
-                                        ConfigHelper.uploadFile(client, cd+"action_groups.yml", opendistrosecurityIndex, CType.ACTIONGROUPS, configVersion);
-                                        if(configVersion == 2) {
-                                            ConfigHelper.uploadFile(client, cd+"tenants.yml", opendistrosecurityIndex, CType.TENANTS, configVersion);
+                                        ConfigHelper.uploadFile(client, cd+"config.yml", opendistrosecurityIndex, CType.CONFIG, DEFAULT_CONFIG_VERSION);
+                                        ConfigHelper.uploadFile(client, cd+"roles.yml", opendistrosecurityIndex, CType.ROLES, DEFAULT_CONFIG_VERSION);
+                                        ConfigHelper.uploadFile(client, cd+"roles_mapping.yml", opendistrosecurityIndex, CType.ROLESMAPPING, DEFAULT_CONFIG_VERSION);
+                                        ConfigHelper.uploadFile(client, cd+"internal_users.yml", opendistrosecurityIndex, CType.INTERNALUSERS, DEFAULT_CONFIG_VERSION);
+                                        ConfigHelper.uploadFile(client, cd+"action_groups.yml", opendistrosecurityIndex, CType.ACTIONGROUPS, DEFAULT_CONFIG_VERSION);
+                                        if(DEFAULT_CONFIG_VERSION == 2) {
+                                            ConfigHelper.uploadFile(client, cd+"tenants.yml", opendistrosecurityIndex, CType.TENANTS, DEFAULT_CONFIG_VERSION);
                                         }
+                                        final boolean populateEmptyIfFileMissing = true;
+                                        ConfigHelper.uploadFile(client, cd+"nodes_dn.yml", opendistrosecurityIndex, CType.NODESDN, DEFAULT_CONFIG_VERSION, populateEmptyIfFileMissing);
                                         LOGGER.info("Default config applied");
                                     } else {
                                         LOGGER.error("Can not create {} index", opendistrosecurityIndex);
@@ -370,5 +366,9 @@ public class ConfigurationRepository {
 
     private static String formatDate(long date) {
         return new SimpleDateFormat("yyyy-MM-dd", OpenDistroSecurityUtils.EN_Locale).format(new Date(date));
+    }
+
+    public static int getDefaultConfigVersion() {
+        return ConfigurationRepository.DEFAULT_CONFIG_VERSION;
     }
 }
