@@ -192,6 +192,11 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
 		final SecurityDynamicConfiguration<?> existingConfiguration = load(getConfigName(), false);
 
+		if (existingConfiguration.getSeqNo() < 0) {
+		    forbidden(channel, "Security index need to be updated to support '" + getConfigName().toLCString() + "'. Use OpenDistroSecurityAdmin to populate.");
+		    return;
+		}
+
 		if (isHidden(existingConfiguration, name)) {
 			forbidden(channel, "Resource '"+ name +"' is not available.");
 			return;

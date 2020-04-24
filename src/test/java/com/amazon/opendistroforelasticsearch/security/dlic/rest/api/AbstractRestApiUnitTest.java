@@ -82,6 +82,10 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 	}
 
 	protected final void setupWithRestRoles() throws Exception {
+        setupWithRestRoles(null);
+    }
+
+	protected final void setupWithRestRoles(Settings nodeOverride) throws Exception {
 		Settings.Builder builder = Settings.builder();
 
 		builder.put("opendistro_security.ssl.http.enabled", true)
@@ -102,6 +106,10 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 		builder.put("opendistro_security.restapi.endpoints_disabled.opendistro_security_role_klingons.ROLESMAPPING.1", "DELETE");
 
 		builder.put("opendistro_security.restapi.endpoints_disabled.opendistro_security_role_vulcans.CONFIG.0", "*");
+
+		if (null != nodeOverride) {
+			builder.put(nodeOverride);
+		}
 
 		setup(Settings.EMPTY, new DynamicSecurityConfig(), builder.build(), init);
 		rh = restHelper();
