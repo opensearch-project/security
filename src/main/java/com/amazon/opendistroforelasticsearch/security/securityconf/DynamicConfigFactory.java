@@ -1,17 +1,21 @@
 package com.amazon.opendistroforelasticsearch.security.securityconf;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.NodesDn;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.EventBusBuilder;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
@@ -35,11 +39,13 @@ import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.RoleV
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.TenantV7;
 
 public class DynamicConfigFactory implements Initializable, ConfigurationChangeListener {
-    
+
     private static final SecurityDynamicConfiguration<RoleV7> staticRoles;
     private static final SecurityDynamicConfiguration<ActionGroupsV7> staticActionGroups;
     private static final SecurityDynamicConfiguration<TenantV7> staticTenants;
     
+    public static final EventBusBuilder EVENT_BUS_BUILDER = EventBus.builder();
+
     static {
         try {
             JsonNode staticRolesJsonNode = DefaultObjectMapper.YAML_MAPPER.readTree(DynamicConfigFactory.class.getResourceAsStream("/static_config/static_roles.yml"));
@@ -51,6 +57,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         } catch (Exception e) {
             throw ExceptionsHelper.convertToRuntime(e);
         }
+
     }
     
     public static final SecurityDynamicConfiguration<RoleV7> getStaticRoles() {
@@ -84,7 +91,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     protected final Logger log = LogManager.getLogger(this.getClass());
     private final ConfigurationRepository cr;
     private final AtomicBoolean initialized = new AtomicBoolean();
-    private final List<DCFListener> listeners = new ArrayList<>();
+    private final EventBus eventBus = EVENT_BUS_BUILDER.build();
     private final Settings esSettings;
     private final Path configPath;
     private final InternalAuthenticationBackend iab = new InternalAuthenticationBackend();
@@ -110,7 +117,8 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         SecurityDynamicConfiguration<?> roles = cr.getConfiguration(CType.ROLES);
         SecurityDynamicConfiguration<?> rolesmapping = cr.getConfiguration(CType.ROLESMAPPING);
         SecurityDynamicConfiguration<?> tenants = cr.getConfiguration(CType.TENANTS);
-        
+        SecurityDynamicConfiguration<?> nodesDn = cr.getConfiguration(CType.NODESDN);
+
         if(log.isDebugEnabled()) {
             String logmsg = "current config (because of "+typeToConfig.keySet()+")\n"+
             " actionGroups: "+actionGroups.getImplementingClass()+" with "+actionGroups.getCEntries().size()+" entries\n"+
@@ -118,11 +126,16 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
             " internalusers: "+internalusers.getImplementingClass()+" with "+internalusers.getCEntries().size()+" entries\n"+
             " roles: "+roles.getImplementingClass()+" with "+roles.getCEntries().size()+" entries\n"+
             " rolesmapping: "+rolesmapping.getImplementingClass()+" with "+rolesmapping.getCEntries().size()+" entries\n"+
-            " tenants: "+tenants.getImplementingClass()+" with "+tenants.getCEntries().size()+" entries";
+            " tenants: "+tenants.getImplementingClass()+" with "+tenants.getCEntries().size()+" entries\n"+
+            " nodesdn: "+nodesDn.getImplementingClass()+" with "+nodesDn.getCEntries().size()+" entries";
             log.debug(logmsg);
             
         }
 
+        final DynamicConfigModel dcm;
+        final InternalUsersModel ium;
+        final ConfigModel cm;
+        final NodesDnModel nm = new NodesDnModelImpl(nodesDn);
         if(config.getImplementingClass() == ConfigV7.class) {
                 //statics
                 
@@ -162,29 +175,24 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
             
 
             //rebuild v7 Models
-            DynamicConfigModel dcm = new DynamicConfigModelV7(getConfigV7(config), esSettings, configPath, iab);
-            InternalUsersModel ium = new InternalUsersModelV7((SecurityDynamicConfiguration<InternalUserV7>) internalusers);
-            ConfigModel cm = new ConfigModelV7((SecurityDynamicConfiguration<RoleV7>) roles,(SecurityDynamicConfiguration<RoleMappingsV7>)rolesmapping, (SecurityDynamicConfiguration<ActionGroupsV7>)actionGroups, (SecurityDynamicConfiguration<TenantV7>) tenants,dcm, esSettings);
+            dcm = new DynamicConfigModelV7(getConfigV7(config), esSettings, configPath, iab);
+            ium = new InternalUsersModelV7((SecurityDynamicConfiguration<InternalUserV7>) internalusers);
+            cm = new ConfigModelV7((SecurityDynamicConfiguration<RoleV7>) roles,(SecurityDynamicConfiguration<RoleMappingsV7>)rolesmapping, (SecurityDynamicConfiguration<ActionGroupsV7>)actionGroups, (SecurityDynamicConfiguration<TenantV7>) tenants,dcm, esSettings);
 
-            //notify listeners
-            
-            for(DCFListener listener: listeners) {
-                listener.onChanged(cm, dcm, ium);
-            }
-        
         } else {
 
             //rebuild v6 Models
-            DynamicConfigModel dcmv6 = new DynamicConfigModelV6(getConfigV6(config), esSettings, configPath, iab);
-            InternalUsersModel iumv6 = new InternalUsersModelV6((SecurityDynamicConfiguration<InternalUserV6>) internalusers);
-            ConfigModel cmv6 = new ConfigModelV6((SecurityDynamicConfiguration<RoleV6>) roles, (SecurityDynamicConfiguration<ActionGroupsV6>)actionGroups, (SecurityDynamicConfiguration<RoleMappingsV6>)rolesmapping, dcmv6, esSettings);
-            
-            //notify listeners
-            
-            for(DCFListener listener: listeners) {
-                listener.onChanged(cmv6, dcmv6, iumv6);
-            }
+            dcm = new DynamicConfigModelV6(getConfigV6(config), esSettings, configPath, iab);
+            ium = new InternalUsersModelV6((SecurityDynamicConfiguration<InternalUserV6>) internalusers);
+            cm = new ConfigModelV6((SecurityDynamicConfiguration<RoleV6>) roles, (SecurityDynamicConfiguration<ActionGroupsV6>)actionGroups, (SecurityDynamicConfiguration<RoleMappingsV6>)rolesmapping, dcm, esSettings);
+
         }
+
+        //notify subscribers
+        eventBus.post(cm);
+        eventBus.post(dcm);
+        eventBus.post(ium);
+        eventBus.post(nm);
 
         initialized.set(true);
         
@@ -207,12 +215,12 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         return initialized.get();
     }
     
-    public void registerDCFListener(DCFListener listener) {
-        listeners.add(listener);
+    public void registerDCFListener(Object listener) {
+        eventBus.register(listener);
     }
-    
-    public static interface DCFListener {
-        void onChanged(ConfigModel cm, DynamicConfigModel dcm, InternalUsersModel ium);
+
+    public void unregisterDCFListener(Object listener) {
+        eventBus.unregister(listener);
     }
     
     private static class InternalUsersModelV7 extends InternalUsersModel {
@@ -294,6 +302,23 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
             return tmp==null?null:tmp.getHash();
         }
         
+    }
+
+    private static class NodesDnModelImpl extends NodesDnModel {
+
+        SecurityDynamicConfiguration<NodesDn> configuration;
+
+        public NodesDnModelImpl(SecurityDynamicConfiguration<?> configuration) {
+            super();
+            this.configuration = null == configuration.getCType() ? SecurityDynamicConfiguration.empty() :
+                (SecurityDynamicConfiguration<NodesDn>)configuration;
+        }
+
+        @Override
+        public Map<String, List<String>> getNodesDn() {
+            return this.configuration.getCEntries().entrySet().stream().collect(
+                Collectors.toMap(Entry::getKey, entry -> entry.getValue().getNodesDn()));
+        }
     }
    
 }

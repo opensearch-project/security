@@ -29,7 +29,8 @@ public enum CType {
     CONFIG(toMap(1, ConfigV6.class, 2, ConfigV7.class)),
     ROLES(toMap(1, RoleV6.class, 2, RoleV7.class)), 
     ROLESMAPPING(toMap(1, RoleMappingsV6.class, 2, RoleMappingsV7.class)),
-    TENANTS(toMap(2, TenantV7.class));
+    TENANTS(toMap(2, TenantV7.class)),
+    NODESDN(toMap(1, NodesDn.class, 2, NodesDn.class));
 
     private Map<Integer, Class<?>> implementations;
 

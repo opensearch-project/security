@@ -14,10 +14,23 @@ opendistro_security.advanced_modules_enabled: true
 
 # Specify a list of DNs which denote the other nodes in the cluster.
 # This settings support wildcards and regular expressions
-# This setting only has effect if 'opendistro_security.cert.intercluster_request_evaluator_class' is not set.
+# The list of DNs are also read from security index **in addition** to the yml configuration if
+# opendistro_security.nodes_dn_dynamic_config_enabled is true.
+# NOTE: This setting only has effect if 'opendistro_security.cert.intercluster_request_evaluator_class' is not set.
 opendistro_security.nodes_dn:
   - "CN=*.example.com, OU=SSL, O=Test, L=Test, C=DE"
   - "CN=node.other.com, OU=SSL, O=Test, L=Test, C=DE"
+
+# The nodes_dn_dynamic_config_enabled settings is geared towards cross_cluster usecases where there is a need to
+# manage the whitelisted nodes_dn without having to restart the nodes everytime a new cross_cluster remote is configured
+# Setting nodes_dn_dynamic_config_enabled to true enables **super-admin callable** /_opendistro/_security/api/nodesdn APIs
+# which provide means to update/retrieve nodesdn dynamically.
+#
+# NOTE: The overall whitelisted nodes_dn evaluated comes from both the opendistro_security.nodes_dn and the ones stored
+# in security index.
+# (default: false)
+# NOTE2: This setting only has effect if 'opendistro_security.cert.intercluster_request_evaluator_class' is not set.
+opendistro_security.nodes_dn_dynamic_config_enabled: false
 
 # Defines the DNs (distinguished names) of certificates
 # to which admin privileges should be assigned (mandatory)

@@ -28,5 +28,6 @@ public enum Endpoint {
 	AUTHTOKEN,
 	TENANTS,
 	MIGRATE,
-	VALIDATE;
+	VALIDATE,
+	NODESDN;
 }
