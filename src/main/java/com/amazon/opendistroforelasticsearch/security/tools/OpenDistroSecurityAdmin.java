@@ -33,7 +33,6 @@ package com.amazon.opendistroforelasticsearch.security.tools;
 import java.io.ByteArrayInputStream;
 import java.io.Console;
 import java.io.File;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Reader;
@@ -50,6 +49,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.NodesDn;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -553,7 +553,7 @@ public class OpenDistroSecurityAdmin {
 
             if(updateSettings != null) { 
                 Settings indexSettings = Settings.builder().put("index.number_of_replicas", updateSettings).build();
-                ConfigUpdateResponse res = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
+                ConfigUpdateResponse res = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(getTypes(true))).actionGet();
                 if(res.hasFailures()) {
                     System.out.println("ERR: Unabe to reload config due to "+res.failures());
                 }
@@ -753,6 +753,9 @@ public class OpenDistroSecurityAdmin {
                 if(!legacy) {
                     success = retrieveFile(tc, cd+"security_tenants_"+date+".yml", index, "tenants", legacy) && success;
                 }
+
+                final boolean populateFileIfEmpty = true;
+                success = retrieveFile(tc, cd+"nodes_dn_"+date+".yml", index, "nodesdn", legacy, populateFileIfEmpty) && success;
                 return (success?0:-1);
             }
 
@@ -833,8 +836,13 @@ public class OpenDistroSecurityAdmin {
 
         return success && !response.hasFailures();
     }
-    
+
     private static boolean uploadFile(final Client tc, final String filepath, final String index, final String _id, final boolean legacy, boolean resolveEnvVars) {
+        return uploadFile(tc, filepath, index, _id, legacy, resolveEnvVars, false);
+    }
+
+    private static boolean uploadFile(final Client tc, final String filepath, final String index, final String _id, final boolean legacy, boolean resolveEnvVars,
+        final boolean populateEmptyIfMissing) {
         
         String type = "_doc";
         String id = _id;
@@ -861,7 +869,7 @@ public class OpenDistroSecurityAdmin {
         
         System.out.println("Will update '"+type+"/" + id + "' with " + filepath+" "+(legacy?"(legacy mode)":""));
         
-        try (Reader reader = new FileReader(filepath)) {
+        try (Reader reader = ConfigHelper.createFileOrStringReader(CType.fromString(_id), legacy ? 1 : 2, filepath, populateEmptyIfMissing)) {
             final String content = CharStreams.toString(reader);
             final String res = tc
                     .index(new IndexRequest(index).type(type).id(id).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
@@ -880,8 +888,12 @@ public class OpenDistroSecurityAdmin {
 
         return false;
     }
-    
+
     private static boolean retrieveFile(final Client tc, final String filepath, final String index, final String _id, final boolean legacy) {
+        return retrieveFile(tc, filepath, index, _id, legacy, false);
+    }
+
+    private static boolean retrieveFile(final Client tc, final String filepath, final String index, final String _id, final boolean legacy, final boolean populateFileIfEmpty) {
         
         String type = "_doc";
         String id = _id;
@@ -897,36 +909,44 @@ public class OpenDistroSecurityAdmin {
 
             final GetResponse response = tc.get(new GetRequest(index).type(type).id(id).refresh(true).realtime(false)).actionGet();
 
-            if (response.isExists()) {
-                if(response.isSourceEmpty()) {
+            boolean isEmpty = !response.isExists() || response.isSourceEmpty();
+            String yaml;
+            if (isEmpty) {
+                if (populateFileIfEmpty) {
+                    yaml = ConfigHelper.createEmptySdcYaml(CType.fromString(_id), legacy ? 1 : 2);
+                } else {
                     System.out.println("   FAIL: Configuration for '"+_id+"' failed because of empty source");
                     return false;
                 }
-                
-                String yaml = convertToYaml(_id, response.getSourceAsBytesRef(), true);
-                
-                if(legacy) {
+            } else {
+                yaml = convertToYaml(_id, response.getSourceAsBytesRef(), true);
+
+                if (null == yaml) {
+                    System.out.println("ERR: YML conversion error for " + _id);
+                    return false;
+
+                }
+
+                if (legacy) {
                     try {
                         ConfigHelper.fromYamlString(yaml, CType.fromString(_id), 1, 0, 0);
                     } catch (Exception e) {
-                        System.out.println("ERR: Seems "+_id+" from cluster is not in legacy format: "+e);
+                        System.out.println("ERR: Seems " + _id + " from cluster is not in legacy format: " + e);
                         return false;
                     }
                 } else {
                     try {
                         ConfigHelper.fromYamlString(yaml, CType.fromString(_id), 2, 0, 0);
                     } catch (Exception e) {
-                        System.out.println("ERR: Seems "+_id+" from cluster is not in SG 7 format: "+e);
+                        System.out.println("ERR: Seems " + _id + " from cluster is not in SG 7 format: " + e);
                         return false;
                     }
                 }
-                
-                writer.write(yaml);
-                System.out.println("   SUCC: Configuration for '"+_id+"' stored in "+filepath);
-                return true;
-            } else {
-                System.out.println("   FAIL: Get configuration for '"+_id+"' because it does not exist");
             }
+
+            writer.write(yaml);
+            System.out.println("   SUCC: Configuration for '"+_id+"' stored in "+filepath);
+            return true;
         } catch (Exception e) {
             System.out.println("   FAIL: Get configuration for '"+_id+"' failed because of "+e.toString());
         }
@@ -956,7 +976,7 @@ public class OpenDistroSecurityAdmin {
     private static String convertToYaml(String type, BytesReference bytes, boolean prettyPrint) throws IOException {
         
         try (XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, OpenDistroSecurityDeprecationHandler.INSTANCE, bytes.streamInput())) {
-            
+
             parser.nextToken();
             parser.nextToken();
             
@@ -1189,7 +1209,8 @@ public class OpenDistroSecurityAdmin {
         if(!legacy) {
             success = retrieveFile(tc, backupDir.getAbsolutePath()+"/tenants.yml", index, "tenants", legacy) && success;
         }
-        
+        success = retrieveFile(tc, backupDir.getAbsolutePath()+"/nodes_dn.yml", index, "nodesdn", legacy, true) && success;
+
         return success?0:-1;
     }
     
@@ -1205,7 +1226,9 @@ public class OpenDistroSecurityAdmin {
         if(!legacy) {
             success = uploadFile(tc, cd+"tenants.yml", index, "tenants", legacy, resolveEnvVars) && success;
         }
-        
+
+        success = uploadFile(tc, cd+"nodes_dn.yml", index, "nodesdn", legacy, resolveEnvVars, true) && success;
+
         if(!success) {
             System.out.println("ERR: cannot upload configuration, see errors above");
             return -1;
@@ -1244,13 +1267,18 @@ public class OpenDistroSecurityAdmin {
             SecurityDynamicConfiguration<RoleMappingsV6> rolesmappingV6 = SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir,"roles_mapping.yml")), CType.ROLESMAPPING, 1, 0, 0);
             Tuple<SecurityDynamicConfiguration<RoleV7>, SecurityDynamicConfiguration<TenantV7>> rolesTenantsV7 = Migration.migrateRoles(SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir,"roles.yml")), CType.ROLES, 1, 0, 0), rolesmappingV6);
             SecurityDynamicConfiguration<RoleMappingsV7> rolesmappingV7 = Migration.migrateRoleMappings(rolesmappingV6);
-            
+            SecurityDynamicConfiguration<NodesDn> nodesDn =
+                Migration.migrateNodesDn(SecurityDynamicConfiguration.fromNode(
+                    DefaultObjectMapper.YAML_MAPPER.readTree(ConfigHelper.createFileOrStringReader(CType.NODESDN, 1, new File(backupDir,"nodes_dn.yml").getAbsolutePath(), true)),
+                    CType.NODESDN, 1, 0, 0));
+
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/action_groups.yml"), actionGroupsV7);
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/config.yml"), configV7);
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/internal_users.yml"), internalUsersV7);
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/roles.yml"), rolesTenantsV7.v1());
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/tenants.yml"), rolesTenantsV7.v2());
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/roles_mapping.yml"), rolesmappingV7);
+            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/nodes_dn.yml"), nodesDn);
         } catch (Exception e) {
             System.out.println("ERR: Unable to migrate config files due to "+e);
             e.printStackTrace();
@@ -1264,9 +1292,9 @@ public class OpenDistroSecurityAdmin {
         System.out.println("  done");
         
         System.out.println("-> Upload new configuration into Elasticsearch cluster");
-        
+
         int uploadResult = upload(tc, index, v7Dir.getAbsolutePath()+"/", false, nodesInfo, resolveEnvVars);
-        
+
         if(uploadResult == 0) {
             System.out.println("  done");
         }else {
@@ -1335,7 +1363,7 @@ public class OpenDistroSecurityAdmin {
     
     private static String[] getTypes(boolean legacy) {
         if(legacy) {
-            return new String[]{"config","roles","rolesmapping","internalusers","actiongroups"};
+            return new String[]{"config","roles","rolesmapping","internalusers","actiongroups","nodesdn"};
         }
         return CType.lcStringValues().toArray(new String[0]);
     }
