@@ -19,6 +19,8 @@ package com.amazon.opendistroforelasticsearch.security.tools;
 
 import java.io.File;
 
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.NodesDn;
+import com.amazon.opendistroforelasticsearch.security.support.ConfigHelper;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -79,13 +81,15 @@ public class Migrater {
         retVal = migrateFile(new File(dir, "roles.yml"), CType.ROLES, backup)  && retVal;
         retVal = migrateFile(new File(dir, "roles_mapping.yml"), CType.ROLESMAPPING, backup)  && retVal;
         retVal = migrateFile(new File(dir, "internal_users.yml"), CType.INTERNALUSERS, backup)  && retVal;
-        
+        retVal = migrateFile(new File(dir, "nodes_dn.yml"), CType.NODESDN, backup)  && retVal;
+
         return retVal;
     }
-    
+
     public static boolean migrateFile(File file, CType cType, boolean backup) {
         final String absolutePath = file.getAbsolutePath();
-        if(!file.exists()) {
+        // NODESDN is newer type and supports populating empty content if file is missing
+        if(!file.exists() && cType != CType.NODESDN) {
             System.out.println("Skip "+absolutePath+" because it does not exist");
             return false;
         }
@@ -110,7 +114,7 @@ public class Migrater {
                 SecurityDynamicConfiguration<?> val = Migration.migrateConfig(SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(file), CType.CONFIG, 1, 0, 0));
                 return backupAndWrite(file, val, backup);
             }
-            
+
             if(cType == CType.ROLES) {
                 Tuple<SecurityDynamicConfiguration<RoleV7>, SecurityDynamicConfiguration<TenantV7>> tup = Migration.migrateRoles(SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(file), CType.ROLES, 1, 0, 0), null);
                 boolean roles = backupAndWrite(file, tup.v1(), backup);
@@ -124,6 +128,14 @@ public class Migrater {
             
             if(cType == CType.INTERNALUSERS) {
                 SecurityDynamicConfiguration<?> val = Migration.migrateInternalUsers(SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(file), CType.INTERNALUSERS, 1, 0, 0));
+                return backupAndWrite(file, val, backup);
+            }
+
+            if(cType == CType.NODESDN) {
+                SecurityDynamicConfiguration<NodesDn> val =
+                    Migration.migrateNodesDn(SecurityDynamicConfiguration.fromNode(
+                        DefaultObjectMapper.YAML_MAPPER.readTree(ConfigHelper.createFileOrStringReader(CType.NODESDN, 1, file.getAbsolutePath(), true)),
+                        CType.NODESDN, 1, 0, 0));
                 return backupAndWrite(file, val, backup);
             }
         } catch (Exception e) {
