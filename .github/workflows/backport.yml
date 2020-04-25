@@ -1,0 +1,66 @@
+name: Backport
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true
+    outputs:
+      branches: ${{ steps.set-branch-matrix.outputs.matrix }}
+    steps:
+      - name: Find Branches To Backport
+        env:
+          labels: ${{ toJson(github.event.pull_request.labels.*.name) }}
+        id: set-branch-matrix
+        run: |
+          filtered=$(echo $labels | jq -r --arg prefix "backport " '[.[] | select(. | startswith($prefix)) | ltrimstr($prefix)] | tojson')
+          echo "::set-output name=matrix::$filtered"
+
+  backport:
+    needs: discover
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        branch: ${{ fromJson(needs.discover.outputs.branches) }}
+      fail-fast: false
+    steps:
+      - name: Checkout ${{ matrix.branch }}
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ matrix.branch }}
+
+      - name: Cherry-Pick Changes
+        run: |
+          git config --global user.email opendistro-for-elasticsearch-security+github@amazon.com
+          git config --global user.name opendistro-security[bot]
+          git fetch origin
+          git cherry-pick -x ${{ github.event.pull_request.merge_commit_sha }}
+
+      - name: Create Pull Request
+        if: success()
+        uses: peter-evans/create-pull-request@v2.7.0
+        with:
+          token: ${{ secrets.PAT }}
+          title: "[Backport][${{ matrix.branch }}] ${{ github.event.pull_request.title }}"
+          body: |
+            ### Automated changes by Backport workflow
+            Cherry picking commits from PR ${{ github.event.pull_request.html_url }}
+          labels: automerge
+          reviewers: ${{ github.event.pull_request.user.login }}
+          branch: backport-${{ github.event.number }}-to-${{ matrix.branch }}
+
+      - name: Create Issue for failures
+        if: failure()
+        uses: maxkomarychev/oction-create-issue@v0.7.1
+        with:
+          token: ${{ secrets.PAT }}
+          title:  "[Backport Failure][${{ matrix.branch }}] ${{ github.event.pull_request.title }}"
+          assignees: ${{ github.event.pull_request.user.login }}
+          body: |
+            ### Automated backporting workflow failed
+            - **Pull Request**: ${{ github.event.pull_request.html_url }}
+            - **Branch**: ${{ matrix.branch }}
+            - **Merge Commit**: ${{ github.event.pull_request.merge_commit_sha }}
