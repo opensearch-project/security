@@ -1,7 +1,7 @@
 [![CI](https://github.com/opendistro-for-elasticsearch/security/workflows/CI/badge.svg?branch=master)](https://github.com/opendistro-for-elasticsearch/security/actions)
 [![codecov](https://codecov.io/gh/opendistro-for-elasticsearch/security/branch/master/graph/badge.svg)](https://codecov.io/gh/opendistro-for-elasticsearch/security)
 
-# Open Distro for Elasticsearch Security
+# Open Distro for Elasticsearch Security (Test)
 
 Open Distro for Elasticsearch Security is an Elasticsearch plugin that offers encryption, authentication, and authorization. When combined with Open Distro for Elasticsearch Security-Advanced Modules, it supports authentication via Active Directory, LDAP, Kerberos, JSON web tokens, SAML, OpenID and more. It includes fine grained role-based access control to indices, documents and fields. It also provides multi-tenancy support in Kibana.
 
