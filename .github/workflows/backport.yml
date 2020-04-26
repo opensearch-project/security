@@ -43,7 +43,7 @@ jobs:
         if: success()
         uses: peter-evans/create-pull-request@v2.7.0
         with:
-          token: ${{ secrets.PAT }}
+          token: ${{ secrets.BOT_PAT }}
           title: "[Backport][${{ matrix.branch }}] ${{ github.event.pull_request.title }}"
           body: |
             ### Automated changes by Backport workflow
@@ -56,7 +56,7 @@ jobs:
         if: failure()
         uses: maxkomarychev/oction-create-issue@v0.7.1
         with:
-          token: ${{ secrets.PAT }}
+          token: ${{ secrets.BOT_PAT }}
           title:  "[Backport Failure][${{ matrix.branch }}] ${{ github.event.pull_request.title }}"
           assignees: ${{ github.event.pull_request.user.login }}
           body: |
