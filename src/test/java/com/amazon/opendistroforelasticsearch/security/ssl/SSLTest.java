@@ -34,7 +34,6 @@ import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.TrustManagerFactory;
 
-import com.amazon.opendistroforelasticsearch.security.test.helper.cluster.ClusterConfiguration;
 import org.apache.http.NoHttpResponseException;
 import org.apache.lucene.util.Constants;
 import org.elasticsearch.ElasticsearchSecurityException;
@@ -605,22 +604,22 @@ public class SSLTest extends SingleClusterTest {
                 .build();
 
         setupSslOnlyMode(settings);
-        
+
         RestHelper rh = nonSslRestHelper();
 
-        // Add 4th node
-        final String path = "data/" + clusterInfo.clustername;
-        final Settings tcSettings = Settings.builder().put("cluster.name", clusterInfo.clustername).put("path.home", path)
-                .put("node.max_local_storage_nodes", ClusterConfiguration.DEFAULT.getNodeSettings().size() + 1)
+        final Settings tcSettings = Settings.builder().put("cluster.name", clusterInfo.clustername).put("path.home", ".")
                 .put("node.name", "client_node_" + new Random().nextInt())
                 .put("node.data", false)
                 .put("node.master", false)
                 .put("node.ingest", false)
+                .put("path.data", "./target/data/"+clusterInfo.clustername+"/ssl/data")
+                .put("path.logs", "./target/data/"+clusterInfo.clustername+"/ssl/logs")
+                .put("path.home", "./target")
                 .put("discovery.initial_state_timeout","8s")
                 .putList("discovery.zen.ping.unicast.hosts", clusterInfo.nodeHost+":"+clusterInfo.nodePort)
                 .put(settings)// -----
                 .build();
-        
+
         try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class, OpenDistroSecurityPlugin.class).start()) {
             ClusterHealthResponse res = node.client().admin().cluster().health(new ClusterHealthRequest().waitForNodes("4").timeout(TimeValue.timeValueSeconds(15))).actionGet();
             Assert.assertFalse(res.isTimedOut());
@@ -831,10 +830,11 @@ public class SSLTest extends SingleClusterTest {
         
         RestHelper rh = nonSslRestHelper();
 
-        // Add 4th node
-        final String path = "data/" + clusterInfo.clustername;
-        final Settings tcSettings = Settings.builder().put("cluster.name", clusterInfo.clustername).put("path.home", path)
-                .put("node.max_local_storage_nodes", ClusterConfiguration.DEFAULT.getNodeSettings().size() + 1)
+        final Settings tcSettings = Settings.builder()
+                .put("cluster.name", clusterInfo.clustername)
+                .put("path.data", "./target/data/" + clusterInfo.clustername + "/ssl/data")
+                .put("path.logs", "./target/data/" + clusterInfo.clustername + "/ssl/logs")
+                .put("path.home", "./target")
                 .put("node.name", "client_node_" + new Random().nextInt())
                 .put("discovery.initial_state_timeout","8s")
                 .putList("discovery.zen.ping.unicast.hosts", clusterInfo.nodeHost+":"+clusterInfo.nodePort)
