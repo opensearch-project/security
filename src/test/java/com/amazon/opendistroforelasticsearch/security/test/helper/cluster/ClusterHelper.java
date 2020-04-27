@@ -44,8 +44,6 @@ import java.util.stream.Collectors;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.core.LoggerContext;
-import org.apache.logging.log4j.core.config.Configurator;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
@@ -70,13 +68,13 @@ public final class ClusterHelper {
         System.setProperty("es.enforce.bootstrap.checks", "true");
         System.setProperty("security.default_init.dir", new File("./securityconfig").getAbsolutePath());
     }
-    
+
 	protected final Logger log = LogManager.getLogger(ClusterHelper.class);
 
 	protected final List<PluginAwareNode> esNodes = new LinkedList<>();
 
 	private final String clustername;
-	
+
 	public ClusterHelper(String clustername) {
         super();
         this.clustername = clustername;
@@ -88,19 +86,19 @@ public final class ClusterHelper {
 
     /**
 	 * Start n Elasticsearch nodes with the provided settings
-	 * 
+	 *
 	 * @return
-     * @throws Exception 
+     * @throws Exception
 	 */
-	
+
 	public final ClusterInfo startCluster(final NodeSettingsSupplier nodeSettingsSupplier, ClusterConfiguration clusterConfiguration) throws Exception {
 	    return startCluster(nodeSettingsSupplier, clusterConfiguration, 10, null);
 	}
-	
-	
+
+
 	public final synchronized ClusterInfo startCluster(final NodeSettingsSupplier nodeSettingsSupplier, ClusterConfiguration clusterConfiguration, int timeout, Integer nodes)
 			throws Exception {
-	    
+
 		if (!esNodes.isEmpty()) {
 			throw new RuntimeException("There are still " + esNodes.size() + " nodes instantiated, close them first.");
 		}
@@ -108,44 +106,44 @@ public final class ClusterHelper {
 		FileUtils.deleteDirectory(new File("data/"+clustername));
 
 		List<NodeSettings> internalNodeSettings = clusterConfiguration.getNodeSettings();
-		
+
 		final String forkno = System.getProperty("forkno");
 		int forkNumber = 1;
-		
+
 		if(forkno != null && forkno.length() > 0) {
 		    forkNumber = Integer.parseInt(forkno.split("_")[1]);
 		}
-	
+
 		final int min = SocketUtils.PORT_RANGE_MIN+(forkNumber*5000);
 		final int max = SocketUtils.PORT_RANGE_MIN+((forkNumber+1)*5000)-1;
-		
+
 		final SortedSet<Integer> freePorts = SocketUtils.findAvailableTcpPorts(internalNodeSettings.size()*2, min, max);
 		assert freePorts.size() == internalNodeSettings.size()*2;
 		final SortedSet<Integer> tcpPorts = new TreeSet<Integer>();
 		freePorts.stream().limit(internalNodeSettings.size()).forEach(el->tcpPorts.add(el));
 		final Iterator<Integer> tcpPortsIt = tcpPorts.iterator();
-		
+
 		final SortedSet<Integer> httpPorts = new TreeSet<Integer>();
 	    freePorts.stream().skip(internalNodeSettings.size()).limit(internalNodeSettings.size()).forEach(el->httpPorts.add(el));
 		final Iterator<Integer> httpPortsIt = httpPorts.iterator();
-		
+
 		System.out.println("tcpPorts: "+tcpPorts+"/httpPorts: "+httpPorts+" for ("+min+"-"+max+") fork "+forkNumber);
-		
+
 		final CountDownLatch latch = new CountDownLatch(internalNodeSettings.size());
-		
+
 		final AtomicReference<Exception> err = new AtomicReference<Exception>();
 
 		for (int i = 0; i < internalNodeSettings.size(); i++) {
 			NodeSettings setting = internalNodeSettings.get(i);
-			
-			
+
+
 			PluginAwareNode node = new PluginAwareNode(setting.masterNode,
 					getMinimumNonSgNodeSettingsBuilder(i, setting.masterNode, setting.dataNode, setting.tribeNode, internalNodeSettings.size(), clusterConfiguration.getMasterNodes(), tcpPorts, tcpPortsIt.next(), httpPortsIt.next())
 							.put(nodeSettingsSupplier == null ? Settings.Builder.EMPTY_SETTINGS : nodeSettingsSupplier.get(i)).build(), setting.getPlugins());
 			System.out.println(node.settings());
-			
+
 			new Thread(new Runnable() {
-                
+
                 @Override
                 public void run() {
                     try {
@@ -159,19 +157,19 @@ public final class ClusterHelper {
                     }
                 }
             }).start();
-			
-			
-			
+
+
+
 			esNodes.add(node);
 		}
-		
-		
+
+
 		latch.await();
-		
+
 		if(err.get() != null) {
 		    throw new RuntimeException("Could not start all nodes "+err.get(),err.get());
 		}
-		
+
 		ClusterInfo cInfo = waitForCluster(ClusterHealthStatus.GREEN, TimeValue.timeValueSeconds(timeout), nodes == null?esNodes.size():nodes.intValue());
 		cInfo.numNodes = internalNodeSettings.size();
 		cInfo.clustername = clustername;
@@ -179,33 +177,31 @@ public final class ClusterHelper {
 	}
 
 	public final void stopCluster() throws Exception {
-	    
+
 	    //close non master nodes
 	    esNodes.stream().filter(n->!n.isMasterEligible()).forEach(node->closeNode(node));
-	    
+
 	    //close master nodes
-	    esNodes.stream().filter(n->n.isMasterEligible()).forEach(node->closeNode(node));		
+	    esNodes.stream().filter(n->n.isMasterEligible()).forEach(node->closeNode(node));
 		esNodes.clear();
-		
+
 		FileUtils.deleteDirectory(new File("data/"+clustername));
 	}
-	
+
 	private static void closeNode(Node node) {
 	    try {
-            LoggerContext context = (LoggerContext) LogManager.getContext(false);
-            Configurator.shutdown(context);
 	        node.close();
 	        Thread.sleep(250);
         } catch (Throwable e) {
             //ignore
         }
 	}
-	
+
 
 	public Client nodeClient() {
 	    return esNodes.get(0).client();
 	}
-	
+
 	public ClusterInfo waitForCluster(final ClusterHealthStatus status, final TimeValue timeout, final int expectedNodeCount) throws IOException {
 		if (esNodes.isEmpty()) {
 			throw new RuntimeException("List of nodes was empty.");
@@ -255,13 +251,13 @@ public final class ClusterHelper {
                 clusterInfo.nodePort = is.getPort();
                 clusterInfo.nodeHost = is.getAddress();
 	        } else if(!dataNodes.isEmpty()) {
-	            
+
 	            for (NodeInfo nodeInfo: dataNodes) {
 	                final TransportAddress is = nodeInfo.getTransport().getAddress()
                             .publishAddress();
                     clusterInfo.nodePort = is.getPort();
                     clusterInfo.nodeHost = is.getAddress();
-	                
+
 	                if (nodeInfo.getHttp() != null && nodeInfo.getHttp().address() != null) {
 	                    final TransportAddress his = nodeInfo.getHttp().address()
 	                            .publishAddress();
@@ -269,16 +265,16 @@ public final class ClusterHelper {
 	                    clusterInfo.httpHost = his.getAddress();
 	                    clusterInfo.httpAdresses.add(his);
 	                    break;
-	                }  
-	            }  
+	                }
+	            }
 	        }  else  {
-                
+
                 for (NodeInfo nodeInfo: nodes) {
                     final TransportAddress is = nodeInfo.getTransport().getAddress()
                             .publishAddress();
                     clusterInfo.nodePort = is.getPort();
                     clusterInfo.nodeHost = is.getAddress();
-                    
+
                     if (nodeInfo.getHttp() != null && nodeInfo.getHttp().address() != null) {
                         final TransportAddress his = nodeInfo.getHttp().address()
                                 .publishAddress();
@@ -286,9 +282,9 @@ public final class ClusterHelper {
                         clusterInfo.httpHost = his.getAddress();
                         clusterInfo.httpAdresses.add(his);
                         break;
-                    }  
-                }  
-            }       	
+                    }
+                }
+            }
 		} catch (final ElasticsearchTimeoutException e) {
 			throw new IOException(
 					"timeout, cluster does not respond to health request, cowardly refusing to continue with operations");
@@ -321,13 +317,13 @@ public final class ClusterHelper {
 				.put("path.home", ".");
 	}
 	// @formatter:on
-	
+
 	private int minMasterNodes(int masterEligibleNodes) {
 	    if(masterEligibleNodes <= 0) {
 	        throw new IllegalArgumentException("no master eligible nodes");
 	    }
-	    
+
 	    return (masterEligibleNodes/2) + 1;
-	    	    
+
 	}
 }
