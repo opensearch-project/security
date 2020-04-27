@@ -106,7 +106,7 @@ public final class ClusterHelper {
             throw new RuntimeException("There are still " + esNodes.size() + " nodes instantiated, close them first.");
         }
 
-        FileUtils.deleteDirectory(new File("data/"+clustername));
+        FileUtils.deleteDirectory(new File("./target/data/"+clustername));
 
         List<NodeSettings> internalNodeSettings = clusterConfiguration.getNodeSettings();
 
@@ -237,7 +237,7 @@ public final class ClusterHelper {
         esNodes.stream().filter(n->n.isMasterEligible()).forEach(node->closeNode(node));
         esNodes.clear();
 
-        FileUtils.deleteDirectory(new File("data/"+clustername));
+        FileUtils.deleteDirectory(new File("./target/data/"+clustername));
     }
 
     private static void closeNode(Node node) {
@@ -346,8 +346,8 @@ public final class ClusterHelper {
                 .put("node.data", dataNode)
                 .put("node.master", masterNode)
                 .put("cluster.name", clustername)
-                .put("path.data", "data/"+clustername+"/data")
-                .put("path.logs", "data/"+clustername+"/logs")
+                .put("path.data", "./target/data/"+clustername+"/data")
+                .put("path.logs", "./target/data/"+clustername+"/logs")
                 .put("node.max_local_storage_nodes", nodeCount)
                 //.put("discovery.zen.minimum_master_nodes", minMasterNodes(masterTcpPorts.size()))
                 .putList("cluster.initial_master_nodes", masterTcpPorts.stream().map(s->"127.0.0.1:"+s).collect(Collectors.toList()))
@@ -360,7 +360,7 @@ public final class ClusterHelper {
                 //.put("http.enabled", true)
                 .put("cluster.routing.allocation.disk.threshold_enabled", false)
                 .put("http.cors.enabled", true)
-                .put("path.home", ".");
+                .put("path.home", "./target");
     }
     // @formatter:on
 
