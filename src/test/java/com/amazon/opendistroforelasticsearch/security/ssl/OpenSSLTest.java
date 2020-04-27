@@ -206,6 +206,9 @@ public class OpenSSLTest extends SSLTest {
                 .put("node.data", false)
                 .put("node.master", false)
                 .put("node.ingest", false)
+                .put("path.data", "./target/data/" + clusterInfo.clustername + "/ssl/data")
+                .put("path.logs", "./target/data/" + clusterInfo.clustername + "/ssl/logs")
+                .put("path.home", "./target")
                 .put("discovery.initial_state_timeout","8s")
                 .putList("discovery.zen.ping.unicast.hosts", clusterInfo.nodeHost+":"+clusterInfo.nodePort)
                 .put(settings)// -----
