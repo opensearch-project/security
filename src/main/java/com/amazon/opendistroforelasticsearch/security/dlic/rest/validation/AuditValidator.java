@@ -74,7 +74,7 @@ public class AuditValidator extends AbstractConfigurationValidator {
 
         if ((request.method() == RestRequest.Method.PUT || request.method() == RestRequest.Method.PATCH)
                 && this.content != null
-                && this.content.length() > 1) {
+                && this.content.length() > 0) {
             try {
                 final Map<String, Object> contentAsMap = XContentHelper.convertToMap(this.content, false, XContentType.JSON).v2();
                 if (contentAsMap != null) {
@@ -91,7 +91,7 @@ public class AuditValidator extends AbstractConfigurationValidator {
                 }
             } catch (NotXContentException e) {
                 //this.content is not valid json/yaml
-                log.error("Invalid xContent: " + e, e);
+                log.error("Invalid content passed in the request", e);
                 return false;
             }
         }
@@ -100,24 +100,22 @@ public class AuditValidator extends AbstractConfigurationValidator {
     }
 
     private boolean validateAuditCategories(final Map<String, Object> contentAsMap) {
-        for (String key: ImmutableList.of(Audit.Key.DISABLED_REST_CATEGORIES, Audit.Key.DISABLED_TRANSPORT_CATEGORIES)) {
-            try {
-                if (contentAsMap.containsKey(key)) {
-                    AuditCategory.parse((Collection<String>) contentAsMap.get(key));
-                }
-            } catch (Exception e) {
-                log.error("Could not parse body of key {}", key);
-                return false;
-            }
-        }
-        return true;
+        return ImmutableList
+                .of(Audit.Key.DISABLED_REST_CATEGORIES, Audit.Key.DISABLED_TRANSPORT_CATEGORIES)
+                .stream()
+                .allMatch(key -> {
+                    try {
+                        AuditCategory.parse((Collection<String>) contentAsMap.get(key));
+                        return true;
+                    } catch (Exception e) {
+                        log.error("Could not parse body of key {}", key);
+                        return false;
+                    }
+                });
     }
 
     private boolean validateSalt(final Map<String, Object> contentAsMap) {
-        if (contentAsMap.containsKey(Audit.Key.SALT)) {
-            final String salt = (String) contentAsMap.get(Audit.Key.SALT);
-            return salt != null && salt.length() >= 16;
-        }
-        return true;
+        final String salt = (String) contentAsMap.get(Audit.Key.SALT);
+        return salt != null && salt.length() >= 16;
     }
 }

@@ -71,19 +71,19 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // valid rest category
-        response = rh.executePutRequest(CONFIG_ENDPOINT, "{\"disabled_rest_categories\":[\"AUTHENTICATED\"]}");
+        response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"replace\",\"path\": \"/config/disabled_rest_categories\",\"value\": [\"AUTHENTICATED\"]}]");
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         // bad rest category
-        response = rh.executePutRequest(CONFIG_ENDPOINT, "{\"disabled_rest_categories\":[\"testing\"]}");
+        response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"replace\",\"path\": \"/config/disabled_rest_categories\",\"value\": [\"testing\"]}]");
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
-        // valid rest category
-        response = rh.executePutRequest(CONFIG_ENDPOINT, "{\"disabled_transport_categories\":[\"SSL_EXCEPTION\"]}");
+        // valid transport category
+        response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"replace\",\"path\": \"/config/disabled_rest_categories\",\"value\": [\"SSL_EXCEPTION\"]}]");
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
-        // bad rest category
-        response = rh.executePutRequest(CONFIG_ENDPOINT, "{\"disabled_transport_categories\":[\"testing\"]}");
+        // bad transport category
+        response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"replace\",\"path\": \"/config/disabled_transport_categories\",\"value\": [\"testing\"]}]");
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // bad payload
