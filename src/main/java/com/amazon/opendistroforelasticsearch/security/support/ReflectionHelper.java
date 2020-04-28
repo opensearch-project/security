@@ -180,7 +180,7 @@ public class ReflectionHelper {
         }
 
         try {
-            final AuditLog impl = new AuditLogImpl(settings, configPath, localClient, threadPool, resolver, clusterService, dlsFlsAvailable, environment);
+            final AuditLog impl = new AuditLogImpl(settings, configPath, localClient, threadPool, resolver, clusterService, environment);
             addLoadedModule(AuditLogImpl.class);
             return impl;
         } catch (final Throwable e) {

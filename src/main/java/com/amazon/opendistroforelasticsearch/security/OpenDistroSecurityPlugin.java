@@ -49,8 +49,7 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditLogImpl;
-import com.amazon.opendistroforelasticsearch.security.securityconf.impl.AuditModel;
+import com.amazon.opendistroforelasticsearch.security.auditlog.NullAuditLog;
 import org.apache.lucene.index.DirectoryReader;
 import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenDistroSecuritySSLReloadCertsAction;
 import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenDistroSecuritySSLCertsInfoAction;
@@ -773,17 +772,17 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                 settings, privilegesInterceptor, cih, irr, advancedModulesEnabled);
 
         
-        final DynamicConfigFactory dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih);
+        final DynamicConfigFactory dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih, dlsFlsAvailable);
         dcf.registerDCFListener(backendRegistry);
         dcf.registerDCFListener(compatConfig);
         dcf.registerDCFListener(irr);
         dcf.registerDCFListener(xffResolver);
         dcf.registerDCFListener(evaluator);
-        if (auditLog instanceof AuditLogImpl) {
+
+        if (!(auditLog instanceof NullAuditLog)) {
             // Don't register if advanced modules is disabled in which case auditlog is instance of NullAuditLog
             dcf.registerDCFListener(auditLog);
         }
-
         cr.setDynamicConfigFactory(dcf);
         
         odsf = new OpenDistroSecurityFilter(evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs, compatConfig, irr);

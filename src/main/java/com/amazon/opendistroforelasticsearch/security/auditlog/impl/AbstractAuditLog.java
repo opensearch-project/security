@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
@@ -76,6 +77,7 @@ import com.amazon.opendistroforelasticsearch.security.user.User;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.flipkart.zjsonpatch.JsonDiff;
 import com.google.common.io.BaseEncoding;
+import org.greenrobot.eventbus.Subscribe;
 
 import static org.elasticsearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
 
@@ -85,10 +87,14 @@ public abstract class AbstractAuditLog implements AuditLog {
     private final ThreadPool threadPool;
     private final IndexNameExpressionResolver resolver;
     private final ClusterService clusterService;
-    protected final Settings settings;
-    protected volatile AuditConfig.Filter auditConfigFilter;
+    private final Settings settings;
+    private volatile AuditConfig.Filter auditConfigFilter;
     private final String opendistrosecurityIndex;
-    protected volatile ComplianceConfig complianceConfig;
+    private volatile ComplianceConfig complianceConfig;
+    private final Environment environment;
+    private AtomicBoolean externalConfigLogged = new AtomicBoolean();
+
+    protected abstract void enableRoutes(Settings settings);
 
     private static final List<String> writeClasses = new ArrayList<>();
     {
@@ -99,13 +105,30 @@ public abstract class AbstractAuditLog implements AuditLog {
         writeClasses.add(DeleteRequest.class.getSimpleName());
     }
 
-    protected AbstractAuditLog(Settings settings, final ThreadPool threadPool, final IndexNameExpressionResolver resolver, final ClusterService clusterService, final boolean dlsFlsAvailable) {
+    protected AbstractAuditLog(Settings settings, final ThreadPool threadPool, final IndexNameExpressionResolver resolver, final ClusterService clusterService, final Environment environment) {
         super();
         this.threadPool = threadPool;
         this.settings = settings;
         this.resolver = resolver;
         this.clusterService = clusterService;
+        this.auditConfigFilter = AuditConfig.Filter.from(settings);
+        this.auditConfigFilter.log(log);
         this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
+        this.environment = environment;
+    }
+
+    @Subscribe
+    public void onAuditConfigFilterChanged(AuditConfig.Filter auditConfigFilter) {
+        this.auditConfigFilter = auditConfigFilter;
+        this.auditConfigFilter.log(log);
+    }
+
+    @Subscribe
+    public void onComplienceConfigChanged(ComplianceConfig complianceConfig) {
+        this.complianceConfig = complianceConfig;
+        enableRoutes(settings);
+        this.complianceConfig.log(log);
+        logExternalConfig();
     }
 
     @Override
@@ -530,13 +553,14 @@ public abstract class AbstractAuditLog implements AuditLog {
         save(msg);
     }
 
-    @Override
-    public void logExternalConfig(Settings settings, Environment environment) {
+    protected void logExternalConfig() {
 
-        if(!checkComplianceFilter(AuditCategory.COMPLIANCE_EXTERNAL_CONFIG, null, getOrigin())) {
+        final ComplianceConfig complianceConfig = getComplianceConfig();
+        if (complianceConfig == null || !complianceConfig.isEnabled() || !complianceConfig.shouldLogExternalConfig() || !checkComplianceFilter(AuditCategory.COMPLIANCE_EXTERNAL_CONFIG, null, getOrigin()) || externalConfigLogged.getAndSet(true)) {
             return;
         }
 
+        log.info("logging external config");
         final Map<String, Object> configAsMap = Utils.convertJsonToxToStructuredMap(settings);
 
         final SecurityManager sm = System.getSecurityManager();

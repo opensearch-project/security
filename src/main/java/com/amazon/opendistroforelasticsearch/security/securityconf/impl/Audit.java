@@ -1,6 +1,7 @@
 package com.amazon.opendistroforelasticsearch.security.securityconf.impl;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.annotation.Nulls;
@@ -60,229 +61,256 @@ public class Audit {
     @JsonProperty(value = Key.SALT)
     private String salt = OPENDISTRO_SECURITY_COMPLIANCE_SALT_DEFAULT;
 
-    @JsonProperty(value = Key.ENABLE_REST)
-    public boolean isEnableRest() {
+    @JsonIgnore
+    public boolean isRestApiAuditEnabled() {
         return enableRest;
     }
 
-    @JsonProperty(value = Key.ENABLE_REST)
-    public void setEnableRest(boolean enableRest) {
+    @JsonIgnore
+    public void setRestApiAuditEnabled(boolean enableRest) {
         this.enableRest = enableRest;
     }
 
-    @JsonProperty(value = Key.DISABLED_REST_CATEGORIES)
+    @JsonIgnore
     public EnumSet<AuditCategory> getDisabledRestCategories() {
         return disabledRestCategories;
     }
 
-    @JsonProperty(value = Key.DISABLED_REST_CATEGORIES)
-    public void setDisabledRestCategories(EnumSet<AuditCategory> disabledRestCategories) {
-        if (disabledRestCategories != null) {
-            this.disabledRestCategories = disabledRestCategories;
+    @JsonSetter(value = Key.DISABLED_REST_CATEGORIES, nulls = Nulls.AS_EMPTY)
+    public void setDisabledRestCategories(Set<AuditCategory> disabledRestCategories) {
+        if (disabledRestCategories != null && !disabledRestCategories.isEmpty()) {
+            if (disabledRestCategories instanceof EnumSet) {
+                this.disabledRestCategories = (EnumSet) disabledRestCategories;
+            } else {
+                this.disabledRestCategories = EnumSet.copyOf(disabledRestCategories);
+            }
         } else {
             this.disabledRestCategories = EnumSet.noneOf(AuditCategory.class);
         }
     }
 
-    @JsonProperty(value = Key.ENABLE_TRANSPORT)
-    public boolean isEnableTransport() {
+    @JsonIgnore
+    public boolean isTransportApiAuditEnabled() {
         return enableTransport;
     }
 
-    @JsonProperty(value = Key.ENABLE_TRANSPORT)
-    public void setEnableTransport(boolean enableTransport) {
+    @JsonIgnore
+    public void setTransportApiAuditEnabled(boolean enableTransport) {
         this.enableTransport = enableTransport;
     }
 
-    @JsonProperty(value = Key.DISABLED_TRANSPORT_CATEGORIES)
+    @JsonIgnore
     public EnumSet<AuditCategory> getDisabledTransportCategories() {
         return disabledTransportCategories;
     }
 
-    @JsonProperty(value = Key.DISABLED_TRANSPORT_CATEGORIES)
-    @JsonSetter(nulls = Nulls.AS_EMPTY)
-    public void setDisabledTransportCategories(EnumSet<AuditCategory> disabledTransportCategories) {
-        if (disabledTransportCategories != null) {
-            this.disabledTransportCategories = disabledTransportCategories;
+    @JsonSetter(value = Key.DISABLED_TRANSPORT_CATEGORIES, nulls = Nulls.AS_EMPTY)
+    public void setDisabledTransportCategories(Set<AuditCategory> disabledTransportCategories) {
+        if (disabledTransportCategories != null && !disabledTransportCategories.isEmpty()) {
+            if (disabledTransportCategories instanceof EnumSet) {
+                this.disabledTransportCategories = (EnumSet) disabledTransportCategories;
+            } else {
+                this.disabledTransportCategories = EnumSet.copyOf(disabledTransportCategories);
+            }
         } else {
             this.disabledTransportCategories = EnumSet.noneOf(AuditCategory.class);
         }
     }
 
-    @JsonProperty(value = Key.INTERNAL_CONFIG_ENABLED)
+    @JsonIgnore
     public boolean isInternalConfigEnabled() {
         return internalConfigEnabled;
     }
 
-    @JsonProperty(value = Key.INTERNAL_CONFIG_ENABLED)
+    @JsonIgnore
     public void setInternalConfigEnabled(boolean internalConfigEnabled) {
         this.internalConfigEnabled = internalConfigEnabled;
     }
 
-    @JsonProperty(value = Key.EXTERNAL_CONFIG_ENABLED)
+    @JsonIgnore
     public boolean isExternalConfigEnabled() {
         return externalConfigEnabled;
     }
 
-    @JsonProperty(value = Key.EXTERNAL_CONFIG_ENABLED)
+    @JsonIgnore
     public void setExternalConfigEnabled(boolean externalConfigEnabled) {
         this.externalConfigEnabled = externalConfigEnabled;
     }
 
-    @JsonProperty(value = Key.RESOLVE_BULK_REQUESTS)
+    @JsonIgnore
     public boolean isResolveBulkRequests() {
         return resolveBulkRequests;
     }
 
-    @JsonProperty(value = Key.RESOLVE_BULK_REQUESTS)
+    @JsonIgnore
     public void setResolveBulkRequests(boolean resolveBulkRequests) {
         this.resolveBulkRequests = resolveBulkRequests;
     }
 
-    @JsonProperty(value = Key.LOG_REQUEST_BODY)
+    @JsonIgnore
     public boolean isLogRequestBody() {
         return logRequestBody;
     }
 
-    @JsonProperty(value = Key.LOG_REQUEST_BODY)
+    @JsonIgnore
     public void setLogRequestBody(boolean logRequestBody) {
         this.logRequestBody = logRequestBody;
     }
 
-    @JsonProperty(value = Key.RESOLVE_INDICES)
+    @JsonIgnore
     public boolean isResolveIndices() {
         return resolveIndices;
     }
 
-    @JsonProperty(value = Key.RESOLVE_INDICES)
+    @JsonIgnore
     public void setResolveIndices(boolean resolveIndices) {
         this.resolveIndices = resolveIndices;
     }
 
-    @JsonProperty(value = Key.EXCLUDE_SENSITIVE_HEADERS)
+    @JsonIgnore
     public boolean isExcludeSensitiveHeaders() {
         return excludeSensitiveHeaders;
     }
 
-    @JsonProperty(value = Key.EXCLUDE_SENSITIVE_HEADERS)
+    @JsonIgnore
     public void setExcludeSensitiveHeaders(boolean excludeSensitiveHeaders) {
         this.excludeSensitiveHeaders = excludeSensitiveHeaders;
     }
 
-    @JsonProperty(value = Key.IGNORE_USERS)
+    @JsonIgnore
     public Set<String> getIgnoreUsers() {
         return ignoreUsers;
     }
 
-    @JsonProperty(value = Key.IGNORE_USERS)
-    @JsonSetter(nulls = Nulls.AS_EMPTY)
+    @JsonSetter(value = Key.IGNORE_USERS, nulls = Nulls.AS_EMPTY)
     public void setIgnoreUsers(Set<String> ignoreUsers) {
-        if (ignoreUsers != null)
+        if (ignoreUsers != null) {
             this.ignoreUsers = ignoreUsers;
+        } else {
+            this.ignoreUsers = Collections.emptySet();
+        }
     }
 
-    @JsonProperty(value = Key.IGNORE_REQUESTS)
+    @JsonIgnore
     public Set<String> getIgnoreRequests() {
         return ignoreRequests;
     }
 
-    @JsonProperty(value = Key.IGNORE_REQUESTS)
+    @JsonSetter(value = Key.IGNORE_REQUESTS, nulls = Nulls.AS_EMPTY)
     public void setIgnoreRequests(Set<String> ignoreRequests) {
-        if (ignoreRequests != null)
+        if (ignoreRequests != null) {
             this.ignoreRequests = ignoreRequests;
+        } else {
+            this.ignoreRequests = Collections.emptySet();
+        }
     }
 
-    @JsonProperty(value = Key.IMMUTABLE_INDICES)
+    @JsonIgnore
     public Set<String> getImmutableIndices() {
         return immutableIndices;
     }
 
-    @JsonProperty(value = Key.IMMUTABLE_INDICES)
+    @JsonSetter(value = Key.IMMUTABLE_INDICES, nulls = Nulls.AS_EMPTY)
     public void setImmutableIndices(Set<String> immutableIndices) {
-        if (immutableIndices != null)
+        if (immutableIndices != null) {
             this.immutableIndices = immutableIndices;
+        } else {
+            this.immutableIndices = Collections.emptySet();
+        }
     }
 
-    @JsonProperty(value = Key.READ_METADATA_ONLY)
+    @JsonIgnore
     public boolean isReadMetadataOnly() {
         return readMetadataOnly;
     }
 
-    @JsonProperty(value = Key.READ_METADATA_ONLY)
+    @JsonIgnore
     public void setReadMetadataOnly(boolean readMetadataOnly) {
         this.readMetadataOnly = readMetadataOnly;
     }
 
-    @JsonProperty(value = Key.READ_WATCHED_FIELDS)
+    @JsonIgnore
     public List<String> getReadWatchedFields() {
         return readWatchedFields;
     }
 
-    @JsonProperty(value = Key.READ_WATCHED_FIELDS)
+    @JsonSetter(value = Key.READ_WATCHED_FIELDS, nulls = Nulls.AS_EMPTY)
     public void setReadWatchedFields(List<String> readWatchedFields) {
-        if (readWatchedFields != null)
+        if (readWatchedFields != null) {
             this.readWatchedFields = readWatchedFields;
+        } else {
+            this.readWatchedFields = Collections.emptyList();
+        }
     }
 
-    @JsonProperty(value = Key.READ_IGNORE_USERS)
+    @JsonIgnore
     public Set<String> getReadIgnoreUsers() {
         return readIgnoreUsers;
     }
 
-    @JsonProperty(value = Key.READ_IGNORE_USERS)
+    @JsonSetter(value = Key.READ_IGNORE_USERS, nulls = Nulls.AS_EMPTY)
     public void setReadIgnoreUsers(Set<String> readIgnoreUsers) {
-        if (readIgnoreUsers != null)
+        if (readIgnoreUsers != null) {
             this.readIgnoreUsers = readIgnoreUsers;
+        } else {
+            this.readIgnoreUsers = Collections.emptySet();
+        }
     }
 
-    @JsonProperty(value = Key.WRITE_METADATA_ONLY)
+    @JsonIgnore
     public boolean isWriteMetadataOnly() {
         return writeMetadataOnly;
     }
 
-    @JsonProperty(value = Key.WRITE_METADATA_ONLY)
+    @JsonIgnore
     public void setWriteMetadataOnly(boolean writeMetadataOnly) {
         this.writeMetadataOnly = writeMetadataOnly;
     }
 
-    @JsonProperty(value = Key.WRITE_LOG_DIFFS)
+    @JsonIgnore
     public boolean isWriteLogDiffs() {
         return writeLogDiffs;
     }
 
-    @JsonProperty(value = Key.WRITE_LOG_DIFFS)
+    @JsonIgnore
     public void setWriteLogDiffs(boolean writeLogDiffs) {
         this.writeLogDiffs = writeLogDiffs;
     }
 
-    @JsonProperty(value = Key.WRITE_WATCHED_INDICES)
+    @JsonIgnore
     public List<String> getWriteWatchedIndices() {
         return writeWatchedIndices;
     }
 
-    @JsonProperty(value = Key.WRITE_WATCHED_INDICES)
+    @JsonSetter(value = Key.WRITE_WATCHED_INDICES, nulls = Nulls.AS_EMPTY)
     public void setWriteWatchedIndices(List<String> writeWatchedIndices) {
-        if (writeWatchedIndices != null)
+        if (writeWatchedIndices != null) {
             this.writeWatchedIndices = writeWatchedIndices;
+        } else {
+            this.writeWatchedIndices = Collections.emptyList();
+        }
     }
 
-    @JsonProperty(value = Key.WRITE_IGNORE_USERS)
+    @JsonIgnore
     public Set<String> getWriteIgnoreUsers() {
         return writeIgnoreUsers;
     }
 
-    @JsonProperty(value = Key.WRITE_IGNORE_USERS)
+    @JsonSetter(value = Key.WRITE_IGNORE_USERS, nulls = Nulls.AS_EMPTY)
     public void setWriteIgnoreUsers(Set<String> writeIgnoreUsers) {
-        if (writeIgnoreUsers != null)
+        if (writeIgnoreUsers != null) {
             this.writeIgnoreUsers = writeIgnoreUsers;
+        } else {
+            this.readIgnoreUsers = Collections.emptySet();
+        }
     }
 
-    @JsonProperty(value = Key.SALT)
+    @JsonIgnore
     public String getSalt() {
         return salt;
     }
 
-    @JsonProperty(value = Key.SALT)
+    @JsonIgnore
     public void setSalt(String salt) {
         this.salt = salt;
     }

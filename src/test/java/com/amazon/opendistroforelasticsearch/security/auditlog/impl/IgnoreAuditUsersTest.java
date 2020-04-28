@@ -75,8 +75,7 @@ public class IgnoreAuditUsersTest {
                 .put("opendistro_security.audit.ignore_users", ignoreUser)
                 .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
                 .build();
-        AuditLogImpl al = new AuditLogImpl(settings, null, null, newThreadPool(ConfigConstants.OPENDISTRO_SECURITY_USER, ignoreUserObj), null, cs, false, null);
-        al.onAuditModelChanged(AuditTestUtils.createAuditModel(settings));
+        AbstractAuditLog al = AuditTestUtils.createAuditLog(settings, null, null, newThreadPool(ConfigConstants.OPENDISTRO_SECURITY_USER, ignoreUserObj), null, cs);
         TestAuditlogImpl.clear();
         al.logGrantedPrivileges("indices:data/read/search", sr, null);
         Assert.assertEquals(0, TestAuditlogImpl.messages.size());
@@ -90,8 +89,7 @@ public class IgnoreAuditUsersTest {
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
                 .build();
-        AuditLogImpl al = new AuditLogImpl(settings, null, null, newThreadPool(ConfigConstants.OPENDISTRO_SECURITY_USER, ignoreUserObj), null, cs, false, null);
-        al.onAuditModelChanged(AuditTestUtils.createAuditModel(settings));
+        AbstractAuditLog al = AuditTestUtils.createAuditLog(settings, null, null, newThreadPool(ConfigConstants.OPENDISTRO_SECURITY_USER, ignoreUserObj), null, cs);
         TestAuditlogImpl.clear();
         al.logGrantedPrivileges("indices:data/read/search", sr, null);
         Assert.assertEquals(1, TestAuditlogImpl.messages.size());
@@ -104,8 +102,7 @@ public class IgnoreAuditUsersTest {
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
                 .build();
-        AuditLogImpl al = new AuditLogImpl(settings, null, null, newThreadPool(ConfigConstants.OPENDISTRO_SECURITY_USER, ignoreUserObj), null, cs, false, null);
-        al.onAuditModelChanged(AuditTestUtils.createAuditModel(settings));
+        AbstractAuditLog al = AuditTestUtils.createAuditLog(settings, null, null, newThreadPool(ConfigConstants.OPENDISTRO_SECURITY_USER, ignoreUserObj), null, cs);
         TestAuditlogImpl.clear();
         al.logGrantedPrivileges("indices:data/read/search", sr, null);
         Assert.assertEquals(1, TestAuditlogImpl.messages.size());
@@ -132,11 +129,10 @@ public class IgnoreAuditUsersTest {
 
         TransportAddress ta = new TransportAddress(new InetSocketAddress("8.8.8.8",80));
 
-        AuditLogImpl al = new AuditLogImpl(settings, null, null, newThreadPool(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, ta,
+        AbstractAuditLog al = AuditTestUtils.createAuditLog(settings, null, null, newThreadPool(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, ta,
                                                                              ConfigConstants.OPENDISTRO_SECURITY_USER, new User("John Doe"),
                                                                              ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PRINCIPAL, "CN=kirk,OU=client,O=client,L=test,C=DE"
-                                                                              ), null, cs, false, null);
-        al.onAuditModelChanged(AuditTestUtils.createAuditModel(settings));
+                                                                              ), null, cs);
         TestAuditlogImpl.clear();
         al.logGrantedPrivileges("indices:data/read/search", sr, null);
         Assert.assertEquals(0, TestAuditlogImpl.messages.size());
@@ -147,11 +143,10 @@ public class IgnoreAuditUsersTest {
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
                 .putList("opendistro_security.audit.ignore_users", "xxx")
                 .build();
-        al = new AuditLogImpl(settings, null, null, newThreadPool(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, ta,
+        al = AuditTestUtils.createAuditLog(settings, null, null, newThreadPool(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, ta,
                 ConfigConstants.OPENDISTRO_SECURITY_USER, new User("John Doe"),
                 ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PRINCIPAL, "CN=kirk,OU=client,O=client,L=test,C=DE"
-                 ), null, cs, false, null);
-        al.onAuditModelChanged(AuditTestUtils.createAuditModel(settings));
+                 ), null, cs);
         TestAuditlogImpl.clear();
         al.logGrantedPrivileges("indices:data/read/search", sr, null);
         Assert.assertEquals(1, TestAuditlogImpl.messages.size());
@@ -162,11 +157,10 @@ public class IgnoreAuditUsersTest {
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
                 .putList("opendistro_security.audit.ignore_users", "John Doe","Capatin Kirk")
                 .build();
-        al = new AuditLogImpl(settings, null, null, newThreadPool(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, ta,
+        al = AuditTestUtils.createAuditLog(settings, null, null, newThreadPool(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, ta,
                 ConfigConstants.OPENDISTRO_SECURITY_USER, new User("John Doe"),
                 ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PRINCIPAL, "CN=kirk,OU=client,O=client,L=test,C=DE"
-                 ), null, cs, false, null);
-        al.onAuditModelChanged(AuditTestUtils.createAuditModel(settings));
+                 ), null, cs);
         TestAuditlogImpl.clear();
         al.logGrantedPrivileges("indices:data/read/search", sr, null);
         al.logSecurityIndexAttempt(sr, "indices:data/read/search", null);
@@ -179,11 +173,10 @@ public class IgnoreAuditUsersTest {
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
                 .putList("opendistro_security.audit.ignore_users", "Wil Riker","Capatin Kirk")
                 .build();
-        al = new AuditLogImpl(settings, null, null, newThreadPool(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, ta,
+        al = AuditTestUtils.createAuditLog(settings, null, null, newThreadPool(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, ta,
                 ConfigConstants.OPENDISTRO_SECURITY_USER, new User("John Doe"),
                 ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PRINCIPAL, "CN=kirk,OU=client,O=client,L=test,C=DE"
-                 ), null, cs, false, null);
-        al.onAuditModelChanged(AuditTestUtils.createAuditModel(settings));
+                 ), null, cs);
         TestAuditlogImpl.clear();
         al.logGrantedPrivileges("indices:data/read/search", sr, null);
         Assert.assertEquals(1, TestAuditlogImpl.messages.size());

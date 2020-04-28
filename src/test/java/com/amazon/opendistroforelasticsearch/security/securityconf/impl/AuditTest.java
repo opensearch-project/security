@@ -58,9 +58,9 @@ public class AuditTest {
         // act
         final Audit audit = objectMapper.readValue("{}", Audit.class);
         // assert
-        assertTrue(audit.isEnableRest());
+        assertTrue(audit.isRestApiAuditEnabled());
         assertEquals(audit.getDisabledRestCategories(), EnumSet.of(AuditCategory.AUTHENTICATED, AuditCategory.GRANTED_PRIVILEGES));
-        assertTrue(audit.isEnableTransport());
+        assertTrue(audit.isTransportApiAuditEnabled());
         assertEquals(audit.getDisabledTransportCategories(), EnumSet.of(AuditCategory.AUTHENTICATED, AuditCategory.GRANTED_PRIVILEGES));
         assertFalse(audit.isResolveBulkRequests());
         assertTrue(audit.isLogRequestBody());
@@ -105,9 +105,9 @@ public class AuditTest {
         // act
         final Audit audit = objectMapper.readValue(json, Audit.class);
         // assert
-        assertTrue(audit.isEnableRest());
+        assertTrue(audit.isRestApiAuditEnabled());
         assertEquals(audit.getDisabledRestCategories(), EnumSet.of(AuditCategory.AUTHENTICATED));
-        assertTrue(audit.isEnableTransport());
+        assertTrue(audit.isTransportApiAuditEnabled());
         assertEquals(audit.getDisabledTransportCategories(), EnumSet.of(AuditCategory.SSL_EXCEPTION));
         assertTrue(audit.isResolveBulkRequests());
         assertTrue(audit.isLogRequestBody());
@@ -204,7 +204,7 @@ public class AuditTest {
                 "\"log_request_body\":true," +
                 "\"resolve_indices\":true," +
                 "\"exclude_sensitive_headers\":true," +
-                "\"ignore_users\":[\"kibanaserver\"]," +
+                "\"ignore_users\":[]," +
                 "\"ignore_requests\":[]," +
                 "\"immutable_indices\":[]," +
                 "\"read_metadata_only\":true," +

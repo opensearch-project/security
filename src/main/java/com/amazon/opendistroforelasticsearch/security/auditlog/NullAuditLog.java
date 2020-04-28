@@ -130,11 +130,6 @@ public class NullAuditLog implements AuditLog {
     }
 
     @Override
-    public void logExternalConfig(Settings settings, Environment environment) {
-        //noop, intentionally left empty
-    }
-
-    @Override
     public ComplianceConfig getComplianceConfig() {
         return null;
     }

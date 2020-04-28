@@ -1,17 +1,24 @@
 package com.amazon.opendistroforelasticsearch.security.auditlog;
 
+import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
+import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AbstractAuditLog;
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
-import com.amazon.opendistroforelasticsearch.security.securityconf.AuditModelImpl;
+import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditLogImpl;
+import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.Audit;
-import com.amazon.opendistroforelasticsearch.security.securityconf.impl.AuditModel;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableSet;
 import org.apache.http.Header;
+import org.elasticsearch.client.Client;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.threadpool.ThreadPool;
 
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -49,15 +56,24 @@ public class AuditTestUtils {
         return objectMapper.writeValueAsString(audit);
     }
 
-    public static AuditModel createAuditModel(final Settings settings) {
-        final Audit audit = createAudit(settings);
-        return new AuditModelImpl(audit);
+    public static AbstractAuditLog createAuditLog(
+        final Settings settings,
+        final Path configPath,
+        final Client clientProvider,
+        final ThreadPool threadPool,
+        final IndexNameExpressionResolver resolver,
+        final ClusterService clusterService) {
+        AbstractAuditLog auditLog = new AuditLogImpl(settings, configPath, clientProvider, threadPool, resolver, clusterService);
+        Audit audit = createAudit(settings);
+        auditLog.onAuditConfigFilterChanged(AuditConfig.Filter.from(audit));
+        auditLog.onComplienceConfigChanged(ComplianceConfig.from(audit, settings));
+        return auditLog;
     }
 
     public static Audit createAudit(final Settings settings) {
         final Audit audit = new Audit();
-        audit.setEnableRest(settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, true));
-        audit.setEnableTransport(settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true));
+        audit.setRestApiAuditEnabled(settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, true));
+        audit.setTransportApiAuditEnabled(settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true));
         audit.setResolveBulkRequests(settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, false));
         audit.setLogRequestBody(settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY, true));
         audit.setResolveIndices(settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_INDICES, true));

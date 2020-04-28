@@ -41,7 +41,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
-import com.amazon.opendistroforelasticsearch.security.securityconf.impl.AuditModel;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.Audit;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
@@ -205,30 +205,30 @@ public class ComplianceConfig {
     }
 
     /**
-     * Create compliance configuration from auditModel
+     * Create compliance configuration from audit
      * saltAsString - Read from settings. Not hot-reloaded. Used for anonymization of fields in FLS using consistent hash.
      * opendistrosecurityIndex - used to determine if internal index is written to or read from.
      * type - checks if log destination used is internal elasticsearch.
      * index - the index used for storing audit logs to avoid monitoring it.
-     * @param auditModel audit model
+     * @param audit audit model
      * @param settings settings
      * @return ComplianceConfig
      */
-    public static ComplianceConfig from(AuditModel auditModel, Settings settings) {
+    public static ComplianceConfig from(Audit audit, Settings settings) {
         final String opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
         final String type = settings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_TYPE_DEFAULT, null);
         final String index = settings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ES_INDEX, "'security-auditlog-'YYYY.MM.dd");
 
         return new ComplianceConfig(
-                auditModel.shouldLogExternalConfig(),
-                auditModel.shouldLogInternalConfig(),
-                auditModel.shouldLogReadMetadataOnly(),
-                auditModel.shouldLogWriteMetadataOnly(),
-                auditModel.shouldLogDiffsForWrite(),
-                auditModel.getReadWatchedFields(),
-                auditModel.getWriteWatchedIndices(),
-                auditModel.getImmutableIndicesPatterns(),
-                auditModel.getSalt(),
+                audit.isExternalConfigEnabled(),
+                audit.isInternalConfigEnabled(),
+                audit.isReadMetadataOnly(),
+                audit.isWriteMetadataOnly(),
+                audit.isWriteLogDiffs(),
+                audit.getReadWatchedFields(),
+                audit.getWriteWatchedIndices(),
+                audit.getImmutableIndices(),
+                audit.getSalt(),
                 opendistrosecurityIndex,
                 type,
                 index);
