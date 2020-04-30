@@ -57,12 +57,12 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
 
+import io.netty.util.internal.PlatformDependent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchSecurityException;
-import org.apache.lucene.util.Constants;
 import org.elasticsearch.SpecialPermission;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
@@ -133,14 +133,11 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
                 .getAsBoolean(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, true);
 
         if(!OpenDistroSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable() && (settings.getAsBoolean(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, true) || settings.getAsBoolean(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, true) )) {
-            String text = "Support for OpenSSL has been removed from Open Distro Security since Elasticsearch 7.4.0. Use JDK SSL instead\n";
-            if(Constants.JRE_IS_MINIMUM_JAVA11) {
-                text += "Since you are running Java "+Constants.JAVA_VERSION+" you should not experience any performance impact but maybe not all your ciphers are supported. If you experience problems upgrade to Java 11+";
+            if (PlatformDependent.javaVersion() < 12) {
+                log.warn("Support for OpenSSL with Java 11 or prior versions require using Netty allocator. Set 'es.unsafe.use_netty_default_allocator' system property to true");
             } else {
-                text += "You are running a very old version of Java ("+Constants.JAVA_VERSION+") so you may experience a performance impact and it is strongly advised to update to Java 11+";
+                log.warn("Support for OpenSSL with Java 12+ has been removed from Open Distro Security since Elasticsearch 7.4.0. Using JDK SSL instead.");
             }
-            System.out.println(text);
-            log.warn(text);
         }
 
         boolean openSSLInfoLogged = false;
