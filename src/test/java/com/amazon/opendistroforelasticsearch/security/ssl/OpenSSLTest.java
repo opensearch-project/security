@@ -30,9 +30,11 @@ import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.node.PluginAwareNode;
 import org.elasticsearch.transport.Netty4Plugin;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin;
@@ -44,6 +46,23 @@ import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelpe
 import io.netty.handler.ssl.OpenSsl;
 
 public class OpenSSLTest extends SSLTest {
+    private static final String USE_NETTY_DEFAULT_ALLOCATOR_PROPERTY = "es.unsafe.use_netty_default_allocator";
+    private static String USE_NETTY_DEFAULT_ALLOCATOR;
+
+    @BeforeClass
+    public static void enableNettyDefaultAllocator() {
+        USE_NETTY_DEFAULT_ALLOCATOR = System.getProperty(USE_NETTY_DEFAULT_ALLOCATOR_PROPERTY);
+        System.setProperty(USE_NETTY_DEFAULT_ALLOCATOR_PROPERTY, "true");
+    }
+
+    @AfterClass
+    public static void restoreNettyDefaultAllocator() {
+        if (USE_NETTY_DEFAULT_ALLOCATOR != null) {
+            System.setProperty(USE_NETTY_DEFAULT_ALLOCATOR_PROPERTY, USE_NETTY_DEFAULT_ALLOCATOR);
+        } else {
+            System.clearProperty(USE_NETTY_DEFAULT_ALLOCATOR_PROPERTY);
+        }
+    }
 
     @Before
     public void setup() {
