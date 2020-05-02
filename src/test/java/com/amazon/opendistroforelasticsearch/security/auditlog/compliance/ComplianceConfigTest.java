@@ -10,6 +10,8 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.Set;
 
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
@@ -24,6 +26,7 @@ public class ComplianceConfigTest {
     @Test
     public void testDefault() {
         // act
+        final Set<String> defaultIgnoredUser = Collections.singleton("kibanaserver");
         final ComplianceConfig complianceConfig = ComplianceConfig.from(Settings.EMPTY);
         // assert
         assertTrue(complianceConfig.isEnabled());
@@ -33,6 +36,8 @@ public class ComplianceConfigTest {
         assertFalse(complianceConfig.shouldLogWriteMetadataOnly());
         assertFalse(complianceConfig.shouldLogDiffsForWrite());
         assertTrue(complianceConfig.getImmutableIndicesPatterns().isEmpty());
+        assertEquals(complianceConfig.getIgnoredComplianceUsersForRead(), defaultIgnoredUser);
+        assertEquals(complianceConfig.getIgnoredComplianceUsersForWrite(), defaultIgnoredUser);
         assertEquals(16, complianceConfig.getSalt16().length);
     }
 
@@ -50,6 +55,10 @@ public class ComplianceConfigTest {
                 .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_IMMUTABLE_INDICES, "immutable1", "immutable2", "immutable2")
                 .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, "write_index1", "write_index_pattern*")
                 .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS, "read_index1,field1,field2", "read_index_pattern*,field1,field_pattern*")
+                .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS,
+                        "test-user-1", "test-user-2")
+                .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS,
+                        "test-user-3", "test-user-4")
                 .build();
 
         // act
@@ -65,6 +74,8 @@ public class ComplianceConfigTest {
         assertEquals(complianceConfig.getImmutableIndicesPatterns(), ImmutableSet.of("immutable1", "immutable2"));
         assertArrayEquals(testSalt.getBytes(StandardCharsets.UTF_8), complianceConfig.getSalt16());
         assertEquals(16, complianceConfig.getSalt16().length);
+        assertEquals(complianceConfig.getIgnoredComplianceUsersForRead(), ImmutableSet.of("test-user-1", "test-user-2"));
+        assertEquals(complianceConfig.getIgnoredComplianceUsersForWrite(), ImmutableSet.of("test-user-3", "test-user-4"));
 
         // test write history
         assertTrue(complianceConfig.writeHistoryEnabledForIndex(".opendistro_security"));

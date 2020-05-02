@@ -387,7 +387,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         AuditCategory category = opendistrosecurityIndex.equals(index)? AuditCategory.COMPLIANCE_INTERNAL_CONFIG_READ: AuditCategory.COMPLIANCE_DOC_READ;
 
         String effectiveUser = getUser();
-        if(!checkComplianceFilter(category, effectiveUser, getOrigin())) {
+        if(!checkComplianceFilter(category, effectiveUser, getOrigin(), complianceConfig)) {
             return;
         }
 
@@ -447,7 +447,7 @@ public abstract class AbstractAuditLog implements AuditLog {
 
         String effectiveUser = getUser();
 
-        if(!checkComplianceFilter(category, effectiveUser, getOrigin())) {
+        if(!checkComplianceFilter(category, effectiveUser, getOrigin(), complianceConfig)) {
             return;
         }
 
@@ -536,7 +536,8 @@ public abstract class AbstractAuditLog implements AuditLog {
 
         String effectiveUser = getUser();
 
-        if(!checkComplianceFilter(AuditCategory.COMPLIANCE_DOC_WRITE, effectiveUser, getOrigin())) {
+        final ComplianceConfig complianceConfig = getComplianceConfig();
+        if (complianceConfig == null || !checkComplianceFilter(AuditCategory.COMPLIANCE_DOC_WRITE, effectiveUser, getOrigin(), complianceConfig)) {
             return;
         }
 
@@ -556,7 +557,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     protected void logExternalConfig() {
 
         final ComplianceConfig complianceConfig = getComplianceConfig();
-        if (complianceConfig == null || !complianceConfig.isEnabled() || !complianceConfig.shouldLogExternalConfig() || !checkComplianceFilter(AuditCategory.COMPLIANCE_EXTERNAL_CONFIG, null, getOrigin()) || externalConfigLogged.getAndSet(true)) {
+        if (complianceConfig == null || !complianceConfig.isEnabled() || !complianceConfig.shouldLogExternalConfig() || !checkComplianceFilter(AuditCategory.COMPLIANCE_EXTERNAL_CONFIG, null, getOrigin(), complianceConfig) || externalConfigLogged.getAndSet(true)) {
             return;
         }
 
@@ -722,7 +723,7 @@ public abstract class AbstractAuditLog implements AuditLog {
 
     }
 
-    private boolean checkComplianceFilter(final AuditCategory category, final String effectiveUser, Origin origin) {
+    private boolean checkComplianceFilter(final AuditCategory category, final String effectiveUser, Origin origin, ComplianceConfig complianceConfig) {
         if(log.isTraceEnabled()) {
             log.trace("Check for COMPLIANCE category:{}, effectiveUser:{}, origin: {}", category, effectiveUser, origin);
         }
@@ -736,7 +737,7 @@ public abstract class AbstractAuditLog implements AuditLog {
 
         if(category == AuditCategory.COMPLIANCE_DOC_READ || category == AuditCategory.COMPLIANCE_INTERNAL_CONFIG_READ) {
 
-            final Collection<String> ignoredComplianceUsersForRead = auditConfigFilter.getIgnoredComplianceUsersForRead();
+            final Collection<String> ignoredComplianceUsersForRead = complianceConfig.getIgnoredComplianceUsersForRead();
             if (!ignoredComplianceUsersForRead.isEmpty() && effectiveUser != null
                     && WildcardMatcher.matchAny(ignoredComplianceUsersForRead, effectiveUser)) {
 
@@ -748,7 +749,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         }
 
         if(category == AuditCategory.COMPLIANCE_DOC_WRITE || category == AuditCategory.COMPLIANCE_INTERNAL_CONFIG_WRITE) {
-            final Collection<String> ignoredComplianceUsersForWrite = auditConfigFilter.getIgnoredComplianceUsersForWrite();
+            final Collection<String> ignoredComplianceUsersForWrite = complianceConfig.getIgnoredComplianceUsersForWrite();
             if (!ignoredComplianceUsersForWrite.isEmpty() && effectiveUser != null
                     && WildcardMatcher.matchAny(ignoredComplianceUsersForWrite, effectiveUser)) {
 

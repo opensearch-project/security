@@ -49,7 +49,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import com.amazon.opendistroforelasticsearch.security.securityconf.impl.Audit;
+import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.NodesDn;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -1276,7 +1276,7 @@ public class OpenDistroSecurityAdmin {
                 Migration.migrateNodesDn(SecurityDynamicConfiguration.fromNode(
                     DefaultObjectMapper.YAML_MAPPER.readTree(ConfigHelper.createFileOrStringReader(CType.NODESDN, 1, new File(backupDir,"nodes_dn.yml").getAbsolutePath(), true)),
                     CType.NODESDN, 1, 0, 0));
-            SecurityDynamicConfiguration<Audit> audit = Migration.migrateAudit(SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir,"audit.yml")), CType.AUDIT, 1, 0, 0));
+            SecurityDynamicConfiguration<AuditConfig> audit = Migration.migrateAudit(SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir,"audit.yml")), CType.AUDIT, 1, 0, 0));
 
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/action_groups.yml"), actionGroupsV7);
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/config.yml"), configV7);

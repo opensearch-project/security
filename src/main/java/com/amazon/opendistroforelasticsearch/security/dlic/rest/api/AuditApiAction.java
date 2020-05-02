@@ -28,69 +28,76 @@ import java.nio.file.Path;
  * GET _opendistro/_security/api/audit/
  * {
  *   "config" : {
- *     "enable_rest" : true,
- *     "disabled_rest_categories" : [
- *       "GRANTED_PRIVILEGES",
- *       "AUTHENTICATED"
- *     ],
- *     "enable_transport" : true,
- *     "disabled_transport_categories" : [
- *       "GRANTED_PRIVILEGES",
- *       "AUTHENTICATED"
- *     ],
- *     "internal_config" : true,
- *     "external_config" : true,
- *     "resolve_bulk_requests" : false,
- *     "log_request_body" : true,
- *     "resolve_indices" : true,
- *     "exclude_sensitive_headers" : true,
- *     "ignore_users" : [
- *       "kibanaserver"
- *     ],
- *     "ignore_requests" : [ ],
- *     "read_metadata_only" : true,
- *     "read_watched_fields" : [ ],
- *     "read_ignore_users" : [ ],
- *     "write_metadata_only" : true,
- *     "write_log_diffs" : false,
- *     "write_watched_indices" : [ ],
- *     "write_ignore_users" : [ ]
+ *     "audit" : {
+ *       "enable_rest" : true,
+ *       "disabled_rest_categories" : [
+ *         "GRANTED_PRIVILEGES",
+ *         "SSL_EXCEPTION"
+ *       ],
+ *       "enable_transport" : true,
+ *       "disabled_transport_categories" : [
+ *         "GRANTED_PRIVILEGES",
+ *         "AUTHENTICATED"
+ *       ],
+ *       "resolve_bulk_requests" : false,
+ *       "log_request_body" : true,
+ *       "resolve_indices" : true,
+ *       "exclude_sensitive_headers" : true,
+ *       "ignore_users" : [
+ *         "kibanaserver"
+ *       ],
+ *       "ignore_requests" : [ ]
+ *     },
+ *     "compliance" : {
+ *       "internal_config" : true,
+ *       "external_config" : true,
+ *       "read_metadata_only" : true,
+ *       "read_watched_fields" : [ ],
+ *       "read_ignore_users" : [ ],
+ *       "write_metadata_only" : true,
+ *       "write_log_diffs" : false,
+ *       "write_watched_indices" : [ ],
+ *       "write_ignore_users" : [ ]
+ *     }
  *   }
  * }
  *
  * PUT _opendistro/_security/api/audit/config
  * {
- *     "enable_rest" : true,
- *     "disabled_rest_categories" : [
+ *   "audit":{
+ *     "enable_rest":true,
+ *     "disabled_rest_categories":[
+ *       "GRANTED_PRIVILEGES",
+ *       "SSL_EXCEPTION"
+ *     ],
+ *     "enable_transport":true,
+ *     "disabled_transport_categories":[
  *       "GRANTED_PRIVILEGES",
  *       "AUTHENTICATED"
  *     ],
- *     "enable_transport" : true,
- *     "disabled_transport_categories" : [
- *       "GRANTED_PRIVILEGES",
- *       "AUTHENTICATED"
- *     ],
- *     "internal_config" : true,
- *     "external_config" : true,
- *     "resolve_bulk_requests" : false,
- *     "log_request_body" : true,
- *     "resolve_indices" : true,
- *     "exclude_sensitive_headers" : true,
- *     "ignore_users" : [
- *       "kibanaserver"
- *     ],
- *     "ignore_requests" : [ ],
- *     "read_metadata_only" : true,
- *     "read_watched_fields" : [ ],
- *     "read_ignore_users" : [ ],
- *     "write_metadata_only" : true,
- *     "write_log_diffs" : false,
- *     "write_watched_indices" : [ ],
- *     "write_ignore_users" : [ ]
+ *     "resolve_bulk_requests":false,
+ *     "log_request_body":true,
+ *     "resolve_indices":true,
+ *     "exclude_sensitive_headers":true,
+ *     "ignore_users":[ ],
+ *     "ignore_requests":[ ]
+ *   },
+ *   "compliance":{
+ *     "internal_config":true,
+ *     "external_config":true,
+ *     "read_metadata_only":true,
+ *     "read_watched_fields":[ ],
+ *     "read_ignore_users":[ ],
+ *     "write_metadata_only":true,
+ *     "write_log_diffs":false,
+ *     "write_watched_indices":[ ],
+ *     "write_ignore_users":[ ]
  *   }
+ * }
  *
- * PATCH _opendistro/_security/api/audit/config
- * [{"op": "replace", "path": "/config/enable_rest", "value": "true"}]
+ * PATCH _opendistro/_security/api/audit
+ * [{"op": "replace", "path": "/config/audit/enable_rest", "value": "true"}]
+ * [{"op": "replace", "path": "/config/compliance/internal_config", "value": "true"}]
  */
 public class AuditApiAction extends PatchableResourceApiAction {
 

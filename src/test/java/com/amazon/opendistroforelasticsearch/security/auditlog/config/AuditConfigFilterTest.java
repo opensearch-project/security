@@ -39,8 +39,6 @@ public class AuditConfigFilterTest {
         assertTrue(auditConfigFilter.shouldExcludeSensitiveHeaders());
         assertTrue(auditConfigFilter.getIgnoredAuditRequests().isEmpty());
         assertEquals(auditConfigFilter.getIgnoredAuditUsers(), defaultIgnoredUser);
-        assertEquals(auditConfigFilter.getIgnoredComplianceUsersForRead(), defaultIgnoredUser);
-        assertEquals(auditConfigFilter.getIgnoredComplianceUsersForWrite(), defaultIgnoredUser);
         assertEquals(auditConfigFilter.getDisabledRestCategories(), defaultDisabledCategories);
         assertEquals(auditConfigFilter.getDisabledTransportCategories(), defaultDisabledCategories);
     }
@@ -57,10 +55,6 @@ public class AuditConfigFilterTest {
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS, false)
                 .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS, "test-request")
                 .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS, "test-user")
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS,
-                        "test-user-1", "test-user-2")
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS,
-                        "test-user-3", "test-user-4")
                 .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES,
                         BAD_HEADERS.toString(), SSL_EXCEPTION.toString())
                 .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES,
@@ -77,8 +71,6 @@ public class AuditConfigFilterTest {
         assertFalse(auditConfigFilter.shouldExcludeSensitiveHeaders());
         assertEquals(auditConfigFilter.getIgnoredAuditUsers(), Collections.singleton("test-user"));
         assertEquals(auditConfigFilter.getIgnoredAuditRequests(), Collections.singleton("test-request"));
-        assertEquals(auditConfigFilter.getIgnoredComplianceUsersForRead(), ImmutableSet.of("test-user-1", "test-user-2"));
-        assertEquals(auditConfigFilter.getIgnoredComplianceUsersForWrite(), ImmutableSet.of("test-user-3", "test-user-4"));
         assertEquals(auditConfigFilter.getDisabledRestCategories(), EnumSet.of(BAD_HEADERS, SSL_EXCEPTION));
         assertEquals(auditConfigFilter.getDisabledTransportCategories(), EnumSet.of(FAILED_LOGIN, MISSING_PRIVILEGES));
     }
@@ -101,8 +93,6 @@ public class AuditConfigFilterTest {
         final AuditConfig.Filter auditConfigFilter = AuditConfig.Filter.from(settings);
         // assert
         assertTrue(auditConfigFilter.getIgnoredAuditUsers().isEmpty());
-        assertTrue(auditConfigFilter.getIgnoredComplianceUsersForRead().isEmpty());
-        assertTrue(auditConfigFilter.getIgnoredComplianceUsersForWrite().isEmpty());
         assertTrue(auditConfigFilter.getDisabledRestCategories().isEmpty());
         assertTrue(auditConfigFilter.getDisabledTransportCategories().isEmpty());
     }
@@ -126,8 +116,6 @@ public class AuditConfigFilterTest {
         final AuditConfig.Filter auditConfigFilter = AuditConfig.Filter.from(settings);
         // assert
         assertTrue(auditConfigFilter.getIgnoredAuditUsers().isEmpty());
-        assertTrue(auditConfigFilter.getIgnoredComplianceUsersForRead().isEmpty());
-        assertTrue(auditConfigFilter.getIgnoredComplianceUsersForWrite().isEmpty());
         assertTrue(auditConfigFilter.getDisabledRestCategories().isEmpty());
         assertTrue(auditConfigFilter.getDisabledTransportCategories().isEmpty());
     }

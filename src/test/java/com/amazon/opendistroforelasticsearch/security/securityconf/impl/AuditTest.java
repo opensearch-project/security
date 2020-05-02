@@ -1,10 +1,9 @@
 package com.amazon.opendistroforelasticsearch.security.securityconf.impl;
 
+import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -12,11 +11,10 @@ import org.junit.rules.ExpectedException;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertEquals;
 
 public class AuditTest {
 
@@ -27,229 +25,186 @@ public class AuditTest {
     @Test
     public void testDefaultSerialize() throws JsonProcessingException {
         // arrange
-        final Audit audit = new Audit();
+        final AuditConfig audit = new AuditConfig();
         // act
         final String json = objectMapper.writeValueAsString(audit);
-        assertEquals("{\"enable_rest\":true," +
-                "\"disabled_rest_categories\":[\"GRANTED_PRIVILEGES\",\"AUTHENTICATED\"]," +
-                "\"enable_transport\":true," +
-                "\"disabled_transport_categories\":[\"GRANTED_PRIVILEGES\",\"AUTHENTICATED\"]," +
-                "\"internal_config\":true," +
-                "\"external_config\":false," +
-                "\"resolve_bulk_requests\":false," +
-                "\"log_request_body\":true," +
-                "\"resolve_indices\":true," +
-                "\"exclude_sensitive_headers\":true," +
-                "\"ignore_users\":[\"kibanaserver\"]," +
-                "\"ignore_requests\":[]," +
-                "\"read_metadata_only\":true," +
-                "\"read_watched_fields\":[]," +
-                "\"read_ignore_users\":[]," +
-                "\"write_metadata_only\":true," +
-                "\"write_log_diffs\":false," +
-                "\"write_watched_indices\":[]," +
-                "\"write_ignore_users\":[]" +
+        assertEquals("{" +
+                "\"audit\":{" +
+                    "\"enable_rest\":true,\"disabled_rest_categories\":[\"GRANTED_PRIVILEGES\",\"AUTHENTICATED\"]," +
+                    "\"enable_transport\":true,\"disabled_transport_categories\":[\"GRANTED_PRIVILEGES\",\"AUTHENTICATED\"]," +
+                    "\"resolve_bulk_requests\":false,\"log_request_body\":true,\"resolve_indices\":true,\"exclude_sensitive_headers\":true," +
+                    "\"ignore_users\":[\"kibanaserver\"],\"ignore_requests\":[]}," +
+                "\"compliance\":{" +
+                    "\"internal_config\":true,\"external_config\":false," +
+                    "\"read_metadata_only\":true,\"read_watched_fields\":[],\"read_ignore_users\":[]," +
+                    "\"write_metadata_only\":true,\"write_log_diffs\":false,\"write_watched_indices\":[],\"write_ignore_users\":[]}" +
                 "}", json);
     }
 
     @Test
     public void testDefaultDeserialize() throws IOException {
         // act
-        final Audit audit = objectMapper.readValue("{}", Audit.class);
+        final AuditConfig auditConfig = objectMapper.readValue("{}", AuditConfig.class);
+        final AuditConfig.Filter audit = auditConfig.getFilter();
+        final AuditConfig.Compliance compliance = auditConfig.getCompliance();
         // assert
         assertTrue(audit.isRestApiAuditEnabled());
         assertEquals(audit.getDisabledRestCategories(), EnumSet.of(AuditCategory.AUTHENTICATED, AuditCategory.GRANTED_PRIVILEGES));
         assertTrue(audit.isTransportApiAuditEnabled());
         assertEquals(audit.getDisabledTransportCategories(), EnumSet.of(AuditCategory.AUTHENTICATED, AuditCategory.GRANTED_PRIVILEGES));
-        assertFalse(audit.isResolveBulkRequests());
-        assertTrue(audit.isLogRequestBody());
-        assertTrue(audit.isResolveIndices());
-        assertTrue(audit.isExcludeSensitiveHeaders());
-        assertFalse(audit.isExternalConfigEnabled());
-        assertTrue(audit.isInternalConfigEnabled());
-        assertEquals(audit.getIgnoreUsers(), Collections.singleton("kibanaserver"));
-        assertTrue(audit.getIgnoreRequests().isEmpty());
-        assertTrue(audit.isReadMetadataOnly());
-        assertTrue(audit.getReadIgnoreUsers().isEmpty());
-        assertTrue(audit.getReadWatchedFields().isEmpty());
-        assertTrue(audit.isWriteMetadataOnly());
-        assertFalse(audit.isWriteLogDiffs());
-        assertTrue(audit.getWriteIgnoreUsers().isEmpty());
-        assertTrue(audit.getWriteWatchedIndices().isEmpty());
+        assertFalse(audit.shouldResolveBulkRequests());
+        assertTrue(audit.shouldLogRequestBody());
+        assertTrue(audit.shouldResolveIndices());
+        assertTrue(audit.shouldExcludeSensitiveHeaders());
+        assertFalse(compliance.isExternalConfigEnabled());
+        assertTrue(compliance.isInternalConfigEnabled());
+        assertEquals(audit.getIgnoredAuditUsers(), Collections.singleton("kibanaserver"));
+        assertTrue(audit.getIgnoredAuditRequests().isEmpty());
+        assertTrue(compliance.isReadMetadataOnly());
+        assertTrue(compliance.getReadIgnoreUsers().isEmpty());
+        assertTrue(compliance.getReadWatchedFields().isEmpty());
+        assertTrue(compliance.isWriteMetadataOnly());
+        assertFalse(compliance.isWriteLogDiffs());
+        assertTrue(compliance.getWriteIgnoreUsers().isEmpty());
+        assertTrue(compliance.getWriteWatchedIndices().isEmpty());
     }
 
     @Test
     public void testDeserialize() throws IOException {
         // arrange
-        final String json = "{\"enable_rest\":true," +
-                "\"disabled_rest_categories\":[\"AUTHENTICATED\"]," +
-                "\"enable_transport\":true," +
-                "\"disabled_transport_categories\":[\"SSL_EXCEPTION\"]," +
-                "\"internal_config\":true," +
-                "\"external_config\":true," +
-                "\"resolve_bulk_requests\":true," +
-                "\"log_request_body\":true," +
-                "\"resolve_indices\":true," +
-                "\"exclude_sensitive_headers\":true," +
-                "\"ignore_users\":[\"test-user-1\"]," +
-                "\"ignore_requests\":[\"test-request\"]," +
-                "\"read_metadata_only\":true," +
-                "\"read_watched_fields\":[\"test-read-watch-field\"]," +
-                "\"read_ignore_users\":[\"test-user-2\"]," +
-                "\"write_metadata_only\":true," +
-                "\"write_log_diffs\":true," +
-                "\"write_watched_indices\":[\"test-write-watch-index\"]," +
-                "\"write_ignore_users\":[\"test-user-3\"]}";
+        final String json = "{" +
+                "\"audit\":{" +
+                    "\"enable_rest\":true,\"disabled_rest_categories\":[\"AUTHENTICATED\"]," +
+                    "\"enable_transport\":true,\"disabled_transport_categories\":[\"SSL_EXCEPTION\"]," +
+                    "\"resolve_bulk_requests\":true,\"log_request_body\":true,\"resolve_indices\":true,\"exclude_sensitive_headers\":true," +
+                    "\"ignore_users\":[\"test-user-1\"],\"ignore_requests\":[\"test-request\"]}," +
+                "\"compliance\":{" +
+                    "\"internal_config\":true,\"external_config\":true," +
+                    "\"read_metadata_only\":true,\"read_watched_fields\":[\"test-read-watch-field\"],\"read_ignore_users\":[\"test-user-2\"]," +
+                    "\"write_metadata_only\":true,\"write_log_diffs\":true,\"write_watched_indices\":[\"test-write-watch-index\"],\"write_ignore_users\":[\"test-user-3\"]}" +
+                "}";
+
         // act
-        final Audit audit = objectMapper.readValue(json, Audit.class);
+        final AuditConfig auditConfig = objectMapper.readValue(json, AuditConfig.class);
+        final AuditConfig.Filter audit = auditConfig.getFilter();
+        final AuditConfig.Compliance configCompliance = auditConfig.getCompliance();
         // assert
         assertTrue(audit.isRestApiAuditEnabled());
         assertEquals(audit.getDisabledRestCategories(), EnumSet.of(AuditCategory.AUTHENTICATED));
         assertTrue(audit.isTransportApiAuditEnabled());
         assertEquals(audit.getDisabledTransportCategories(), EnumSet.of(AuditCategory.SSL_EXCEPTION));
-        assertTrue(audit.isResolveBulkRequests());
-        assertTrue(audit.isLogRequestBody());
-        assertTrue(audit.isResolveIndices());
-        assertTrue(audit.isExcludeSensitiveHeaders());
-        assertTrue(audit.isExternalConfigEnabled());
-        assertTrue(audit.isInternalConfigEnabled());
-        assertEquals(audit.getIgnoreUsers(), Collections.singleton("test-user-1"));
-        assertEquals(audit.getIgnoreRequests(), Collections.singleton("test-request"));
-        assertTrue(audit.isReadMetadataOnly());
-        assertEquals(audit.getReadIgnoreUsers(), Collections.singleton("test-user-2"));
-        assertEquals(audit.getReadWatchedFields(), Collections.singletonList("test-read-watch-field"));
-        assertTrue(audit.isWriteMetadataOnly());
-        assertTrue(audit.isWriteLogDiffs());
-        assertEquals(audit.getWriteIgnoreUsers(), Collections.singleton("test-user-3"));
-        assertEquals(audit.getWriteWatchedIndices(), Collections.singletonList("test-write-watch-index"));
+        assertTrue(audit.shouldResolveBulkRequests());
+        assertTrue(audit.shouldLogRequestBody());
+        assertTrue(audit.shouldResolveIndices());
+        assertTrue(audit.shouldExcludeSensitiveHeaders());
+        assertTrue(configCompliance.isExternalConfigEnabled());
+        assertTrue(configCompliance.isInternalConfigEnabled());
+        assertEquals(audit.getIgnoredAuditUsers(), Collections.singleton("test-user-1"));
+        assertEquals(audit.getIgnoredAuditRequests(), Collections.singleton("test-request"));
+        assertTrue(configCompliance.isReadMetadataOnly());
+        assertEquals(configCompliance.getReadIgnoreUsers(), Collections.singleton("test-user-2"));
+        assertEquals(configCompliance.getReadWatchedFields(), Collections.singletonList("test-read-watch-field"));
+        assertTrue(configCompliance.isWriteMetadataOnly());
+        assertTrue(configCompliance.isWriteLogDiffs());
+        assertEquals(configCompliance.getWriteIgnoreUsers(), Collections.singleton("test-user-3"));
+        assertEquals(configCompliance.getWriteWatchedIndices(), Collections.singletonList("test-write-watch-index"));
     }
 
     @Test
     public void testSerialize() throws IOException {
         // arrange
-        final Audit audit = new Audit();
+        final AuditConfig auditConfig = new AuditConfig();
+        final AuditConfig.Filter audit = new AuditConfig.Filter();
+        final AuditConfig.Compliance compliance = new AuditConfig.Compliance();
+
         audit.setDisabledRestCategories(EnumSet.of(AuditCategory.GRANTED_PRIVILEGES, AuditCategory.FAILED_LOGIN));
         audit.setDisabledTransportCategories(EnumSet.of(AuditCategory.AUTHENTICATED));
         audit.setResolveBulkRequests(true);
-        audit.setInternalConfigEnabled(true);
-        audit.setExternalConfigEnabled(true);
-        audit.setReadIgnoreUsers(Collections.singleton("test-user-1"));
-        audit.setWriteIgnoreUsers(Collections.singleton("test-user-2"));
-        audit.setReadWatchedFields(Collections.singletonList("test-read-watch-field-1"));
-        audit.setWriteWatchedIndices(Collections.singletonList("test-write-watch-index"));
+        compliance.setInternalConfigEnabled(true);
+        compliance.setExternalConfigEnabled(true);
+        compliance.setReadIgnoreUsers(Collections.singleton("test-user-1"));
+        compliance.setWriteIgnoreUsers(Collections.singleton("test-user-2"));
+        compliance.setReadWatchedFields(Collections.singletonList("test-read-watch-field-1"));
+        compliance.setWriteWatchedIndices(Collections.singletonList("test-write-watch-index"));
+        auditConfig.setFilter(audit);
+        auditConfig.setCompliance(compliance);
         // act
-        final String json = objectMapper.writeValueAsString(audit);
+        final String json = objectMapper.writeValueAsString(auditConfig);
         // assert
-        assertEquals("{\"enable_rest\":true," +
-                "\"disabled_rest_categories\":[\"FAILED_LOGIN\",\"GRANTED_PRIVILEGES\"]," +
-                "\"enable_transport\":true," +
-                "\"disabled_transport_categories\":[\"AUTHENTICATED\"]," +
-                "\"internal_config\":true," +
-                "\"external_config\":true," +
-                "\"resolve_bulk_requests\":true," +
-                "\"log_request_body\":true," +
-                "\"resolve_indices\":true," +
-                "\"exclude_sensitive_headers\":true," +
-                "\"ignore_users\":[\"kibanaserver\"]," +
-                "\"ignore_requests\":[]," +
-                "\"read_metadata_only\":true," +
-                "\"read_watched_fields\":[\"test-read-watch-field-1\"]," +
-                "\"read_ignore_users\":[\"test-user-1\"]," +
-                "\"write_metadata_only\":true," +
-                "\"write_log_diffs\":false," +
-                "\"write_watched_indices\":[\"test-write-watch-index\"]," +
-                "\"write_ignore_users\":[\"test-user-2\"]}", json);
-    }
-
-    @Test
-    public void testKeysSet() {
-        assertEquals(Audit.Key.KEYS.size(), 19);
-        assertEquals(Audit.Key.KEYS, ImmutableSet.of(
-                "enable_rest", "disabled_rest_categories",
-                "enable_transport", "disabled_transport_categories",
-                "internal_config", "external_config",
-                "resolve_bulk_requests", "log_request_body", "resolve_indices", "exclude_sensitive_headers",
-                "ignore_users", "ignore_requests",
-                "read_metadata_only", "read_watched_fields", "read_ignore_users",
-                "write_metadata_only", "write_log_diffs", "write_watched_indices", "write_ignore_users"));
+        assertEquals("{" +
+                "\"audit\":{" +
+                    "\"enable_rest\":true,\"disabled_rest_categories\":[\"FAILED_LOGIN\",\"GRANTED_PRIVILEGES\"]," +
+                    "\"enable_transport\":true,\"disabled_transport_categories\":[\"AUTHENTICATED\"]," +
+                    "\"resolve_bulk_requests\":true,\"log_request_body\":true,\"resolve_indices\":true,\"exclude_sensitive_headers\":true," +
+                    "\"ignore_users\":[\"kibanaserver\"],\"ignore_requests\":[]}," +
+                "\"compliance\":{" +
+                    "\"internal_config\":true,\"external_config\":true," +
+                    "\"read_metadata_only\":true,\"read_watched_fields\":[\"test-read-watch-field-1\"],\"read_ignore_users\":[\"test-user-1\"]," +
+                    "\"write_metadata_only\":true,\"write_log_diffs\":false," +
+                    "\"write_watched_indices\":[\"test-write-watch-index\"],\"write_ignore_users\":[\"test-user-2\"]}" +
+                "}", json);
     }
 
     @Test
     public void testNullSerialize() throws IOException {
         // arrange
-        final Audit audit = new Audit();
+        final AuditConfig auditConfig = new AuditConfig();
+        final AuditConfig.Filter audit = new AuditConfig.Filter();
+        final AuditConfig.Compliance compliance = new AuditConfig.Compliance();
         audit.setDisabledRestCategories(null);
         audit.setDisabledTransportCategories(null);
         audit.setIgnoreUsers(null);
         audit.setIgnoreRequests(null);
-        audit.setReadIgnoreUsers(null);
-        audit.setWriteIgnoreUsers(null);
-        audit.setReadWatchedFields(null);
-        audit.setWriteWatchedIndices(null);
+        compliance.setReadIgnoreUsers(null);
+        compliance.setWriteIgnoreUsers(null);
+        compliance.setReadWatchedFields(null);
+        compliance.setWriteWatchedIndices(null);
+        auditConfig.setFilter(audit);
+        auditConfig.setCompliance(compliance);
+
         // act
-        final String json = objectMapper.writeValueAsString(audit);
+        final String json = objectMapper.writeValueAsString(auditConfig);
         // assert
-        assertEquals("{\"enable_rest\":true," +
-                "\"disabled_rest_categories\":[]," +
-                "\"enable_transport\":true," +
-                "\"disabled_transport_categories\":[]," +
-                "\"internal_config\":true," +
-                "\"external_config\":false," +
-                "\"resolve_bulk_requests\":false," +
-                "\"log_request_body\":true," +
-                "\"resolve_indices\":true," +
-                "\"exclude_sensitive_headers\":true," +
-                "\"ignore_users\":[]," +
-                "\"ignore_requests\":[]," +
-                "\"read_metadata_only\":true," +
-                "\"read_watched_fields\":[]," +
-                "\"read_ignore_users\":[]," +
-                "\"write_metadata_only\":true," +
-                "\"write_log_diffs\":false," +
-                "\"write_watched_indices\":[]," +
-                "\"write_ignore_users\":[]}", json);
+        assertEquals("{" +
+                "\"audit\":{" +
+                    "\"enable_rest\":true,\"disabled_rest_categories\":[]," +
+                    "\"enable_transport\":true,\"disabled_transport_categories\":[]," +
+                    "\"resolve_bulk_requests\":false,\"log_request_body\":true,\"resolve_indices\":true,\"exclude_sensitive_headers\":true," +
+                    "\"ignore_users\":[],\"ignore_requests\":[]}," +
+                "\"compliance\":{" +
+                    "\"internal_config\":true,\"external_config\":false," +
+                    "\"read_metadata_only\":true,\"read_watched_fields\":[],\"read_ignore_users\":[]," +
+                    "\"write_metadata_only\":true,\"write_log_diffs\":false,\"write_watched_indices\":[],\"write_ignore_users\":[]}" +
+                "}", json);
     }
 
     @Test
     public void testNullDeSerialize() throws IOException {
         // arrange
         final String json = "{" +
-                "\"disabled_rest_categories\":null," +
-                "\"disabled_transport_categories\":null," +
-                "\"ignore_users\":null," +
-                "\"ignore_requests\":null," +
-                "\"read_watched_fields\":null," +
-                "\"read_ignore_users\":null," +
-                "\"write_watched_indices\":null," +
-                "\"write_ignore_users\":null}";
+                "\"audit\":{" +
+                    "\"enable_rest\":true,\"disabled_rest_categories\":null," +
+                    "\"enable_transport\":true,\"disabled_transport_categories\":null," +
+                    "\"resolve_bulk_requests\":true,\"log_request_body\":true,\"resolve_indices\":true,\"exclude_sensitive_headers\":true," +
+                    "\"ignore_users\":null,\"ignore_requests\":null}," +
+                "\"compliance\":{" +
+                    "\"internal_config\":true,\"external_config\":true," +
+                    "\"read_metadata_only\":true,\"read_watched_fields\":null,\"read_ignore_users\":null," +
+                    "\"write_metadata_only\":true,\"write_log_diffs\":true,\"write_watched_indices\":null,\"write_ignore_users\":null}" +
+                "}";
+
         // act
-        final Audit audit = objectMapper.readValue(json, Audit.class);
+        final AuditConfig auditConfig = objectMapper.readValue(json, AuditConfig.class);
         // assert
+        final AuditConfig.Filter audit = auditConfig.getFilter();
+        final AuditConfig.Compliance configCompliance = auditConfig.getCompliance();
         assertTrue(audit.getDisabledRestCategories().isEmpty());
         assertTrue(audit.getDisabledTransportCategories().isEmpty());
-        assertTrue(audit.getIgnoreUsers().isEmpty());
-        assertTrue(audit.getIgnoreRequests().isEmpty());
-        assertTrue(audit.getReadIgnoreUsers().isEmpty());
-        assertTrue(audit.getWriteIgnoreUsers().isEmpty());
-        assertTrue(audit.getReadWatchedFields().isEmpty());
-        assertTrue(audit.getWriteWatchedIndices().isEmpty());
-    }
-
-    @Test
-    public void testValidateThrowsException() {
-        // assert
-        thrown.expect(IllegalArgumentException.class);
-        // arrange
-        final List<String> list = ImmutableList.of("testing");
-        // act
-        Audit.Key.validate(list);
-    }
-
-    @Test
-    public void testValidate() {
-        // arrange
-        final List<String> list = ImmutableList.of("enable_rest", "log_request_body");
-        // act
-        Audit.Key.validate(list);
+        assertTrue(audit.getIgnoredAuditRequests().isEmpty());
+        assertTrue(audit.getIgnoredAuditUsers().isEmpty());
+        assertTrue(configCompliance.getReadIgnoreUsers().isEmpty());
+        assertTrue(configCompliance.getWriteIgnoreUsers().isEmpty());
+        assertTrue(configCompliance.getReadWatchedFields().isEmpty());
+        assertTrue(configCompliance.getWriteWatchedIndices().isEmpty());
     }
 }

@@ -11,7 +11,6 @@ import java.util.stream.Collectors;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
-import com.amazon.opendistroforelasticsearch.security.securityconf.impl.Audit;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.NodesDn;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -160,7 +159,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         final InternalUsersModel ium;
         final ConfigModel cm;
         final NodesDnModel nm = new NodesDnModelImpl(nodesDn);
-        final Audit audit = (Audit)cr.getConfiguration(CType.AUDIT).getCEntry("config");
+        final AuditConfig audit = (AuditConfig)cr.getConfiguration(CType.AUDIT).getCEntry("config");
 
         if(config.getImplementingClass() == ConfigV7.class) {
                 //statics
@@ -219,9 +218,9 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         eventBus.post(dcm);
         eventBus.post(ium);
         eventBus.post(nm);
-        eventBus.post(AuditConfig.Filter.from(audit));
+        eventBus.post(audit.getFilter());
         if (dlsFlsAvailable) {
-            eventBus.post(ComplianceConfig.from(audit, esSettings));
+            eventBus.post(ComplianceConfig.from(audit.getCompliance(), esSettings));
         }
 
         initialized.set(true);

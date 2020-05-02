@@ -16,14 +16,8 @@
 package com.amazon.opendistroforelasticsearch.security.auditlog;
 
 import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
 
 import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
-import com.amazon.opendistroforelasticsearch.security.securityconf.impl.Audit;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableSet;
 import org.apache.http.Header;
 import org.elasticsearch.common.settings.Settings;
 

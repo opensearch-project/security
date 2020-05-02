@@ -1,7 +1,7 @@
 package com.amazon.opendistroforelasticsearch.security.dlic.rest.api;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditTestUtils;
-import com.amazon.opendistroforelasticsearch.security.securityconf.impl.Audit;
+import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper;
 import org.apache.http.HttpStatus;
 import org.junit.Test;
@@ -23,14 +23,15 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
 
         RestHelper.HttpResponse response = rh.executeGetRequest(ENDPOINT);
         // default audit.yml defined in test/resources/restapi
-        assertEquals("{\"config\":{\"enable_rest\":false," +
-                "\"disabled_rest_categories\":[],\"enable_transport\":false," +
-                "\"disabled_transport_categories\":[]," +
-                "\"internal_config\":true,\"external_config\":false," +
-                "\"resolve_bulk_requests\":false,\"log_request_body\":false,\"resolve_indices\":false,\"exclude_sensitive_headers\":false," +
-                "\"ignore_users\":[\"kibanaserver\"],\"ignore_requests\":[]," +
-                "\"read_metadata_only\":false,\"read_watched_fields\":[],\"read_ignore_users\":[]," +
-                "\"write_metadata_only\":false,\"write_log_diffs\":false,\"write_watched_indices\":[],\"write_ignore_users\":[]}}", response.getBody());
+        assertEquals("{\"config\":{" +
+                "\"audit\":{" +
+                    "\"enable_rest\":false,\"disabled_rest_categories\":[],\"enable_transport\":false,\"disabled_transport_categories\":[]," +
+                    "\"resolve_bulk_requests\":false,\"log_request_body\":false,\"resolve_indices\":false,\"exclude_sensitive_headers\":false," +
+                    "\"ignore_users\":[\"kibanaserver\"],\"ignore_requests\":[]}," +
+                "\"compliance\":{" +
+                    "\"internal_config\":true,\"external_config\":false," +
+                    "\"read_metadata_only\":false,\"read_watched_fields\":[],\"read_ignore_users\":[]," +
+                    "\"write_metadata_only\":false,\"write_log_diffs\":false,\"write_watched_indices\":[],\"write_ignore_users\":[]}}}", response.getBody());
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         // should have /config for put request
@@ -58,24 +59,24 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         rh.sendAdminCertificate = true;
 
         // valid request
-        Audit audit = new Audit();
+        AuditConfig audit = new AuditConfig();
         RestHelper.HttpResponse response = rh.executePutRequest(CONFIG_ENDPOINT, AuditTestUtils.createAuditPayload(audit));
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         // valid rest category
-        response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"replace\",\"path\": \"/config/disabled_rest_categories\",\"value\": [\"AUTHENTICATED\"]}]");
+        response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"replace\",\"path\": \"/config/audit/disabled_rest_categories\",\"value\": [\"AUTHENTICATED\"]}]");
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         // bad rest category
-        response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"replace\",\"path\": \"/config/disabled_rest_categories\",\"value\": [\"testing\"]}]");
+        response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"replace\",\"path\": \"/config/audit/disabled_rest_categories\",\"value\": [\"testing\"]}]");
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // valid transport category
-        response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"replace\",\"path\": \"/config/disabled_rest_categories\",\"value\": [\"SSL_EXCEPTION\"]}]");
+        response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"replace\",\"path\": \"/config/audit/disabled_rest_categories\",\"value\": [\"SSL_EXCEPTION\"]}]");
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         // bad transport category
-        response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"replace\",\"path\": \"/config/disabled_transport_categories\",\"value\": [\"testing\"]}]");
+        response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"replace\",\"path\": \"/config/audit/disabled_transport_categories\",\"value\": [\"testing\"]}]");
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // bad payload
@@ -83,11 +84,11 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // patch request
-        response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"replace\",\"path\": \"/config/enable_rest\",\"value\": \"true\"}]");
+        response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"replace\",\"path\": \"/config/audit/enable_rest\",\"value\": \"true\"}]");
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         // bad patch request
-        response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"replace\",\"path\": \"/config/testing\",\"value\": \"true\"}]");
+        response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"replace\",\"path\": \"/config/audit/testing\",\"value\": \"true\"}]");
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
     }
 }

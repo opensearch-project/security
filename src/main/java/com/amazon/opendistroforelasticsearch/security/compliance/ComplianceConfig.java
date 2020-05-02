@@ -41,7 +41,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
-import com.amazon.opendistroforelasticsearch.security.securityconf.impl.Audit;
+import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
@@ -70,6 +70,7 @@ public class ComplianceConfig {
     private static final int SALT_SIZE = 16;
     private static final int CACHE_SIZE = 1000;
     private static final String INTERNAL_ELASTICSEARCH = "internal_elasticsearch";
+    private static final List<String> DEFAULT_IGNORED_USERS = Collections.singletonList("kibanaserver");
 
     private final boolean logExternalConfig;
     private final boolean logInternalConfig;
@@ -77,9 +78,10 @@ public class ComplianceConfig {
     private final boolean logWriteMetadataOnly;
     private final boolean logDiffsForWrite;
     private final List<String> watchedWriteIndicesPatterns;
+    private final Set<String> ignoredComplianceUsersForRead;
+    private final Set<String> ignoredComplianceUsersForWrite;
     private final Set<String> immutableIndicesPatterns;
     private final String opendistrosecurityIndex;
-
     private final Map<String, Set<String>> readEnabledFields;
     private final LoadingCache<String, Set<String>> readEnabledFieldsCache;
     private final byte[] salt16;
@@ -91,10 +93,12 @@ public class ComplianceConfig {
             final boolean logExternalConfig,
             final boolean logInternalConfig,
             final boolean logReadMetadataOnly,
+            final List<String> watchedReadFields,
+            final Set<String> ignoredComplianceUsersForRead,
             final boolean logWriteMetadataOnly,
             final boolean logDiffsForWrite,
-            final List<String> watchedReadFields,
             final List<String> watchedWriteIndicesPatterns,
+            final Set<String> ignoredComplianceUsersForWrite,
             final Set<String> immutableIndicesPatterns,
             final String saltAsString,
             final String opendistrosecurityIndex,
@@ -106,6 +110,8 @@ public class ComplianceConfig {
         this.logWriteMetadataOnly = logWriteMetadataOnly;
         this.logDiffsForWrite = logDiffsForWrite;
         this.watchedWriteIndicesPatterns = watchedWriteIndicesPatterns;
+        this.ignoredComplianceUsersForRead = ignoredComplianceUsersForRead;
+        this.ignoredComplianceUsersForWrite = ignoredComplianceUsersForWrite;
         this.immutableIndicesPatterns = immutableIndicesPatterns;
         this.opendistrosecurityIndex = opendistrosecurityIndex;
 
@@ -170,6 +176,8 @@ public class ComplianceConfig {
         logger.info("{} indices are made immutable.", immutableIndicesPatterns);
         logger.info("{} is used as internal security index.", opendistrosecurityIndex);
         logger.info("Internal index used for posting audit logs is {}", auditLogIndex);
+        logger.info("Compliance read operation requests auditing from {} users is disabled.", ignoredComplianceUsersForRead);
+        logger.info("Compliance write operation requests auditing from {} users is disabled.", ignoredComplianceUsersForWrite);
     }
 
     /**
@@ -186,6 +194,16 @@ public class ComplianceConfig {
         final List<String> watchedReadFields = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS,
                 Collections.emptyList(), false);
         final List<String> watchedWriteIndices = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, Collections.emptyList());
+        final Set<String> ignoredComplianceUsersForRead = getSettingAsSet(
+                settings,
+                ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS,
+                DEFAULT_IGNORED_USERS,
+                false);
+        final Set<String> ignoredComplianceUsersForWrite = getSettingAsSet(
+                settings,
+                ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS,
+                DEFAULT_IGNORED_USERS,
+                false);
         final Set<String> immutableIndicesPatterns = ImmutableSet.copyOf(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList()));
         final String saltAsString = settings.get(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT, ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT_DEFAULT);
         final String opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
@@ -196,15 +214,25 @@ public class ComplianceConfig {
                 logExternalConfig,
                 logInternalConfig,
                 logReadMetadataOnly,
+                watchedReadFields,
+                ignoredComplianceUsersForRead,
                 logWriteMetadataOnly,
                 logDiffsForWrite,
-                watchedReadFields,
                 watchedWriteIndices,
+                ignoredComplianceUsersForWrite,
                 immutableIndicesPatterns,
                 saltAsString,
                 opendistrosecurityIndex,
                 type,
                 index);
+    }
+
+    private static Set<String> getSettingAsSet(final Settings settings, final String key, final List<String> defaultList, final boolean ignoreCaseForNone) {
+        final List<String> list = settings.getAsList(key, defaultList);
+        if (list.size() == 1 && "NONE".equals(ignoreCaseForNone? list.get(0).toUpperCase() : list.get(0))) {
+            return Collections.emptySet();
+        }
+        return ImmutableSet.copyOf(list);
     }
 
     /**
@@ -213,11 +241,11 @@ public class ComplianceConfig {
      * opendistrosecurityIndex - used to determine if internal index is written to or read from.
      * type - checks if log destination used is internal elasticsearch.
      * index - the index used for storing audit logs to avoid monitoring it.
-     * @param audit audit model
+     * @param configCompliance configCompliance
      * @param settings settings
      * @return ComplianceConfig
      */
-    public static ComplianceConfig from(Audit audit, Settings settings) {
+    public static ComplianceConfig from(AuditConfig.Compliance configCompliance, Settings settings) {
         final String saltAsString = settings.get(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT, ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT_DEFAULT);
         final Set<String> immutableIndicesPatterns = ImmutableSet.copyOf(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList()));
         final String opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
@@ -225,13 +253,15 @@ public class ComplianceConfig {
         final String index = settings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ES_INDEX, "'security-auditlog-'YYYY.MM.dd");
 
         return new ComplianceConfig(
-                audit.isExternalConfigEnabled(),
-                audit.isInternalConfigEnabled(),
-                audit.isReadMetadataOnly(),
-                audit.isWriteMetadataOnly(),
-                audit.isWriteLogDiffs(),
-                audit.getReadWatchedFields(),
-                audit.getWriteWatchedIndices(),
+                configCompliance.isExternalConfigEnabled(),
+                configCompliance.isInternalConfigEnabled(),
+                configCompliance.isReadMetadataOnly(),
+                configCompliance.getReadWatchedFields(),
+                configCompliance.getReadIgnoreUsers(),
+                configCompliance.isWriteMetadataOnly(),
+                configCompliance.isWriteLogDiffs(),
+                configCompliance.getWriteWatchedIndices(),
+                configCompliance.getWriteIgnoreUsers(),
                 immutableIndicesPatterns,
                 saltAsString,
                 opendistrosecurityIndex,
@@ -302,6 +332,22 @@ public class ComplianceConfig {
      */
     public byte[] getSalt16() {
         return Arrays.copyOf(salt16, salt16.length);
+    }
+
+    /**
+     * Set of users for whom compliance read auditing must be ignored.
+     * @return set of users
+     */
+    public Set<String> getIgnoredComplianceUsersForRead() {
+        return ignoredComplianceUsersForRead;
+    }
+
+    /**
+     * Set of users for whom compliance write auditing must be ignored.
+     * @return set of users
+     */
+    public Set<String> getIgnoredComplianceUsersForWrite() {
+        return ignoredComplianceUsersForWrite;
     }
 
     /**
