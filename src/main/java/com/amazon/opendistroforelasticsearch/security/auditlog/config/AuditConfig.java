@@ -57,6 +57,10 @@ import java.util.stream.Collectors;
  */
 public class AuditConfig {
 
+    private static final Set<String> DEFAULT_IGNORED_USERS = Collections.singleton("kibanaserver");
+    private static final EnumSet<AuditCategory> DEFAULT_DISABLED_CATEGORIES = EnumSet.of(
+            AuditCategory.AUTHENTICATED, AuditCategory.GRANTED_PRIVILEGES);
+
     @JsonProperty(value = Key.AUDIT)
     private Filter filter = new Filter();
 
@@ -88,10 +92,6 @@ public class AuditConfig {
      * Audit logger will use these settings to determine what audit logs are to be generated.
      */
     public static class Filter {
-        private static final Set<String> DEFAULT_IGNORED_USERS = Collections.singleton("kibanaserver");
-        private static final EnumSet<AuditCategory> DEFAULT_DISABLED_CATEGORIES = EnumSet.of(
-                AuditCategory.AUTHENTICATED, AuditCategory.GRANTED_PRIVILEGES);
-
         @JsonProperty(value = Key.ENABLE_REST)
         private boolean isRestApiAuditEnabled = true;
         @JsonProperty(value = Key.DISABLED_REST_CATEGORIES)
@@ -112,89 +112,6 @@ public class AuditConfig {
         private Set<String> ignoredAuditUsers = DEFAULT_IGNORED_USERS;
         @JsonProperty(value = Key.IGNORE_REQUESTS)
         private Set<String> ignoreAuditRequests = Collections.emptySet();
-
-        // empty constructor for jackson serialization and de-serialization
-        public Filter() {
-
-        }
-
-        private Filter(final boolean isRestApiAuditEnabled,
-                       final EnumSet<AuditCategory> disabledRestCategories,
-                       final boolean isTransportApiAuditEnabled,
-                       final EnumSet<AuditCategory> disabledTransportCategories,
-                       final boolean resolveBulkRequests,
-                       final boolean logRequestBody,
-                       final boolean resolveIndices,
-                       final boolean excludeSensitiveHeaders,
-                       final Set<String> ignoredAuditUsers,
-                       final Set<String> ignoredAuditRequests) {
-            this.isRestApiAuditEnabled = isRestApiAuditEnabled;
-            this.disabledRestCategories = disabledRestCategories;
-            this.isTransportApiAuditEnabled = isTransportApiAuditEnabled;
-            this.disabledTransportCategories = disabledTransportCategories;
-            this.resolveBulkRequests = resolveBulkRequests;
-            this.logRequestBody = logRequestBody;
-            this.resolveIndices = resolveIndices;
-            this.excludeSensitiveHeaders = excludeSensitiveHeaders;
-            this.ignoredAuditUsers = ignoredAuditUsers;
-            this.ignoreAuditRequests = ignoredAuditRequests;
-        }
-
-        /**
-         * Generate audit logging configuration from settings defined in elasticsearch.yml
-         * @param settings settings
-         * @return audit configuration filter
-         */
-        public static Filter from(Settings settings) {
-            final boolean isRestApiAuditEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, true);
-            final boolean isTransportAuditEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true);
-            final boolean resolveBulkRequests = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, false);
-            final boolean logRequestBody = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY, true);
-            final boolean resolveIndices = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_INDICES, true);
-            final boolean excludeSensitiveHeaders = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS, true);
-
-            final EnumSet<AuditCategory> disabledRestCategories = AuditCategory.parse(getSettingAsSet(
-                    settings,
-                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES,
-                    DEFAULT_DISABLED_CATEGORIES.stream().map(Enum::name).collect(Collectors.toList()),
-                    true));
-
-            final EnumSet<AuditCategory> disabledTransportCategories = AuditCategory.parse(getSettingAsSet(
-                    settings,
-                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES,
-                    DEFAULT_DISABLED_CATEGORIES.stream().map(Enum::name).collect(Collectors.toList()),
-                    true));
-
-            final Set<String> ignoredAuditUsers = getSettingAsSet(
-                    settings,
-                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS,
-                    ImmutableList.copyOf(DEFAULT_IGNORED_USERS),
-                    false);
-
-            final Set<String> ignoreAuditRequests = ImmutableSet.copyOf(settings.getAsList(
-                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS,
-                    Collections.emptyList()));
-
-            return new Filter(
-                    isRestApiAuditEnabled,
-                    disabledRestCategories,
-                    isTransportAuditEnabled,
-                    disabledTransportCategories,
-                    resolveBulkRequests,
-                    logRequestBody,
-                    resolveIndices,
-                    excludeSensitiveHeaders,
-                    ignoredAuditUsers,
-                    ignoreAuditRequests);
-        }
-
-        private static Set<String> getSettingAsSet(final Settings settings, final String key, final List<String> defaultList, final boolean ignoreCaseForNone) {
-            final List<String> list = settings.getAsList(key, defaultList);
-            if (list.size() == 1 && "NONE".equals(ignoreCaseForNone? list.get(0).toUpperCase() : list.get(0))) {
-                return Collections.emptySet();
-            }
-            return ImmutableSet.copyOf(list);
-        }
 
         /**
          * Checks if auditing for REST API is enabled or disabled
@@ -522,5 +439,77 @@ public class AuditConfig {
         public static final String WRITE_LOG_DIFFS = "write_log_diffs";
         public static final String WRITE_WATCHED_INDICES = "write_watched_indices";
         public static final String WRITE_IGNORE_USERS = "write_ignore_users";
+    }
+
+    private static final List<String> DEFAULT_IGNORED_USERS_LIST = ImmutableList.copyOf(DEFAULT_IGNORED_USERS);
+    private static final List<String> DEFAULT_DISABLED_CATEGORIES_LIST = DEFAULT_DISABLED_CATEGORIES.stream().map(Enum::name).collect(Collectors.toList());
+
+    /**
+     * Generate audit logging configuration from settings defined in elasticsearch.yml
+     * @param settings settings
+     * @return audit configuration filter
+     */
+    public static AuditConfig from(Settings settings) {
+        final AuditConfig auditConfig = new AuditConfig();
+        final Filter audit = new Filter();
+        final Compliance compliance = new Compliance();
+        audit.setRestApiAuditEnabled(settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, true));
+        audit.setTransportApiAuditEnabled(settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true));
+        audit.setResolveBulkRequests(settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, false));
+        audit.setLogRequestBody(settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY, true));
+        audit.setResolveIndices(settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_INDICES, true));
+        audit.setExcludeSensitiveHeaders(settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS, true));
+
+        audit.setDisabledRestCategories(AuditCategory.parse(getSettingAsSet(
+                settings,
+                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES,
+                DEFAULT_DISABLED_CATEGORIES_LIST,
+                true)));
+
+        audit.setDisabledTransportCategories(AuditCategory.parse(getSettingAsSet(
+                settings,
+                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES,
+                DEFAULT_DISABLED_CATEGORIES_LIST,
+                true)));
+
+        audit.setIgnoreUsers(getSettingAsSet(
+                settings,
+                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS,
+                DEFAULT_IGNORED_USERS_LIST,
+                false));
+
+        audit.setIgnoreRequests(ImmutableSet.copyOf(settings.getAsList(
+                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS,
+                Collections.emptyList())));
+
+        compliance.setExternalConfigEnabled(settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED, false));
+        compliance.setInternalConfigEnabled(settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, false));
+        compliance.setReadMetadataOnly(settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_METADATA_ONLY, false));
+        compliance.setWriteMetadataOnly(settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_METADATA_ONLY, false));
+        compliance.setWriteLogDiffs(settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS, false));
+        compliance.setReadWatchedFields(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS,
+                Collections.emptyList(), false));
+        compliance.setWriteWatchedIndices(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, Collections.emptyList()));
+        compliance.setReadIgnoreUsers(getSettingAsSet(
+                settings,
+                ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS,
+                DEFAULT_IGNORED_USERS_LIST,
+                false));
+        compliance.setWriteIgnoreUsers(getSettingAsSet(
+                settings,
+                ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS,
+                DEFAULT_IGNORED_USERS_LIST,
+                false));
+        auditConfig.setFilter(audit);
+        auditConfig.setCompliance(compliance);
+        return auditConfig;
+    }
+
+    private static Set<String> getSettingAsSet(final Settings settings, final String key, final List<String> defaultList, final boolean ignoreCaseForNone) {
+        final List<String> list = settings.getAsList(key, defaultList);
+        if (list.size() == 1 && "NONE".equals(ignoreCaseForNone? list.get(0).toUpperCase() : list.get(0))) {
+            return Collections.emptySet();
+        }
+        return ImmutableSet.copyOf(list);
     }
 }

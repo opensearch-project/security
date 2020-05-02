@@ -29,7 +29,7 @@ public class AuditConfigFilterTest {
         final Set<String> defaultIgnoredUser = Collections.singleton("kibanaserver");
         final EnumSet<AuditCategory> defaultDisabledCategories = EnumSet.of(AUTHENTICATED, GRANTED_PRIVILEGES);
         // act
-        final AuditConfig.Filter auditConfigFilter = AuditConfig.Filter.from(Settings.EMPTY);
+        final AuditConfig.Filter auditConfigFilter = AuditConfig.from(Settings.EMPTY).getFilter();
         // assert
         assertTrue(auditConfigFilter.isRestApiAuditEnabled());
         assertTrue(auditConfigFilter.isTransportApiAuditEnabled());
@@ -61,7 +61,7 @@ public class AuditConfigFilterTest {
                         FAILED_LOGIN.toString(), MISSING_PRIVILEGES.toString())
                 .build();
         // act
-        final AuditConfig.Filter auditConfigFilter = AuditConfig.Filter.from(settings);
+        final AuditConfig.Filter auditConfigFilter = AuditConfig.from(settings).getFilter();
         // assert
         assertFalse(auditConfigFilter.isRestApiAuditEnabled());
         assertFalse(auditConfigFilter.isTransportApiAuditEnabled());
@@ -90,7 +90,7 @@ public class AuditConfigFilterTest {
                         "none")
                 .build();
         // act
-        final AuditConfig.Filter auditConfigFilter = AuditConfig.Filter.from(settings);
+        final AuditConfig.Filter auditConfigFilter = AuditConfig.from(settings).getFilter();
         // assert
         assertTrue(auditConfigFilter.getIgnoredAuditUsers().isEmpty());
         assertTrue(auditConfigFilter.getDisabledRestCategories().isEmpty());
@@ -113,7 +113,7 @@ public class AuditConfigFilterTest {
                         Collections.emptyList())
                 .build();
         // act
-        final AuditConfig.Filter auditConfigFilter = AuditConfig.Filter.from(settings);
+        final AuditConfig.Filter auditConfigFilter = AuditConfig.from(settings).getFilter();
         // assert
         assertTrue(auditConfigFilter.getIgnoredAuditUsers().isEmpty());
         assertTrue(auditConfigFilter.getDisabledRestCategories().isEmpty());
