@@ -110,6 +110,9 @@ public class ComplianceConfig {
         this.opendistrosecurityIndex = opendistrosecurityIndex;
 
         this.salt16 = new byte[SALT_SIZE];
+        if (saltAsString.equals(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT_DEFAULT)) {
+            log.warn("If you plan to use field masking pls configure compliance salt {} to be a random string of 16 chars length identical on all nodes", saltAsString);
+        }
         try {
             ByteBuffer byteBuffer = StandardCharsets.UTF_8.encode(saltAsString);
             byteBuffer.get(salt16);
@@ -215,6 +218,8 @@ public class ComplianceConfig {
      * @return ComplianceConfig
      */
     public static ComplianceConfig from(Audit audit, Settings settings) {
+        final String saltAsString = settings.get(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT, ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT_DEFAULT);
+        final Set<String> immutableIndicesPatterns = ImmutableSet.copyOf(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList()));
         final String opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
         final String type = settings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_TYPE_DEFAULT, null);
         final String index = settings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ES_INDEX, "'security-auditlog-'YYYY.MM.dd");
@@ -227,8 +232,8 @@ public class ComplianceConfig {
                 audit.isWriteLogDiffs(),
                 audit.getReadWatchedFields(),
                 audit.getWriteWatchedIndices(),
-                audit.getImmutableIndices(),
-                audit.getSalt(),
+                immutableIndicesPatterns,
+                saltAsString,
                 opendistrosecurityIndex,
                 type,
                 index);

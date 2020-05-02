@@ -29,10 +29,8 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
                 "\"internal_config\":true,\"external_config\":false," +
                 "\"resolve_bulk_requests\":false,\"log_request_body\":false,\"resolve_indices\":false,\"exclude_sensitive_headers\":false," +
                 "\"ignore_users\":[\"kibanaserver\"],\"ignore_requests\":[]," +
-                "\"immutable_indices\":[]," +
                 "\"read_metadata_only\":false,\"read_watched_fields\":[],\"read_ignore_users\":[]," +
-                "\"write_metadata_only\":false,\"write_log_diffs\":false,\"write_watched_indices\":[],\"write_ignore_users\":[]," +
-                "\"salt\":\"e1ukloTsQlOgPquJ\"}}", response.getBody());
+                "\"write_metadata_only\":false,\"write_log_diffs\":false,\"write_watched_indices\":[],\"write_ignore_users\":[]}}", response.getBody());
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         // should have /config for put request
@@ -63,12 +61,6 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         Audit audit = new Audit();
         RestHelper.HttpResponse response = rh.executePutRequest(CONFIG_ENDPOINT, AuditTestUtils.createAuditPayload(audit));
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-
-        // bad salt
-        audit = new Audit();
-        audit.setSalt("abcd");
-        response = rh.executePutRequest(CONFIG_ENDPOINT, AuditTestUtils.createAuditPayload(audit));
-        assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // valid rest category
         response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"replace\",\"path\": \"/config/disabled_rest_categories\",\"value\": [\"AUTHENTICATED\"]}]");

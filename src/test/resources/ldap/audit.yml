@@ -37,9 +37,3 @@ config:
   write_log_diffs: false
   write_watched_indices: []
   write_ignore_users: []
-
-  # additional
-  immutable_indices: []
-
-  # salt
-  salt: "e1ukloTsQlOgPquJ"

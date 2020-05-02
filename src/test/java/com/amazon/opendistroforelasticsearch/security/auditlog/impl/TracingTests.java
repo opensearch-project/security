@@ -392,16 +392,13 @@ public class TracingTests extends SingleClusterTest {
     public void testImmutableIndex() throws Exception {
         Settings settings = Settings.builder()
                 .put(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_ROLES_ENABLED, "opendistro_security_all_access")
+                .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_IMMUTABLE_INDICES, "myindex1")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_TYPE_DEFAULT, "debug").build();
 
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings, true, ClusterConfiguration.DEFAULT);
 
-        Settings auditSettings = Settings.builder()
-                .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_IMMUTABLE_INDICES, "myindex1")
-                .build();
-
         RestHelper rh = nonSslRestHelper();
-        rh.executePutRequest("_opendistro/_security/api/audit/config", AuditTestUtils.createAuditPayload(auditSettings), encodeBasicHeader("admin", "admin"));
+        rh.executePutRequest("_opendistro/_security/api/audit/config", AuditTestUtils.createAuditPayload(Settings.EMPTY), encodeBasicHeader("admin", "admin"));
 
         try (TransportClient tc = getInternalTransportClient(this.clusterInfo, Settings.EMPTY)) {
             tc.admin().indices().create(new CreateIndexRequest("myindex1")

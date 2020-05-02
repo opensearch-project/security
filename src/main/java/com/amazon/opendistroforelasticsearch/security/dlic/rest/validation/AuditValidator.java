@@ -49,13 +49,7 @@ public class AuditValidator extends AbstractConfigurationValidator {
             new Tuple<>(Audit.Key.WRITE_LOG_DIFFS, DataType.BOOLEAN),
             new Tuple<>(Audit.Key.WRITE_METADATA_ONLY, DataType.BOOLEAN),
             new Tuple<>(Audit.Key.WRITE_WATCHED_INDICES, DataType.ARRAY),
-            new Tuple<>(Audit.Key.WRITE_IGNORE_USERS, DataType.ARRAY),
-
-            // immutable
-            new Tuple<>(Audit.Key.IMMUTABLE_INDICES, DataType.ARRAY),
-
-            // salt
-            new Tuple<>(Audit.Key.SALT, DataType.STRING)
+            new Tuple<>(Audit.Key.WRITE_IGNORE_USERS, DataType.ARRAY)
     );
 
     public AuditValidator(final RestRequest request,
@@ -83,11 +77,6 @@ public class AuditValidator extends AbstractConfigurationValidator {
                         this.errorType = ErrorType.BODY_NOT_PARSEABLE;
                         return false;
                     }
-                    // validate salt
-                    if (!validateSalt(contentAsMap)) {
-                        this.errorType = ErrorType.INVALID_SALT;
-                        return false;
-                    }
                 }
             } catch (NotXContentException e) {
                 //this.content is not valid json/yaml
@@ -112,10 +101,5 @@ public class AuditValidator extends AbstractConfigurationValidator {
                         return false;
                     }
                 });
-    }
-
-    private boolean validateSalt(final Map<String, Object> contentAsMap) {
-        final String salt = (String) contentAsMap.get(Audit.Key.SALT);
-        return salt != null && salt.length() >= 16;
     }
 }

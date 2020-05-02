@@ -42,15 +42,14 @@ public class AuditTest {
                 "\"exclude_sensitive_headers\":true," +
                 "\"ignore_users\":[\"kibanaserver\"]," +
                 "\"ignore_requests\":[]," +
-                "\"immutable_indices\":[]," +
                 "\"read_metadata_only\":true," +
                 "\"read_watched_fields\":[]," +
                 "\"read_ignore_users\":[]," +
                 "\"write_metadata_only\":true," +
                 "\"write_log_diffs\":false," +
                 "\"write_watched_indices\":[]," +
-                "\"write_ignore_users\":[]," +
-                "\"salt\":\"e1ukloTsQlOgPquJ\"}", json);
+                "\"write_ignore_users\":[]" +
+                "}", json);
     }
 
     @Test
@@ -94,7 +93,6 @@ public class AuditTest {
                 "\"exclude_sensitive_headers\":true," +
                 "\"ignore_users\":[\"test-user-1\"]," +
                 "\"ignore_requests\":[\"test-request\"]," +
-                "\"immutable_indices\":[\"test-index\"]," +
                 "\"read_metadata_only\":true," +
                 "\"read_watched_fields\":[\"test-read-watch-field\"]," +
                 "\"read_ignore_users\":[\"test-user-2\"]," +
@@ -154,28 +152,26 @@ public class AuditTest {
                 "\"exclude_sensitive_headers\":true," +
                 "\"ignore_users\":[\"kibanaserver\"]," +
                 "\"ignore_requests\":[]," +
-                "\"immutable_indices\":[]," +
                 "\"read_metadata_only\":true," +
                 "\"read_watched_fields\":[\"test-read-watch-field-1\"]," +
                 "\"read_ignore_users\":[\"test-user-1\"]," +
                 "\"write_metadata_only\":true," +
                 "\"write_log_diffs\":false," +
                 "\"write_watched_indices\":[\"test-write-watch-index\"]," +
-                "\"write_ignore_users\":[\"test-user-2\"]," +
-                "\"salt\":\"e1ukloTsQlOgPquJ\"}", json);
+                "\"write_ignore_users\":[\"test-user-2\"]}", json);
     }
 
     @Test
     public void testKeysSet() {
-        assertEquals(Audit.Key.KEYS.size(), 21);
+        assertEquals(Audit.Key.KEYS.size(), 19);
         assertEquals(Audit.Key.KEYS, ImmutableSet.of(
                 "enable_rest", "disabled_rest_categories",
                 "enable_transport", "disabled_transport_categories",
                 "internal_config", "external_config",
                 "resolve_bulk_requests", "log_request_body", "resolve_indices", "exclude_sensitive_headers",
-                "ignore_users", "ignore_requests", "immutable_indices",
+                "ignore_users", "ignore_requests",
                 "read_metadata_only", "read_watched_fields", "read_ignore_users",
-                "write_metadata_only", "write_log_diffs", "write_watched_indices", "write_ignore_users", "salt"));
+                "write_metadata_only", "write_log_diffs", "write_watched_indices", "write_ignore_users"));
     }
 
     @Test
@@ -186,7 +182,6 @@ public class AuditTest {
         audit.setDisabledTransportCategories(null);
         audit.setIgnoreUsers(null);
         audit.setIgnoreRequests(null);
-        audit.setImmutableIndices(null);
         audit.setReadIgnoreUsers(null);
         audit.setWriteIgnoreUsers(null);
         audit.setReadWatchedFields(null);
@@ -206,15 +201,13 @@ public class AuditTest {
                 "\"exclude_sensitive_headers\":true," +
                 "\"ignore_users\":[]," +
                 "\"ignore_requests\":[]," +
-                "\"immutable_indices\":[]," +
                 "\"read_metadata_only\":true," +
                 "\"read_watched_fields\":[]," +
                 "\"read_ignore_users\":[]," +
                 "\"write_metadata_only\":true," +
                 "\"write_log_diffs\":false," +
                 "\"write_watched_indices\":[]," +
-                "\"write_ignore_users\":[]," +
-                "\"salt\":\"e1ukloTsQlOgPquJ\"}", json);
+                "\"write_ignore_users\":[]}", json);
     }
 
     @Test
@@ -225,7 +218,6 @@ public class AuditTest {
                 "\"disabled_transport_categories\":null," +
                 "\"ignore_users\":null," +
                 "\"ignore_requests\":null," +
-                "\"immutable_indices\":null," +
                 "\"read_watched_fields\":null," +
                 "\"read_ignore_users\":null," +
                 "\"write_watched_indices\":null," +
@@ -237,7 +229,6 @@ public class AuditTest {
         assertTrue(audit.getDisabledTransportCategories().isEmpty());
         assertTrue(audit.getIgnoreUsers().isEmpty());
         assertTrue(audit.getIgnoreRequests().isEmpty());
-        assertTrue(audit.getImmutableIndices().isEmpty());
         assertTrue(audit.getReadIgnoreUsers().isEmpty());
         assertTrue(audit.getWriteIgnoreUsers().isEmpty());
         assertTrue(audit.getReadWatchedFields().isEmpty());

@@ -42,8 +42,6 @@ public class Audit {
     private Set<String> ignoreUsers = DEFAULT_IGNORED_USERS;
     @JsonProperty(value = Key.IGNORE_REQUESTS)
     private Set<String> ignoreRequests = Collections.emptySet();
-    @JsonProperty(value = Key.IMMUTABLE_INDICES)
-    private Set<String> immutableIndices = Collections.emptySet();
     @JsonProperty(value = Key.READ_METADATA_ONLY)
     private boolean readMetadataOnly = true;
     @JsonProperty(value = Key.READ_WATCHED_FIELDS)
@@ -58,8 +56,6 @@ public class Audit {
     private List<String> writeWatchedIndices = Collections.emptyList();
     @JsonProperty(value = Key.WRITE_IGNORE_USERS)
     private Set<String> writeIgnoreUsers = Collections.emptySet();
-    @JsonProperty(value = Key.SALT)
-    private String salt = OPENDISTRO_SECURITY_COMPLIANCE_SALT_DEFAULT;
 
     @JsonIgnore
     public boolean isRestApiAuditEnabled() {
@@ -206,20 +202,6 @@ public class Audit {
     }
 
     @JsonIgnore
-    public Set<String> getImmutableIndices() {
-        return immutableIndices;
-    }
-
-    @JsonSetter(value = Key.IMMUTABLE_INDICES, nulls = Nulls.AS_EMPTY)
-    public void setImmutableIndices(Set<String> immutableIndices) {
-        if (immutableIndices != null) {
-            this.immutableIndices = immutableIndices;
-        } else {
-            this.immutableIndices = Collections.emptySet();
-        }
-    }
-
-    @JsonIgnore
     public boolean isReadMetadataOnly() {
         return readMetadataOnly;
     }
@@ -305,16 +287,6 @@ public class Audit {
         }
     }
 
-    @JsonIgnore
-    public String getSalt() {
-        return salt;
-    }
-
-    @JsonIgnore
-    public void setSalt(String salt) {
-        this.salt = salt;
-    }
-
     @Override
     public String toString() {
         return "Audit{" +
@@ -330,7 +302,6 @@ public class Audit {
                 ", excludeSensitiveHeaders=" + excludeSensitiveHeaders +
                 ", ignoreUsers=" + ignoreUsers +
                 ", ignoreRequests=" + ignoreRequests +
-                ", immutableIndices=" + immutableIndices +
                 ", readMetadataOnly=" + readMetadataOnly +
                 ", readWatchedFields=" + readWatchedFields +
                 ", readIgnoreUsers=" + readIgnoreUsers +
@@ -338,7 +309,6 @@ public class Audit {
                 ", writeLogDiffs=" + writeLogDiffs +
                 ", writeWatchedIndices=" + writeWatchedIndices +
                 ", writeIgnoreUsers=" + writeIgnoreUsers +
-                ", salt='" + salt + '\'' +
                 '}';
     }
 
@@ -355,7 +325,6 @@ public class Audit {
         public static final String EXCLUDE_SENSITIVE_HEADERS = "exclude_sensitive_headers";
         public static final String IGNORE_USERS = "ignore_users";
         public static final String IGNORE_REQUESTS = "ignore_requests";
-        public static final String IMMUTABLE_INDICES = "immutable_indices";
         public static final String READ_METADATA_ONLY = "read_metadata_only";
         public static final String READ_WATCHED_FIELDS = "read_watched_fields";
         public static final String READ_IGNORE_USERS = "read_ignore_users";
@@ -363,7 +332,6 @@ public class Audit {
         public static final String WRITE_LOG_DIFFS = "write_log_diffs";
         public static final String WRITE_WATCHED_INDICES = "write_watched_indices";
         public static final String WRITE_IGNORE_USERS = "write_ignore_users";
-        public static final String SALT = "salt";
 
         public static final Set<String> KEYS = ImmutableSet.of(
                 ENABLE_REST,
@@ -378,15 +346,13 @@ public class Audit {
                 EXCLUDE_SENSITIVE_HEADERS,
                 IGNORE_USERS,
                 IGNORE_REQUESTS,
-                IMMUTABLE_INDICES,
                 READ_METADATA_ONLY,
                 READ_WATCHED_FIELDS,
                 READ_IGNORE_USERS,
                 WRITE_METADATA_ONLY,
                 WRITE_LOG_DIFFS,
                 WRITE_WATCHED_INDICES,
-                WRITE_IGNORE_USERS,
-                SALT
+                WRITE_IGNORE_USERS
         );
 
         public static void validate(final List<String> keys) {

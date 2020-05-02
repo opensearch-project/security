@@ -48,15 +48,13 @@ import java.nio.file.Path;
  *       "kibanaserver"
  *     ],
  *     "ignore_requests" : [ ],
- *     "immutable_indices" : [ ],
  *     "read_metadata_only" : true,
  *     "read_watched_fields" : [ ],
  *     "read_ignore_users" : [ ],
  *     "write_metadata_only" : true,
  *     "write_log_diffs" : false,
  *     "write_watched_indices" : [ ],
- *     "write_ignore_users" : [ ],
- *     "salt" : "aaaabbbbccccdddd"
+ *     "write_ignore_users" : [ ]
  *   }
  * }
  *
@@ -82,15 +80,13 @@ import java.nio.file.Path;
  *       "kibanaserver"
  *     ],
  *     "ignore_requests" : [ ],
- *     "immutable_indices" : [ ],
  *     "read_metadata_only" : true,
  *     "read_watched_fields" : [ ],
  *     "read_ignore_users" : [ ],
  *     "write_metadata_only" : true,
  *     "write_log_diffs" : false,
  *     "write_watched_indices" : [ ],
- *     "write_ignore_users" : [ ],
- *     "salt" : "aaaabbbbccccdddd"
+ *     "write_ignore_users" : [ ]
  *   }
  *
  * PATCH _opendistro/_security/api/audit/config
