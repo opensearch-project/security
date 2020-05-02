@@ -73,10 +73,7 @@ public class LdapUser extends User {
                     // only consider attributes which are not binary and where its value is not
                     // longer than customAttrMaxValueLen characters
                     if (val != null && val.length() > 0 && val.length() <= customAttrMaxValueLen) {
-                        //FIXME: this is strange - shouldn't we skip not matched attributes?
                         if (whiteListedAttributes.test(attr.getName())) {
-                            attributes.put("attr.ldap." + attr.getName(), val);
-                        } else {
                             attributes.put("attr.ldap." + attr.getName(), val);
                         }
                     }
