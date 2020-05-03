@@ -53,11 +53,9 @@ import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
-import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
 import org.elasticsearch.action.admin.indices.get.GetIndexResponse;
+import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
@@ -164,6 +162,12 @@ public class ConfigurationRepository {
                         } catch (Exception e) {
                             LOGGER.debug("Cannot apply default config (this is maybe not an error!) due to {}", e.getMessage());
                         }
+                    } else {
+                        try {
+                            ConfigHelper.uploadConfigurationIfAbsent(client, opendistrosecurityIndex, CType.AUDIT, 2, settings);
+                        } catch (Exception e) {
+                            LOGGER.error("Failed to upload configuration for " + CType.AUDIT + ". You may have need to use securityadmin to upload the configuration.", e);
+                        }
                     }
 
                     LOGGER.debug("Node started, try to initialize it. Wait for at least yellow cluster state....");
@@ -219,13 +223,20 @@ public class ConfigurationRepository {
 
     }
 
+    private boolean indexExists(String index) {
+        GetIndexResponse getIndexResponse = client.admin().indices()
+                .prepareGetIndex().setIndices(index)
+                .setIndicesOptions(IndicesOptions.LENIENT_EXPAND_OPEN_CLOSED)
+                .execute().actionGet();
+        return getIndexResponse.getIndices().length > 0;
+    }
+
     public void initOnNodeStart() {
 
         LOGGER.info("Check if " + opendistrosecurityIndex + " index exists ...");
 
         try {
-
-            if (clusterService.state().metaData().hasConcreteIndex(opendistrosecurityIndex)) {
+            if (indexExists(opendistrosecurityIndex)) {
                 LOGGER.info("{} index does already exist, so we try to load the config from it", opendistrosecurityIndex);
                 bgThread.start();
             } else {
