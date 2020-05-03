@@ -137,34 +137,26 @@ public class ConfigurationRepository {
                                     indexSettings.put("index.number_of_shards", 1);
                                     indexSettings.put("index.auto_expand_replicas", "0-all");
 
-                                    boolean exists = client.admin().indices()
-                                            .exists(new IndicesExistsRequest(opendistrosecurityIndex))
-                                            .actionGet().isExists();
-
-                                    if (exists) {
-                                        LOGGER.info("Security index {} exists.", opendistrosecurityIndex);
+                                    boolean ok = client.admin().indices().create(new CreateIndexRequest(opendistrosecurityIndex)
+                                            .settings(indexSettings))
+                                            .actionGet().isAcknowledged();
+                                    LOGGER.info("Index {} created?: {}", opendistrosecurityIndex, ok);
+                                    if(ok) {
+                                        ConfigHelper.uploadFile(client, cd+"config.yml", opendistrosecurityIndex, CType.CONFIG, DEFAULT_CONFIG_VERSION);
+                                        ConfigHelper.uploadFile(client, cd+"roles.yml", opendistrosecurityIndex, CType.ROLES, DEFAULT_CONFIG_VERSION);
+                                        ConfigHelper.uploadFile(client, cd+"roles_mapping.yml", opendistrosecurityIndex, CType.ROLESMAPPING, DEFAULT_CONFIG_VERSION);
+                                        ConfigHelper.uploadFile(client, cd+"internal_users.yml", opendistrosecurityIndex, CType.INTERNALUSERS, DEFAULT_CONFIG_VERSION);
+                                        ConfigHelper.uploadFile(client, cd+"action_groups.yml", opendistrosecurityIndex, CType.ACTIONGROUPS, DEFAULT_CONFIG_VERSION);
+                                        if(DEFAULT_CONFIG_VERSION == 2) {
+                                            ConfigHelper.uploadFile(client, cd+"tenants.yml", opendistrosecurityIndex, CType.TENANTS, DEFAULT_CONFIG_VERSION);
+                                        }
+                                        final boolean populateEmptyIfFileMissing = true;
+                                        ConfigHelper.uploadFile(client, cd+"nodes_dn.yml", opendistrosecurityIndex, CType.NODESDN, DEFAULT_CONFIG_VERSION, populateEmptyIfFileMissing);
+                                        ConfigHelper.uploadFile(client, cd+"audit.yml", opendistrosecurityIndex, CType.AUDIT, DEFAULT_CONFIG_VERSION);
+                                        LOGGER.info("Default config applied");
                                     } else {
-                                        LOGGER.info("Security index {} does not exist. Attempting to create new index.", opendistrosecurityIndex);
-                                        boolean ok = client.admin().indices().create(new CreateIndexRequest(opendistrosecurityIndex)
-                                                .settings(indexSettings))
-                                                .actionGet().isAcknowledged();
-                                        LOGGER.info("Index {} created?: {}", opendistrosecurityIndex, ok);
+                                        LOGGER.error("Can not create {} index", opendistrosecurityIndex);
                                     }
-
-                                    ConfigHelper.uploadFile(client, cd+"config.yml", opendistrosecurityIndex, CType.CONFIG, DEFAULT_CONFIG_VERSION);
-                                    ConfigHelper.uploadFile(client, cd+"roles.yml", opendistrosecurityIndex, CType.ROLES, DEFAULT_CONFIG_VERSION);
-                                    ConfigHelper.uploadFile(client, cd+"roles_mapping.yml", opendistrosecurityIndex, CType.ROLESMAPPING, DEFAULT_CONFIG_VERSION);
-                                    ConfigHelper.uploadFile(client, cd+"internal_users.yml", opendistrosecurityIndex, CType.INTERNALUSERS, DEFAULT_CONFIG_VERSION);
-                                    ConfigHelper.uploadFile(client, cd+"action_groups.yml", opendistrosecurityIndex, CType.ACTIONGROUPS, DEFAULT_CONFIG_VERSION);
-                                    if(DEFAULT_CONFIG_VERSION == 2) {
-                                        ConfigHelper.uploadFile(client, cd+"tenants.yml", opendistrosecurityIndex, CType.TENANTS, DEFAULT_CONFIG_VERSION);
-                                    }
-                                    final boolean populateEmptyIfFileMissing = true;
-                                    ConfigHelper.uploadFile(client, cd+"nodes_dn.yml", opendistrosecurityIndex, CType.NODESDN, DEFAULT_CONFIG_VERSION, populateEmptyIfFileMissing);
-                                    ConfigHelper.uploadFile(client, cd+"audit.yml", opendistrosecurityIndex, CType.AUDIT, DEFAULT_CONFIG_VERSION);
-                                    LOGGER.info("Default config applied");
-                                } catch (Exception e) {
-                                    LOGGER.info("Exception : {}", e);
                                 }
                             } else {
                                 LOGGER.error("{} does not exist", confFile.getAbsolutePath());
