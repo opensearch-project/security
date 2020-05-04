@@ -42,6 +42,7 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.Booleans;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.network.NetworkService;
@@ -82,8 +83,8 @@ import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConfigConstant
 //For ES5 this class has only effect when SSL only plugin is installed
 public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin, NetworkPlugin {
 
-    // Not supporting OPENSSL for ES7.4+
-    public static final boolean OPENSSL_SUPPORTED = false;
+    private static boolean USE_NETTY_DEFAULT_ALLOCATOR = Booleans.parseBoolean(System.getProperty("es.unsafe.use_netty_default_allocator"), false);
+    public static final boolean OPENSSL_SUPPORTED = (PlatformDependent.javaVersion() < 12) && USE_NETTY_DEFAULT_ALLOCATOR;
     protected final Logger log = LogManager.getLogger(this.getClass());
     protected static final String CLIENT_TYPE = "client.type";
     protected final boolean client;
