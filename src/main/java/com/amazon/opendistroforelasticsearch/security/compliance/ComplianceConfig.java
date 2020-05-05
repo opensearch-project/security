@@ -93,7 +93,7 @@ public class ComplianceConfig {
             final boolean logExternalConfig,
             final boolean logInternalConfig,
             final boolean logReadMetadataOnly,
-            final List<String> watchedReadFields,
+            final Map<String, Set<String>> readEnabledFields,
             final Set<String> ignoredComplianceUsersForRead,
             final boolean logWriteMetadataOnly,
             final boolean logDiffsForWrite,
@@ -110,6 +110,7 @@ public class ComplianceConfig {
         this.logReadMetadataOnly = logReadMetadataOnly;
         this.logWriteMetadataOnly = logWriteMetadataOnly;
         this.logDiffsForWrite = logDiffsForWrite;
+        this.readEnabledFields = readEnabledFields;
         this.watchedWriteIndicesPatterns = watchedWriteIndicesPatterns;
         this.ignoredComplianceUsersForRead = ignoredComplianceUsersForRead;
         this.ignoredComplianceUsersForWrite = ignoredComplianceUsersForWrite;
@@ -129,17 +130,6 @@ public class ComplianceConfig {
         } catch (BufferUnderflowException e) {
             throw new ElasticsearchException("Provided compliance salt " + saltAsString + " must at least contain 16 bytes", e);
         }
-
-        //opendistro_security.compliance.pii_fields:
-        //  - indexpattern,fieldpattern,fieldpattern,....
-        this.readEnabledFields = watchedReadFields.stream()
-                .map(watchedReadField -> watchedReadField.split(","))
-                .filter(split -> split.length != 0 && !Strings.isNullOrEmpty(split[0]))
-                .collect(Collectors.toMap(
-                        split -> split[0],
-                        split -> split.length == 1 ?
-                                Collections.singleton("*") : Arrays.stream(split).skip(1).collect(Collectors.toSet())
-                ));
 
         DateTimeFormatter auditLogPattern = null;
         String auditLogIndex = null;

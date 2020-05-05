@@ -4,7 +4,6 @@ import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategor
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableSet;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Rule;
 import org.junit.Test;
@@ -137,16 +136,16 @@ public class AuditConfigFilterTest {
         final String json = objectMapper.writeValueAsString(audit);
         assertEquals("{" +
                 "\"enabled\":true," +
-                "\"audit\":{" +
-                "\"enable_rest\":true,\"disabled_rest_categories\":[\"GRANTED_PRIVILEGES\",\"AUTHENTICATED\"]," +
-                "\"enable_transport\":true,\"disabled_transport_categories\":[\"GRANTED_PRIVILEGES\",\"AUTHENTICATED\"]," +
-                "\"resolve_bulk_requests\":false,\"log_request_body\":true,\"resolve_indices\":true,\"exclude_sensitive_headers\":true," +
-                "\"ignore_users\":[\"kibanaserver\"],\"ignore_requests\":[]}," +
+                    "\"audit\":{" +
+                    "\"enable_rest\":true,\"disabled_rest_categories\":[\"GRANTED_PRIVILEGES\",\"AUTHENTICATED\"]," +
+                    "\"enable_transport\":true,\"disabled_transport_categories\":[\"GRANTED_PRIVILEGES\",\"AUTHENTICATED\"]," +
+                    "\"resolve_bulk_requests\":false,\"log_request_body\":true,\"resolve_indices\":true,\"exclude_sensitive_headers\":true," +
+                    "\"ignore_users\":[\"kibanaserver\"],\"ignore_requests\":[]}," +
                 "\"compliance\":{" +
-                "\"enabled\":true," +
-                "\"internal_config\":true,\"external_config\":false," +
-                "\"read_metadata_only\":true,\"read_watched_fields\":[],\"read_ignore_users\":[]," +
-                "\"write_metadata_only\":true,\"write_log_diffs\":false,\"write_watched_indices\":[],\"write_ignore_users\":[]}" +
+                    "\"enabled\":true," +
+                    "\"internal_config\":true,\"external_config\":false," +
+                    "\"read_metadata_only\":true,\"read_watched_fields\":{},\"read_ignore_users\":[]," +
+                    "\"write_metadata_only\":true,\"write_log_diffs\":false,\"write_watched_indices\":[],\"write_ignore_users\":[]}" +
                 "}", json);
     }
 
@@ -184,15 +183,15 @@ public class AuditConfigFilterTest {
         final String json = "{" +
                 "\"enabled\":true," +
                 "\"audit\":{" +
-                "\"enable_rest\":true,\"disabled_rest_categories\":[\"AUTHENTICATED\"]," +
-                "\"enable_transport\":true,\"disabled_transport_categories\":[\"SSL_EXCEPTION\"]," +
-                "\"resolve_bulk_requests\":true,\"log_request_body\":true,\"resolve_indices\":true,\"exclude_sensitive_headers\":true," +
-                "\"ignore_users\":[\"test-user-1\"],\"ignore_requests\":[\"test-request\"]}," +
+                    "\"enable_rest\":true,\"disabled_rest_categories\":[\"AUTHENTICATED\"]," +
+                    "\"enable_transport\":true,\"disabled_transport_categories\":[\"SSL_EXCEPTION\"]," +
+                    "\"resolve_bulk_requests\":true,\"log_request_body\":true,\"resolve_indices\":true,\"exclude_sensitive_headers\":true," +
+                    "\"ignore_users\":[\"test-user-1\"],\"ignore_requests\":[\"test-request\"]}," +
                 "\"compliance\":{" +
-                "\"enabled\":true," +
-                "\"internal_config\":true,\"external_config\":true," +
-                "\"read_metadata_only\":true,\"read_watched_fields\":[\"test-read-watch-field\"],\"read_ignore_users\":[\"test-user-2\"]," +
-                "\"write_metadata_only\":true,\"write_log_diffs\":true,\"write_watched_indices\":[\"test-write-watch-index\"],\"write_ignore_users\":[\"test-user-3\"]}" +
+                    "\"enabled\":true," +
+                    "\"internal_config\":true,\"external_config\":true," +
+                    "\"read_metadata_only\":true,\"read_watched_fields\":{\"test-read-watch-field\":[]},\"read_ignore_users\":[\"test-user-2\"]," +
+                    "\"write_metadata_only\":true,\"write_log_diffs\":true,\"write_watched_indices\":[\"test-write-watch-index\"],\"write_ignore_users\":[\"test-user-3\"]}" +
                 "}";
 
         // act
@@ -214,7 +213,7 @@ public class AuditConfigFilterTest {
         assertEquals(audit.getIgnoredAuditRequests(), Collections.singleton("test-request"));
         assertTrue(configCompliance.isReadMetadataOnly());
         assertEquals(configCompliance.getReadIgnoreUsers(), Collections.singleton("test-user-2"));
-        assertEquals(configCompliance.getReadWatchedFields(), Collections.singletonList("test-read-watch-field"));
+        assertEquals(configCompliance.getReadWatchedFields(), Collections.singletonMap("test-read-watch-field", Collections.emptySet()));
         assertTrue(configCompliance.isWriteMetadataOnly());
         assertTrue(configCompliance.isWriteLogDiffs());
         assertEquals(configCompliance.getWriteIgnoreUsers(), Collections.singleton("test-user-3"));
@@ -235,7 +234,7 @@ public class AuditConfigFilterTest {
         compliance.setExternalConfigEnabled(true);
         compliance.setReadIgnoreUsers(Collections.singleton("test-user-1"));
         compliance.setWriteIgnoreUsers(Collections.singleton("test-user-2"));
-        compliance.setReadWatchedFields(Collections.singletonList("test-read-watch-field-1"));
+        compliance.setReadWatchedFields(Collections.singletonMap("test-read-watch-field-1", Collections.emptySet()));
         compliance.setWriteWatchedIndices(Collections.singletonList("test-write-watch-index"));
         auditConfig.setFilter(audit);
         auditConfig.setCompliance(compliance);
@@ -250,12 +249,10 @@ public class AuditConfigFilterTest {
                     "\"resolve_bulk_requests\":true,\"log_request_body\":true,\"resolve_indices\":true,\"exclude_sensitive_headers\":true," +
                     "\"ignore_users\":[\"kibanaserver\"],\"ignore_requests\":[]}," +
                 "\"compliance\":{" +
-                    "\"enabled\":true," +
-                    "\"internal_config\":true,\"external_config\":true," +
-                    "\"read_metadata_only\":true,\"read_watched_fields\":[\"test-read-watch-field-1\"],\"read_ignore_users\":[\"test-user-1\"]," +
+                    "\"enabled\":true,\"internal_config\":true,\"external_config\":true," +
+                    "\"read_metadata_only\":true,\"read_watched_fields\":{\"test-read-watch-field-1\":[]},\"read_ignore_users\":[\"test-user-1\"]," +
                     "\"write_metadata_only\":true,\"write_log_diffs\":false," +
-                    "\"write_watched_indices\":[\"test-write-watch-index\"],\"write_ignore_users\":[\"test-user-2\"]}" +
-                "}", json);
+                    "\"write_watched_indices\":[\"test-write-watch-index\"],\"write_ignore_users\":[\"test-user-2\"]}}", json);
     }
 
     @Test
@@ -288,7 +285,7 @@ public class AuditConfigFilterTest {
                 "\"compliance\":{" +
                     "\"enabled\":true," +
                     "\"internal_config\":true,\"external_config\":false," +
-                    "\"read_metadata_only\":true,\"read_watched_fields\":[],\"read_ignore_users\":[]," +
+                    "\"read_metadata_only\":true,\"read_watched_fields\":{},\"read_ignore_users\":[]," +
                     "\"write_metadata_only\":true,\"write_log_diffs\":false,\"write_watched_indices\":[],\"write_ignore_users\":[]}" +
                 "}", json);
     }

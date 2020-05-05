@@ -32,7 +32,7 @@ config:
 
     # compliance read
     read_metadata_only: false
-    read_watched_fields: []
+    read_watched_fields: {}
     read_ignore_users: []
 
     # compliance write

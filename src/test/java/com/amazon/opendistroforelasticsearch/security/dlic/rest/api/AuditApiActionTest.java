@@ -3,15 +3,19 @@ package com.amazon.opendistroforelasticsearch.security.dlic.rest.api;
 import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditTestUtils;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import org.apache.http.Header;
 import org.apache.http.HttpStatus;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
+import java.util.Set;
 
 import static com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper.readTree;
 import static org.junit.Assert.assertEquals;
@@ -151,7 +155,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
             assertTrue(complianceNode.get("internal_config").isBoolean());
             assertTrue(complianceNode.get("external_config").isBoolean());
             assertTrue(complianceNode.get("read_metadata_only").isBoolean());
-            assertTrue(complianceNode.get("read_watched_fields").isArray());
+            assertTrue(complianceNode.get("read_watched_fields").isObject());
             assertTrue(complianceNode.get("read_ignore_users").isArray());
             assertTrue(complianceNode.get("write_metadata_only").isBoolean());
             assertTrue(complianceNode.get("write_watched_indices").isArray());
@@ -178,7 +182,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         testBoolean("/config/compliance/external_config", expectedStatus, headers);
         testBoolean("/config/compliance/read_metadata_only", expectedStatus, headers);
         testList("/config/compliance/read_ignore_users", ImmutableList.of("test-user-1"), expectedStatus, headers);
-        testList("/config/compliance/read_watched_fields", ImmutableList.of("test-index-1"), expectedStatus, headers);
+        testMap("/config/compliance/read_watched_fields", ImmutableMap.of("test-index-1", Collections.singleton("test-field")), expectedStatus, headers);
         testBoolean("/config/compliance/write_metadata_only", expectedStatus, headers);
         testBoolean("/config/compliance/write_log_diffs", expectedStatus, headers);
         testList("/config/compliance/write_ignore_users", ImmutableList.of("test-user-1"), expectedStatus, headers);
@@ -223,10 +227,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         assertEquals(expectedStatus, response.getStatusCode());
         if (expectedStatus == HttpStatus.SC_OK) {
             final JsonNode responseJson = readTree(rh.executeGetRequest(ENDPOINT, headers).getBody());
-            final List<String> actualList = ImmutableList.copyOf(responseJson.at(patchResource).iterator())
-                    .stream()
-                    .map(JsonNode::asText)
-                    .collect(Collectors.toList());
+            final List<String> actualList = DefaultObjectMapper.readValue(responseJson.at(patchResource).toString(), new TypeReference<List<String>>(){});
             assertEquals(expectedList.size(), actualList.size());
             assertTrue(actualList.containsAll(expectedList));
         }
@@ -239,7 +240,34 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         }
     }
 
-    private String getTestPayload() {
+    private void testMap(final String patchResource, final Map<String, Set<String>> expectedMap, final int expectedStatus, final Header... headers) throws Exception {
+        final String jsonValue = DefaultObjectMapper.writeValueAsString(expectedMap, true);
+
+        // make empty
+        RestHelper.HttpResponse response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"add\",\"path\": \"" + patchResource + "\",\"value\": {}}]", headers);
+        assertEquals(expectedStatus, response.getStatusCode());
+        if (expectedStatus == HttpStatus.SC_OK) {
+            assertEquals(0, readTree(rh.executeGetRequest(ENDPOINT, headers).getBody()).at(patchResource).size());
+        }
+
+        // add value
+        response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"add\",\"path\": \"" + patchResource + "\",\"value\": " + jsonValue + "}]", headers);
+        assertEquals(expectedStatus, response.getStatusCode());
+        if (expectedStatus == HttpStatus.SC_OK) {
+            final JsonNode responseJson = readTree(rh.executeGetRequest(ENDPOINT, headers).getBody());
+            final Map<String, Set<String>> actualMap = DefaultObjectMapper.readValue(responseJson.at(patchResource).toString(), new TypeReference<Map<String, Set<String>>>(){});
+            assertEquals(actualMap, expectedMap);
+        }
+
+        // check null
+        response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"add\",\"path\": \"" + patchResource + "\",\"value\": null}]", headers);
+        assertEquals(expectedStatus, response.getStatusCode());
+        if (expectedStatus == HttpStatus.SC_OK) {
+            assertEquals(0, readTree(rh.executeGetRequest(ENDPOINT, headers).getBody()).at(patchResource).size());
+        }
+    }
+
+        private String getTestPayload() {
         return "{" +
                 "\"enabled\":true," +
                 "\"audit\":{" +
@@ -250,7 +278,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
                 "\"compliance\":{" +
                     "\"enabled\":true," +
                     "\"internal_config\":true,\"external_config\":true," +
-                    "\"read_metadata_only\":true,\"read_watched_fields\":[\"test-read-watch-field\"],\"read_ignore_users\":[\"test-user-2\"]," +
+                    "\"read_metadata_only\":true,\"read_watched_fields\":{\"test-read-watch-field\":[]},\"read_ignore_users\":[\"test-user-2\"]," +
                     "\"write_metadata_only\":true,\"write_log_diffs\":true,\"write_watched_indices\":[\"test-write-watch-index\"],\"write_ignore_users\":[\"test-user-3\"]}" +
                 "}";
     }

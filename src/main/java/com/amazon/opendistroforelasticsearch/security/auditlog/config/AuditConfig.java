@@ -9,12 +9,14 @@ import com.fasterxml.jackson.annotation.Nulls;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -48,7 +50,7 @@ import java.util.stream.Collectors;
  *     "internal_config" : true,
  *     "external_config" : true,
  *     "read_metadata_only" : true,
- *     "read_watched_fields" : [ ],
+ *     "read_watched_fields" : { },
  *     "read_ignore_users" : [ ],
  *     "write_metadata_only" : true,
  *     "write_log_diffs" : false,
@@ -313,7 +315,7 @@ public class AuditConfig {
         @JsonProperty(value = Key.READ_METADATA_ONLY)
         private boolean readMetadataOnly = true;
         @JsonProperty(value = Key.READ_WATCHED_FIELDS)
-        private List<String> readWatchedFields = Collections.emptyList();
+        private Map<String, Set<String>> readWatchedFields = Collections.emptyMap();
         @JsonProperty(value = Key.READ_IGNORE_USERS)
         private Set<String> readIgnoreUsers = Collections.emptySet();
         @JsonProperty(value = Key.WRITE_METADATA_ONLY)
@@ -366,16 +368,16 @@ public class AuditConfig {
         }
 
         @JsonIgnore
-        public List<String> getReadWatchedFields() {
+        public Map<String, Set<String>> getReadWatchedFields() {
             return readWatchedFields;
         }
 
         @JsonSetter(value = Key.READ_WATCHED_FIELDS, nulls = Nulls.AS_EMPTY)
-        public void setReadWatchedFields(List<String> readWatchedFields) {
+        public void setReadWatchedFields(Map<String, Set<String>> readWatchedFields) {
             if (readWatchedFields != null) {
                 this.readWatchedFields = readWatchedFields;
             } else {
-                this.readWatchedFields = Collections.emptyList();
+                this.readWatchedFields = Collections.emptyMap();
             }
         }
 
@@ -513,8 +515,21 @@ public class AuditConfig {
         compliance.setReadMetadataOnly(settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_METADATA_ONLY, false));
         compliance.setWriteMetadataOnly(settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_METADATA_ONLY, false));
         compliance.setWriteLogDiffs(settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS, false));
-        compliance.setReadWatchedFields(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS,
-                Collections.emptyList(), false));
+
+        final List<String> setReadWatchedFieldsList = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS,
+                Collections.emptyList(), false);
+        //opendistro_security.compliance.pii_fields:
+        //  - indexpattern,fieldpattern,fieldpattern,....
+        Map<String, Set<String>> readEnabledFields = setReadWatchedFieldsList.stream()
+                .map(watchedReadField -> watchedReadField.split(","))
+                .filter(split -> split.length != 0 && !Strings.isNullOrEmpty(split[0]))
+                .collect(Collectors.toMap(
+                        split -> split[0],
+                        split -> split.length == 1 ?
+                                Collections.singleton("*") : Arrays.stream(split).skip(1).collect(Collectors.toSet())
+                ));
+        compliance.setReadWatchedFields(readEnabledFields);
+
         compliance.setWriteWatchedIndices(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, Collections.emptyList()));
         compliance.setReadIgnoreUsers(getSettingAsSet(
                 settings,
