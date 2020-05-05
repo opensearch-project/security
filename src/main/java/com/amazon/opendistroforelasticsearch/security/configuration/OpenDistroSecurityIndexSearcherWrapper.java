@@ -60,8 +60,8 @@ public class OpenDistroSecurityIndexSearcherWrapper implements CheckedFunction<D
     private final AdminDNs adminDns;
     private ConfigModel configModel;
     private final PrivilegesEvaluator evaluator;
-    private final WildcardMatcher indexPatterns;
-    private final WildcardMatcher allowedRoles;
+    private final WildcardMatcher indexMatcher;
+    private final WildcardMatcher allowedRolesMatcher;
     private final Boolean protectedIndexEnabled;
 
     //constructor is called per index, so avoid costly operations here
@@ -71,8 +71,8 @@ public class OpenDistroSecurityIndexSearcherWrapper implements CheckedFunction<D
         this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
         this.evaluator = evaluator;
         this.adminDns = adminDNs;
-        this.indexPatterns = WildcardMatcher.pattern(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_KEY));
-        this.allowedRoles = WildcardMatcher.pattern(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_KEY));
+        this.indexMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_KEY));
+        this.allowedRolesMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_KEY));
         this.protectedIndexEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_DEFAULT);
     }
 
@@ -118,7 +118,7 @@ public class OpenDistroSecurityIndexSearcherWrapper implements CheckedFunction<D
     }
 
     protected final boolean isBlockedIndexRequest() {
-        return indexPatterns.test(index.getName());
+        return indexMatcher.test(index.getName());
     }
 
     protected final boolean isPermittedOnIndex() {
@@ -128,7 +128,7 @@ public class OpenDistroSecurityIndexSearcherWrapper implements CheckedFunction<D
             return false;
         }
         final Set<String> securityRoles = evaluator.mapRoles(user, caller);
-        if (allowedRoles.matchAny(securityRoles)) {
+        if (allowedRolesMatcher.matchAny(securityRoles)) {
             return true;
         }
         return false;

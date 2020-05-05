@@ -30,52 +30,61 @@
 
 package com.amazon.opendistroforelasticsearch.security.support;
 
-import java.io.Serializable;
 import java.util.Arrays;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.Iterator;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public abstract class WildcardMatcher implements Predicate<String>, Serializable {
-    static final long serialVersionUID = 1L;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 
-    public boolean isPattern() { return true; }
-    
-    public boolean matchAny(Collection<String> candidates) {
-        return candidates.stream().anyMatch(this);
-    }
+public abstract class WildcardMatcher implements Predicate<String> {
 
-    public boolean matchAny(String[] candidates) {
-        return Arrays.stream(candidates).anyMatch(this);
-    }
-
-    public boolean matchAll(String[] candidates) {
-        return Arrays.stream(candidates).allMatch(this);
-    }
-
-    public boolean matchAll(Collection<String> candidates) {
-        return candidates.stream().allMatch(this);
-    }
-
-    public List<String> getMatchAny(final Collection<String> candidate) {
-        return candidate.stream().filter(this).collect(Collectors.toList());
-    }
-
-    public List<String> getMatchAny(final String[] candidate) {
-        return Arrays.stream(candidate).filter(this).collect(Collectors.toList());
-    }
-
-    // TODO: make serializable, hashable etc.
     public static final WildcardMatcher ANY = new WildcardMatcher() {
-        static final long serialVersionUID = 2L;
+
+        @Override
+        public boolean matchAny(Stream<String> candidates) {
+            return true;
+        }
+
+        @Override
+        public boolean matchAny(Collection<String> candidates) {
+            return true;
+        }
+
+        @Override
+        public boolean matchAny(String[] candidates) {
+            return true;
+        }
+
+        @Override
+        public boolean matchAll(Stream<String> candidates) {
+            return true;
+        }
+
+        @Override
+        public boolean matchAll(Collection<String> candidates) {
+            return true;
+        }
+
+        @Override
+        public boolean matchAll(String[] candidates) {
+            return true;
+        }
+
+        @Override
+        public <T extends Collection<String>> T getMatchAny(Stream<String> candidates, Collector<String, ?, T> collector) {
+            return candidates.collect(collector);
+        }
 
         @Override
         public boolean test(String candidate) {
@@ -83,20 +92,57 @@ public abstract class WildcardMatcher implements Predicate<String>, Serializable
         }
 
         @Override
-        public boolean equals(Object obj) {
-            return obj == this;
+        public String toString() {
+            return "*";
+        }
+    };
+
+    public static final WildcardMatcher NONE = new WildcardMatcher() {
+
+        @Override
+        public boolean matchAny(Stream<String> candidates) {
+            return false;
         }
 
         @Override
-        public int hashCode() { return 1; }
+        public boolean matchAny(Collection<String> candidates) {
+            return false;
+        }
 
         @Override
-        public String toString() { return "*"; }
-    };
+        public boolean matchAny(String[] candidates) {
+            return false;
+        }
 
-    // TODO: make serializable, hashable etc.
-    public static final WildcardMatcher NONE = new WildcardMatcher() {
-        static final long serialVersionUID = 3L;
+        @Override
+        public boolean matchAll(Stream<String> candidates) {
+            return false;
+        }
+
+        @Override
+        public boolean matchAll(Collection<String> candidates) {
+            return false;
+        }
+
+        @Override
+        public boolean matchAll(String[] candidates) {
+            return false;
+        }
+
+        @Override
+        public <T extends Collection<String>> T getMatchAny(Stream<String> candidates, Collector<String, ?, T> collector) {
+            return Stream.<String>empty().collect(collector);
+        }
+
+        @Override
+        public <T extends Collection<String>> T getMatchAny(Collection<String> candidate, Collector<String, ?, T> collector) {
+            return Stream.<String>empty().collect(collector);
+        }
+
+        @Override
+        public <T extends Collection<String>> T getMatchAny(String[] candidate, Collector<String, ?, T> collector) {
+            return Stream.<String>empty().collect(collector);
+        }
 
         @Override
         public boolean test(String candidate) {
@@ -104,109 +150,154 @@ public abstract class WildcardMatcher implements Predicate<String>, Serializable
         }
 
         @Override
-        public boolean equals(Object obj) {
-            return obj == this;
+        public String toString() {
+            return "<NONE>";
         }
-
-        @Override
-        public int hashCode() { return 2; }
-
-        @Override
-        public String toString() { return "<NONE>"; }
     };
 
-    // This may in future use more optimized techniques to combine multiple WildcardMatchers in a single automaton
-    public static WildcardMatcher pattern(Stream<String> patterns, boolean caseSensitive) {
-        List<WildcardMatcher> list = patterns.map(WildcardMatcher::pattern).collect(Collectors.toList());
-        return list.isEmpty() ? NONE : new MultiMatcher(list);
-    }
-
-    public static List<WildcardMatcher> patterns(Collection<String> patterns) {
-        return patterns.stream().map(p -> WildcardMatcher.pattern(p, true))
-                .collect(Collectors.toList());
-    }
-
-    public static WildcardMatcher pattern(Collection<String> patterns, boolean caseSensitive) {
-        return pattern(patterns.stream(), caseSensitive);
-    }
-
-    public static WildcardMatcher pattern(Collection<String> patterns) {
-        return pattern(patterns.stream(), true);
-    }
-
-    public static WildcardMatcher merge(Collection<WildcardMatcher> patterns) {
-        return new MultiMatcher(new ArrayList<>(patterns));
-    }
-
-    public static WildcardMatcher pattern(String[] pattern) {
-        return pattern(Arrays.stream(pattern), true);
-    }
-    
-    public static WildcardMatcher pattern(String pattern) {
-        return pattern(pattern, true);
-    }
-
-    public static WildcardMatcher pattern(String pattern, boolean caseSensitive) {
-        if (pattern.startsWith("/") && pattern.endsWith("/")) {
+    public static WildcardMatcher from(String pattern, boolean caseSensitive) {
+        if (pattern.equals("*")) {
+            return ANY;
+        } else if (pattern.startsWith("/") && pattern.endsWith("/")) {
             return new RegexMatcher(pattern, caseSensitive);
         } else if (pattern.indexOf('?') >= 0 || pattern.indexOf('*') >= 0) {
             return caseSensitive ?  new SimpleMatcher(pattern) : new CasefoldingMatcher(pattern,  SimpleMatcher::new);
         }
         else {
-            return caseSensitive ? new ExactMatcher(pattern) : new CasefoldingMatcher(pattern, ExactMatcher::new);
+            return caseSensitive ? new Exact(pattern) : new CasefoldingMatcher(pattern, Exact::new);
         }
     }
 
-    public static boolean allMatches(final Collection<WildcardMatcher> pattern, final Collection<String> candidate) {
-        int matchedPatternNum = 0;
-        for (WildcardMatcher pat : pattern) {
-            if (pat.matchAny(candidate)) {
-                matchedPatternNum++;
+    public static WildcardMatcher from(String pattern) {
+        return from(pattern, true);
+    }
+
+    // This may in future use more optimized techniques to combine multiple WildcardMatchers in a single automaton
+    public static <T> WildcardMatcher from(Stream<T> stream, boolean caseSensitive) {
+        Collection<WildcardMatcher> matchers = stream.map(t -> {
+            if (t instanceof String) {
+                return WildcardMatcher.from(((String) t), caseSensitive);
+            } else if (t instanceof WildcardMatcher) {
+                return ((WildcardMatcher) t);
             }
+            throw new UnsupportedOperationException("WildcardMatcher can't be constructed from " + t.getClass().getSimpleName());
+        })
+        .collect(ImmutableSet.toImmutableSet());
+
+        if (matchers.isEmpty()) {
+            return NONE;
+        } else if (matchers.size() == 1) {
+            return matchers.stream().findFirst().get();
         }
-        return matchedPatternNum == pattern.size() && pattern.size() > 0;
+        return new MatcherCombiner(matchers);
     }
 
-    public static Optional<WildcardMatcher> getFirstMatchingPattern(final Collection<WildcardMatcher> pattern, final String candidate) {
-        for (WildcardMatcher p : pattern) {
-            if (p.test(candidate)) {
-                return Optional.of(p);
+    public static <T> WildcardMatcher from(Collection<T> collection, boolean caseSensitive) {
+        if (collection == null || collection.isEmpty()) {
+            return NONE;
+        } else if (collection.size() == 1) {
+            T t = collection.stream().findFirst().get();
+            if (t instanceof String) {
+                return from(((String) t), caseSensitive);
+            } else if (t instanceof WildcardMatcher) {
+                return ((WildcardMatcher) t);
             }
+            throw new UnsupportedOperationException("WildcardMatcher can't be constructed from " + t.getClass().getSimpleName());
         }
-        return Optional.empty();
+        return from(collection.stream(), caseSensitive);
     }
 
-    public static List<WildcardMatcher> getAllMatchingPatterns(final Collection<WildcardMatcher> pattern, final String candidate) {
-        return pattern.stream().filter(p -> p.test(candidate)).collect(Collectors.toList());
-    }
-
-    public static List<WildcardMatcher> getAllMatchingPatterns(final Collection<WildcardMatcher> pattern, final Collection<String> candidates) {
-        return pattern.stream().filter(p -> p.matchAny(candidates)).collect(Collectors.toList());
-    }
-
-    /**
-     *
-     * @param set of string to modify
-     * @param matcher WildcardMatcher matcher to use to filter
-     * @return
-     */
-    public static boolean WildcardMatcherRetainInSet(Set<String> set, WildcardMatcher matcher) {
-        if(set == null || set.isEmpty()) {
-            return false;
+    public static WildcardMatcher from(String[] patterns, boolean caseSensitive) {
+        if (patterns == null || patterns.length == 0) {
+            return NONE;
+        } else if (patterns.length == 1) {
+            return from(patterns[0], caseSensitive);
         }
-        
-        boolean modified = false;
-        Iterator<String> it = set.iterator();
-        while(it.hasNext()) {
-            String v = it.next();
-            if(!matcher.test(v)) {
-                it.remove();
-                modified = true;
-            }
-        }
-        return modified;
+        return from(Arrays.stream(patterns), caseSensitive);
     }
 
+    public static WildcardMatcher from(Stream<String> patterns) {
+        return from(patterns, true);
+    }
+
+    public static WildcardMatcher from(Collection<?> patterns) {
+        return from(patterns, true);
+    }
+
+    public static WildcardMatcher from(String... patterns) {
+        return from(patterns, true);
+    }
+
+    public WildcardMatcher concat(Stream<WildcardMatcher> matchers) {
+        return new WildcardMatcher.MatcherCombiner(Stream.concat(matchers, Stream.of(this)).collect(ImmutableSet.toImmutableSet()));
+    }
+
+    public WildcardMatcher concat(Collection<WildcardMatcher> matchers) {
+        if (matchers.isEmpty()) {
+            return this;
+        }
+        return concat(matchers.stream());
+    }
+
+    public WildcardMatcher concat(WildcardMatcher... matchers) {
+        if (matchers.length == 0) {
+            return this;
+        }
+        return concat(Arrays.stream(matchers));
+    }
+
+    public boolean matchAny(Stream<String> candidates) {
+        return candidates.anyMatch(this);
+    }
+
+    public boolean matchAny(Collection<String> candidates) {
+        return matchAny(candidates.stream());
+    }
+
+    public boolean matchAny(String[] candidates) {
+        return matchAny(Arrays.stream(candidates));
+    }
+
+    public boolean matchAll(Stream<String> candidates) {
+        return candidates.allMatch(this);
+    }
+
+    public boolean matchAll(Collection<String> candidates) {
+        return matchAll(candidates.stream());
+    }
+
+    public boolean matchAll(String[] candidates) {
+        return matchAll(Arrays.stream(candidates));
+    }
+
+    public <T extends Collection<String>> T getMatchAny(Stream<String> candidates, Collector<String, ?, T> collector) {
+        return candidates.filter(this).collect(collector);
+    }
+
+    public <T extends Collection<String>> T getMatchAny(Collection<String> candidate, Collector<String, ?, T> collector) {
+        return getMatchAny(candidate.stream(), collector);
+    }
+
+    public <T extends Collection<String>> T getMatchAny(final String[] candidate, Collector<String, ?, T> collector) {
+        return getMatchAny(Arrays.stream(candidate), collector);
+    }
+
+    public Optional<WildcardMatcher> findFirst(final String candidate) {
+        return Optional.ofNullable(test(candidate) ? this : null);
+    }
+
+    public static List<WildcardMatcher> matchers(Collection<String> patterns) {
+        return patterns.stream().map(p -> WildcardMatcher.from(p, true))
+                .collect(Collectors.toList());
+    }
+
+    public static List<String> getAllMatchingPatterns(final Collection<WildcardMatcher> matchers, final String candidate) {
+        return matchers.stream().filter(p -> p.test(candidate)).map(Objects::toString).collect(Collectors.toList());
+    }
+
+    public static List<String> getAllMatchingPatterns(final Collection<WildcardMatcher> pattern, final Collection<String> candidates) {
+        return pattern.stream().filter(p -> p.matchAny(candidates)).map(Objects::toString).collect(Collectors.toList());
+    }
 
     //
     // --- Implementation specializations ---
@@ -214,11 +305,10 @@ public abstract class WildcardMatcher implements Predicate<String>, Serializable
     // Casefolding matcher - sits on top of case-sensitive matcher 
     // and proxies toLower() of input string to the wrapped matcher
     private static final class CasefoldingMatcher extends WildcardMatcher {
-        static final long serialVersionUID = 10L;
 
         private final WildcardMatcher inner;
 
-        public CasefoldingMatcher(String pattern, Function<String,WildcardMatcher> simpleWildcardMatcher) {
+        public CasefoldingMatcher(String pattern, Function<String, WildcardMatcher> simpleWildcardMatcher) {
             this.inner = simpleWildcardMatcher.apply(pattern.toLowerCase());
         }
 
@@ -246,18 +336,12 @@ public abstract class WildcardMatcher implements Predicate<String>, Serializable
         }
     }
 
-    private static final class ExactMatcher extends WildcardMatcher {
-        static final long serialVersionUID = 20L;
+    public static final class Exact extends WildcardMatcher {
 
         private final String pattern;
 
-        ExactMatcher(String pattern) {
+        private Exact(String pattern) {
             this.pattern = pattern;
-        }
-
-        @Override
-        public boolean isPattern() {
-            return false;
         }
 
         @Override
@@ -269,7 +353,7 @@ public abstract class WildcardMatcher implements Predicate<String>, Serializable
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
-            ExactMatcher that = (ExactMatcher) o;
+            Exact that = (Exact) o;
             return pattern.equals(that.pattern);
         }
 
@@ -284,15 +368,16 @@ public abstract class WildcardMatcher implements Predicate<String>, Serializable
         }
     }
 
-    // RegexMatcher uses JDK Pattern to test for matching, 
+    // RegexMatcher uses JDK Pattern to test for matching,
     // assumes "/<regex>/" strings as input pattern
     private static final class RegexMatcher extends WildcardMatcher {
-        static final long serialVersionUID = 30L;
 
         private final Pattern pattern;
 
-        public RegexMatcher(String pattern, boolean caseSensitive) {
-            this.pattern = Pattern.compile(pattern.substring(1, pattern.length()-1), caseSensitive ? 0 : Pattern.CASE_INSENSITIVE);
+        private RegexMatcher(String pattern, boolean caseSensitive) {
+            Preconditions.checkArgument(pattern.length() > 1 && pattern.startsWith("/") && pattern.endsWith("/"));
+            final String stripSlashesPattern = pattern.substring(1, pattern.length() - 1);
+            this.pattern = caseSensitive ? Pattern.compile(stripSlashesPattern) : Pattern.compile(stripSlashesPattern, Pattern.CASE_INSENSITIVE);
         }
 
         @Override
@@ -317,11 +402,10 @@ public abstract class WildcardMatcher implements Predicate<String>, Serializable
         public String toString(){ return "/" + pattern.pattern() + "/"; }
     }
 
-    // Simple implementation of WildcardMatcher matcher with * and ? without 
+    // Simple implementation of WildcardMatcher matcher with * and ? without
     // using exlicit stack or recursion (as long as we don't need sub-matches it does work)
     // allows us to save on resources and heap allocations unless Regex is required
     private static final class SimpleMatcher extends WildcardMatcher {
-        static final long serialVersionUID = 40L;
 
         private final String pattern;
 
@@ -371,37 +455,44 @@ public abstract class WildcardMatcher implements Predicate<String>, Serializable
         public String toString(){ return pattern; }
     }
 
-    // MultiMatcher is a combination of a set of matchers
+    // MatcherCombiner is a combination of a set of matchers
     // matches if any of the set do
     // Empty MultiMatcher always returns false
-    private static final class MultiMatcher extends WildcardMatcher {
-        static final long serialVersionUID = 50L;
+    private static final class MatcherCombiner extends WildcardMatcher {
 
-        private final List<WildcardMatcher> WildcardMatchers;
+        private final Collection<WildcardMatcher> wildcardMatchers;
+        private final int hashCode;
 
-        MultiMatcher(List<WildcardMatcher> WildcardMatchers) {
-            this.WildcardMatchers = WildcardMatchers;
+        MatcherCombiner(Collection<WildcardMatcher> wildcardMatchers) {
+            Preconditions.checkArgument(wildcardMatchers.size() > 1);
+            this.wildcardMatchers = wildcardMatchers;
+            hashCode = wildcardMatchers.hashCode();
         }
 
         @Override
         public boolean test(String candidate) {
-            return WildcardMatchers.stream().anyMatch(WildcardMatcher -> WildcardMatcher.test(candidate));
+            return wildcardMatchers.stream().anyMatch(m -> m.test(candidate));
+        }
+
+        @Override
+        public Optional<WildcardMatcher> findFirst(final String candidate) {
+            return wildcardMatchers.stream().filter(m -> m.test(candidate)).findFirst();
         }
 
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
-            MultiMatcher that = (MultiMatcher) o;
-            return WildcardMatchers.equals(that.WildcardMatchers);
+            MatcherCombiner that = (MatcherCombiner) o;
+            return wildcardMatchers.equals(that.wildcardMatchers);
         }
 
         @Override
         public int hashCode() {
-            return WildcardMatchers.hashCode();
+            return hashCode;
         }
 
         @Override
-        public String toString() { return WildcardMatchers.toString(); }
+        public String toString() { return wildcardMatchers.toString(); }
     }
 }

@@ -55,7 +55,7 @@ public class OpenDistroSecurityIndexAccessEvaluator {
     
     private final String opendistrosecurityIndex;
     private final AuditLog auditLog;
-    private final WildcardMatcher securityDeniedActionPatterns;
+    private final WildcardMatcher securityDeniedActionMatcher;
     private final IndexResolverReplacer irr;
     private final boolean filterSecurityIndex;
     
@@ -81,7 +81,7 @@ public class OpenDistroSecurityIndexAccessEvaluator {
         securityIndexDeniedActionPatternsListNoSnapshot.add("indices:admin/close*");
         securityIndexDeniedActionPatternsListNoSnapshot.add("cluster:admin/snapshot/restore*");
 
-        securityDeniedActionPatterns = WildcardMatcher.pattern(restoreSecurityIndexEnabled ? securityIndexDeniedActionPatternsList : securityIndexDeniedActionPatternsListNoSnapshot);
+        securityDeniedActionMatcher = WildcardMatcher.from(restoreSecurityIndexEnabled ? securityIndexDeniedActionPatternsList : securityIndexDeniedActionPatternsListNoSnapshot);
     }
     
     public PrivilegesEvaluatorResponse evaluate(final ActionRequest request, final Task task, final String action, final Resolved requestedResolved,
@@ -89,7 +89,7 @@ public class OpenDistroSecurityIndexAccessEvaluator {
 
         
         if (requestedResolved.getAllIndices().contains(opendistrosecurityIndex)
-                && securityDeniedActionPatterns.test(action)) {
+                && securityDeniedActionMatcher.test(action)) {
             if(filterSecurityIndex) {
                 Set<String> allWithoutSecurity = new HashSet<>(requestedResolved.getAllIndices());
                 allWithoutSecurity.remove(opendistrosecurityIndex);
@@ -114,7 +114,7 @@ public class OpenDistroSecurityIndexAccessEvaluator {
         }
 
         if (requestedResolved.isLocalAll()
-                && securityDeniedActionPatterns.test(action)) {
+                && securityDeniedActionMatcher.test(action)) {
             if(filterSecurityIndex) {
                 irr.replace(request, false, "*","-"+opendistrosecurityIndex);
                 if(log.isDebugEnabled()) {

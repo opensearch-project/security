@@ -12,7 +12,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.amazon.opendistroforelasticsearch.security.securityconf.Hideable;
 import com.amazon.opendistroforelasticsearch.security.securityconf.StaticDefinable;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v6.RoleV6;
-import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 
 public class RoleV7 implements Hideable, StaticDefinable {
 
@@ -150,8 +149,8 @@ public class RoleV7 implements Hideable, StaticDefinable {
             super();
         }
 
-        public WildcardMatcher getTenant_patterns() {
-            return WildcardMatcher.pattern(tenant_patterns);
+        public List<String> getTenant_patterns() {
+            return tenant_patterns;
         }
 
         public void setTenant_patterns(List<String> tenant_patterns) {

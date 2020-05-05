@@ -21,15 +21,15 @@ public class OpenDistroProtectedIndexAccessEvaluator {
     protected final Logger log = LogManager.getLogger(this.getClass());
 
     private final AuditLog auditLog;
-    private final WildcardMatcher indexPatterns;
-    private final WildcardMatcher allowedRoles;
+    private final WildcardMatcher indexMatcher;
+    private final WildcardMatcher allowedRolesMatcher;
     private final Boolean protectedIndexEnabled;
-    private final WildcardMatcher deniedActionPatterns;
+    private final WildcardMatcher deniedActionMatcher;
 
 
     public OpenDistroProtectedIndexAccessEvaluator(final Settings settings, AuditLog auditLog) {
-        this.indexPatterns = WildcardMatcher.pattern(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_DEFAULT));
-        this.allowedRoles = WildcardMatcher.pattern(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_DEFAULT));
+        this.indexMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_DEFAULT));
+        this.allowedRolesMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_DEFAULT));
         this.protectedIndexEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_DEFAULT);
         this.auditLog = auditLog;
 
@@ -43,7 +43,7 @@ public class OpenDistroProtectedIndexAccessEvaluator {
         indexDeniedActionPatterns.add("indices:admin/aliases");
         indexDeniedActionPatterns.add("indices:admin/close*");
         indexDeniedActionPatterns.add("cluster:admin/snapshot/restore*");
-        this.deniedActionPatterns = WildcardMatcher.pattern(indexDeniedActionPatterns);
+        this.deniedActionMatcher = WildcardMatcher.from(indexDeniedActionPatterns);
     }
 
     public PrivilegesEvaluatorResponse evaluate(final ActionRequest request, final Task task, final String action, final IndexResolverReplacer.Resolved requestedResolved,
@@ -51,26 +51,26 @@ public class OpenDistroProtectedIndexAccessEvaluator {
         if (!protectedIndexEnabled) {
             return presponse;
         }
-        if (indexPatterns.matchAny(requestedResolved.getAllIndices())
-                && deniedActionPatterns.test(action)
-                && !allowedRoles.matchAny(securityRoles.getRoleNames())) {
+        if (indexMatcher.matchAny(requestedResolved.getAllIndices())
+                && deniedActionMatcher.test(action)
+                && !allowedRolesMatcher.matchAny(securityRoles.getRoleNames())) {
             auditLog.logMissingPrivileges(action, request, task);
-            log.warn(action + " for '{}' index/indices is not allowed for a regular user", indexPatterns);
+            log.warn(action + " for '{}' index/indices is not allowed for a regular user", indexMatcher);
             presponse.allowed = false;
             return presponse.markComplete();
         }
 
         if (requestedResolved.isLocalAll()
-                && deniedActionPatterns.test(action)
-                && !allowedRoles.matchAny(securityRoles.getRoleNames())) {
+                && deniedActionMatcher.test(action)
+                && !allowedRolesMatcher.matchAny(securityRoles.getRoleNames())) {
             auditLog.logMissingPrivileges(action, request, task);
             log.warn(action + " for '_all' indices is not allowed for a regular user");
             presponse.allowed = false;
             return presponse.markComplete();
         }
-        if((indexPatterns.matchAny(requestedResolved.getAllIndices())
+        if((indexMatcher.matchAny(requestedResolved.getAllIndices())
                 || requestedResolved.isLocalAll())
-                && !allowedRoles.matchAny(securityRoles.getRoleNames())) {
+                && !allowedRolesMatcher.matchAny(securityRoles.getRoleNames())) {
 
             if(request instanceof SearchRequest) {
                 ((SearchRequest)request).requestCache(Boolean.FALSE);

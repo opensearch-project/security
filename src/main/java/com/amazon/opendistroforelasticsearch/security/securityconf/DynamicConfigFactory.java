@@ -41,6 +41,8 @@ import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.RoleV
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.TenantV7;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 
+import com.google.common.collect.ImmutableMap;
+
 public class DynamicConfigFactory implements Initializable, ConfigurationChangeListener {
 
     public static final EventBusBuilder EVENT_BUS_BUILDER = EventBus.builder();
@@ -94,7 +96,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
 
     SecurityDynamicConfiguration<?> config;
     
-    public DynamicConfigFactory(ConfigurationRepository cr, final Settings esSettings, 
+    public DynamicConfigFactory(ConfigurationRepository cr, final Settings esSettings,
             final Path configPath, Client client, ThreadPool threadPool, ClusterInfoHolder cih) {
         super();
         this.cr = cr;
@@ -341,7 +343,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         @Override
         public Map<String, WildcardMatcher> getNodesDn() {
             return this.configuration.getCEntries().entrySet().stream().collect(
-                Collectors.toMap(Entry::getKey, entry -> WildcardMatcher.pattern(entry.getValue().getNodesDn(), false)));
+                ImmutableMap.toImmutableMap(Entry::getKey, entry -> WildcardMatcher.from(entry.getValue().getNodesDn(), false)));
         }
     }
    

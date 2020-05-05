@@ -392,7 +392,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 	}
 
 	@Test
-	public void testTransportClientImpersonationWildcardMatcher() throws Exception {
+	public void testTransportClientImpersonationWildcard() throws Exception {
 
 		final Settings settings = Settings.builder()
 				.putList("opendistro_security.authcz.impersonation_dn.CN=spock,OU=client,O=client,L=Test,C=DE", "*")
@@ -753,7 +753,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 	}
 
 	@Test
-	public void testTransportClientImpersonationWildcardMatcherUsernameAttribute() throws Exception {
+	public void testTransportClientImpersonationWildcardUsernameAttribute() throws Exception {
 
 		final Settings settings = Settings.builder()
 				.putList("opendistro_security.authcz.impersonation_dn.CN=spock,OU=client,O=client,L=Test,C=DE", "*")

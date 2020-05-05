@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -58,7 +59,6 @@ import org.elasticsearch.tasks.Task;
 import org.elasticsearch.transport.TransportRequest;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog.Origin;
-import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
 import com.amazon.opendistroforelasticsearch.security.dlic.rest.support.Utils;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 
@@ -347,8 +347,7 @@ public final class RequestResolver {
         final String[] _indices = indices == null?new String[0]:indices;
         msg.addIndices(_indices);
 
-        final WildcardMatcher allIndicesPattern;
-        final HashSet<String> allIndices;
+        final Set<String> allIndices;
 
         if(resolveIndices) {
             final String[] resolvedIndices = (resolver==null)?new String[0]:resolver.concreteIndexNames(cs.state(), IndicesOptions.lenientExpandOpen(), indices);
@@ -367,10 +366,10 @@ public final class RequestResolver {
             }
         }
 
-        allIndicesPattern = WildcardMatcher.pattern(allIndices);
+        final WildcardMatcher allIndicesMatcher = WildcardMatcher.from(allIndices);
         if(addSource) {
             if(sourceIsSensitive && source != null) {
-                if(!allIndicesPattern.test(opendistrosecurityIndex)) {
+                if(!allIndicesMatcher.test(opendistrosecurityIndex)) {
                     if(source instanceof BytesReference) {
                        msg.addTupleToRequestBody(convertSource(xContentType, (BytesReference) source));
                     } else {

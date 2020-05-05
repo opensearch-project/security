@@ -35,7 +35,7 @@ public class ComplianceConfigTest {
         assertFalse(complianceConfig.shouldLogReadMetadataOnly());
         assertFalse(complianceConfig.shouldLogWriteMetadataOnly());
         assertFalse(complianceConfig.shouldLogDiffsForWrite());
-        assertSame(WildcardMatcher.NONE, complianceConfig.getImmutableIndicesPatterns());
+        assertSame(WildcardMatcher.NONE, complianceConfig.getImmutableIndicesMatcher());
         assertEquals(16, complianceConfig.getSalt16().length);
     }
 
@@ -65,7 +65,7 @@ public class ComplianceConfigTest {
         assertTrue(complianceConfig.shouldLogReadMetadataOnly());
         assertTrue(complianceConfig.shouldLogWriteMetadataOnly());
         assertFalse(complianceConfig.shouldLogDiffsForWrite());
-        assertEquals(complianceConfig.getImmutableIndicesPatterns(), ImmutableSet.of("immutable1", "immutable2"));
+        assertEquals(complianceConfig.getImmutableIndicesMatcher(), WildcardMatcher.from(ImmutableSet.of("immutable1", "immutable2")));
         assertArrayEquals(testSalt.getBytes(StandardCharsets.UTF_8), complianceConfig.getSalt16());
         assertEquals(16, complianceConfig.getSalt16().length);
 

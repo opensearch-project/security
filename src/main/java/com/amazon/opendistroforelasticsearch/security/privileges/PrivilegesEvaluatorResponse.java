@@ -34,14 +34,12 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
-
 public class PrivilegesEvaluatorResponse {
     boolean allowed = false;
     Set<String> missingPrivileges = new HashSet<String>();
-    Map<WildcardMatcher,Set<String>> allowedFlsFields;
-    Map<WildcardMatcher,Set<String>> maskedFields;
-    Map<WildcardMatcher,Set<String>> queries;
+    Map<String,Set<String>> allowedFlsFields;
+    Map<String,Set<String>> maskedFields;
+    Map<String,Set<String>> queries;
     PrivilegesEvaluatorResponseState state = PrivilegesEvaluatorResponseState.PENDING;
     
     public boolean isAllowed() {
@@ -51,15 +49,15 @@ public class PrivilegesEvaluatorResponse {
         return new HashSet<String>(missingPrivileges);
     }
 
-    public Map<WildcardMatcher,Set<String>> getAllowedFlsFields() {
+    public Map<String,Set<String>> getAllowedFlsFields() {
         return allowedFlsFields;
     }
     
-    public Map<WildcardMatcher,Set<String>> getMaskedFields() {
+    public Map<String,Set<String>> getMaskedFields() {
         return maskedFields;
     }
 
-    public Map<WildcardMatcher,Set<String>> getQueries() {
+    public Map<String,Set<String>> getQueries() {
         return queries;
     }
     

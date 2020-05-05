@@ -110,7 +110,7 @@ public class IgnoreAuditUsersTest {
     }
 
     @Test
-    public void testWildcardMatchers() {
+    public void testWildcards() {
 
         SearchRequest sr = new SearchRequest();
         User user = new User("John Doe");

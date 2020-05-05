@@ -32,7 +32,6 @@ package com.amazon.opendistroforelasticsearch.security.transport;
 
 import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -40,6 +39,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigFactory;
+import com.amazon.opendistroforelasticsearch.security.securityconf.NodesDnModel;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
@@ -48,8 +49,6 @@ import org.elasticsearch.transport.TransportRequest;
 
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
-import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigFactory;
-import com.amazon.opendistroforelasticsearch.security.securityconf.NodesDnModel;
 import org.greenrobot.eventbus.Subscribe;
 
 public final class DefaultInterClusterRequestEvaluator implements InterClusterRequestEvaluator {
@@ -62,7 +61,7 @@ public final class DefaultInterClusterRequestEvaluator implements InterClusterRe
 
     public DefaultInterClusterRequestEvaluator(final Settings settings) {
         this.certOid = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CERT_OID, "1.2.3.4.5.5");
-        this.staticNodesDnFromEsYml = WildcardMatcher.pattern(
+        this.staticNodesDnFromEsYml = WildcardMatcher.from(
                 settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_NODES_DN, Collections.emptyList()),
                 false
         );
@@ -77,12 +76,10 @@ public final class DefaultInterClusterRequestEvaluator implements InterClusterRe
     }
 
     private WildcardMatcher getNodesDnToEvaluate() {
-        List<WildcardMatcher> patterns = new ArrayList<>();
-        patterns.add(this.staticNodesDnFromEsYml);
         if (dynamicNodesDnConfigEnabled) {
-            patterns.addAll(dynamicNodesDn.values());
+            return staticNodesDnFromEsYml.concat(dynamicNodesDn.values());
         }
-        return WildcardMatcher.merge(patterns);
+        return staticNodesDnFromEsYml;
     }
 
     @Override
@@ -170,6 +167,6 @@ public final class DefaultInterClusterRequestEvaluator implements InterClusterRe
 
     @Subscribe
     public void onNodesDnModelChanged(NodesDnModel nm) {
-        this.dynamicNodesDn = Collections.unmodifiableMap(nm.getNodesDn());
+        this.dynamicNodesDn = nm.getNodesDn();
     }
 }

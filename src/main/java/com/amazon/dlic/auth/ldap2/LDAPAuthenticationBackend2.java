@@ -60,7 +60,7 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
     private ConnectionFactory authConnectionFactory;
     private LDAPUserSearcher userSearcher;
     private final int customAttrMaxValueLen;
-    private final WildcardMatcher whitelistedAttributes;
+    private final WildcardMatcher whitelistedCustomLdapAttrMatcher;
 
     public LDAPAuthenticationBackend2(final Settings settings, final Path configPath) throws SSLConfigException {
         this.settings = settings;
@@ -79,8 +79,8 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
 
         this.userSearcher = new LDAPUserSearcher(settings);
         customAttrMaxValueLen = settings.getAsInt(ConfigConstants.LDAP_CUSTOM_ATTR_MAXVAL_LEN, 36);
-        whitelistedAttributes = WildcardMatcher.pattern(settings.getAsList(ConfigConstants.LDAP_CUSTOM_ATTR_WHITELIST,
-                Collections.emptyList()));
+        whitelistedCustomLdapAttrMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.LDAP_CUSTOM_ATTR_WHITELIST,
+                Collections.singletonList("*")));
     }
 
     @Override
@@ -163,7 +163,7 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
             // length of 36 are included in the user object
             // if the whitelist contains at least one value then all attributes will be
             // additional check if whitelisted (whitelist can contain wildcard and regex)
-            return new LdapUser(username, user, entry, credentials, customAttrMaxValueLen, whitelistedAttributes);
+            return new LdapUser(username, user, entry, credentials, customAttrMaxValueLen, whitelistedCustomLdapAttrMatcher);
 
         } catch (final Exception e) {
             if (log.isDebugEnabled()) {
@@ -217,7 +217,7 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
             boolean exists = userEntry != null;
             
             if(exists) {
-                user.addAttributes(LdapUser.extractLdapAttributes(userName, userEntry, customAttrMaxValueLen, whitelistedAttributes));
+                user.addAttributes(LdapUser.extractLdapAttributes(userName, userEntry, customAttrMaxValueLen, whitelistedCustomLdapAttrMatcher));
             }
             
             return exists;

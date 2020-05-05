@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.LongSupplier;
 
-
+import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvaluator;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -37,7 +37,7 @@ import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvalu
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.HeaderHelper;
 import com.amazon.opendistroforelasticsearch.security.support.OpenDistroSecurityUtils;
-import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
+
 import com.google.common.collect.Sets;
 
 public class OpenDistroSecurityFlsDlsIndexSearcherWrapper extends OpenDistroSecurityIndexSearcherWrapper {
@@ -77,16 +77,16 @@ public class OpenDistroSecurityFlsDlsIndexSearcherWrapper extends OpenDistroSecu
 
         if(!isAdmin) {
 
-            final Map<WildcardMatcher, Set<String>> allowedFlsFields = (Map<WildcardMatcher, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadContext,
+            final Map<String, Set<String>> allowedFlsFields = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadContext,
                     ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER);
-            final Map<WildcardMatcher, Set<String>> queries = (Map<WildcardMatcher, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadContext,
+            final Map<String, Set<String>> queries = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadContext,
                     ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER);
-            final Map<WildcardMatcher, Set<String>> maskedFieldsMap = (Map<WildcardMatcher, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadContext,
+            final Map<String, Set<String>> maskedFieldsMap = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadContext,
                     ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER);
 
-            final WildcardMatcher flsEval = OpenDistroSecurityUtils.evalMap(allowedFlsFields, index.getName());
-            final WildcardMatcher dlsEval = OpenDistroSecurityUtils.evalMap(queries, index.getName());
-            final WildcardMatcher maskedEval = OpenDistroSecurityUtils.evalMap(maskedFieldsMap, index.getName());
+            final String flsEval = OpenDistroSecurityUtils.evalMap(allowedFlsFields, index.getName());
+            final String dlsEval = OpenDistroSecurityUtils.evalMap(queries, index.getName());
+            final String maskedEval = OpenDistroSecurityUtils.evalMap(maskedFieldsMap, index.getName());
 
             if (flsEval != null) {
                 flsFields = new HashSet<>(metaFields);

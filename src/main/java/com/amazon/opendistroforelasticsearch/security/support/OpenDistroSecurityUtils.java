@@ -81,7 +81,7 @@ public final class OpenDistroSecurityUtils {
         return Locale.getDefault();
     }
 
-    public static WildcardMatcher evalMap(final Map<WildcardMatcher,Set<String>> map, final String index) {
+    public static String evalMap(final Map<String, Set<String>> map, final String index) {
 
         if (map == null) {
             return null;
@@ -97,13 +97,10 @@ public final class OpenDistroSecurityUtils {
             return "_all";
         }*/
 
-        for(final WildcardMatcher key: map.keySet()) {
-            if(key.test(index)) {
-                return key;
-            }
-        }
-
-        return null;
+        return map.keySet().stream()
+                .filter(key -> WildcardMatcher.from(key).test(index))
+                .findAny()
+                .orElse(null);
     }
     
     @SafeVarargs
