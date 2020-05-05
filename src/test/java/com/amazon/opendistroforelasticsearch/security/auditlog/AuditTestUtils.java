@@ -2,15 +2,11 @@ package com.amazon.opendistroforelasticsearch.security.auditlog;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AbstractAuditLog;
-import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditLogImpl;
 import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
-import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableSet;
-import org.apache.http.Header;
 import org.apache.http.HttpStatus;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -19,10 +15,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 
@@ -60,10 +52,9 @@ public class AuditTestUtils {
         final ThreadPool threadPool,
         final IndexNameExpressionResolver resolver,
         final ClusterService clusterService) {
-        AbstractAuditLog auditLog = new AuditLogImpl(settings, configPath, clientProvider, threadPool, resolver, clusterService);
+        AuditLogImpl auditLog = new AuditLogImpl(settings, configPath, clientProvider, threadPool, resolver, clusterService);
         AuditConfig auditConfig = AuditConfig.from(settings);
-        auditLog.onAuditConfigFilterChanged(auditConfig.getFilter());
-        auditLog.onComplienceConfigChanged(ComplianceConfig.from(auditConfig.getCompliance(), settings));
+        auditLog.onAuditConfigChanged(auditConfig);
         return auditLog;
     }
 }

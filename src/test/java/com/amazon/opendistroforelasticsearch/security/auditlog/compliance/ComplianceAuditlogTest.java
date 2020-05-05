@@ -15,6 +15,8 @@
 
 package com.amazon.opendistroforelasticsearch.security.auditlog.compliance;
 
+import com.amazon.opendistroforelasticsearch.security.auditlog.AuditTestUtils;
+import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage;
 import org.apache.http.Header;
 import org.apache.http.HttpStatus;
@@ -30,6 +32,11 @@ import com.amazon.opendistroforelasticsearch.security.auditlog.integration.TestA
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.test.DynamicSecurityConfig;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper.HttpResponse;
+
+import java.util.Collections;
+
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
@@ -88,6 +95,36 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("Salary"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("Gender"));
         Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
+    }
+
+    @Test
+    public void testComplianceEnable() throws Exception {
+        Settings additionalSettings = Settings.builder()
+                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .build();
+
+        setup(additionalSettings);
+        rh.sendAdminCertificate = true;
+        rh.keystore = "auditlog/kirk-keystore.jks";
+
+        // watch emp for write
+        final AuditConfig auditConfig = new AuditConfig();
+        auditConfig.getCompliance().setWriteWatchedIndices(Collections.singletonList("emp"));
+        updateAuditConfig(AuditTestUtils.createAuditPayload(auditConfig));
+
+        // make an event happen
+        TestAuditlogImpl.clear();
+        rh.executePutRequest("emp/doc/0?refresh", "{\"Designation\" : \"CEO\", \"Gender\" : \"female\", \"Salary\" : 100}");
+        assertTrue(TestAuditlogImpl.messages.toString().contains("COMPLIANCE_DOC_WRITE"));
+
+        // disable compliance
+        auditConfig.getCompliance().setComplianceEnabled(false);
+        updateAuditConfig(AuditTestUtils.createAuditPayload(auditConfig));
+
+        // make an event happen
+        TestAuditlogImpl.clear();
+        rh.executePutRequest("emp/doc/1?refresh", "{\"Designation\" : \"CEO\", \"Gender\" : \"female\", \"Salary\" : 100}");
+        assertFalse(TestAuditlogImpl.messages.toString().contains("COMPLIANCE_DOC_WRITE"));
     }
 
     @Test

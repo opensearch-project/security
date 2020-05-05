@@ -70,7 +70,6 @@ public class ComplianceConfig {
     private static final int SALT_SIZE = 16;
     private static final int CACHE_SIZE = 1000;
     private static final String INTERNAL_ELASTICSEARCH = "internal_elasticsearch";
-    private static final List<String> DEFAULT_IGNORED_USERS = Collections.singletonList("kibanaserver");
 
     private final boolean logExternalConfig;
     private final boolean logInternalConfig;
@@ -87,9 +86,10 @@ public class ComplianceConfig {
     private final byte[] salt16;
     private final DateTimeFormatter auditLogPattern;
     private final String auditLogIndex;
-    private volatile boolean enabled = true;
+    private final boolean enabled;
 
     private ComplianceConfig(
+            final boolean complianceEnabled,
             final boolean logExternalConfig,
             final boolean logInternalConfig,
             final boolean logReadMetadataOnly,
@@ -104,6 +104,7 @@ public class ComplianceConfig {
             final String opendistrosecurityIndex,
             final String destinationType,
             final String destinationIndex) {
+        this.enabled = complianceEnabled;
         this.logExternalConfig = logExternalConfig;
         this.logInternalConfig = logInternalConfig;
         this.logReadMetadataOnly = logReadMetadataOnly;
@@ -208,6 +209,7 @@ public class ComplianceConfig {
         final String index = settings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ES_INDEX, "'security-auditlog-'YYYY.MM.dd");
 
         return new ComplianceConfig(
+                configCompliance.isComplianceEnabled(),
                 configCompliance.isExternalConfigEnabled(),
                 configCompliance.isInternalConfigEnabled(),
                 configCompliance.isReadMetadataOnly(),

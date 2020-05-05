@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
  * Class represents configuration for audit logging.
  * Expected class structure
  * {
+ *   "enabled": true,
  *   "audit" : {
  *     "enable_rest" : true,
  *     "disabled_rest_categories" : [
@@ -43,6 +44,7 @@ import java.util.stream.Collectors;
  *     "ignore_requests" : [ ]
  *   },
  *   "compliance" : {
+ *     "enabled": true,
  *     "internal_config" : true,
  *     "external_config" : true,
  *     "read_metadata_only" : true,
@@ -61,8 +63,22 @@ public class AuditConfig {
     private static final EnumSet<AuditCategory> DEFAULT_DISABLED_CATEGORIES = EnumSet.of(
             AuditCategory.AUTHENTICATED, AuditCategory.GRANTED_PRIVILEGES);
 
+    @JsonProperty(value = Key.ENABLED)
+    private boolean auditLogEnabled = true;
     @JsonProperty(value = Key.AUDIT)
     private Filter filter = new Filter();
+    @JsonProperty(value = Key.COMPLIANCE)
+    private Compliance compliance = new Compliance();
+
+    @JsonIgnore
+    public boolean isEnabled() {
+        return auditLogEnabled;
+    }
+
+    @JsonIgnore
+    public void setEnabled(boolean auditLogEnabled) {
+        this.auditLogEnabled = auditLogEnabled;
+    }
 
     @JsonIgnore
     public Filter getFilter() {
@@ -83,9 +99,6 @@ public class AuditConfig {
     public void setCompliance(Compliance compliance) {
         this.compliance = compliance;
     }
-
-    @JsonProperty(value = Key.COMPLIANCE)
-    private Compliance compliance = new Compliance();
 
     /**
      * Filter represents set of filtering configuration settings for audit logging.
@@ -291,6 +304,8 @@ public class AuditConfig {
     }
 
     public static class Compliance {
+        @JsonProperty(value = Key.ENABLED)
+        private boolean complianceEnabled = true;
         @JsonProperty(value = Key.INTERNAL_CONFIG_ENABLED)
         private boolean internalConfigEnabled = true;
         @JsonProperty(value = Key.EXTERNAL_CONFIG_ENABLED)
@@ -309,6 +324,16 @@ public class AuditConfig {
         private List<String> writeWatchedIndices = Collections.emptyList();
         @JsonProperty(value = Key.WRITE_IGNORE_USERS)
         private Set<String> writeIgnoreUsers = Collections.emptySet();
+
+        @JsonIgnore
+        public boolean isComplianceEnabled() {
+            return complianceEnabled;
+        }
+
+        @JsonIgnore
+        public void setComplianceEnabled(boolean complianceEnabled) {
+            this.complianceEnabled = complianceEnabled;
+        }
 
         @JsonIgnore
         public boolean isInternalConfigEnabled() {
@@ -418,6 +443,7 @@ public class AuditConfig {
     }
 
     public static class Key {
+        public static final String ENABLED = "enabled";
         public static final String AUDIT = "audit";
         public static final String COMPLIANCE = "compliance";
         public static final String ENABLE_REST = "enable_rest";

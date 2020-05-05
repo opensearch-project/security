@@ -135,6 +135,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
             final JsonNode auditNode = configNode.get("audit");
             final JsonNode complianceNode = configNode.get("compliance");
 
+            assertTrue(configNode.get("enabled").isBoolean());
             assertTrue(auditNode.get("enable_rest").isBoolean());
             assertTrue(auditNode.get("disabled_rest_categories").isArray());
             assertTrue(auditNode.get("enable_transport").isBoolean());
@@ -146,6 +147,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
             assertTrue(auditNode.get("resolve_indices").isBoolean());
             assertTrue(auditNode.get("exclude_sensitive_headers").isBoolean());
 
+            assertTrue(complianceNode.get("enabled").isBoolean());
             assertTrue(complianceNode.get("internal_config").isBoolean());
             assertTrue(complianceNode.get("external_config").isBoolean());
             assertTrue(complianceNode.get("read_metadata_only").isBoolean());
@@ -159,6 +161,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
     }
 
     private void testPatchAction(final int expectedStatus, final Header... headers) throws Exception {
+        testBoolean("/config/enabled", expectedStatus, headers);
         testBoolean("/config/audit/enable_rest", expectedStatus, headers);
         testList("/config/audit/disabled_rest_categories", ImmutableList.of("AUTHENTICATED", "FAILED_LOGIN"), expectedStatus, headers);
         testBoolean("/config/audit/enable_transport", expectedStatus, headers);
@@ -170,6 +173,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         testList("/config/audit/ignore_users", ImmutableList.of("test-user-1", "test-user-2"), expectedStatus, headers);
         testList("/config/audit/ignore_requests", ImmutableList.of("test-request-1"), expectedStatus, headers);
 
+        testBoolean("/config/compliance/enabled", expectedStatus, headers);
         testBoolean("/config/compliance/internal_config", expectedStatus, headers);
         testBoolean("/config/compliance/external_config", expectedStatus, headers);
         testBoolean("/config/compliance/read_metadata_only", expectedStatus, headers);
@@ -237,12 +241,14 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
 
     private String getTestPayload() {
         return "{" +
+                "\"enabled\":true," +
                 "\"audit\":{" +
                     "\"enable_rest\":true,\"disabled_rest_categories\":[\"AUTHENTICATED\"]," +
                     "\"enable_transport\":true,\"disabled_transport_categories\":[\"SSL_EXCEPTION\"]," +
                     "\"resolve_bulk_requests\":true,\"log_request_body\":true,\"resolve_indices\":true,\"exclude_sensitive_headers\":true," +
                     "\"ignore_users\":[\"test-user-1\"],\"ignore_requests\":[\"test-request\"]}," +
                 "\"compliance\":{" +
+                    "\"enabled\":true," +
                     "\"internal_config\":true,\"external_config\":true," +
                     "\"read_metadata_only\":true,\"read_watched_fields\":[\"test-read-watch-field\"],\"read_ignore_users\":[\"test-user-2\"]," +
                     "\"write_metadata_only\":true,\"write_log_diffs\":true,\"write_watched_indices\":[\"test-write-watch-index\"],\"write_ignore_users\":[\"test-user-3\"]}" +

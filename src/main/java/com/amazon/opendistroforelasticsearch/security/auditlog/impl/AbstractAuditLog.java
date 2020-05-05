@@ -94,7 +94,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     private final Environment environment;
     private AtomicBoolean externalConfigLogged = new AtomicBoolean();
 
-    protected abstract void enableRoutes(Settings settings);
+    protected abstract void enableRoutes();
 
     private static final List<String> writeClasses = new ArrayList<>();
     {
@@ -117,16 +117,14 @@ public abstract class AbstractAuditLog implements AuditLog {
         this.environment = environment;
     }
 
-    @Subscribe
-    public void onAuditConfigFilterChanged(AuditConfig.Filter auditConfigFilter) {
+    protected void onAuditConfigFilterChanged(AuditConfig.Filter auditConfigFilter) {
         this.auditConfigFilter = auditConfigFilter;
         this.auditConfigFilter.log(log);
     }
 
-    @Subscribe
-    public void onComplienceConfigChanged(ComplianceConfig complianceConfig) {
+    protected void onComplianceConfigChanged(ComplianceConfig complianceConfig) {
         this.complianceConfig = complianceConfig;
-        enableRoutes(settings);
+        enableRoutes();
         this.complianceConfig.log(log);
         logExternalConfig();
     }
@@ -374,7 +372,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     @Override
     public void logDocumentRead(String index, String id, ShardId shardId, Map<String, String> fieldNameValues) {
         final ComplianceConfig complianceConfig = getComplianceConfig();
-        if(complianceConfig == null || !complianceConfig.readHistoryEnabledForIndex(index)) {
+        if(complianceConfig == null || !complianceConfig.isEnabled() || !complianceConfig.readHistoryEnabledForIndex(index)) {
             return;
         }
 
@@ -439,7 +437,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     @Override
     public void logDocumentWritten(ShardId shardId, GetResult originalResult, Index currentIndex, IndexResult result) {
         final ComplianceConfig complianceConfig = getComplianceConfig();
-        if(complianceConfig == null || !complianceConfig.writeHistoryEnabledForIndex(shardId.getIndexName())) {
+        if(complianceConfig == null || !complianceConfig.isEnabled() || !complianceConfig.writeHistoryEnabledForIndex(shardId.getIndexName())) {
             return;
         }
 
@@ -537,7 +535,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         String effectiveUser = getUser();
 
         final ComplianceConfig complianceConfig = getComplianceConfig();
-        if (complianceConfig == null || !checkComplianceFilter(AuditCategory.COMPLIANCE_DOC_WRITE, effectiveUser, getOrigin(), complianceConfig)) {
+        if (complianceConfig == null || !complianceConfig.isEnabled() || !checkComplianceFilter(AuditCategory.COMPLIANCE_DOC_WRITE, effectiveUser, getOrigin(), complianceConfig)) {
             return;
         }
 

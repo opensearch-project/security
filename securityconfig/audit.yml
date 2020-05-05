@@ -3,6 +3,9 @@ _meta:
   config_version: 2
 
 config:
+  # enable/disable auditlog
+  enabled: true
+
   audit:
     # rest
     enable_rest: true
@@ -28,6 +31,9 @@ config:
     exclude_sensitive_headers: true
 
   compliance:
+    # enable/disable compliance
+    enabled: true
+
     # configs
     internal_config: true
     external_config: true

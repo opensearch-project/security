@@ -15,6 +15,8 @@
 
 package com.amazon.opendistroforelasticsearch.security.auditlog.integration;
 
+import com.amazon.opendistroforelasticsearch.security.auditlog.AuditTestUtils;
+import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import org.apache.http.Header;
 import org.apache.http.HttpStatus;
 import org.apache.http.NoHttpResponseException;
@@ -39,7 +41,38 @@ import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper.HttpResponse;
 
+import java.util.Collections;
+
 public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
+
+    @Test
+    public void testAuditLogEnable() throws Exception {
+        Settings additionalSettings = Settings.builder()
+                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .build();
+
+        setup(additionalSettings);
+        setupStarfleetIndex();
+
+        final AuditConfig auditConfig = new AuditConfig();
+        auditConfig.getFilter().setDisabledRestCategories(Collections.emptySet());
+        auditConfig.getFilter().setDisabledTransportCategories(Collections.emptySet());
+        updateAuditConfig(AuditTestUtils.createAuditPayload(auditConfig));
+
+        // test enable
+        TestAuditlogImpl.clear();
+        rh.executeGetRequest("_search", encodeBasicHeader("admin", "admin"));
+        Assert.assertTrue(TestAuditlogImpl.messages.size() > 0);
+
+        // disable
+        auditConfig.setEnabled(false);
+        updateAuditConfig(AuditTestUtils.createAuditPayload(auditConfig));
+
+        // assert no auditing
+        TestAuditlogImpl.clear();
+        rh.executeGetRequest("_search", encodeBasicHeader("admin", "admin"));
+        Assert.assertEquals(0, TestAuditlogImpl.messages.size());
+    }
 
     @Test
     public void testSimpleAuthenticated() throws Exception {

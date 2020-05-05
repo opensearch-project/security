@@ -92,20 +92,15 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     private final Settings esSettings;
     private final Path configPath;
     private final InternalAuthenticationBackend iab = new InternalAuthenticationBackend();
-    private final boolean dlsFlsAvailable;
 
     SecurityDynamicConfiguration<?> config;
     
     public DynamicConfigFactory(ConfigurationRepository cr, final Settings esSettings, 
-            final Path configPath, Client client, ThreadPool threadPool, ClusterInfoHolder cih, boolean dlsFlsAvailable) {
+            final Path configPath, Client client, ThreadPool threadPool, ClusterInfoHolder cih) {
         super();
         this.cr = cr;
         this.esSettings = esSettings;
         this.configPath = configPath;
-        this.dlsFlsAvailable = dlsFlsAvailable;
-        if (!dlsFlsAvailable) {
-            log.debug("Changes to Compliance config will ignored because DLS-FLS is not available.");
-        }
 
         if(esSettings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES, true)) {
             try {
@@ -218,10 +213,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         eventBus.post(dcm);
         eventBus.post(ium);
         eventBus.post(nm);
-        eventBus.post(audit.getFilter());
-        if (dlsFlsAvailable) {
-            eventBus.post(ComplianceConfig.from(audit.getCompliance(), esSettings));
-        }
+        eventBus.post(audit);
 
         initialized.set(true);
         
