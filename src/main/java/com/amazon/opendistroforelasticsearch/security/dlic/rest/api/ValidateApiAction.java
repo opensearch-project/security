@@ -64,7 +64,7 @@ public class ValidateApiAction extends AbstractApiAction {
 
     @Override
     protected void registerHandlers(RestController controller, Settings settings) {
-        controller.registerHandler(Method.POST, "/_opendistro/_security/api/validate", this);
+        controller.registerHandler(Method.GET, "/_opendistro/_security/api/validate", this);
     }
 
     @Override
@@ -96,7 +96,7 @@ public class ValidateApiAction extends AbstractApiAction {
             final SecurityDynamicConfiguration<ConfigV7> configV7 = Migration.migrateConfig(configV6);
             final SecurityDynamicConfiguration<InternalUserV7> internalUsersV7 = Migration.migrateInternalUsers(internalUsersV6);
             final Tuple<SecurityDynamicConfiguration<RoleV7>, SecurityDynamicConfiguration<TenantV7>> rolesTenantsV7 = Migration.migrateRoles(rolesV6,
-                    rolesmappingV6);
+                rolesmappingV6);
             final SecurityDynamicConfiguration<RoleMappingsV7> rolesmappingV7 = Migration.migrateRoleMappings(rolesmappingV6);
 
             successResponse(channel, "OK.");
