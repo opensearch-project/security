@@ -118,7 +118,7 @@ public abstract class WildcardMatcher implements Predicate<String>, Serializable
     // This may in future use more optimized techniques to combine multiple WildcardMatchers in a single automaton
     public static WildcardMatcher pattern(Stream<String> patterns, boolean caseSensitive) {
         List<WildcardMatcher> list = patterns.map(WildcardMatcher::pattern).collect(Collectors.toList());
-        return list.isEmpty() ? NONE : new MultiMatcher(list);
+        return list.isEmpty() ? NONE : (list.size() == 1 ? list.get(0) : new MultiMatcher(list));
     }
 
     public static List<WildcardMatcher> patterns(Collection<String> patterns) {
@@ -155,16 +155,6 @@ public abstract class WildcardMatcher implements Predicate<String>, Serializable
         else {
             return caseSensitive ? new ExactMatcher(pattern) : new CasefoldingMatcher(pattern, ExactMatcher::new);
         }
-    }
-
-    public static boolean allMatches(final Collection<WildcardMatcher> pattern, final Collection<String> candidate) {
-        int matchedPatternNum = 0;
-        for (WildcardMatcher pat : pattern) {
-            if (pat.matchAny(candidate)) {
-                matchedPatternNum++;
-            }
-        }
-        return matchedPatternNum == pattern.size() && pattern.size() > 0;
     }
 
     public static Optional<WildcardMatcher> getFirstMatchingPattern(final Collection<WildcardMatcher> pattern, final String candidate) {
