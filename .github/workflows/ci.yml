@@ -19,28 +19,6 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 14
-        
-    - name: Checkout Elasticsearch 7.7
-      uses: actions/checkout@v2
-      with:
-        repository: elastic/elasticsearch
-        ref: refs/heads/7.7
-
-    - name: Build Rest High Level Client
-      run: |
-        publish_to_maven='
-        publishing {
-          publications {
-            nebula {
-              artifactId = archivesBaseName
-            }
-          }
-        }
-        '
-        echo "$publish_to_maven" >> client/rest-high-level/build.gradle
-
-    - name: Build Elasticsearch 7.7
-      run: ./gradlew publishToMavenLocal
 
     - name: Checkout security
       uses: actions/checkout@v2
