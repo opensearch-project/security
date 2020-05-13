@@ -46,7 +46,6 @@ import com.amazon.opendistroforelasticsearch.security.ssl.transport.PrincipalExt
 
 import com.google.common.collect.ImmutableList;
 
-
 public class FlushCacheApiAction extends AbstractApiAction {
 	private static final List<Route> routes = ImmutableList.of(
 			new Route(Method.DELETE, "/_opendistro/_security/api/cache"),
