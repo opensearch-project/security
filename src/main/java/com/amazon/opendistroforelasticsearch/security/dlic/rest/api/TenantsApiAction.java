@@ -1,7 +1,6 @@
 package com.amazon.opendistroforelasticsearch.security.dlic.rest.api;
 
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.List;
 
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;

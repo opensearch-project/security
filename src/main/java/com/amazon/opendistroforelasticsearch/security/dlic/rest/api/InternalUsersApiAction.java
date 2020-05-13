@@ -49,7 +49,6 @@ import java.util.List;
 
 import com.google.common.collect.ImmutableList;
 
-
 import static com.amazon.opendistroforelasticsearch.security.dlic.rest.support.Utils.hash;
 
 public class InternalUsersApiAction extends PatchableResourceApiAction {

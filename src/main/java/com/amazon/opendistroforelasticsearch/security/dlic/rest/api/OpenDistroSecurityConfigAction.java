@@ -20,10 +20,12 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import com.amazon.opendistroforelasticsearch.security.dlic.rest.validation.SecurityConfigValidator;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import com.google.common.collect.ImmutableList;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -49,6 +51,11 @@ import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import static java.util.Collections.unmodifiableList;
 
 public class OpenDistroSecurityConfigAction extends PatchableResourceApiAction {
+    private static final List<Route> routes = ImmutableList.of(
+            new Route(Method.GET, "/_opendistro/_security/api/securityconfig/"),
+            new Route(Method.PUT, "/_opendistro/_security/api/securityconfig/{name}"),
+            new Route(Method.PATCH, "/_opendistro/_security/api/securityconfig/")
+    );
 
     private final boolean allowPutOrPatch;
 
@@ -64,15 +71,11 @@ public class OpenDistroSecurityConfigAction extends PatchableResourceApiAction {
 
     @Override
     public List<Route> routes() {
-        List<Route> routes = new ArrayList<>();
-        routes.add(new Route(Method.GET, "/_opendistro/_security/api/securityconfig/"));
-
         boolean enablePutOrPatch = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, false);
         if (enablePutOrPatch) {
-            routes.add(new Route(Method.PUT, "/_opendistro/_security/api/securityconfig/{name}"));
-            routes.add(new Route(Method.PATCH, "/_opendistro/_security/api/securityconfig/"));
+            return routes;
         }
-        return routes;
+        return routes.stream().filter(route -> route.getMethod() == Method.GET).collect(Collectors.toList());
     }
 
     @Override

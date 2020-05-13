@@ -46,7 +46,6 @@ import com.amazon.opendistroforelasticsearch.security.ssl.transport.PrincipalExt
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 
-
 /**
  * Provides the evaluated REST API permissions for the currently logged in user
  */

@@ -16,7 +16,6 @@
 package com.amazon.opendistroforelasticsearch.security.dlic.rest.api;
 
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.List;
 
 import org.elasticsearch.client.Client;
@@ -39,7 +38,6 @@ import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.PrincipalExtractor;
 
 import com.google.common.collect.ImmutableList;
-
 
 public class ActionGroupsApiAction extends PatchableResourceApiAction {
 
