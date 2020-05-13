@@ -25,7 +25,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.yaml.YamlXContent;
 import org.junit.Assert;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.kafka.test.rule.EmbeddedKafkaRule;
 
@@ -36,7 +35,6 @@ import com.amazon.opendistroforelasticsearch.security.auditlog.helper.MockAuditM
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
 import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
 
-@Ignore
 public class KafkaSinkTest extends AbstractAuditlogiUnitTest {
 
 	@ClassRule

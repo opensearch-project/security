@@ -978,7 +978,6 @@ public class OpenDistroSecurityAdmin {
     private static String convertToYaml(String type, BytesReference bytes, boolean prettyPrint) throws IOException {
         
         try (XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, bytes.streamInput())) {
-            
             parser.nextToken();
             parser.nextToken();
             
