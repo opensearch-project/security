@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -51,11 +52,16 @@ import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import static java.util.Collections.unmodifiableList;
 
 public class OpenDistroSecurityConfigAction extends PatchableResourceApiAction {
-    private static final List<Route> routes = ImmutableList.of(
-            new Route(Method.GET, "/_opendistro/_security/api/securityconfig/"),
-            new Route(Method.PUT, "/_opendistro/_security/api/securityconfig/{name}"),
-            new Route(Method.PATCH, "/_opendistro/_security/api/securityconfig/")
+
+    private static final List<Route> getRoutes = Collections.singletonList(
+            new Route(Method.GET, "/_opendistro/_security/api/securityconfig/")
     );
+
+    private static final List<Route> allRoutes = new ImmutableList.Builder<Route>()
+            .addAll(getRoutes)
+            .add(new Route(Method.PUT, "/_opendistro/_security/api/securityconfig/{name}"))
+            .add(new Route(Method.PATCH, "/_opendistro/_security/api/securityconfig/"))
+            .build();
 
     private final boolean allowPutOrPatch;
 
@@ -66,16 +72,11 @@ public class OpenDistroSecurityConfigAction extends PatchableResourceApiAction {
 
         super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
         allowPutOrPatch = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, false);
-
     }
 
     @Override
     public List<Route> routes() {
-        boolean enablePutOrPatch = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, false);
-        if (enablePutOrPatch) {
-            return routes;
-        }
-        return routes.stream().filter(route -> route.getMethod() == Method.GET).collect(Collectors.toList());
+        return allowPutOrPatch ? allRoutes : getRoutes;
     }
 
     @Override
