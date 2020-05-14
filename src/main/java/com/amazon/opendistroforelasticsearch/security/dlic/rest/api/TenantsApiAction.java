@@ -1,6 +1,7 @@
 package com.amazon.opendistroforelasticsearch.security.dlic.rest.api;
 
 import java.nio.file.Path;
+import java.util.List;
 
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
 import org.elasticsearch.client.Client;
@@ -22,7 +23,17 @@ import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvalu
 
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.PrincipalExtractor;
 
+import com.google.common.collect.ImmutableList;
+
 public class TenantsApiAction extends PatchableResourceApiAction {
+    private static final List<Route> routes = ImmutableList.of(
+            new Route(Method.GET, "/_opendistro/_security/api/tenants/{name}"),
+            new Route(Method.GET, "/_opendistro/_security/api/tenants/"),
+            new Route(Method.DELETE, "/_opendistro/_security/api/tenants/{name}"),
+            new Route(Method.PUT, "/_opendistro/_security/api/tenants/{name}"),
+            new Route(Method.PATCH, "/_opendistro/_security/api/tenants/"),
+            new Route(Method.PATCH, "/_opendistro/_security/api/tenants/{name}")
+    );
 
     @Inject
     public TenantsApiAction(final Settings settings, final Path configPath, final RestController controller, final Client client,
@@ -32,13 +43,8 @@ public class TenantsApiAction extends PatchableResourceApiAction {
     }
 
     @Override
-    protected void registerHandlers(RestController controller, Settings settings) {
-        controller.registerHandler(Method.GET, "/_opendistro/_security/api/tenants/{name}", this);
-        controller.registerHandler(Method.GET, "/_opendistro/_security/api/tenants/", this);
-        controller.registerHandler(Method.DELETE, "/_opendistro/_security/api/tenants/{name}", this);
-        controller.registerHandler(Method.PUT, "/_opendistro/_security/api/tenants/{name}", this);
-        controller.registerHandler(Method.PATCH, "/_opendistro/_security/api/tenants/", this);
-        controller.registerHandler(Method.PATCH, "/_opendistro/_security/api/tenants/{name}", this);
+    public List<Route> routes() {
+        return routes;
     }
 
     @Override

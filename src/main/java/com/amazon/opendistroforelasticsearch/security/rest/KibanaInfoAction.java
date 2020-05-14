@@ -34,6 +34,7 @@ import static org.elasticsearch.rest.RestRequest.Method.GET;
 import static org.elasticsearch.rest.RestRequest.Method.POST;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -53,7 +54,13 @@ import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvalu
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 
+import com.google.common.collect.ImmutableList;
+
 public class KibanaInfoAction extends BaseRestHandler {
+    private static final List<Route> routes = ImmutableList.of(
+            new Route(GET, "/_opendistro/_security/kibanainfo"),
+            new Route(POST, "/_opendistro/_security/kibanainfo")
+    );
 
     private final Logger log = LogManager.getLogger(this.getClass());
     private final PrivilegesEvaluator evaluator;
@@ -63,8 +70,11 @@ public class KibanaInfoAction extends BaseRestHandler {
         super();
         this.threadContext = threadPool.getThreadContext();
         this.evaluator = evaluator;
-        controller.registerHandler(GET, "/_opendistro/_security/kibanainfo", this);
-        controller.registerHandler(POST, "/_opendistro/_security/kibanainfo", this);
+    }
+
+    @Override
+    public List<Route> routes() {
+        return routes;
     }
 
     @Override

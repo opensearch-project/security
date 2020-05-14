@@ -34,6 +34,7 @@ import static org.elasticsearch.rest.RestRequest.Method.GET;
 import static org.elasticsearch.rest.RestRequest.Method.POST;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.settings.Settings;
@@ -47,15 +48,24 @@ import org.elasticsearch.rest.RestStatus;
 
 import com.amazon.opendistroforelasticsearch.security.auth.BackendRegistry;
 
+import com.google.common.collect.ImmutableList;
+
 public class OpenDistroSecurityHealthAction extends BaseRestHandler {
+    private static final List<Route> routes = ImmutableList.of(
+            new Route(GET, "/_opendistro/_security/health"),
+            new Route(POST, "/_opendistro/_security/health")
+    );
 
     private final BackendRegistry registry;
     
     public OpenDistroSecurityHealthAction(final Settings settings, final RestController controller, final BackendRegistry registry) {
         super();
         this.registry = registry;
-        controller.registerHandler(GET, "/_opendistro/_security/health", this);
-        controller.registerHandler(POST, "/_opendistro/_security/health", this);
+    }
+
+    @Override
+    public List<Route> routes() {
+        return routes;
     }
 
     @Override

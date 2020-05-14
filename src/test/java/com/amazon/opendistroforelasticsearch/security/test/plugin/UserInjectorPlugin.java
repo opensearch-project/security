@@ -31,11 +31,11 @@
 package com.amazon.opendistroforelasticsearch.security.test.plugin;
 
 import java.nio.file.Path;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
 import org.elasticsearch.common.network.NetworkService;
+import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.PageCacheRecycler;
@@ -52,6 +52,8 @@ import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
+
+import com.google.common.collect.ImmutableMap;
 
 /**
  * Mimics the behavior of system integrators that run their own plugins (i.e. server transports)
@@ -71,19 +73,18 @@ public class UserInjectorPlugin extends Plugin implements NetworkPlugin {
     @Override
     public Map<String, Supplier<HttpServerTransport>> getHttpTransports(Settings settings, ThreadPool threadPool, BigArrays bigArrays,
             PageCacheRecycler pageCacheRecycler, CircuitBreakerService circuitBreakerService, NamedXContentRegistry xContentRegistry,
-            NetworkService networkService, Dispatcher dispatcher) {
+            NetworkService networkService, Dispatcher dispatcher, ClusterSettings clusterSettings) {
 
-        Map<String, Supplier<HttpServerTransport>> httpTransports = new HashMap<String, Supplier<HttpServerTransport>>(1);
         final UserInjectingDispatcher validatingDispatcher = new UserInjectingDispatcher(dispatcher);
-        httpTransports.put("com.amazon.opendistroforelasticsearch.security.http.UserInjectingServerTransport", () -> new UserInjectingServerTransport(settings, networkService, bigArrays, threadPool, xContentRegistry, validatingDispatcher));        
-        return httpTransports;
+        return ImmutableMap.of("com.amazon.opendistroforelasticsearch.security.http.UserInjectingServerTransport",
+                () -> new UserInjectingServerTransport(settings, networkService, bigArrays, threadPool, xContentRegistry, validatingDispatcher, clusterSettings));
     }
     
     class UserInjectingServerTransport extends Netty4HttpServerTransport {
         
         public UserInjectingServerTransport(final Settings settings, final NetworkService networkService, final BigArrays bigArrays,
-                final ThreadPool threadPool, final NamedXContentRegistry namedXContentRegistry, final Dispatcher dispatcher) {
-            super(settings, networkService, bigArrays, threadPool, namedXContentRegistry, dispatcher);                        
+                final ThreadPool threadPool, final NamedXContentRegistry namedXContentRegistry, final Dispatcher dispatcher, ClusterSettings clusterSettings) {
+            super(settings, networkService, bigArrays, threadPool, namedXContentRegistry, dispatcher, clusterSettings);
         }
     }
     

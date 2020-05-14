@@ -17,21 +17,22 @@ package com.amazon.opendistroforelasticsearch.security.dlic.rest.api;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Collections;
+import java.util.List;
 
 import com.amazon.opendistroforelasticsearch.security.dlic.rest.validation.SecurityConfigValidator;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import com.google.common.collect.ImmutableList;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.rest.BytesRestResponse;
 import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.rest.RestRequest.Method;
-import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -45,6 +46,16 @@ import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 
 public class OpenDistroSecurityConfigAction extends PatchableResourceApiAction {
 
+    private static final List<Route> getRoutes = Collections.singletonList(
+            new Route(Method.GET, "/_opendistro/_security/api/securityconfig/")
+    );
+
+    private static final List<Route> allRoutes = new ImmutableList.Builder<Route>()
+            .addAll(getRoutes)
+            .add(new Route(Method.PUT, "/_opendistro/_security/api/securityconfig/{name}"))
+            .add(new Route(Method.PATCH, "/_opendistro/_security/api/securityconfig/"))
+            .build();
+
     private final boolean allowPutOrPatch;
 
     @Inject
@@ -54,24 +65,12 @@ public class OpenDistroSecurityConfigAction extends PatchableResourceApiAction {
 
         super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
         allowPutOrPatch = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, false);
-
     }
 
     @Override
-    protected void registerHandlers(RestController controller, Settings settings) {
-        controller.registerHandler(Method.GET, "/_opendistro/_security/api/securityconfig/", this);
-
-        //controller.registerHandler(Method.GET, "/_opendistro/_security/api/config/", this);
-
-        boolean enablePutOrPatch = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, false);
-        if (enablePutOrPatch) {
-
-            //deprecated, will be removed with ODFE 8, use opendistro_security_config instead of config
-            controller.registerHandler(Method.PUT, "/_opendistro/_security/api/securityconfig/{name}", this);
-            controller.registerHandler(Method.PATCH, "/_opendistro/_security/api/securityconfig/", this);
-        }
+    public List<Route> routes() {
+        return allowPutOrPatch ? allRoutes : getRoutes;
     }
-
 
     @Override
     protected void handleGet(RestChannel channel, RestRequest request, Client client, final JsonNode content) throws IOException{

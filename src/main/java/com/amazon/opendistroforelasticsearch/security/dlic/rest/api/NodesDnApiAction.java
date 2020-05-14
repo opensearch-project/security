@@ -27,6 +27,7 @@ import com.amazon.opendistroforelasticsearch.security.securityconf.impl.NodesDn;
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.PrincipalExtractor;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.collect.ImmutableList;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -60,6 +61,15 @@ public class NodesDnApiAction extends PatchableResourceApiAction {
     public static final String STATIC_ES_YML_NODES_DN = "STATIC_ES_YML_NODES_DN";
     private final List<String> staticNodesDnFromEsYml;
 
+    private static final List<Route> routes = ImmutableList.of(
+            new Route(Method.GET, "/_opendistro/_security/api/nodesdn/{name}"),
+            new Route(Method.GET, "/_opendistro/_security/api/nodesdn/"),
+            new Route(Method.DELETE, "/_opendistro/_security/api/nodesdn/{name}"),
+            new Route(Method.PUT, "/_opendistro/_security/api/nodesdn/{name}"),
+            new Route(Method.PATCH, "/_opendistro/_security/api/nodesdn/"),
+            new Route(Method.PATCH, "/_opendistro/_security/api/nodesdn/{name}")
+    );
+
     @Inject
     public NodesDnApiAction(final Settings settings, final Path configPath, final RestController controller, final Client client,
         final AdminDNs adminDNs, final ConfigurationRepository cl, final ClusterService cs,
@@ -69,15 +79,11 @@ public class NodesDnApiAction extends PatchableResourceApiAction {
     }
 
     @Override
-    protected void registerHandlers(RestController controller, Settings settings) {
+    public List<Route> routes() {
         if (settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, false)) {
-            controller.registerHandler(Method.GET, "/_opendistro/_security/api/nodesdn/{name}", this);
-            controller.registerHandler(Method.GET, "/_opendistro/_security/api/nodesdn/", this);
-            controller.registerHandler(Method.DELETE, "/_opendistro/_security/api/nodesdn/{name}", this);
-            controller.registerHandler(Method.PUT, "/_opendistro/_security/api/nodesdn/{name}", this);
-            controller.registerHandler(Method.PATCH, "/_opendistro/_security/api/nodesdn/", this);
-            controller.registerHandler(Method.PATCH, "/_opendistro/_security/api/nodesdn/{name}", this);
+            return routes;
         }
+        return Collections.emptyList();
     }
 
     @Override

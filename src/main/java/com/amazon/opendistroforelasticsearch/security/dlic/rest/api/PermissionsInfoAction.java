@@ -17,6 +17,7 @@ package com.amazon.opendistroforelasticsearch.security.dlic.rest.api;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -49,6 +50,9 @@ import com.amazon.opendistroforelasticsearch.security.user.User;
  * Provides the evaluated REST API permissions for the currently logged in user
  */
 public class PermissionsInfoAction extends BaseRestHandler {
+	private static final List<Route> routes = Collections.singletonList(
+			new Route(Method.GET, "/_opendistro/_security/api/permissionsinfo")
+	);
 
 	private final RestApiPrivilegesEvaluator restApiPrivilegesEvaluator;
 	private final ThreadPool threadPool;
@@ -58,7 +62,6 @@ public class PermissionsInfoAction extends BaseRestHandler {
 			final AdminDNs adminDNs, final ConfigurationRepository cl, final ClusterService cs,
 			final PrincipalExtractor principalExtractor, final PrivilegesEvaluator privilegesEvaluator, ThreadPool threadPool, AuditLog auditLog) {
 		super();
-		controller.registerHandler(Method.GET, "/_opendistro/_security/api/permissionsinfo", this);
 		this.threadPool = threadPool;
 		this.privilegesEvaluator = privilegesEvaluator;
 		this.restApiPrivilegesEvaluator = new RestApiPrivilegesEvaluator(settings, adminDNs, privilegesEvaluator, principalExtractor, configPath, threadPool);
@@ -67,6 +70,11 @@ public class PermissionsInfoAction extends BaseRestHandler {
 	@Override
 	public String getName() {
 		return getClass().getSimpleName();
+	}
+
+	@Override
+	public List<Route> routes() {
+		return routes;
 	}
 
 	@Override

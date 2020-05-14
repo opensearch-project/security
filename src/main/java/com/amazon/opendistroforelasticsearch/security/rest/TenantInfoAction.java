@@ -34,6 +34,7 @@ import static org.elasticsearch.rest.RestRequest.Method.GET;
 import static org.elasticsearch.rest.RestRequest.Method.POST;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.SortedMap;
 
 import org.apache.logging.log4j.LogManager;
@@ -57,7 +58,13 @@ import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvalu
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 
+import com.google.common.collect.ImmutableList;
+
 public class TenantInfoAction extends BaseRestHandler {
+    private static final List<Route> routes = ImmutableList.of(
+            new Route(GET, "/_opendistro/_security/tenantinfo"),
+            new Route(POST, "/_opendistro/_security/tenantinfo")
+    );
 
     private final Logger log = LogManager.getLogger(this.getClass());
     private final PrivilegesEvaluator evaluator;
@@ -72,8 +79,11 @@ public class TenantInfoAction extends BaseRestHandler {
         this.evaluator = evaluator;
         this.clusterService = clusterService;
         this.adminDns = adminDns;
-        controller.registerHandler(GET, "/_opendistro/_security/tenantinfo", this);
-        controller.registerHandler(POST, "/_opendistro/_security/tenantinfo", this);
+    }
+
+    @Override
+    public List<Route> routes() {
+        return routes;
     }
 
     @Override

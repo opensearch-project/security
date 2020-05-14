@@ -17,13 +17,14 @@
 
 package com.amazon.opendistroforelasticsearch.security.ssl.rest;
 
-import static org.elasticsearch.rest.RestRequest.Method.GET;
 import io.netty.handler.ssl.OpenSsl;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -36,6 +37,7 @@ import org.elasticsearch.rest.BytesRestResponse;
 import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestRequest;
+import org.elasticsearch.rest.RestRequest.Method;
 import org.elasticsearch.rest.RestStatus;
 
 import com.amazon.opendistroforelasticsearch.security.ssl.OpenDistroSecurityKeyStore;
@@ -44,6 +46,9 @@ import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLRequestHelper;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLRequestHelper.SSLInfo;
 
 public class OpenDistroSecuritySSLInfoAction extends BaseRestHandler {
+    private static final List<Route> routes = Collections.singletonList(
+            new Route(Method.GET, "/_opendistro/_security/sslinfo")
+    );
 
     private final Logger log = LogManager.getLogger(this.getClass());
     private final OpenDistroSecurityKeyStore odsks;
@@ -58,7 +63,11 @@ public class OpenDistroSecuritySSLInfoAction extends BaseRestHandler {
         this.odsks = odsks;
         this.principalExtractor = principalExtractor;
         this.configPath = configPath;
-        controller.registerHandler(GET, "/_opendistro/_security/sslinfo", this);
+    }
+
+    @Override
+    public List<Route> routes() {
+        return routes;
     }
     
     @Override
@@ -84,7 +93,7 @@ public class OpenDistroSecuritySSLInfoAction extends BaseRestHandler {
                     builder.field("peer_certificates", certs != null && certs.length > 0 ? certs.length + "" : "0");
 
                     if(showDn == Boolean.TRUE) {
-                        builder.field("peer_certificates_list", certs == null?null:Arrays.stream(certs).map(c->c.getSubjectDN().getName()).collect(Collectors.toList()));
+                        builder.field("peer_certificates_list", certs == null?null: Arrays.stream(certs).map(c->c.getSubjectDN().getName()).collect(Collectors.toList()));
                         builder.field("local_certificates_list", localCerts == null?null:Arrays.stream(localCerts).map(c->c.getSubjectDN().getName()).collect(Collectors.toList()));
                     }
 

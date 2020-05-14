@@ -38,9 +38,10 @@ import org.elasticsearch.index.query.ParsedQuery;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryShardContext;
 
-import com.amazon.opendistroforelasticsearch.security.support.OpenDistroSecurityDeprecationHandler;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+
+import static org.elasticsearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
 
 
 final class DlsQueryParser {
@@ -84,7 +85,7 @@ final class DlsQueryParser {
 
                     @Override
                     public QueryBuilder call() throws Exception {
-                        final XContentParser parser = JsonXContent.jsonXContent.createParser(namedXContentRegistry, OpenDistroSecurityDeprecationHandler.INSTANCE, unparsedDlsQuery);
+                        final XContentParser parser = JsonXContent.jsonXContent.createParser(namedXContentRegistry, THROW_UNSUPPORTED_OPERATION, unparsedDlsQuery);
                         final QueryBuilder qb = AbstractQueryBuilder.parseInnerQueryBuilder(parser);
                         return qb;
                     }
@@ -127,7 +128,7 @@ final class DlsQueryParser {
 
                     @Override
                     public QueryBuilder call() throws Exception {
-                        final XContentParser parser = JsonXContent.jsonXContent.createParser(namedXContentRegistry, OpenDistroSecurityDeprecationHandler.INSTANCE, unparsedDlsQuery);
+                        final XContentParser parser = JsonXContent.jsonXContent.createParser(namedXContentRegistry, THROW_UNSUPPORTED_OPERATION, unparsedDlsQuery);
                         final QueryBuilder qb = AbstractQueryBuilder.parseInnerQueryBuilder(parser);
                         return qb;
                     }

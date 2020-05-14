@@ -20,6 +20,7 @@ package com.amazon.opendistroforelasticsearch.security.ssl.http.netty;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.network.NetworkService;
+import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
@@ -44,8 +45,8 @@ public class OpenDistroSecuritySSLNettyHttpServerTransport extends Netty4HttpSer
     
     public OpenDistroSecuritySSLNettyHttpServerTransport(final Settings settings, final NetworkService networkService, final BigArrays bigArrays,
             final ThreadPool threadPool, final OpenDistroSecurityKeyStore odsks, final NamedXContentRegistry namedXContentRegistry, final ValidatingDispatcher dispatcher,
-            final SslExceptionHandler errorHandler) {
-        super(settings, networkService, bigArrays, threadPool, namedXContentRegistry, dispatcher);
+            final SslExceptionHandler errorHandler, ClusterSettings clusterSettings) {
+        super(settings, networkService, bigArrays, threadPool, namedXContentRegistry, dispatcher, clusterSettings);
         this.odsks = odsks;
         this.errorHandler = errorHandler;
     }

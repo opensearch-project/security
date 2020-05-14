@@ -16,6 +16,7 @@ import org.elasticsearch.rest.BytesRestResponse;
 import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestRequest;
+import org.elasticsearch.rest.RestRequest.Method;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -23,12 +24,11 @@ import java.io.IOException;
 import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
-import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static org.elasticsearch.rest.RestRequest.Method.GET;
 
 /**
  * Rest API action to get SSL certificate information related to http and transport encryption.
@@ -36,6 +36,9 @@ import static org.elasticsearch.rest.RestRequest.Method.GET;
  * Currently this action serves GET request for _opendistro/_security/api/ssl/certs endpoint
  */
 public class OpenDistroSecuritySSLCertsInfoAction extends BaseRestHandler {
+    private static final List<Route> routes = Collections.singletonList(
+            new Route(Method.GET, "/_opendistro/_security/api/ssl/certs")
+    );
 
     private final Logger log = LogManager.getLogger(this.getClass());
     private Settings settings;
@@ -53,7 +56,11 @@ public class OpenDistroSecuritySSLCertsInfoAction extends BaseRestHandler {
         this.odsks = odsks;
         this.adminDns = adminDns;
         this.threadContext = threadPool.getThreadContext();
-        restController.registerHandler(GET, "/_opendistro/_security/api/ssl/certs", this);
+    }
+
+    @Override
+    public List<Route> routes() {
+        return routes;
     }
 
     /**

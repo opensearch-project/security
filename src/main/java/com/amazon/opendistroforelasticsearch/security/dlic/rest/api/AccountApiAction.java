@@ -45,12 +45,16 @@ import org.elasticsearch.rest.BytesRestResponse;
 import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestRequest;
+import org.elasticsearch.rest.RestRequest.Method;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Set;
+
+import com.google.common.collect.ImmutableList;
 
 import static com.amazon.opendistroforelasticsearch.security.dlic.rest.support.Utils.hash;
 
@@ -59,8 +63,12 @@ import static com.amazon.opendistroforelasticsearch.security.dlic.rest.support.U
  * Currently this action serves GET and PUT request for /_opendistro/_security/api/account endpoint
  */
 public class AccountApiAction extends AbstractApiAction {
-
     private static final String RESOURCE_NAME = "account";
+    private static final List<Route> routes = ImmutableList.of(
+            new Route(Method.GET, "/_opendistro/_security/api/account"),
+            new Route(Method.PUT, "/_opendistro/_security/api/account")
+    );
+
     private final PrivilegesEvaluator privilegesEvaluator;
     private final ThreadContext threadContext;
 
@@ -81,9 +89,8 @@ public class AccountApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected void registerHandlers(RestController controller, Settings settings) {
-        controller.registerHandler(RestRequest.Method.GET, "/_opendistro/_security/api/account", this);
-        controller.registerHandler(RestRequest.Method.PUT, "/_opendistro/_security/api/account", this);
+    public List<Route> routes() {
+        return routes;
     }
 
     /**

@@ -16,7 +16,9 @@
 package com.amazon.opendistroforelasticsearch.security.dlic.rest.api;
 
 import java.nio.file.Path;
+import java.util.List;
 
+import com.google.common.collect.ImmutableList;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -37,6 +39,14 @@ import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.PrincipalExtractor;
 
 public class RolesMappingApiAction extends PatchableResourceApiAction {
+	private static final List<Route> routes = ImmutableList.of(
+			new Route(Method.GET, "/_opendistro/_security/api/rolesmapping/"),
+			new Route(Method.GET, "/_opendistro/_security/api/rolesmapping/{name}"),
+			new Route(Method.DELETE, "/_opendistro/_security/api/rolesmapping/{name}"),
+			new Route(Method.PUT, "/_opendistro/_security/api/rolesmapping/{name}"),
+			new Route(Method.PATCH, "/_opendistro/_security/api/rolesmapping/"),
+			new Route(Method.PATCH, "/_opendistro/_security/api/rolesmapping/{name}")
+	);
 
 	@Inject
 	public RolesMappingApiAction(final Settings settings, final Path configPath, final RestController controller, final Client client,
@@ -46,13 +56,8 @@ public class RolesMappingApiAction extends PatchableResourceApiAction {
 	}
 
 	@Override
-	protected void registerHandlers(RestController controller, Settings settings) {
-		controller.registerHandler(Method.GET, "/_opendistro/_security/api/rolesmapping/", this);
-		controller.registerHandler(Method.GET, "/_opendistro/_security/api/rolesmapping/{name}", this);
-		controller.registerHandler(Method.DELETE, "/_opendistro/_security/api/rolesmapping/{name}", this);
-		controller.registerHandler(Method.PUT, "/_opendistro/_security/api/rolesmapping/{name}", this);
-		controller.registerHandler(Method.PATCH, "/_opendistro/_security/api/rolesmapping/", this);
-		controller.registerHandler(Method.PATCH, "/_opendistro/_security/api/rolesmapping/{name}", this);
+	public List<Route> routes() {
+		return routes;
 	}
 
 	@Override

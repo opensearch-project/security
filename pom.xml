@@ -34,7 +34,7 @@
     <groupId>com.amazon.opendistroforelasticsearch</groupId>
     <artifactId>opendistro_security</artifactId>
     <packaging>jar</packaging>
-    <version>1.7.0.0</version>
+    <version>1.8.0.0</version>
     <name>Open Distro Security for Elasticsearch</name>
     <description>Open Distro For Elasticsearch Security</description>
     <url>https://github.com/opendistro-for-elasticsearch/security</url>
@@ -68,7 +68,7 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.compiler.release>8</maven.compiler.release>
 
-        <elasticsearch.version>7.6.1</elasticsearch.version>
+        <elasticsearch.version>7.7.0</elasticsearch.version>
 
         <!-- deps -->
         <netty-native.version>2.0.25.Final</netty-native.version>
@@ -98,7 +98,7 @@
         <url>https://github.com/opendistro-for-elasticsearch/security</url>
         <connection>scm:git:git@github.com:opendistro-for-elasticsearch/security.git</connection>
         <developerConnection>scm:git:git@github.com:opendistro-for-elasticsearch/security.git</developerConnection>
-        <tag>1.7.0.0</tag>
+        <tag>1.8.0.0</tag>
     </scm>
 
     <issueManagement>

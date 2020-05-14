@@ -42,7 +42,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
-import com.amazon.opendistroforelasticsearch.security.support.OpenDistroSecurityDeprecationHandler;
+
+import static org.elasticsearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
 
 public class Utils {
 
@@ -61,7 +62,7 @@ public class Utils {
     }
 
     public static Map<String, Object> convertJsonToxToStructuredMap(String jsonContent) {
-        try (XContentParser parser = XContentType.JSON.xContent().createParser(NamedXContentRegistry.EMPTY, OpenDistroSecurityDeprecationHandler.INSTANCE, jsonContent)) {
+        try (XContentParser parser = XContentType.JSON.xContent().createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, jsonContent)) {
             return parser.map();
         } catch (IOException e1) {
             throw ExceptionsHelper.convertToElastic(e1);

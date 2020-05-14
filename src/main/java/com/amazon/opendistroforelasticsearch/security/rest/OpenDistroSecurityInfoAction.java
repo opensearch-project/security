@@ -37,6 +37,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.X509Certificate;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
@@ -61,7 +62,13 @@ import com.amazon.opendistroforelasticsearch.security.support.Base64Helper;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 
+import com.google.common.collect.ImmutableList;
+
 public class OpenDistroSecurityInfoAction extends BaseRestHandler {
+    private static final List<Route> routes = ImmutableList.of(
+            new Route(GET, "/_opendistro/_security/authinfo"),
+            new Route(POST, "/_opendistro/_security/authinfo")
+    );
 
     private final Logger log = LogManager.getLogger(this.getClass());
     private final PrivilegesEvaluator evaluator;
@@ -71,8 +78,11 @@ public class OpenDistroSecurityInfoAction extends BaseRestHandler {
         super();
         this.threadContext = threadPool.getThreadContext();
         this.evaluator = evaluator;
-        controller.registerHandler(GET, "/_opendistro/_security/authinfo", this);
-        controller.registerHandler(POST, "/_opendistro/_security/authinfo", this);
+    }
+
+    @Override
+    public List<Route> routes() {
+        return routes;
     }
 
     @Override

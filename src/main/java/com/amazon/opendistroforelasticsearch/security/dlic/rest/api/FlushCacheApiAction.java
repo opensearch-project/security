@@ -17,6 +17,7 @@ package com.amazon.opendistroforelasticsearch.security.dlic.rest.api;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.client.Client;
@@ -24,7 +25,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.settings.Settings.Builder;
 import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestRequest;
@@ -44,7 +44,15 @@ import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvalu
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.PrincipalExtractor;
 
+import com.google.common.collect.ImmutableList;
+
 public class FlushCacheApiAction extends AbstractApiAction {
+	private static final List<Route> routes = ImmutableList.of(
+			new Route(Method.DELETE, "/_opendistro/_security/api/cache"),
+			new Route(Method.GET, "/_opendistro/_security/api/cache"),
+			new Route(Method.PUT, "/_opendistro/_security/api/cache"),
+			new Route(Method.POST, "/_opendistro/_security/api/cache")
+	);
 
 	@Inject
 	public FlushCacheApiAction(final Settings settings, final Path configPath, final RestController controller, final Client client,
@@ -54,11 +62,8 @@ public class FlushCacheApiAction extends AbstractApiAction {
 	}
 
 	@Override
-	protected void registerHandlers(RestController controller, Settings settings) {
-		controller.registerHandler(Method.DELETE, "/_opendistro/_security/api/cache", this);
-		controller.registerHandler(Method.GET, "/_opendistro/_security/api/cache", this);
-		controller.registerHandler(Method.PUT, "/_opendistro/_security/api/cache", this);
-		controller.registerHandler(Method.POST, "/_opendistro/_security/api/cache", this);
+	public List<Route> routes() {
+		return routes;
 	}
 
 	@Override
@@ -134,5 +139,4 @@ public class FlushCacheApiAction extends AbstractApiAction {
 	protected void consumeParameters(final RestRequest request) {
 		// not needed
 	}
-
 }

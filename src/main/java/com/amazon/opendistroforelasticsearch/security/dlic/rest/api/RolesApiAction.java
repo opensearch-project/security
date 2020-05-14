@@ -16,6 +16,7 @@
 package com.amazon.opendistroforelasticsearch.security.dlic.rest.api;
 
 import java.nio.file.Path;
+import java.util.List;
 
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -36,7 +37,17 @@ import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvalu
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.PrincipalExtractor;
 
+import com.google.common.collect.ImmutableList;
+
 public class RolesApiAction extends PatchableResourceApiAction {
+	private static final List<Route> routes = ImmutableList.of(
+			new Route(Method.GET, "/_opendistro/_security/api/roles/"),
+			new Route(Method.GET, "/_opendistro/_security/api/roles/{name}"),
+			new Route(Method.DELETE, "/_opendistro/_security/api/roles/{name}"),
+			new Route(Method.PUT, "/_opendistro/_security/api/roles/{name}"),
+			new Route(Method.PATCH, "/_opendistro/_security/api/roles/"),
+			new Route(Method.PATCH, "/_opendistro/_security/api/roles/{name}")
+	);
 
 	@Inject
 	public RolesApiAction(Settings settings, final Path configPath, RestController controller, Client client, AdminDNs adminDNs, ConfigurationRepository cl,
@@ -45,13 +56,8 @@ public class RolesApiAction extends PatchableResourceApiAction {
 	}
 
 	@Override
-	protected void registerHandlers(RestController controller, Settings settings) {
-		controller.registerHandler(Method.GET, "/_opendistro/_security/api/roles/", this);
-		controller.registerHandler(Method.GET, "/_opendistro/_security/api/roles/{name}", this);
-		controller.registerHandler(Method.DELETE, "/_opendistro/_security/api/roles/{name}", this);
-		controller.registerHandler(Method.PUT, "/_opendistro/_security/api/roles/{name}", this);
-		controller.registerHandler(Method.PATCH, "/_opendistro/_security/api/roles/", this);
-		controller.registerHandler(Method.PATCH, "/_opendistro/_security/api/roles/{name}", this);
+	public List<Route> routes() {
+		return routes;
 	}
 
 	@Override

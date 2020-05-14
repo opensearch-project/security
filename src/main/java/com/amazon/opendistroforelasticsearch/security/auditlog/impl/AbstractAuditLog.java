@@ -71,12 +71,13 @@ import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfi
 import com.amazon.opendistroforelasticsearch.security.dlic.rest.support.Utils;
 import com.amazon.opendistroforelasticsearch.security.support.Base64Helper;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
-import com.amazon.opendistroforelasticsearch.security.support.OpenDistroSecurityDeprecationHandler;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.flipkart.zjsonpatch.JsonDiff;
 import com.google.common.io.BaseEncoding;
+
+import static org.elasticsearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
 
 public abstract class AbstractAuditLog implements AuditLog {
     protected final Logger log = LogManager.getLogger(this.getClass());
@@ -452,7 +453,7 @@ public abstract class AbstractAuditLog implements AuditLog {
                 String originalSource = null;
                 String currentSource = null;
                 if (opendistrosecurityIndex.equals(shardId.getIndexName())) {
-                    try (XContentParser parser = XContentHelper.createParser(NamedXContentRegistry.EMPTY, OpenDistroSecurityDeprecationHandler.INSTANCE, originalResult.internalSourceRef(), XContentType.JSON)) {
+                    try (XContentParser parser = XContentHelper.createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, originalResult.internalSourceRef(), XContentType.JSON)) {
                         Object base64 = parser.map().values().iterator().next();
                         if(base64 instanceof String) {
                             originalSource = (new String(BaseEncoding.base64().decode((String) base64)));
@@ -463,7 +464,7 @@ public abstract class AbstractAuditLog implements AuditLog {
                         log.error(e);
                     }
 
-                    try (XContentParser parser = XContentHelper.createParser(NamedXContentRegistry.EMPTY, OpenDistroSecurityDeprecationHandler.INSTANCE, currentIndex.source(), XContentType.JSON)) {
+                    try (XContentParser parser = XContentHelper.createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, currentIndex.source(), XContentType.JSON)) {
                         Object base64 = parser.map().values().iterator().next();
                         if(base64 instanceof String) {
                             currentSource = (new String(BaseEncoding.base64().decode((String) base64)));
@@ -488,10 +489,10 @@ public abstract class AbstractAuditLog implements AuditLog {
         if (!complianceConfig.shouldLogWriteMetadataOnly()){
             if(opendistrosecurityIndex.equals(shardId.getIndexName())) {
                 //current source, normally not null or empty
-                try (XContentParser parser = XContentHelper.createParser(NamedXContentRegistry.EMPTY, OpenDistroSecurityDeprecationHandler.INSTANCE, currentIndex.source(), XContentType.JSON)) {
-                    Object base64 = parser.map().values().iterator().next();
-                    if(base64 instanceof String) {
-                        msg.addUnescapedJsonToRequestBody(new String(BaseEncoding.base64().decode((String) base64)));
+                try (XContentParser parser = XContentHelper.createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, currentIndex.source(), XContentType.JSON)) {
+                   Object base64 = parser.map().values().iterator().next();
+                   if(base64 instanceof String) {
+                       msg.addUnescapedJsonToRequestBody(new String(BaseEncoding.base64().decode((String) base64)));
                     } else {
                         msg.addTupleToRequestBody(new Tuple<XContentType, BytesReference>(XContentType.JSON, currentIndex.source()));
                     }

@@ -22,6 +22,9 @@ import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+
 import static org.elasticsearch.rest.RestRequest.Method.PUT;
 
 
@@ -35,6 +38,9 @@ import static org.elasticsearch.rest.RestRequest.Method.PUT;
  * Currently this action serves PUT request for /_opendistro/_security/ssl/http/reloadcerts or /_opendistro/_security/ssl/transport/reloadcerts endpoint
  */
 public class OpenDistroSecuritySSLReloadCertsAction extends BaseRestHandler {
+    private static final List<Route> routes = Collections.singletonList(
+            new Route(PUT, "_opendistro/_security/api/ssl/{certType}/reloadcerts/")
+    );
 
     private final Settings settings;
     private final OpenDistroSecurityKeyStore odsks;
@@ -51,7 +57,11 @@ public class OpenDistroSecuritySSLReloadCertsAction extends BaseRestHandler {
         this.odsks = odsks;
         this.adminDns = adminDns;
         this.threadContext = threadPool.getThreadContext();
-        restController.registerHandler(PUT, "_opendistro/_security/api/ssl/{certType}/reloadcerts/", this);
+    }
+
+    @Override
+    public List<Route> routes() {
+        return routes;
     }
 
     /**
