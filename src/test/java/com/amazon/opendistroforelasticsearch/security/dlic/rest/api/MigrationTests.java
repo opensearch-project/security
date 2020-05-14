@@ -15,7 +15,10 @@
 
 package com.amazon.opendistroforelasticsearch.security.dlic.rest.api;
 
+<<<<<<< HEAD
 import com.google.common.io.BaseEncoding;
+=======
+>>>>>>> 3aef3a3... Migration and validation APIs for version upgrade (#454)
 import org.apache.http.HttpStatus;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Assert;
@@ -89,6 +92,10 @@ public class MigrationTests extends SingleClusterTest {
         res = rh.executeGetRequest("_opendistro/_security/api/validate?pretty");
         assertContains(res, "*it was already migrated*");
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, res.getStatusCode());
+<<<<<<< HEAD
+=======
+
+>>>>>>> 3aef3a3... Migration and validation APIs for version upgrade (#454)
     }
 
     @Test
@@ -137,6 +144,7 @@ public class MigrationTests extends SingleClusterTest {
 
     }
 
+<<<<<<< HEAD
     @Test
     public void testSecurityMigrateWithEmptyPassword() throws Exception{
         final Settings settings = Settings.builder().put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
@@ -162,6 +170,8 @@ public class MigrationTests extends SingleClusterTest {
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
     }
 
+=======
+>>>>>>> 3aef3a3... Migration and validation APIs for version upgrade (#454)
     @Override
     protected String getType() {
         return "security";
