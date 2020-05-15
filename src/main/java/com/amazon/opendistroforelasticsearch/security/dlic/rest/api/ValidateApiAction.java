@@ -17,6 +17,8 @@ package com.amazon.opendistroforelasticsearch.security.dlic.rest.api;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Collections;
+import java.util.List;
 
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -54,6 +56,9 @@ import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.Tenan
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.PrincipalExtractor;
 
 public class ValidateApiAction extends AbstractApiAction {
+    private static final List<Route> routes = Collections.singletonList(
+            new Route(Method.GET, "/_opendistro/_security/api/validate")
+    );
 
     @Inject
     public ValidateApiAction(final Settings settings, final Path configPath, final RestController controller, final Client client,
@@ -63,8 +68,8 @@ public class ValidateApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected void registerHandlers(RestController controller, Settings settings) {
-        controller.registerHandler(Method.GET, "/_opendistro/_security/api/validate", this);
+    public List<Route> routes() {
+        return routes;
     }
 
     @Override
