@@ -17,6 +17,8 @@ package com.amazon.opendistroforelasticsearch.security.dlic.rest.api;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Collections;
+import java.util.List;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
@@ -67,6 +69,9 @@ import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.Tenan
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.PrincipalExtractor;
 
 public class MigrateApiAction extends AbstractApiAction {
+    private static final List<Route> routes = Collections.singletonList(
+            new Route(Method.POST, "/_opendistro/_security/api/migrate")
+    );
 
     @Inject
     public MigrateApiAction(final Settings settings, final Path configPath, final RestController controller, final Client client,
@@ -76,8 +81,8 @@ public class MigrateApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected void registerHandlers(RestController controller, Settings settings) {
-        controller.registerHandler(Method.POST, "/_opendistro/_security/api/migrate", this);
+    public List<Route> routes() {
+        return routes;
     }
 
     @Override
