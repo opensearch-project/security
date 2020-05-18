@@ -108,7 +108,7 @@ public final class AuditLogImpl extends AbstractAuditLog {
 	}
 
 	@Subscribe
-	public void onAuditConfigChanged(final AuditConfig auditConfig) {
+	public void setConfig(final AuditConfig auditConfig) {
 		enabled = auditConfig.isEnabled() && messageRouterEnabled;
 		onAuditConfigFilterChanged(auditConfig.getFilter());
 		if (dlsFlsAvailable) {

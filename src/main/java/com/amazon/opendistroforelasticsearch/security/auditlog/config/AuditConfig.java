@@ -1,3 +1,18 @@
+/*
+ * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License").
+ *  You may not use this file except in compliance with the License.
+ *  A copy of the License is located at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  or in the "license" file accompanying this file. This file is distributed
+ *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ *  express or implied. See the License for the specific language governing
+ *  permissions and limitations under the License.
+ */
+
 package com.amazon.opendistroforelasticsearch.security.auditlog.config;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
@@ -137,6 +152,10 @@ public class AuditConfig {
             return isRestApiAuditEnabled;
         }
 
+        /**
+         * Enable or disable REST API auditing
+         * @param enableRest true/false
+         */
         @JsonIgnore
         public void setRestApiAuditEnabled(boolean enableRest) {
             this.isRestApiAuditEnabled = enableRest;
@@ -151,6 +170,10 @@ public class AuditConfig {
             return disabledRestCategories;
         }
 
+        /**
+         * Set categories to ignore REST API auditing
+         * @param disabledRestCategories categories
+         */
         @JsonSetter(value = Key.DISABLED_REST_CATEGORIES, nulls = Nulls.AS_EMPTY)
         public void setDisabledRestCategories(Set<AuditCategory> disabledRestCategories) {
             if (disabledRestCategories != null && !disabledRestCategories.isEmpty()) {
@@ -173,6 +196,10 @@ public class AuditConfig {
             return isTransportApiAuditEnabled;
         }
 
+        /**
+         * Enable or disable Transport API auditing
+         * @param enableTransport true/false
+         */
         @JsonIgnore
         public void setTransportApiAuditEnabled(boolean enableTransport) {
             this.isTransportApiAuditEnabled = enableTransport;
@@ -187,6 +214,10 @@ public class AuditConfig {
             return disabledTransportCategories;
         }
 
+        /**
+         *  Set categories to ignore Transport API auditing
+         * @param disabledTransportCategories categories
+         */
         @JsonSetter(value = Key.DISABLED_TRANSPORT_CATEGORIES, nulls = Nulls.AS_EMPTY)
         public void setDisabledTransportCategories(Set<AuditCategory> disabledTransportCategories) {
             if (disabledTransportCategories != null && !disabledTransportCategories.isEmpty()) {
@@ -201,7 +232,7 @@ public class AuditConfig {
         }
 
         /**
-         * Check if indices must be resolved during auditing
+         * Check if bulk requests must be resolved during auditing
          * @return true/false
          */
         @JsonIgnore
@@ -209,6 +240,10 @@ public class AuditConfig {
             return resolveBulkRequests;
         }
 
+        /**
+         * Set if bulk requests must be resolved during auditing
+         * @param resolveBulkRequests true/false
+         */
         @JsonIgnore
         public void setResolveBulkRequests(boolean resolveBulkRequests) {
             this.resolveBulkRequests = resolveBulkRequests;
@@ -223,6 +258,10 @@ public class AuditConfig {
             return logRequestBody;
         }
 
+        /**
+         * Set if request body must be logged
+         * @param logRequestBody true/false
+         */
         @JsonIgnore
         public void setLogRequestBody(boolean logRequestBody) {
             this.logRequestBody = logRequestBody;
@@ -237,13 +276,17 @@ public class AuditConfig {
             return resolveIndices;
         }
 
+        /**
+         * Set if indices must be resolved during auditing
+         * @param resolveIndices true/false
+         */
         @JsonIgnore
         public void setResolveIndices(boolean resolveIndices) {
             this.resolveIndices = resolveIndices;
         }
 
         /**
-         * Checks if sensitive headers eg: Authorization must be excluded in log messages
+         * Checks if sensitive headers eg: Authorization must be excluded in audit log messages
          * @return true/false
          */
         @JsonIgnore
@@ -251,13 +294,17 @@ public class AuditConfig {
             return excludeSensitiveHeaders;
         }
 
+        /**
+         * Set  if sensitive headers must be excluded from audit log messages
+         * @param excludeSensitiveHeaders true/false
+         */
         @JsonIgnore
         public void setExcludeSensitiveHeaders(boolean excludeSensitiveHeaders) {
             this.excludeSensitiveHeaders = excludeSensitiveHeaders;
         }
 
         /**
-         * Set of users for whom auditing must be ignored.
+         * Get users for whom auditing must be ignored.
          * @return set of users
          */
         @JsonIgnore
@@ -265,6 +312,10 @@ public class AuditConfig {
             return ignoredAuditUsers;
         }
 
+        /**
+         * Set of users for whom auditing must be ignored.
+         * @param ignoreUsers users
+         */
         @JsonSetter(value = Key.IGNORE_USERS, nulls = Nulls.AS_EMPTY)
         public void setIgnoreUsers(Set<String> ignoreUsers) {
             if (ignoreUsers != null) {
@@ -283,6 +334,10 @@ public class AuditConfig {
             return ignoreAuditRequests;
         }
 
+        /**
+         * Set requests to be ignored using api auditing
+         * @param ignoreRequests request patterns
+         */
         @JsonSetter(value = Key.IGNORE_REQUESTS, nulls = Nulls.AS_EMPTY)
         public void setIgnoreRequests(Set<String> ignoreRequests) {
             if (ignoreRequests != null) {
@@ -327,51 +382,91 @@ public class AuditConfig {
         @JsonProperty(value = Key.WRITE_IGNORE_USERS)
         private Set<String> writeIgnoreUsers = Collections.emptySet();
 
+        /**
+         * Checks if compliance auditing is enabled
+         * @return true/false
+         */
         @JsonIgnore
         public boolean isComplianceEnabled() {
             return complianceEnabled;
         }
 
+        /**
+         * Set whether to audit compliance events
+         * @param complianceEnabled true/false
+         */
         @JsonIgnore
         public void setComplianceEnabled(boolean complianceEnabled) {
             this.complianceEnabled = complianceEnabled;
         }
 
+        /**
+         * Check if auditing of internal opendistro security index is enabled
+         * @return true/false
+         */
         @JsonIgnore
         public boolean isInternalConfigEnabled() {
             return internalConfigEnabled;
         }
 
+        /**
+         * Set whether to audit internal opendistro security index
+         * @param internalConfigEnabled true/false
+         */
         @JsonIgnore
         public void setInternalConfigEnabled(boolean internalConfigEnabled) {
             this.internalConfigEnabled = internalConfigEnabled;
         }
 
+        /**
+         * Checks if auditing of external configuration files is enabled
+         * @return true/false
+         */
         @JsonIgnore
         public boolean isExternalConfigEnabled() {
             return externalConfigEnabled;
         }
 
+        /**
+         * Set whether to audit external configuration files
+         * @param externalConfigEnabled true/false
+         */
         @JsonIgnore
         public void setExternalConfigEnabled(boolean externalConfigEnabled) {
             this.externalConfigEnabled = externalConfigEnabled;
         }
 
+        /**
+         * Checks if only metadata or field names are to be logged for doc read requests
+         * @return true/false
+         */
         @JsonIgnore
         public boolean isReadMetadataOnly() {
             return readMetadataOnly;
         }
 
+        /**
+         * Set if only metadata or field names are to be logged for doc read requests
+         * @param readMetadataOnly true/false
+         */
         @JsonIgnore
         public void setReadMetadataOnly(boolean readMetadataOnly) {
             this.readMetadataOnly = readMetadataOnly;
         }
 
+        /**
+         * Get list of fields to watch for, in a document in an index
+         * @return index name mapped to a set of fields
+         */
         @JsonIgnore
         public Map<String, Set<String>> getReadWatchedFields() {
             return readWatchedFields;
         }
 
+        /**
+         * Set list of fields to watch for, in a document in an index
+         * @param readWatchedFields index name mapped to a set of fields
+         */
         @JsonSetter(value = Key.READ_WATCHED_FIELDS, nulls = Nulls.AS_EMPTY)
         public void setReadWatchedFields(Map<String, Set<String>> readWatchedFields) {
             if (readWatchedFields != null) {
@@ -381,11 +476,19 @@ public class AuditConfig {
             }
         }
 
+        /**
+         * Get users ignored for auditing doc read requests
+         * @return set of ignored users
+         */
         @JsonIgnore
         public Set<String> getReadIgnoreUsers() {
             return readIgnoreUsers;
         }
 
+        /**
+         * Set users to be ignored for auditing doc read requests
+         * @param readIgnoreUsers users
+         */
         @JsonSetter(value = Key.READ_IGNORE_USERS, nulls = Nulls.AS_EMPTY)
         public void setReadIgnoreUsers(Set<String> readIgnoreUsers) {
             if (readIgnoreUsers != null) {
@@ -395,31 +498,55 @@ public class AuditConfig {
             }
         }
 
+        /**
+         * Checks if only metadata or field names are to be logged for doc write requests
+         * @return true/false
+         */
         @JsonIgnore
         public boolean isWriteMetadataOnly() {
             return writeMetadataOnly;
         }
 
+        /**
+         * Set whether to log only metadata for doc write requests
+         * @param writeMetadataOnly true/false
+         */
         @JsonIgnore
         public void setWriteMetadataOnly(boolean writeMetadataOnly) {
             this.writeMetadataOnly = writeMetadataOnly;
         }
 
+        /**
+         * Checks if only diffs are to be logged for doc write requests
+         * @return true/false
+         */
         @JsonIgnore
         public boolean isWriteLogDiffs() {
             return writeLogDiffs;
         }
 
+        /**
+         * Set whether to log only diffs for doc write requests
+         * @param writeLogDiffs true/false
+         */
         @JsonIgnore
         public void setWriteLogDiffs(boolean writeLogDiffs) {
             this.writeLogDiffs = writeLogDiffs;
         }
 
+        /**
+         * Get list of indices to watch for doc write requests
+         * @return indices
+         */
         @JsonIgnore
         public List<String> getWriteWatchedIndices() {
             return writeWatchedIndices;
         }
 
+        /**
+         * Set indices to watch for doc write requests
+         * @param writeWatchedIndices indices
+         */
         @JsonSetter(value = Key.WRITE_WATCHED_INDICES, nulls = Nulls.AS_EMPTY)
         public void setWriteWatchedIndices(List<String> writeWatchedIndices) {
             if (writeWatchedIndices != null) {
@@ -429,11 +556,19 @@ public class AuditConfig {
             }
         }
 
+        /**
+         * Get users ignored for auditing doc write requests
+         * @return set of ignored users
+         */
         @JsonIgnore
         public Set<String> getWriteIgnoreUsers() {
             return writeIgnoreUsers;
         }
 
+        /**
+         * Set users to be ignored for auditing doc write requests
+         * @param writeIgnoreUsers users
+         */
         @JsonSetter(value = Key.WRITE_IGNORE_USERS, nulls = Nulls.AS_EMPTY)
         public void setWriteIgnoreUsers(Set<String> writeIgnoreUsers) {
             if (writeIgnoreUsers != null) {
@@ -553,4 +688,29 @@ public class AuditConfig {
         }
         return ImmutableSet.copyOf(list);
     }
+
+    /**
+     * List of keys that are deprecated
+     */
+    public static final List<String> DEPRECATED_KEYS = ImmutableList.of(
+            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST,
+            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES,
+            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT,
+            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES,
+            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY,
+            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_INDICES,
+            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS,
+            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS,
+            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS,
+            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS,
+            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED,
+            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED,
+            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_METADATA_ONLY,
+            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS,
+            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS,
+            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_METADATA_ONLY,
+            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS,
+            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS,
+            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES
+    );
 }

@@ -36,21 +36,17 @@ import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
 
-import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.Meta;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.DocWriteRequest;
 import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 
@@ -71,7 +67,7 @@ public class ConfigHelper {
     }
 
     public static void uploadFile(Client tc, String filepath, String index, CType cType, int configVersion, boolean populateEmptyIfFileMissing) throws Exception {
-        LOGGER.info("Will update '" + cType + "' with " + filepath + " and populate it with empty doc if file missing and populateEmptyIfFileMissing=" + populateEmptyIfFileMissing);
+        LOGGER.info("Will update '" + cType + "' with " + filepath + " if absent and populate it with empty doc if file missing and populateEmptyIfFileMissing=" + populateEmptyIfFileMissing);
 
         if (!populateEmptyIfFileMissing) {
             ConfigHelper.fromYamlFile(filepath, cType, configVersion, 0, 0);
@@ -120,35 +116,6 @@ public class ConfigHelper {
         String string = DefaultObjectMapper.writeValueAsString(empty, false);
         SecurityDynamicConfiguration<?> c = SecurityDynamicConfiguration.fromJson(string, cType, configVersion, -1, -1);
         return c;
-    }
-
-    public static void uploadConfigurationIfAbsent(Client tc, String index, CType cType, int configVersion, Settings settings) throws Exception {
-        if (cType == CType.AUDIT) {
-            SecurityDynamicConfiguration<?> audit = ConfigHelper.createEmptySdc(CType.AUDIT, configVersion);
-            audit.putCObject("config", AuditConfig.from(settings));
-            uploadConfigurationIfAbsent(tc, index, cType, configVersion, audit);
-        }
-    }
-
-    private static void uploadConfigurationIfAbsent(Client tc, String index, CType cType, int configVersion, SecurityDynamicConfiguration<?> configuration) throws Exception {
-        LOGGER.info("Will try upload doc '{}' with version {} in index {} if absent", cType, configVersion, index);
-        final String configType = cType.toLCString();
-        try {
-            final String res = tc
-                    .index(new IndexRequest(index)
-                            .type(configVersion == 1 ? "security" : "_doc")
-                            .opType(DocWriteRequest.OpType.CREATE)
-                            .id(configType).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                            .source(configType, XContentHelper.toXContent(configuration, XContentType.JSON, false)))
-                    .actionGet().getId();
-            if (!configType.equals(res)) {
-                throw new Exception("   FAIL: Configuration for '" + configType
-                        + "' failed for unknown reasons. Pls. consult logfile of elasticsearch");
-            }
-            LOGGER.info("Doc '{}' updated", cType);
-        } catch (VersionConflictEngineException exception) {
-            LOGGER.info("Doc '{}' already exists in index {}. Doing nothing", cType, index);
-        }
     }
 
     public static String createEmptySdcYaml(CType cType, int configVersion) throws Exception {

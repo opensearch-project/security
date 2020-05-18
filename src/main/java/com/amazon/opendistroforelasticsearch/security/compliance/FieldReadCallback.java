@@ -93,7 +93,7 @@ public final class FieldReadCallback {
             masked = WildcardMatcher.matchAny(maskedFields, fieldName);
         }
         final ComplianceConfig complianceConfig = auditLog.getComplianceConfig();
-        return !masked && complianceConfig != null && complianceConfig.readHistoryEnabledForField(index.getName(), fieldName);
+        return !masked && complianceConfig != null && complianceConfig.isEnabled() && complianceConfig.readHistoryEnabledForField(index.getName(), fieldName);
     }
 
     public void binaryFieldRead(final FieldInfo fieldInfo, byte[] fieldValue) {

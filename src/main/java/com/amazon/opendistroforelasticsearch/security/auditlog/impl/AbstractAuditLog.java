@@ -77,7 +77,6 @@ import com.amazon.opendistroforelasticsearch.security.user.User;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.flipkart.zjsonpatch.JsonDiff;
 import com.google.common.io.BaseEncoding;
-import org.greenrobot.eventbus.Subscribe;
 
 import static org.elasticsearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
 
@@ -111,8 +110,6 @@ public abstract class AbstractAuditLog implements AuditLog {
         this.settings = settings;
         this.resolver = resolver;
         this.clusterService = clusterService;
-        this.auditConfigFilter = AuditConfig.from(settings).getFilter();
-        this.auditConfigFilter.log(log);
         this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
         this.environment = environment;
     }

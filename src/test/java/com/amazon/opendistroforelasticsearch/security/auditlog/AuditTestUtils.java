@@ -3,7 +3,6 @@ package com.amazon.opendistroforelasticsearch.security.auditlog;
 import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AbstractAuditLog;
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditLogImpl;
-import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -54,7 +53,7 @@ public class AuditTestUtils {
         final ClusterService clusterService) {
         AuditLogImpl auditLog = new AuditLogImpl(settings, configPath, clientProvider, threadPool, resolver, clusterService);
         AuditConfig auditConfig = AuditConfig.from(settings);
-        auditLog.onAuditConfigChanged(auditConfig);
+        auditLog.setConfig(auditConfig);
         return auditLog;
     }
 }

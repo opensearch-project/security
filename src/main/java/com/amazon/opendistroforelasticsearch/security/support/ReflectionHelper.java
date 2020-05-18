@@ -172,8 +172,7 @@ public class ReflectionHelper {
         }
     }
 
-    public static AuditLog instantiateAuditLog(final Settings settings, final Path configPath, final Client localClient, final ThreadPool threadPool,
-                                               final IndexNameExpressionResolver resolver, final ClusterService clusterService, final boolean dlsFlsAvailable, final Environment environment) {
+    public static AuditLog instantiateAuditLog(final Settings settings, final Path configPath, final Client localClient, final ThreadPool threadPool, final IndexNameExpressionResolver resolver, final ClusterService clusterService, final boolean dlsFlsAvailable, final Environment environment) {
 
         if (advancedModulesDisabled()) {
             return new NullAuditLog();

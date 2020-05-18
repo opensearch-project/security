@@ -9,6 +9,7 @@ import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvalu
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.PrincipalExtractor;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.collect.ImmutableList;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -21,6 +22,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
 
 /**
  * Rest handler for fetching and updating audit configuration.
@@ -100,32 +102,46 @@ import java.nio.file.Path;
  * [{"op": "replace", "path": "/config/compliance/internal_config", "value": "true"}]
  */
 public class AuditApiAction extends PatchableResourceApiAction {
+    private static final List<Route> routes = ImmutableList.of(
+            new Route(RestRequest.Method.GET, "/_opendistro/_security/api/audit/"),
+            new Route(RestRequest.Method.PUT, "/_opendistro/_security/api/audit/{name}"),
+            new Route(RestRequest.Method.PATCH, "/_opendistro/_security/api/audit/")
+    );
 
     private static final String RESOURCE_NAME = "config";
     private final PrivilegesEvaluator privilegesEvaluator;
     private final ThreadContext threadContext;
 
     public AuditApiAction(final Settings settings,
-                                final Path configPath,
-                                final RestController controller,
-                                final Client client,
-                                final AdminDNs adminDNs,
-                                final ConfigurationRepository cl,
-                                final ClusterService cs,
-                                final PrincipalExtractor principalExtractor,
-                                final PrivilegesEvaluator privilegesEvaluator,
-                                final ThreadPool threadPool,
-                                final AuditLog auditLog) {
+                          final Path configPath,
+                          final RestController controller,
+                          final Client client,
+                          final AdminDNs adminDNs,
+                          final ConfigurationRepository cl,
+                          final ClusterService cs,
+                          final PrincipalExtractor principalExtractor,
+                          final PrivilegesEvaluator privilegesEvaluator,
+                          final ThreadPool threadPool,
+                          final AuditLog auditLog) {
         super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, privilegesEvaluator, threadPool, auditLog);
         this.privilegesEvaluator = privilegesEvaluator;
         this.threadContext = threadPool.getThreadContext();
     }
 
     @Override
-    protected void registerHandlers(RestController controller, Settings settings) {
-        controller.registerHandler(RestRequest.Method.GET, "/_opendistro/_security/api/audit/", this);
-        controller.registerHandler(RestRequest.Method.PUT, "/_opendistro/_security/api/audit/{name}", this);
-        controller.registerHandler(RestRequest.Method.PATCH, "/_opendistro/_security/api/audit/", this);
+    public List<Route> routes() {
+        return routes;
+    }
+
+    @Override
+    protected void handleApiRequest(final RestChannel channel, final RestRequest request, final Client client) throws IOException {
+        // if audit config doc is not available in security index,
+        // disable audit APIs
+        if (!cl.isAuditHotReloadingEnabled()) {
+            notImplemented(channel, request.method());
+            return;
+        }
+        super.handleApiRequest(channel, request, client);
     }
 
     @Override
@@ -135,6 +151,16 @@ public class AuditApiAction extends PatchableResourceApiAction {
             return;
         }
         super.handlePut(channel, request, client, content);
+    }
+
+    @Override
+    protected void handlePost(RestChannel channel, final RestRequest request, final Client client, final JsonNode content) {
+        notImplemented(channel, RestRequest.Method.POST);
+    }
+
+    @Override
+    protected void handleDelete(RestChannel channel, final RestRequest request, final Client client, final JsonNode content) {
+        notImplemented(channel, RestRequest.Method.DELETE);
     }
 
     @Override

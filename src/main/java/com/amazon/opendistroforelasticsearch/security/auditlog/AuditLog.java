@@ -33,6 +33,7 @@ package com.amazon.opendistroforelasticsearch.security.auditlog;
 import java.io.Closeable;
 import java.util.Map;
 
+import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.engine.Engine.Delete;
@@ -75,6 +76,9 @@ public interface AuditLog extends Closeable {
 
     // compliance config
     ComplianceConfig getComplianceConfig();
+
+    // set config
+    void setConfig(AuditConfig auditConfig);
     
     public enum Origin {
         REST, TRANSPORT, LOCAL
