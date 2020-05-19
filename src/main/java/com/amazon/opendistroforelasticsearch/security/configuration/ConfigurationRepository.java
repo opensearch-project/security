@@ -232,7 +232,7 @@ public class ConfigurationRepository {
                     final boolean isAuditConfigDocPresentInIndex = cl.isAuditConfigDocPresentInIndex();
                     if (isAuditConfigDocPresentInIndex) {
                         if (!deprecatedAuditKeysInSettings.isEmpty()) {
-                            throw new Error("Audit configuration settings found in both index and elasticsearch settings (deprecated)");
+                            LOGGER.warn("Audit configuration settings found in both index and elasticsearch settings (deprecated)");
                         }
                         LOGGER.info("Hot-reloading of audit configuration is enabled");
                     } else {
