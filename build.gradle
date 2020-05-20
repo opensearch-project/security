@@ -36,8 +36,6 @@ ospackage {
 
     user 'root'
     permissionGroup 'root'
-    fileMode 0644
-    dirMode 0755
 
     requires('elasticsearch-oss', "7.7.0", EQUAL)
     packager = 'Amazon'
