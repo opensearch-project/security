@@ -32,6 +32,7 @@ ospackage {
     into '/usr/share/elasticsearch/plugins'
     from(zipTree(project.file(archivePath).absolutePath)) {
         into "opendistro_security"
+        permissionGroup 'elasticsearch'
     }
 
     user 'root'
@@ -57,6 +58,7 @@ ospackage {
 
 buildRpm {
     arch = 'NOARCH'
+    addParentDirs = false
     archiveName "${packageName}-${version}.rpm"
 }
 
