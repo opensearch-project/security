@@ -15,7 +15,6 @@
 
 package com.amazon.opendistroforelasticsearch.security.dlic.rest.api;
 
-import com.amazon.opendistroforelasticsearch.security.auditlog.AuditTestUtils;
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage;
 import com.amazon.opendistroforelasticsearch.security.auditlog.integration.TestAuditlogImpl;
@@ -163,23 +162,16 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
         Settings settings = Settings.builder().put(ConfigConstants.OPENDISTRO_SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, true)
             .putList(ConfigConstants.OPENDISTRO_SECURITY_NODES_DN, "CN=example.com")
             .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, false)
+            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, false)
+            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, false)
+            .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS, true)
+            .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED, false)
+            .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, true)
+            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
+            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
             .build();
         setupWithRestRoles(settings);
-
-        final Settings auditSettings = Settings.builder().put(ConfigConstants.OPENDISTRO_SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, true)
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_NODES_DN, "CN=example.com")
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, false)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, false)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, false)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS, true)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED, false)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, true)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
-                .build();
-        AuditTestUtils.updateAuditConfig(rh, auditSettings);
-        
         TestAuditlogImpl.clear();
 
         final Header nonAdminCredsHeader = encodeBasicHeader("sarek", "sarek");

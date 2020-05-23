@@ -18,6 +18,7 @@ package com.amazon.opendistroforelasticsearch.security.auditlog;
 import java.util.Collection;
 
 import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
+import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import org.apache.http.Header;
 import org.elasticsearch.common.settings.Settings;
 
@@ -40,9 +41,19 @@ public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
     }
 
     protected final void setup(Settings additionalSettings) throws Exception {
-        final Settings nodeSettings = defaultNodeSettings(additionalSettings);
+        final Settings.Builder auditSettingsBuilder = Settings.builder();
+        final Settings.Builder additionalSettingsBuilder = Settings.builder().put(additionalSettings);
+        AuditConfig.DEPRECATED_KEYS.forEach(key -> {
+            if (additionalSettingsBuilder.get(key) != null) {
+                auditSettingsBuilder.put(key, additionalSettings.get(key));
+                additionalSettingsBuilder.remove(key);
+            }
+        });
+
+        final Settings nodeSettings = defaultNodeSettings(additionalSettingsBuilder.build());
         setup(Settings.EMPTY, new DynamicSecurityConfig(), nodeSettings, init);
         rh = restHelper();
+        updateAuditConfig(auditSettingsBuilder.build());
     }
 
     protected Settings defaultNodeSettings(Settings additionalSettings) {

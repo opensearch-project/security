@@ -10,7 +10,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
-import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.NodesDn;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

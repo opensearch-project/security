@@ -163,11 +163,14 @@ public class DynamicSecurityConfig {
                 .source(CType.NODESDN.toLCString(), FileHelper.readYamlContent(prefix+securityNodesDn)));
         }
 
-        ret.add(new IndexRequest(securityIndexName)
-                .type(type)
-                .id(CType.AUDIT.toLCString())
-                .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                .source(CType.AUDIT.toLCString(), FileHelper.readYamlContent(prefix + securityAudit)));
+        final String auditYmlFile = prefix + securityAudit;
+        if (null != FileHelper.getAbsoluteFilePathFromClassPath(auditYmlFile)) {
+            ret.add(new IndexRequest(securityIndexName)
+                    .type(type)
+                    .id(CType.AUDIT.toLCString())
+                    .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .source(CType.AUDIT.toLCString(), FileHelper.readYamlContent(auditYmlFile)));
+        }
 
         return Collections.unmodifiableList(ret);
     }

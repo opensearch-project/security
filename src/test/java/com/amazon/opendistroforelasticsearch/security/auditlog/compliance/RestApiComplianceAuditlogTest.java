@@ -15,6 +15,7 @@
 
 package com.amazon.opendistroforelasticsearch.security.auditlog.compliance;
 
+import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage;
 import org.apache.http.HttpStatus;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Assert;
@@ -34,11 +35,6 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         Settings additionalSettings = Settings.builder()
                 .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_ROLES_ENABLED, "opendistro_security_all_access")
-                .build();
-
-        setup(additionalSettings);
-
-        Settings auditSettings = Settings.builder()
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, false)
@@ -47,8 +43,8 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
                 .build();
-        updateAuditConfig(auditSettings);
 
+        setup(additionalSettings);
         TestAuditlogImpl.clear();
         String body = "{ \"password\":\"test\",\"backend_roles\":[\"role1\",\"role2\"] }";
         HttpResponse response = rh.executePutRequest("_opendistro/_security/api/internalusers/compuser?pretty", body, encodeBasicHeader("admin", "admin"));
@@ -68,11 +64,6 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
         Settings additionalSettings = Settings.builder()
                 .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
-                .build();
-
-        setup(additionalSettings);
-
-        Settings auditSettings = Settings.builder()
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, false)
@@ -81,8 +72,8 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
                 .build();
-        updateAuditConfig(auditSettings);
 
+        setup(additionalSettings);
         TestAuditlogImpl.clear();
         String body = "{ \"password\":\"test\",\"backend_roles\":[\"role1\",\"role2\"] }";
 
@@ -138,17 +129,13 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
     }
 
+
+
     @Test
     public void testAutoInit() throws Exception {
 
         Settings additionalSettings = Settings.builder()
                 .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
-                .put(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_ROLES_ENABLED, "opendistro_security_all_access")
-                .build();
-
-        setup(additionalSettings);
-
-        Settings auditSettings = Settings.builder()
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, false)
@@ -157,7 +144,8 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
                 .build();
-        updateAuditConfig(auditSettings);
+
+        setup(additionalSettings);
 
         Thread.sleep(1500);
         System.out.println(TestAuditlogImpl.sb.toString());
@@ -176,11 +164,6 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         Settings additionalSettings = Settings.builder()
                 .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_ROLES_ENABLED, "opendistro_security_all_access")
-                .build();
-
-        setup(additionalSettings);
-
-        Settings auditSettings = Settings.builder()
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, false)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, false)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, false)
@@ -188,8 +171,8 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
                 .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS, "admin")
                 .build();
-        updateAuditConfig(auditSettings);
 
+        setup(additionalSettings);
         TestAuditlogImpl.clear();
         String body = "{ \"password\":\"test\",\"backend_roles\":[\"role1\",\"role2\"] }";
         System.out.println("exec");
@@ -205,12 +188,6 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
         Settings additionalSettings = Settings.builder()
                 .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
-                .put(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_ROLES_ENABLED, "opendistro_security_all_access")
-                .build();
-
-        setup(additionalSettings);
-
-        Settings auditSettings = Settings.builder()
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_ROLES_ENABLED, "opendistro_security_all_access")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, true)
@@ -220,8 +197,8 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
                 .build();
-        updateAuditConfig(auditSettings);
 
+        setup(additionalSettings);
         TestAuditlogImpl.clear();
 
         rh.enableHTTPClientSSL = true;
