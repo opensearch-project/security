@@ -2,6 +2,8 @@ package com.amazon.opendistroforelasticsearch.security.auditlog.compliance;
 
 import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
+import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
+
 import com.google.common.collect.ImmutableSet;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.settings.Settings;
@@ -11,6 +13,7 @@ import org.junit.rules.ExpectedException;
 
 import java.nio.charset.StandardCharsets;
 
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertEquals;
@@ -32,7 +35,7 @@ public class ComplianceConfigTest {
         assertFalse(complianceConfig.shouldLogReadMetadataOnly());
         assertFalse(complianceConfig.shouldLogWriteMetadataOnly());
         assertFalse(complianceConfig.shouldLogDiffsForWrite());
-        assertTrue(complianceConfig.getImmutableIndicesPatterns().isEmpty());
+        assertSame(WildcardMatcher.NONE, complianceConfig.getImmutableIndicesMatcher());
         assertEquals(16, complianceConfig.getSalt16().length);
     }
 
@@ -62,7 +65,7 @@ public class ComplianceConfigTest {
         assertTrue(complianceConfig.shouldLogReadMetadataOnly());
         assertTrue(complianceConfig.shouldLogWriteMetadataOnly());
         assertFalse(complianceConfig.shouldLogDiffsForWrite());
-        assertEquals(complianceConfig.getImmutableIndicesPatterns(), ImmutableSet.of("immutable1", "immutable2"));
+        assertEquals(complianceConfig.getImmutableIndicesMatcher(), WildcardMatcher.from(ImmutableSet.of("immutable1", "immutable2")));
         assertArrayEquals(testSalt.getBytes(StandardCharsets.UTF_8), complianceConfig.getSalt16());
         assertEquals(16, complianceConfig.getSalt16().length);
 
