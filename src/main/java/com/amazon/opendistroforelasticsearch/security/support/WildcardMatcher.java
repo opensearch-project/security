@@ -30,626 +30,469 @@
 
 package com.amazon.opendistroforelasticsearch.security.support;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.Stack;
+import java.util.Iterator;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-public class WildcardMatcher {
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 
-    private static final int NOT_FOUND = -1;
+public abstract class WildcardMatcher implements Predicate<String> {
 
-    /**
-     * returns true if at least one candidate match at least one pattern (case sensitive)
-     * @param pattern
-     * @param candidate
-     * @return
-     */
-    public static boolean matchAny(final String[] pattern, final String[] candidate) {
+    public static final WildcardMatcher ANY = new WildcardMatcher() {
 
-        return matchAny(pattern, candidate, false);
-    }
-    
-    public static boolean matchAny(final Collection<String> pattern, final Collection<String> candidate) {
-
-        return matchAny(pattern, candidate, false);
-    }
-
-    /**
-     * returns true if at least one candidate match at least one pattern
-     *
-     * @param pattern
-     * @param candidate
-     * @param ignoreCase
-     * @return
-     */
-    public static boolean matchAny(final String[] pattern, final String[] candidate, boolean ignoreCase) {
-
-        for (int i = 0; i < pattern.length; i++) {
-            final String string = pattern[i];
-            if (matchAny(string, candidate, ignoreCase)) {
-                return true;
-            }
+        @Override
+        public boolean matchAny(Stream<String> candidates) {
+            return true;
         }
 
-        return false;
-    }
-
-    /**
-     * returns true if at least one candidate match at least one pattern
-     *
-     * @param pattern
-     * @param candidate
-     * @param ignoreCase
-     * @return
-     */
-    public static boolean matchAny(final Collection<String> pattern, final String[] candidate, boolean ignoreCase) {
-
-        for (String string: pattern) {
-            if (matchAny(string, candidate, ignoreCase)) {
-                return true;
-            }
+        @Override
+        public boolean matchAny(Collection<String> candidates) {
+            return true;
         }
 
-        return false;
-    }
-    
-    public static boolean matchAny(final Collection<String> pattern, final Collection<String> candidate, boolean ignoreCase) {
-
-        for (String string: pattern) {
-            if (matchAny(string, candidate, ignoreCase)) {
-                return true;
-            }
+        @Override
+        public boolean matchAny(String[] candidates) {
+            return true;
         }
 
-        return false;
-    }
-
-    /**
-     * return true if all candidates find a matching pattern
-     *
-     * @param pattern
-     * @param candidate
-     * @return
-     */
-    public static boolean matchAll(final String[] pattern, final String[] candidate) {
-
-
-        for (int i = 0; i < candidate.length; i++) {
-            final String string = candidate[i];
-            if (!matchAny(pattern, string)) {
-                return false;
-            }
+        @Override
+        public boolean matchAll(Stream<String> candidates) {
+            return true;
         }
 
-        return true;
-    }
-
-    /**
-     *
-     * @param pattern
-     * @param candidate
-     * @return
-     */
-    public static boolean allPatternsMatched(final String[] pattern, final String[] candidate) {
-
-        int matchedPatternNum = 0;
-
-        for (int i = 0; i < pattern.length; i++) {
-            final String string = pattern[i];
-            if (matchAny(string, candidate)) {
-                matchedPatternNum++;
-            }
+        @Override
+        public boolean matchAll(Collection<String> candidates) {
+            return true;
         }
 
-        return matchedPatternNum == pattern.length && pattern.length > 0;
-    }
-
-    public static boolean allPatternsMatched(final Collection<String> pattern, final Collection<String> candidate) {
-
-        int matchedPatternNum = 0;
-
-        for (String string:pattern) {
-            if (matchAny(string, candidate)) {
-                matchedPatternNum++;
-            }
+        @Override
+        public boolean matchAll(String[] candidates) {
+            return true;
         }
 
-        return matchedPatternNum == pattern.size() && pattern.size() > 0;
-    }
-
-    public static boolean matchAny(final String pattern, final String[] candidate) {
-        return matchAny(pattern, candidate, false);
-    }
-    
-    public static boolean matchAny(final String pattern, final Collection<String> candidate) {
-        return matchAny(pattern, candidate, false);
-    }
-
-    /**
-     * return true if at least one candidate matches the given pattern
-     *
-     * @param pattern
-     * @param candidate
-     * @param ignoreCase
-     * @return
-     */
-    public static boolean matchAny(final String pattern, final String[] candidate, boolean ignoreCase) {
-
-        for (int i = 0; i < candidate.length; i++) {
-            final String string = candidate[i];
-            if (match(pattern, string, ignoreCase)) {
-                return true;
-            }
+        @Override
+        public <T extends Collection<String>> T getMatchAny(Stream<String> candidates, Collector<String, ?, T> collector) {
+            return candidates.collect(collector);
         }
 
-        return false;
-    }
-
-    public static boolean matchAny(final String pattern, final Collection<String> candidates, boolean ignoreCase) {
-
-        for (String candidate: candidates) {
-            if (match(pattern, candidate, ignoreCase)) {
-                return true;
-            }
+        @Override
+        public boolean test(String candidate) {
+            return true;
         }
 
-        return false;
-    }
-
-    public static String[] matches(final String pattern, final String[] candidate, boolean ignoreCase) {
-
-        final List<String> ret = new ArrayList<String>(candidate.length);
-        for (int i = 0; i < candidate.length; i++) {
-            final String string = candidate[i];
-            if (match(pattern, string, ignoreCase)) {
-                ret.add(string);
-            }
+        @Override
+        public String toString() {
+            return "*";
         }
+    };
 
-        return ret.toArray(new String[0]);
-    }
+    public static final WildcardMatcher NONE = new WildcardMatcher() {
 
-    public static List<String> getMatchAny(final String pattern, final String[] candidate) {
-
-        final List<String> matches = new ArrayList<String>(candidate.length);
-
-        for (int i = 0; i < candidate.length; i++) {
-            final String string = candidate[i];
-            if (match(pattern, string)) {
-                matches.add(string);
-            }
-        }
-
-        return matches;
-    }
-
-    public static List<String> getMatchAny(final String[] patterns, final String[] candidate) {
-
-        final List<String> matches = new ArrayList<String>(candidate.length);
-
-        for (int i = 0; i < candidate.length; i++) {
-            final String string = candidate[i];
-            if (matchAny(patterns, string)) {
-                matches.add(string);
-            }
-        }
-
-        return matches;
-    }
-
-
-    public static List<String> getMatchAny(final Collection<String> patterns, final String[] candidate) {
-
-        final List<String> matches = new ArrayList<String>(candidate.length);
-
-        for (int i = 0; i < candidate.length; i++) {
-            final String string = candidate[i];
-            if (matchAny(patterns, string)) {
-                matches.add(string);
-            }
-        }
-
-        return matches;
-    }
-
-    public static List<String> getMatchAny(final Collection<String> patterns, Collection<String> candidates) {
-
-        final List<String> matches = new ArrayList<String>(candidates.size());
-
-        for (String string: candidates) {
-            if (matchAny(patterns, string)) {
-                matches.add(string);
-            }
-        }
-
-        return matches;
-    }
-
-    public static List<String> getMatchAny(final String pattern, final Collection<String> candidate) {
-
-        final List<String> matches = new ArrayList<String>(candidate.size());
-
-        for (final String string: candidate) {
-            if (match(pattern, string)) {
-                matches.add(string);
-            }
-        }
-
-        return matches;
-    }
-
-    public static List<String> getMatchAny(final String[] patterns, final Collection<String> candidate) {
-
-        final List<String> matches = new ArrayList<String>(candidate.size());
-
-        for (final String string: candidate) {
-            if (matchAny(patterns, string)) {
-                matches.add(string);
-            }
-        }
-
-        return matches;
-    }
-    
-    public static Optional<String> getFirstMatchingPattern(final Collection<String> pattern, final String candidate) {
-
-        for (String p : pattern) {
-            if (match(p, candidate)) {
-                return Optional.of(p);
-            }
-        }
-
-        return Optional.empty();
-    }
-
-
-    public static List<String> getAllMatchingPatterns(final Collection<String> pattern, final String candidate) {
-
-        final List<String> matches = new ArrayList<String>(pattern.size());
-
-        for (String p : pattern) {
-            if (match(p, candidate)) {
-                matches.add(p);
-            }
-        }
-
-        return matches;
-    }
-
-    public static List<String> getAllMatchingPatterns(final Collection<String> pattern, final Collection<String> candidates) {
-
-        final List<String> matches = new ArrayList<String>(pattern.size());
-
-        for (String c : candidates) {
-            matches.addAll(getAllMatchingPatterns(pattern, c));
-        }
-
-        return matches;
-    }
-
-
-    /**
-     * returns true if the candidate matches at least one pattern
-     *
-     * @param pattern
-     * @param candidate
-     * @return
-     */
-    public static boolean matchAny(final String pattern[], final String candidate) {
-
-        for (int i = 0; i < pattern.length; i++) {
-            final String string = pattern[i];
-            if (match(string, candidate)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * returns true if the candidate matches at least one pattern
-     *
-     * @param pattern
-     * @param candidate
-     * @return
-     */
-    public static boolean matchAny(final Collection<String> pattern, final String candidate) {
-
-        for (String string: pattern) {
-            if (match(string, candidate)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    public static boolean match(final String pattern, final String candidate) {
-        return match(pattern, candidate, false);
-    }
-
-    public static boolean match(String pattern, String candidate, boolean ignoreCase) {
-
-        if (pattern == null || candidate == null) {
+        @Override
+        public boolean matchAny(Stream<String> candidates) {
             return false;
         }
 
-        if(ignoreCase) {
-            pattern = pattern.toLowerCase();
-            candidate = candidate.toLowerCase();
+        @Override
+        public boolean matchAny(Collection<String> candidates) {
+            return false;
         }
 
-        if (pattern.startsWith("/") && pattern.endsWith("/")) {
-            // regex
-            return Pattern.matches("^"+pattern.substring(1, pattern.length() - 1)+"$", candidate);
-        } else if (pattern.length() == 1 && pattern.charAt(0) == '*') {
-            return true;
-        } else if (pattern.indexOf('?') == NOT_FOUND && pattern.indexOf('*') == NOT_FOUND) {
+        @Override
+        public boolean matchAny(String[] candidates) {
+            return false;
+        }
+
+        @Override
+        public boolean matchAll(Stream<String> candidates) {
+            return false;
+        }
+
+        @Override
+        public boolean matchAll(Collection<String> candidates) {
+            return false;
+        }
+
+        @Override
+        public boolean matchAll(String[] candidates) {
+            return false;
+        }
+
+        @Override
+        public <T extends Collection<String>> T getMatchAny(Stream<String> candidates, Collector<String, ?, T> collector) {
+            return Stream.<String>empty().collect(collector);
+        }
+
+        @Override
+        public <T extends Collection<String>> T getMatchAny(Collection<String> candidate, Collector<String, ?, T> collector) {
+            return Stream.<String>empty().collect(collector);
+        }
+
+        @Override
+        public <T extends Collection<String>> T getMatchAny(String[] candidate, Collector<String, ?, T> collector) {
+            return Stream.<String>empty().collect(collector);
+        }
+
+        @Override
+        public boolean test(String candidate) {
+            return false;
+        }
+
+        @Override
+        public String toString() {
+            return "<NONE>";
+        }
+    };
+
+    public static WildcardMatcher from(String pattern, boolean caseSensitive) {
+        if (pattern.equals("*")) {
+            return ANY;
+        } else if (pattern.startsWith("/") && pattern.endsWith("/")) {
+            return new RegexMatcher(pattern, caseSensitive);
+        } else if (pattern.indexOf('?') >= 0 || pattern.indexOf('*') >= 0) {
+            return caseSensitive ?  new SimpleMatcher(pattern) : new CasefoldingMatcher(pattern,  SimpleMatcher::new);
+        }
+        else {
+            return caseSensitive ? new Exact(pattern) : new CasefoldingMatcher(pattern, Exact::new);
+        }
+    }
+
+    public static WildcardMatcher from(String pattern) {
+        return from(pattern, true);
+    }
+
+    // This may in future use more optimized techniques to combine multiple WildcardMatchers in a single automaton
+    public static <T> WildcardMatcher from(Stream<T> stream, boolean caseSensitive) {
+        Collection<WildcardMatcher> matchers = stream.map(t -> {
+            if (t instanceof String) {
+                return WildcardMatcher.from(((String) t), caseSensitive);
+            } else if (t instanceof WildcardMatcher) {
+                return ((WildcardMatcher) t);
+            }
+            throw new UnsupportedOperationException("WildcardMatcher can't be constructed from " + t.getClass().getSimpleName());
+        })
+        .collect(ImmutableSet.toImmutableSet());
+
+        if (matchers.isEmpty()) {
+            return NONE;
+        } else if (matchers.size() == 1) {
+            return matchers.stream().findFirst().get();
+        }
+        return new MatcherCombiner(matchers);
+    }
+
+    public static <T> WildcardMatcher from(Collection<T> collection, boolean caseSensitive) {
+        if (collection == null || collection.isEmpty()) {
+            return NONE;
+        } else if (collection.size() == 1) {
+            T t = collection.stream().findFirst().get();
+            if (t instanceof String) {
+                return from(((String) t), caseSensitive);
+            } else if (t instanceof WildcardMatcher) {
+                return ((WildcardMatcher) t);
+            }
+            throw new UnsupportedOperationException("WildcardMatcher can't be constructed from " + t.getClass().getSimpleName());
+        }
+        return from(collection.stream(), caseSensitive);
+    }
+
+    public static WildcardMatcher from(String[] patterns, boolean caseSensitive) {
+        if (patterns == null || patterns.length == 0) {
+            return NONE;
+        } else if (patterns.length == 1) {
+            return from(patterns[0], caseSensitive);
+        }
+        return from(Arrays.stream(patterns), caseSensitive);
+    }
+
+    public static WildcardMatcher from(Stream<String> patterns) {
+        return from(patterns, true);
+    }
+
+    public static WildcardMatcher from(Collection<?> patterns) {
+        return from(patterns, true);
+    }
+
+    public static WildcardMatcher from(String... patterns) {
+        return from(patterns, true);
+    }
+
+    public WildcardMatcher concat(Stream<WildcardMatcher> matchers) {
+        return new WildcardMatcher.MatcherCombiner(Stream.concat(matchers, Stream.of(this)).collect(ImmutableSet.toImmutableSet()));
+    }
+
+    public WildcardMatcher concat(Collection<WildcardMatcher> matchers) {
+        if (matchers.isEmpty()) {
+            return this;
+        }
+        return concat(matchers.stream());
+    }
+
+    public WildcardMatcher concat(WildcardMatcher... matchers) {
+        if (matchers.length == 0) {
+            return this;
+        }
+        return concat(Arrays.stream(matchers));
+    }
+
+    public boolean matchAny(Stream<String> candidates) {
+        return candidates.anyMatch(this);
+    }
+
+    public boolean matchAny(Collection<String> candidates) {
+        return matchAny(candidates.stream());
+    }
+
+    public boolean matchAny(String[] candidates) {
+        return matchAny(Arrays.stream(candidates));
+    }
+
+    public boolean matchAll(Stream<String> candidates) {
+        return candidates.allMatch(this);
+    }
+
+    public boolean matchAll(Collection<String> candidates) {
+        return matchAll(candidates.stream());
+    }
+
+    public boolean matchAll(String[] candidates) {
+        return matchAll(Arrays.stream(candidates));
+    }
+
+    public <T extends Collection<String>> T getMatchAny(Stream<String> candidates, Collector<String, ?, T> collector) {
+        return candidates.filter(this).collect(collector);
+    }
+
+    public <T extends Collection<String>> T getMatchAny(Collection<String> candidate, Collector<String, ?, T> collector) {
+        return getMatchAny(candidate.stream(), collector);
+    }
+
+    public <T extends Collection<String>> T getMatchAny(final String[] candidate, Collector<String, ?, T> collector) {
+        return getMatchAny(Arrays.stream(candidate), collector);
+    }
+
+    public Optional<WildcardMatcher> findFirst(final String candidate) {
+        return Optional.ofNullable(test(candidate) ? this : null);
+    }
+
+    public static List<WildcardMatcher> matchers(Collection<String> patterns) {
+        return patterns.stream().map(p -> WildcardMatcher.from(p, true))
+                .collect(Collectors.toList());
+    }
+
+    public static List<String> getAllMatchingPatterns(final Collection<WildcardMatcher> matchers, final String candidate) {
+        return matchers.stream().filter(p -> p.test(candidate)).map(Objects::toString).collect(Collectors.toList());
+    }
+
+    public static List<String> getAllMatchingPatterns(final Collection<WildcardMatcher> pattern, final Collection<String> candidates) {
+        return pattern.stream().filter(p -> p.matchAny(candidates)).map(Objects::toString).collect(Collectors.toList());
+    }
+
+    //
+    // --- Implementation specializations ---
+    //
+    // Casefolding matcher - sits on top of case-sensitive matcher 
+    // and proxies toLower() of input string to the wrapped matcher
+    private static final class CasefoldingMatcher extends WildcardMatcher {
+
+        private final WildcardMatcher inner;
+
+        public CasefoldingMatcher(String pattern, Function<String, WildcardMatcher> simpleWildcardMatcher) {
+            this.inner = simpleWildcardMatcher.apply(pattern.toLowerCase());
+        }
+
+        @Override
+        public boolean test(String candidate) {
+            return inner.test(candidate.toLowerCase());
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            CasefoldingMatcher that = (CasefoldingMatcher) o;
+            return inner.equals(that.inner);
+        }
+
+        @Override
+        public int hashCode() {
+            return inner.hashCode();
+        }
+
+        @Override
+        public String toString() {
+            return inner.toString();
+        }
+    }
+
+    public static final class Exact extends WildcardMatcher {
+
+        private final String pattern;
+
+        private Exact(String pattern) {
+            this.pattern = pattern;
+        }
+
+        @Override
+        public boolean test(String candidate) {
             return pattern.equals(candidate);
-        } else {
-            return simpleWildcardMatch(pattern, candidate);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Exact that = (Exact) o;
+            return pattern.equals(that.pattern);
+        }
+
+        @Override
+        public int hashCode() {
+            return pattern.hashCode();
+        }
+
+        @Override
+        public String toString() {
+            return pattern;
         }
     }
 
-    public static boolean containsWildcard(final String pattern) {
-        if (pattern != null
-                && (pattern.indexOf("*") > NOT_FOUND || pattern.indexOf("?") > NOT_FOUND || (pattern.startsWith("/") && pattern
-                        .endsWith("/")))) {
-            return true;
+    // RegexMatcher uses JDK Pattern to test for matching,
+    // assumes "/<regex>/" strings as input pattern
+    private static final class RegexMatcher extends WildcardMatcher {
+
+        private final Pattern pattern;
+
+        private RegexMatcher(String pattern, boolean caseSensitive) {
+            Preconditions.checkArgument(pattern.length() > 1 && pattern.startsWith("/") && pattern.endsWith("/"));
+            final String stripSlashesPattern = pattern.substring(1, pattern.length() - 1);
+            this.pattern = caseSensitive ? Pattern.compile(stripSlashesPattern) : Pattern.compile(stripSlashesPattern, Pattern.CASE_INSENSITIVE);
         }
 
-        return false;
+        @Override
+        public boolean test(String candidate) {
+            return pattern.matcher(candidate).matches();
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            RegexMatcher that = (RegexMatcher) o;
+            return pattern.pattern().equals(that.pattern.pattern());
+        }
+
+        @Override
+        public int hashCode() {
+            return pattern.pattern().hashCode();
+        }
+
+        @Override
+        public String toString(){ return "/" + pattern.pattern() + "/"; }
     }
 
-    /**
-     *
-     * @param set will be modified
-     * @param stringContainingWc
-     * @return
-     */
-    public static boolean wildcardRemoveFromSet(Set<String> set, String stringContainingWc) {
-        if(set == null || set.isEmpty()) {
-            return false;
-        }
-        if(!containsWildcard(stringContainingWc) && set.contains(stringContainingWc)) {
-            return set.remove(stringContainingWc);
-        } else {
-            boolean modified = false;
-            Set<String> copy = new HashSet<>(set);
+    // Simple implementation of WildcardMatcher matcher with * and ? without
+    // using exlicit stack or recursion (as long as we don't need sub-matches it does work)
+    // allows us to save on resources and heap allocations unless Regex is required
+    private static final class SimpleMatcher extends WildcardMatcher {
 
-            for(String it: copy) {
-                if(WildcardMatcher.match(stringContainingWc, it)) {
-                    modified = set.remove(it) || modified;
-                }
-            }
-            return modified;
-        }
-    }
+        private final String pattern;
 
-    /**
-     *
-     * @param set will be modified
-     * @param stringContainingWc
-     * @return
-     */
-    public static boolean wildcardRetainInSet(Set<String> set, String[] setContainingWc) {
-        if(set == null || set.isEmpty()) {
-            return false;
-        }
-        boolean modified = false;
-        Set<String> copy = new HashSet<>(set);
-
-        for(String it: copy) {
-            if(!WildcardMatcher.matchAny(setContainingWc, it)) {
-                modified = set.remove(it) || modified;
-            }
-        }
-        return modified;
-    }
-
-
-    //All code below is copied (and slightly modified) from Apache Commons IO
-
-    /*
-     * Licensed to the Apache Software Foundation (ASF) under one or more
-     * contributor license agreements.  See the NOTICE file distributed with
-     * this work for additional information regarding copyright ownership.
-     * The ASF licenses this file to You under the Apache License, Version 2.0
-     * (the "License"); you may not use this file except in compliance with
-     * the License.  You may obtain a copy of the License at
-     *
-     *      http://www.apache.org/licenses/LICENSE-2.0
-     *
-     * Unless required by applicable law or agreed to in writing, software
-     * distributed under the License is distributed on an "AS IS" BASIS,
-     * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     * See the License for the specific language governing permissions and
-     * limitations under the License.
-     */
-
-
-    /**
-     * Checks a filename to see if it matches the specified wildcard matcher
-     * allowing control over case-sensitivity.
-     * <p>
-     * The wildcard matcher uses the characters '?' and '*' to represent a
-     * single or multiple (zero or more) wildcard characters.
-     * N.B. the sequence "*?" does not work properly at present in match strings.
-     *
-     * @param candidate  the filename to match on
-     * @param pattern  the wildcard string to match against
-     * @return true if the filename matches the wilcard string
-     * @since 1.3
-     */
-    private static boolean simpleWildcardMatch(final String pattern, final String candidate) {
-        if (candidate == null && pattern == null) {
-            return true;
-        }
-        if (candidate == null || pattern == null) {
-            return false;
+        SimpleMatcher(String pattern) {
+            this.pattern = pattern;
         }
 
-        final String[] wcs = splitOnTokens(pattern);
-        boolean anyChars = false;
-        int textIdx = 0;
-        int wcsIdx = 0;
-        final Stack<int[]> backtrack = new Stack<>();
-
-        // loop around a backtrack stack, to handle complex * matching
-        do {
-            if (backtrack.size() > 0) {
-                final int[] array = backtrack.pop();
-                wcsIdx = array[0];
-                textIdx = array[1];
-                anyChars = true;
-            }
-
-            // loop whilst tokens and text left to process
-            while (wcsIdx < wcs.length) {
-
-                if (wcs[wcsIdx].equals("?")) {
-                    // ? so move to next text char
-                    textIdx++;
-                    if (textIdx > candidate.length()) {
-                        break;
-                    }
-                    anyChars = false;
-
-                } else if (wcs[wcsIdx].equals("*")) {
-                    // set any chars status
-                    anyChars = true;
-                    if (wcsIdx == wcs.length - 1) {
-                        textIdx = candidate.length();
-                    }
-
+        @Override
+        public boolean test(String candidate) {
+            int i = 0;
+            int j = 0;
+            int n = candidate.length();
+            int m = pattern.length();
+            int text_backup = -1;
+            int wild_backup = -1;
+            while (i < n) {
+                if (j < m && pattern.charAt(j) == '*') {
+                    text_backup = i;
+                    wild_backup = ++j;
+                } else if (j < m && (pattern.charAt(j) == '?' || pattern.charAt(j) == candidate.charAt(i))) {
+                    i++;
+                    j++;
                 } else {
-                    // matching text token
-                    if (anyChars) {
-                        // any chars then try to locate text token
-                        textIdx = checkIndexOf(candidate, textIdx, wcs[wcsIdx]);
-                        if (textIdx == NOT_FOUND) {
-                            // token not found
-                            break;
-                        }
-                        final int repeat = checkIndexOf(candidate, textIdx + 1, wcs[wcsIdx]);
-                        if (repeat >= 0) {
-                            backtrack.push(new int[] {wcsIdx, repeat});
-                        }
-                    } else {
-                        // matching from current position
-                        if (!checkRegionMatches(candidate, textIdx, wcs[wcsIdx])) {
-                            // couldnt match token
-                            break;
-                        }
-                    }
-
-                    // matched text token, move text index to end of matched token
-                    textIdx += wcs[wcsIdx].length();
-                    anyChars = false;
+                    if (wild_backup == -1) return false;
+                    i = ++text_backup;
+                    j = wild_backup;
                 }
-
-                wcsIdx++;
             }
+            while (j < m && pattern.charAt(j) == '*') j++;
+            return j >= m;
+        }
 
-            // full match
-            if (wcsIdx == wcs.length && textIdx == candidate.length()) {
-                return true;
-            }
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            SimpleMatcher that = (SimpleMatcher) o;
+            return pattern.equals(that.pattern);
+        }
 
-        } while (backtrack.size() > 0);
+        @Override
+        public int hashCode() {
+            return pattern.hashCode();
+        }
 
-        return false;
+        @Override
+        public String toString(){ return pattern; }
     }
 
-    /**
-     * Splits a string into a number of tokens.
-     * The text is split by '?' and '*'.
-     * Where multiple '*' occur consecutively they are collapsed into a single '*'.
-     *
-     * @param text  the text to split
-     * @return the array of tokens, never null
-     */
-    private static String[] splitOnTokens(final String text) {
-        // used by wildcardMatch
-        // package level so a unit test may run on this
+    // MatcherCombiner is a combination of a set of matchers
+    // matches if any of the set do
+    // Empty MultiMatcher always returns false
+    private static final class MatcherCombiner extends WildcardMatcher {
 
-        if (text.indexOf('?') == NOT_FOUND && text.indexOf('*') == NOT_FOUND) {
-            return new String[] { text };
+        private final Collection<WildcardMatcher> wildcardMatchers;
+        private final int hashCode;
+
+        MatcherCombiner(Collection<WildcardMatcher> wildcardMatchers) {
+            Preconditions.checkArgument(wildcardMatchers.size() > 1);
+            this.wildcardMatchers = wildcardMatchers;
+            hashCode = wildcardMatchers.hashCode();
         }
 
-        final char[] array = text.toCharArray();
-        final ArrayList<String> list = new ArrayList<>();
-        final StringBuilder buffer = new StringBuilder();
-        char prevChar = 0;
-        for (final char ch : array) {
-            if (ch == '?' || ch == '*') {
-                if (buffer.length() != 0) {
-                    list.add(buffer.toString());
-                    buffer.setLength(0);
-                }
-                if (ch == '?') {
-                    list.add("?");
-                } else if (prevChar != '*') {// ch == '*' here; check if previous char was '*'
-                    list.add("*");
-                }
-            } else {
-                buffer.append(ch);
-            }
-            prevChar = ch;
-        }
-        if (buffer.length() != 0) {
-            list.add(buffer.toString());
+        @Override
+        public boolean test(String candidate) {
+            return wildcardMatchers.stream().anyMatch(m -> m.test(candidate));
         }
 
-        return list.toArray( new String[ list.size() ] );
-    }
-
-    /**
-     * Checks if one string contains another starting at a specific index using the
-     * case-sensitivity rule.
-     * <p>
-     * This method mimics parts of {@link String#indexOf(String, int)}
-     * but takes case-sensitivity into account.
-     *
-     * @param str  the string to check, not null
-     * @param strStartIndex  the index to start at in str
-     * @param search  the start to search for, not null
-     * @return the first index of the search String,
-     *  -1 if no match or {@code null} string input
-     * @throws NullPointerException if either string is null
-     * @since 2.0
-     */
-    private static int checkIndexOf(final String str, final int strStartIndex, final String search) {
-        final int endIndex = str.length() - search.length();
-        if (endIndex >= strStartIndex) {
-            for (int i = strStartIndex; i <= endIndex; i++) {
-                if (checkRegionMatches(str, i, search)) {
-                    return i;
-                }
-            }
+        @Override
+        public Optional<WildcardMatcher> findFirst(final String candidate) {
+            return wildcardMatchers.stream().filter(m -> m.test(candidate)).findFirst();
         }
-        return -1;
-    }
 
-    /**
-     * Checks if one string contains another at a specific index using the case-sensitivity rule.
-     * <p>
-     * This method mimics parts of {@link String#regionMatches(boolean, int, String, int, int)}
-     * but takes case-sensitivity into account.
-     *
-     * @param str  the string to check, not null
-     * @param strStartIndex  the index to start at in str
-     * @param search  the start to search for, not null
-     * @return true if equal using the case rules
-     * @throws NullPointerException if either string is null
-     */
-    private static boolean checkRegionMatches(final String str, final int strStartIndex, final String search) {
-        return str.regionMatches(false, strStartIndex, search, 0, search.length());
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            MatcherCombiner that = (MatcherCombiner) o;
+            return wildcardMatchers.equals(that.wildcardMatchers);
+        }
+
+        @Override
+        public int hashCode() {
+            return hashCode;
+        }
+
+        @Override
+        public String toString() { return wildcardMatchers.toString(); }
     }
 }

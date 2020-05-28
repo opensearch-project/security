@@ -272,11 +272,11 @@ public abstract class AbstractSecurityUnitTest {
     }
 
     protected final void assertContains(HttpResponse res, String pattern) {
-        Assert.assertTrue(WildcardMatcher.match(pattern, res.getBody()));
+        Assert.assertTrue(WildcardMatcher.from(pattern).test(res.getBody()));
     }
 
     protected final void assertNotContains(HttpResponse res, String pattern) {
-        Assert.assertFalse(WildcardMatcher.match(pattern, res.getBody()));
+        Assert.assertFalse(WildcardMatcher.from(pattern).test(res.getBody()));
     }
 
     protected String getResourceFolder() {

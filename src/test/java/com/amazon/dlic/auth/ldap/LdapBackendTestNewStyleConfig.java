@@ -678,7 +678,7 @@ public class LdapBackendTestNewStyleConfig {
         Assert.assertEquals("cn=Michael Jackson,ou=people,o=TEST", user.getName());
         Assert.assertEquals(user.getCustomAttributesMap().toString(), 16, user.getCustomAttributesMap().size());
         Assert.assertFalse(user.getCustomAttributesMap().toString(),
-                user.getCustomAttributesMap().keySet().contains("attr.ldap.userpassword"));
+                user.getCustomAttributesMap().containsKey("attr.ldap.userpassword"));
 
         settings = Settings.builder()
                 .putList(ConfigConstants.LDAP_HOSTS, "127.0.0.1:4", "localhost:" + ldapPort)

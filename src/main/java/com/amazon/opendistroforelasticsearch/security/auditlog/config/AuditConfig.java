@@ -2,6 +2,9 @@ package com.amazon.opendistroforelasticsearch.security.auditlog.config;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
+import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
+
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.Settings;
@@ -35,10 +38,10 @@ public class AuditConfig {
         private final boolean logRequestBody;
         private final boolean resolveIndices;
         private final boolean excludeSensitiveHeaders;
-        private final Set<String> ignoredAuditUsers;
-        private final Set<String> ignoredComplianceUsersForRead;
-        private final Set<String> ignoredComplianceUsersForWrite;
-        private final Set<String> ignoreAuditRequests;
+        private final WildcardMatcher ignoredAuditUsersMatcher;
+        private final WildcardMatcher ignoredComplianceUsersForReadMatcher;
+        private final WildcardMatcher ignoredComplianceUsersForWriteMatcher;
+        private final WildcardMatcher ignoredAuditRequestsMatcher;
         private final EnumSet<AuditCategory> disabledRestCategories;
         private final EnumSet<AuditCategory> disabledTransportCategories;
 
@@ -60,10 +63,10 @@ public class AuditConfig {
             this.logRequestBody = logRequestBody;
             this.resolveIndices = resolveIndices;
             this.excludeSensitiveHeaders = excludeSensitiveHeaders;
-            this.ignoredAuditUsers = ignoredAuditUsers;
-            this.ignoredComplianceUsersForRead = ignoredComplianceUsersForRead;
-            this.ignoredComplianceUsersForWrite = ignoredComplianceUsersForWrite;
-            this.ignoreAuditRequests = ignoredAuditRequests;
+            this.ignoredAuditUsersMatcher = WildcardMatcher.from(ignoredAuditUsers);
+            this.ignoredComplianceUsersForReadMatcher = WildcardMatcher.from(ignoredComplianceUsersForRead);
+            this.ignoredComplianceUsersForWriteMatcher = WildcardMatcher.from(ignoredComplianceUsersForWrite);
+            this.ignoredAuditRequestsMatcher = WildcardMatcher.from(ignoredAuditRequests);
             this.disabledRestCategories = disabledRestCategories;
             this.disabledTransportCategories = disabledTransportCategories;
         }
@@ -185,36 +188,60 @@ public class AuditConfig {
             return excludeSensitiveHeaders;
         }
 
-        /**
-         * Set of users for whom auditing must be ignored.
-         * @return set of users
-         */
-        public Set<String> getIgnoredAuditUsers() {
-            return ignoredAuditUsers;
+        @VisibleForTesting
+        WildcardMatcher getIgnoredAuditUsersMatcher() {
+            return ignoredAuditUsersMatcher;
         }
 
         /**
-         * Set of users for whom compliance read auditing must be ignored.
-         * @return set of users
+         * Check if user is excluded from audit.
+         * @param user
+         * @return true if user is excluded from audit logging
          */
-        public Set<String> getIgnoredComplianceUsersForRead() {
-            return ignoredComplianceUsersForRead;
+        public boolean isAuditDisabled(String user) {
+            return ignoredAuditUsersMatcher.test(user);
+        }
+
+        @VisibleForTesting
+        WildcardMatcher getIgnoredComplianceUsersForReadMatcher() {
+            return ignoredComplianceUsersForReadMatcher;
         }
 
         /**
-         * Set of users for whom compliance write auditing must be ignored.
-         * @return set of users
+         * Check if user is excluded from compliance read audit
+         * @param user
+         * @return true if user is excluded from compliance read audit
          */
-        public Set<String> getIgnoredComplianceUsersForWrite() {
-            return ignoredComplianceUsersForWrite;
+        public boolean isComplianceReadAuditDisabled(String user) {
+            return ignoredComplianceUsersForReadMatcher.test(user);
+        }
+
+        @VisibleForTesting
+        WildcardMatcher getIgnoredComplianceUsersForWriteMatcher() {
+            return ignoredComplianceUsersForWriteMatcher;
         }
 
         /**
-         * Request patterns that must be ignored.
-         * @return set of request patterns
+         * Check if user is excluded from compliance write audit
+         * @param user
+         * @return true if user is excluded from compliance write audit
          */
-        public Set<String> getIgnoredAuditRequests() {
-            return ignoreAuditRequests;
+        public boolean isComplianceWriteAuditDisabled(String user) {
+            return ignoredComplianceUsersForWriteMatcher.test(user);
+        }
+
+        @VisibleForTesting
+        WildcardMatcher getIgnoredAuditRequestsMatcher() {
+            return ignoredAuditRequestsMatcher;
+        }
+
+        /**
+         * Check if request is excluded from audit
+         * @param action
+         * @return true if request action is excluded from audit
+         */
+        public boolean isRequestAuditDisabled(String action) {
+            return ignoredAuditRequestsMatcher.test(action);
         }
 
         /**
@@ -242,9 +269,9 @@ public class AuditConfig {
             logger.info("Bulk requests resolution is {} during request auditing.", resolveBulkRequests ? "enabled" : "disabled");
             logger.info("Index resolution is {} during request auditing.", resolveIndices ? "enabled" : "disabled");
             logger.info("Sensitive headers auditing is {}.", excludeSensitiveHeaders ? "enabled" : "disabled");
-            logger.info("Auditing requests from {} users is disabled.", ignoredAuditUsers);
-            logger.info("Compliance read operation requests auditing from {} users is disabled.", ignoredComplianceUsersForRead);
-            logger.info("Compliance write operation requests auditing from {} users is disabled.", ignoredComplianceUsersForWrite);
+            logger.info("Auditing requests from {} users is disabled.", ignoredAuditUsersMatcher);
+            logger.info("Compliance read operation requests auditing from {} users is disabled.", ignoredComplianceUsersForReadMatcher);
+            logger.info("Compliance write operation requests auditing from {} users is disabled.", ignoredComplianceUsersForWriteMatcher);
         }
 
         @Override
@@ -258,10 +285,10 @@ public class AuditConfig {
                     ", logRequestBody=" + logRequestBody +
                     ", resolveIndices=" + resolveIndices +
                     ", excludeSensitiveHeaders=" + excludeSensitiveHeaders +
-                    ", ignoredAuditUsers=" + ignoredAuditUsers +
-                    ", ignoredComplianceUsersForRead=" + ignoredComplianceUsersForRead +
-                    ", ignoredComplianceUsersForWrite=" + ignoredComplianceUsersForWrite +
-                    ", ignoreAuditRequests=" + ignoreAuditRequests +
+                    ", ignoredAuditUsers=" + ignoredAuditUsersMatcher +
+                    ", ignoredComplianceUsersForRead=" + ignoredComplianceUsersForReadMatcher +
+                    ", ignoredComplianceUsersForWrite=" + ignoredComplianceUsersForWriteMatcher +
+                    ", ignoreAuditRequests=" + ignoredAuditRequestsMatcher +
                     '}';
         }
     }

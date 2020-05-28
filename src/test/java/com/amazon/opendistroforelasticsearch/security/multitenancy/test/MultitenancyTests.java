@@ -218,11 +218,11 @@ public class MultitenancyTests extends SingleClusterTest {
         body = "{\"buildNum\": 15460, \"defaultIndex\": \"humanresources\", \"tenant\": \"human_resources\"}";
         Assert.assertEquals(HttpStatus.SC_CREATED, (res = rh.executePutRequest(".kibana/config/5.6.0?pretty",body, new BasicHeader("securitytenant", "human_resources"), encodeBasicHeader("hr_employee", "hr_employee"))).getStatusCode());
         System.out.println(res.getBody());
-        Assert.assertTrue(WildcardMatcher.match("*.kibana_*_humanresources*", res.getBody()));
+        Assert.assertTrue(WildcardMatcher.from("*.kibana_*_humanresources*").test(res.getBody()));
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest(".kibana/config/5.6.0?pretty",new BasicHeader("securitytenant", "human_resources"), encodeBasicHeader("hr_employee", "hr_employee"))).getStatusCode());
         System.out.println(res.getBody());
-        Assert.assertTrue(WildcardMatcher.match("*human_resources*", res.getBody()));
+        Assert.assertTrue(WildcardMatcher.from("*human_resources*").test(res.getBody()));
 
     }
 
