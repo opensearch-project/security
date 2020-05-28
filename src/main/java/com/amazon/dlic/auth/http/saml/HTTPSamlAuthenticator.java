@@ -37,6 +37,7 @@ import org.elasticsearch.rest.RestStatus;
 import org.opensaml.core.config.InitializationException;
 import org.opensaml.core.config.InitializationService;
 import org.opensaml.saml.metadata.resolver.MetadataResolver;
+import org.opensaml.saml.metadata.resolver.impl.AbstractBatchMetadataResolver;
 import org.opensaml.saml.metadata.resolver.impl.AbstractReloadingMetadataResolver;
 
 import com.amazon.dlic.auth.http.jwt.AbstractHTTPJwtAuthenticator;
@@ -67,6 +68,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
     private String kibanaRootUrl;
     private String idpMetadataUrl;
     private String idpMetadataFile;
+    private String idpMetadataBody;
     private String spSignatureAlgorithm;
     private Boolean useForceAuthn;
     private PrivateKey spSignaturePrivateKey;
@@ -76,7 +78,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
     private HTTPJwtAuthenticator httpJwtAuthenticator;
     private Settings jwtSettings;
 
-    public HTTPSamlAuthenticator(final Settings settings, final Path configPath) {
+    public HTTPSamlAuthenticator(final Settings settings, final Path configPath) throws Exception {
         try {
             ensureOpenSamlInitialization();
 
@@ -85,6 +87,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
             kibanaRootUrl = settings.get("kibana_url");
             idpMetadataUrl = settings.get("idp.metadata_url");
             idpMetadataFile = settings.get("idp.metadata_file");
+            idpMetadataBody = settings.get("idp.metadata_body");
             spSignatureAlgorithm = settings.get("sp.signature_algorithm", Constants.RSA_SHA256);
             spSignaturePrivateKey = getSpSignaturePrivateKey(settings, configPath);
             useForceAuthn = settings.getAsBoolean("sp.forceAuthn", null);
@@ -104,11 +107,11 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
                 throw new Exception("kibana_url is unconfigured");
             }
 
-            if (idpMetadataUrl == null && idpMetadataFile == null) {
-                throw new Exception("idp.metadata_url and idp.metadata_file are unconfigured");
+            if (idpMetadataUrl == null && idpMetadataFile == null && idpMetadataBody == null) {
+                throw new Exception("idp.metadata_url, idp.metadata_file and idpMetadataBody are unconfigured");
             }
 
-            this.metadataResolver = createMetadataResolver(settings, configPath);
+             this.metadataResolver = createMetadataResolver(settings, configPath);
 
             this.saml2SettingsProvider = new Saml2SettingsProvider(settings, this.metadataResolver);
 
@@ -127,6 +130,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
 
         } catch (Exception e) {
             log.error("Error creating HTTPSamlAuthenticator: " + e + ". SAML authentication will not work", e);
+            throw e;
         }
     }
 
@@ -171,7 +175,6 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
             return true;
         } catch (Exception e) {
             log.error("Error in reRequestAuthentication()", e);
-
             return false;
         }
     }
@@ -275,14 +278,16 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
         }
     }
 
-    private AbstractReloadingMetadataResolver createMetadataResolver(final Settings settings, final Path configPath)
+    private AbstractBatchMetadataResolver createMetadataResolver(final Settings settings, final Path configPath)
             throws Exception {
-        final AbstractReloadingMetadataResolver metadataResolver;
+        final AbstractBatchMetadataResolver metadataResolver;
 
         if (idpMetadataUrl != null) {
             metadataResolver = new SamlHTTPMetadataResolver(settings, configPath);
-        } else {
+        } else if (idpMetadataFile != null) {
             metadataResolver = new SamlFilesystemMetadataResolver(settings, configPath);
+        } else {
+            metadataResolver = new SamlDOMMetadataResolver(settings);
         }
 
         SecurityManager sm = System.getSecurityManager();
