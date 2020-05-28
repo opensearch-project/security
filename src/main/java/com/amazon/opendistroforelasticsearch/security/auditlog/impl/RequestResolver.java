@@ -59,7 +59,6 @@ import org.elasticsearch.tasks.Task;
 import org.elasticsearch.transport.TransportRequest;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog.Origin;
-import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
 import com.amazon.opendistroforelasticsearch.security.dlic.rest.support.Utils;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 
@@ -357,19 +356,20 @@ public final class RequestResolver {
             allIndices.addAll(Arrays.asList(_indices));
             allIndices.addAll(Arrays.asList(resolvedIndices));
             if(allIndices.contains("_all")) {
-                allIndices.add("*");
+                allIndices.add("*"); //TODO: maybe replace allIndices instead of add?
             }
         } else {
             allIndices = new HashSet<String>(_indices.length);
             allIndices.addAll(Arrays.asList(_indices));
             if(allIndices.contains("_all")) {
-                allIndices.add("*");
+                allIndices.add("*"); //TODO: maybe replace allIndices instead of add?
             }
         }
 
+        final WildcardMatcher allIndicesMatcher = WildcardMatcher.from(allIndices);
         if(addSource) {
             if(sourceIsSensitive && source != null) {
-                if(!WildcardMatcher.matchAny(allIndices.toArray(new String[0]), opendistrosecurityIndex)) {
+                if(!allIndicesMatcher.test(opendistrosecurityIndex)) {
                     if(source instanceof BytesReference) {
                        msg.addTupleToRequestBody(convertSource(xContentType, (BytesReference) source));
                     } else {

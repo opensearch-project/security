@@ -2,13 +2,13 @@ package com.amazon.opendistroforelasticsearch.security.auditlog.config;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
+import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.google.common.collect.ImmutableSet;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.Set;
 
 import static com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory.AUTHENTICATED;
 import static com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory.GRANTED_PRIVILEGES;
@@ -17,6 +17,7 @@ import static com.amazon.opendistroforelasticsearch.security.auditlog.impl.Audit
 import static com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory.FAILED_LOGIN;
 import static com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory.MISSING_PRIVILEGES;
 
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertEquals;
@@ -26,7 +27,7 @@ public class AuditConfigFilterTest {
     @Test
     public void testDefault() {
         // arrange
-        final Set<String> defaultIgnoredUser = Collections.singleton("kibanaserver");
+        final WildcardMatcher defaultIgnoredUserMatcher = WildcardMatcher.from("kibanaserver");
         final EnumSet<AuditCategory> defaultDisabledCategories = EnumSet.of(AUTHENTICATED, GRANTED_PRIVILEGES);
         // act
         final AuditConfig.Filter auditConfigFilter = AuditConfig.Filter.from(Settings.EMPTY);
@@ -37,10 +38,10 @@ public class AuditConfigFilterTest {
         assertTrue(auditConfigFilter.shouldResolveIndices());
         assertFalse(auditConfigFilter.shouldResolveBulkRequests());
         assertTrue(auditConfigFilter.shouldExcludeSensitiveHeaders());
-        assertTrue(auditConfigFilter.getIgnoredAuditRequests().isEmpty());
-        assertEquals(auditConfigFilter.getIgnoredAuditUsers(), defaultIgnoredUser);
-        assertEquals(auditConfigFilter.getIgnoredComplianceUsersForRead(), defaultIgnoredUser);
-        assertEquals(auditConfigFilter.getIgnoredComplianceUsersForWrite(), defaultIgnoredUser);
+        assertSame(WildcardMatcher.NONE, auditConfigFilter.getIgnoredAuditRequestsMatcher());
+        assertEquals(defaultIgnoredUserMatcher, auditConfigFilter.getIgnoredAuditUsersMatcher());
+        assertEquals(defaultIgnoredUserMatcher, auditConfigFilter.getIgnoredComplianceUsersForReadMatcher());
+        assertEquals(defaultIgnoredUserMatcher, auditConfigFilter.getIgnoredComplianceUsersForWriteMatcher());
         assertEquals(auditConfigFilter.getDisabledRestCategories(), defaultDisabledCategories);
         assertEquals(auditConfigFilter.getDisabledTransportCategories(), defaultDisabledCategories);
     }
@@ -75,10 +76,10 @@ public class AuditConfigFilterTest {
         assertFalse(auditConfigFilter.shouldResolveIndices());
         assertTrue(auditConfigFilter.shouldResolveBulkRequests());
         assertFalse(auditConfigFilter.shouldExcludeSensitiveHeaders());
-        assertEquals(auditConfigFilter.getIgnoredAuditUsers(), Collections.singleton("test-user"));
-        assertEquals(auditConfigFilter.getIgnoredAuditRequests(), Collections.singleton("test-request"));
-        assertEquals(auditConfigFilter.getIgnoredComplianceUsersForRead(), ImmutableSet.of("test-user-1", "test-user-2"));
-        assertEquals(auditConfigFilter.getIgnoredComplianceUsersForWrite(), ImmutableSet.of("test-user-3", "test-user-4"));
+        assertEquals(WildcardMatcher.from(Collections.singleton("test-user")), auditConfigFilter.getIgnoredAuditUsersMatcher());
+        assertEquals(WildcardMatcher.from(Collections.singleton("test-request")), auditConfigFilter.getIgnoredAuditRequestsMatcher());
+        assertEquals(WildcardMatcher.from(ImmutableSet.of("test-user-1", "test-user-2")), auditConfigFilter.getIgnoredComplianceUsersForReadMatcher());
+        assertEquals(WildcardMatcher.from(ImmutableSet.of("test-user-3", "test-user-4")), auditConfigFilter.getIgnoredComplianceUsersForWriteMatcher());
         assertEquals(auditConfigFilter.getDisabledRestCategories(), EnumSet.of(BAD_HEADERS, SSL_EXCEPTION));
         assertEquals(auditConfigFilter.getDisabledTransportCategories(), EnumSet.of(FAILED_LOGIN, MISSING_PRIVILEGES));
     }
@@ -100,9 +101,9 @@ public class AuditConfigFilterTest {
         // act
         final AuditConfig.Filter auditConfigFilter = AuditConfig.Filter.from(settings);
         // assert
-        assertTrue(auditConfigFilter.getIgnoredAuditUsers().isEmpty());
-        assertTrue(auditConfigFilter.getIgnoredComplianceUsersForRead().isEmpty());
-        assertTrue(auditConfigFilter.getIgnoredComplianceUsersForWrite().isEmpty());
+        assertSame(WildcardMatcher.NONE, auditConfigFilter.getIgnoredAuditUsersMatcher());
+        assertSame(WildcardMatcher.NONE, auditConfigFilter.getIgnoredComplianceUsersForReadMatcher());
+        assertSame(WildcardMatcher.NONE, auditConfigFilter.getIgnoredComplianceUsersForWriteMatcher());
         assertTrue(auditConfigFilter.getDisabledRestCategories().isEmpty());
         assertTrue(auditConfigFilter.getDisabledTransportCategories().isEmpty());
     }
@@ -125,9 +126,9 @@ public class AuditConfigFilterTest {
         // act
         final AuditConfig.Filter auditConfigFilter = AuditConfig.Filter.from(settings);
         // assert
-        assertTrue(auditConfigFilter.getIgnoredAuditUsers().isEmpty());
-        assertTrue(auditConfigFilter.getIgnoredComplianceUsersForRead().isEmpty());
-        assertTrue(auditConfigFilter.getIgnoredComplianceUsersForWrite().isEmpty());
+        assertSame(WildcardMatcher.NONE, auditConfigFilter.getIgnoredAuditUsersMatcher());
+        assertSame(WildcardMatcher.NONE, auditConfigFilter.getIgnoredComplianceUsersForReadMatcher());
+        assertSame(WildcardMatcher.NONE, auditConfigFilter.getIgnoredComplianceUsersForWriteMatcher());
         assertTrue(auditConfigFilter.getDisabledRestCategories().isEmpty());
         assertTrue(auditConfigFilter.getDisabledTransportCategories().isEmpty());
     }

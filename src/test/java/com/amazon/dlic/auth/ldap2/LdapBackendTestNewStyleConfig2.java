@@ -42,7 +42,7 @@ import com.amazon.dlic.auth.ldap.util.ConfigConstants;
 import com.amazon.dlic.auth.ldap.util.LdapHelper;
 import com.amazon.dlic.auth.ldap.backend.LDAPAuthenticationBackend;
 import com.amazon.dlic.auth.ldap.backend.LDAPAuthorizationBackend;
-import com.amazon.dlic.auth.ldap2.LDAPConnectionFactoryFactory;
+
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
 import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
@@ -277,7 +277,7 @@ public class LdapBackendTestNewStyleConfig2 {
             Assert.fail("Expected Exception");
         } catch (Exception e) {
             Assert.assertEquals(org.ldaptive.provider.ConnectionException.class, e.getCause().getClass());
-            Assert.assertTrue(ExceptionUtils.getStackTrace(e), WildcardMatcher.match("*unsupported*ciphersuite*aaa*", ExceptionUtils.getStackTrace(e).toLowerCase()));
+            Assert.assertTrue(ExceptionUtils.getStackTrace(e), WildcardMatcher.from("*unsupported*ciphersuite*aaa*").test(ExceptionUtils.getStackTrace(e).toLowerCase()));
         }
 
     }
