@@ -52,7 +52,7 @@ public class OpenDistroSecurityIndexAccessEvaluator {
     
     private final String opendistrosecurityIndex;
     private final AuditLog auditLog;
-    private final String[] securityDeniedActionPatterns;
+    private final WildcardMatcher securityDeniedActionMatcher;
     
     public OpenDistroSecurityIndexAccessEvaluator(final Settings settings, AuditLog auditLog) {
         this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
@@ -75,14 +75,14 @@ public class OpenDistroSecurityIndexAccessEvaluator {
         securityIndexDeniedActionPatternsListNoSnapshot.add("indices:admin/close*");
         securityIndexDeniedActionPatternsListNoSnapshot.add("cluster:admin/snapshot/restore*");
 
-        securityDeniedActionPatterns = (restoreSecurityIndexEnabled?securityIndexDeniedActionPatternsList:securityIndexDeniedActionPatternsListNoSnapshot).toArray(new String[0]);
+        securityDeniedActionMatcher = WildcardMatcher.from(restoreSecurityIndexEnabled ? securityIndexDeniedActionPatternsList : securityIndexDeniedActionPatternsListNoSnapshot);
     }
     
     public PrivilegesEvaluatorResponse evaluate(final ActionRequest request, final Task task, final String action, final Resolved requestedResolved,
             final PrivilegesEvaluatorResponse presponse)  {
 
         if (requestedResolved.getAllIndices().contains(opendistrosecurityIndex)
-                && WildcardMatcher.matchAny(securityDeniedActionPatterns, action)) {
+                && securityDeniedActionMatcher.test(action)) {
             auditLog.logSecurityIndexAttempt(request, action, task);
             log.warn(action + " for '{}' index is not allowed for a regular user", opendistrosecurityIndex);
             presponse.allowed = false;
@@ -91,7 +91,7 @@ public class OpenDistroSecurityIndexAccessEvaluator {
 
         //TODO: newpeval: check if isAll() is all (contains("_all" or "*"))
         if (requestedResolved.isLocalAll()
-                && WildcardMatcher.matchAny(securityDeniedActionPatterns, action)) {
+                && securityDeniedActionMatcher.test(action)) {
             auditLog.logSecurityIndexAttempt(request, action, task);
             log.warn(action + " for '_all' indices is not allowed for a regular user");
             presponse.allowed = false;

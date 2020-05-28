@@ -31,7 +31,6 @@
 package com.amazon.opendistroforelasticsearch.security.configuration;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.Set;
 
 import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvaluator;
@@ -60,8 +59,8 @@ public class OpenDistroSecurityIndexSearcherWrapper extends IndexSearcherWrapper
     protected final String opendistrosecurityIndex;
     private final AdminDNs adminDns;
     private final PrivilegesEvaluator evaluator;
-    private final Collection<String> indexPatterns;
-    private final Collection<String> allowedRoles;
+    private final WildcardMatcher indexMatcher;
+    private final WildcardMatcher allowedRolesMatcher;
     private final Boolean protectedIndexEnabled;
 
     //constructor is called per index, so avoid costly operations here
@@ -71,8 +70,8 @@ public class OpenDistroSecurityIndexSearcherWrapper extends IndexSearcherWrapper
         this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
         this.evaluator = evaluator;
         this.adminDns = adminDNs;
-        this.indexPatterns = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_KEY);
-        this.allowedRoles = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_KEY);
+        this.indexMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_KEY));
+        this.allowedRolesMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_KEY));
         this.protectedIndexEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_DEFAULT);
     }
 
@@ -122,7 +121,7 @@ public class OpenDistroSecurityIndexSearcherWrapper extends IndexSearcherWrapper
     }
 
     protected final boolean isBlockedIndexRequest() {
-        return WildcardMatcher.matchAny(indexPatterns, index.getName());
+        return indexMatcher.test(index.getName());
     }
 
     protected final boolean isPermittedOnIndex() {
@@ -132,7 +131,7 @@ public class OpenDistroSecurityIndexSearcherWrapper extends IndexSearcherWrapper
             return false;
         }
         final Set<String> securityRoles = evaluator.mapRoles(user, caller);
-        if (WildcardMatcher.matchAny(allowedRoles, securityRoles)) {
+        if (allowedRolesMatcher.matchAny(securityRoles)) {
             return true;
         }
         return false;
