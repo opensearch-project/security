@@ -43,7 +43,7 @@ import com.amazon.dlic.auth.ldap.util.ConfigConstants;
 import com.amazon.dlic.auth.ldap.util.LdapHelper;
 import com.amazon.dlic.auth.ldap.backend.LDAPAuthenticationBackend;
 import com.amazon.dlic.auth.ldap.backend.LDAPAuthorizationBackend;
-import com.amazon.dlic.auth.ldap2.LDAPConnectionFactoryFactory;
+
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
 import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
@@ -51,6 +51,8 @@ import com.amazon.opendistroforelasticsearch.security.user.User;
 
 @RunWith(Parameterized.class)
 public class LdapBackendTestOldStyleConfig2 {
+
+    private static final WildcardMatcher EXCEPTION_MATCHER = WildcardMatcher.from("*unsupported*ciphersuite*aaa*");
 
     static {
         System.setProperty("security.display_lic_none", "true");
@@ -323,7 +325,7 @@ public class LdapBackendTestOldStyleConfig2 {
             Assert.fail("Expected Exception");
         } catch (Exception e) {
             Assert.assertEquals(e.getCause().getClass().toString(), org.ldaptive.provider.ConnectionException.class, e.getCause().getClass());
-            Assert.assertTrue(ExceptionUtils.getStackTrace(e), WildcardMatcher.match("*unsupported*ciphersuite*aaa*", ExceptionUtils.getStackTrace(e).toLowerCase()));
+            Assert.assertTrue(ExceptionUtils.getStackTrace(e), EXCEPTION_MATCHER.test( ExceptionUtils.getStackTrace(e).toLowerCase()));
         }
 
     }
@@ -818,7 +820,7 @@ public class LdapBackendTestOldStyleConfig2 {
         Assert.assertEquals("cn=Michael Jackson,ou=people,o=TEST", user.getName());
         Assert.assertEquals(user.getCustomAttributesMap().toString(), 16, user.getCustomAttributesMap().size());
         Assert.assertFalse(user.getCustomAttributesMap().toString(),
-                user.getCustomAttributesMap().keySet().contains("attr.ldap.userpassword"));
+                user.getCustomAttributesMap().containsKey("attr.ldap.userpassword"));
 
         settings = createBaseSettings()
                 .putList(ConfigConstants.LDAP_HOSTS, "127.0.0.1:4", "localhost:" + ldapPort)

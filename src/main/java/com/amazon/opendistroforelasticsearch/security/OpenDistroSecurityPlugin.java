@@ -1055,8 +1055,8 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             } else {
 
                 final Set<String> includesExcludes = allowedFlsFields.get(eval);
-                final Set includesSet = new HashSet<>(includesExcludes.size());
-                final Set excludesSet = new HashSet<>(includesExcludes.size());
+                final Set<String> includesSet = new HashSet<>(includesExcludes.size());
+                final Set<String> excludesSet = new HashSet<>(includesExcludes.size());
 
 
                 for (final String incExc : includesExcludes) {
@@ -1070,9 +1070,11 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                 }
 
                 if (!excludesSet.isEmpty()) {
-                    return field -> !WildcardMatcher.matchAny(excludesSet, handleKeyword(field));
+                    WildcardMatcher excludeMatcher = WildcardMatcher.from(excludesSet);
+                    return field -> !excludeMatcher.test(handleKeyword(field));
                 } else {
-                    return field -> WildcardMatcher.matchAny(includesSet, handleKeyword(field));
+                    WildcardMatcher includeMatcher = WildcardMatcher.from(includesSet);
+                    return field -> includeMatcher.test(handleKeyword(field));
                 }
             }
         };

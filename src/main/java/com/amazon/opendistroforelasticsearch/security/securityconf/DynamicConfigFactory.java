@@ -10,6 +10,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.NodesDn;
+import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.Client;
@@ -39,6 +40,8 @@ import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.RoleM
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.RoleV7;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.TenantV7;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
+
+import com.google.common.collect.ImmutableMap;
 
 public class DynamicConfigFactory implements Initializable, ConfigurationChangeListener {
 
@@ -93,7 +96,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
 
     SecurityDynamicConfiguration<?> config;
     
-    public DynamicConfigFactory(ConfigurationRepository cr, final Settings esSettings, 
+    public DynamicConfigFactory(ConfigurationRepository cr, final Settings esSettings,
             final Path configPath, Client client, ThreadPool threadPool, ClusterInfoHolder cih) {
         super();
         this.cr = cr;
@@ -338,9 +341,9 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         }
 
         @Override
-        public Map<String, List<String>> getNodesDn() {
+        public Map<String, WildcardMatcher> getNodesDn() {
             return this.configuration.getCEntries().entrySet().stream().collect(
-                Collectors.toMap(Entry::getKey, entry -> entry.getValue().getNodesDn()));
+                ImmutableMap.toImmutableMap(Entry::getKey, entry -> WildcardMatcher.from(entry.getValue().getNodesDn(), false)));
         }
     }
    
