@@ -42,6 +42,8 @@ import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.RoleV
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.TenantV7;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 
+import com.google.common.collect.ImmutableMap;
+
 public class DynamicConfigFactory implements Initializable, ConfigurationChangeListener {
 
     public static final EventBusBuilder EVENT_BUS_BUILDER = EventBus.builder();
@@ -360,9 +362,9 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         }
 
         @Override
-        public Map<String, List<String>> getNodesDn() {
+        public Map<String, WildcardMatcher> getNodesDn() {
             return this.configuration.getCEntries().entrySet().stream().collect(
-                Collectors.toMap(Entry::getKey, entry -> entry.getValue().getNodesDn()));
+                ImmutableMap.toImmutableMap(Entry::getKey, entry -> WildcardMatcher.from(entry.getValue().getNodesDn(), false)));
         }
     }
    

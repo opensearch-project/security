@@ -99,6 +99,7 @@ import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfig
 import com.amazon.opendistroforelasticsearch.security.support.SnapshotRestoreHelper;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 public final class IndexResolverReplacer {
@@ -187,7 +188,8 @@ public final class IndexResolverReplacer {
             final Iterator<String> iterator = localRequestedPatterns.iterator();
             while (iterator.hasNext()) {
                 final String[] split = iterator.next().split(String.valueOf(RemoteClusterService.REMOTE_CLUSTER_INDEX_SEPARATOR), 2);
-                if (split.length > 1 && WildcardMatcher.matchAny(split[0], remoteClusters)) {
+                final WildcardMatcher matcher = WildcardMatcher.from(split[0]);
+                if (split.length > 1 && matcher.matchAny(remoteClusters)) {
                     iterator.remove();
                 }
             }
@@ -224,13 +226,14 @@ public final class IndexResolverReplacer {
                             .stream()
                             .map(resolver::resolveDateMathExpression)
                             .collect(Collectors.toSet());
+            final WildcardMatcher dateResolvedMatcher = WildcardMatcher.from(dateResolvedLocalRequestedPatterns);
             //fill matchingAliases
             final Map<String, AliasOrIndex> lookup = state.metaData().getAliasAndIndexLookup();
             matchingAliases = lookup.entrySet()
                     .stream()
                     .filter(e -> e.getValue().isAlias())
                     .map(Map.Entry::getKey)
-                    .filter(alias -> WildcardMatcher.matchAny(dateResolvedLocalRequestedPatterns, alias))
+                    .filter(dateResolvedMatcher)
                     .collect(Collectors.toSet());
 
             try {
@@ -262,10 +265,9 @@ public final class IndexResolverReplacer {
             @Override
             public String[] provide(String[] original, Object request, boolean supportsReplace) {
                 if(supportsReplace) {
-
                     if(retainMode && !isAllWithNoRemote(original)) {
                         final Resolved resolved = resolveRequest(request);
-                        final List<String> retained = WildcardMatcher.getMatchAny(resolved.getAllIndices(), replacements);
+                        final List<String> retained = WildcardMatcher.from(resolved.getAllIndices()).getMatchAny(replacements, Collectors.toList());
                         retained.addAll(resolved.getRemoteIndices());
                         return retained.toArray(new String[0]);
                     }
