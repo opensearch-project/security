@@ -106,6 +106,7 @@ import com.google.common.collect.SetMultimap;
 
 public class PrivilegesEvaluator implements ConfigurationChangeListener {
 
+    private static final WildcardMatcher ACTION_MATCHER = WildcardMatcher.from("indices:data/read/*search*");
     protected final Logger log = LogManager.getLogger(this.getClass());
     protected final Logger actionTrace = LogManager.getLogger("opendistro_security_action_trace");
     private final ClusterService clusterService;
@@ -335,17 +336,17 @@ public class PrivilegesEvaluator implements ConfigurationChangeListener {
             if (((rolesMappingResolution == ConfigConstants.RolesMappingResolution.BOTH
                     || rolesMappingResolution == ConfigConstants.RolesMappingResolution.MAPPING_ONLY))) {
 
-                for (String p : WildcardMatcher.getAllMatchingPatterns(users.keySet(), user.getName())) {
+                for (String p : WildcardMatcher.getAllMatchingPatterns(WildcardMatcher.matchers(users.keySet()), user.getName())) {
                     securityRoles.addAll(users.get(p));
                 }
 
-                for (String p : WildcardMatcher.getAllMatchingPatterns(bars.keySet(), user.getRoles())) {
+                for (String p : WildcardMatcher.getAllMatchingPatterns(WildcardMatcher.matchers(bars.keySet()), user.getRoles())) {
                     securityRoles.addAll(bars.get(p));
                 }
 
-                for (Set<String> p : abars.keySet()) {
-                    if (WildcardMatcher.allPatternsMatched(p, user.getRoles())) {
-                        securityRoles.addAll(abars.get(p));
+                for (Set<String> patterns : abars.keySet()) {
+                    if (patterns.stream().allMatch(p -> WildcardMatcher.from(p).matchAny(user.getRoles()))) {
+                        securityRoles.addAll(abars.get(patterns));
                     }
                 }
 
@@ -353,7 +354,8 @@ public class PrivilegesEvaluator implements ConfigurationChangeListener {
                     //IPV4 or IPv6 (compressed and without scope identifiers)
                     final String ipAddress = caller.getAddress();
 
-                    for (String p : WildcardMatcher.getAllMatchingPatterns(hosts.keySet(), ipAddress)) {
+                    List<WildcardMatcher> hostMatchers = WildcardMatcher.matchers(hosts.keySet());
+                    for (String p : WildcardMatcher.getAllMatchingPatterns(hostMatchers, ipAddress)) {
                         securityRoles.addAll(hosts.get(p));
                     }
 
@@ -363,7 +365,7 @@ public class PrivilegesEvaluator implements ConfigurationChangeListener {
                             && (hostResolverMode.equalsIgnoreCase("ip-hostname") || hostResolverMode.equalsIgnoreCase("ip-hostname-lookup"))) {
                         final String hostName = caller.address().getHostString();
 
-                        for (String p : WildcardMatcher.getAllMatchingPatterns(hosts.keySet(), hostName)) {
+                        for (String p : WildcardMatcher.getAllMatchingPatterns(hostMatchers, hostName)) {
                             securityRoles.addAll(hosts.get(p));
                         }
                     }
@@ -372,7 +374,7 @@ public class PrivilegesEvaluator implements ConfigurationChangeListener {
 
                         final String resolvedHostName = caller.address().getHostName();
 
-                        for (String p : WildcardMatcher.getAllMatchingPatterns(hosts.keySet(), resolvedHostName)) {
+                        for (String p : WildcardMatcher.getAllMatchingPatterns(hostMatchers, resolvedHostName)) {
                             securityRoles.addAll(hosts.get(p));
                         }
                     }
@@ -951,7 +953,7 @@ public class PrivilegesEvaluator implements ConfigurationChangeListener {
                 }
             }
 
-            if(filteredAliases.size() > 1 && WildcardMatcher.match("indices:data/read/*search*", action)) {
+            if(filteredAliases.size() > 1 && ACTION_MATCHER.test(action)) {
                 //TODO add queries as dls queries (works only if dls module is installed)
                 final String faMode = getConfigSettings().get("opendistro_security.dynamic.filtered_alias_mode","warn");
 

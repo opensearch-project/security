@@ -195,7 +195,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
             }
             
             
-            if(complianceConfig != null && complianceConfig.isEnabled() && !complianceConfig.getImmutableIndicesPatterns().isEmpty()) {
+            if(complianceConfig != null && complianceConfig.isEnabled() && complianceConfig.getImmutableIndicesMatcher() != WildcardMatcher.NONE) {
             
                 boolean isImmutable = false;
                 
@@ -330,6 +330,6 @@ public class OpenDistroSecurityFilter implements ActionFilter {
         final IndexResolverReplacer.Resolved resolved = indexResolverReplacer.resolveRequest(request);
         final Set<String> allIndices = resolved.getAllIndices();
 
-        return WildcardMatcher.matchAny(complianceConfig.getImmutableIndicesPatterns(), allIndices);
+        return complianceConfig.getImmutableIndicesMatcher().matchAny(allIndices);
     }
 }

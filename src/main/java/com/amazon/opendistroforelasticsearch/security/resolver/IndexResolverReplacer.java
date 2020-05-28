@@ -200,7 +200,8 @@ public final class IndexResolverReplacer implements ConfigurationChangeListener 
             final Iterator<String> iterator = localRequestedPatterns.iterator();
             while(iterator.hasNext()) {
                 final String[] split = iterator.next().split(String.valueOf(RemoteClusterService.REMOTE_CLUSTER_INDEX_SEPARATOR), 2);
-                if(split.length > 1 && WildcardMatcher.matchAny(split[0], remoteClusters)) {
+                final WildcardMatcher matcher = WildcardMatcher.from(split[0]);
+                if (split.length > 1 && matcher.matchAny(remoteClusters)) {
                     iterator.remove();
                 }
             }
@@ -247,7 +248,7 @@ public final class IndexResolverReplacer implements ConfigurationChangeListener 
             //fill matchingAliases
             for (String localRequestedPattern: localRequestedPatterns) {
                 final String requestedPattern = resolver.resolveDateMathExpression(localRequestedPattern);
-                final List<String> _aliases = WildcardMatcher.getMatchAny(requestedPattern, aliases);
+                final List<String> _aliases = WildcardMatcher.from(requestedPattern).getMatchAny(aliases, Collectors.toList());
                 matchingAliases.addAll(_aliases);
             }
 
@@ -286,7 +287,7 @@ public final class IndexResolverReplacer implements ConfigurationChangeListener 
 
                 }
 
-                final List<String> _aliases = WildcardMatcher.getMatchAny(localRequestedPatterns.toArray(new String[0]), aliases);
+                final List<String> _aliases = WildcardMatcher.from(localRequestedPatterns).getMatchAny(aliases, Collectors.toList());
 
                 matchingAllIndices.addAll(_indices);
 
@@ -448,7 +449,7 @@ public final class IndexResolverReplacer implements ConfigurationChangeListener 
 
                     if(retainMode && !isAllWithNoRemote(original)) {
                         final Resolved resolved = resolveRequest(request);
-                        final List<String> retained = WildcardMatcher.getMatchAny(resolved.getAllIndices(), replacements);
+                        final List<String> retained = WildcardMatcher.from(resolved.getAllIndices()).getMatchAny(replacements, Collectors.toList());
                         retained.addAll(resolved.getRemoteIndices());
                         return retained.toArray(new String[0]);
                     }

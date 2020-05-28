@@ -1,9 +1,7 @@
 package com.amazon.opendistroforelasticsearch.security.privileges;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
 import com.amazon.opendistroforelasticsearch.security.resolver.IndexResolverReplacer;
@@ -18,20 +16,22 @@ import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.tasks.Task;
 
+import com.google.common.collect.ImmutableSet;
+
 public class OpenDistroProtectedIndexAccessEvaluator {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
 
     private final AuditLog auditLog;
-    private final Collection<String> indexPatterns;
-    private final Collection<String> allowedRoles;
+    private final WildcardMatcher indexMatcher;
+    private final WildcardMatcher allowedRolesMatcher;
     private final Boolean protectedIndexEnabled;
-    private final String[] deniedActionPatterns;
+    private final WildcardMatcher deniedActionMatcher;
 
 
     public OpenDistroProtectedIndexAccessEvaluator(final Settings settings, AuditLog auditLog) {
-        this.indexPatterns = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_DEFAULT);
-        this.allowedRoles = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_DEFAULT);
+        this.indexMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_DEFAULT));
+        this.allowedRolesMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_DEFAULT));
         this.protectedIndexEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_DEFAULT);
         this.auditLog = auditLog;
 
@@ -45,7 +45,7 @@ public class OpenDistroProtectedIndexAccessEvaluator {
         indexDeniedActionPatterns.add("indices:admin/aliases");
         indexDeniedActionPatterns.add("indices:admin/close*");
         indexDeniedActionPatterns.add("cluster:admin/snapshot/restore*");
-        this.deniedActionPatterns = indexDeniedActionPatterns.toArray(new String[0]);
+        this.deniedActionMatcher = WildcardMatcher.from(indexDeniedActionPatterns);
     }
 
     public PrivilegesEvaluatorResponse evaluate(final ActionRequest request, final Task task, final String action, final IndexResolverReplacer.Resolved requestedResolved,
@@ -53,28 +53,30 @@ public class OpenDistroProtectedIndexAccessEvaluator {
         if (!protectedIndexEnabled) {
             return presponse;
         }
-        List<String> roleNames = new ArrayList();
-        securityRoles.getRoles().forEach( role -> roleNames.add(role.getName()));
-        if (WildcardMatcher.matchAny(indexPatterns, requestedResolved.getAllIndices())
-                && WildcardMatcher.matchAny(deniedActionPatterns, action)
-                && !WildcardMatcher.matchAny(allowedRoles, roleNames)) {
+        ImmutableSet<String> roleNames = securityRoles.getRoles().stream()
+                .map(role -> role.getName())
+                .collect(ImmutableSet.toImmutableSet());
+
+        if (indexMatcher.matchAny(requestedResolved.getAllIndices())
+                && deniedActionMatcher.test(action)
+                && !allowedRolesMatcher.matchAny(roleNames)) {
             auditLog.logMissingPrivileges(action, request, task);
-            log.warn(action + " for '{}' index/indices is not allowed for a regular user", indexPatterns);
+            log.warn(action + " for '{}' index/indices is not allowed for a regular user", indexMatcher);
             presponse.allowed = false;
             return presponse.markComplete();
         }
 
         if (requestedResolved.isLocalAll()
-                && WildcardMatcher.matchAny(deniedActionPatterns, action)
-                && !WildcardMatcher.matchAny(allowedRoles, roleNames)) {
+                && deniedActionMatcher.test(action)
+                && !allowedRolesMatcher.matchAny(roleNames)) {
             auditLog.logMissingPrivileges(action, request, task);
             log.warn(action + " for '_all' indices is not allowed for a regular user");
             presponse.allowed = false;
             return presponse.markComplete();
         }
-        if((WildcardMatcher.matchAny(indexPatterns, requestedResolved.getAllIndices())
+        if((indexMatcher.matchAny(requestedResolved.getAllIndices())
                 || requestedResolved.isLocalAll())
-                && !WildcardMatcher.matchAny(allowedRoles, roleNames)) {
+                && !allowedRolesMatcher.matchAny(roleNames)) {
 
             if(request instanceof SearchRequest) {
                 ((SearchRequest)request).requestCache(Boolean.FALSE);
