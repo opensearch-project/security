@@ -39,7 +39,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -56,6 +55,7 @@ import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 /**
@@ -75,12 +75,12 @@ public class ComplianceConfig {
     private final boolean logReadMetadataOnly;
     private final boolean logWriteMetadataOnly;
     private final boolean logDiffsForWrite;
-    private final List<String> watchedWriteIndicesPatterns;
-    private final Set<String> immutableIndicesPatterns;
+    private final WildcardMatcher watchedWriteIndicesMatcher;
+    private final WildcardMatcher immutableIndicesMatcher;
     private final String opendistrosecurityIndex;
 
-    private final Map<String, Set<String>> readEnabledFields;
-    private final LoadingCache<String, Set<String>> readEnabledFieldsCache;
+    private final Map<WildcardMatcher, Set<String>> readEnabledFields;
+    private final LoadingCache<String, WildcardMatcher> readEnabledFieldsCache;
     private final byte[] salt16;
     private final DateTimeFormatter auditLogPattern;
     private final String auditLogIndex;
@@ -104,8 +104,8 @@ public class ComplianceConfig {
         this.logReadMetadataOnly = logReadMetadataOnly;
         this.logWriteMetadataOnly = logWriteMetadataOnly;
         this.logDiffsForWrite = logDiffsForWrite;
-        this.watchedWriteIndicesPatterns = watchedWriteIndicesPatterns;
-        this.immutableIndicesPatterns = immutableIndicesPatterns;
+        this.watchedWriteIndicesMatcher = WildcardMatcher.from(watchedWriteIndicesPatterns);
+        this.immutableIndicesMatcher = WildcardMatcher.from(immutableIndicesPatterns);
         this.opendistrosecurityIndex = opendistrosecurityIndex;
 
         this.salt16 = new byte[SALT_SIZE];
@@ -127,10 +127,10 @@ public class ComplianceConfig {
         this.readEnabledFields = watchedReadFields.stream()
                 .map(watchedReadField -> watchedReadField.split(","))
                 .filter(split -> split.length != 0 && !Strings.isNullOrEmpty(split[0]))
-                .collect(Collectors.toMap(
-                        split -> split[0],
+                .collect(ImmutableMap.toImmutableMap(
+                        split -> WildcardMatcher.from(split[0]),
                         split -> split.length == 1 ?
-                                Collections.singleton("*") : Arrays.stream(split).skip(1).collect(Collectors.toSet())
+                                Collections.singleton("*") : Arrays.stream(split).skip(1).collect(ImmutableSet.toImmutableSet())
                 ));
 
         DateTimeFormatter auditLogPattern = null;
@@ -150,10 +150,10 @@ public class ComplianceConfig {
 
         this.readEnabledFieldsCache = CacheBuilder.newBuilder()
                 .maximumSize(CACHE_SIZE)
-                .build(new CacheLoader<String, Set<String>>() {
+                .build(new CacheLoader<String, WildcardMatcher>() {
                     @Override
-                    public Set<String> load(String index) throws Exception {
-                        return getFieldsForIndex(index);
+                    public WildcardMatcher load(String index) throws Exception {
+                        return WildcardMatcher.from(getFieldsForIndex(index));
                     }
                 });
     }
@@ -165,8 +165,8 @@ public class ComplianceConfig {
         logger.info("Auditing will watch {} for read requests.", readEnabledFields);
         logger.info("Auditing only metadata information for write request is {}.", logWriteMetadataOnly ? "enabled" : "disabled");
         logger.info("Auditing diffs for write requests is {}.", logDiffsForWrite ? "enabled" : "disabled");
-        logger.info("Auditing will watch {} for write requests.", watchedWriteIndicesPatterns);
-        logger.info("{} indices are made immutable.", immutableIndicesPatterns);
+        logger.info("Auditing will watch {} for write requests.", watchedWriteIndicesMatcher);
+        logger.info("{} indices are made immutable.", immutableIndicesMatcher);
         logger.info("{} is used as internal security index.", opendistrosecurityIndex);
         logger.info("Internal index used for posting audit logs is {}", auditLogIndex);
     }
@@ -259,8 +259,8 @@ public class ComplianceConfig {
      * Get set of immutable index pattern
      * @return set of index patterns
      */
-    public Set<String> getImmutableIndicesPatterns() {
-        return immutableIndicesPatterns;
+    public WildcardMatcher getImmutableIndicesMatcher() {
+        return immutableIndicesMatcher;
     }
 
     /**
@@ -292,9 +292,9 @@ public class ComplianceConfig {
         }
 
         return readEnabledFields.entrySet().stream()
-                .filter(entry -> WildcardMatcher.match(entry.getKey(), index))
+                .filter(entry -> entry.getKey().test(index))
                 .flatMap(entry -> entry.getValue().stream())
-                .collect(Collectors.toSet());
+                .collect(ImmutableSet.toImmutableSet());
     }
 
     /**
@@ -334,7 +334,8 @@ public class ComplianceConfig {
                 return false;
             }
         }
-        return WildcardMatcher.matchAny(watchedWriteIndicesPatterns, index);
+
+        return watchedWriteIndicesMatcher.test(index);
     }
 
     /**
@@ -352,7 +353,7 @@ public class ComplianceConfig {
             return logInternalConfig;
         }
         try {
-            return !readEnabledFieldsCache.get(index).isEmpty();
+            return readEnabledFieldsCache.get(index) != WildcardMatcher.NONE;
         } catch (ExecutionException e) {
             log.warn("Failed to get index {} fields enabled for read from cache. Bypassing cache.", index, e);
             return getFieldsForIndex(index).isEmpty();
@@ -373,16 +374,13 @@ public class ComplianceConfig {
         if (opendistrosecurityIndex.equals(index)) {
             return logInternalConfig;
         }
-        Set<String> fields;
+        WildcardMatcher matcher;
         try {
-            fields = readEnabledFieldsCache.get(index);
-            if (fields.isEmpty()) {
-                return false;
-            }
+            matcher = readEnabledFieldsCache.get(index);
         } catch (ExecutionException e) {
             log.warn("Failed to get index {} fields enabled for read from cache. Bypassing cache.", index, e);
-            fields = getFieldsForIndex(index);
+            matcher = WildcardMatcher.from(getFieldsForIndex(index));
         }
-        return WildcardMatcher.matchAny(fields, field);
+        return matcher.test(field);
     }
 }

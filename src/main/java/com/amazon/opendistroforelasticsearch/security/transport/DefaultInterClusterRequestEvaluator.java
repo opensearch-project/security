@@ -38,11 +38,9 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigFactory;
 import com.amazon.opendistroforelasticsearch.security.securityconf.NodesDnModel;
-import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
@@ -57,13 +55,16 @@ public final class DefaultInterClusterRequestEvaluator implements InterClusterRe
 
     private final Logger log = LogManager.getLogger(this.getClass());
     private final String certOid;
-    private final List<String> staticNodesDnFromEsYml;
+    private final WildcardMatcher staticNodesDnFromEsYml;
     private boolean dynamicNodesDnConfigEnabled;
-    private volatile Map<String, List<String>> dynamicNodesDn;
+    private volatile Map<String, WildcardMatcher> dynamicNodesDn;
 
     public DefaultInterClusterRequestEvaluator(final Settings settings) {
         this.certOid = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CERT_OID, "1.2.3.4.5.5");
-        this.staticNodesDnFromEsYml = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_NODES_DN, Collections.emptyList());
+        this.staticNodesDnFromEsYml = WildcardMatcher.from(
+                settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_NODES_DN, Collections.emptyList()),
+                false
+        );
         this.dynamicNodesDnConfigEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, false);
         this.dynamicNodesDn = Collections.emptyMap();
     }
@@ -74,13 +75,11 @@ public final class DefaultInterClusterRequestEvaluator implements InterClusterRe
         }
     }
 
-    private List<String> getNodesDnToEvaluate() {
-        ImmutableList.Builder<String> retVal = ImmutableList.<String>builder()
-            .addAll(this.staticNodesDnFromEsYml);
+    private WildcardMatcher getNodesDnToEvaluate() {
         if (dynamicNodesDnConfigEnabled) {
-            retVal.addAll(dynamicNodesDn.values().stream().flatMap(Collection::stream).collect(Collectors.toList()));
+            return staticNodesDnFromEsYml.concat(dynamicNodesDn.values());
         }
-        return retVal.build();
+        return staticNodesDnFromEsYml;
     }
 
     @Override
@@ -94,9 +93,9 @@ public final class DefaultInterClusterRequestEvaluator implements InterClusterRe
             principals[1] = principal.replace(" ","");
         }
 
-        List<String> nodesDn = this.getNodesDnToEvaluate();
-        
-        if (principals[0] != null && WildcardMatcher.matchAny(nodesDn, principals, true)) {
+        WildcardMatcher nodesDn = this.getNodesDnToEvaluate();
+
+        if (principals[0] != null && nodesDn.matchAny(principals)) {
             
             if (log.isTraceEnabled()) {
                 log.trace("Treat certificate with principal {} as other node because of it matches one of {}", Arrays.toString(principals),
@@ -168,6 +167,6 @@ public final class DefaultInterClusterRequestEvaluator implements InterClusterRe
 
     @Subscribe
     public void onNodesDnModelChanged(NodesDnModel nm) {
-        this.dynamicNodesDn = Collections.unmodifiableMap(nm.getNodesDn());
+        this.dynamicNodesDn = nm.getNodesDn();
     }
 }

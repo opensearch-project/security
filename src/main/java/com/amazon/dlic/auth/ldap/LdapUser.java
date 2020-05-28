@@ -17,7 +17,6 @@ package com.amazon.dlic.auth.ldap;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.ldaptive.LdapAttribute;
@@ -35,12 +34,12 @@ public class LdapUser extends User {
     private final String originalUsername;
 
     public LdapUser(final String name, String originalUsername, final LdapEntry userEntry,
-            final AuthCredentials credentials, int customAttrMaxValueLen, List<String> whiteListedAttributes) {
+            final AuthCredentials credentials, int customAttrMaxValueLen, WildcardMatcher whitelistedCustomLdapAttrMatcher) {
         super(name, null, credentials);
         this.originalUsername = originalUsername;
         this.userEntry = userEntry;
         Map<String, String> attributes = getCustomAttributesMap();
-        attributes.putAll(extractLdapAttributes(originalUsername, userEntry, customAttrMaxValueLen, whiteListedAttributes));
+        attributes.putAll(extractLdapAttributes(originalUsername, userEntry, customAttrMaxValueLen, whitelistedCustomLdapAttrMatcher));
     }
 
     /**
@@ -60,8 +59,8 @@ public class LdapUser extends User {
         return originalUsername;
     }
     
-    public static Map<String, String> extractLdapAttributes(String originalUsername, final LdapEntry userEntry
-            , int customAttrMaxValueLen, List<String> whiteListedAttributes) {
+    public static Map<String, String> extractLdapAttributes(String originalUsername, final LdapEntry userEntry,
+            int customAttrMaxValueLen, WildcardMatcher whitelistedCustomLdapAttrMatcher) {
         Map<String, String> attributes = new HashMap<>();
         attributes.put("ldap.original.username", originalUsername);
         attributes.put("ldap.dn", userEntry.getDn());
@@ -73,11 +72,7 @@ public class LdapUser extends User {
                     // only consider attributes which are not binary and where its value is not
                     // longer than customAttrMaxValueLen characters
                     if (val != null && val.length() > 0 && val.length() <= customAttrMaxValueLen) {
-                        if (whiteListedAttributes != null && !whiteListedAttributes.isEmpty()) {
-                            if (WildcardMatcher.matchAny(whiteListedAttributes, attr.getName())) {
-                                attributes.put("attr.ldap." + attr.getName(), val);
-                            }
-                        } else {
+                        if (whitelistedCustomLdapAttrMatcher.test(attr.getName())) {
                             attributes.put("attr.ldap." + attr.getName(), val);
                         }
                     }
