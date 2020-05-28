@@ -91,6 +91,7 @@ import com.amazon.opendistroforelasticsearch.security.user.User;
 
 public class PrivilegesEvaluator {
 
+    private static final WildcardMatcher ACTION_MATCHER = WildcardMatcher.from("indices:data/read/*search*");
     protected final Logger log = LogManager.getLogger(this.getClass());
     protected final Logger actionTrace = LogManager.getLogger("opendistro_security_action_trace");
     private final ClusterService clusterService;
@@ -581,7 +582,7 @@ public class PrivilegesEvaluator {
                 }
             }
 
-            if(filteredAliases.size() > 1 && WildcardMatcher.match("indices:data/read/*search*", action)) {
+            if(filteredAliases.size() > 1 && ACTION_MATCHER.test(action)) {
                 //TODO add queries as dls queries (works only if dls module is installed)
                 final String faMode = dcm.getFilteredAliasMode();// getConfigSettings().dynamic.filtered_alias_mode;
                 if(faMode.equals("warn")) {
