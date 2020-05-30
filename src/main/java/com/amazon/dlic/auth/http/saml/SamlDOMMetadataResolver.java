@@ -1,54 +1,50 @@
+/*
+ * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License").
+ *  You may not use this file except in compliance with the License.
+ *  A copy of the License is located at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  or in the "license" file accompanying this file. This file is distributed
+ *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ *  express or implied. See the License for the specific language governing
+ *  permissions and limitations under the License.
+ */
+
 package com.amazon.dlic.auth.http.saml;
 
-import net.shibboleth.utilities.java.support.component.ComponentInitializationException;
-import net.shibboleth.utilities.java.support.xml.BasicParserPool;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.settings.Settings;
 import org.opensaml.saml.metadata.resolver.impl.DOMMetadataResolver;
 
-import java.io.IOException;
 import java.io.StringReader;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
 
 public class SamlDOMMetadataResolver extends DOMMetadataResolver {
-    protected final static Logger log = LogManager.getLogger(SamlDOMMetadataResolver.class);
+    private final static Logger log = LogManager.getLogger(SamlDOMMetadataResolver.class);
 
-    private static int componentIdCounter = 0;
-
-    public SamlDOMMetadataResolver(Settings settings) throws Exception {
-        super(getMetadataDOM(settings));
-        setId(HTTPSamlAuthenticator.class.getName() + "_" + (++componentIdCounter));
-        setRequireValidMetadata(true);
-        setFailFastInitialization(false);
-        BasicParserPool basicParserPool = new BasicParserPool();
-        basicParserPool.initialize();
-        setParserPool(basicParserPool);
+    public SamlDOMMetadataResolver(final String idpMetadataBody) throws Exception {
+        super(getMetadataDOM(idpMetadataBody));
     }
 
-    private static Element getMetadataDOM(Settings settings) throws Exception {
-        String xmlString = settings.get("idp.metadata_body", null);
-
+    private static Element getMetadataDOM(final String xmlString) throws Exception {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         factory.setNamespaceAware(true);
 
-        //API to obtain DOM Document instance
         DocumentBuilder builder = null;
-        try
-        {
+        try {
             builder = factory.newDocumentBuilder();
             Document doc = builder.parse(new InputSource(new StringReader(xmlString)));
             return doc.getDocumentElement();
-        } catch (Exception e)
-        {
-            log.error("Error while parsing SAML Metadata Body "+ e, e);
+        } catch (Exception e) {
+            log.error("Error while parsing SAML Metadata Body ", e);
             throw e;
         }
     }

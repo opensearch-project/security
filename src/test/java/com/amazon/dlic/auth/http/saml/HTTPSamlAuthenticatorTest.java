@@ -35,7 +35,6 @@ import java.util.regex.Pattern;
 import javax.net.ssl.KeyManagerFactory;
 
 import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
-import org.xml.sax.SAXParseException;
 import org.apache.cxf.rs.security.jose.jws.JwsJwtCompactConsumer;
 import org.apache.cxf.rs.security.jose.jwt.JwtToken;
 import org.elasticsearch.common.bytes.BytesArray;
@@ -194,7 +193,7 @@ public class HTTPSamlAuthenticatorTest {
     }
 
 
-    @Test(expected= SAXParseException.class)
+    @Test(expected= RuntimeException.class)
     public void testEmptyMetadataBody() throws Exception {
         mockSamlIdpServer.setSignResponses(true);
         mockSamlIdpServer.loadSigningKeys("saml/kirk-keystore.jks", "kirk");

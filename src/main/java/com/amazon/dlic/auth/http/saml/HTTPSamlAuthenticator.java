@@ -22,6 +22,7 @@ import java.security.PrivateKey;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 
+import net.shibboleth.utilities.java.support.xml.BasicParserPool;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.cxf.rs.security.jose.jwk.JsonWebKey;
 import org.apache.logging.log4j.LogManager;
@@ -38,7 +39,6 @@ import org.opensaml.core.config.InitializationException;
 import org.opensaml.core.config.InitializationService;
 import org.opensaml.saml.metadata.resolver.MetadataResolver;
 import org.opensaml.saml.metadata.resolver.impl.AbstractBatchMetadataResolver;
-import org.opensaml.saml.metadata.resolver.impl.AbstractReloadingMetadataResolver;
 
 import com.amazon.dlic.auth.http.jwt.AbstractHTTPJwtAuthenticator;
 import com.amazon.dlic.auth.http.jwt.keybyoidc.AuthenticatorUnavailableException;
@@ -66,9 +66,6 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
     private String subjectKey;
     private String rolesKey;
     private String kibanaRootUrl;
-    private String idpMetadataUrl;
-    private String idpMetadataFile;
-    private String idpMetadataBody;
     private String spSignatureAlgorithm;
     private Boolean useForceAuthn;
     private PrivateKey spSignaturePrivateKey;
@@ -77,17 +74,15 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
     private AuthTokenProcessorHandler authTokenProcessorHandler;
     private HTTPJwtAuthenticator httpJwtAuthenticator;
     private Settings jwtSettings;
+    private static int resolverIdCounter = 0;
 
-    public HTTPSamlAuthenticator(final Settings settings, final Path configPath) throws Exception {
+    public HTTPSamlAuthenticator(final Settings settings, final Path configPath) throws RuntimeException {
         try {
             ensureOpenSamlInitialization();
 
             rolesKey = settings.get("roles_key");
             subjectKey = settings.get("subject_key");
             kibanaRootUrl = settings.get("kibana_url");
-            idpMetadataUrl = settings.get("idp.metadata_url");
-            idpMetadataFile = settings.get("idp.metadata_file");
-            idpMetadataBody = settings.get("idp.metadata_body");
             spSignatureAlgorithm = settings.get("sp.signature_algorithm", Constants.RSA_SHA256);
             spSignaturePrivateKey = getSpSignaturePrivateKey(settings, configPath);
             useForceAuthn = settings.getAsBoolean("sp.forceAuthn", null);
@@ -107,11 +102,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
                 throw new Exception("kibana_url is unconfigured");
             }
 
-            if (idpMetadataUrl == null && idpMetadataFile == null && idpMetadataBody == null) {
-                throw new Exception("idp.metadata_url, idp.metadata_file and idpMetadataBody are unconfigured");
-            }
-
-             this.metadataResolver = createMetadataResolver(settings, configPath);
+            this.metadataResolver = createMetadataResolver(settings, configPath);
 
             this.saml2SettingsProvider = new Saml2SettingsProvider(settings, this.metadataResolver);
 
@@ -130,7 +121,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
 
         } catch (Exception e) {
             log.error("Error creating HTTPSamlAuthenticator: " + e + ". SAML authentication will not work", e);
-            throw e;
+            throw new RuntimeException(e);
         }
     }
 
@@ -282,12 +273,17 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
             throws Exception {
         final AbstractBatchMetadataResolver metadataResolver;
 
+        final String idpMetadataUrl = settings.get("idp.metadata_url");
+        final String idpMetadataFile = settings.get("idp.metadata_file");
+        final String idpMetadataBody = settings.get("idp.metadata_body");
         if (idpMetadataUrl != null) {
-            metadataResolver = new SamlHTTPMetadataResolver(settings, configPath);
+            metadataResolver = new SamlHTTPMetadataResolver(idpMetadataUrl, settings, configPath);
         } else if (idpMetadataFile != null) {
-            metadataResolver = new SamlFilesystemMetadataResolver(settings, configPath);
+            metadataResolver = new SamlFilesystemMetadataResolver(idpMetadataFile, settings, configPath);
+        } else if (idpMetadataBody != null) {
+            metadataResolver = new SamlDOMMetadataResolver(idpMetadataBody);
         } else {
-            metadataResolver = new SamlDOMMetadataResolver(settings);
+            throw new Exception("One of idp.metadata_url, idp.metadata_file or idp.metadata_body must be configured");
         }
 
         SecurityManager sm = System.getSecurityManager();
@@ -300,6 +296,12 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
             AccessController.doPrivileged(new PrivilegedExceptionAction<Void>() {
                 @Override
                 public Void run() throws ComponentInitializationException {
+                    metadataResolver.setId(HTTPSamlAuthenticator.class.getName() + "_" + (++resolverIdCounter));
+                    metadataResolver.setRequireValidMetadata(true);
+                    metadataResolver.setFailFastInitialization(false);
+                    final BasicParserPool basicParserPool = new BasicParserPool();
+                    basicParserPool.initialize();
+                    metadataResolver.setParserPool(basicParserPool);
                     metadataResolver.initialize();
                     return null;
                 }
