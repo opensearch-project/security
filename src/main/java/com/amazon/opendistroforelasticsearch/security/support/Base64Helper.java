@@ -49,7 +49,6 @@ import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.security.AccessControlException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Collection;
@@ -60,6 +59,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.SpecialPermission;
 import org.elasticsearch.common.Strings;
 
 import com.amazon.opendistroforelasticsearch.security.user.User;
@@ -112,11 +112,13 @@ public class Base64Helper {
             SecurityManager sm = System.getSecurityManager();
             if (sm != null) {
                 try {
+                    sm.checkPermission(new SpecialPermission());
+
                     AccessController.doPrivileged((PrivilegedAction<Void>)() -> {
                         AccessController.checkPermission(SUBSTITUTION_PERMISSION);
                         return null;
                     });
-                } catch (AccessControlException e) {
+                } catch (SecurityException e) {
                     return false;
                 }
             }
@@ -136,6 +138,12 @@ public class Base64Helper {
 
         private SafeObjectOutputStream(OutputStream out) throws IOException {
             super(out);
+
+            SecurityManager sm = System.getSecurityManager();
+            if (sm != null) {
+                sm.checkPermission(new SpecialPermission());
+            }
+
             AccessController.doPrivileged(
                 (PrivilegedAction<Boolean>) () -> enableReplaceObject(true)
             );
