@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
@@ -88,6 +89,8 @@ public abstract class AbstractAuditLog implements AuditLog {
     private final AuditConfig.Filter auditConfigFilter;
     private final String opendistrosecurityIndex;
     private volatile ComplianceConfig complianceConfig;
+    private final Environment environment;
+    private AtomicBoolean externalConfigLogged = new AtomicBoolean();
 
     private static final List<String> writeClasses = new ArrayList<>();
     {
@@ -98,7 +101,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         writeClasses.add(DeleteRequest.class.getSimpleName());
     }
 
-    protected AbstractAuditLog(Settings settings, final ThreadPool threadPool, final IndexNameExpressionResolver resolver, final ClusterService clusterService, final boolean dlsFlsAvailable) {
+    protected AbstractAuditLog(Settings settings, final ThreadPool threadPool, final IndexNameExpressionResolver resolver, final ClusterService clusterService, final Environment environment, final boolean dlsFlsAvailable) {
         super();
         this.threadPool = threadPool;
         this.settings = settings;
@@ -107,6 +110,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         this.auditConfigFilter = AuditConfig.Filter.from(settings);
         this.auditConfigFilter.log(log);
         this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
+        this.environment = environment;
         if (dlsFlsAvailable) {
             this.complianceConfig = ComplianceConfig.from(settings);
             this.complianceConfig.log(log);
@@ -358,7 +362,7 @@ public abstract class AbstractAuditLog implements AuditLog {
 
     @Override
     public void logDocumentRead(String index, String id, ShardId shardId, Map<String, String> fieldNameValues) {
-
+        final ComplianceConfig complianceConfig = getComplianceConfig();
         if(complianceConfig == null || !complianceConfig.readHistoryEnabledForIndex(index)) {
             return;
         }
@@ -372,7 +376,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         AuditCategory category = opendistrosecurityIndex.equals(index)? AuditCategory.COMPLIANCE_INTERNAL_CONFIG_READ: AuditCategory.COMPLIANCE_DOC_READ;
 
         String effectiveUser = getUser();
-        if(!checkComplianceFilter(category, effectiveUser, getOrigin())) {
+        if(!checkComplianceFilter(category, effectiveUser, getOrigin(), complianceConfig)) {
             return;
         }
 
@@ -423,7 +427,7 @@ public abstract class AbstractAuditLog implements AuditLog {
 
     @Override
     public void logDocumentWritten(ShardId shardId, GetResult originalResult, Index currentIndex, IndexResult result) {
-
+        final ComplianceConfig complianceConfig = getComplianceConfig();
         if(complianceConfig == null || !complianceConfig.writeHistoryEnabledForIndex(shardId.getIndexName())) {
             return;
         }
@@ -432,7 +436,7 @@ public abstract class AbstractAuditLog implements AuditLog {
 
         String effectiveUser = getUser();
 
-        if(!checkComplianceFilter(category, effectiveUser, getOrigin())) {
+        if(!checkComplianceFilter(category, effectiveUser, getOrigin(), complianceConfig)) {
             return;
         }
 
@@ -521,7 +525,7 @@ public abstract class AbstractAuditLog implements AuditLog {
 
         String effectiveUser = getUser();
 
-        if(!checkComplianceFilter(AuditCategory.COMPLIANCE_DOC_WRITE, effectiveUser, getOrigin())) {
+        if(!checkComplianceFilter(AuditCategory.COMPLIANCE_DOC_WRITE, effectiveUser, getOrigin(), complianceConfig)) {
             return;
         }
 
@@ -539,9 +543,9 @@ public abstract class AbstractAuditLog implements AuditLog {
     }
 
     @Override
-    public void logExternalConfig(Settings settings, Environment environment) {
-
-        if(!checkComplianceFilter(AuditCategory.COMPLIANCE_EXTERNAL_CONFIG, null, getOrigin())) {
+    public void logExternalConfig() {
+        final ComplianceConfig complianceConfig = getComplianceConfig();
+        if (!checkComplianceFilter(AuditCategory.COMPLIANCE_EXTERNAL_CONFIG, null, getOrigin(), complianceConfig) || !complianceConfig.shouldLogExternalConfig() || externalConfigLogged.getAndSet(true)) {
             return;
         }
 
@@ -703,7 +707,11 @@ public abstract class AbstractAuditLog implements AuditLog {
 
     }
 
-    private boolean checkComplianceFilter(final AuditCategory category, final String effectiveUser, Origin origin) {
+    private boolean checkComplianceFilter(final AuditCategory category, final String effectiveUser, Origin origin, final ComplianceConfig complianceConfig) {
+        if (complianceConfig == null || !complianceConfig.isEnabled()) {
+            return false;
+        }
+
         if(log.isTraceEnabled()) {
             log.trace("Check for COMPLIANCE category:{}, effectiveUser:{}, origin: {}", category, effectiveUser, origin);
         }
@@ -717,7 +725,7 @@ public abstract class AbstractAuditLog implements AuditLog {
 
         if(category == AuditCategory.COMPLIANCE_DOC_READ || category == AuditCategory.COMPLIANCE_INTERNAL_CONFIG_READ) {
 
-            if (effectiveUser != null && auditConfigFilter.isComplianceReadAuditDisabled(effectiveUser)) {
+            if (effectiveUser != null && complianceConfig.isComplianceReadAuditDisabled(effectiveUser)) {
 
                 if(log.isTraceEnabled()) {
                     log.trace("Skipped compliance log message because of user {} is ignored", effectiveUser);
@@ -727,7 +735,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         }
 
         if(category == AuditCategory.COMPLIANCE_DOC_WRITE || category == AuditCategory.COMPLIANCE_INTERNAL_CONFIG_WRITE) {
-            if (effectiveUser != null && auditConfigFilter.isComplianceWriteAuditDisabled(effectiveUser)) {
+            if (effectiveUser != null && complianceConfig.isComplianceWriteAuditDisabled(effectiveUser)) {
 
                 if(log.isTraceEnabled()) {
                     log.trace("Skipped compliance log message because of user {} is ignored", effectiveUser);

@@ -48,12 +48,12 @@ public final class AuditLogImpl extends AbstractAuditLog {
 
 	AuditLogImpl(final Settings settings, final Path configPath, Client clientProvider, ThreadPool threadPool,
 				 final IndexNameExpressionResolver resolver, final ClusterService clusterService) {
-		this(settings, configPath, clientProvider, threadPool, resolver, clusterService, false);
+		this(settings, configPath, clientProvider, threadPool, resolver, clusterService, null, false);
 	}
 
 	public AuditLogImpl(final Settings settings, final Path configPath, Client clientProvider, ThreadPool threadPool,
-						final IndexNameExpressionResolver resolver, final ClusterService clusterService, final boolean dlsFlsAvailable) {
-		super(settings, threadPool, resolver, clusterService, dlsFlsAvailable);
+						final IndexNameExpressionResolver resolver, final ClusterService clusterService, final Environment environment, final boolean dlsFlsAvailable) {
+		super(settings, threadPool, resolver, clusterService, environment, dlsFlsAvailable);
 
 		this.messageRouter = new AuditMessageRouter(settings, clientProvider, threadPool, configPath);
 		this.enabled = messageRouter.isEnabled();
@@ -212,9 +212,9 @@ public final class AuditLogImpl extends AbstractAuditLog {
 	}
 
 	@Override
-	public void logExternalConfig(Settings settings, Environment environment) {
+	public void logExternalConfig() {
 		if (enabled) {
-			super.logExternalConfig(settings, environment);
+			super.logExternalConfig();
 		}
 	}
 

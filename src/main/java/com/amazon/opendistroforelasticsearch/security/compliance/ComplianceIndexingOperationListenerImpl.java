@@ -34,11 +34,13 @@ import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
 public final class ComplianceIndexingOperationListenerImpl extends ComplianceIndexingOperationListener {
 
     private static final Logger log = LogManager.getLogger(ComplianceIndexingOperationListenerImpl.class);
+    private final String indexName;
     private final AuditLog auditlog;
     private volatile IndexService is;
 
-    public ComplianceIndexingOperationListenerImpl(final AuditLog auditlog) {
+    public ComplianceIndexingOperationListenerImpl(final String indexName, final AuditLog auditlog) {
         super();
+        this.indexName = indexName;
         this.auditlog = auditlog;
     }
 
@@ -78,7 +80,7 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
     @Override
     public Index preIndex(final ShardId shardId, final Index index) {
         final ComplianceConfig complianceConfig = auditlog.getComplianceConfig();
-        if (complianceConfig.isEnabled() && complianceConfig.shouldLogDiffsForWrite()) {
+        if (complianceConfig != null && complianceConfig.shouldLogDiffsForWrite(indexName)) {
             Objects.requireNonNull(is);
 
             final IndexShard shard;
@@ -121,7 +123,7 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
     @Override
     public void postIndex(final ShardId shardId, final Index index, final Exception ex) {
         final ComplianceConfig complianceConfig = auditlog.getComplianceConfig();
-        if (complianceConfig.isEnabled() && complianceConfig.shouldLogDiffsForWrite()) {
+        if (complianceConfig != null && complianceConfig.shouldLogDiffsForWrite(indexName)) {
             threadContext.remove();
         }
     }
@@ -129,7 +131,7 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
     @Override
     public void postIndex(ShardId shardId, Index index, IndexResult result) {
         final ComplianceConfig complianceConfig = auditlog.getComplianceConfig();
-        if (complianceConfig.isEnabled() && complianceConfig.shouldLogDiffsForWrite()) {
+        if (complianceConfig != null && complianceConfig.shouldLogDiffsForWrite(indexName)) {
             final Context context = threadContext.get();
             final GetResult previousContent = context==null?null:context.getGetResult();
             threadContext.remove();
@@ -157,7 +159,7 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
             }
 
             auditlog.logDocumentWritten(shardId, previousContent, index, result);
-        } else if (complianceConfig.isEnabled()) {
+        } else if (complianceConfig != null && complianceConfig.writeHistoryEnabledForIndex(indexName)) {
             //no diffs
             if (result.getFailure() != null || index.origin() != org.elasticsearch.index.engine.Engine.Operation.Origin.PRIMARY) {
                 return;

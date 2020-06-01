@@ -130,7 +130,7 @@ public class NullAuditLog implements AuditLog {
     }
 
     @Override
-    public void logExternalConfig(Settings settings, Environment environment) {
+    public void logExternalConfig() {
         //noop, intentionally left empty
     }
 

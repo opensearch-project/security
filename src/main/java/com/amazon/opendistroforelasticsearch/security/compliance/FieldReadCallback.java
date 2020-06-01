@@ -87,7 +87,8 @@ public final class FieldReadCallback {
     }
 
     private boolean recordField(final String fieldName, boolean isStringField) {
-        return !(isStringField && maskedFieldsMatcher.test(fieldName)) && auditLog.getComplianceConfig().readHistoryEnabledForField(index.getName(), fieldName);
+        final ComplianceConfig complianceConfig = auditLog.getComplianceConfig();
+        return !(isStringField && maskedFieldsMatcher.test(fieldName)) && complianceConfig != null && complianceConfig.readHistoryEnabledForField(index.getName(), fieldName);
     }
 
     public void binaryFieldRead(final FieldInfo fieldInfo, byte[] fieldValue) {

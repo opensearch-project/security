@@ -45,6 +45,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
@@ -348,7 +349,8 @@ public class ConfigurationRepository {
             throw new ElasticsearchException(e);
         }
 
-        if (logComplianceEvent && auditLog.getComplianceConfig().isEnabled()) {
+        final ComplianceConfig complianceConfig = auditLog.getComplianceConfig();
+        if (logComplianceEvent && complianceConfig != null && complianceConfig.isEnabled()) {
             CType configurationType = configTypes.iterator().next();
             Map<String, String> fields = new HashMap<String, String>();
             fields.put(configurationType.toLCString(), Strings.toString(retVal.get(configurationType)));

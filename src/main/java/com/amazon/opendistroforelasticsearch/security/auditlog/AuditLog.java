@@ -72,7 +72,7 @@ public interface AuditLog extends Closeable {
     void logDocumentRead(String index, String id, ShardId shardId, Map<String, String> fieldNameValues);
     void logDocumentWritten(ShardId shardId, GetResult originalIndex, Index currentIndex, IndexResult result);
     void logDocumentDeleted(ShardId shardId, Delete delete, DeleteResult result);
-    void logExternalConfig(Settings settings, Environment environment);
+    void logExternalConfig();
     
     // compliance config
     ComplianceConfig getComplianceConfig();

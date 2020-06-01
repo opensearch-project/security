@@ -95,10 +95,11 @@ public class OpenDistroSecurityFilter implements ActionFilter {
     private final ClusterService cs;
     private final CompatConfig compatConfig;
     private final IndexResolverReplacer indexResolverReplacer;
+    private final WildcardMatcher immutableIndicesMatcher;
 
     public OpenDistroSecurityFilter(final PrivilegesEvaluator evalp, final AdminDNs adminDns,
             DlsFlsRequestValve dlsFlsValve, AuditLog auditLog, ThreadPool threadPool, ClusterService cs,
-            final CompatConfig compatConfig, final IndexResolverReplacer indexResolverReplacer) {
+            final CompatConfig compatConfig, final IndexResolverReplacer indexResolverReplacer, final WildcardMatcher immutableIndicesMatcher) {
         this.evalp = evalp;
         this.adminDns = adminDns;
         this.dlsFlsValve = dlsFlsValve;
@@ -107,6 +108,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
         this.cs = cs;
         this.compatConfig = compatConfig;
         this.indexResolverReplacer = indexResolverReplacer;
+        this.immutableIndicesMatcher = immutableIndicesMatcher;
     }
 
     @Override
@@ -194,19 +196,19 @@ public class OpenDistroSecurityFilter implements ActionFilter {
             }
             
             
-            if(complianceConfig != null && complianceConfig.isEnabled() && complianceConfig.getImmutableIndicesMatcher() != WildcardMatcher.NONE) {
+            if(immutableIndicesMatcher != WildcardMatcher.NONE) {
             
                 boolean isImmutable = false;
                 
                 if(request instanceof BulkShardRequest) {
                     for(BulkItemRequest bsr: ((BulkShardRequest) request).items()) {
-                        isImmutable = checkImmutableIndices(bsr.request(), listener, complianceConfig);
+                        isImmutable = checkImmutableIndices(bsr.request(), listener);
                         if(isImmutable) {
                             break;
                         }
                     }
                 } else {
-                    isImmutable = checkImmutableIndices(request, listener, complianceConfig);
+                    isImmutable = checkImmutableIndices(request, listener);
                 }
     
                 if(isImmutable) {
@@ -303,7 +305,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
     }
     
     @SuppressWarnings("rawtypes")
-    private boolean checkImmutableIndices(Object request, ActionListener listener, final ComplianceConfig complianceConfig) {
+    private boolean checkImmutableIndices(Object request, ActionListener listener) {
         final boolean isModifyIndexRequest = request instanceof DeleteRequest
                 || request instanceof UpdateRequest
                 || request instanceof UpdateByQueryRequest
@@ -313,22 +315,22 @@ public class OpenDistroSecurityFilter implements ActionFilter {
                 || request instanceof CloseIndexRequest
                 || request instanceof IndicesAliasesRequest;
 
-        if (isModifyIndexRequest && isRequestIndexImmutable(request, complianceConfig)) {
+        if (isModifyIndexRequest && isRequestIndexImmutable(request)) {
             listener.onFailure(new ElasticsearchSecurityException("Index is immutable", RestStatus.FORBIDDEN));
             return true;
         }
         
-        if ((request instanceof IndexRequest) && isRequestIndexImmutable(request, complianceConfig)) {
+        if ((request instanceof IndexRequest) && isRequestIndexImmutable(request)) {
             ((IndexRequest) request).opType(OpType.CREATE);
         }
         
         return false;
     }
 
-    private boolean isRequestIndexImmutable(Object request, final ComplianceConfig complianceConfig) {
+    private boolean isRequestIndexImmutable(Object request) {
         final IndexResolverReplacer.Resolved resolved = indexResolverReplacer.resolveRequest(request);
         final Set<String> allIndices = resolved.getAllIndices();
 
-        return complianceConfig.getImmutableIndicesMatcher().matchAny(allIndices);
+        return immutableIndicesMatcher.matchAny(allIndices);
     }
 }
