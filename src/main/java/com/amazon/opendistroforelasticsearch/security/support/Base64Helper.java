@@ -49,6 +49,7 @@ import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Collection;
 import java.util.Collections;
@@ -58,6 +59,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.SpecialPermission;
 import org.elasticsearch.common.Strings;
 
 import com.amazon.opendistroforelasticsearch.security.user.User;
@@ -104,21 +106,46 @@ public class Base64Helper {
 
     private final static class SafeObjectOutputStream extends ObjectOutputStream {
 
-        static ObjectOutputStream create(OutputStream out) throws IOException {
+        private static final boolean useSafeObjectOutputStream = checkSubstitutionPermission();
+
+        private static boolean checkSubstitutionPermission() {
+            SecurityManager sm = System.getSecurityManager();
+            if (sm != null) {
+                try {
+                    sm.checkPermission(new SpecialPermission());
+
+                    AccessController.doPrivileged((PrivilegedAction<Void>)() -> {
+                        AccessController.checkPermission(SUBSTITUTION_PERMISSION);
+                        return null;
+                    });
+                } catch (SecurityException e) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        static ObjectOutputStream create(ByteArrayOutputStream out) throws IOException {
             try {
-                return new SafeObjectOutputStream(out);
+                return useSafeObjectOutputStream ? new SafeObjectOutputStream(out) : new ObjectOutputStream(out);
             } catch (SecurityException e) {
+                // As we try to create SafeObjectOutputStream only when necessary permissions are granted, we should
+                // not reach here, but if we do, we can still return ObjectOutputStream after resetting ByteArrayOutputStream
+                out.reset();
                 return new ObjectOutputStream(out);
             }
         }
 
         private SafeObjectOutputStream(OutputStream out) throws IOException {
             super(out);
-            java.security.AccessController.doPrivileged(
-                (PrivilegedAction<Void>) () -> {
-                    enableReplaceObject(true);
-                    return null;
-                }
+
+            SecurityManager sm = System.getSecurityManager();
+            if (sm != null) {
+                sm.checkPermission(new SpecialPermission());
+            }
+
+            AccessController.doPrivileged(
+                (PrivilegedAction<Boolean>) () -> enableReplaceObject(true)
             );
         }
 
