@@ -20,6 +20,8 @@ import java.util.Set;
  */
 public class AuditConfig {
 
+    public static final List<String> DEFAULT_IGNORED_USERS = Collections.singletonList("kibanaserver");
+
     private AuditConfig() { }
 
     /**
@@ -27,7 +29,6 @@ public class AuditConfig {
      * Audit logger will use these settings to determine what audit logs are to be generated.
      */
     public static class Filter {
-        private static final List<String> DEFAULT_IGNORED_USERS = Collections.singletonList("kibanaserver");
         private static final List<String> DEFAULT_DISABLED_CATEGORIES =
                 Arrays.asList(AuditCategory.AUTHENTICATED.toString(),
                         AuditCategory.GRANTED_PRIVILEGES.toString());
@@ -39,8 +40,6 @@ public class AuditConfig {
         private final boolean resolveIndices;
         private final boolean excludeSensitiveHeaders;
         private final WildcardMatcher ignoredAuditUsersMatcher;
-        private final WildcardMatcher ignoredComplianceUsersForReadMatcher;
-        private final WildcardMatcher ignoredComplianceUsersForWriteMatcher;
         private final WildcardMatcher ignoredAuditRequestsMatcher;
         private final EnumSet<AuditCategory> disabledRestCategories;
         private final EnumSet<AuditCategory> disabledTransportCategories;
@@ -64,8 +63,6 @@ public class AuditConfig {
             this.resolveIndices = resolveIndices;
             this.excludeSensitiveHeaders = excludeSensitiveHeaders;
             this.ignoredAuditUsersMatcher = WildcardMatcher.from(ignoredAuditUsers);
-            this.ignoredComplianceUsersForReadMatcher = WildcardMatcher.from(ignoredComplianceUsersForRead);
-            this.ignoredComplianceUsersForWriteMatcher = WildcardMatcher.from(ignoredComplianceUsersForWrite);
             this.ignoredAuditRequestsMatcher = WildcardMatcher.from(ignoredAuditRequests);
             this.disabledRestCategories = disabledRestCategories;
             this.disabledTransportCategories = disabledTransportCategories;
@@ -132,14 +129,6 @@ public class AuditConfig {
                     disabledTransportCategories);
         }
 
-        private static Set<String> getSettingAsSet(final Settings settings, final String key, final List<String> defaultList, final boolean ignoreCaseForNone) {
-            final List<String> list = settings.getAsList(key, defaultList);
-            if (list.size() == 1 && "NONE".equals(ignoreCaseForNone? list.get(0).toUpperCase() : list.get(0))) {
-                return Collections.emptySet();
-            }
-            return ImmutableSet.copyOf(list);
-        }
-
         /**
          * Checks if auditing for REST API is enabled or disabled
          * @return true/false
@@ -203,34 +192,6 @@ public class AuditConfig {
         }
 
         @VisibleForTesting
-        WildcardMatcher getIgnoredComplianceUsersForReadMatcher() {
-            return ignoredComplianceUsersForReadMatcher;
-        }
-
-        /**
-         * Check if user is excluded from compliance read audit
-         * @param user
-         * @return true if user is excluded from compliance read audit
-         */
-        public boolean isComplianceReadAuditDisabled(String user) {
-            return ignoredComplianceUsersForReadMatcher.test(user);
-        }
-
-        @VisibleForTesting
-        WildcardMatcher getIgnoredComplianceUsersForWriteMatcher() {
-            return ignoredComplianceUsersForWriteMatcher;
-        }
-
-        /**
-         * Check if user is excluded from compliance write audit
-         * @param user
-         * @return true if user is excluded from compliance write audit
-         */
-        public boolean isComplianceWriteAuditDisabled(String user) {
-            return ignoredComplianceUsersForWriteMatcher.test(user);
-        }
-
-        @VisibleForTesting
         WildcardMatcher getIgnoredAuditRequestsMatcher() {
             return ignoredAuditRequestsMatcher;
         }
@@ -270,8 +231,6 @@ public class AuditConfig {
             logger.info("Index resolution is {} during request auditing.", resolveIndices ? "enabled" : "disabled");
             logger.info("Sensitive headers auditing is {}.", excludeSensitiveHeaders ? "enabled" : "disabled");
             logger.info("Auditing requests from {} users is disabled.", ignoredAuditUsersMatcher);
-            logger.info("Compliance read operation requests auditing from {} users is disabled.", ignoredComplianceUsersForReadMatcher);
-            logger.info("Compliance write operation requests auditing from {} users is disabled.", ignoredComplianceUsersForWriteMatcher);
         }
 
         @Override
@@ -286,10 +245,16 @@ public class AuditConfig {
                     ", resolveIndices=" + resolveIndices +
                     ", excludeSensitiveHeaders=" + excludeSensitiveHeaders +
                     ", ignoredAuditUsers=" + ignoredAuditUsersMatcher +
-                    ", ignoredComplianceUsersForRead=" + ignoredComplianceUsersForReadMatcher +
-                    ", ignoredComplianceUsersForWrite=" + ignoredComplianceUsersForWriteMatcher +
                     ", ignoreAuditRequests=" + ignoredAuditRequestsMatcher +
                     '}';
         }
+    }
+
+    public static Set<String> getSettingAsSet(final Settings settings, final String key, final List<String> defaultList, final boolean ignoreCaseForNone) {
+        final List<String> list = settings.getAsList(key, defaultList);
+        if (list.size() == 1 && "NONE".equals(ignoreCaseForNone? list.get(0).toUpperCase() : list.get(0))) {
+            return Collections.emptySet();
+        }
+        return ImmutableSet.copyOf(list);
     }
 }
