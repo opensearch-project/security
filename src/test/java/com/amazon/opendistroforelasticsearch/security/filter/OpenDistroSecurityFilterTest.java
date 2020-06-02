@@ -2,7 +2,6 @@ package com.amazon.opendistroforelasticsearch.security.filter;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
 import com.amazon.opendistroforelasticsearch.security.configuration.AdminDNs;
-import com.amazon.opendistroforelasticsearch.security.configuration.ClusterInfoHolder;
 import com.amazon.opendistroforelasticsearch.security.configuration.CompatConfig;
 import com.amazon.opendistroforelasticsearch.security.configuration.DlsFlsRequestValve;
 import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvaluator;
@@ -10,7 +9,6 @@ import com.amazon.opendistroforelasticsearch.security.resolver.IndexResolverRepl
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.google.common.collect.ImmutableSet;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -52,7 +50,6 @@ public class OpenDistroSecurityFilterTest {
 
     @Test
     public void testImmutableIndicesWildcardMatcher() {
-        // act
         final OpenDistroSecurityFilter filter = new OpenDistroSecurityFilter(
                 settings,
                 mock(PrivilegesEvaluator.class),
@@ -62,14 +59,8 @@ public class OpenDistroSecurityFilterTest {
                 mock(ThreadPool.class),
                 mock(ClusterService.class),
                 mock(CompatConfig.class),
-                new IndexResolverReplacer(
-                        mock(IndexNameExpressionResolver.class),
-                        mock(ClusterService.class),
-                        mock(ClusterInfoHolder.class)
-                )
+                mock(IndexResolverReplacer.class)
         );
-
-        // assert
         assertEquals(expected, filter.getImmutableIndicesMatcher());
     }
 }
