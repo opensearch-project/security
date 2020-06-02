@@ -62,7 +62,7 @@ jobs:
         SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
       run: |
         gpg --batch --import --no-tty <(echo -e "${{ secrets.PGP_PRIVATE_KEY }}")
-        mvn -B deploy -Padvanced -Prelease -DskipTests -Dgpg.passphrase=${{ secrets.GPG_PASSPHRASE }}
+        mvn -B deploy -Padvanced -Prelease -DskipTests -Dgpg.passphrase=${{ secrets.PGP_PASSPHRASE }}
 
     - name: Create Github Draft Release
       id: create_release
