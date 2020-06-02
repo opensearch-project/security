@@ -35,7 +35,6 @@ public class ComplianceConfigTest {
         assertFalse(complianceConfig.shouldLogReadMetadataOnly());
         assertFalse(complianceConfig.shouldLogWriteMetadataOnly());
         assertFalse(complianceConfig.shouldLogDiffsForWrite());
-        assertSame(WildcardMatcher.NONE, complianceConfig.getImmutableIndicesMatcher());
         assertEquals(16, complianceConfig.getSalt16().length);
     }
 
@@ -50,7 +49,6 @@ public class ComplianceConfigTest {
                 .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_METADATA_ONLY, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT, testSalt)
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_IMMUTABLE_INDICES, "immutable1", "immutable2", "immutable2")
                 .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, "write_index1", "write_index_pattern*")
                 .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS, "read_index1,field1,field2", "read_index_pattern*,field1,field_pattern*")
                 .build();
@@ -65,7 +63,6 @@ public class ComplianceConfigTest {
         assertTrue(complianceConfig.shouldLogReadMetadataOnly());
         assertTrue(complianceConfig.shouldLogWriteMetadataOnly());
         assertFalse(complianceConfig.shouldLogDiffsForWrite());
-        assertEquals(complianceConfig.getImmutableIndicesMatcher(), WildcardMatcher.from(ImmutableSet.of("immutable1", "immutable2")));
         assertArrayEquals(testSalt.getBytes(StandardCharsets.UTF_8), complianceConfig.getSalt16());
         assertEquals(16, complianceConfig.getSalt16().length);
 
