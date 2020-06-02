@@ -152,6 +152,63 @@ public class HTTPSamlAuthenticatorTest {
     }
 
     @Test
+    public void testMetadataBody() throws Exception {
+        mockSamlIdpServer.setSignResponses(true);
+        mockSamlIdpServer.loadSigningKeys("saml/kirk-keystore.jks", "kirk");
+        mockSamlIdpServer.setAuthenticateUser("horst");
+        mockSamlIdpServer.setEndpointQueryString(null);
+
+        // Note: We need to replace endpoint with mockSamlIdpServer endpoint
+        final String metadataBody = FileHelper.loadFile("saml/metadata.xml")
+                                        .replaceAll("http://localhost:33667/", mockSamlIdpServer.getMetadataUri());
+
+        Settings settings = Settings.builder().put("idp.metadata_body", metadataBody)
+            .put("kibana_url", "http://wherever")
+            .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
+            .put("exchange_key", "abc").put("roles_key", "roles").put("path.home", ".").build();
+
+        HTTPSamlAuthenticator samlAuthenticator = new HTTPSamlAuthenticator(settings, null);
+
+        AuthenticateHeaders authenticateHeaders = getAutenticateHeaders(samlAuthenticator);
+
+        String encodedSamlResponse = mockSamlIdpServer.handleSsoGetRequestURI(authenticateHeaders.location);
+
+        RestRequest tokenRestRequest = buildTokenExchangeRestRequest(encodedSamlResponse, authenticateHeaders);
+        TestRestChannel tokenRestChannel = new TestRestChannel(tokenRestRequest);
+
+        samlAuthenticator.reRequestAuthentication(tokenRestChannel, null);
+
+        String responseJson = new String(BytesReference.toBytes(tokenRestChannel.response.content()));
+        HashMap<String, Object> response = DefaultObjectMapper.objectMapper.readValue(responseJson,
+            new TypeReference<HashMap<String, Object>>() {
+            });
+        String authorization = (String) response.get("authorization");
+
+        Assert.assertNotNull("Expected authorization attribute in JSON: " + responseJson, authorization);
+
+        JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(authorization.replaceAll("\\s*bearer\\s*", ""));
+        JwtToken jwt = jwtConsumer.getJwtToken();
+
+        Assert.assertEquals("horst", jwt.getClaim("sub"));
+    }
+
+
+    @Test(expected= RuntimeException.class)
+    public void testEmptyMetadataBody() throws Exception {
+        mockSamlIdpServer.setSignResponses(true);
+        mockSamlIdpServer.loadSigningKeys("saml/kirk-keystore.jks", "kirk");
+        mockSamlIdpServer.setAuthenticateUser("horst");
+        mockSamlIdpServer.setEndpointQueryString(null);
+
+        Settings settings = Settings.builder().put("idp.metadata_body", "")
+            .put("kibana_url", "http://wherever")
+            .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
+            .put("exchange_key", "abc").put("roles_key", "roles").put("path.home", ".").build();
+
+        new HTTPSamlAuthenticator(settings, null);
+    }
+
+    @Test
     public void unsolicitedSsoTest() throws Exception {
         mockSamlIdpServer.setSignResponses(true);
         mockSamlIdpServer.loadSigningKeys("saml/kirk-keystore.jks", "kirk");
