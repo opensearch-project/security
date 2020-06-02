@@ -72,6 +72,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertEquals(35, settings.size());
+
         // --- GET
 
         // GET, user admin, exists
@@ -117,6 +118,13 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         //Assert.assertEquals(settings.get("reason"), AbstractConfigurationValidator.ErrorType.INVALID_CONFIGURATION.getMessage());
         //Assert.assertTrue(settings.get(AbstractConfigurationValidator.INVALID_KEYS_KEY + ".keys").contains("some"));
         //Assert.assertTrue(settings.get(AbstractConfigurationValidator.INVALID_KEYS_KEY + ".keys").contains("other"));
+
+        // Associating with reserved or hidden role is not allowed
+        response = rh.executePutRequest("/_opendistro/_security/api/internalusers/nagilum", "{ \"opendistro_security_roles\": [\"kibana_server\"]}",
+            new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
+        Assert.assertEquals(settings.get("message"), "Cannot associate user with reserved role 'kibana_server'");
 
         // Wrong config keys
         response = rh.executePutRequest("/_opendistro/_security/api/internalusers/nagilum", "{\"some\": \"thing\", \"other\": \"thing\"}",
