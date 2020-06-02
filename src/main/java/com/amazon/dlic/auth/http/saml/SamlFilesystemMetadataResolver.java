@@ -26,18 +26,11 @@ import org.elasticsearch.env.Environment;
 import org.opensaml.saml.metadata.resolver.impl.FilesystemMetadataResolver;
 
 import net.shibboleth.utilities.java.support.resolver.ResolverException;
-import net.shibboleth.utilities.java.support.xml.BasicParserPool;
 
 public class SamlFilesystemMetadataResolver extends FilesystemMetadataResolver {
-    private static int componentIdCounter = 0;
 
-    SamlFilesystemMetadataResolver(Settings esSettings, Path configPath) throws Exception {
-        super(getMetadataFile(esSettings, configPath));
-        setId(SamlFilesystemMetadataResolver.class.getName() + "_" + (++componentIdCounter));
-        setRequireValidMetadata(true);
-        BasicParserPool basicParserPool = new BasicParserPool();
-        basicParserPool.initialize();
-        setParserPool(basicParserPool);
+    SamlFilesystemMetadataResolver(String filePath, Settings esSettings, Path configPath) throws Exception {
+        super(getMetadataFile(filePath, esSettings, configPath));
     }
 
     @Override
@@ -59,11 +52,8 @@ public class SamlFilesystemMetadataResolver extends FilesystemMetadataResolver {
         }
     }
 
-    private static File getMetadataFile(Settings settings, Path configPath) {
-
-        String originalPath = settings.get("idp.metadata_file", null);
+    private static File getMetadataFile(String filePath, Settings settings, Path configPath) {
         Environment env = new Environment(settings, configPath);
-
-        return env.configFile().resolve(originalPath).toAbsolutePath().toFile();
+        return env.configFile().resolve(filePath).toAbsolutePath().toFile();
     }
 }
