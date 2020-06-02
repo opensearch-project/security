@@ -108,7 +108,7 @@ import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 
 import com.google.common.collect.Sets;
 
-public final class IndexResolverReplacer implements ConfigurationChangeListener {
+public class IndexResolverReplacer implements ConfigurationChangeListener {
 
     private static final Set<String> NULL_SET = Sets.newHashSet((String)null);
     private final Map<Class<?>, Method> typeCache = Collections.synchronizedMap(new HashMap<Class<?>, Method>(100));
