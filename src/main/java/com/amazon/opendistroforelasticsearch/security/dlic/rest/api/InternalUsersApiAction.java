@@ -121,13 +121,14 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         final List<String> opendistroSecurityRoles = securityJsonNode.get("opendistro_security_roles").asList();
         if (opendistroSecurityRoles != null) {
             for (final String role: opendistroSecurityRoles) {
+
                 if (isHidden(rolesConfiguration, role)) {
-                    forbidden(channel, "Role '"+role+"' is not available.");
+                    notFound(channel, "Role '"+role+"' is not found.");
                     return;
                 }
 
-                if (isReserved(rolesConfiguration, role)) {
-                    forbidden(channel, "Cannot associate user with reserved role '"+role+"'");
+                if (!isReservedAndAccessible(rolesConfiguration, role)) {
+                    forbidden(channel, "Role '" + role + "' is read-only.");
                     return;
                 }
             }
