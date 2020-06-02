@@ -30,22 +30,14 @@ import org.opensaml.saml.metadata.resolver.impl.HTTPMetadataResolver;
 import com.amazon.dlic.util.SettingsBasedSSLConfigurator;
 
 import net.shibboleth.utilities.java.support.resolver.ResolverException;
-import net.shibboleth.utilities.java.support.xml.BasicParserPool;
 
 public class SamlHTTPMetadataResolver extends HTTPMetadataResolver {
-    private static int componentIdCounter = 0;
 
-    SamlHTTPMetadataResolver(Settings esSettings, Path configPath) throws Exception {
-        super(createHttpClient(esSettings, configPath), esSettings.get("idp.metadata_url"));
-        setId(HTTPSamlAuthenticator.class.getName() + "_" + (++componentIdCounter));
-        setRequireValidMetadata(true);
-        setFailFastInitialization(false);
+    SamlHTTPMetadataResolver(String idpMetadataUrl, Settings esSettings, Path configPath) throws Exception {
+        super(createHttpClient(esSettings, configPath), idpMetadataUrl);
         setMinRefreshDelay(esSettings.getAsLong("idp.min_refresh_delay", 60L * 1000L));
         setMaxRefreshDelay(esSettings.getAsLong("idp.max_refresh_delay", 14400000L));
         setRefreshDelayFactor(esSettings.getAsFloat("idp.refresh_delay_factor", 0.75f));
-        BasicParserPool basicParserPool = new BasicParserPool();
-        basicParserPool.initialize();
-        setParserPool(basicParserPool);
     }
 
     @Override
