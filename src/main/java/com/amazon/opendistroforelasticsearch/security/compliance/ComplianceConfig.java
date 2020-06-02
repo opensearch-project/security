@@ -76,7 +76,6 @@ public class ComplianceConfig {
     private final boolean logWriteMetadataOnly;
     private final boolean logDiffsForWrite;
     private final WildcardMatcher watchedWriteIndicesMatcher;
-    private final WildcardMatcher immutableIndicesMatcher;
     private final String opendistrosecurityIndex;
 
     private final Map<WildcardMatcher, Set<String>> readEnabledFields;
@@ -94,7 +93,6 @@ public class ComplianceConfig {
             final boolean logDiffsForWrite,
             final List<String> watchedReadFields,
             final List<String> watchedWriteIndicesPatterns,
-            final Set<String> immutableIndicesPatterns,
             final String saltAsString,
             final String opendistrosecurityIndex,
             final String destinationType,
@@ -105,7 +103,6 @@ public class ComplianceConfig {
         this.logWriteMetadataOnly = logWriteMetadataOnly;
         this.logDiffsForWrite = logDiffsForWrite;
         this.watchedWriteIndicesMatcher = WildcardMatcher.from(watchedWriteIndicesPatterns);
-        this.immutableIndicesMatcher = WildcardMatcher.from(immutableIndicesPatterns);
         this.opendistrosecurityIndex = opendistrosecurityIndex;
 
         this.salt16 = new byte[SALT_SIZE];
@@ -166,7 +163,6 @@ public class ComplianceConfig {
         logger.info("Auditing only metadata information for write request is {}.", logWriteMetadataOnly ? "enabled" : "disabled");
         logger.info("Auditing diffs for write requests is {}.", logDiffsForWrite ? "enabled" : "disabled");
         logger.info("Auditing will watch {} for write requests.", watchedWriteIndicesMatcher);
-        logger.info("{} indices are made immutable.", immutableIndicesMatcher);
         logger.info("{} is used as internal security index.", opendistrosecurityIndex);
         logger.info("Internal index used for posting audit logs is {}", auditLogIndex);
     }
@@ -185,7 +181,6 @@ public class ComplianceConfig {
         final List<String> watchedReadFields = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS,
                 Collections.emptyList(), false);
         final List<String> watchedWriteIndices = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, Collections.emptyList());
-        final Set<String> immutableIndicesPatterns = ImmutableSet.copyOf(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList()));
         final String saltAsString = settings.get(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT, ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT_DEFAULT);
         final String opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
         final String type = settings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_TYPE_DEFAULT, null);
@@ -199,7 +194,6 @@ public class ComplianceConfig {
                 logDiffsForWrite,
                 watchedReadFields,
                 watchedWriteIndices,
-                immutableIndicesPatterns,
                 saltAsString,
                 opendistrosecurityIndex,
                 type,
@@ -253,14 +247,6 @@ public class ComplianceConfig {
      */
     public boolean shouldLogReadMetadataOnly() {
         return logReadMetadataOnly;
-    }
-
-    /**
-     * Get set of immutable index pattern
-     * @return set of index patterns
-     */
-    public WildcardMatcher getImmutableIndicesMatcher() {
-        return immutableIndicesMatcher;
     }
 
     /**

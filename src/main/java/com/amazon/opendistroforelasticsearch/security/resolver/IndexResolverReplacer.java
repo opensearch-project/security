@@ -102,7 +102,7 @@ import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-public final class IndexResolverReplacer {
+public class IndexResolverReplacer {
 
     private static final Set<String> NULL_SET = new HashSet<>(Collections.singleton(null));
     private final Logger log = LogManager.getLogger(this.getClass());

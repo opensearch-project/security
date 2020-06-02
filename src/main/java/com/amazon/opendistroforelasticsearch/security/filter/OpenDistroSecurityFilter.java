@@ -30,12 +30,14 @@
 
 package com.amazon.opendistroforelasticsearch.security.filter;
 
+import java.util.Collections;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 import com.amazon.opendistroforelasticsearch.security.resolver.IndexResolverReplacer;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchSecurityException;
@@ -60,6 +62,7 @@ import org.elasticsearch.action.support.ActionFilter;
 import org.elasticsearch.action.support.ActionFilterChain;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.util.concurrent.ThreadContext.StoredContext;
 import org.elasticsearch.index.reindex.DeleteByQueryRequest;
@@ -95,8 +98,9 @@ public class OpenDistroSecurityFilter implements ActionFilter {
     private final ClusterService cs;
     private final CompatConfig compatConfig;
     private final IndexResolverReplacer indexResolverReplacer;
+    private final WildcardMatcher immutableIndicesMatcher;
 
-    public OpenDistroSecurityFilter(final PrivilegesEvaluator evalp, final AdminDNs adminDns,
+    public OpenDistroSecurityFilter(final Settings settings, final PrivilegesEvaluator evalp, final AdminDNs adminDns,
             DlsFlsRequestValve dlsFlsValve, AuditLog auditLog, ThreadPool threadPool, ClusterService cs,
             final CompatConfig compatConfig, final IndexResolverReplacer indexResolverReplacer) {
         this.evalp = evalp;
@@ -107,6 +111,13 @@ public class OpenDistroSecurityFilter implements ActionFilter {
         this.cs = cs;
         this.compatConfig = compatConfig;
         this.indexResolverReplacer = indexResolverReplacer;
+        this.immutableIndicesMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList()));
+        log.info("{} indices are made immutable.", immutableIndicesMatcher);
+    }
+
+    @VisibleForTesting
+    WildcardMatcher getImmutableIndicesMatcher() {
+        return immutableIndicesMatcher;
     }
 
     @Override
@@ -194,19 +205,19 @@ public class OpenDistroSecurityFilter implements ActionFilter {
             }
             
             
-            if(complianceConfig != null && complianceConfig.isEnabled() && complianceConfig.getImmutableIndicesMatcher() != WildcardMatcher.NONE) {
+            if(immutableIndicesMatcher != WildcardMatcher.NONE) {
             
                 boolean isImmutable = false;
                 
                 if(request instanceof BulkShardRequest) {
                     for(BulkItemRequest bsr: ((BulkShardRequest) request).items()) {
-                        isImmutable = checkImmutableIndices(bsr.request(), listener, complianceConfig);
+                        isImmutable = checkImmutableIndices(bsr.request(), listener);
                         if(isImmutable) {
                             break;
                         }
                     }
                 } else {
-                    isImmutable = checkImmutableIndices(request, listener, complianceConfig);
+                    isImmutable = checkImmutableIndices(request, listener);
                 }
     
                 if(isImmutable) {
@@ -303,7 +314,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
     }
     
     @SuppressWarnings("rawtypes")
-    private boolean checkImmutableIndices(Object request, ActionListener listener, final ComplianceConfig complianceConfig) {
+    private boolean checkImmutableIndices(Object request, ActionListener listener) {
         final boolean isModifyIndexRequest = request instanceof DeleteRequest
                 || request instanceof UpdateRequest
                 || request instanceof UpdateByQueryRequest
@@ -313,22 +324,22 @@ public class OpenDistroSecurityFilter implements ActionFilter {
                 || request instanceof CloseIndexRequest
                 || request instanceof IndicesAliasesRequest;
 
-        if (isModifyIndexRequest && isRequestIndexImmutable(request, complianceConfig)) {
+        if (isModifyIndexRequest && isRequestIndexImmutable(request)) {
             listener.onFailure(new ElasticsearchSecurityException("Index is immutable", RestStatus.FORBIDDEN));
             return true;
         }
         
-        if ((request instanceof IndexRequest) && isRequestIndexImmutable(request, complianceConfig)) {
+        if ((request instanceof IndexRequest) && isRequestIndexImmutable(request)) {
             ((IndexRequest) request).opType(OpType.CREATE);
         }
         
         return false;
     }
 
-    private boolean isRequestIndexImmutable(Object request, final ComplianceConfig complianceConfig) {
+    private boolean isRequestIndexImmutable(Object request) {
         final IndexResolverReplacer.Resolved resolved = indexResolverReplacer.resolveRequest(request);
         final Set<String> allIndices = resolved.getAllIndices();
 
-        return complianceConfig.getImmutableIndicesMatcher().matchAny(allIndices);
+        return immutableIndicesMatcher.matchAny(allIndices);
     }
 }
