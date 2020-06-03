@@ -40,6 +40,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
+import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
@@ -76,6 +78,8 @@ public class ComplianceConfig {
     private final boolean logWriteMetadataOnly;
     private final boolean logDiffsForWrite;
     private final WildcardMatcher watchedWriteIndicesMatcher;
+    private final WildcardMatcher ignoredComplianceUsersForReadMatcher;
+    private final WildcardMatcher ignoredComplianceUsersForWriteMatcher;
     private final String opendistrosecurityIndex;
 
     private final Map<WildcardMatcher, Set<String>> readEnabledFields;
@@ -89,10 +93,12 @@ public class ComplianceConfig {
             final boolean logExternalConfig,
             final boolean logInternalConfig,
             final boolean logReadMetadataOnly,
+            final List<String> watchedReadFields,
+            final Set<String> ignoredComplianceUsersForRead,
             final boolean logWriteMetadataOnly,
             final boolean logDiffsForWrite,
-            final List<String> watchedReadFields,
             final List<String> watchedWriteIndicesPatterns,
+            final Set<String> ignoredComplianceUsersForWrite,
             final String saltAsString,
             final String opendistrosecurityIndex,
             final String destinationType,
@@ -103,6 +109,8 @@ public class ComplianceConfig {
         this.logWriteMetadataOnly = logWriteMetadataOnly;
         this.logDiffsForWrite = logDiffsForWrite;
         this.watchedWriteIndicesMatcher = WildcardMatcher.from(watchedWriteIndicesPatterns);
+        this.ignoredComplianceUsersForReadMatcher = WildcardMatcher.from(ignoredComplianceUsersForRead);
+        this.ignoredComplianceUsersForWriteMatcher = WildcardMatcher.from(ignoredComplianceUsersForWrite);
         this.opendistrosecurityIndex = opendistrosecurityIndex;
 
         this.salt16 = new byte[SALT_SIZE];
@@ -160,8 +168,10 @@ public class ComplianceConfig {
         logger.info("Auditing of internal configuration is {}.", logInternalConfig ? "enabled" : "disabled");
         logger.info("Auditing only metadata information for read request is {}.", logReadMetadataOnly ? "enabled" : "disabled");
         logger.info("Auditing will watch {} for read requests.", readEnabledFields);
+        logger.info("Auditing read operation requests from {} users is disabled.", ignoredComplianceUsersForReadMatcher);
         logger.info("Auditing only metadata information for write request is {}.", logWriteMetadataOnly ? "enabled" : "disabled");
         logger.info("Auditing diffs for write requests is {}.", logDiffsForWrite ? "enabled" : "disabled");
+        logger.info("Auditing write operation requests from {} users is disabled.", ignoredComplianceUsersForWriteMatcher);
         logger.info("Auditing will watch {} for write requests.", watchedWriteIndicesMatcher);
         logger.info("{} is used as internal security index.", opendistrosecurityIndex);
         logger.info("Internal index used for posting audit logs is {}", auditLogIndex);
@@ -185,15 +195,27 @@ public class ComplianceConfig {
         final String opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
         final String type = settings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_TYPE_DEFAULT, null);
         final String index = settings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ES_INDEX, "'security-auditlog-'YYYY.MM.dd");
+        final Set<String> ignoredComplianceUsersForRead = AuditConfig.getSettingAsSet(
+                settings,
+                ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS,
+                AuditConfig.DEFAULT_IGNORED_USERS,
+                false);
+        final Set<String> ignoredComplianceUsersForWrite = AuditConfig.getSettingAsSet(
+                settings,
+                ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS,
+                AuditConfig.DEFAULT_IGNORED_USERS,
+                false);
 
         return new ComplianceConfig(
                 logExternalConfig,
                 logInternalConfig,
                 logReadMetadataOnly,
+                watchedReadFields,
+                ignoredComplianceUsersForRead,
                 logWriteMetadataOnly,
                 logDiffsForWrite,
-                watchedReadFields,
                 watchedWriteIndices,
+                ignoredComplianceUsersForWrite,
                 saltAsString,
                 opendistrosecurityIndex,
                 type,
@@ -255,6 +277,34 @@ public class ComplianceConfig {
      */
     public byte[] getSalt16() {
         return Arrays.copyOf(salt16, salt16.length);
+    }
+
+    @VisibleForTesting
+    public WildcardMatcher getIgnoredComplianceUsersForReadMatcher() {
+        return ignoredComplianceUsersForReadMatcher;
+    }
+
+    /**
+     * Check if user is excluded from compliance read audit
+     * @param user
+     * @return true if user is excluded from compliance read audit
+     */
+    public boolean isComplianceReadAuditDisabled(String user) {
+        return ignoredComplianceUsersForReadMatcher.test(user);
+    }
+
+    @VisibleForTesting
+    public WildcardMatcher getIgnoredComplianceUsersForWriteMatcher() {
+        return ignoredComplianceUsersForWriteMatcher;
+    }
+
+    /**
+     * Check if user is excluded from compliance write audit
+     * @param user
+     * @return true if user is excluded from compliance write audit
+     */
+    public boolean isComplianceWriteAuditDisabled(String user) {
+        return ignoredComplianceUsersForWriteMatcher.test(user);
     }
 
     /**
