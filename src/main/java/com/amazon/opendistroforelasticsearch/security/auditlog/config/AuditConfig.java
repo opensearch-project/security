@@ -51,8 +51,6 @@ public class AuditConfig {
                        final boolean resolveIndices,
                        final boolean excludeSensitiveHeaders,
                        final Set<String> ignoredAuditUsers,
-                       final Set<String> ignoredComplianceUsersForRead,
-                       final Set<String> ignoredComplianceUsersForWrite,
                        final Set<String> ignoredAuditRequests,
                        final EnumSet<AuditCategory> disabledRestCategories,
                        final EnumSet<AuditCategory> disabledTransportCategories) {
@@ -99,18 +97,6 @@ public class AuditConfig {
                     DEFAULT_IGNORED_USERS,
                     false);
 
-            final Set<String> ignoredComplianceUsersForRead = getSettingAsSet(
-                    settings,
-                    ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS,
-                    DEFAULT_IGNORED_USERS,
-                    false);
-
-            final Set<String> ignoredComplianceUsersForWrite = getSettingAsSet(
-                    settings,
-                    ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS,
-                    DEFAULT_IGNORED_USERS,
-                    false);
-
             final Set<String> ignoreAuditRequests = ImmutableSet.copyOf(settings.getAsList(
                     ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS,
                     Collections.emptyList()));
@@ -122,8 +108,6 @@ public class AuditConfig {
                     resolveIndices,
                     excludeSensitiveHeaders,
                     ignoredAuditUsers,
-                    ignoredComplianceUsersForRead,
-                    ignoredComplianceUsersForWrite,
                     ignoreAuditRequests,
                     disabledRestCategories,
                     disabledTransportCategories);
