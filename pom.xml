@@ -673,8 +673,10 @@
                     <artifactId>maven-gpg-plugin</artifactId>
                     <version>1.6</version>
                     <configuration>
-                        <keyname>${gpg.keyname}</keyname>
-                        <passphraseServerId>${gpg.keyname}</passphraseServerId>
+                        <gpgArguments>
+                            <arg>--pinentry-mode</arg>
+                            <arg>loopback</arg>
+                        </gpgArguments>
                     </configuration>
                     <executions>
                         <execution>
@@ -982,6 +984,13 @@
                     </plugin>
                 </plugins>
             </build>
+            <distributionManagement>
+                <repository>
+                    <id>sonatype-nexus-staging</id>
+                    <name>Sonatype Nexus Staging</name>
+                    <url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
+                </repository>
+            </distributionManagement>
         </profile>
         <profile>
             <id>coverage</id>
