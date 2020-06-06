@@ -71,7 +71,7 @@ grant {
   permission java.lang.RuntimePermission "createClassLoader";
   
   //Java 9+
-  permission java.lang.RuntimePermission "accessClassInPackage.com.sun.jndi.ldap";
+  permission java.lang.RuntimePermission "accessClassInPackage.com.sun.jndi.*";
 
   //Enable this permission to debug unauthorized de-serialization attempt
   //permission java.io.SerializablePermission "enableSubstitution";
