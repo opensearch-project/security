@@ -72,6 +72,11 @@ import java.io.StringReader;
 
 public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
     protected final static Logger log = LogManager.getLogger(HTTPSamlAuthenticator.class);
+
+    public static final String IDP_METADATA_URL = "idp.metadata_url";
+    public static final String IDP_METADATA_FILE = "idp.metadata_file";
+    public static final String IDP_METADATA_CONTENT = "idp.metadata_content";
+
     private static boolean openSamlInitialized = false;
 
     private String subjectKey;
@@ -286,9 +291,9 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
             throws Exception {
         final AbstractMetadataResolver metadataResolver;
 
-        final String idpMetadataUrl = settings.get("idp.metadata_url");
-        final String idpMetadataFile = settings.get("idp.metadata_file");
-        final String idpMetadataBody = settings.get("idp.metadata_body");
+        final String idpMetadataUrl = settings.get(IDP_METADATA_URL);
+        final String idpMetadataFile = settings.get(IDP_METADATA_FILE);
+        final String idpMetadataBody = settings.get(IDP_METADATA_CONTENT);
         if (idpMetadataUrl != null) {
             metadataResolver = new SamlHTTPMetadataResolver(idpMetadataUrl, settings, configPath);
         } else if (idpMetadataFile != null) {
@@ -296,7 +301,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
         } else if (idpMetadataBody != null) {
             metadataResolver = new DOMMetadataResolver(getMetadataDOM(idpMetadataBody));
         } else {
-            throw new Exception("One of idp.metadata_url, idp.metadata_file or idp.metadata_body must be configured");
+            throw new Exception(String.format("One of %s, %s or %s must be configured", IDP_METADATA_URL, IDP_METADATA_FILE, IDP_METADATA_CONTENT));
         }
 
         metadataResolver.setId(HTTPSamlAuthenticator.class.getName() + "_" + (++resolverIdCounter));
