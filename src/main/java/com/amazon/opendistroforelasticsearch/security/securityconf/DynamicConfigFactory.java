@@ -189,8 +189,8 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
 
                 log.debug("Static tenants loaded ({})", staticTenants.getCEntries().size());
 
-                log.debug("Static configuration loaded (total roles: {}/total action groups: {}/total tenants: {})", roles.getCEntries().size(),
-                    actionGroups.getCEntries().size(), tenants.getCEntries().size());
+                log.debug("Static configuration loaded (total roles: {}/total action groups: {}/total tenants: {})",
+                    roles.getCEntries().size(), actionGroups.getCEntries().size(), tenants.getCEntries().size());
 
             
 
@@ -245,9 +245,9 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     
     private static class InternalUsersModelV7 extends InternalUsersModel {
         
-        SecurityDynamicConfiguration<InternalUserV7> internalUserV7SecurityDynamicConfiguration;
+        private final SecurityDynamicConfiguration<InternalUserV7> internalUserV7SecurityDynamicConfiguration;
 
-        SecurityDynamicConfiguration<RoleV7> roleV7SecurityDynamicConfiguration;
+        private final SecurityDynamicConfiguration<RoleV7> roleV7SecurityDynamicConfiguration;
         
         public InternalUsersModelV7(SecurityDynamicConfiguration<InternalUserV7> internalUserV7SecurityDynamicConfiguration, SecurityDynamicConfiguration<RoleV7> roleV7SecurityDynamicConfiguration) {
             super();
@@ -288,11 +288,14 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
             InternalUserV7 tmp = internalUserV7SecurityDynamicConfiguration.getCEntry(user);
 
             // Filtering out hidden and reserved roles for existing users
-            return tmp==null? ImmutableList.of():
-                                    tmp.getOpendistro_security_roles()
-                                        .stream()
-                                        .filter(role -> roleV7SecurityDynamicConfiguration.getCEntry(role).isHidden() || roleV7SecurityDynamicConfiguration.getCEntry(role).isReserved())
-                                        .collect(ImmutableList.toImmutableList());
+            return tmp == null ? ImmutableList.of() :
+                tmp.getOpendistro_security_roles().stream().filter(role -> !isHiddenReservedOrNonExistent(role)).collect(ImmutableList.toImmutableList());
+        }
+
+        // We will remove opendistro security mapping for roles that are hidden/reserved or non-existent in the roles configuration
+        private boolean isHiddenReservedOrNonExistent(String rolename) {
+            final RoleV7 role = roleV7SecurityDynamicConfiguration.getCEntry(rolename);
+            return role == null || role.isHidden() || role.isReserved();
         }
     }
     
