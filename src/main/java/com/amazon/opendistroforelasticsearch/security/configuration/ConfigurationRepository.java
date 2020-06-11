@@ -91,6 +91,7 @@ public class ConfigurationRepository {
     private static final int DEFAULT_CONFIG_VERSION = 2;
     private final Thread bgThread;
     private final AtomicBoolean installDefaultConfig = new AtomicBoolean();
+    private final boolean acceptInvalid;
 
     private ConfigurationRepository(Settings settings, final Path configPath, ThreadPool threadPool,
                                     Client client, ClusterService clusterService, AuditLog auditLog) {
@@ -101,6 +102,7 @@ public class ConfigurationRepository {
         this.clusterService = clusterService;
         this.auditLog = auditLog;
         this.configurationChangedListener = new ArrayList<>();
+        this.acceptInvalid = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_ACCEPT_INVALID_CONFIG, false);
         cl = new ConfigurationLoaderSecurity7(client, threadPool, settings, clusterService);
 
         configCache = CacheBuilder
@@ -270,7 +272,7 @@ public class ConfigurationRepository {
         try {
             if (LOCK.tryLock(60, TimeUnit.SECONDS)) {
                 try {
-                    reloadConfiguration0(configTypes);
+                    reloadConfiguration0(configTypes, this.acceptInvalid);
                 } finally {
                     LOCK.unlock();
                 }
@@ -284,8 +286,8 @@ public class ConfigurationRepository {
     }
 
 
-    private void reloadConfiguration0(Collection<CType> configTypes) {
-        final Map<CType, SecurityDynamicConfiguration<?>> loaded = getConfigurationsFromIndex(configTypes, false);
+    private void reloadConfiguration0(Collection<CType> configTypes, boolean acceptInvalid) {
+        final Map<CType, SecurityDynamicConfiguration<?>> loaded = getConfigurationsFromIndex(configTypes, false, acceptInvalid);
         configCache.putAll(loaded);
         notifyAboutChanges(loaded);
     }
@@ -313,6 +315,10 @@ public class ConfigurationRepository {
      * @return
      */
     public Map<CType, SecurityDynamicConfiguration<?>> getConfigurationsFromIndex(Collection<CType> configTypes, boolean logComplianceEvent) {
+        return getConfigurationsFromIndex(configTypes, logComplianceEvent, this.acceptInvalid);
+    }
+
+    public Map<CType, SecurityDynamicConfiguration<?>> getConfigurationsFromIndex(Collection<CType> configTypes, boolean logComplianceEvent, boolean acceptInvalid) {
 
         final ThreadContext threadContext = threadPool.getThreadContext();
         final Map<CType, SecurityDynamicConfiguration<?>> retVal = new HashMap<>();
@@ -329,13 +335,13 @@ public class ConfigurationRepository {
                 } else {
                     LOGGER.debug("security index exists and was created with ES 7 (new layout)");
                 }
-                retVal.putAll(validate(cl.load(configTypes.toArray(new CType[0]), 5, TimeUnit.SECONDS), configTypes.size()));
+                retVal.putAll(validate(cl.load(configTypes.toArray(new CType[0]), 5, TimeUnit.SECONDS, acceptInvalid), configTypes.size()));
 
 
             } else {
                 //wait (and use new layout)
                 LOGGER.debug("security index not exists (yet)");
-                retVal.putAll(validate(cl.load(configTypes.toArray(new CType[0]), 5, TimeUnit.SECONDS), configTypes.size()));
+                retVal.putAll(validate(cl.load(configTypes.toArray(new CType[0]), 5, TimeUnit.SECONDS, acceptInvalid), configTypes.size()));
             }
 
         } catch (Exception e) {
