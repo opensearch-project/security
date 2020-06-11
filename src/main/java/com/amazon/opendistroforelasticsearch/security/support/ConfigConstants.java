@@ -238,6 +238,7 @@ public class ConfigConstants {
 
     public static final String OPENDISTRO_SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION = "opendistro_security.unsupported.restapi.allow_securityconfig_modification";
     public static final String OPENDISTRO_SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES = "opendistro_security.unsupported.load_static_resources";
+    public static final String OPENDISTRO_SECURITY_UNSUPPORTED_ACCEPT_INVALID_CONFIG = "opendistro_security.unsupported.accept_invalid_config";
 
     // Protected indices settings
     public static final String OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_KEY = "opendistro_security.protected_indices.enabled";

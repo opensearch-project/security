@@ -1,0 +1,31 @@
+opendistro_security_all_access:
+  readonly: true
+  backendroles:
+    - admin
+
+opendistro_security_logstash:
+  backendroles:
+    - logstash
+
+opendistro_security_kibana_server:
+  readonly: true
+  users:
+    - kibanaserver
+
+opendistro_security_kibana_user:
+  backendroles:
+    - kibanauser
+
+opendistro_security_readall:
+  readonly: true
+  backendroles:
+    - readall
+
+opendistro_security_manage_snapshots:
+  readonly: true
+  backendroles:
+    - snapshotrestore
+
+opendistro_security_own_index:
+  users:
+    - '*'

@@ -124,6 +124,10 @@ public abstract class AbstractConfigurationValidator {
             return false;
         }
 
+        if(!this.payloadMandatory && content.length() == 0) {
+            return true;
+        }
+
         if(this.payloadMandatory && content.length() > 0) {
 
             try {
