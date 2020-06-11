@@ -137,7 +137,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
 
     protected String getJwtTokenString(RestRequest request) {
         String jwtToken = request.header(jwtHeaderName);
-        if (isDefaultAuthHeader && BASIC.matcher(jwtToken).matches()) {
+        if (isDefaultAuthHeader && jwtToken != null && BASIC.matcher(jwtToken).matches()) {
             jwtToken = null;
         }
 

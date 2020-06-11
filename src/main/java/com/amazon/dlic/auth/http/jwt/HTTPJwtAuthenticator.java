@@ -138,7 +138,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         }
 
         String jwtToken = request.header(jwtHeaderName);
-        if (isDefaultAuthHeader && BASIC.matcher(jwtToken).matches()) {
+        if (isDefaultAuthHeader && jwtToken != null && BASIC.matcher(jwtToken).matches()) {
             jwtToken = null;
         }
 
