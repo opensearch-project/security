@@ -127,7 +127,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
                     return;
                 }
 
-                if (!isReservedAndAccessible(rolesConfiguration, role)) {
+                if (isReserved(rolesConfiguration, role)) {
                     forbidden(channel, "Role '" + role + "' is read-only.");
                     return;
                 }
