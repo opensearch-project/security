@@ -378,7 +378,7 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
         } else {
             throw new ElasticsearchException(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH + " or "
                 + SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH
-                + " must be set if transport ssl is reqested.");
+                + " must be set if transport ssl is requested.");
         }
     }
 
@@ -413,14 +413,14 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
 
             if (settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, null) == null) {
                 throw new ElasticsearchException(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_KEYSTORE_FILEPATH
-                    + " must be set if https is reqested.");
+                    + " must be set if https is requested.");
             }
 
             if (httpClientAuthMode == ClientAuth.REQUIRE) {
 
                 if (settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH, null) == null) {
                     throw new ElasticsearchException(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH
-                        + " must be set if http ssl and client auth is reqested.");
+                        + " must be set if http ssl and client auth is requested.");
                 }
 
             }
@@ -511,7 +511,7 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
         } else {
             throw new ElasticsearchException(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_KEYSTORE_FILEPATH + " or "
                 + SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_PEMKEY_FILEPATH
-                + " must be set if http ssl is reqested.");
+                + " must be set if http ssl is requested.");
         }
     }
 
