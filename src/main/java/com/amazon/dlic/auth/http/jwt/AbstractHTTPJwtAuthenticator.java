@@ -67,11 +67,11 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
 
         try {
             this.keyProvider = this.initKeyProvider(settings, configPath);
-
             jwtVerifier = new JwtVerifier(keyProvider);
 
         } catch (Exception e) {
             log.error("Error creating JWT authenticator: " + e + ". JWT authentication will not work", e);
+            throw new RuntimeException(e);
         }
     }
 
