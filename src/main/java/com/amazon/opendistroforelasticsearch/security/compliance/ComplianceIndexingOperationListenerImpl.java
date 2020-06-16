@@ -68,7 +68,7 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
     @Override
     public void postDelete(final ShardId shardId, final Delete delete, final DeleteResult result) {
         final ComplianceConfig complianceConfig = auditlog.getComplianceConfig();
-        if (complianceConfig != null && complianceConfig.writeHistoryEnabledForIndex(shardId.getIndexName())) {
+        if (isLoggingWriteEnabled(complianceConfig, shardId.getIndexName())) {
             Objects.requireNonNull(is);
             if(result.getFailure() == null && result.isFound() && delete.origin() == org.elasticsearch.index.engine.Engine.Operation.Origin.PRIMARY) {
                 auditlog.logDocumentDeleted(shardId, delete, result);
@@ -128,7 +128,7 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
     @Override
     public void postIndex(ShardId shardId, Index index, IndexResult result) {
         final ComplianceConfig complianceConfig = auditlog.getComplianceConfig();
-        if (complianceConfig == null || !complianceConfig.writeHistoryEnabledForIndex(shardId.getIndexName())) {
+        if (!isLoggingWriteEnabled(complianceConfig, shardId.getIndexName())) {
             return;
         }
 
@@ -170,7 +170,11 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
         }
     }
 
+    private static boolean isLoggingWriteEnabled(final ComplianceConfig complianceConfig, final String indexName) {
+        return complianceConfig != null && complianceConfig.writeHistoryEnabledForIndex(indexName);
+    }
+
     private static boolean isLoggingWriteDiffEnabled(final ComplianceConfig complianceConfig, final String indexName) {
-        return complianceConfig != null && complianceConfig.shouldLogDiffsForWrite() && complianceConfig.writeHistoryEnabledForIndex(indexName);
+        return isLoggingWriteEnabled(complianceConfig, indexName) && complianceConfig.shouldLogDiffsForWrite();
     }
 }
