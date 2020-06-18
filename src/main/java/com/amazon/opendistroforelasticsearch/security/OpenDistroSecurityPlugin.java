@@ -527,21 +527,12 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         //called for every index!
 
         if (!disabled && !client && !sslOnly) {
-            final ComplianceConfig complianceConfig = auditLog.getComplianceConfig();
-            log.debug("Handle complianceConfig="+complianceConfig+"/dlsFlsAvailable: "+dlsFlsAvailable+"/auditLog="+auditLog.getClass()+" for onIndexModule() of index "+indexModule.getIndex().getName());
+            log.debug("Handle dlsFlsAvailable: "+dlsFlsAvailable+"/auditLog="+auditLog.getClass()+" for onIndexModule() of index "+indexModule.getIndex().getName());
             if (dlsFlsAvailable) {
 
-                final ComplianceIndexingOperationListener ciol;
+                final ComplianceIndexingOperationListener ciol = ReflectionHelper.instantiateComplianceListener(Objects.requireNonNull(auditLog));
+                indexModule.addIndexOperationListener(ciol);
 
-                assert complianceConfig!=null:"compliance config must not be null here";
-                
-                if(complianceConfig.writeHistoryEnabledForIndex(indexModule.getIndex().getName())) {
-                    ciol = ReflectionHelper.instantiateComplianceListener(Objects.requireNonNull(auditLog));
-                    indexModule.addIndexOperationListener(ciol);
-                } else {
-                    ciol = new ComplianceIndexingOperationListener();
-                }
-                
                 indexModule.setSearcherWrapper(indexService -> loadFlsDlsIndexSearcherWrapper(indexService, ciol));
                 indexModule.forceQueryCacheProvider((indexSettings,nodeCache)->new QueryCache() {
 
@@ -582,9 +573,6 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                     }
                 });
             } else {
-                
-                assert complianceConfig==null:"compliance config must be null here";
-                
                 indexModule.setSearcherWrapper(indexService -> new OpenDistroSecurityIndexSearcherWrapper(indexService, settings, Objects
                         .requireNonNull(adminDns), Objects.requireNonNull(evaluator)));
             }
