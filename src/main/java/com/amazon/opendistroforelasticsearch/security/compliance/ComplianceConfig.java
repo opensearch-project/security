@@ -353,7 +353,7 @@ public class ComplianceConfig {
      * @return true/false
      */
     public boolean writeHistoryEnabledForIndex(String index) {
-        if (index == null) {
+        if (index == null || !isEnabled()) {
             return false;
         }
         // if open distro index (internal index) check if internal config logging is enabled
