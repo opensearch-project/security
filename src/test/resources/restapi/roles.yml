@@ -17,6 +17,37 @@ opendistro_security_unittest_1:
     allowed_actions:
     - "*"
   tenant_permissions: []
+
+opendistro_security_hidden:
+  reserved: false
+  hidden: true
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions:
+    - "OPENDISTRO_SECURITY_CLUSTER_ALL"
+  index_permissions:
+    - index_patterns:
+        - "*"
+      dls: null
+      fls: null
+      masked_fields: null
+      allowed_actions:
+        - "ALL"
+  tenant_permissions: []
+
+opendistro_security_reserved:
+  reserved: true
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions:
+    - "OPENDISTRO_SECURITY_CLUSTER_ALL"
+  index_permissions:
+    - index_patterns:
+        - "*"
+      dls: null
+      fls: null
+      masked_fields: null
+      allowed_actions:
+        - "ALL"
 opendistro_security_internal:
   reserved: false
   hidden: true

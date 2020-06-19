@@ -184,7 +184,7 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         final String createInternalUserPayload = "{\n" +
                 "  \"password\": \"" + testPassword + "\",\n" +
                 "  \"backend_roles\": [\"test-backend-role-1\"],\n" +
-                "  \"opendistro_security_roles\": [\"all_access\"],\n" +
+                "  \"opendistro_security_roles\": [\"opendistro_security_all_access\"],\n" +
                 "  \"attributes\": {\n" +
                 "    \"attribute1\": \"value1\"\n" +
                 "  }\n" +
@@ -211,7 +211,7 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
                 .build()
                 .getAsSettings(testUsername);
         assertTrue(responseBody.getAsList("backend_roles").contains("test-backend-role-1"));
-        assertTrue(responseBody.getAsList("opendistro_security_roles").contains("all_access"));
+        assertTrue(responseBody.getAsList("opendistro_security_roles").contains("opendistro_security_all_access"));
         assertEquals(responseBody.getAsSettings("attributes").get("attribute1"), "value1");
     }
 }
