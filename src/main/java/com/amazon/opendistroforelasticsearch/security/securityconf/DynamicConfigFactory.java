@@ -7,10 +7,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.NodesDn;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
+import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.Client;
@@ -189,13 +189,14 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
 
                 log.debug("Static tenants loaded ({})", staticTenants.getCEntries().size());
 
-                log.debug("Static configuration loaded (total roles: {}/total action groups: {}/total tenants: {})", roles.getCEntries().size(), actionGroups.getCEntries().size(), tenants.getCEntries().size());
+                log.debug("Static configuration loaded (total roles: {}/total action groups: {}/total tenants: {})",
+                    roles.getCEntries().size(), actionGroups.getCEntries().size(), tenants.getCEntries().size());
 
             
 
             //rebuild v7 Models
             dcm = new DynamicConfigModelV7(getConfigV7(config), esSettings, configPath, iab);
-            ium = new InternalUsersModelV7((SecurityDynamicConfiguration<InternalUserV7>) internalusers);
+            ium = new InternalUsersModelV7((SecurityDynamicConfiguration<InternalUserV7>) internalusers, (SecurityDynamicConfiguration<RoleV7>) roles);
             cm = new ConfigModelV7((SecurityDynamicConfiguration<RoleV7>) roles,(SecurityDynamicConfiguration<RoleMappingsV7>)rolesmapping, (SecurityDynamicConfiguration<ActionGroupsV7>)actionGroups, (SecurityDynamicConfiguration<TenantV7>) tenants,dcm, esSettings);
 
         } else {
@@ -244,45 +245,57 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     
     private static class InternalUsersModelV7 extends InternalUsersModel {
         
-        SecurityDynamicConfiguration<InternalUserV7> configuration;
+        private final SecurityDynamicConfiguration<InternalUserV7> internalUserV7SecurityDynamicConfiguration;
+
+        private final SecurityDynamicConfiguration<RoleV7> roleV7SecurityDynamicConfiguration;
         
-        public InternalUsersModelV7(SecurityDynamicConfiguration<InternalUserV7> configuration) {
+        public InternalUsersModelV7(SecurityDynamicConfiguration<InternalUserV7> internalUserV7SecurityDynamicConfiguration, SecurityDynamicConfiguration<RoleV7> roleV7SecurityDynamicConfiguration) {
             super();
-            this.configuration = configuration;
+            this.internalUserV7SecurityDynamicConfiguration = internalUserV7SecurityDynamicConfiguration;
+            this.roleV7SecurityDynamicConfiguration = roleV7SecurityDynamicConfiguration;
         }
 
         @Override
         public boolean exists(String user) {
-            return configuration.exists(user);
+            return internalUserV7SecurityDynamicConfiguration.exists(user);
         }
 
         @Override
         public List<String> getBackenRoles(String user) {
-            InternalUserV7 tmp = configuration.getCEntry(user);
+            InternalUserV7 tmp = internalUserV7SecurityDynamicConfiguration.getCEntry(user);
             return tmp==null?null:tmp.getBackend_roles();
         }
 
         @Override
         public Map<String, String> getAttributes(String user) {
-            InternalUserV7 tmp = configuration.getCEntry(user);
+            InternalUserV7 tmp = internalUserV7SecurityDynamicConfiguration.getCEntry(user);
             return tmp==null?null:tmp.getAttributes();
         }
 
         @Override
         public String getDescription(String user) {
-            InternalUserV7 tmp = configuration.getCEntry(user);
+            InternalUserV7 tmp = internalUserV7SecurityDynamicConfiguration.getCEntry(user);
             return tmp==null?null:tmp.getDescription();
         }
 
         @Override
         public String getHash(String user) {
-            InternalUserV7 tmp = configuration.getCEntry(user);
+            InternalUserV7 tmp = internalUserV7SecurityDynamicConfiguration.getCEntry(user);
             return tmp==null?null:tmp.getHash();
         }
         
         public List<String> getOpenDistroSecurityRoles(String user) {
-            InternalUserV7 tmp = configuration.getCEntry(user);
-            return tmp==null?Collections.emptyList():tmp.getOpendistro_security_roles();
+            InternalUserV7 tmp = internalUserV7SecurityDynamicConfiguration.getCEntry(user);
+
+            // Filtering out hidden and reserved roles for existing users
+            return tmp == null ? ImmutableList.of() :
+                tmp.getOpendistro_security_roles().stream().filter(role -> !isHiddenReservedOrNonExistent(role)).collect(ImmutableList.toImmutableList());
+        }
+
+        // We will remove opendistro security mapping for roles that are hidden/reserved or non-existent in the roles configuration
+        private boolean isHiddenReservedOrNonExistent(String rolename) {
+            final RoleV7 role = roleV7SecurityDynamicConfiguration.getCEntry(rolename);
+            return role == null || role.isHidden() || role.isReserved();
         }
     }
     
