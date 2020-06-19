@@ -10,6 +10,9 @@ sr_user:
     - abc_ber
   opendistro_security_roles:
     - xyz_sr
+    - xyz_sr_hidden
+    - xyz_sr_reserved
+    - xyz_sr_non_existent
 
 sr_impuser:
   #password is: nagilum
