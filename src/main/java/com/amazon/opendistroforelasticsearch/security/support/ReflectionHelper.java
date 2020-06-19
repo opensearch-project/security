@@ -129,29 +129,6 @@ public class ReflectionHelper {
         }
     }
 
-    @SuppressWarnings("rawtypes")
-    public static Constructor instantiateDlsFlsConstructor() {
-
-        if (advancedModulesDisabled()) {
-            return null;
-        }
-
-        try {
-            final Class<?> clazz = Class.forName("com.amazon.opendistroforelasticsearch.security.configuration.OpenDistroSecurityFlsDlsIndexSearcherWrapper");
-            final Constructor<?> ret = clazz.getConstructor(IndexService.class,
-                    Settings.class, AdminDNs.class, ClusterService.class, AuditLog.class,
-                    ComplianceIndexingOperationListener.class, PrivilegesEvaluator.class);
-            addLoadedModule(clazz);
-            return ret;
-        } catch (final Throwable e) {
-            log.warn("Unable to enable DLS/FLS Module due to {}", e.toString());
-            if(log.isDebugEnabled()) {
-                log.debug("Stacktrace: ",e);
-            }
-            return null;
-        }
-    }
-
     public static DlsFlsRequestValve instantiateDlsFlsValve() {
 
         if (advancedModulesDisabled()) {
