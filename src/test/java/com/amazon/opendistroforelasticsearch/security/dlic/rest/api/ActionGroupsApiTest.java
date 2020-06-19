@@ -174,17 +174,20 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
         Assert.assertFalse(response.getBody().contains("Resource 'GET_UT' is read-only."));
 
         // -- GET_UT hidden resource, must be 404
-        rh.sendAdminCertificate = true;
+        rh.sendAdminCertificate = false;
+        rh.sendHTTPClientCredentials = true;
         response = rh.executeGetRequest("/_opendistro/_security/api/actiongroups/INTERNAL", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
 		// -- DELETE hidden resource, must be 404
-        rh.sendAdminCertificate = true;
+        rh.sendAdminCertificate = false;
+        rh.sendHTTPClientCredentials = true;
         response = rh.executeDeleteRequest("/_opendistro/_security/api/actiongroups/INTERNAL", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
         // -- PUT hidden resource, must be forbidden
-        rh.sendAdminCertificate = true;
+        rh.sendAdminCertificate = false;
+        rh.sendHTTPClientCredentials = true;
         response = rh.executePutRequest("/_opendistro/_security/api/actiongroups/INTERNAL", FileHelper.loadFile("restapi/actiongroup_read.json"), new Header[0]);
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
@@ -201,9 +204,9 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         // PATCH hidden resource, must be not found
-        rh.sendAdminCertificate = true;
+        rh.sendAdminCertificate = false;
         response = rh.executePatchRequest("/_opendistro/_security/api/actiongroups/INTERNAL", "[{ \"op\": \"add\", \"path\": \"/a/b/c\", \"value\": [ \"foo\", \"bar\" ] }]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
         // PATCH value of hidden flag, must fail with validation error
         rh.sendAdminCertificate = true;
@@ -256,7 +259,7 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
         // PATCH delete hidden resource, must be bad request
         rh.sendAdminCertificate = true;
         response = rh.executePatchRequest("/_opendistro/_security/api/actiongroups", "[{ \"op\": \"remove\", \"path\": \"/INTERNAL\" }]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
 
         // PATCH value of hidden flag, must fail with validation error
@@ -319,8 +322,6 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
 
         HttpResponse response;
 
-        response = rh.executeGetRequest("/_opendistro/_security/api/actiongroups" , new Header[0]);
-
         // Delete read only actiongroups
         response = rh.executeDeleteRequest("/_opendistro/_security/api/actiongroups/create_index" , new Header[0]);
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
@@ -336,6 +337,25 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
         // Patch multiple read only actiongroups
         response = rh.executePatchRequest("/_opendistro/_security/api/actiongroups", "[{ \"op\": \"replace\", \"path\": \"/create_index/description\", \"value\": \"foo\" }]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+
+        response = rh.executeGetRequest("/_opendistro/_security/api/actiongroups/INTERNAL" , new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+
+        // Delete hidden actiongroups
+        response = rh.executeDeleteRequest("/_opendistro/_security/api/actiongroups/INTERNAL" , new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+
+        // Put hidden actiongroups
+        response = rh.executePutRequest("/_opendistro/_security/api/actiongroups/INTERNAL", FileHelper.loadFile("restapi/actiongroup_crud.json"), new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+
+        // Patch hidden actiongroups
+        response = rh.executePatchRequest("/_opendistro/_security/api/actiongroups/INTERNAL", "[{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"foo\" }]", new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+
+        // Patch multiple hidden actiongroups
+        response = rh.executePatchRequest("/_opendistro/_security/api/actiongroups", "[{ \"op\": \"replace\", \"path\": \"/INTERNAL/description\", \"value\": \"foo\" }]", new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
     }
 

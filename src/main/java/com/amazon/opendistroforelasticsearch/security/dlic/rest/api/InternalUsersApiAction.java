@@ -101,7 +101,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
 
         final SecurityDynamicConfiguration<?> configuration = load(getConfigName(), false);
 
-        if (isHidden(configuration, username)) {
+        if (!isHiddenAndAccessible(configuration, username)) {
             forbidden(channel, "Resource '" + username + "' is not available.");
             return;
         }

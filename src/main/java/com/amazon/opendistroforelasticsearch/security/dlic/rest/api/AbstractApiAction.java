@@ -148,7 +148,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
 		final SecurityDynamicConfiguration<?> existingConfiguration = load(getConfigName(), false);
 
-		if (isHidden(existingConfiguration, name)) {
+		if (!isHiddenAndAccessible(existingConfiguration, name)) {
 			notFound(channel, getResourceName() + " " + name + " not found.");
 			return;
 		}
@@ -191,7 +191,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		    return;
 		}
 
-		if (isHidden(existingConfiguration, name)) {
+		if (!isHiddenAndAccessible(existingConfiguration, name)) {
 			forbidden(channel, "Resource '"+ name +"' is not available.");
 			return;
 		}
@@ -272,7 +272,9 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 	}
 
 	protected void filter(SecurityDynamicConfiguration<?> builder) {
-		builder.removeHidden();
+		if (!isSuperAdmin()){
+			builder.removeHidden();
+		}
 		builder.set_meta(null);
 	}
 
@@ -550,6 +552,14 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 	protected boolean isReservedAndAccessible(final SecurityDynamicConfiguration<?> existingConfiguration,
 											  String name) {
 		if( isReserved(existingConfiguration, name) && !isSuperAdmin()) {
+			return false;
+		}
+		return true;
+	}
+
+	protected boolean isHiddenAndAccessible(final SecurityDynamicConfiguration<?> existingConfiguration,
+											  String name) {
+		if( isHidden(existingConfiguration, name) && !isSuperAdmin()) {
 			return false;
 		}
 		return true;

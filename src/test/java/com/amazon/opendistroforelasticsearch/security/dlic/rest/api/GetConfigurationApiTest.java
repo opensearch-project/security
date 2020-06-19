@@ -71,10 +71,12 @@ public class GetConfigurationApiTest extends AbstractRestApiUnitTest {
 
 		// action groups
 		response = rh.executeGetRequest("_opendistro/_security/api/actiongroups");
+		System.out.println("Palash_");
+		System.out.println(response);
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 		settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 		Assert.assertEquals(settings.getAsList("ALL.allowed_actions").get(0), "indices:*");
-		Assert.assertFalse(settings.hasValue("INTERNAL.allowed_actions"));
+		Assert.assertTrue(settings.hasValue("INTERNAL.allowed_actions"));
 		Assert.assertNull(settings.get("_opendistro_security_meta.type"));
 	}
 

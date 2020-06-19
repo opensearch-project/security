@@ -3,17 +3,16 @@ package com.amazon.opendistroforelasticsearch.security.securityconf.impl.v6;
 import java.util.Collections;
 import java.util.List;
 
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.RoleMappings;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.amazon.opendistroforelasticsearch.security.securityconf.Hideable;
 
-public class RoleMappingsV6 implements Hideable {
+public class RoleMappingsV6 extends RoleMappings implements Hideable {
 
     private boolean readonly;
     private boolean hidden;
     private List<String> backendroles = Collections.emptyList();
-    private List<String> hosts= Collections.emptyList();
-    private List<String> users= Collections.emptyList();
     private List<String> andBackendroles= Collections.emptyList();
 
 

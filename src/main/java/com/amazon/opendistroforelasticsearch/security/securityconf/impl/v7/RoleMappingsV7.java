@@ -4,15 +4,14 @@ import java.util.Collections;
 import java.util.List;
 
 import com.amazon.opendistroforelasticsearch.security.securityconf.Hideable;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.RoleMappings;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v6.RoleMappingsV6;
 
-public class RoleMappingsV7 implements Hideable {
+public class RoleMappingsV7 extends RoleMappings implements Hideable {
 
     private boolean reserved;
     private boolean hidden;
     private List<String> backend_roles = Collections.emptyList();
-    private List<String> hosts= Collections.emptyList();
-    private List<String> users= Collections.emptyList();
     private List<String> and_backend_roles= Collections.emptyList();
     private String description;
 

@@ -106,7 +106,7 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
 
     private void handleSinglePatch(RestChannel channel, RestRequest request, Client client, String name,
             SecurityDynamicConfiguration<?> existingConfiguration, ObjectNode existingAsObjectNode, JsonNode jsonPatch) throws IOException {
-        if (isHidden(existingConfiguration, name)) {
+        if (!isHiddenAndAccessible(existingConfiguration, name)) {
             notFound(channel, getResourceName() + " " + name + " not found.");
             return;
         }
@@ -191,7 +191,7 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
                     return;
                 }
 
-                if (isHidden(existingConfiguration, resourceName)) {
+                if (!isHiddenAndAccessible(existingConfiguration, resourceName)) {
                     badRequestResponse(channel, "Resource name '" + resourceName + "' is reserved");
                     return;
                 }
