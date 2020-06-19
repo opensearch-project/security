@@ -48,12 +48,12 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertEquals(35, settings.size());
 
-        response = rh.executePatchRequest("/_opendistro/_security/api/internalusers", "[{ \"op\": \"add\", \"path\": \"/newuser\", \"value\": {\"password\": \"newuser\", \"opendistro_security_roles\": [\"all_access\"] } }]", new Header[0]);
+        response = rh.executePatchRequest("/_opendistro/_security/api/internalusers", "[{ \"op\": \"add\", \"path\": \"/newuser\", \"value\": {\"password\": \"newuser\", \"opendistro_security_roles\": [\"opendistro_security_all_access\"] } }]", new Header[0]);
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
 
         response = rh.executeGetRequest("/_opendistro/_security/api/internalusers/newuser", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-        Assert.assertTrue(response.getBody().contains("\"opendistro_security_roles\":[\"all_access\"]"));
+        Assert.assertTrue(response.getBody().contains("\"opendistro_security_roles\":[\"opendistro_security_all_access\"]"));
 
         checkGeneralAccess(HttpStatus.SC_OK, "newuser", "newuser");
     }
@@ -72,6 +72,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertEquals(35, settings.size());
+
         // --- GET
 
         // GET, user admin, exists
@@ -117,6 +118,25 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         //Assert.assertEquals(settings.get("reason"), AbstractConfigurationValidator.ErrorType.INVALID_CONFIGURATION.getMessage());
         //Assert.assertTrue(settings.get(AbstractConfigurationValidator.INVALID_KEYS_KEY + ".keys").contains("some"));
         //Assert.assertTrue(settings.get(AbstractConfigurationValidator.INVALID_KEYS_KEY + ".keys").contains("other"));
+
+        // Associating with reserved or hidden role is not allowed
+        response = rh.executePutRequest("/_opendistro/_security/api/internalusers/nagilum", "{ \"opendistro_security_roles\": [\"opendistro_security_hidden\"]}",
+            new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+        settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
+        Assert.assertEquals(settings.get("message"), "Role 'opendistro_security_hidden' is not found.");
+
+        response = rh.executePutRequest("/_opendistro/_security/api/internalusers/nagilum", "{ \"opendistro_security_roles\": [\"non_existent\"]}",
+            new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+        settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
+        Assert.assertEquals(settings.get("message"), "Role 'non_existent' is not found.");
+
+        response = rh.executePutRequest("/_opendistro/_security/api/internalusers/nagilum", "{ \"opendistro_security_roles\": [\"opendistro_security_reserved\"]}",
+            new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
+        Assert.assertEquals(settings.get("message"), "Role 'opendistro_security_reserved' is reserved.");
 
         // Wrong config keys
         response = rh.executePutRequest("/_opendistro/_security/api/internalusers/nagilum", "{\"some\": \"thing\", \"other\": \"thing\"}",
