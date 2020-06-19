@@ -466,6 +466,10 @@ public class PrivilegesEvaluator {
         return dcm.getKibanaServerUsername();
     }
 
+    public String kibanaOpendistroRole() {
+        return dcm.getKibanaOpendistroRole();
+    }
+
     private Set<String> evaluateAdditionalIndexPermissions(final ActionRequest request, final String originalAction) {
       //--- check inner bulk requests
         final Set<String> additionalPermissionsRequired = new HashSet<>();
