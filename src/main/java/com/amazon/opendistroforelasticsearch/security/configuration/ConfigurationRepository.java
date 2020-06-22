@@ -52,6 +52,8 @@ import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
+import org.elasticsearch.action.admin.indices.get.GetIndexResponse;
+import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -213,13 +215,21 @@ public class ConfigurationRepository {
 
     }
 
+    private boolean indexExists(final String index) {
+        final GetIndexResponse getIndexResponse = client.admin().indices()
+                .prepareGetIndex().setIndices(index)
+                .setIndicesOptions(IndicesOptions.lenientExpandOpen())
+                .execute().actionGet();
+        return getIndexResponse.getIndices().length > 0;
+    }
+
     public void initOnNodeStart() {
 
         LOGGER.info("Check if " + opendistrosecurityIndex + " index exists ...");
 
         try {
 
-            if (clusterService.state().metaData().hasConcreteIndex(opendistrosecurityIndex)) {
+            if (indexExists(opendistrosecurityIndex)) {
                 LOGGER.info("{} index does already exist, so we try to load the config from it", opendistrosecurityIndex);
                 bgThread.start();
             } else {
