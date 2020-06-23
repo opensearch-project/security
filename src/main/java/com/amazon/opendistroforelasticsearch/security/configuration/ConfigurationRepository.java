@@ -54,8 +54,8 @@ import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.MappingMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.settings.Settings;
@@ -219,7 +219,7 @@ public class ConfigurationRepository {
 
         try {
 
-            if (clusterService.state().metaData().hasConcreteIndex(opendistrosecurityIndex)) {
+            if (clusterService.state().metadata().hasConcreteIndex(opendistrosecurityIndex)) {
                 LOGGER.info("{} index does already exist, so we try to load the config from it", opendistrosecurityIndex);
                 bgThread.start();
             } else {
@@ -326,11 +326,11 @@ public class ConfigurationRepository {
         try(StoredContext ctx = threadContext.stashContext()) {
             threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
 
-            IndexMetaData securityMetaData = clusterService.state().metaData().index(this.opendistrosecurityIndex);
-            MappingMetaData mappingMetaData = securityMetaData==null?null:securityMetaData.mapping();
+            IndexMetadata securityMetadata = clusterService.state().metadata().index(this.opendistrosecurityIndex);
+            MappingMetadata mappingMetadata = securityMetadata==null?null:securityMetadata.mapping();
 
-            if(securityMetaData !=null && mappingMetaData !=null ) {
-                if("security".equals(mappingMetaData.type())) {
+            if (securityMetadata != null && mappingMetadata != null) {
+                if("security".equals(mappingMetadata.type())) {
                     LOGGER.debug("security index exists and was created before ES 7 (legacy layout)");
                 } else {
                     LOGGER.debug("security index exists and was created with ES 7 (new layout)");

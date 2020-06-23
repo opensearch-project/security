@@ -404,7 +404,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Assert.assertTrue(response.getBody().contains("\"errors\":false"));
         Assert.assertTrue(response.getBody().contains("\"status\":201"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("indices:admin/create"));
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("indices:admin/auto_create"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("indices:data/write/bulk"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("IndexRequest"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("audit_trace_task_parent_id"));

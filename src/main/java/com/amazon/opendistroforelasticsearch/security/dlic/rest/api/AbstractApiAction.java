@@ -265,7 +265,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
     }
 
 	protected boolean ensureIndexExists() {
-		if (!cs.state().metaData().hasConcreteIndex(this.opendistroIndex)) {
+		if (!cs.state().metadata().hasConcreteIndex(this.opendistroIndex)) {
 			return false;
 		}
 		return true;

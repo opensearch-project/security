@@ -29,7 +29,7 @@ import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.Tuple;
@@ -123,18 +123,18 @@ public class MigrateApiAction extends AbstractApiAction {
         final SecurityDynamicConfiguration<RoleMappingsV7> rolesmappingV7 = Migration.migrateRoleMappings(rolesmappingV6);
         final SecurityDynamicConfiguration<NodesDn> nodesDnV7 = Migration.migrateNodesDn(nodesDnV6);
 
-        final int replicas = cs.state().metaData().index(opendistroIndex).getNumberOfReplicas();
-        final String autoExpandReplicas = cs.state().metaData().index(opendistroIndex).getSettings().get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS);
+        final int replicas = cs.state().metadata().index(opendistroIndex).getNumberOfReplicas();
+        final String autoExpandReplicas = cs.state().metadata().index(opendistroIndex).getSettings().get(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS);
 
         final Builder securityIndexSettings = Settings.builder();
 
         if (autoExpandReplicas == null) {
-            securityIndexSettings.put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, replicas);
+            securityIndexSettings.put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, replicas);
         } else {
-            securityIndexSettings.put(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS, autoExpandReplicas);
+            securityIndexSettings.put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, autoExpandReplicas);
         }
 
-        securityIndexSettings.put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 1);
+        securityIndexSettings.put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1);
 
         client.admin().indices().prepareDelete(this.opendistroIndex).execute(new ActionListener<AcknowledgedResponse>() {
 
