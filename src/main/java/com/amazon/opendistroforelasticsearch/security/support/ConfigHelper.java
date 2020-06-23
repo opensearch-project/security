@@ -39,6 +39,7 @@ import java.io.StringReader;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.Meta;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.action.DocWriteRequest.OpType;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
 import org.elasticsearch.client.Client;
@@ -52,6 +53,7 @@ import org.elasticsearch.common.xcontent.XContentType;
 import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import org.elasticsearch.index.engine.VersionConflictEngineException;
 
 import static org.elasticsearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
 
@@ -64,22 +66,30 @@ public class ConfigHelper {
     }
 
     public static void uploadFile(Client tc, String filepath, String index, CType cType, int configVersion, boolean populateEmptyIfFileMissing) throws Exception {
-        LOGGER.info("Will update '" + cType + "' with " + filepath + " and populate it with empty doc if file missing and populateEmptyIfFileMissing=" + populateEmptyIfFileMissing);
+        final String configType = cType.toLCString();
+        LOGGER.info("Will update '" + configType + "' with " + filepath + " and populate it with empty doc if file missing and populateEmptyIfFileMissing=" + populateEmptyIfFileMissing);
 
         if (!populateEmptyIfFileMissing) {
             ConfigHelper.fromYamlFile(filepath, cType, configVersion, 0, 0);
         }
-        
+
         try (Reader reader = createFileOrStringReader(cType, configVersion, filepath, populateEmptyIfFileMissing)) {
 
-            final String res = tc
-                    .index(new IndexRequest(index).type(configVersion==1?"security":"_doc").id(cType.toLCString()).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                            .source(cType.toLCString(), readXContent(reader, XContentType.YAML))).actionGet().getId();
+            final IndexRequest indexRequest = new IndexRequest(index)
+                    .type(configVersion == 1 ? "security" : "_doc")
+                    .id(configType)
+                    .opType(OpType.CREATE)
+                    .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .source(configType, readXContent(reader, XContentType.YAML));
+            final String res = tc.index(indexRequest).actionGet().getId();
 
-            if (!cType.toLCString().equals(res)) {
-                throw new Exception("   FAIL: Configuration for '" + cType.toLCString()
+            if (!configType.equals(res)) {
+                throw new Exception("   FAIL: Configuration for '" + configType
                         + "' failed for unknown reasons. Pls. consult logfile of elasticsearch");
             }
+            LOGGER.info("Doc with id '{}' and version {} is updated in {} index.", configType, configVersion, index);
+        } catch (VersionConflictEngineException versionConflictEngineException) {
+            LOGGER.info("Index {} already contains doc with id {}, skipping update.", index, configType);
         }
     }
 
