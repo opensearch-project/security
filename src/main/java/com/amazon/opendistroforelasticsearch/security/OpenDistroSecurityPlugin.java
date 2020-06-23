@@ -309,7 +309,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         tribeNodeClient = this.settings.get("tribe.name", null) != null;
 
         log.debug("This node [{}] is a transportClient: {}/tribeNode: {}/tribeNodeClient: {}", settings.get("node.name"), client, tribeNode, tribeNodeClient);
-        
+
         dlsFlsAvailable = !client && advancedModulesEnabled;
 
         if(!client && !tribeNodeClient) {

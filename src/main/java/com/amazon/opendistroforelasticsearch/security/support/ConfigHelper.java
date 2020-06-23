@@ -41,6 +41,7 @@ import java.nio.charset.StandardCharsets;
 import com.google.common.io.Files;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.action.DocWriteRequest.OpType;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
 import org.elasticsearch.client.Client;
@@ -51,6 +52,7 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.index.engine.VersionConflictEngineException;
 
 public class ConfigHelper {
     
@@ -63,15 +65,22 @@ public class ConfigHelper {
     public static void uploadFile(Client tc, String filepath, String index, String id, boolean populateEmptyIfFileMissing) throws Exception {
         LOGGER.info("Will update '" + id + "' with " + filepath + " and populate it with empty doc if file missing and populateEmptyIfFileMissing=" + populateEmptyIfFileMissing);
         try (Reader reader = ConfigHelper.createFileOrStringReader(filepath, populateEmptyIfFileMissing)) {
-
-            final String res = tc
-                    .index(new IndexRequest(index).type("security").id(id).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                            .source(id, readXContent(reader, XContentType.YAML))).actionGet().getId();
+            
+            final IndexRequest indexRequest = new IndexRequest(index)
+                    .type("security")
+                    .id(id)
+                    .opType(OpType.CREATE)
+                    .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .source(id, readXContent(reader, XContentType.YAML));
+            final String res = tc.index(indexRequest).actionGet().getId();
 
             if (!id.equals(res)) {
                 throw new Exception("   FAIL: Configuration for '" + id
                         + "' failed for unknown reasons. Pls. consult logfile of elasticsearch");
             }
+            LOGGER.info("Doc with id '{}' is updated in {} index.", id, index);
+        } catch (VersionConflictEngineException versionConflictEngineException) {
+            LOGGER.info("Index {} already contains doc with id {}, skipping update.", index, id);
         }
     }
 
