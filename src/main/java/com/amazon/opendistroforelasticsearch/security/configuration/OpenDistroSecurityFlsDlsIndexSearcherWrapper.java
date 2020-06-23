@@ -63,6 +63,7 @@ public class OpenDistroSecurityFlsDlsIndexSearcherWrapper extends OpenDistroSecu
         } else {
             nowInMillis = () -> {throw new IllegalArgumentException("'now' is not allowed in DLS queries");};
         }
+        log.debug("FLS/DLS {} enabled for index {}", this, indexService.index().getName());
     }
 
     @SuppressWarnings("unchecked")
