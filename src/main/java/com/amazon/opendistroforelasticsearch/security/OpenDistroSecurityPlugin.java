@@ -31,7 +31,6 @@
 package com.amazon.opendistroforelasticsearch.security;
 
 import java.io.IOException;
-import java.lang.reflect.Constructor;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
@@ -58,6 +57,7 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.amazon.opendistroforelasticsearch.security.configuration.OpenDistroSecurityFlsDlsIndexSearcherWrapper;
 import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenDistroSecuritySSLReloadCertsAction;
 import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenDistroSecuritySSLCertsInfoAction;
 import org.apache.lucene.search.QueryCachingPolicy;
@@ -98,7 +98,6 @@ import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.http.HttpServerTransport.Dispatcher;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexModule;
-import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.cache.query.QueryCache;
 import org.elasticsearch.index.shard.IndexSearcherWrapper;
 import org.elasticsearch.index.shard.SearchOperationListener;
@@ -133,7 +132,6 @@ import com.amazon.opendistroforelasticsearch.security.action.whoami.TransportWho
 import com.amazon.opendistroforelasticsearch.security.action.whoami.WhoAmIAction;
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLogSslExceptionHandler;
-import com.amazon.opendistroforelasticsearch.security.auditlog.NullAuditLog;
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog.Origin;
 import com.amazon.opendistroforelasticsearch.security.auth.BackendRegistry;
 import com.amazon.opendistroforelasticsearch.security.auth.internal.InternalAuthenticationBackend;
@@ -181,7 +179,6 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     private static final String KEYWORD = ".keyword";
     private final boolean tribeNodeClient;
     private final boolean dlsFlsAvailable;
-    private final Constructor<?> dlsFlsConstructor;
     private boolean sslCertReloadEnabled;
     private volatile OpenDistroSecurityRestFilter securityRestHandler;
     private volatile OpenDistroSecurityInterceptor odsi;
@@ -243,7 +240,6 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         if(disabled) {
             this.tribeNodeClient = false;
             this.dlsFlsAvailable = false;
-            this.dlsFlsConstructor = null;
             this.advancedModulesEnabled = false;
             this.sslOnly = false;
             this.sslCertReloadEnabled = false;
@@ -255,7 +251,6 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         if(sslOnly) {
             this.tribeNodeClient = false;
             this.dlsFlsAvailable = false;
-            this.dlsFlsConstructor = null;
             this.advancedModulesEnabled = false;
             this.sslCertReloadEnabled = false;
             log.warn("Open Distro Security plugin run in ssl only mode. No authentication or authorization is performed");
@@ -314,14 +309,8 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         tribeNodeClient = this.settings.get("tribe.name", null) != null;
 
         log.debug("This node [{}] is a transportClient: {}/tribeNode: {}/tribeNodeClient: {}", settings.get("node.name"), client, tribeNode, tribeNodeClient);
-
-        if(!client) {
-            dlsFlsConstructor = ReflectionHelper.instantiateDlsFlsConstructor();
-            dlsFlsAvailable = dlsFlsConstructor != null;
-        } else {
-            dlsFlsAvailable = false;
-            dlsFlsConstructor = null;
-        }
+        
+        dlsFlsAvailable = !client && advancedModulesEnabled;
 
         if(!client && !tribeNodeClient) {
             final List<Path> filesWithWrongPermissions = AccessController.doPrivileged(new PrivilegedAction<List<Path>>() {
@@ -504,24 +493,6 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         return actions;
     }
 
-    private IndexSearcherWrapper loadFlsDlsIndexSearcherWrapper(final IndexService indexService,
-            final ComplianceIndexingOperationListener ciol) {
-        try {
-            IndexSearcherWrapper flsdlsWrapper = (IndexSearcherWrapper) dlsFlsConstructor
-                    .newInstance(indexService, settings, Objects.requireNonNull(adminDns),
-                            Objects.requireNonNull(cs),
-                            Objects.requireNonNull(auditLog),
-                            Objects.requireNonNull(ciol),
-                            Objects.requireNonNull(evaluator));
-            if(log.isDebugEnabled()) {
-                log.debug("FLS/DLS enabled for index {}", indexService.index().getName());
-            }
-            return flsdlsWrapper;
-        } catch(Exception ex) {
-            throw new RuntimeException("Failed to enable FLS/DLS", ex);
-        }
-    }
-
     @Override
     public void onIndexModule(IndexModule indexModule) {
         //called for every index!
@@ -533,7 +504,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                 final ComplianceIndexingOperationListener ciol = ReflectionHelper.instantiateComplianceListener(Objects.requireNonNull(auditLog));
                 indexModule.addIndexOperationListener(ciol);
 
-                indexModule.setSearcherWrapper(indexService -> loadFlsDlsIndexSearcherWrapper(indexService, ciol));
+                indexModule.setSearcherWrapper(indexService -> new OpenDistroSecurityFlsDlsIndexSearcherWrapper(indexService, settings, adminDns, cs, auditLog, ciol, evaluator));
                 indexModule.forceQueryCacheProvider((indexSettings,nodeCache)->new QueryCache() {
 
                     @Override
