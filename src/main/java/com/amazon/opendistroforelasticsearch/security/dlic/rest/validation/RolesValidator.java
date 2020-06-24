@@ -17,6 +17,7 @@ package com.amazon.opendistroforelasticsearch.security.dlic.rest.validation;
 
 import java.util.List;
 
+import com.amazon.opendistroforelasticsearch.security.configuration.Salt;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.rest.RestRequest;
@@ -26,6 +27,8 @@ import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.ReadContext;
 
 public class RolesValidator extends AbstractConfigurationValidator {
+
+    private static final Salt SALT = new Salt(new byte[] {1,2,3,4,5,1,2,3,4,5,1,2,3,4,5,6});
 
 	public RolesValidator(final RestRequest request, boolean isSuperAdmin, final BytesReference ref, final Settings esSettings, Object... param) {
 		super(request, ref, esSettings, param);
@@ -70,7 +73,7 @@ public class RolesValidator extends AbstractConfigurationValidator {
 
     private boolean validateMaskedFieldSyntax(String mf) {
         try {
-            new MaskedField(mf, new byte[] {1,2,3,4,5,1,2,3,4,5,1,2,3,4,5,6}).isValid();
+            new MaskedField(mf, SALT).isValid();
         } catch (Exception e) {
             wrongDatatypes.put("Masked field not valid: "+mf, e.getMessage());
             return false;
