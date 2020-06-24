@@ -49,6 +49,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.amazon.opendistroforelasticsearch.security.configuration.OpenDistroSecurityFlsDlsIndexSearcherWrapper;
+import com.amazon.opendistroforelasticsearch.security.configuration.Salt;
 import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenDistroSecuritySSLReloadCertsAction;
 import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenDistroSecuritySSLCertsInfoAction;
 import org.apache.lucene.search.QueryCachingPolicy;
@@ -188,6 +189,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     private AtomicBoolean externalConfigLogged = new AtomicBoolean();
     private volatile NamedXContentRegistry namedXContentRegistry = null;
     private volatile DlsFlsRequestValve dlsFlsValve = null;
+    private volatile Salt salt;
 
     @Override
     public void close() throws IOException {
@@ -483,7 +485,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                 final ComplianceIndexingOperationListener ciol = ReflectionHelper.instantiateComplianceListener(Objects.requireNonNull(auditLog));
                 indexModule.addIndexOperationListener(ciol);
 
-                indexModule.setReaderWrapper(indexService -> new OpenDistroSecurityFlsDlsIndexSearcherWrapper(indexService, settings, adminDns, cs, auditLog, ciol, evaluator));
+                indexModule.setReaderWrapper(indexService -> new OpenDistroSecurityFlsDlsIndexSearcherWrapper(indexService, settings, adminDns, cs, auditLog, ciol, evaluator, salt));
                 indexModule.forceQueryCacheProvider((indexSettings,nodeCache)->new QueryCache() {
 
                     @Override
@@ -714,7 +716,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         }
         final ClusterInfoHolder cih = new ClusterInfoHolder();
         this.cs.addListener(cih);
-
+        this.salt = Salt.from(settings);
         dlsFlsValve = ReflectionHelper.instantiateDlsFlsValve();
 
         final IndexNameExpressionResolver resolver = new IndexNameExpressionResolver();
