@@ -988,7 +988,7 @@
                 <repository>
                     <id>sonatype-nexus-staging</id>
                     <name>Sonatype Nexus Staging</name>
-                    <url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
+                    <url>https://aws.oss.sonatype.org/service/local/staging/deploy/maven2</url>
                 </repository>
             </distributionManagement>
         </profile>
