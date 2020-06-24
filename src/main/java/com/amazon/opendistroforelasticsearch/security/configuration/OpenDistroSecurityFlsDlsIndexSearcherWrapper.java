@@ -48,10 +48,11 @@ public class OpenDistroSecurityFlsDlsIndexSearcherWrapper extends OpenDistroSecu
     private final IndexService indexService;
     private final AuditLog auditlog;
     private final LongSupplier nowInMillis;
+    private final Salt salt;
 
     public OpenDistroSecurityFlsDlsIndexSearcherWrapper(final IndexService indexService, final Settings settings,
             final AdminDNs adminDNs, final ClusterService clusterService, final AuditLog auditlog,
-            final ComplianceIndexingOperationListener ciol, final PrivilegesEvaluator evaluator) {
+            final ComplianceIndexingOperationListener ciol, final PrivilegesEvaluator evaluator, final Salt salt) {
         super(indexService, settings, adminDNs, evaluator);
         ciol.setIs(indexService);
         this.clusterService = clusterService;
@@ -64,6 +65,7 @@ public class OpenDistroSecurityFlsDlsIndexSearcherWrapper extends OpenDistroSecu
             nowInMillis = () -> {throw new IllegalArgumentException("'now' is not allowed in DLS queries");};
         }
         log.debug("FLS/DLS {} enabled for index {}", this, indexService.index().getName());
+        this.salt = salt;
     }
 
     @SuppressWarnings("unchecked")
@@ -112,6 +114,6 @@ public class OpenDistroSecurityFlsDlsIndexSearcherWrapper extends OpenDistroSecu
         }
 
         return new DlsFlsFilterLeafReader.DlsFlsDirectoryReader(reader, flsFields, dlsQuery,
-                indexService, threadContext, clusterService, auditlog, maskedFields, shardId);
+                indexService, threadContext, clusterService, auditlog, maskedFields, shardId, salt);
     }
 }
