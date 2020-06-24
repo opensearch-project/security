@@ -30,9 +30,6 @@
 
 package com.amazon.opendistroforelasticsearch.security.compliance;
 
-import java.nio.BufferUnderflowException;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -44,7 +41,6 @@ import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfi
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.settings.Settings;
 import org.joda.time.DateTime;
@@ -68,7 +64,6 @@ import com.google.common.collect.ImmutableSet;
 public class ComplianceConfig {
 
     private static final Logger log = LogManager.getLogger(ComplianceConfig.class);
-    private static final int SALT_SIZE = 16;
     private static final int CACHE_SIZE = 1000;
     private static final String INTERNAL_ELASTICSEARCH = "internal_elasticsearch";
 
@@ -84,7 +79,6 @@ public class ComplianceConfig {
 
     private final Map<WildcardMatcher, Set<String>> readEnabledFields;
     private final LoadingCache<String, WildcardMatcher> readEnabledFieldsCache;
-    private final byte[] salt16;
     private final DateTimeFormatter auditLogPattern;
     private final String auditLogIndex;
     private volatile boolean enabled = true;
@@ -99,7 +93,6 @@ public class ComplianceConfig {
             final boolean logDiffsForWrite,
             final List<String> watchedWriteIndicesPatterns,
             final Set<String> ignoredComplianceUsersForWrite,
-            final String saltAsString,
             final String opendistrosecurityIndex,
             final String destinationType,
             final String destinationIndex) {
@@ -112,20 +105,6 @@ public class ComplianceConfig {
         this.ignoredComplianceUsersForReadMatcher = WildcardMatcher.from(ignoredComplianceUsersForRead);
         this.ignoredComplianceUsersForWriteMatcher = WildcardMatcher.from(ignoredComplianceUsersForWrite);
         this.opendistrosecurityIndex = opendistrosecurityIndex;
-
-        this.salt16 = new byte[SALT_SIZE];
-        if (saltAsString.equals(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT_DEFAULT)) {
-            log.warn("If you plan to use field masking pls configure compliance salt {} to be a random string of 16 chars length identical on all nodes", saltAsString);
-        }
-        try {
-            ByteBuffer byteBuffer = StandardCharsets.UTF_8.encode(saltAsString);
-            byteBuffer.get(salt16);
-            if (byteBuffer.remaining() > 0) {
-                log.warn("Provided compliance salt {} is greater than 16 bytes. Only the first 16 bytes are used for salting", saltAsString);
-            }
-        } catch (BufferUnderflowException e) {
-            throw new ElasticsearchException("Provided compliance salt " + saltAsString + " must at least contain 16 bytes", e);
-        }
 
         //opendistro_security.compliance.pii_fields:
         //  - indexpattern,fieldpattern,fieldpattern,....
@@ -191,7 +170,6 @@ public class ComplianceConfig {
         final List<String> watchedReadFields = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS,
                 Collections.emptyList(), false);
         final List<String> watchedWriteIndices = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, Collections.emptyList());
-        final String saltAsString = settings.get(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT, ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT_DEFAULT);
         final String opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
         final String type = settings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_TYPE_DEFAULT, null);
         final String index = settings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ES_INDEX, "'security-auditlog-'YYYY.MM.dd");
@@ -216,7 +194,6 @@ public class ComplianceConfig {
                 logDiffsForWrite,
                 watchedWriteIndices,
                 ignoredComplianceUsersForWrite,
-                saltAsString,
                 opendistrosecurityIndex,
                 type,
                 index);
@@ -269,14 +246,6 @@ public class ComplianceConfig {
      */
     public boolean shouldLogReadMetadataOnly() {
         return logReadMetadataOnly;
-    }
-
-    /**
-     * Get the salt in bytes for filed anonymization
-     * @return salt in bytes
-     */
-    public byte[] getSalt16() {
-        return Arrays.copyOf(salt16, salt16.length);
     }
 
     @VisibleForTesting
