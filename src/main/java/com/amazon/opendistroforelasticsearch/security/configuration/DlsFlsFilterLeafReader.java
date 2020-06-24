@@ -106,6 +106,7 @@ class DlsFlsFilterLeafReader extends FilterLeafReader {
     private final MaskedFieldsMap maskedFieldsMap;
     private final ShardId shardId;
     private final boolean maskFields;
+    private final Salt salt;
 
     private DlsGetEvaluator dge = null;
 
@@ -113,16 +114,17 @@ class DlsFlsFilterLeafReader extends FilterLeafReader {
     DlsFlsFilterLeafReader(final LeafReader delegate, final Set<String> includesExcludes,
                            final Query dlsQuery, final IndexService indexService, final ThreadContext threadContext,
                            final ClusterService clusterService,
-                           final AuditLog auditlog, final Set<String> maskedFields, final ShardId shardId) {
+                           final AuditLog auditlog, final Set<String> maskedFields, final ShardId shardId, final Salt salt) {
         super(delegate);
 
-        maskFields = (auditlog.getComplianceConfig().isEnabled() && maskedFields != null && maskedFields.size() > 0);
+        maskFields = (maskedFields != null && maskedFields.size() > 0);
 
         this.indexService = indexService;
         this.threadContext = threadContext;
         this.clusterService = clusterService;
         this.auditlog = auditlog;
-        this.maskedFieldsMap = MaskedFieldsMap.extractMaskedFields(maskFields, maskedFields, auditlog.getComplianceConfig().getSalt16());
+        this.salt = salt;
+        this.maskedFieldsMap = MaskedFieldsMap.extractMaskedFields(maskFields, maskedFields, salt);
 
         this.shardId = shardId;
         flsEnabled = includesExcludes != null && !includesExcludes.isEmpty();
@@ -285,10 +287,10 @@ class DlsFlsFilterLeafReader extends FilterLeafReader {
             this.maskedFieldsMap = maskedFieldsMap;
         }
 
-        public static MaskedFieldsMap extractMaskedFields(boolean maskFields, Set<String> maskedFields, byte[] defaultSalt) {
+        public static MaskedFieldsMap extractMaskedFields(boolean maskFields, Set<String> maskedFields, final Salt salt) {
             if (maskFields) {
                 return new MaskedFieldsMap(maskedFields.stream()
-                    .map(mf -> new MaskedField(mf, defaultSalt))
+                    .map(mf -> new MaskedField(mf, salt))
                     .collect(ImmutableMap.toImmutableMap(mf -> WildcardMatcher.from(mf.getName()), Function.identity())));
             } else {
                 return new MaskedFieldsMap(Collections.emptyMap());
@@ -323,11 +325,12 @@ class DlsFlsFilterLeafReader extends FilterLeafReader {
         private final AuditLog auditlog;
         private final Set<String> maskedFields;
         private final ShardId shardId;
+        private final Salt salt;
 
         public DlsFlsSubReaderWrapper(final Set<String> includes, final Query dlsQuery,
                                       final IndexService indexService, final ThreadContext threadContext,
                                       final ClusterService clusterService,
-                                      final AuditLog auditlog, final Set<String> maskedFields, ShardId shardId) {
+                                      final AuditLog auditlog, final Set<String> maskedFields, ShardId shardId, final Salt salt) {
             this.includes = includes;
             this.dlsQuery = dlsQuery;
             this.indexService = indexService;
@@ -336,11 +339,12 @@ class DlsFlsFilterLeafReader extends FilterLeafReader {
             this.auditlog = auditlog;
             this.maskedFields = maskedFields;
             this.shardId = shardId;
+            this.salt = salt;
         }
 
         @Override
         public LeafReader wrap(final LeafReader reader) {
-            return new DlsFlsFilterLeafReader(reader, includes, dlsQuery, indexService, threadContext, clusterService, auditlog, maskedFields, shardId);
+            return new DlsFlsFilterLeafReader(reader, includes, dlsQuery, indexService, threadContext, clusterService, auditlog, maskedFields, shardId, salt);
         }
 
     }
@@ -355,12 +359,13 @@ class DlsFlsFilterLeafReader extends FilterLeafReader {
         private final AuditLog auditlog;
         private final Set<String> maskedFields;
         private final ShardId shardId;
+        private final Salt salt;
 
         public DlsFlsDirectoryReader(final DirectoryReader in, final Set<String> includes, final Query dlsQuery,
                                      final IndexService indexService, final ThreadContext threadContext,
                                      final ClusterService clusterService,
-                                     final AuditLog auditlog, final Set<String> maskedFields, ShardId shardId) throws IOException {
-            super(in, new DlsFlsSubReaderWrapper(includes, dlsQuery, indexService, threadContext, clusterService, auditlog, maskedFields, shardId));
+                                     final AuditLog auditlog, final Set<String> maskedFields, ShardId shardId, final Salt salt) throws IOException {
+            super(in, new DlsFlsSubReaderWrapper(includes, dlsQuery, indexService, threadContext, clusterService, auditlog, maskedFields, shardId, salt));
             this.includes = includes;
             this.dlsQuery = dlsQuery;
             this.indexService = indexService;
@@ -369,11 +374,12 @@ class DlsFlsFilterLeafReader extends FilterLeafReader {
             this.auditlog = auditlog;
             this.maskedFields = maskedFields;
             this.shardId = shardId;
+            this.salt = salt;
         }
 
         @Override
         protected DirectoryReader doWrapDirectoryReader(final DirectoryReader in) throws IOException {
-            return new DlsFlsDirectoryReader(in, includes, dlsQuery, indexService, threadContext, clusterService, auditlog, maskedFields, shardId);
+            return new DlsFlsDirectoryReader(in, includes, dlsQuery, indexService, threadContext, clusterService, auditlog, maskedFields, shardId, salt);
         }
 
         @Override
@@ -1089,11 +1095,6 @@ class DlsFlsFilterLeafReader extends FilterLeafReader {
 
     @SuppressWarnings("unchecked")
     private MaskedFieldsMap getRuntimeMaskedFieldInfo() {
-
-        if(!auditlog.getComplianceConfig().isEnabled()) {
-            return null;
-        }
-
         final Map<String, Set<String>> maskedFieldsMap = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadContext,
                 ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER);
         final String maskedEval = OpenDistroSecurityUtils.evalMap(maskedFieldsMap, indexService.index().getName());
@@ -1101,7 +1102,7 @@ class DlsFlsFilterLeafReader extends FilterLeafReader {
         if(maskedEval != null) {
             final Set<String> mf = maskedFieldsMap.get(maskedEval);
             if(mf != null && !mf.isEmpty()) {
-                return MaskedFieldsMap.extractMaskedFields(true, mf, auditlog.getComplianceConfig().getSalt16());
+                return MaskedFieldsMap.extractMaskedFields(true, mf, salt);
             }
 
         }
