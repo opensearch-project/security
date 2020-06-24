@@ -36,8 +36,8 @@ public class MaskedField {
     private List<RegexReplacement> regexReplacements;
     private final byte[] defaultSalt;
 
-    public MaskedField(final String value, final byte[] defaultSalt) {
-        this.defaultSalt = defaultSalt;
+    public MaskedField(final String value, final Salt salt) {
+        this.defaultSalt = salt.getSalt16();
         final List<String> tokens = Splitter.on("::").splitToList(Objects.requireNonNull(value));
         final int tokenCount = tokens.size();
         if (tokenCount == 1) {
