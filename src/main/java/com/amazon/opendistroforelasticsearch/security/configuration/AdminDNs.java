@@ -33,7 +33,10 @@ package com.amazon.opendistroforelasticsearch.security.configuration;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
@@ -45,19 +48,19 @@ import org.elasticsearch.common.settings.Settings;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.amazon.opendistroforelasticsearch.security.user.User;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ListMultimap;
+
+import com.google.common.collect.ImmutableMap;
 
 public class AdminDNs {
 
     protected final Logger log = LogManager.getLogger(AdminDNs.class);
     private final Set<LdapName> adminDn = new HashSet<LdapName>();
     private final Set<String> adminUsernames = new HashSet<String>();
-    private final ListMultimap<LdapName, String> allowedImpersonations = ArrayListMultimap.<LdapName, String> create();
-    private final ListMultimap<String, String> allowedRestImpersonations = ArrayListMultimap.<String, String> create();
+    private final Map<LdapName, WildcardMatcher> allowedDnsImpersonations;
+    private final Map<String, WildcardMatcher> allowedRestImpersonations;
     private boolean injectUserEnabled;
     private boolean injectAdminUserEnabled;
-    
+
     public AdminDNs(final Settings settings) {
 
         this.injectUserEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, false);
@@ -85,24 +88,39 @@ public class AdminDNs {
         log.debug("Loaded {} admin DN's {}",adminDn.size(),  adminDn);
 
         final Settings impersonationDns = settings.getByPrefix(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_IMPERSONATION_DN+".");
-        
-        for (String dnString:impersonationDns.keySet()) {
-            try {
-                allowedImpersonations.putAll(new LdapName(dnString), settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_IMPERSONATION_DN+"."+dnString));
-            } catch (final InvalidNameException e) {
-                log.error("Unable to parse allowedImpersonations dn {}",dnString, e);
-            }
-        }
-        
-        log.debug("Loaded {} impersonation DN's {}",allowedImpersonations.size(), allowedImpersonations);
+
+        allowedDnsImpersonations = impersonationDns.keySet().stream()
+            .map(this::toLdapName)
+            .filter(Objects::nonNull)
+            .collect(
+                ImmutableMap.toImmutableMap(
+                    Function.identity(),
+                    ldapName -> WildcardMatcher.from(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_IMPERSONATION_DN + "." + ldapName))
+                )
+            );
+
+        log.debug("Loaded {} impersonation DN's {}", allowedDnsImpersonations.size(), allowedDnsImpersonations);
         
         final Settings impersonationUsersRest = settings.getByPrefix(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".");
 
-        for (String user:impersonationUsersRest.keySet()) {
-            allowedRestImpersonations.putAll(user, settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+"."+user));
-        }
+        allowedRestImpersonations = impersonationUsersRest.keySet().stream()
+            .collect(
+                ImmutableMap.toImmutableMap(
+                    Function.identity(),
+                    user -> WildcardMatcher.from(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+"."+user))
+                )        
+            );    
         
         log.debug("Loaded {} impersonation users for REST {}",allowedRestImpersonations.size(), allowedRestImpersonations);
+    }
+
+    private LdapName toLdapName(String dn) {
+        try {
+            return new LdapName(dn);
+        } catch (final InvalidNameException e) {
+            log.error("Unable to parse allowedImpersonations dn {}", dn, e);
+        }
+        return null;
     }
 
     public boolean isAdmin(User user) {
@@ -143,17 +161,10 @@ public class AdminDNs {
     public boolean isTransportImpersonationAllowed(LdapName dn, String impersonated) {
         if(dn == null) return false;
         
-        if(isAdminDN(dn)) {
-            return true;
-        }
-
-        return WildcardMatcher.matchAny(this.allowedImpersonations.get(dn), impersonated);
+        return isAdminDN(dn) || allowedDnsImpersonations.getOrDefault(dn, WildcardMatcher.NONE).test(impersonated);
     }
     
     public boolean isRestImpersonationAllowed(final String originalUser, final String impersonated) {
-        if(originalUser == null) {
-            return false;    
-        }
-        return WildcardMatcher.matchAny(this.allowedRestImpersonations.get(originalUser), impersonated);
+        return (originalUser != null) ? allowedRestImpersonations.getOrDefault(originalUser, WildcardMatcher.NONE).test(impersonated) : false;
     }
 }

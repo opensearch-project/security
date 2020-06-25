@@ -15,9 +15,11 @@
 
 package com.amazon.opendistroforelasticsearch.security.securityconf;
 
+import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
+
 import java.util.List;
 import java.util.Map;
 
 public abstract class NodesDnModel {
-    public abstract Map<String, List<String>> getNodesDn();
+    public abstract Map<String, WildcardMatcher> getNodesDn();
 }

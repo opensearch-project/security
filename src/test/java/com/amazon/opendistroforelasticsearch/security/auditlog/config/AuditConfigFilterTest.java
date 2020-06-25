@@ -2,6 +2,7 @@ package com.amazon.opendistroforelasticsearch.security.auditlog.config;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
+import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.elasticsearch.common.settings.Settings;
@@ -12,7 +13,6 @@ import org.junit.rules.ExpectedException;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.Set;
 
 import static com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory.AUTHENTICATED;
 import static com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory.GRANTED_PRIVILEGES;
@@ -21,6 +21,7 @@ import static com.amazon.opendistroforelasticsearch.security.auditlog.impl.Audit
 import static com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory.FAILED_LOGIN;
 import static com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory.MISSING_PRIVILEGES;
 
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertEquals;
@@ -34,7 +35,7 @@ public class AuditConfigFilterTest {
     @Test
     public void testDefault() {
         // arrange
-        final Set<String> defaultIgnoredUser = Collections.singleton("kibanaserver");
+        final WildcardMatcher defaultIgnoredUserMatcher = WildcardMatcher.from("kibanaserver");
         final EnumSet<AuditCategory> defaultDisabledCategories = EnumSet.of(AUTHENTICATED, GRANTED_PRIVILEGES);
         // act
         final AuditConfig.Filter auditConfigFilter = AuditConfig.from(Settings.EMPTY).getFilter();
@@ -45,8 +46,8 @@ public class AuditConfigFilterTest {
         assertTrue(auditConfigFilter.shouldResolveIndices());
         assertFalse(auditConfigFilter.shouldResolveBulkRequests());
         assertTrue(auditConfigFilter.shouldExcludeSensitiveHeaders());
-        assertTrue(auditConfigFilter.getIgnoredAuditRequests().isEmpty());
-        assertEquals(auditConfigFilter.getIgnoredAuditUsers(), defaultIgnoredUser);
+        assertSame(WildcardMatcher.NONE, auditConfigFilter.getIgnoredAuditRequestsMatcher());
+        assertEquals(defaultIgnoredUserMatcher, auditConfigFilter.getIgnoredAuditUsersMatcher());
         assertEquals(auditConfigFilter.getDisabledRestCategories(), defaultDisabledCategories);
         assertEquals(auditConfigFilter.getDisabledTransportCategories(), defaultDisabledCategories);
     }
@@ -77,8 +78,8 @@ public class AuditConfigFilterTest {
         assertFalse(auditConfigFilter.shouldResolveIndices());
         assertTrue(auditConfigFilter.shouldResolveBulkRequests());
         assertFalse(auditConfigFilter.shouldExcludeSensitiveHeaders());
-        assertEquals(auditConfigFilter.getIgnoredAuditUsers(), Collections.singleton("test-user"));
-        assertEquals(auditConfigFilter.getIgnoredAuditRequests(), Collections.singleton("test-request"));
+        assertEquals(WildcardMatcher.from(Collections.singleton("test-user")), auditConfigFilter.getIgnoredAuditUsersMatcher());
+        assertEquals(WildcardMatcher.from(Collections.singleton("test-request")), auditConfigFilter.getIgnoredAuditRequestsMatcher());
         assertEquals(auditConfigFilter.getDisabledRestCategories(), EnumSet.of(BAD_HEADERS, SSL_EXCEPTION));
         assertEquals(auditConfigFilter.getDisabledTransportCategories(), EnumSet.of(FAILED_LOGIN, MISSING_PRIVILEGES));
     }
@@ -88,10 +89,6 @@ public class AuditConfigFilterTest {
         // arrange
         final Settings settings = Settings.builder()
                 .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS, "NONE")
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS,
-                        "NONE")
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS,
-                        "NONE")
                 .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES,
                         "None")
                 .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES,
@@ -100,7 +97,7 @@ public class AuditConfigFilterTest {
         // act
         final AuditConfig.Filter auditConfigFilter = AuditConfig.from(settings).getFilter();
         // assert
-        assertTrue(auditConfigFilter.getIgnoredAuditUsers().isEmpty());
+        assertSame(WildcardMatcher.NONE, auditConfigFilter.getIgnoredAuditUsersMatcher());
         assertTrue(auditConfigFilter.getDisabledRestCategories().isEmpty());
         assertTrue(auditConfigFilter.getDisabledTransportCategories().isEmpty());
     }
@@ -111,10 +108,6 @@ public class AuditConfigFilterTest {
         final Settings settings = Settings.builder()
                 .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS, Collections.emptyList())
                 .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS,  Collections.emptyList())
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS,
-                        Collections.emptyList())
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS,
-                        Collections.emptyList())
                 .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES,
                         Collections.emptyList())
                 .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES,
@@ -123,7 +116,7 @@ public class AuditConfigFilterTest {
         // act
         final AuditConfig.Filter auditConfigFilter = AuditConfig.from(settings).getFilter();
         // assert
-        assertTrue(auditConfigFilter.getIgnoredAuditUsers().isEmpty());
+        assertSame(WildcardMatcher.NONE, auditConfigFilter.getIgnoredAuditUsersMatcher());
         assertTrue(auditConfigFilter.getDisabledRestCategories().isEmpty());
         assertTrue(auditConfigFilter.getDisabledTransportCategories().isEmpty());
     }

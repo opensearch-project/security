@@ -15,6 +15,9 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 11.0.x
+        server-id: sonatype-nexus-staging
+        server-username: SONATYPE_USER
+        server-password: SONATYPE_PASSWORD
 
     - name: Checkout security
       uses: actions/checkout@v2
@@ -22,7 +25,7 @@ jobs:
     - name: Cache Maven packages
       uses: actions/cache@v1
       with:
-        path: ~/.m2
+        path: ~/.m2/repository
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
 
@@ -52,6 +55,14 @@ jobs:
         aws s3 cp artifacts/*.deb $s3_path/debs/opendistro-security/
         aws s3 cp artifacts/*.rpm $s3_path/rpms/opendistro-security/
         aws cloudfront create-invalidation --distribution-id ${{ secrets.DISTRIBUTION_ID }} --paths '/downloads/*'
+
+    - name: Upload Artifacts to Maven Central
+      env:
+        SONATYPE_USER: ${{ secrets.SONATYPE_USER }}
+        SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+      run: |
+        gpg --batch --import --no-tty <(echo -e "${{ secrets.PGP_PRIVATE_KEY }}")
+        mvn -B deploy -Padvanced -Prelease -DskipTests -Dgpg.passphrase=${{ secrets.PGP_PASSPHRASE }}
 
     - name: Create Github Draft Release
       id: create_release

@@ -17,10 +17,12 @@ package com.amazon.opendistroforelasticsearch.security.auditlog.config;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
+import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.annotation.Nulls;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.Logger;
@@ -142,6 +144,11 @@ public class AuditConfig {
         private Set<String> ignoredAuditUsers = DEFAULT_IGNORED_USERS;
         @JsonProperty(value = Key.IGNORE_REQUESTS)
         private Set<String> ignoreAuditRequests = Collections.emptySet();
+
+        @JsonIgnore
+        private WildcardMatcher ignoredAuditUsersMatcher;
+        @JsonIgnore
+        private WildcardMatcher ignoredAuditRequestsMatcher;
 
         /**
          * Checks if auditing for REST API is enabled or disabled
@@ -323,6 +330,7 @@ public class AuditConfig {
             } else {
                 this.ignoredAuditUsers = Collections.emptySet();
             }
+            ignoredAuditUsersMatcher = WildcardMatcher.from(this.ignoredAuditUsers);
         }
 
         /**
@@ -345,6 +353,39 @@ public class AuditConfig {
             } else {
                 this.ignoreAuditRequests = Collections.emptySet();
             }
+            ignoredAuditRequestsMatcher = WildcardMatcher.from(this.ignoreAuditRequests);
+        }
+
+        @VisibleForTesting
+        @JsonIgnore
+        WildcardMatcher getIgnoredAuditUsersMatcher() {
+            return ignoredAuditUsersMatcher;
+        }
+
+        /**
+         * Check if user is excluded from audit.
+         * @param user
+         * @return true if user is excluded from audit logging
+         */
+        @JsonIgnore
+        public boolean isAuditDisabled(String user) {
+            return ignoredAuditUsersMatcher.test(user);
+        }
+
+        @VisibleForTesting
+        @JsonIgnore
+        WildcardMatcher getIgnoredAuditRequestsMatcher() {
+            return ignoredAuditRequestsMatcher;
+        }
+
+        /**
+         * Check if request is excluded from audit
+         * @param action
+         * @return true if request action is excluded from audit
+         */
+        @JsonIgnore
+        public boolean isRequestAuditDisabled(String action) {
+            return ignoredAuditRequestsMatcher.test(action);
         }
 
         public void log(Logger logger) {

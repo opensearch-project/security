@@ -2,31 +2,26 @@ package com.amazon.opendistroforelasticsearch.security.auditlog.compliance;
 
 import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
+import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
+
 import com.google.common.collect.ImmutableSet;
-import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.settings.Settings;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Collections;
-import java.util.Set;
 
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertArrayEquals;
 
 public class ComplianceConfigTest {
 
-    @Rule
-    public ExpectedException thrown = ExpectedException.none();
-
     @Test
     public void testDefault() {
+        // arrange
+        final WildcardMatcher defaultIgnoredUserMatcher = WildcardMatcher.from("kibanaserver");
         // act
-        final Set<String> defaultIgnoredUser = Collections.singleton("kibanaserver");
         final ComplianceConfig complianceConfig = ComplianceConfig.from(Settings.EMPTY);
         // assert
         assertTrue(complianceConfig.isEnabled());
@@ -35,10 +30,8 @@ public class ComplianceConfigTest {
         assertFalse(complianceConfig.shouldLogReadMetadataOnly());
         assertFalse(complianceConfig.shouldLogWriteMetadataOnly());
         assertFalse(complianceConfig.shouldLogDiffsForWrite());
-        assertTrue(complianceConfig.getImmutableIndicesPatterns().isEmpty());
-        assertEquals(complianceConfig.getIgnoredComplianceUsersForRead(), defaultIgnoredUser);
-        assertEquals(complianceConfig.getIgnoredComplianceUsersForWrite(), defaultIgnoredUser);
-        assertEquals(16, complianceConfig.getSalt16().length);
+        assertEquals(defaultIgnoredUserMatcher, complianceConfig.getIgnoredComplianceUsersForReadMatcher());
+        assertEquals(defaultIgnoredUserMatcher, complianceConfig.getIgnoredComplianceUsersForWriteMatcher());
     }
 
     @Test
@@ -52,7 +45,6 @@ public class ComplianceConfigTest {
                 .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_METADATA_ONLY, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT, testSalt)
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_IMMUTABLE_INDICES, "immutable1", "immutable2", "immutable2")
                 .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, "write_index1", "write_index_pattern*")
                 .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS, "read_index1,field1,field2", "read_index_pattern*,field1,field_pattern*")
                 .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS,
@@ -71,11 +63,8 @@ public class ComplianceConfigTest {
         assertTrue(complianceConfig.shouldLogReadMetadataOnly());
         assertTrue(complianceConfig.shouldLogWriteMetadataOnly());
         assertFalse(complianceConfig.shouldLogDiffsForWrite());
-        assertEquals(complianceConfig.getImmutableIndicesPatterns(), ImmutableSet.of("immutable1", "immutable2"));
-        assertArrayEquals(testSalt.getBytes(StandardCharsets.UTF_8), complianceConfig.getSalt16());
-        assertEquals(16, complianceConfig.getSalt16().length);
-        assertEquals(complianceConfig.getIgnoredComplianceUsersForRead(), ImmutableSet.of("test-user-1", "test-user-2"));
-        assertEquals(complianceConfig.getIgnoredComplianceUsersForWrite(), ImmutableSet.of("test-user-3", "test-user-4"));
+        assertEquals(WildcardMatcher.from(ImmutableSet.of("test-user-1", "test-user-2")), complianceConfig.getIgnoredComplianceUsersForReadMatcher());
+        assertEquals(WildcardMatcher.from(ImmutableSet.of("test-user-3", "test-user-4")), complianceConfig.getIgnoredComplianceUsersForWriteMatcher());
 
         // test write history
         assertTrue(complianceConfig.writeHistoryEnabledForIndex(".opendistro_security"));
@@ -102,32 +91,34 @@ public class ComplianceConfigTest {
     }
 
     @Test
-    public void testSaltThrowsExceptionWhenInsufficientBytesProvided() {
-        // assert
-        thrown.expect(ElasticsearchException.class);
-        thrown.expectMessage("Provided compliance salt abcd must at least contain 16 bytes");
-
+    public void testNone() {
         // arrange
-        final String testSalt = "abcd";
         final Settings settings = Settings.builder()
-                .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT, testSalt)
-                .build();
-        // act
-        ComplianceConfig.from(settings);
-    }
-
-    @Test
-    public void testSaltUsesOnlyFirst16Bytes() {
-        // arrange
-        final String testSalt = "abcdefghijklmnopqrstuvwxyz";
-        final Settings settings = Settings.builder()
-                .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT, testSalt)
+                .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS,
+                        "NONE")
+                .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS,
+                        "NONE")
                 .build();
         // act
         final ComplianceConfig complianceConfig = ComplianceConfig.from(settings);
-
         // assert
-        assertEquals(16, complianceConfig.getSalt16().length);
-        assertArrayEquals(testSalt.substring(0, 16).getBytes(StandardCharsets.UTF_8), complianceConfig.getSalt16());
+        assertSame(WildcardMatcher.NONE, complianceConfig.getIgnoredComplianceUsersForReadMatcher());
+        assertSame(WildcardMatcher.NONE, complianceConfig.getIgnoredComplianceUsersForWriteMatcher());
+    }
+
+    @Test
+    public void testEmpty() {
+        // arrange
+        final Settings settings = Settings.builder()
+                .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS,
+                        Collections.emptyList())
+                .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS,
+                        Collections.emptyList())
+                .build();
+        // act
+        final ComplianceConfig complianceConfig = ComplianceConfig.from(settings);
+        // assert
+        assertSame(WildcardMatcher.NONE, complianceConfig.getIgnoredComplianceUsersForReadMatcher());
+        assertSame(WildcardMatcher.NONE, complianceConfig.getIgnoredComplianceUsersForWriteMatcher());
     }
 }

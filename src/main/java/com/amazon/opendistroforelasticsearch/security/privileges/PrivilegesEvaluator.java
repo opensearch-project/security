@@ -64,8 +64,8 @@ import org.elasticsearch.action.search.SearchScrollAction;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.termvectors.MultiTermVectorsAction;
 import org.elasticsearch.action.update.UpdateAction;
-import org.elasticsearch.cluster.metadata.AliasMetaData;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.AliasMetadata;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
@@ -91,6 +91,7 @@ import com.amazon.opendistroforelasticsearch.security.user.User;
 
 public class PrivilegesEvaluator {
 
+    private static final WildcardMatcher ACTION_MATCHER = WildcardMatcher.from("indices:data/read/*search*");
     protected final Logger log = LogManager.getLogger(this.getClass());
     protected final Logger actionTrace = LogManager.getLogger("opendistro_security_action_trace");
     private final ClusterService clusterService;
@@ -170,6 +171,10 @@ public class PrivilegesEvaluator {
 
         if(action0.startsWith("internal:indices/admin/upgrade")) {
             action0 = "indices:admin/upgrade";
+        }
+
+        if ("indices:admin/auto_create".equals(action0)) {
+            action0 = "indices:admin/create";
         }
 
         final TransportAddress caller = Objects.requireNonNull((TransportAddress) this.threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS));
@@ -546,16 +551,16 @@ public class PrivilegesEvaluator {
         //check filtered aliases
         for (String requestAliasOrIndex: requestedResolvedIndices) {
 
-            final List<AliasMetaData> filteredAliases = new ArrayList<AliasMetaData>();
+            final List<AliasMetadata> filteredAliases = new ArrayList<>();
 
-            final IndexMetaData indexMetaData = clusterService.state().metaData().getIndices().get(requestAliasOrIndex);
+            final IndexMetadata indexMetadata = clusterService.state().metadata().getIndices().get(requestAliasOrIndex);
 
-            if(indexMetaData == null) {
+            if (indexMetadata == null) {
                 log.debug("{} does not exist in cluster metadata", requestAliasOrIndex);
                 continue;
             }
 
-            final ImmutableOpenMap<String, AliasMetaData> aliases = indexMetaData.getAliases();
+            final ImmutableOpenMap<String, AliasMetadata> aliases = indexMetadata.getAliases();
 
             if(aliases != null && aliases.size() > 0) {
 
@@ -566,12 +571,12 @@ public class PrivilegesEvaluator {
                 final Iterator<String> it = aliases.keysIt();
                 while(it.hasNext()) {
                     final String alias = it.next();
-                    final AliasMetaData aliasMetaData = aliases.get(alias);
+                    final AliasMetadata aliasMetadata = aliases.get(alias);
 
-                    if(aliasMetaData != null && aliasMetaData.filteringRequired()) {
-                        filteredAliases.add(aliasMetaData);
+                    if (aliasMetadata != null && aliasMetadata.filteringRequired()) {
+                        filteredAliases.add(aliasMetadata);
                         if(log.isDebugEnabled()) {
-                            log.debug(alias+" is a filtered alias "+aliasMetaData.getFilter());
+                            log.debug(alias+" is a filtered alias "+aliasMetadata.getFilter());
                         }
                     } else {
                         if(log.isDebugEnabled()) {
@@ -581,7 +586,7 @@ public class PrivilegesEvaluator {
                 }
             }
 
-            if(filteredAliases.size() > 1 && WildcardMatcher.match("indices:data/read/*search*", action)) {
+            if(filteredAliases.size() > 1 && ACTION_MATCHER.test(action)) {
                 //TODO add queries as dls queries (works only if dls module is installed)
                 final String faMode = dcm.getFilteredAliasMode();// getConfigSettings().dynamic.filtered_alias_mode;
                 if(faMode.equals("warn")) {
@@ -600,14 +605,14 @@ public class PrivilegesEvaluator {
         return false;
     }
 
-    private List<String> toString(List<AliasMetaData> aliases) {
+    private List<String> toString(List<AliasMetadata> aliases) {
         if(aliases == null || aliases.size() == 0) {
             return Collections.emptyList();
         }
 
         final List<String> ret = new ArrayList<>(aliases.size());
 
-        for(final AliasMetaData amd: aliases) {
+        for(final AliasMetadata amd: aliases) {
             if(amd != null) {
                 ret.add(amd.alias());
             }

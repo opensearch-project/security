@@ -78,7 +78,7 @@ import org.elasticsearch.action.termvectors.MultiTermVectorsRequest;
 import org.elasticsearch.action.termvectors.TermVectorsRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.AliasOrIndex;
+import org.elasticsearch.cluster.metadata.IndexAbstraction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -99,9 +99,12 @@ import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfig
 import com.amazon.opendistroforelasticsearch.security.support.SnapshotRestoreHelper;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-public final class IndexResolverReplacer {
+import static org.elasticsearch.cluster.metadata.IndexAbstraction.Type.ALIAS;
+
+public class IndexResolverReplacer {
 
     private static final Set<String> NULL_SET = new HashSet<>(Collections.singleton(null));
     private final Logger log = LogManager.getLogger(this.getClass());
@@ -187,7 +190,8 @@ public final class IndexResolverReplacer {
             final Iterator<String> iterator = localRequestedPatterns.iterator();
             while (iterator.hasNext()) {
                 final String[] split = iterator.next().split(String.valueOf(RemoteClusterService.REMOTE_CLUSTER_INDEX_SEPARATOR), 2);
-                if (split.length > 1 && WildcardMatcher.matchAny(split[0], remoteClusters)) {
+                final WildcardMatcher matcher = WildcardMatcher.from(split[0]);
+                if (split.length > 1 && matcher.matchAny(remoteClusters)) {
                     iterator.remove();
                 }
             }
@@ -224,13 +228,14 @@ public final class IndexResolverReplacer {
                             .stream()
                             .map(resolver::resolveDateMathExpression)
                             .collect(Collectors.toSet());
+            final WildcardMatcher dateResolvedMatcher = WildcardMatcher.from(dateResolvedLocalRequestedPatterns);
             //fill matchingAliases
-            final Map<String, AliasOrIndex> lookup = state.metaData().getAliasAndIndexLookup();
+            final Map<String, IndexAbstraction> lookup = state.metadata().getIndicesLookup();
             matchingAliases = lookup.entrySet()
                     .stream()
-                    .filter(e -> e.getValue().isAlias())
+                    .filter(e -> e.getValue().getType() == ALIAS)
                     .map(Map.Entry::getKey)
-                    .filter(alias -> WildcardMatcher.matchAny(dateResolvedLocalRequestedPatterns, alias))
+                    .filter(dateResolvedMatcher)
                     .collect(Collectors.toSet());
 
             try {
@@ -262,10 +267,9 @@ public final class IndexResolverReplacer {
             @Override
             public String[] provide(String[] original, Object request, boolean supportsReplace) {
                 if(supportsReplace) {
-
                     if(retainMode && !isAllWithNoRemote(original)) {
                         final Resolved resolved = resolveRequest(request);
-                        final List<String> retained = WildcardMatcher.getMatchAny(resolved.getAllIndices(), replacements);
+                        final List<String> retained = WildcardMatcher.from(resolved.getAllIndices()).getMatchAny(replacements, Collectors.toList());
                         retained.addAll(resolved.getRemoteIndices());
                         return retained.toArray(new String[0]);
                     }

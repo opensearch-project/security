@@ -30,10 +30,6 @@
 
 package com.amazon.opendistroforelasticsearch.security.compliance;
 
-import java.nio.BufferUnderflowException;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -42,9 +38,9 @@ import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.settings.Settings;
 import org.joda.time.DateTime;
@@ -67,7 +63,6 @@ import com.google.common.collect.ImmutableSet;
 public class ComplianceConfig {
 
     private static final Logger log = LogManager.getLogger(ComplianceConfig.class);
-    private static final int SALT_SIZE = 16;
     private static final int CACHE_SIZE = 1000;
     private static final String INTERNAL_ELASTICSEARCH = "internal_elasticsearch";
 
@@ -76,60 +71,47 @@ public class ComplianceConfig {
     private final boolean logReadMetadataOnly;
     private final boolean logWriteMetadataOnly;
     private final boolean logDiffsForWrite;
-    private final List<String> watchedWriteIndicesPatterns;
-    private final Set<String> ignoredComplianceUsersForRead;
-    private final Set<String> ignoredComplianceUsersForWrite;
-    private final Set<String> immutableIndicesPatterns;
+    private final WildcardMatcher watchedWriteIndicesMatcher;
+    private final WildcardMatcher ignoredComplianceUsersForReadMatcher;
+    private final WildcardMatcher ignoredComplianceUsersForWriteMatcher;
     private final String opendistrosecurityIndex;
-    private final Map<String, Set<String>> readEnabledFields;
-    private final LoadingCache<String, Set<String>> readEnabledFieldsCache;
-    private final byte[] salt16;
+
+    private final Map<WildcardMatcher, Set<String>> readEnabledFields;
+    private final LoadingCache<String, WildcardMatcher> readEnabledFieldsCache;
     private final DateTimeFormatter auditLogPattern;
     private final String auditLogIndex;
     private final boolean enabled;
 
     private ComplianceConfig(
-            final boolean complianceEnabled,
+            final boolean enabled,
             final boolean logExternalConfig,
             final boolean logInternalConfig,
             final boolean logReadMetadataOnly,
-            final Map<String, Set<String>> readEnabledFields,
+            final Map<String, Set<String>> watchedReadFields,
             final Set<String> ignoredComplianceUsersForRead,
             final boolean logWriteMetadataOnly,
             final boolean logDiffsForWrite,
             final List<String> watchedWriteIndicesPatterns,
             final Set<String> ignoredComplianceUsersForWrite,
-            final Set<String> immutableIndicesPatterns,
-            final String saltAsString,
             final String opendistrosecurityIndex,
             final String destinationType,
             final String destinationIndex) {
-        this.enabled = complianceEnabled;
+        this.enabled = enabled;
         this.logExternalConfig = logExternalConfig;
         this.logInternalConfig = logInternalConfig;
         this.logReadMetadataOnly = logReadMetadataOnly;
         this.logWriteMetadataOnly = logWriteMetadataOnly;
         this.logDiffsForWrite = logDiffsForWrite;
-        this.readEnabledFields = readEnabledFields;
-        this.watchedWriteIndicesPatterns = watchedWriteIndicesPatterns;
-        this.ignoredComplianceUsersForRead = ignoredComplianceUsersForRead;
-        this.ignoredComplianceUsersForWrite = ignoredComplianceUsersForWrite;
-        this.immutableIndicesPatterns = immutableIndicesPatterns;
+        this.watchedWriteIndicesMatcher = WildcardMatcher.from(watchedWriteIndicesPatterns);
+        this.ignoredComplianceUsersForReadMatcher = WildcardMatcher.from(ignoredComplianceUsersForRead);
+        this.ignoredComplianceUsersForWriteMatcher = WildcardMatcher.from(ignoredComplianceUsersForWrite);
         this.opendistrosecurityIndex = opendistrosecurityIndex;
 
-        this.salt16 = new byte[SALT_SIZE];
-        if (saltAsString.equals(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT_DEFAULT)) {
-            log.warn("If you plan to use field masking pls configure compliance salt {} to be a random string of 16 chars length identical on all nodes", saltAsString);
-        }
-        try {
-            ByteBuffer byteBuffer = StandardCharsets.UTF_8.encode(saltAsString);
-            byteBuffer.get(salt16);
-            if (byteBuffer.remaining() > 0) {
-                log.warn("Provided compliance salt {} is greater than 16 bytes. Only the first 16 bytes are used for salting", saltAsString);
-            }
-        } catch (BufferUnderflowException e) {
-            throw new ElasticsearchException("Provided compliance salt " + saltAsString + " must at least contain 16 bytes", e);
-        }
+        //opendistro_security.compliance.pii_fields:
+        //  - indexpattern,fieldpattern,fieldpattern,....
+        this.readEnabledFields = watchedReadFields.keySet().stream()
+                .filter(key -> !Strings.isNullOrEmpty(key))
+                .collect(Collectors.toMap(WildcardMatcher::from, watchedReadFields::get));
 
         DateTimeFormatter auditLogPattern = null;
         String auditLogIndex = null;
@@ -148,10 +130,10 @@ public class ComplianceConfig {
 
         this.readEnabledFieldsCache = CacheBuilder.newBuilder()
                 .maximumSize(CACHE_SIZE)
-                .build(new CacheLoader<String, Set<String>>() {
+                .build(new CacheLoader<String, WildcardMatcher>() {
                     @Override
-                    public Set<String> load(String index) throws Exception {
-                        return getFieldsForIndex(index);
+                    public WildcardMatcher load(String index) throws Exception {
+                        return WildcardMatcher.from(getFieldsForIndex(index));
                     }
                 });
     }
@@ -161,14 +143,13 @@ public class ComplianceConfig {
         logger.info("Auditing of internal configuration is {}.", logInternalConfig ? "enabled" : "disabled");
         logger.info("Auditing only metadata information for read request is {}.", logReadMetadataOnly ? "enabled" : "disabled");
         logger.info("Auditing will watch {} for read requests.", readEnabledFields);
+        logger.info("Auditing read operation requests from {} users is disabled.", ignoredComplianceUsersForReadMatcher);
         logger.info("Auditing only metadata information for write request is {}.", logWriteMetadataOnly ? "enabled" : "disabled");
         logger.info("Auditing diffs for write requests is {}.", logDiffsForWrite ? "enabled" : "disabled");
-        logger.info("Auditing will watch {} for write requests.", watchedWriteIndicesPatterns);
-        logger.info("{} indices are made immutable.", immutableIndicesPatterns);
+        logger.info("Auditing write operation requests from {} users is disabled.", ignoredComplianceUsersForWriteMatcher);
+        logger.info("Auditing will watch {} for write requests.", watchedWriteIndicesMatcher);
         logger.info("{} is used as internal security index.", opendistrosecurityIndex);
         logger.info("Internal index used for posting audit logs is {}", auditLogIndex);
-        logger.info("Compliance read operation requests auditing from {} users is disabled.", ignoredComplianceUsersForRead);
-        logger.info("Compliance write operation requests auditing from {} users is disabled.", ignoredComplianceUsersForWrite);
     }
 
     /**
@@ -183,7 +164,6 @@ public class ComplianceConfig {
 
     /**
      * Create compliance configuration from audit
-     * saltAsString - Read from settings. Not hot-reloaded. Used for anonymization of fields in FLS using consistent hash.
      * opendistrosecurityIndex - used to determine if internal index is written to or read from.
      * type - checks if log destination used is internal elasticsearch.
      * index - the index used for storing audit logs to avoid monitoring it.
@@ -192,8 +172,6 @@ public class ComplianceConfig {
      * @return ComplianceConfig
      */
     public static ComplianceConfig from(AuditConfig.Compliance configCompliance, Settings settings) {
-        final String saltAsString = settings.get(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT, ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT_DEFAULT);
-        final Set<String> immutableIndicesPatterns = ImmutableSet.copyOf(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList()));
         final String opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
         final String type = settings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_TYPE_DEFAULT, null);
         final String index = settings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ES_INDEX, "'security-auditlog-'YYYY.MM.dd");
@@ -209,8 +187,6 @@ public class ComplianceConfig {
                 configCompliance.isWriteLogDiffs(),
                 configCompliance.getWriteWatchedIndices(),
                 configCompliance.getWriteIgnoreUsers(),
-                immutableIndicesPatterns,
-                saltAsString,
                 opendistrosecurityIndex,
                 type,
                 index);
@@ -265,36 +241,32 @@ public class ComplianceConfig {
         return logReadMetadataOnly;
     }
 
-    /**
-     * Get set of immutable index pattern
-     * @return set of index patterns
-     */
-    public Set<String> getImmutableIndicesPatterns() {
-        return immutableIndicesPatterns;
+    @VisibleForTesting
+    public WildcardMatcher getIgnoredComplianceUsersForReadMatcher() {
+        return ignoredComplianceUsersForReadMatcher;
     }
 
     /**
-     * Get the salt in bytes for filed anonymization
-     * @return salt in bytes
+     * Check if user is excluded from compliance read audit
+     * @param user
+     * @return true if user is excluded from compliance read audit
      */
-    public byte[] getSalt16() {
-        return Arrays.copyOf(salt16, salt16.length);
+    public boolean isComplianceReadAuditDisabled(String user) {
+        return ignoredComplianceUsersForReadMatcher.test(user);
+    }
+
+    @VisibleForTesting
+    public WildcardMatcher getIgnoredComplianceUsersForWriteMatcher() {
+        return ignoredComplianceUsersForWriteMatcher;
     }
 
     /**
-     * Set of users for whom compliance read auditing must be ignored.
-     * @return set of users
+     * Check if user is excluded from compliance write audit
+     * @param user
+     * @return true if user is excluded from compliance write audit
      */
-    public Set<String> getIgnoredComplianceUsersForRead() {
-        return ignoredComplianceUsersForRead;
-    }
-
-    /**
-     * Set of users for whom compliance write auditing must be ignored.
-     * @return set of users
-     */
-    public Set<String> getIgnoredComplianceUsersForWrite() {
-        return ignoredComplianceUsersForWrite;
+    public boolean isComplianceWriteAuditDisabled(String user) {
+        return ignoredComplianceUsersForWriteMatcher.test(user);
     }
 
     /**
@@ -318,9 +290,9 @@ public class ComplianceConfig {
         }
 
         return readEnabledFields.entrySet().stream()
-                .filter(entry -> WildcardMatcher.match(entry.getKey(), index))
+                .filter(entry -> entry.getKey().test(index))
                 .flatMap(entry -> entry.getValue().stream())
-                .collect(Collectors.toSet());
+                .collect(ImmutableSet.toImmutableSet());
     }
 
     /**
@@ -343,7 +315,7 @@ public class ComplianceConfig {
      * @return true/false
      */
     public boolean writeHistoryEnabledForIndex(String index) {
-        if (index == null) {
+        if (index == null || !isEnabled()) {
             return false;
         }
         // if open distro index (internal index) check if internal config logging is enabled
@@ -360,7 +332,8 @@ public class ComplianceConfig {
                 return false;
             }
         }
-        return WildcardMatcher.matchAny(watchedWriteIndicesPatterns, index);
+
+        return watchedWriteIndicesMatcher.test(index);
     }
 
     /**
@@ -378,7 +351,7 @@ public class ComplianceConfig {
             return logInternalConfig;
         }
         try {
-            return !readEnabledFieldsCache.get(index).isEmpty();
+            return readEnabledFieldsCache.get(index) != WildcardMatcher.NONE;
         } catch (ExecutionException e) {
             log.warn("Failed to get index {} fields enabled for read from cache. Bypassing cache.", index, e);
             return getFieldsForIndex(index).isEmpty();
@@ -399,16 +372,13 @@ public class ComplianceConfig {
         if (opendistrosecurityIndex.equals(index)) {
             return logInternalConfig;
         }
-        Set<String> fields;
+        WildcardMatcher matcher;
         try {
-            fields = readEnabledFieldsCache.get(index);
-            if (fields.isEmpty()) {
-                return false;
-            }
+            matcher = readEnabledFieldsCache.get(index);
         } catch (ExecutionException e) {
             log.warn("Failed to get index {} fields enabled for read from cache. Bypassing cache.", index, e);
-            fields = getFieldsForIndex(index);
+            matcher = WildcardMatcher.from(getFieldsForIndex(index));
         }
-        return WildcardMatcher.matchAny(fields, field);
+        return matcher.test(field);
     }
 }

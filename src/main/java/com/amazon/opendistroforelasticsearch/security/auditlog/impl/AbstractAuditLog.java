@@ -23,7 +23,6 @@ import java.nio.file.Paths;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -679,8 +678,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             return false;
         }
 
-        final Collection<String>ignoredAuditUsers = auditConfigFilter.getIgnoredAuditUsers();
-        if (!ignoredAuditUsers.isEmpty() && WildcardMatcher.matchAny(ignoredAuditUsers, effectiveUser)) {
+        if (auditConfigFilter.isAuditDisabled(effectiveUser)) {
 
             if(log.isTraceEnabled()) {
                 log.trace("Skipped audit log message because of user {} is ignored", effectiveUser);
@@ -689,9 +687,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             return false;
         }
 
-        final Collection<String> ignoredAuditRequests = auditConfigFilter.getIgnoredAuditRequests();
-        if (request != null && !ignoredAuditRequests.isEmpty()
-                && (WildcardMatcher.matchAny(ignoredAuditRequests, action) || WildcardMatcher.matchAny(ignoredAuditRequests, request.getClass().getSimpleName()))) {
+        if (request != null && (auditConfigFilter.isRequestAuditDisabled(action) || auditConfigFilter.isRequestAuditDisabled(request.getClass().getSimpleName()))) {
 
             if(log.isTraceEnabled()) {
                 log.trace("Skipped audit log message because request {} is ignored", action+"#"+request.getClass().getSimpleName());
@@ -732,9 +728,7 @@ public abstract class AbstractAuditLog implements AuditLog {
 
         if(category == AuditCategory.COMPLIANCE_DOC_READ || category == AuditCategory.COMPLIANCE_INTERNAL_CONFIG_READ) {
 
-            final Collection<String> ignoredComplianceUsersForRead = complianceConfig.getIgnoredComplianceUsersForRead();
-            if (!ignoredComplianceUsersForRead.isEmpty() && effectiveUser != null
-                    && WildcardMatcher.matchAny(ignoredComplianceUsersForRead, effectiveUser)) {
+            if (effectiveUser != null && complianceConfig.isComplianceReadAuditDisabled(effectiveUser)) {
 
                 if(log.isTraceEnabled()) {
                     log.trace("Skipped compliance log message because of user {} is ignored", effectiveUser);
@@ -744,9 +738,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         }
 
         if(category == AuditCategory.COMPLIANCE_DOC_WRITE || category == AuditCategory.COMPLIANCE_INTERNAL_CONFIG_WRITE) {
-            final Collection<String> ignoredComplianceUsersForWrite = complianceConfig.getIgnoredComplianceUsersForWrite();
-            if (!ignoredComplianceUsersForWrite.isEmpty() && effectiveUser != null
-                    && WildcardMatcher.matchAny(ignoredComplianceUsersForWrite, effectiveUser)) {
+            if (effectiveUser != null && complianceConfig.isComplianceWriteAuditDisabled(effectiveUser)) {
 
                 if(log.isTraceEnabled()) {
                     log.trace("Skipped compliance log message because of user {} is ignored", effectiveUser);
@@ -775,8 +767,7 @@ public abstract class AbstractAuditLog implements AuditLog {
 
         }
 
-        final Collection<String> ignoredAuditUsers = auditConfigFilter.getIgnoredAuditUsers();
-        if (!ignoredAuditUsers.isEmpty() && WildcardMatcher.matchAny(ignoredAuditUsers, effectiveUser)) {
+        if (auditConfigFilter.isAuditDisabled(effectiveUser)) {
 
             if(log.isTraceEnabled()) {
                 log.trace("Skipped audit log message because of user {} is ignored", effectiveUser);
@@ -785,9 +776,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             return false;
         }
 
-        final Collection<String> ignoredAuditRequests = auditConfigFilter.getIgnoredAuditRequests();
-        if (request != null && !ignoredAuditRequests.isEmpty()
-                && (WildcardMatcher.matchAny(ignoredAuditRequests, request.path()))) {
+        if (request != null && auditConfigFilter.isRequestAuditDisabled(request.path())) {
 
             if(log.isTraceEnabled()) {
                 log.trace("Skipped audit log message because request {} is ignored", request.path());

@@ -99,21 +99,39 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         // TODO it might be sensible to consolidate this with the overridden method in
         // order to minimize duplicated logic
 
-        final SecurityDynamicConfiguration<?> configuration = load(getConfigName(), false);
+        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);
 
-        if (isHidden(configuration, username)) {
+        if (isHidden(internalUsersConfiguration, username)) {
             forbidden(channel, "Resource '" + username + "' is not available.");
             return;
         }
 
         // check if resource is writeable
-        if (!isReservedAndAccessible(configuration, username)) {
+        if (!isReservedAndAccessible(internalUsersConfiguration, username)) {
             forbidden(channel, "Resource '" + username + "' is read-only.");
             return;
         }
 
         final ObjectNode contentAsNode = (ObjectNode) content;
         final SecurityJsonNode securityJsonNode = new SecurityJsonNode(contentAsNode);
+
+        // Don't allow user to add hidden, reserved or non-existent role
+        final List<String> opendistroSecurityRoles = securityJsonNode.get("opendistro_security_roles").asList();
+        if (opendistroSecurityRoles != null) {
+            final SecurityDynamicConfiguration<?> rolesConfiguration = load(CType.ROLES, false);
+            for (final String role: opendistroSecurityRoles) {
+
+                if (!rolesConfiguration.exists(role) || isHidden(rolesConfiguration, role)) {
+                    notFound(channel, "Role '"+role+"' is not found.");
+                    return;
+                }
+
+                if (isReserved(rolesConfiguration, role)) {
+                    forbidden(channel, "Role '" + role + "' is reserved.");
+                    return;
+                }
+            }
+        }
 
         // if password is set, it takes precedence over hash
         final String plainTextPassword = securityJsonNode.get("password").asString();
@@ -127,10 +145,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
             contentAsNode.remove("password");
         }
 
-        // check if user exists
-        final SecurityDynamicConfiguration<?> internaluser = load(CType.INTERNALUSERS, false);
-
-        final boolean userExisted = internaluser.exists(username);
+        final boolean userExisted = internalUsersConfiguration.exists(username);
 
         // when updating an existing user password hash can be blank, which means no
         // changes
@@ -144,21 +159,21 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         // for existing users, hash is optional
         if (userExisted && securityJsonNode.get("hash").asString() == null) {
             // sanity check, this should usually not happen
-            final String hash = ((Hashed) internaluser.getCEntry(username)).getHash();
+            final String hash = ((Hashed) internalUsersConfiguration.getCEntry(username)).getHash();
             if (hash == null || hash.length() == 0) {
                 internalErrorResponse(channel,
-                        "Existing user " + username + " has no password, and no new password or hash was specified.");
+                    "Existing user " + username + " has no password, and no new password or hash was specified.");
                 return;
             }
             contentAsNode.put("hash", hash);
         }
 
-        internaluser.remove(username);
+        internalUsersConfiguration.remove(username);
 
         // checks complete, create or update the user
-        internaluser.putCObject(username, DefaultObjectMapper.readTree(contentAsNode, internaluser.getImplementingClass()));
+        internalUsersConfiguration.putCObject(username, DefaultObjectMapper.readTree(contentAsNode,  internalUsersConfiguration.getImplementingClass()));
 
-        saveAnUpdateConfigs(client, request, CType.INTERNALUSERS, internaluser, new OnSucessActionListener<IndexResponse>(channel) {
+        saveAnUpdateConfigs(client, request, CType.INTERNALUSERS, internalUsersConfiguration, new OnSucessActionListener<IndexResponse>(channel) {
 
             @Override
             public void onResponse(IndexResponse response) {
