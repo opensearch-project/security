@@ -19,9 +19,16 @@ jobs:
     - name: Checkout security
       uses: actions/checkout@v2
 
+    - name: Cache Maven packages
+      uses: actions/cache@v1
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+
     - name: Build
       run: |
-        mvn clean package -Padvanced -DskipTests
+        mvn -B clean package -Padvanced -DskipTests
         artifact_zip=`ls $(pwd)/target/releases/opendistro_security-*.zip | grep -v admin-standalone`
         ./gradlew build buildDeb buildRpm --no-daemon -ParchivePath=$artifact_zip -Dbuild.snapshot=false
         mkdir artifacts

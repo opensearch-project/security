@@ -24,8 +24,7 @@ import com.amazon.opendistroforelasticsearch.security.auditlog.AbstractAuditlogi
 import com.amazon.opendistroforelasticsearch.security.auditlog.helper.LoggingSink;
 import com.amazon.opendistroforelasticsearch.security.auditlog.helper.MockAuditMessageFactory;
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage;
-import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage.Category;
-import com.amazon.opendistroforelasticsearch.security.auditlog.routing.AuditMessageRouter;
+import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
 
@@ -40,13 +39,12 @@ public class PerfTest extends AbstractAuditlogiUnitTest {
 
 		Settings settings = settingsBuilder.put("path.home", ".")
 				.put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
-				.put("opendistro_security.audit.threadpool.size", 0)
 				.build();
 
 		AuditMessageRouter router = createMessageRouterComplianceEnabled(settings);
 		int limit = 150000;
 		while(limit > 0) {
-			AuditMessage msg = MockAuditMessageFactory.validAuditMessage(Category.MISSING_PRIVILEGES);
+			AuditMessage msg = MockAuditMessageFactory.validAuditMessage(AuditCategory.MISSING_PRIVILEGES);
 			router.route(msg);
 			limit--;
 		}

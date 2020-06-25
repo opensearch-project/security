@@ -73,6 +73,11 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
         String name = request.param("name");
         SecurityDynamicConfiguration<?> existingConfiguration = load(getConfigName(), false);
 
+        if (existingConfiguration.getSeqNo() < 0) {
+            forbidden(channel, "Config '" + getConfigName().toLCString() + "' isn't configured. Use OpenDistroSecurityAdmin to populate.");
+            return;
+        }
+
         JsonNode jsonPatch;
 
         try {

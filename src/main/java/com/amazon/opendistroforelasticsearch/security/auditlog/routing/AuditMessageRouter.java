@@ -18,12 +18,12 @@ package com.amazon.opendistroforelasticsearch.security.auditlog.routing;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.EnumMap;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import com.amazon.opendistroforelasticsearch.security.auditlog.config.ThreadPoolConfig;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.Client;
@@ -31,56 +31,47 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage;
-import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage.Category;
+import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
 import com.amazon.opendistroforelasticsearch.security.auditlog.sink.AuditLogSink;
 import com.amazon.opendistroforelasticsearch.security.auditlog.sink.SinkProvider;
-import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
 import com.amazon.opendistroforelasticsearch.security.dlic.rest.support.Utils;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
+
+import static com.google.common.base.Preconditions.checkState;
 
 public class AuditMessageRouter {
 
 	protected final Logger log = LogManager.getLogger(this.getClass());
 	final AuditLogSink defaultSink;
-	final Map<Category, List<AuditLogSink>> categorySinks = new EnumMap<>(Category.class);
+	final Map<AuditCategory, List<AuditLogSink>> categorySinks = new EnumMap<>(AuditCategory.class);
 	final SinkProvider sinkProvider;
 	final AsyncStoragePool storagePool;
-	final boolean enabled;
-	boolean hasMultipleEndpoints;
-	private ComplianceConfig complianceConfig;
+	private boolean hasMultipleEndpoints;
+	private boolean areRoutesEnabled;
 
 	public AuditMessageRouter(final Settings settings, final Client clientProvider, ThreadPool threadPool, final Path configPath) {
 		this.sinkProvider = new SinkProvider(settings, clientProvider, threadPool, configPath);
-		this.storagePool = new AsyncStoragePool(settings);
+		this.storagePool = new AsyncStoragePool(ThreadPoolConfig.getConfig(settings));
 
 		// get the default sink
 		this.defaultSink = sinkProvider.getDefaultSink();
 		if (defaultSink == null) {
 			log.warn("No default storage available, audit log may not work properly. Please check configuration.");
-			enabled = false;
-		} else {
-			// create sinks for all categories. Only do that if we have any extended setting, otherwise there is just the default category
-			setupRoutes(settings);
-			enabled = true;
 		}
 	}
 
-	public void setComplianceConfig(ComplianceConfig complianceConfig) {
-		this.complianceConfig = complianceConfig;
-	}
-
 	public boolean isEnabled() {
-		return this.enabled;
+		return defaultSink != null;
 	}
 
 	public final void route(final AuditMessage msg) {
-		if (!enabled) {
+		if (!isEnabled()) {
 			// should not happen since we check in AuditLogImpl, so this is just a safeguard
 			log.error("#route(AuditMessage) called but message router is disabled");
 			return;
 		}
 		// if we do not run the compliance features or no extended configuration is present, only log to default.
-		if (!hasMultipleEndpoints || complianceConfig == null || !complianceConfig.isEnabled()) {
+		if (!areRoutesEnabled || !hasMultipleEndpoints) {
 			store(defaultSink, msg);
 		} else {
 			for (AuditLogSink sink : categorySinks.get(msg.getCategory())) {
@@ -107,7 +98,9 @@ public class AuditMessageRouter {
 		}
 	}
 
-	private final void setupRoutes(Settings settings) {
+	public final boolean enableRoutes(Settings settings) {
+		checkState(isEnabled(), "AuditMessageRouter is disabled");
+		areRoutesEnabled = true;
 		Map<String, Object> routesConfiguration = Utils.convertJsonToxToStructuredMap(settings.getAsSettings(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_ROUTES));
 		if (!routesConfiguration.isEmpty()) {
 			hasMultipleEndpoints = true;
@@ -117,7 +110,7 @@ public class AuditMessageRouter {
 				log.trace("Setting up routes for endpoint {}, configuraton is {}", routesEntry.getKey(), routesEntry.getValue());
 				String categoryName = routesEntry.getKey();
 				try {
-					Category category = Category.valueOf(categoryName.toUpperCase());
+					AuditCategory category = AuditCategory.valueOf(categoryName.toUpperCase());
 					// warn for duplicate definitions
 					if (categorySinks.get(category) != null) {
 						log.warn("Duplicate routing configuration detected for category {}, skipping.", category);
@@ -134,11 +127,11 @@ public class AuditMessageRouter {
 
 					}
 				} catch (Exception e ) {
-					log.error("Invalid category '{}' found in routing configuration. Must be one of: {}", categoryName, Category.values());
+					log.error("Invalid category '{}' found in routing configuration. Must be one of: {}", categoryName, AuditCategory.values());
 				}
 			}
 			// for all non-configured categories we automatically set up the default endpoint
-			for(Category category : Category.values()) {
+			for(AuditCategory category : AuditCategory.values()) {
 				if (!categorySinks.containsKey(category)) {
 					if (log.isDebugEnabled()) {
 						log.debug("No endpoint configured for category {}, adding default endpoint", category);
@@ -147,9 +140,10 @@ public class AuditMessageRouter {
 				}
 			}
 		}
+		return hasMultipleEndpoints;
 	}
 
-	private final List<AuditLogSink> createSinksForCategory(Category category, Settings configuration) {
+	private final List<AuditLogSink> createSinksForCategory(AuditCategory category, Settings configuration) {
 		List<AuditLogSink> sinksForCategory = new LinkedList<>();
 		List<String> sinks = configuration.getAsList("endpoints");
 		if (sinks == null || sinks.isEmpty()) {

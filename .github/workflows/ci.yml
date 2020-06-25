@@ -23,11 +23,18 @@ jobs:
     - name: Checkout security
       uses: actions/checkout@v2
 
+    - name: Cache Maven packages
+      uses: actions/cache@v1
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+
     - name: Checkstyle
-      run: mvn checkstyle:checkstyle
+      run: mvn -B checkstyle:checkstyle
 
     - name: Test
-      run: OPENDISTRO_SECURITY_TEST_OPENSSL_OPT=true mvn test
+      run: OPENDISTRO_SECURITY_TEST_OPENSSL_OPT=true mvn -B test
 
     - name: Coverage
       uses: codecov/codecov-action@v1
@@ -35,7 +42,7 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Package
-      run: mvn clean package -Padvanced -DskipTests
+      run: mvn -B clean package -Padvanced -DskipTests
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v1

@@ -14,10 +14,23 @@ opendistro_security.advanced_modules_enabled: true
 
 # Specify a list of DNs which denote the other nodes in the cluster.
 # This settings support wildcards and regular expressions
-# This setting only has effect if 'opendistro_security.cert.intercluster_request_evaluator_class' is not set.
+# The list of DNs are also read from security index **in addition** to the yml configuration if
+# opendistro_security.nodes_dn_dynamic_config_enabled is true.
+# NOTE: This setting only has effect if 'opendistro_security.cert.intercluster_request_evaluator_class' is not set.
 opendistro_security.nodes_dn:
   - "CN=*.example.com, OU=SSL, O=Test, L=Test, C=DE"
   - "CN=node.other.com, OU=SSL, O=Test, L=Test, C=DE"
+
+# The nodes_dn_dynamic_config_enabled settings is geared towards cross_cluster usecases where there is a need to
+# manage the whitelisted nodes_dn without having to restart the nodes everytime a new cross_cluster remote is configured
+# Setting nodes_dn_dynamic_config_enabled to true enables **super-admin callable** /_opendistro/_security/api/nodesdn APIs
+# which provide means to update/retrieve nodesdn dynamically.
+#
+# NOTE: The overall whitelisted nodes_dn evaluated comes from both the opendistro_security.nodes_dn and the ones stored
+# in security index.
+# (default: false)
+# NOTE2: This setting only has effect if 'opendistro_security.cert.intercluster_request_evaluator_class' is not set.
+opendistro_security.nodes_dn_dynamic_config_enabled: false
 
 # Defines the DNs (distinguished names) of certificates
 # to which admin privileges should be assigned (mandatory)
@@ -66,14 +79,11 @@ opendistro_security.roles_mapping_resolution: MAPPING_ONLY
 #opendistro_security.audit.config.disabled_categories: ["AUTHENTICATED","GRANTED_PRIVILEGES"]
 # Disable some requests (wildcard or regex of actions or rest request paths)
 #opendistro_security.audit.ignore_requests: ["indices:data/read/*","*_bulk"]
-# Tune threadpool size, default is 10 and 0 means disabled
-#opendistro_security.audit.threadpool.size: 0
+# Tune threadpool size, default is 10
+#opendistro_security.audit.threadpool.size: 10
 # Tune threadpool max size queue length, default is 100000
 #opendistro_security.audit.threadpool.max_queue_len: 100000
 
-# If enable_request_details is true then the audit log event will also contain
-# details like the search query. Default is false. 
-#opendistro_security.audit.enable_request_details: true
 # Ignore users, e.g. do not log audit requests from that users (default: no ignored users)
 #opendistro_security.audit.ignore_users: ['kibanaserver','some*user','/also.*regex possible/']"
 
