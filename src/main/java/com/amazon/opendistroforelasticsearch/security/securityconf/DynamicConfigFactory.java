@@ -9,6 +9,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.NodesDn;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.WhitelistingSettings;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
@@ -137,16 +138,19 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         SecurityDynamicConfiguration<?> rolesmapping = cr.getConfiguration(CType.ROLESMAPPING);
         SecurityDynamicConfiguration<?> tenants = cr.getConfiguration(CType.TENANTS);
         SecurityDynamicConfiguration<?> nodesDn = cr.getConfiguration(CType.NODESDN);
+        SecurityDynamicConfiguration<?> whitelistingSetting = cr.getConfiguration(CType.WHITELISTING_SETTINGS);
 
-        if(log.isDebugEnabled()) {
-            String logmsg = "current config (because of "+typeToConfig.keySet()+")\n"+
-            " actionGroups: "+actionGroups.getImplementingClass()+" with "+actionGroups.getCEntries().size()+" entries\n"+
-            " config: "+config.getImplementingClass()+" with "+config.getCEntries().size()+" entries\n"+
-            " internalusers: "+internalusers.getImplementingClass()+" with "+internalusers.getCEntries().size()+" entries\n"+
-            " roles: "+roles.getImplementingClass()+" with "+roles.getCEntries().size()+" entries\n"+
-            " rolesmapping: "+rolesmapping.getImplementingClass()+" with "+rolesmapping.getCEntries().size()+" entries\n"+
-            " tenants: "+tenants.getImplementingClass()+" with "+tenants.getCEntries().size()+" entries\n"+
-            " nodesdn: "+nodesDn.getImplementingClass()+" with "+nodesDn.getCEntries().size()+" entries";
+
+        if (log.isDebugEnabled()) {
+            String logmsg = "current config (because of " + typeToConfig.keySet() + ")\n" +
+                    " actionGroups: " + actionGroups.getImplementingClass() + " with " + actionGroups.getCEntries().size() + " entries\n" +
+                    " config: " + config.getImplementingClass() + " with " + config.getCEntries().size() + " entries\n" +
+                    " internalusers: " + internalusers.getImplementingClass() + " with " + internalusers.getCEntries().size() + " entries\n" +
+                    " roles: " + roles.getImplementingClass() + " with " + roles.getCEntries().size() + " entries\n" +
+                    " rolesmapping: " + rolesmapping.getImplementingClass() + " with " + rolesmapping.getCEntries().size() + " entries\n" +
+                    " tenants: " + tenants.getImplementingClass() + " with " + tenants.getCEntries().size() + " entries\n" +
+                    " nodesdn: " + nodesDn.getImplementingClass() + " with " + nodesDn.getCEntries().size() + " entries\n" +
+                    " whitelistingSetting: " + whitelistingSetting.getImplementingClass() + " with " + whitelistingSetting.getCEntries().size() + " entries\n";
             log.debug(logmsg);
             
         }
@@ -155,6 +159,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         final InternalUsersModel ium;
         final ConfigModel cm;
         final NodesDnModel nm = new NodesDnModelImpl(nodesDn);
+        final WhitelistingSettingsModel wsm = new WhitelistingSettingsModelImpl(whitelistingSetting);
         if(config.getImplementingClass() == ConfigV7.class) {
                 //statics
                 
@@ -213,6 +218,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         eventBus.post(dcm);
         eventBus.post(ium);
         eventBus.post(nm);
+        eventBus.post(wsm);
 
         initialized.set(true);
         
@@ -356,8 +362,28 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         @Override
         public Map<String, WildcardMatcher> getNodesDn() {
             return this.configuration.getCEntries().entrySet().stream().collect(
-                ImmutableMap.toImmutableMap(Entry::getKey, entry -> WildcardMatcher.from(entry.getValue().getNodesDn(), false)));
+                    ImmutableMap.toImmutableMap(Entry::getKey, entry -> WildcardMatcher.from(entry.getValue().getNodesDn(), false)));
         }
+    }
+
+    private static class WhitelistingSettingsModelImpl extends WhitelistingSettingsModel {
+
+        SecurityDynamicConfiguration<WhitelistingSettings> configuration;
+        WhitelistingSettings whitelistingSettings;
+
+        public WhitelistingSettingsModelImpl(SecurityDynamicConfiguration<?> configuration) {
+            super();
+            this.configuration = (null == configuration.getCType() ? SecurityDynamicConfiguration.empty() :
+                    (SecurityDynamicConfiguration<WhitelistingSettings>) configuration);
+            this.whitelistingSettings = this.configuration.getCEntry("whitelisting_settings");
+
+        }
+
+        @Override
+        public WhitelistingSettings getWhitelistingSettings() {
+            return whitelistingSettings;
+        }
+
     }
    
 }

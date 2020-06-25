@@ -461,7 +461,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             return (rh) -> rh;
         }
 
-        return (rh) -> securityRestHandler.wrap(rh);
+        return (rh) -> securityRestHandler.wrap(rh, adminDns);
     }
 
     @Override
@@ -744,26 +744,13 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
 
         final XFFResolver xffResolver = new XFFResolver(threadPool);
         backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool);
-        
-        final CompatConfig compatConfig = new CompatConfig(environment);
-        
 
+        final CompatConfig compatConfig = new CompatConfig(environment);
 
         evaluator = new PrivilegesEvaluator(clusterService, threadPool, cr, resolver, auditLog,
                 settings, privilegesInterceptor, cih, irr, advancedModulesEnabled);
 
-        
-        final DynamicConfigFactory dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih);
-        dcf.registerDCFListener(backendRegistry);
-        dcf.registerDCFListener(compatConfig);
-        dcf.registerDCFListener(irr);
-        dcf.registerDCFListener(xffResolver);
-        dcf.registerDCFListener(evaluator);
-        
-        cr.setDynamicConfigFactory(dcf);
-        
         odsf = new OpenDistroSecurityFilter(settings, evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs, compatConfig, irr);
-
 
         final String principalExtractorClass = settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, null);
 
@@ -772,6 +759,19 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         } else {
             principalExtractor = ReflectionHelper.instantiatePrincipalExtractor(principalExtractorClass);
         }
+
+        securityRestHandler = new OpenDistroSecurityRestFilter(backendRegistry, auditLog, threadPool,
+                principalExtractor, settings, configPath, compatConfig);
+
+        final DynamicConfigFactory dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih);
+        dcf.registerDCFListener(backendRegistry);
+        dcf.registerDCFListener(compatConfig);
+        dcf.registerDCFListener(irr);
+        dcf.registerDCFListener(xffResolver);
+        dcf.registerDCFListener(evaluator);
+        dcf.registerDCFListener(securityRestHandler);
+
+        cr.setDynamicConfigFactory(dcf);
 
         odsi = new OpenDistroSecurityInterceptor(settings, threadPool, backendRegistry, auditLog, principalExtractor,
                 interClusterRequestEvaluator, cs, Objects.requireNonNull(sslExceptionHandler), Objects.requireNonNull(cih));
@@ -793,7 +793,6 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         components.add(odsi);
         components.add(dcf);
 
-        securityRestHandler = new OpenDistroSecurityRestFilter(backendRegistry, auditLog, threadPool, principalExtractor, settings, configPath, compatConfig);
 
         return components;
 

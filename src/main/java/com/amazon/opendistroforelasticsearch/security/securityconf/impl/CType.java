@@ -13,12 +13,7 @@ import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v6.Confi
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v6.InternalUserV6;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v6.RoleMappingsV6;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v6.RoleV6;
-import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.ActionGroupsV7;
-import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.ConfigV7;
-import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.InternalUserV7;
-import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.RoleMappingsV7;
-import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.RoleV7;
-import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.TenantV7;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.*;
 
 public enum CType {
 
@@ -30,7 +25,9 @@ public enum CType {
     ROLES(toMap(1, RoleV6.class, 2, RoleV7.class)), 
     ROLESMAPPING(toMap(1, RoleMappingsV6.class, 2, RoleMappingsV7.class)),
     TENANTS(toMap(2, TenantV7.class)),
-    NODESDN(toMap(1, NodesDn.class, 2, NodesDn.class));
+    NODESDN(toMap(1, NodesDn.class, 2, NodesDn.class)),
+    WHITELISTING_SETTINGS(toMap(1, WhitelistingSettings.class, 2, WhitelistingSettings.class));
+
 
     private Map<Integer, Class<?>> implementations;
 

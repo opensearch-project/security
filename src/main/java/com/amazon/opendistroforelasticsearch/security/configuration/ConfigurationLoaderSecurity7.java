@@ -131,7 +131,20 @@ public class ConfigurationLoaderSecurity7 {
 
                 // Since NODESDN is newly introduced data-type applying for existing clusters as well, we make it backward compatible by returning valid empty
                 // SecurityDynamicConfiguration.
-                if(cType == CType.NODESDN) {
+                if (cType == CType.NODESDN) {
+                    try {
+                        SecurityDynamicConfiguration<?> empty = ConfigHelper.createEmptySdc(cType, ConfigurationRepository.getDefaultConfigVersion());
+                        rs.put(cType, empty);
+                        latch.countDown();
+                        return;
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+
+                // Since WHITELISTING_SETTINGS is newly introduced data-type applying for existing clusters as well, we make it backward compatible by returning valid empty
+                // SecurityDynamicConfiguration.
+                if (cType == CType.WHITELISTING_SETTINGS) {
                     try {
                         SecurityDynamicConfiguration<?> empty = ConfigHelper.createEmptySdc(cType, ConfigurationRepository.getDefaultConfigVersion());
                         rs.put(cType, empty);

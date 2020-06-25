@@ -50,6 +50,7 @@ import java.util.Locale;
 import java.util.Map;
 
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.NodesDn;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.WhitelistingSettings;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -759,6 +760,7 @@ public class OpenDistroSecurityAdmin {
 
                 final boolean populateFileIfEmpty = true;
                 success = retrieveFile(tc, cd+"nodes_dn_"+date+".yml", index, "nodesdn", legacy, populateFileIfEmpty) && success;
+                success = retrieveFile(tc, cd+"whitelisting_settings_"+date+".yml", index, "whitelisting_settings", legacy, populateFileIfEmpty) && success;
                 return (success?0:-1);
             }
 
@@ -1212,7 +1214,7 @@ public class OpenDistroSecurityAdmin {
             success = retrieveFile(tc, backupDir.getAbsolutePath()+"/tenants.yml", index, "tenants", legacy) && success;
         }
         success = retrieveFile(tc, backupDir.getAbsolutePath()+"/nodes_dn.yml", index, "nodesdn", legacy, true) && success;
-
+        success = retrieveFile(tc, backupDir.getAbsolutePath()+"/whitelisting_settings.yml", index, "whitelisting_settings", legacy, true) && success;
         return success?0:-1;
     }
     
@@ -1230,6 +1232,7 @@ public class OpenDistroSecurityAdmin {
         }
 
         success = uploadFile(tc, cd+"nodes_dn.yml", index, "nodesdn", legacy, resolveEnvVars, true) && success;
+        success = uploadFile(tc, cd+"whitelisting_settings.yml", index, "whitelisting_settings", legacy, resolveEnvVars) && success;
 
         if(!success) {
             System.out.println("ERR: cannot upload configuration, see errors above");
@@ -1273,6 +1276,11 @@ public class OpenDistroSecurityAdmin {
                 Migration.migrateNodesDn(SecurityDynamicConfiguration.fromNode(
                     DefaultObjectMapper.YAML_MAPPER.readTree(ConfigHelper.createFileOrStringReader(CType.NODESDN, 1, new File(backupDir,"nodes_dn.yml").getAbsolutePath(), true)),
                     CType.NODESDN, 1, 0, 0));
+            SecurityDynamicConfiguration<WhitelistingSettings> whitelistingSettings =
+                    Migration.migrateWhitelistingSetting(SecurityDynamicConfiguration.fromNode(
+                            DefaultObjectMapper.YAML_MAPPER.readTree(ConfigHelper.createFileOrStringReader(CType.WHITELISTING_SETTINGS, 1, new File(backupDir,"whitelisting_settings.yml").getAbsolutePath(), true)),
+                            CType.WHITELISTING_SETTINGS, 1, 0, 0));
+
 
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/action_groups.yml"), actionGroupsV7);
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/config.yml"), configV7);
@@ -1281,6 +1289,7 @@ public class OpenDistroSecurityAdmin {
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/tenants.yml"), rolesTenantsV7.v2());
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/roles_mapping.yml"), rolesmappingV7);
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/nodes_dn.yml"), nodesDn);
+            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/whitelisting_settings.yml"), whitelistingSettings);
         } catch (Exception e) {
             System.out.println("ERR: Unable to migrate config files due to "+e);
             e.printStackTrace();

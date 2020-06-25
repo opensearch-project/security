@@ -5,10 +5,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
-import com.amazon.opendistroforelasticsearch.security.securityconf.impl.Meta;
-import com.amazon.opendistroforelasticsearch.security.securityconf.impl.NodesDn;
-import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.*;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v6.*;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.*;
 import org.elasticsearch.common.Strings;
@@ -107,6 +104,19 @@ public class Migration {
 
         for(final Entry<String, NodesDn> entry: nodesDn.getCEntries().entrySet()) {
             migrated.putCEntry(entry.getKey(), new NodesDn(entry.getValue()));
+        }
+        return migrated;
+    }
+
+    public static SecurityDynamicConfiguration<WhitelistingSettings> migrateWhitelistingSetting(SecurityDynamicConfiguration<WhitelistingSettings> whitelistingSetting) {
+        final SecurityDynamicConfiguration<WhitelistingSettings> migrated = SecurityDynamicConfiguration.empty();
+        migrated.setCType(whitelistingSetting.getCType());
+        migrated.set_meta(new Meta());
+        migrated.get_meta().setConfig_version(2);
+        migrated.get_meta().setType("whitelisting_settings");
+
+        for(final Entry<String, WhitelistingSettings> entry: whitelistingSetting.getCEntries().entrySet()) {
+            migrated.putCEntry(entry.getKey(), new WhitelistingSettings(entry.getValue()));
         }
         return migrated;
     }

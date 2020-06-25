@@ -50,6 +50,7 @@ public class DynamicSecurityConfig {
     private String securityInternalUsers = "internal_users.yml";
     private String securityActionGroups = "action_groups.yml";
     private String securityNodesDn = "nodes_dn.yml";
+    private String securityWhitelistingSettings = "whitelisting_settings.yml";
     private String securityConfigAsYamlString = null;
     private String type = "_doc";
     private String legacyConfigFolder = "";
@@ -57,6 +58,7 @@ public class DynamicSecurityConfig {
     public String getSecurityIndexName() {
         return securityIndexName;
     }
+
     public DynamicSecurityConfig setSecurityIndexName(String securityIndexName) {
         this.securityIndexName = securityIndexName;
         return this;
@@ -151,10 +153,15 @@ public class DynamicSecurityConfig {
 
         if (null != FileHelper.getAbsoluteFilePathFromClassPath(prefix + securityNodesDn)) {
             ret.add(new IndexRequest(securityIndexName)
-                .type(type)
-                .id(CType.NODESDN.toLCString())
-                .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                .source(CType.NODESDN.toLCString(), FileHelper.readYamlContent(prefix+securityNodesDn)));
+                    .type(type)
+                    .id(CType.NODESDN.toLCString())
+                    .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .source(CType.NODESDN.toLCString(), FileHelper.readYamlContent(prefix + securityNodesDn)));
+            ret.add(new IndexRequest(securityIndexName)
+                    .type(type)
+                    .id(CType.WHITELISTING_SETTINGS.toLCString())
+                    .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .source(CType.WHITELISTING_SETTINGS.toLCString(), FileHelper.readYamlContent(prefix + securityWhitelistingSettings)));
         }
 
         return Collections.unmodifiableList(ret);

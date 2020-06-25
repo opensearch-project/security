@@ -1,0 +1,9 @@
+---
+_meta:
+  type: "whitelisting_settings"
+  config_version: 2
+
+#this name and type name must be whitelisting_settings
+whitelisting_settings:
+  whitelistingEnabled: false
+  whitelistedAPIs: ["/_cat/nodes","/_cat/plugins","/_cluster/health","/_cluster/settings"]
