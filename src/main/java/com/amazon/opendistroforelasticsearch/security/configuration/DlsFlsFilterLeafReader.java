@@ -392,7 +392,7 @@ class DlsFlsFilterLeafReader extends FilterLeafReader {
     @Override
     public void document(final int docID, final StoredFieldVisitor visitor) throws IOException {
         final ComplianceConfig complianceConfig = auditlog.getComplianceConfig();
-        if(complianceConfig != null && complianceConfig.isEnabled() && complianceConfig.readHistoryEnabledForIndex(indexService.index().getName())) {
+        if(complianceConfig != null && complianceConfig.readHistoryEnabledForIndex(indexService.index().getName())) {
             final ComplianceAwareStoredFieldVisitor cv = new ComplianceAwareStoredFieldVisitor(visitor);
 
             if(flsEnabled) {

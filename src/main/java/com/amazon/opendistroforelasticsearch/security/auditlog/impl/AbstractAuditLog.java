@@ -368,7 +368,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     @Override
     public void logDocumentRead(String index, String id, ShardId shardId, Map<String, String> fieldNameValues) {
         final ComplianceConfig complianceConfig = getComplianceConfig();
-        if(complianceConfig == null || !complianceConfig.isEnabled() || !complianceConfig.readHistoryEnabledForIndex(index)) {
+        if(complianceConfig == null || !complianceConfig.readHistoryEnabledForIndex(index)) {
             return;
         }
 
@@ -433,7 +433,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     @Override
     public void logDocumentWritten(ShardId shardId, GetResult originalResult, Index currentIndex, IndexResult result) {
         final ComplianceConfig complianceConfig = getComplianceConfig();
-        if(complianceConfig == null || !complianceConfig.isEnabled() || !complianceConfig.writeHistoryEnabledForIndex(shardId.getIndexName())) {
+        if(complianceConfig == null || !complianceConfig.writeHistoryEnabledForIndex(shardId.getIndexName())) {
             return;
         }
 

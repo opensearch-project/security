@@ -61,8 +61,7 @@ public class ConfigHelper {
     
     private static final Logger LOGGER = LogManager.getLogger(ConfigHelper.class);
 
-    public static void
-    uploadFile(Client tc, String filepath, String index, CType cType, int configVersion) throws Exception {
+    public static void uploadFile(Client tc, String filepath, String index, CType cType, int configVersion) throws Exception {
         uploadFile(tc, filepath, index, cType, configVersion, false);
     }
 
