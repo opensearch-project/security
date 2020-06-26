@@ -1351,9 +1351,10 @@ public class OpenDistroSecurityAdmin {
             if(new File(cd+"tenants.yml").exists() && version != 6) {
                 success = validateConfigFile(cd+"tenants.yml", CType.TENANTS, version) && success;
             }
+            if (new File(cd+"audit.yml").exists()) {
+                success = validateConfigFile(cd+"audit.yml", CType.AUDIT, version) && success;
+            }
 
-            success = validateConfigFile(cd+"audit.yml", CType.AUDIT, version) && success;
-            
             return success?0:-1;
 
         }

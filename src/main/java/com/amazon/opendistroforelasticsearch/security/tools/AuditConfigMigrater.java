@@ -35,7 +35,7 @@ import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Map;
 
-public class AuditMigrator {
+public class AuditConfigMigrater {
 
     private static final String AUDIT_YML = "audit.yml";
     private static final String ES_YML = "elasticsearch.yml";
@@ -102,7 +102,7 @@ public class AuditMigrator {
                     " Please remove the deprecated keys from your elasticsearch.yml or replace with the generated file after reviewing.");
         } catch (final Exception e) {
             e.printStackTrace();
-            formatter.printHelp("audit_migrator.sh", options, true);
+            formatter.printHelp("audit_config_migrater.sh", options, true);
             System.exit(-1);
         }
     }
