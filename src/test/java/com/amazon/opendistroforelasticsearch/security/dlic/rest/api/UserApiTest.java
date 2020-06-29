@@ -35,9 +35,8 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 
     @Test
     public void testUserApi() throws Exception {
-
-        setup();
-
+		setup();
+		
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
 
@@ -114,10 +113,10 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         response = rh.executePatchRequest("/_opendistro/_security/api/internalusers/sarek", "[{ \"op\": \"add\", \"path\": \"/description\", \"value\": \"foo\" }]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
-        // PATCH hidden resource, must be not found
+        // PATCH hidden resource, must be not found, can be found for super admin
         rh.sendAdminCertificate = true;
         response = rh.executePatchRequest("/_opendistro/_security/api/internalusers/q", "[{ \"op\": \"add\", \"path\": \"/a/b/c\", \"value\": [ \"foo\", \"bar\" ] }]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // PATCH value of hidden flag, must fail with validation error
         rh.sendAdminCertificate = true;
@@ -186,10 +185,10 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         addUserWithHash("sarek", "$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m",
                 HttpStatus.SC_OK);
 
-        // add/update user, user is hidden, forbidden
+        // add/update user, user is hidden, forbidden, allowed for super admin
         rh.sendAdminCertificate = true;
         addUserWithHash("q", "$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m",
-                HttpStatus.SC_FORBIDDEN);
+                HttpStatus.SC_OK);
 
         // add users
         rh.sendAdminCertificate = true;
@@ -212,9 +211,9 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         response = rh.executeDeleteRequest("/_opendistro/_security/api/internalusers/sarek", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
-        // try remove hidden user
+        // try remove hidden user, allowed for super admin
         response = rh.executeDeleteRequest("/_opendistro/_security/api/internalusers/q", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         // now really remove user
         deleteUser("nagilum");
@@ -339,7 +338,6 @@ public class UserApiTest extends AbstractRestApiUnitTest {
                         .put(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX,
                                 "(?=.*[A-Z])(?=.*[^a-zA-Z\\\\d])(?=.*[0-9])(?=.*[a-z]).{8,}")
                         .build();
-
         setup(nodeSettings);
 
         rh.keystore = "restapi/kirk-keystore.jks";
@@ -482,8 +480,6 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 
         HttpResponse response;
 
-        response = rh.executeGetRequest("/_opendistro/_security/api/internalusers" , new Header[0]);
-
         // Delete read only user
         response = rh.executeDeleteRequest("/_opendistro/_security/api/internalusers/sarek" , new Header[0]);
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
@@ -499,6 +495,26 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         // Patch multiple read only users
         response = rh.executePatchRequest("/_opendistro/_security/api/internalusers", "[{ \"op\": \"add\", \"path\": \"/sarek/description\", \"value\": \"foo\" }]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+
+        // Get hidden role
+        response = rh.executeGetRequest("/_opendistro/_security/api/internalusers/hide" , new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+
+        // Delete hidden user
+        response = rh.executeDeleteRequest("/_opendistro/_security/api/internalusers/hide" , new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+
+        // Put hidden users
+        response = rh.executePutRequest("/_opendistro/_security/api/internalusers/hide", "[{ \"op\": \"add\", \"path\": \"/sarek/description\", \"value\": \"foo\" }]", new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+
+        // Patch single hidden user
+        response = rh.executePatchRequest("/_opendistro/_security/api/internalusers/hide", "[{ \"op\": \"add\", \"path\": \"/description\", \"value\": \"foo\" }]", new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+
+        // Patch multiple hidden users
+        response = rh.executePatchRequest("/_opendistro/_security/api/internalusers", "[{ \"op\": \"add\", \"path\": \"/hide/description\", \"value\": \"foo\" }]", new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
     }
 
