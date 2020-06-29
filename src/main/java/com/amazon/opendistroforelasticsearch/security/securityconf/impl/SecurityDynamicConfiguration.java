@@ -267,5 +267,9 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
         return !Collections.disjoint(this.centries.keySet(), other.centries.keySet());
     }
 
-    
+    public boolean isHidden(String resourceName){
+        final Object o = centries.get(resourceName);
+        return o != null && o instanceof Hideable && ((Hideable) o).isHidden();
+    }
+
 }
