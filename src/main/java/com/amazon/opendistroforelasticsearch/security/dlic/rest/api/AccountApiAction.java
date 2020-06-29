@@ -129,6 +129,7 @@ public class AccountApiAction extends AbstractApiAction {
                 final Map<String, Object> config = Utils.convertJsonToxToStructuredMap(internalUser.v2().build());
 
                 builder.field("user_name", user.getName())
+
                         .field("is_reserved", readOnly)
                         .field("is_hidden", isHidden(configurationSettings.v2(), user.getName()))
                         .field("is_internal_user", config.containsKey(user.getName()))
@@ -191,7 +192,7 @@ public class AccountApiAction extends AbstractApiAction {
             return;
         }
 
-        if (isHidden(existingAsSettings.v2(), username)) {
+        if (!isHiddenAndAccessible(existingAsSettings.v2(), username)) {
             forbidden(channel, "Resource '" + username + "' is not available.");
             return;
         }
