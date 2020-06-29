@@ -45,6 +45,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
 
 import static com.amazon.opendistroforelasticsearch.security.dlic.rest.support.Utils.hash;
 
@@ -117,7 +118,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
             final SecurityDynamicConfiguration<?> rolesConfiguration = load(CType.ROLES, false);
             for (final String role: opendistroSecurityRoles) {
 
-                if (!rolesConfiguration.exists(role) || isHidden(rolesConfiguration, role)) {
+                if (!rolesConfiguration.exists(role) || rolesConfiguration.isHidden(role)) {
                     notFound(channel, "Role '"+role+"' is not found.");
                     return;
                 }
