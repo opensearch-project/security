@@ -135,7 +135,6 @@ public class ConfigurationRepository {
                                 final ThreadContext threadContext = threadPool.getThreadContext();
                                 try(StoredContext ctx = threadContext.stashContext()) {
                                     threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
-                                    LOGGER.info("Will create {} index so we can apply default config", opendistrosecurityIndex);
 
                                     createSecurityIndexIfAbsent();
                                     waitForSecurityIndexToBeAtLeastYellow();
@@ -234,29 +233,19 @@ public class ConfigurationRepository {
     }
 
     public void initOnNodeStart() {
-
-        LOGGER.info("Check if " + opendistrosecurityIndex + " index exists ...");
-
         try {
-
-            if (clusterService.state().metaData().hasConcreteIndex(opendistrosecurityIndex)) {
-                LOGGER.info("{} index does already exist, so we try to load the config from it", opendistrosecurityIndex);
+            if (settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, false)) {
+                LOGGER.info("Will attempt to create index {} and default configs if they are absent", opendistrosecurityIndex);
+                installDefaultConfig.set(true);
+                bgThread.start();
+            } else if (settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, true)){
+                LOGGER.info("Will not attempt to create index {} and default configs if they are absent. Use securityadmin to initialize cluster",
+                        opendistrosecurityIndex);
                 bgThread.start();
             } else {
-                if (settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, false)) {
-                    LOGGER.info("{} index does not exist yet, so we create a default config", opendistrosecurityIndex);
-                    installDefaultConfig.set(true);
-                    bgThread.start();
-                } else if (settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, true)){
-                    LOGGER.info("{} index does not exist yet, so no need to load config on node startup. Use securityadmin to initialize cluster",
-                            opendistrosecurityIndex);
-                    bgThread.start();
-                } else {
-                    LOGGER.info("{} index does not exist yet, use securityadmin to initialize the cluster. We will not perform background initialization",
-                            opendistrosecurityIndex);
-                }
+                LOGGER.info("Will not attempt to create index {} and default configs if they are absent. Will not perform background initialization",
+                        opendistrosecurityIndex);
             }
-
         } catch (Throwable e2) {
             LOGGER.error("Error during node initialization: {}", e2, e2);
             bgThread.start();
