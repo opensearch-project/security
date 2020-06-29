@@ -754,4 +754,11 @@ public class AuditConfig {
             ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS,
             ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES
     );
+
+    public static Set<String> getDeprecatedKeys(final Settings settings) {
+        return AuditConfig.DEPRECATED_KEYS
+                .stream()
+                .filter(settings::hasValue)
+                .collect(Collectors.toSet());
+    }
 }

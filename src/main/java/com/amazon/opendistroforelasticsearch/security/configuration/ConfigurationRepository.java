@@ -48,17 +48,15 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
-import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
 import com.google.common.collect.ImmutableMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ExceptionsHelper;
+import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.action.admin.indices.get.GetIndexResponse;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -97,10 +95,8 @@ public class ConfigurationRepository {
     private DynamicConfigFactory dynamicConfigFactory;
     private static final int DEFAULT_CONFIG_VERSION = 2;
     private final Thread bgThread;
-    private final AtomicBoolean createSecurityIndex = new AtomicBoolean();
-    private final AtomicBoolean createConfigIfAbsent = new AtomicBoolean();
+    private final AtomicBoolean installDefaultConfig = new AtomicBoolean();
     private final boolean acceptInvalid;
-
 
     private ConfigurationRepository(Settings settings, final Path configPath, ThreadPool threadPool,
                                     Client client, ClusterService clusterService, AuditLog auditLog) {
@@ -122,60 +118,46 @@ public class ConfigurationRepository {
             @Override
             public void run() {
                 try {
-                    LOGGER.info("Background init thread started.");
+                    LOGGER.info("Background init thread started. Install default config?: "+installDefaultConfig.get());
 
-                    if (createSecurityIndex.get() || createConfigIfAbsent.get()) {
-                        final ThreadContext threadContext = threadPool.getThreadContext();
-                        try (StoredContext ctx = threadContext.stashContext()) {
-                            threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
 
-                            boolean existsOrCreated = !createSecurityIndex.get();
-                            if (createSecurityIndex.get()) {
-                                LOGGER.info("Will attempt to create {} index for security configurations.", opendistrosecurityIndex);
-                                try {
-                                    final Map<String, Object> indexSettings = ImmutableMap.of(
-                                            "index.number_of_shards", 1,
-                                            "index.auto_expand_replicas", "0-all"
-                                    );
-                                    existsOrCreated = client.admin().indices().create(new CreateIndexRequest(opendistrosecurityIndex)
-                                            .settings(indexSettings))
-                                            .actionGet().isAcknowledged();
-                                    LOGGER.info("Index {} created?: {}", opendistrosecurityIndex, existsOrCreated);
-                                } catch (Exception e) {
-                                    LOGGER.error("Can not create {} index", opendistrosecurityIndex, e);
-                                }
-                            }
+                    if(installDefaultConfig.get()) {
 
-                            if (createConfigIfAbsent.get()) {
-                                if (existsOrCreated) {
-                                    try {
-                                        String lookupDir = System.getProperty("security.default_init.dir");
-                                        final String cd = lookupDir != null ? (lookupDir + "/") : new Environment(settings, configPath).pluginsFile().toAbsolutePath().toString() + "/opendistro_security/securityconfig/";
+                        try {
+                            String lookupDir = System.getProperty("security.default_init.dir");
+                            final String cd = lookupDir != null? (lookupDir+"/") : new Environment(settings, configPath).pluginsFile().toAbsolutePath().toString()+"/opendistro_security/securityconfig/";
+                            File confFile = new File(cd+"config.yml");
+                            if(confFile.exists()) {
+                                final ThreadContext threadContext = threadPool.getThreadContext();
+                                try(StoredContext ctx = threadContext.stashContext()) {
+                                    threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
 
-                                        ConfigHelper.uploadFile(client, cd + "config.yml", opendistrosecurityIndex, CType.CONFIG, DEFAULT_CONFIG_VERSION);
-                                        ConfigHelper.uploadFile(client, cd + "roles.yml", opendistrosecurityIndex, CType.ROLES, DEFAULT_CONFIG_VERSION);
-                                        ConfigHelper.uploadFile(client, cd + "roles_mapping.yml", opendistrosecurityIndex, CType.ROLESMAPPING, DEFAULT_CONFIG_VERSION);
-                                        ConfigHelper.uploadFile(client, cd + "internal_users.yml", opendistrosecurityIndex, CType.INTERNALUSERS, DEFAULT_CONFIG_VERSION);
-                                        ConfigHelper.uploadFile(client, cd + "action_groups.yml", opendistrosecurityIndex, CType.ACTIONGROUPS, DEFAULT_CONFIG_VERSION);
-                                        if (DEFAULT_CONFIG_VERSION == 2) {
-                                            ConfigHelper.uploadFile(client, cd + "tenants.yml", opendistrosecurityIndex, CType.TENANTS, DEFAULT_CONFIG_VERSION);
+                                    final boolean isSecurityIndexCreated = createSecurityIndexIfAbsent();
+                                    if (isSecurityIndexCreated) {
+                                        ConfigHelper.uploadFile(client, cd+"config.yml", opendistrosecurityIndex, CType.CONFIG, DEFAULT_CONFIG_VERSION);
+                                        ConfigHelper.uploadFile(client, cd+"roles.yml", opendistrosecurityIndex, CType.ROLES, DEFAULT_CONFIG_VERSION);
+                                        ConfigHelper.uploadFile(client, cd+"roles_mapping.yml", opendistrosecurityIndex, CType.ROLESMAPPING, DEFAULT_CONFIG_VERSION);
+                                        ConfigHelper.uploadFile(client, cd+"internal_users.yml", opendistrosecurityIndex, CType.INTERNALUSERS, DEFAULT_CONFIG_VERSION);
+                                        ConfigHelper.uploadFile(client, cd+"action_groups.yml", opendistrosecurityIndex, CType.ACTIONGROUPS, DEFAULT_CONFIG_VERSION);
+                                        if(DEFAULT_CONFIG_VERSION == 2) {
+                                            ConfigHelper.uploadFile(client, cd+"tenants.yml", opendistrosecurityIndex, CType.TENANTS, DEFAULT_CONFIG_VERSION);
                                         }
                                         final boolean populateEmptyIfFileMissing = true;
-                                        ConfigHelper.uploadFile(client, cd + "nodes_dn.yml", opendistrosecurityIndex, CType.NODESDN, DEFAULT_CONFIG_VERSION, populateEmptyIfFileMissing);
-
-                                        // audit.yml is not packaged by default
-                                        final String auditConfigPath = cd + "audit.yml";
-                                        if (new File(auditConfigPath).exists()) {
-                                            ConfigHelper.uploadFile(client, auditConfigPath, opendistrosecurityIndex, CType.AUDIT, DEFAULT_CONFIG_VERSION);
-                                        }
+                                        ConfigHelper.uploadFile(client, cd+"nodes_dn.yml", opendistrosecurityIndex, CType.NODESDN, DEFAULT_CONFIG_VERSION, populateEmptyIfFileMissing);
                                         LOGGER.info("Default config applied");
-                                    } catch (Exception e) {
-                                        LOGGER.error("Can not update config in index {}", opendistrosecurityIndex, e);
                                     }
-                                } else {
-                                    LOGGER.error("Index {} does not exist to populate configurations", opendistrosecurityIndex);
+
+                                    // audit.yml is not packaged by default
+                                    final String auditConfigPath = cd + "audit.yml";
+                                    if (new File(auditConfigPath).exists()) {
+                                        ConfigHelper.uploadFile(client, auditConfigPath, opendistrosecurityIndex, CType.AUDIT, DEFAULT_CONFIG_VERSION);
+                                    }
                                 }
+                            } else {
+                                LOGGER.error("{} does not exist", confFile.getAbsolutePath());
                             }
+                        } catch (Exception e) {
+                            LOGGER.debug("Cannot apply default config (this is maybe not an error!) due to {}", e.getMessage());
                         }
                     }
 
@@ -222,10 +204,7 @@ public class ConfigurationRepository {
                         }
                     }
 
-                    final Set<String> deprecatedAuditKeysInSettings = AuditConfig.DEPRECATED_KEYS
-                            .stream()
-                            .filter(settings::hasValue)
-                            .collect(Collectors.toSet());
+                    final Set<String> deprecatedAuditKeysInSettings = AuditConfig.getDeprecatedKeys(settings);
                     if (!deprecatedAuditKeysInSettings.isEmpty()) {
                         LOGGER.warn("Following keys {} are deprecated in elasticsearch settings. They will be removed in plugin v2.0.0.0", deprecatedAuditKeysInSettings);
                     }
@@ -241,46 +220,50 @@ public class ConfigurationRepository {
                     }
 
                     LOGGER.info("Node '{}' initialized", clusterService.localNode().getName());
+
                 } catch (Exception e) {
                     LOGGER.error("Unexpected exception while initializing node "+e, e);
                 }
             }
         });
+
     }
 
-    private boolean indexExists(String index) {
-        GetIndexResponse getIndexResponse = client.admin().indices()
-                .prepareGetIndex().setIndices(index)
-                .setIndicesOptions(IndicesOptions.LENIENT_EXPAND_OPEN_CLOSED)
-                .execute().actionGet();
-        return getIndexResponse.getIndices().length > 0;
+    private boolean createSecurityIndexIfAbsent() {
+        try {
+            final Map<String, Object> indexSettings = ImmutableMap.of(
+                    "index.number_of_shards", 1,
+                    "index.auto_expand_replicas", "0-all"
+            );
+            final CreateIndexRequest createIndexRequest = new CreateIndexRequest(opendistrosecurityIndex)
+                    .settings(indexSettings);
+            final boolean ok = client.admin()
+                    .indices()
+                    .create(createIndexRequest)
+                    .actionGet()
+                    .isAcknowledged();
+            LOGGER.info("Index {} created?: {}", opendistrosecurityIndex, ok);
+            return ok;
+        } catch (ResourceAlreadyExistsException resourceAlreadyExistsException) {
+            LOGGER.info("Index {} already exists", opendistrosecurityIndex);
+            return false;
+        }
     }
 
     public void initOnNodeStart() {
-
-        LOGGER.info("Check if " + opendistrosecurityIndex + " index exists ...");
-
         try {
-            if (indexExists(opendistrosecurityIndex)) {
-                LOGGER.info("{} index does already exist, so we try load the configs if absent", opendistrosecurityIndex);
-                createConfigIfAbsent.set(true);
+            if (settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, false)) {
+                LOGGER.info("Will attempt to create index {} and default configs if they are absent", opendistrosecurityIndex);
+                installDefaultConfig.set(true);
+                bgThread.start();
+            } else if (settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, true)){
+                LOGGER.info("Will not attempt to create index {} and default configs if they are absent. Use securityadmin to initialize cluster",
+                        opendistrosecurityIndex);
                 bgThread.start();
             } else {
-                if (settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, false)) {
-                    LOGGER.info("{} index does not exist yet, so we create an index and load configs", opendistrosecurityIndex);
-                    createSecurityIndex.set(true);
-                    createConfigIfAbsent.set(true);
-                    bgThread.start();
-                } else if (settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, true)){
-                    LOGGER.info("{} index does not exist yet, so no need to load config on node startup. Use securityadmin to initialize cluster",
-                            opendistrosecurityIndex);
-                    bgThread.start();
-                } else {
-                    LOGGER.info("{} index does not exist yet, use securityadmin to initialize the cluster. We will not perform background initialization",
-                            opendistrosecurityIndex);
-                }
+                LOGGER.info("Will not attempt to create index {} and default configs if they are absent. Will not perform background initialization",
+                        opendistrosecurityIndex);
             }
-
         } catch (Throwable e2) {
             LOGGER.error("Error during node initialization: {}", e2, e2);
             bgThread.start();
@@ -396,8 +379,7 @@ public class ConfigurationRepository {
             throw new ElasticsearchException(e);
         }
 
-        final ComplianceConfig complianceConfig = auditLog.getComplianceConfig();
-        if (logComplianceEvent && complianceConfig != null && complianceConfig.isEnabled()) {
+        if (logComplianceEvent && auditLog.getComplianceConfig().isEnabled()) {
             CType configurationType = configTypes.iterator().next();
             Map<String, String> fields = new HashMap<String, String>();
             fields.put(configurationType.toLCString(), Strings.toString(retVal.get(configurationType)));
