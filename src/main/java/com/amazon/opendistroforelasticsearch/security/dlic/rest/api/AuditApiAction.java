@@ -146,7 +146,7 @@ public class AuditApiAction extends PatchableResourceApiAction {
 
     @Override
     protected void handlePut(final RestChannel channel, final RestRequest request, final Client client, final JsonNode content) throws IOException {
-        if (!"config".equals(request.param("name"))) {
+        if (!RESOURCE_NAME.equals(request.param("name"))) {
             badRequestResponse(channel, "name must be config");
             return;
         }

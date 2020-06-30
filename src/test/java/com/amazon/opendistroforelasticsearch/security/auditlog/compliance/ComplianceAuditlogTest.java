@@ -100,6 +100,9 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
                 .build();
 
         setup(additionalSettings);
+
+        final boolean sendAdminCertificate = rh.sendAdminCertificate;
+        final String keystore = rh.keystore;
         rh.sendAdminCertificate = true;
         rh.keystore = "auditlog/kirk-keystore.jks";
 
@@ -121,6 +124,9 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         TestAuditlogImpl.clear();
         rh.executePutRequest("emp/doc/1?refresh", "{\"Designation\" : \"CEO\", \"Gender\" : \"female\", \"Salary\" : 100}");
         assertFalse(TestAuditlogImpl.messages.toString().contains("COMPLIANCE_DOC_WRITE"));
+
+        rh.sendAdminCertificate = sendAdminCertificate;
+        rh.keystore = keystore;
     }
 
     @Test
