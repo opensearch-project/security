@@ -871,7 +871,7 @@ public class OpenDistroSecurityAdmin {
                 return false;
             }
         }
-        
+
         System.out.println("Will update '"+type+"/" + id + "' with " + filepath+" "+(legacy?"(legacy mode)":""));
         
         try (Reader reader = ConfigHelper.createFileOrStringReader(CType.fromString(_id), legacy ? 1 : 2, filepath, populateEmptyIfMissing)) {
@@ -1214,7 +1214,9 @@ public class OpenDistroSecurityAdmin {
             success = retrieveFile(tc, backupDir.getAbsolutePath()+"/tenants.yml", index, "tenants", legacy) && success;
         }
         success = retrieveFile(tc, backupDir.getAbsolutePath()+"/nodes_dn.yml", index, "nodesdn", legacy, true) && success;
-        success = retrieveFile(tc, backupDir.getAbsolutePath()+"/audit.yml", index, "audit", legacy) && success;
+        if (new File(backupDir.getAbsolutePath()+"/audit.yml").exists()) {
+            success = retrieveFile(tc, backupDir.getAbsolutePath() + "/audit.yml", index, "audit", legacy) && success;
+        }
 
         return success?0:-1;
     }
@@ -1233,7 +1235,9 @@ public class OpenDistroSecurityAdmin {
         }
 
         success = uploadFile(tc, cd+"nodes_dn.yml", index, "nodesdn", legacy, resolveEnvVars, true) && success;
-        success = uploadFile(tc, cd+"audit.yml", index, "audit", legacy, resolveEnvVars) && success;
+        if (new File(cd+"audit.yml").exists()) {
+            success = uploadFile(tc, cd + "audit.yml", index, "audit", legacy, resolveEnvVars) && success;
+        }
 
         if(!success) {
             System.out.println("ERR: cannot upload configuration, see errors above");
