@@ -399,6 +399,19 @@ public class AuditConfig {
             logger.info("Sensitive headers auditing is {}.", excludeSensitiveHeaders ? "enabled" : "disabled");
             logger.info("Auditing requests from {} users is disabled.", ignoredAuditUsers);
         }
+
+        public static class Key {
+            public static final String ENABLE_REST = "enable_rest";
+            public static final String DISABLED_REST_CATEGORIES = "disabled_rest_categories";
+            public static final String ENABLE_TRANSPORT = "enable_transport";
+            public static final String DISABLED_TRANSPORT_CATEGORIES = "disabled_transport_categories";
+            public static final String RESOLVE_BULK_REQUESTS = "resolve_bulk_requests";
+            public static final String LOG_REQUEST_BODY = "log_request_body";
+            public static final String RESOLVE_INDICES = "resolve_indices";
+            public static final String EXCLUDE_SENSITIVE_HEADERS = "exclude_sensitive_headers";
+            public static final String IGNORE_USERS = "ignore_users";
+            public static final String IGNORE_REQUESTS = "ignore_requests";
+        }
     }
 
     public static class Compliance {
@@ -618,31 +631,20 @@ public class AuditConfig {
                 this.readIgnoreUsers = Collections.emptySet();
             }
         }
-    }
 
-    public static class Key {
-        public static final String ENABLED = "enabled";
-        public static final String AUDIT = "audit";
-        public static final String COMPLIANCE = "compliance";
-        public static final String ENABLE_REST = "enable_rest";
-        public static final String DISABLED_REST_CATEGORIES = "disabled_rest_categories";
-        public static final String ENABLE_TRANSPORT = "enable_transport";
-        public static final String DISABLED_TRANSPORT_CATEGORIES = "disabled_transport_categories";
-        public static final String INTERNAL_CONFIG_ENABLED = "internal_config";
-        public static final String EXTERNAL_CONFIG_ENABLED = "external_config";
-        public static final String RESOLVE_BULK_REQUESTS = "resolve_bulk_requests";
-        public static final String LOG_REQUEST_BODY = "log_request_body";
-        public static final String RESOLVE_INDICES = "resolve_indices";
-        public static final String EXCLUDE_SENSITIVE_HEADERS = "exclude_sensitive_headers";
-        public static final String IGNORE_USERS = "ignore_users";
-        public static final String IGNORE_REQUESTS = "ignore_requests";
-        public static final String READ_METADATA_ONLY = "read_metadata_only";
-        public static final String READ_WATCHED_FIELDS = "read_watched_fields";
-        public static final String READ_IGNORE_USERS = "read_ignore_users";
-        public static final String WRITE_METADATA_ONLY = "write_metadata_only";
-        public static final String WRITE_LOG_DIFFS = "write_log_diffs";
-        public static final String WRITE_WATCHED_INDICES = "write_watched_indices";
-        public static final String WRITE_IGNORE_USERS = "write_ignore_users";
+        public static class Key {
+            public static final String ENABLED = "enabled";
+            public static final String AUDIT = "audit";
+            public static final String INTERNAL_CONFIG_ENABLED = "internal_config";
+            public static final String EXTERNAL_CONFIG_ENABLED = "external_config";
+            public static final String READ_METADATA_ONLY = "read_metadata_only";
+            public static final String READ_WATCHED_FIELDS = "read_watched_fields";
+            public static final String READ_IGNORE_USERS = "read_ignore_users";
+            public static final String WRITE_METADATA_ONLY = "write_metadata_only";
+            public static final String WRITE_LOG_DIFFS = "write_log_diffs";
+            public static final String WRITE_WATCHED_INDICES = "write_watched_indices";
+            public static final String WRITE_IGNORE_USERS = "write_ignore_users";
+        }
     }
 
     private static final List<String> DEFAULT_IGNORED_USERS_LIST = ImmutableList.copyOf(DEFAULT_IGNORED_USERS);
@@ -728,6 +730,12 @@ public class AuditConfig {
             return Collections.emptySet();
         }
         return ImmutableSet.copyOf(list);
+    }
+
+    public static class Key {
+        public static final String ENABLED = "enabled";
+        public static final String AUDIT = "audit";
+        public static final String COMPLIANCE = "compliance";
     }
 
     /**

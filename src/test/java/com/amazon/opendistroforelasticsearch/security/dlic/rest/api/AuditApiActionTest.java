@@ -87,36 +87,30 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         // non-admin
         final Header nonAdminCredsHeader = encodeBasicHeader("random", "random");
 
-        {
-            // No creds, no admin certificate - UNAUTHORIZED
-            rh.sendAdminCertificate = false;
-            testActions(HttpStatus.SC_UNAUTHORIZED);
-        }
+        // No creds, no admin certificate - UNAUTHORIZED
+        testActions(HttpStatus.SC_UNAUTHORIZED, false);
 
-        {
-            // any creds, admin certificate - OK
-            rh.sendAdminCertificate = true;
-            testActions(HttpStatus.SC_OK, nonAdminCredsHeader);
-        }
+        // any creds, admin certificate - OK
+        testActions(HttpStatus.SC_OK, true, nonAdminCredsHeader);
 
-        {
-            // admin creds, no admin certificate - OK
-            rh.sendAdminCertificate = false;
-            testActions(HttpStatus.SC_OK, adminCredsHeader);
-        }
+        // admin creds, no admin certificate - OK
+        testActions(HttpStatus.SC_OK, false, adminCredsHeader);
 
-        {
-            // non-admin creds, no admin certificate - UNAUTHORIZED
-            rh.sendAdminCertificate = false;
-            testActions(HttpStatus.SC_UNAUTHORIZED, nonAdminCredsHeader);
-        }
+        // non-admin creds, no admin certificate - UNAUTHORIZED
+        testActions(HttpStatus.SC_UNAUTHORIZED, false, nonAdminCredsHeader);
     }
 
-    private void testActions(final int expectedStatus, final Header... headers) throws Exception {
+    private void testActions(final int expectedStatus, final boolean sendAdminCertificate, final Header... headers) throws Exception {
+        final boolean prevSendAdminCertificate = rh.sendAdminCertificate;
+        rh.sendAdminCertificate = sendAdminCertificate;
+
+        // asserts
         testGetAction(expectedStatus, headers);
         testPatchAction(expectedStatus, headers);
         testPutAction(AuditTestUtils.createAuditPayload(Settings.EMPTY), expectedStatus, headers);
         testPutAction(getTestPayload(), expectedStatus, headers);
+
+        rh.sendAdminCertificate = prevSendAdminCertificate;
     }
 
     private void testPutAction(final String payload, final int expectedStatus, final Header... headers) throws Exception {
@@ -267,7 +261,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         }
     }
 
-        private String getTestPayload() {
+    private String getTestPayload() {
         return "{" +
                 "\"enabled\":true," +
                 "\"audit\":{" +

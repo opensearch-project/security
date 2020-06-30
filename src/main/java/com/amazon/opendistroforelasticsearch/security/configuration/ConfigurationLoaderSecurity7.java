@@ -107,15 +107,16 @@ public class ConfigurationLoaderSecurity7 {
                     log.error("Latch already counted down (for {} of {})  (index={})", dConf.getCType().toLCString(), Arrays.toString(events), securityIndex);
                 }
 
-                rs.put(dConf.getCType(), dConf);
-                latch.countDown();
-                if(log.isDebugEnabled()) {
-                    log.debug("Received config for {} (of {}) with current latch value={}", dConf.getCType().toLCString(), Arrays.toString(events), latch.getCount());
-                }
                 // Audit configuration doc is available in the index.
                 // Configuration can be hot-reloaded.
                 if (dConf.getCType() == CType.AUDIT) {
                     isAuditConfigDocPresentInIndex.set(true);
+                }
+
+                rs.put(dConf.getCType(), dConf);
+                latch.countDown();
+                if(log.isDebugEnabled()) {
+                    log.debug("Received config for {} (of {}) with current latch value={}", dConf.getCType().toLCString(), Arrays.toString(events), latch.getCount());
                 }
             }
 
