@@ -35,6 +35,7 @@ import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 
+import com.fasterxml.jackson.databind.InjectableValues;
 import org.elasticsearch.SpecialPermission;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
@@ -59,6 +60,12 @@ public class DefaultObjectMapper {
         defaulOmittingObjectMapper.setSerializationInclusion(Include.NON_DEFAULT);
         defaulOmittingObjectMapper.enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION);
         YAML_MAPPER.enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION);
+    }
+
+    public static void inject(final InjectableValues.Std injectableValues) {
+        objectMapper.setInjectableValues(injectableValues);
+        YAML_MAPPER.setInjectableValues(injectableValues);
+        defaulOmittingObjectMapper.setInjectableValues(injectableValues);
     }
 
     public static <T> T readTree(JsonNode node, Class<T> clazz) throws IOException {
