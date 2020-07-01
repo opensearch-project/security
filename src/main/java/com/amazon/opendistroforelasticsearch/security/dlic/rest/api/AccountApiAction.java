@@ -137,7 +137,7 @@ public class AccountApiAction extends AbstractApiAction {
 
                 builder.field("user_name", user.getName())
                         .field("is_reserved", isReserved(configuration, user.getName()))
-                        .field("is_hidden", isHidden(configuration, user.getName()))
+                        .field("is_hidden", configuration.isHidden(user.getName()))
                         .field("is_internal_user", configuration.exists(user.getName()))
                         .field("user_requested_tenant", user.getRequestedTenant())
                         .field("backend_roles", user.getRoles())

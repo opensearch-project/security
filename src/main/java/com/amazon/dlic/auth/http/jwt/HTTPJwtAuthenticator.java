@@ -26,7 +26,9 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Collection;
 import java.util.Map.Entry;
+import java.util.regex.Pattern;
 
+import org.apache.http.HttpHeaders;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchSecurityException;
@@ -51,9 +53,12 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
 
+    private static final Pattern BASIC = Pattern.compile("^\\s*Basic\\s.*", Pattern.CASE_INSENSITIVE);
     private static final String BEARER = "bearer ";
+
     private final JwtParser jwtParser;
     private final String jwtHeaderName;
+    private final boolean isDefaultAuthHeader;
     private final String jwtUrlParameter;
     private final String rolesKey;
     private final String subjectKey;
@@ -100,7 +105,8 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         }
 
         jwtUrlParameter = settings.get("jwt_url_parameter");
-        jwtHeaderName = settings.get("jwt_header","Authorization");
+        jwtHeaderName = settings.get("jwt_header", HttpHeaders.AUTHORIZATION);
+        isDefaultAuthHeader = HttpHeaders.AUTHORIZATION.equalsIgnoreCase(jwtHeaderName);
         rolesKey = settings.get("roles_key");
         subjectKey = settings.get("subject_key");
         jwtParser = _jwtParser;
@@ -132,6 +138,9 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         }
 
         String jwtToken = request.header(jwtHeaderName);
+        if (isDefaultAuthHeader && jwtToken != null && BASIC.matcher(jwtToken).matches()) {
+            jwtToken = null;
+        }
 
         if((jwtToken == null || jwtToken.isEmpty()) && jwtUrlParameter != null) {
             jwtToken = request.param(jwtUrlParameter);

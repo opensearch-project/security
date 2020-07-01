@@ -121,7 +121,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
             final SecurityDynamicConfiguration<?> rolesConfiguration = load(CType.ROLES, false);
             for (final String role: opendistroSecurityRoles) {
 
-                if (!rolesConfiguration.exists(role) || isHidden(rolesConfiguration, role)) {
+                if (!rolesConfiguration.exists(role) || rolesConfiguration.isHidden(role)) {
                     notFound(channel, "Role '"+role+"' is not found.");
                     return;
                 }

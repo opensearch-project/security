@@ -15,23 +15,29 @@
 
 package com.amazon.dlic.auth.http.jwt;
 
+import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 
+import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.elasticsearch.common.settings.Settings;
+
+import org.apache.http.HttpHeaders;
 import org.junit.Assert;
 import org.junit.Test;
+import org.mockito.Mockito;
+import org.mockito.internal.util.reflection.FieldSetter;
 
-import com.amazon.dlic.auth.http.jwt.HTTPJwtAuthenticator;
 import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
 import com.amazon.opendistroforelasticsearch.security.util.FakeRestRequest;
 import com.google.common.io.BaseEncoding;
@@ -180,6 +186,21 @@ public class HTTPJwtAuthenticatorTest {
         Assert.assertNotNull(creds);
         Assert.assertEquals("Leonard McCoy", creds.getUsername());
         Assert.assertEquals(0, creds.getBackendRoles().size());
+    }
+
+    @Test
+    public void testBasicAuthHeader() throws Exception {
+        Settings settings = Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKey)).build();
+        HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
+        JwtParser jwtParser = Mockito.spy(JwtParser.class);
+        FieldSetter.setField(jwtAuth, HTTPJwtAuthenticator.class.getDeclaredField("jwtParser"), jwtParser);
+
+        String basicAuth = BaseEncoding.base64().encode("user:password".getBytes(StandardCharsets.UTF_8));
+        Map<String, String> headers = Collections.singletonMap(HttpHeaders.AUTHORIZATION, "Basic " + basicAuth);
+
+        AuthCredentials creds = jwtAuth.extractCredentials(new FakeRestRequest(headers, Collections.emptyMap()), null);
+        Assert.assertNull(creds);
+        Mockito.verifyZeroInteractions(jwtParser);
     }
 
     @Test

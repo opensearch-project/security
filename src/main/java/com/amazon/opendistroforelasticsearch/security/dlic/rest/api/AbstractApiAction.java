@@ -272,7 +272,9 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 	}
 
 	protected void filter(SecurityDynamicConfiguration<?> builder) {
-		builder.removeHidden();
+		if (!isSuperAdmin()){
+			builder.removeHidden();
+		}
 		builder.set_meta(null);
 	}
 
@@ -513,8 +515,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 	}
 
 	protected final boolean isHidden(SecurityDynamicConfiguration<?> configuration, String resourceName) {
-		final Object o = configuration.getCEntry(resourceName);
-		return o != null && o instanceof Hideable && ((Hideable) o).isHidden();
+		return configuration.isHidden(resourceName) && !isSuperAdmin();
 	}
 
 	protected final boolean isStatic(SecurityDynamicConfiguration<?> configuration, String resourceName) {
