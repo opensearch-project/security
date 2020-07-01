@@ -15,6 +15,7 @@
 
 package com.amazon.dlic.auth.http.saml;
 
+import java.security.PrivateKey;
 import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.HashMap;
@@ -54,8 +55,9 @@ public class Saml2SettingsProvider {
     private String idpEntityId;
     private Saml2Settings cachedSaml2Settings;
     private DateTime metadataUpdateTime;
+    private String spSignaturePrivateKey;
 
-    Saml2SettingsProvider(Settings esSettings, MetadataResolver metadataResolver) {
+    Saml2SettingsProvider(Settings esSettings, MetadataResolver metadataResolver, PrivateKey spSignaturePrivateKey) {
         this.esSettings = esSettings;
         this.metadataResolver = metadataResolver;
         this.idpEntityId = esSettings.get("idp.entity_id");
@@ -88,6 +90,8 @@ public class Saml2SettingsProvider {
             initMisc(configProperties);
 
             SettingsBuilder settingsBuilder = new SettingsBuilder();
+
+            configProperties.put(SettingsBuilder.SP_PRIVATEKEY_PROPERTY_KEY,spSignaturePrivateKey);
 
             // TODO allow overriding of IdP metadata?
             settingsBuilder.fromValues(configProperties);
