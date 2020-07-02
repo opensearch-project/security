@@ -13,7 +13,12 @@ import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v6.Confi
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v6.InternalUserV6;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v6.RoleMappingsV6;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v6.RoleV6;
-import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.*;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.ActionGroupsV7;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.ConfigV7;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.InternalUserV7;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.RoleMappingsV7;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.RoleV7;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.TenantV7;
 
 public enum CType {
 

@@ -1,5 +1,5 @@
 ---
 #this name must be whitelisting_settings
 whitelisting_settings:
-  whitelistingEnabled: false
-  whitelistedAPIs: ["/_cat/nodes","/_cat/plugins","/_cluster/health","/_cluster/settings"]
+  whitelisting_enabled: false
+  whitelisted_APIs: ["/_cat/nodes","/_cat/plugins","/_cluster/health","/_cluster/settings"]

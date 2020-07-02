@@ -38,7 +38,7 @@ public class OpenDistroSecurityRestFilterTest extends AbstractRestApiUnitTest {
         //ADD SOME WHITELISTED APIs
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"whitelistingEnabled\": true, \"whitelistedAPIs\": [\"/_cat/nodes\",\"/_cat/indices\"]}", adminCredsHeader);
+        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"whitelisting_enabled\": true, \"whitelisted_APIs\": [\"/_cat/nodes\",\"/_cat/indices\"]}", adminCredsHeader);
 
         log.warn("the response is:" + rh.executeGetRequest("_opendistro/_security/api/whitelist", adminCredsHeader));
 
@@ -71,7 +71,7 @@ public class OpenDistroSecurityRestFilterTest extends AbstractRestApiUnitTest {
         //ADD SOME WHITELISTED APIs - /_cat/nodes and /_cat/indices
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"whitelistingEnabled\": true, \"whitelistedAPIs\": [\"/_cat/nodes\",\"/_cat/indices\"]}", nonAdminCredsHeader);
+        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"whitelisting_enabled\": true, \"whitelisted_APIs\": [\"/_cat/nodes\",\"/_cat/indices\"]}", nonAdminCredsHeader);
 
         //NON ADMIN TRIES ACCESSING A NON-WHITELISTED API - FORBIDDEN
         rh.sendAdminCertificate = false;
@@ -99,7 +99,7 @@ public class OpenDistroSecurityRestFilterTest extends AbstractRestApiUnitTest {
         //DISABLE WHITELISTING BUT ADD SOME WHITELISTED APIs - /_cat/nodes and /_cat/plugins
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"whitelistingEnabled\": false, \"whitelistedAPIs\": [\"/_cat/nodes\",\"/_cat/indices\"]}", nonAdminCredsHeader);
+        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"whitelisting_enabled\": false, \"whitelisted_APIs\": [\"/_cat/nodes\",\"/_cat/indices\"]}", nonAdminCredsHeader);
 
         //NON-ADMIN TRIES ACCESSING 2 APIs: One in the list and one outside - OK for both (Because whitelisting is off)
         rh.sendAdminCertificate = false;

@@ -5,7 +5,11 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import com.amazon.opendistroforelasticsearch.security.securityconf.impl.*;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.Meta;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.NodesDn;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.WhitelistingSettings;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v6.*;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.*;
 import org.elasticsearch.common.Strings;
