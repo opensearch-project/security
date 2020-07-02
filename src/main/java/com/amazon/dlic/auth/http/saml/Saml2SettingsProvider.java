@@ -50,17 +50,18 @@ import net.shibboleth.utilities.java.support.resolver.ResolverException;
 public class Saml2SettingsProvider {
     protected final static Logger log = LogManager.getLogger(Saml2SettingsProvider.class);
 
-    private Settings esSettings;
-    private MetadataResolver metadataResolver;
-    private String idpEntityId;
-    private Saml2Settings cachedSaml2Settings;
-    private DateTime metadataUpdateTime;
-    private String spSignaturePrivateKey;
+    private final Settings esSettings;
+    private final MetadataResolver metadataResolver;
+    private final String idpEntityId;
+    private PrivateKey spSignaturePrivateKey;
+    private  Saml2Settings cachedSaml2Settings;
+    private  DateTime metadataUpdateTime;
 
     Saml2SettingsProvider(Settings esSettings, MetadataResolver metadataResolver, PrivateKey spSignaturePrivateKey) {
         this.esSettings = esSettings;
         this.metadataResolver = metadataResolver;
         this.idpEntityId = esSettings.get("idp.entity_id");
+        this.spSignaturePrivateKey = spSignaturePrivateKey;
     }
 
     Saml2Settings get() throws SamlConfigException {
@@ -91,7 +92,7 @@ public class Saml2SettingsProvider {
 
             SettingsBuilder settingsBuilder = new SettingsBuilder();
 
-            configProperties.put(SettingsBuilder.SP_PRIVATEKEY_PROPERTY_KEY,spSignaturePrivateKey);
+            configProperties.put(SettingsBuilder.SP_PRIVATEKEY_PROPERTY_KEY, this.spSignaturePrivateKey);
 
             // TODO allow overriding of IdP metadata?
             settingsBuilder.fromValues(configProperties);
