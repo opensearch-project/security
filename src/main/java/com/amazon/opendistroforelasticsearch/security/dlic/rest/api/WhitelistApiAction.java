@@ -5,7 +5,6 @@ import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
 import com.amazon.opendistroforelasticsearch.security.configuration.AdminDNs;
 import com.amazon.opendistroforelasticsearch.security.configuration.ConfigurationRepository;
 import com.amazon.opendistroforelasticsearch.security.dlic.rest.validation.AbstractConfigurationValidator;
-import com.amazon.opendistroforelasticsearch.security.dlic.rest.validation.RolesMappingValidator;
 import com.amazon.opendistroforelasticsearch.security.dlic.rest.validation.WhitelistValidator;
 import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvaluator;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
@@ -34,7 +33,7 @@ import java.util.List;
  * This class implements GET and PUT operations to manage dynamic WhitelistingSettings.
  * <p>
  * These APIs are only accessible to SuperAdmin since the configuration controls what APIs are accessible by normal users.
- * Eg: If whitelisting is enabled, and a specific API like "/_cat/nodes" is not whitelisted, then only the SuperAdmin can use "/_cat/nodes"st
+ * Eg: If whitelisting is enabled, and a specific API like "/_cat/nodes" is not whitelisted, then only the SuperAdmin can use "/_cat/nodes"
  * These APIs allow the SuperAdmin to enable/disable whitelisting, and also change the list of whitelisted APIs.
  * <p>
  * A SuperAdmin is identified by a certificate which represents a distinguished name(DN).
@@ -44,8 +43,8 @@ import java.util.List;
  * Example calling the PUT API as SuperAdmin using curl (if http basic auth is on):
  * curl -v --cacert path_to_config/root-ca.pem --cert path_to_config/kirk.pem --key path_to_config/kirk-key.pem -XPUT https://localhost:9200/_opendistro/_security/api/whitelist -H "Content-Type: application/json" -d’
  * {
- * "whitelistingEnabled" : false,
- * "whitelistedAPIs" : ["/_cat/nodes","/_opendistro/_security/api/whitelist","/_opendistro/_security/api/securityconfig"]
+ * "whitelisting_enabled" : false,
+ * "whitelisted_APIs" : ["/_cat/nodes","/_opendistro/_security/api/whitelist","/_opendistro/_security/api/securityconfig"]
  * }
  * ‘
  * <p>

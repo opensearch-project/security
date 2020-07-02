@@ -370,20 +370,25 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
 
         SecurityDynamicConfiguration<WhitelistingSettings> configuration;
         WhitelistingSettings whitelistingSettings;
+        private static final List<String> defaultWhitelistedAPIs = Collections.emptyList();
+        private static final Boolean defaultWhitelistingEnabled = false;
 
         public WhitelistingSettingsModelImpl(SecurityDynamicConfiguration<?> configuration) {
             super();
             this.configuration = (null == configuration.getCType() ? SecurityDynamicConfiguration.empty() :
                     (SecurityDynamicConfiguration<WhitelistingSettings>) configuration);
             this.whitelistingSettings = this.configuration.getCEntry("whitelisting_settings");
-
         }
 
         @Override
-        public WhitelistingSettings getWhitelistingSettings() {
-            return whitelistingSettings;
+        public Boolean getWhitelistingEnabled() {
+            return whitelistingSettings == null ? defaultWhitelistingEnabled : whitelistingSettings.getWhitelistingEnabled();
         }
 
+        @Override
+        public List<String> getWhitelistedAPIs(){
+            return ((whitelistingSettings == null || whitelistingSettings.getWhitelistedAPIs() == null) ? defaultWhitelistedAPIs : whitelistingSettings.getWhitelistedAPIs());
+        }
     }
    
 }

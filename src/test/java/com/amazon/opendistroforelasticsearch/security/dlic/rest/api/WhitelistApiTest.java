@@ -58,7 +58,7 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
             Assert.assertTrue(response.getBody().contains("API allowed only for super admin."));
         }
         //CHECK PUT REQUEST
-        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"whitelistingEnabled\": true, \"whitelistedAPIs\": [\"/_cat/nodes\",\"/_cat/indices\"]}", headers);
+        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"whitelisting_enabled\": true, \"whitelisted_APIs\": [\"/_cat/nodes\",\"/_cat/indices\"]}", headers);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(expectedStatus));
     }
 
@@ -91,7 +91,7 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
 
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        RestHelper.HttpResponse response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{ \"unknownkey\": true, \"whitelistedAPIs\": [\"/_cat/nodes\",\"/_cat/plugins\"] }");
+        RestHelper.HttpResponse response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{ \"unknownkey\": true, \"whitelisted_APIs\": [\"/_cat/nodes\",\"/_cat/plugins\"] }");
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
         Assert.assertTrue(response.getBody().contains("invalid_keys"));
         assertHealthy();
@@ -108,7 +108,7 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
 
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        RestHelper.HttpResponse response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{ \"invalid\"::{{ [\"*\"], \"whitelistedAPIs\": [\"/_cat/nodes\",\"/_cat/plugins\"] }");
+        RestHelper.HttpResponse response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{ \"invalid\"::{{ [\"*\"], \"whitelisted_APIs\": [\"/_cat/nodes\",\"/_cat/plugins\"] }");
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
         Assert.assertTrue(response.getBody().contains("JsonParseException"));
         assertHealthy();
@@ -196,8 +196,6 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
             rh.sendAdminCertificate = true;
             testGetAndPut(HttpStatus.SC_OK, nonAdminCredsHeader);
         }
-
-        System.out.println(TestAuditlogImpl.sb.toString());
 
         //TESTS THAT 1 READ AND 1 WRITE HAPPENS IN testGetAndPut()
         final Map<AuditCategory, Long> expectedCategoryCounts = ImmutableMap.of(

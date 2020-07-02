@@ -2,52 +2,47 @@ package com.amazon.opendistroforelasticsearch.security.securityconf.impl;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public class WhitelistingSettings {
-    @JsonProperty(value = "whitelistingEnabled")
-    private boolean whitelistingEnabled;
-    @JsonProperty(value = "whitelistedAPIs")
-    private List<String> whitelistedAPIs;
+    @JsonProperty(value = "whitelisting_enabled")
+    private boolean whitelisting_enabled;
+    @JsonProperty(value = "whitelisted_APIs")
+    private List<String> whitelisted_APIs;
 
     public WhitelistingSettings() {
-        whitelistingEnabled = false;
-        whitelistedAPIs = new ArrayList<>(Arrays.asList(
-                "/_cat/plugins",
-                "/_cluster/health",
-                "/_cat/nodes"
-        ));
+        whitelisting_enabled = false;
+        whitelisted_APIs = Collections.emptyList();
     }
 
     public WhitelistingSettings(WhitelistingSettings whitelistingSettings) {
-        this.whitelistingEnabled = whitelistingSettings.getWhitelistingEnabled();
-        this.whitelistedAPIs = whitelistingSettings.getWhitelistedAPIs();
+        this.whitelisting_enabled = whitelistingSettings.getWhitelistingEnabled();
+        this.whitelisted_APIs = whitelistingSettings.getWhitelistedAPIs();
     }
 
-    @JsonProperty(value = "whitelistingEnabled")
+    @JsonProperty(value = "whitelisting_enabled")
     public boolean getWhitelistingEnabled() {
-        return this.whitelistingEnabled;
+        return this.whitelisting_enabled;
     }
 
-    @JsonProperty(value = "whitelistingEnabled")
+    @JsonProperty(value = "whitelisting_enabled")
     public void setWhitelistingEnabled(Boolean whitelistingEnabled) {
-        this.whitelistingEnabled = whitelistingEnabled;
+        this.whitelisting_enabled = whitelistingEnabled;
     }
 
-    @JsonProperty(value = "whitelistedAPIs")
+    @JsonProperty(value = "whitelisted_APIs")
     public List<String> getWhitelistedAPIs() {
-        return this.whitelistedAPIs;
+        return this.whitelisted_APIs;
     }
 
-    @JsonProperty(value = "whitelistedAPIs")
+    @JsonProperty(value = "whitelisted_APIs")
     public void setWhitelistedAPIs(List<String> whitelistedAPIs) {
-        this.whitelistedAPIs = whitelistedAPIs;
+        this.whitelisted_APIs = whitelistedAPIs;
     }
 
     @Override
     public String toString() {
-        return "WhitelistingSetting [whitelistingEnabled=" + whitelistingEnabled + ", whitelistedAPIs=" + whitelistedAPIs + ']';
+        return "WhitelistingSetting [whitelisting_enabled=" + whitelisting_enabled + ", whitelisted_APIs=" + whitelisted_APIs + ']';
     }
 }
