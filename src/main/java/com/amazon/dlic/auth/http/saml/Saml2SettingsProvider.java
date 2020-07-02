@@ -53,7 +53,7 @@ public class Saml2SettingsProvider {
     private final Settings esSettings;
     private final MetadataResolver metadataResolver;
     private final String idpEntityId;
-    private PrivateKey spSignaturePrivateKey;
+    private final PrivateKey spSignaturePrivateKey;
     private  Saml2Settings cachedSaml2Settings;
     private  DateTime metadataUpdateTime;
 
