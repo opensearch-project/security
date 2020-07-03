@@ -1,5 +1,9 @@
 package com.amazon.opendistroforelasticsearch.security.auditlog.impl;
 
+import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
+
+import org.elasticsearch.common.settings.Settings;
+
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.stream.Collectors;
@@ -28,5 +32,9 @@ public enum AuditCategory {
                 .map(String::toUpperCase)
                 .map(AuditCategory::valueOf)
                 .collect(Collectors.toCollection(() -> set));
+    }
+
+    public static EnumSet<AuditCategory> from(final Settings settings, final String key) {
+        return parse(ConfigConstants.getSettingAsSet(settings, key, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT, true));
     }
 }
