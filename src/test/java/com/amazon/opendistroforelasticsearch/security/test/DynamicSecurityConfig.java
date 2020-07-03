@@ -50,7 +50,7 @@ public class DynamicSecurityConfig {
     private String securityInternalUsers = "internal_users.yml";
     private String securityActionGroups = "action_groups.yml";
     private String securityNodesDn = "nodes_dn.yml";
-    private String securityWhitelistingSettings = "whitelisting_settings.yml";
+    private String securityWhitelistingSettings = "whitelist.yml";
     private String securityConfigAsYamlString = null;
     private String type = "_doc";
     private String legacyConfigFolder = "";
@@ -159,9 +159,9 @@ public class DynamicSecurityConfig {
                     .source(CType.NODESDN.toLCString(), FileHelper.readYamlContent(prefix + securityNodesDn)));
             ret.add(new IndexRequest(securityIndexName)
                     .type(type)
-                    .id(CType.WHITELISTING_SETTINGS.toLCString())
+                    .id(CType.WHITELIST.toLCString())
                     .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                    .source(CType.WHITELISTING_SETTINGS.toLCString(), FileHelper.readYamlContent(prefix + securityWhitelistingSettings)));
+                    .source(CType.WHITELIST.toLCString(), FileHelper.readYamlContent(prefix + securityWhitelistingSettings)));
         }
 
         return Collections.unmodifiableList(ret);

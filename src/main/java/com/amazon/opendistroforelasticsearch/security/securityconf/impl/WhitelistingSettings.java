@@ -4,16 +4,20 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 public class WhitelistingSettings {
     @JsonProperty(value = "whitelisting_enabled")
     private boolean whitelisting_enabled;
     @JsonProperty(value = "whitelisted_APIs")
-    private List<String> whitelisted_APIs;
+    private Map<String, List<HttpRequestMethods>> whitelisted_APIs;
 
+    /**
+     * Used to parse the yml files, do not remove.
+     */
     public WhitelistingSettings() {
         whitelisting_enabled = false;
-        whitelisted_APIs = Collections.emptyList();
+        whitelisted_APIs = Collections.emptyMap();
     }
 
     public WhitelistingSettings(WhitelistingSettings whitelistingSettings) {
@@ -32,12 +36,12 @@ public class WhitelistingSettings {
     }
 
     @JsonProperty(value = "whitelisted_APIs")
-    public List<String> getWhitelistedAPIs() {
+    public Map<String, List<HttpRequestMethods>> getWhitelistedAPIs() {
         return this.whitelisted_APIs;
     }
 
     @JsonProperty(value = "whitelisted_APIs")
-    public void setWhitelistedAPIs(List<String> whitelistedAPIs) {
+    public void setWhitelistedAPIs(Map<String, List<HttpRequestMethods>> whitelistedAPIs) {
         this.whitelisted_APIs = whitelistedAPIs;
     }
 

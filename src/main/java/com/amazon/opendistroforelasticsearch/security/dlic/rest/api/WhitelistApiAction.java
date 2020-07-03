@@ -44,13 +44,9 @@ import java.util.List;
  * curl -v --cacert path_to_config/root-ca.pem --cert path_to_config/kirk.pem --key path_to_config/kirk-key.pem -XPUT https://localhost:9200/_opendistro/_security/api/whitelist -H "Content-Type: application/json" -d’
  * {
  * "whitelisting_enabled" : false,
- * "whitelisted_APIs" : ["/_cat/nodes","/_opendistro/_security/api/whitelist","/_opendistro/_security/api/securityconfig"]
+ * "whitelisted_APIs" : {"/_cat/nodes": ["GET"], "/_opendistro/_security/api/whitelist": ["GET"]}
  * }
- * ‘
- * <p>
- * Currently, whitelisting checks the path for equality, so make sure you don't have errors in the whitelisted APIs.
- * eg: whitelisting "/_cat/nodes/" is different from whitelisting /_cat/nodes" (extra '/' results in a different path
- * <p>
+ *
  * The backing data is stored in {@link ConfigConstants#OPENDISTRO_SECURITY_CONFIG_INDEX_NAME} which is populated during bootstrap.
  * For existing clusters, {@link com.amazon.opendistroforelasticsearch.security.tools.OpenDistroSecurityAdmin} tool can
  * be used to populate the index.
@@ -129,7 +125,7 @@ public class WhitelistApiAction extends AbstractApiAction {
 
     @Override
     protected Endpoint getEndpoint() {
-        return Endpoint.WHITELISTING_SETTINGS;
+        return Endpoint.WHITELIST;
     }
 
     @Override
@@ -144,7 +140,7 @@ public class WhitelistApiAction extends AbstractApiAction {
 
     @Override
     protected CType getConfigName() {
-        return CType.WHITELISTING_SETTINGS;
+        return CType.WHITELIST;
     }
 
 }

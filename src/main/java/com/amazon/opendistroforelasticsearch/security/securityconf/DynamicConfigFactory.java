@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.HttpRequestMethods;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.NodesDn;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.WhitelistingSettings;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
@@ -138,7 +139,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         SecurityDynamicConfiguration<?> rolesmapping = cr.getConfiguration(CType.ROLESMAPPING);
         SecurityDynamicConfiguration<?> tenants = cr.getConfiguration(CType.TENANTS);
         SecurityDynamicConfiguration<?> nodesDn = cr.getConfiguration(CType.NODESDN);
-        SecurityDynamicConfiguration<?> whitelistingSetting = cr.getConfiguration(CType.WHITELISTING_SETTINGS);
+        SecurityDynamicConfiguration<?> whitelistingSetting = cr.getConfiguration(CType.WHITELIST);
 
 
         if (log.isDebugEnabled()) {
@@ -370,7 +371,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
 
         SecurityDynamicConfiguration<WhitelistingSettings> configuration;
         WhitelistingSettings whitelistingSettings;
-        private static final List<String> defaultWhitelistedAPIs = Collections.emptyList();
+        private static final Map<String, List<HttpRequestMethods>> defaultWhitelistedAPIs = Collections.emptyMap();
         private static final Boolean defaultWhitelistingEnabled = false;
 
         public WhitelistingSettingsModelImpl(SecurityDynamicConfiguration<?> configuration) {
@@ -386,7 +387,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         }
 
         @Override
-        public List<String> getWhitelistedAPIs(){
+        public Map<String, List<HttpRequestMethods>> getWhitelistedAPIs(){
             return ((whitelistingSettings == null || whitelistingSettings.getWhitelistedAPIs() == null) ? defaultWhitelistedAPIs : whitelistingSettings.getWhitelistedAPIs());
         }
     }

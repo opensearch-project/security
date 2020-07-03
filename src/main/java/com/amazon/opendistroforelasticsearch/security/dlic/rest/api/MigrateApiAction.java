@@ -115,7 +115,7 @@ public class MigrateApiAction extends AbstractApiAction {
         final SecurityDynamicConfiguration<RoleV6> rolesV6 = (SecurityDynamicConfiguration<RoleV6>) load(CType.ROLES, true);
         final SecurityDynamicConfiguration<RoleMappingsV6> rolesmappingV6 = (SecurityDynamicConfiguration<RoleMappingsV6>) load(CType.ROLESMAPPING, true);
         final SecurityDynamicConfiguration<NodesDn> nodesDnV6 = (SecurityDynamicConfiguration<NodesDn>) load(CType.NODESDN, true);
-        final SecurityDynamicConfiguration<WhitelistingSettings> whitelistingSettingV6 = (SecurityDynamicConfiguration<WhitelistingSettings>) load(CType.WHITELISTING_SETTINGS, true);
+        final SecurityDynamicConfiguration<WhitelistingSettings> whitelistingSettingV6 = (SecurityDynamicConfiguration<WhitelistingSettings>) load(CType.WHITELIST, true);
 
         final SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsV7 = Migration.migrateActionGroups(actionGroupsV6);
         final SecurityDynamicConfiguration<ConfigV7> configV7 = Migration.migrateConfig(configV6);
@@ -170,7 +170,7 @@ public class MigrateApiAction extends AbstractApiAction {
                                                 XContentHelper.toXContent(rolesmappingV7, XContentType.JSON, false)));
                                         br.add(new IndexRequest().id(CType.NODESDN.toLCString()).source(CType.NODESDN.toLCString(),
                                                 XContentHelper.toXContent(nodesDnV7, XContentType.JSON, false)));
-                                        br.add(new IndexRequest().id(CType.WHITELISTING_SETTINGS.toLCString()).source(CType.WHITELISTING_SETTINGS.toLCString(),
+                                        br.add(new IndexRequest().id(CType.WHITELIST.toLCString()).source(CType.WHITELIST.toLCString(),
                                                 XContentHelper.toXContent(whitelistingSettingV7, XContentType.JSON, false)));
                                     } catch (final IOException e1) {
                                         log.error("Unable to create bulk request " + e1, e1);

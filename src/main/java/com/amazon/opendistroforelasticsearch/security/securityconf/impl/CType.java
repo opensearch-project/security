@@ -31,7 +31,7 @@ public enum CType {
     ROLESMAPPING(toMap(1, RoleMappingsV6.class, 2, RoleMappingsV7.class)),
     TENANTS(toMap(2, TenantV7.class)),
     NODESDN(toMap(1, NodesDn.class, 2, NodesDn.class)),
-    WHITELISTING_SETTINGS(toMap(1, WhitelistingSettings.class, 2, WhitelistingSettings.class));
+    WHITELIST(toMap(1, WhitelistingSettings.class, 2, WhitelistingSettings.class));
 
 
     private Map<Integer, Class<?>> implementations;

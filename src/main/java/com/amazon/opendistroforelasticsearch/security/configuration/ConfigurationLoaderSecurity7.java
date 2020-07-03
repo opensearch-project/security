@@ -144,7 +144,7 @@ public class ConfigurationLoaderSecurity7 {
 
                 // Since WHITELISTING_SETTINGS is newly introduced data-type applying for existing clusters as well, we make it backward compatible by returning valid empty
                 // SecurityDynamicConfiguration.
-                if (cType == CType.WHITELISTING_SETTINGS) {
+                if (cType == CType.WHITELIST) {
                     try {
                         SecurityDynamicConfiguration<?> empty = ConfigHelper.createEmptySdc(cType, ConfigurationRepository.getDefaultConfigVersion());
                         rs.put(cType, empty);

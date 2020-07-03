@@ -32,11 +32,13 @@ package com.amazon.opendistroforelasticsearch.security.filter;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.HashSet;
+import java.util.HashMap;
+import java.util.List;
 
 import javax.net.ssl.SSLPeerUnverifiedException;
 
 import com.amazon.opendistroforelasticsearch.security.configuration.AdminDNs;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.HttpRequestMethods;
 import com.amazon.opendistroforelasticsearch.security.securityconf.WhitelistingSettingsModel;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -77,7 +79,7 @@ public class OpenDistroSecurityRestFilter {
     private final CompatConfig compatConfig;
 
     private boolean whitelisting_enabled;
-    private HashSet<String> whitelisted_APIs;
+    private HashMap<String, List<HttpRequestMethods>> whitelisted_APIs;
 
 
     public OpenDistroSecurityRestFilter(final BackendRegistry registry, final AuditLog auditLog,
@@ -92,8 +94,7 @@ public class OpenDistroSecurityRestFilter {
         this.configPath = configPath;
         this.compatConfig = compatConfig;
         this.whitelisting_enabled = false;
-        this.whitelisted_APIs = new HashSet<>();
-
+        this.whitelisted_APIs = new HashMap<>();
     }
 
     /**
@@ -105,7 +106,6 @@ public class OpenDistroSecurityRestFilter {
      * If whitelisting is enabled, then Non-SuperAdmin is allowed to access only those APIs that are whitelisted in {@link #whitelisted_APIs}
      * For example: if whitelisting is enabled and whitelisted_APIs = ["/_cat/nodes"], then SuperAdmin can access all APIs, but non SuperAdmin
      * can only access "/_cat/nodes"
-     * Note: if whitelisted_APIs = ["/_cat/nodes"] is whitelisted, "/_cat/nodes/" will not work, because of the extra '/'.
      * Further note: Some APIs are only accessible by SuperAdmin, regardless of whitelisting. For example: /_opendistro/_security/api/whitelist is only accessible by SuperAdmin.
      * See {@link com.amazon.opendistroforelasticsearch.security.dlic.rest.api.WhitelistApiAction} for the implementation of this API.
      * SuperAdmin is identified by credentials, which can be passed in the curl request.
@@ -118,7 +118,7 @@ public class OpenDistroSecurityRestFilter {
                 org.apache.logging.log4j.ThreadContext.clearAll();
                 if (!checkAndAuthenticateRequest(request, channel, client)) {
                     User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-                    if (userIsSuperAdmin(user, adminDNs) || checkRequestIsWhitelisted(request, channel, client)) {
+                    if (userIsSuperAdmin(user, adminDNs) || checkRequestIsAllowed(request, channel, client)) {
                         original.handleRequest(request, channel, client);
                     }
                 }
@@ -134,18 +134,54 @@ public class OpenDistroSecurityRestFilter {
     }
 
     /**
-     * Checks against {@link #whitelisted_APIs} that a given request path is whitelisted, for non SuperAdmin .
+     * Helper function to check if a rest request is whitelisted, by checking if the path is whitelisted,
+     * and then if the Http method is whitelisted.
+     * This method also contains logic to trim the path request, and check both with and without extra '/'
+     * This allows users to whitelist either /_cluster/settings/ or /_cluster/settings, to avoid potential issues.
+     * This also ensures that requests to the cluster can have a trailing '/'
+     * Scenarios:
+     * 1. Whitelisted API does not have an extra '/'. eg: If GET /_cluster/settings is whitelisted, these requests have the following response:
+     *      GET /_cluster/settings  - OK
+     *      GET /_cluster/settings/ - OK
+     *
+     * 2. Whitelisted API has an extra '/'. eg: If GET /_cluster/settings/ is whitelisted, these requests have the following response:
+     *      GET /_cluster/settings  - OK
+     *      GET /_cluster/settings/ - OK
+     */
+    private boolean requestIsWhitelisted(RestRequest request){
+
+        //ALSO ALLOWS REQUEST TO HAVE TRAILING '/'
+        //pathWithoutTrailingSlash stores the endpoint path without extra '/'. eg: /_cat/nodes
+        //pathWithTrailingSlash stores the endpoint path with extra '/'. eg: /_cat/nodes/
+        String path = request.path();
+        String pathWithoutTrailingSlash;
+        String pathWithTrailingSlash;
+
+        //first obtain pathWithoutTrailingSlash, then add a '/' to it to get pathWithTrailingSlash
+        pathWithoutTrailingSlash = path.endsWith("/") ? path.substring(0, path.length() - 1) : path;
+        pathWithTrailingSlash = pathWithoutTrailingSlash + '/';
+
+        //check if pathWithoutTrailingSlash is whitelisted
+        if(this.whitelisted_APIs.containsKey(pathWithoutTrailingSlash) && this.whitelisted_APIs.get(pathWithoutTrailingSlash).contains(HttpRequestMethods.valueOf(request.method().toString())))
+            return true;
+
+        //check if pathWithTrailingSlash is whitelisted
+        if(this.whitelisted_APIs.containsKey(pathWithTrailingSlash) && this.whitelisted_APIs.get(pathWithTrailingSlash).contains(HttpRequestMethods.valueOf(request.method().toString())))
+            return true;
+        return false;
+    }
+
+    /**
+     * Checks against {@link #whitelisted_APIs} that a given request is whitelisted, for non SuperAdmin.
      * For SuperAdmin this function is bypassed.
-     * For example: if "/_cat/nodes" is whitelisted, then it will be an, allowed request, otherwise will not be.
-     * Note: currently, if "/_cat/nodes" is whitelisted, then "/_cat/nodes/" will not be allowed, because the path is different.
      * In a future version, could add a regex check to improve the functionality.
      */
-    private boolean checkRequestIsWhitelisted(RestRequest request, RestChannel channel,
-                                              NodeClient client) throws IOException {
-        //if whitelisting is enabled but the request path is not whitelisted then return false, otherwise true.
-        if (this.whitelisting_enabled && !this.whitelisted_APIs.contains(request.path())) {
+    private boolean checkRequestIsAllowed(RestRequest request, RestChannel channel,
+                                          NodeClient client) throws IOException {
+        // if whitelisting is enabled but the request is not whitelisted, then return false, otherwise true.
+        if (this.whitelisting_enabled && !requestIsWhitelisted(request)){
             channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, channel.newErrorBuilder().startObject()
-                    .field("error", request.path() + " API not whitelisted")
+                    .field("error", request.method() + " " + request.path() + " API not whitelisted")
                     .field("status", RestStatus.FORBIDDEN)
                     .endObject()
             ));
@@ -218,6 +254,6 @@ public class OpenDistroSecurityRestFilter {
     @Subscribe
     public void onWhitelistingSettingChanged(WhitelistingSettingsModel whitelistingSettingsModel) {
         this.whitelisting_enabled = whitelistingSettingsModel.getWhitelistingEnabled();
-        this.whitelisted_APIs = new HashSet<>(whitelistingSettingsModel.getWhitelistedAPIs());
+        this.whitelisted_APIs = (HashMap<String, List<HttpRequestMethods>>) whitelistingSettingsModel.getWhitelistedAPIs();
     }
 }

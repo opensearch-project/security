@@ -29,6 +29,6 @@ public enum Endpoint {
     TENANTS,
     MIGRATE,
     VALIDATE,
-    WHITELISTING_SETTINGS,
+    WHITELIST,
     NODESDN;
 }

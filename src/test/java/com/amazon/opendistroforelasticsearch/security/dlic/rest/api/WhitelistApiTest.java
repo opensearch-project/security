@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Unit testing class to verify that {@link WhitelistApiAction} works correctly.
@@ -55,10 +56,10 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
         }
         //FORBIDDEN FOR NON SUPER ADMIN
         if (expectedStatus == HttpStatus.SC_FORBIDDEN) {
-            Assert.assertTrue(response.getBody().contains("API allowed only for super admin."));
+            assertTrue(response.getBody().contains("API allowed only for super admin."));
         }
         //CHECK PUT REQUEST
-        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"whitelisting_enabled\": true, \"whitelisted_APIs\": [\"/_cat/nodes\",\"/_cat/indices\"]}", headers);
+        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"whitelisting_enabled\": true, \"whitelisted_APIs\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}", headers);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(expectedStatus));
     }
 
@@ -91,9 +92,9 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
 
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        RestHelper.HttpResponse response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{ \"unknownkey\": true, \"whitelisted_APIs\": [\"/_cat/nodes\",\"/_cat/plugins\"] }");
+        RestHelper.HttpResponse response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{ \"unknownkey\": true, \"whitelisted_APIs\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}");
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-        Assert.assertTrue(response.getBody().contains("invalid_keys"));
+        assertTrue(response.getBody().contains("invalid_keys"));
         assertHealthy();
     }
 
@@ -108,9 +109,9 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
 
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        RestHelper.HttpResponse response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{ \"invalid\"::{{ [\"*\"], \"whitelisted_APIs\": [\"/_cat/nodes\",\"/_cat/plugins\"] }");
+        RestHelper.HttpResponse response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{ \"invalid\"::{{ [\"*\"], \"whitelisted_APIs\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}");
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-        Assert.assertTrue(response.getBody().contains("JsonParseException"));
+        assertTrue(response.getBody().contains("JsonParseException"));
         assertHealthy();
     }
 
@@ -204,6 +205,17 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
         Map<AuditCategory, Long> actualCategoryCounts = TestAuditlogImpl.messages.stream().collect(Collectors.groupingBy(AuditMessage::getCategory, Collectors.counting()));
 
         assertThat(actualCategoryCounts, equalTo(expectedCategoryCounts));
+    }
+
+    @Test
+    public void testWhitelistInvalidHttpRequestMethod() throws Exception{
+        setup();
+        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.sendAdminCertificate = true;
+
+        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"whitelisting_enabled\": true, \"whitelisted_APIs\": {\"/_cat/nodes\": [\"GE\"],\"/_cat/indices\": [\"PUT\"] }}", adminCredsHeader);
+        assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_INTERNAL_SERVER_ERROR));
+        assertTrue(response.getBody().contains("\\\"GE\\\": not one of the values accepted for Enum class"));
     }
 }
 

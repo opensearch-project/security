@@ -38,7 +38,7 @@ public class OpenDistroSecurityRestFilterTest extends AbstractRestApiUnitTest {
         //ADD SOME WHITELISTED APIs
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"whitelisting_enabled\": true, \"whitelisted_APIs\": [\"/_cat/nodes\",\"/_cat/indices\"]}", adminCredsHeader);
+        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"whitelisting_enabled\": true, \"whitelisted_APIs\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}", adminCredsHeader);
 
         log.warn("the response is:" + rh.executeGetRequest("_opendistro/_security/api/whitelist", adminCredsHeader));
 
@@ -71,7 +71,7 @@ public class OpenDistroSecurityRestFilterTest extends AbstractRestApiUnitTest {
         //ADD SOME WHITELISTED APIs - /_cat/nodes and /_cat/indices
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"whitelisting_enabled\": true, \"whitelisted_APIs\": [\"/_cat/nodes\",\"/_cat/indices\"]}", nonAdminCredsHeader);
+        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"whitelisting_enabled\": true, \"whitelisted_APIs\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}", nonAdminCredsHeader);
 
         //NON ADMIN TRIES ACCESSING A NON-WHITELISTED API - FORBIDDEN
         rh.sendAdminCertificate = false;
@@ -99,7 +99,7 @@ public class OpenDistroSecurityRestFilterTest extends AbstractRestApiUnitTest {
         //DISABLE WHITELISTING BUT ADD SOME WHITELISTED APIs - /_cat/nodes and /_cat/plugins
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"whitelisting_enabled\": false, \"whitelisted_APIs\": [\"/_cat/nodes\",\"/_cat/indices\"]}", nonAdminCredsHeader);
+        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"whitelisting_enabled\": false, \"whitelisted_APIs\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}", nonAdminCredsHeader);
 
         //NON-ADMIN TRIES ACCESSING 2 APIs: One in the list and one outside - OK for both (Because whitelisting is off)
         rh.sendAdminCertificate = false;
@@ -122,5 +122,119 @@ public class OpenDistroSecurityRestFilterTest extends AbstractRestApiUnitTest {
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
         response = rh.executeGetRequest("_cat/nodes", adminCredsHeader);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
+    }
+
+    /**
+     * Checks that request method specific whitelisting works properly.
+     * Checks that if only GET /_cluster/settings is whitelisted, then:
+     * non admin user can access GET /_cluster/settings, but not PUT /_cluster/settings
+     * admin user can access GET /_cluster/settings, but not PUT /_cluster/settings
+     * SuperAdmin can access GET /_cluster/settings and PUT /_cluster/settings
+     *
+     */
+    @Test
+    public void checkSpecificRequestMethodWhitelisting() throws Exception{
+        setup();
+
+        //WHITELIST GET /_cluster/settings
+        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.sendAdminCertificate = true;
+        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"whitelisting_enabled\": true, \"whitelisted_APIs\": {\"/_cluster/settings\": [\"GET\"]}}", nonAdminCredsHeader);
+
+        //NON-ADMIN TRIES ACCESSING GET - OK, PUT - FORBIDDEN
+
+        rh.sendAdminCertificate = false;
+        response = rh.executeGetRequest("_cluster/settings", nonAdminCredsHeader);
+        assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
+        response = rh.executePutRequest("_cluster/settings","{\"persistent\": { }, \"transient\": {\"indices.recovery.max_bytes_per_sec\": \"15mb\" }}", nonAdminCredsHeader);
+        assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
+
+        //ADMIN USER TRIES ACCESSING GET - OK, PUT - FORBIDDEN
+        rh.sendAdminCertificate = false;
+        response = rh.executeGetRequest("_cluster/settings", adminCredsHeader);
+        assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
+        response = rh.executePutRequest("_cluster/settings","{\"persistent\": { }, \"transient\": {\"indices.recovery.max_bytes_per_sec\": \"15mb\" }}", adminCredsHeader);
+        assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
+
+        //SUPERADMIN TRIES ACCESSING GET - OK, PUT - OK
+        rh.sendAdminCertificate = true;
+        response = rh.executeGetRequest("_cluster/settings", adminCredsHeader);
+        assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
+        response = rh.executePutRequest("_cluster/settings","{\"persistent\": { }, \"transient\": {\"indices.recovery.max_bytes_per_sec\": \"15mb\" }}", adminCredsHeader);
+        assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
+    }
+
+
+    /**
+     * Tests that a whitelisted API with an extra '/' does not cause an issue
+     * i.e if only GET /_cluster/settings/ is whitelisted, then:
+     * GET /_cluster/settings/  - OK
+     * GET /_cluster/settings - OK
+     * PUT /_cluster/settings/  - FORBIDDEN
+     * PUT /_cluster/settings - FORBIDDEN
+     * @throws Exception
+     */
+    @Test
+    public void testWhitelistedApiWithExtraSlash() throws Exception{
+        setup();
+
+        //WHITELIST GET /_cluster/settings/ -  extra / in the request
+        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.sendAdminCertificate = true;
+        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"whitelisting_enabled\": true, \"whitelisted_APIs\": {\"/_cluster/settings/\": [\"GET\"]}}", nonAdminCredsHeader);
+
+        //NON ADMIN ACCESS GET /_cluster/settings/ - OK
+        rh.sendAdminCertificate = false;
+        response = rh.executeGetRequest("_cluster/settings/", nonAdminCredsHeader);
+        assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
+
+        //NON ADMIN ACCESS GET /_cluster/settings - OK
+        response = rh.executeGetRequest("_cluster/settings", nonAdminCredsHeader);
+        assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
+
+        //NON ADMIN ACCESS PUT /_cluster/settings/ - FORBIDDEN
+        response = rh.executePutRequest("_cluster/settings/","{\"persistent\": { }, \"transient\": {\"indices.recovery.max_bytes_per_sec\": \"15mb\" }}", adminCredsHeader);
+        assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
+
+        //NON ADMIN ACCESS PUT /_cluster/settings - FORBIDDEN
+        response = rh.executePutRequest("_cluster/settings","{\"persistent\": { }, \"transient\": {\"indices.recovery.max_bytes_per_sec\": \"15mb\" }}", adminCredsHeader);
+        assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
+
+    }
+
+    /**
+     * Tests that a whitelisted API without an extra '/' does not cause an issue
+     * i.e if only GET /_cluster/settings is whitelisted, then:
+     * GET /_cluster/settings/ - OK
+     * GET /_cluster/settings - OK
+     * PUT /_cluster/settings/ - FORBIDDEN
+     * PUT /_cluster/settings - FORBIDDEN
+     * @throws Exception
+     */
+    @Test
+    public void testWhitelistedApiWithoutExtraSlash() throws Exception{
+        setup();
+
+        //WHITELIST GET /_cluster/settings (no extra / in request)
+        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.sendAdminCertificate = true;
+        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"whitelisting_enabled\": true, \"whitelisted_APIs\": {\"/_cluster/settings\": [\"GET\"]}}", nonAdminCredsHeader);
+
+        //NON ADMIN ACCESS GET /_cluster/settings/ - OK
+        rh.sendAdminCertificate = false;
+        response = rh.executeGetRequest("_cluster/settings/", nonAdminCredsHeader);
+        assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
+
+        //NON ADMIN ACCESS GET /_cluster/settings - OK
+        response = rh.executeGetRequest("_cluster/settings", nonAdminCredsHeader);
+        assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
+
+        //NON ADMIN ACCESS PUT /_cluster/settings/ - FORBIDDEN
+        response = rh.executePutRequest("_cluster/settings/","{\"persistent\": { }, \"transient\": {\"indices.recovery.max_bytes_per_sec\": \"15mb\" }}", adminCredsHeader);
+        assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
+
+        //NON ADMIN ACCESS PUT /_cluster/settings - FORBIDDEN
+        response = rh.executePutRequest("_cluster/settings","{\"persistent\": { }, \"transient\": {\"indices.recovery.max_bytes_per_sec\": \"15mb\" }}", adminCredsHeader);
+        assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
     }
 }
