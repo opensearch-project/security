@@ -1214,7 +1214,7 @@ public class OpenDistroSecurityAdmin {
             success = retrieveFile(tc, backupDir.getAbsolutePath()+"/tenants.yml", index, "tenants", legacy) && success;
         }
         success = retrieveFile(tc, backupDir.getAbsolutePath()+"/nodes_dn.yml", index, "nodesdn", legacy, true) && success;
-        success = retrieveFile(tc, backupDir.getAbsolutePath()+"/whitelist.yml", index, "whitelisting", legacy, true) && success;
+        success = retrieveFile(tc, backupDir.getAbsolutePath()+"/whitelist.yml", index, "whitelist", legacy, true) && success;
         return success?0:-1;
     }
     

@@ -32,8 +32,9 @@ package com.amazon.opendistroforelasticsearch.security.filter;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import javax.net.ssl.SSLPeerUnverifiedException;
 
@@ -79,7 +80,7 @@ public class OpenDistroSecurityRestFilter {
     private final CompatConfig compatConfig;
 
     private boolean whitelisting_enabled;
-    private HashMap<String, List<HttpRequestMethods>> whitelisted_APIs;
+    private Map<String, List<HttpRequestMethods>> whitelisted_APIs;
 
 
     public OpenDistroSecurityRestFilter(final BackendRegistry registry, final AuditLog auditLog,
@@ -94,7 +95,7 @@ public class OpenDistroSecurityRestFilter {
         this.configPath = configPath;
         this.compatConfig = compatConfig;
         this.whitelisting_enabled = false;
-        this.whitelisted_APIs = new HashMap<>();
+        this.whitelisted_APIs = Collections.emptyMap();
     }
 
     /**
@@ -254,6 +255,6 @@ public class OpenDistroSecurityRestFilter {
     @Subscribe
     public void onWhitelistingSettingChanged(WhitelistingSettingsModel whitelistingSettingsModel) {
         this.whitelisting_enabled = whitelistingSettingsModel.getWhitelistingEnabled();
-        this.whitelisted_APIs = (HashMap<String, List<HttpRequestMethods>>) whitelistingSettingsModel.getWhitelistedAPIs();
+        this.whitelisted_APIs = whitelistingSettingsModel.getWhitelistedAPIs();
     }
 }
