@@ -9,7 +9,6 @@ import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.Settings;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
@@ -29,10 +28,6 @@ public class AuditConfig {
      * Audit logger will use these settings to determine what audit logs are to be generated.
      */
     public static class Filter {
-        private static final List<String> DEFAULT_DISABLED_CATEGORIES =
-                Arrays.asList(AuditCategory.AUTHENTICATED.toString(),
-                        AuditCategory.GRANTED_PRIVILEGES.toString());
-
         private final boolean isRestApiAuditEnabled;
         private final boolean isTransportApiAuditEnabled;
         private final boolean resolveBulkRequests;
@@ -79,19 +74,19 @@ public class AuditConfig {
             final boolean resolveIndices = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_INDICES, true);
             final boolean excludeSensitiveHeaders = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS, true);
 
-            final EnumSet<AuditCategory> disabledRestCategories = AuditCategory.parse(getSettingAsSet(
+            final EnumSet<AuditCategory> disabledRestCategories = AuditCategory.parse(ConfigConstants.getSettingAsSet(
                     settings,
                     ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES,
-                    DEFAULT_DISABLED_CATEGORIES,
+                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT,
                     true));
 
-            final EnumSet<AuditCategory> disabledTransportCategories = AuditCategory.parse(getSettingAsSet(
+            final EnumSet<AuditCategory> disabledTransportCategories = AuditCategory.parse(ConfigConstants.getSettingAsSet(
                     settings,
                     ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES,
-                    DEFAULT_DISABLED_CATEGORIES,
+                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT,
                     true));
 
-            final Set<String> ignoredAuditUsers = getSettingAsSet(
+            final Set<String> ignoredAuditUsers = ConfigConstants.getSettingAsSet(
                     settings,
                     ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS,
                     DEFAULT_IGNORED_USERS,
@@ -232,13 +227,5 @@ public class AuditConfig {
                     ", ignoreAuditRequests=" + ignoredAuditRequestsMatcher +
                     '}';
         }
-    }
-
-    public static Set<String> getSettingAsSet(final Settings settings, final String key, final List<String> defaultList, final boolean ignoreCaseForNone) {
-        final List<String> list = settings.getAsList(key, defaultList);
-        if (list.size() == 1 && "NONE".equals(ignoreCaseForNone? list.get(0).toUpperCase() : list.get(0))) {
-            return Collections.emptySet();
-        }
-        return ImmutableSet.copyOf(list);
     }
 }
