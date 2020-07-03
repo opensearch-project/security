@@ -30,11 +30,18 @@
 
 package com.amazon.opendistroforelasticsearch.security.support;
 
+import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
+
+import org.elasticsearch.common.settings.Settings;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 public class ConfigConstants {
 
@@ -134,6 +141,8 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT = "opendistro_security.audit.enable_transport";
     public static final String OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES = "opendistro_security.audit.config.disabled_transport_categories";
     public static final String OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES = "opendistro_security.audit.config.disabled_rest_categories";
+    public static final List<String> OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT = ImmutableList.of(AuditCategory.AUTHENTICATED.toString(),
+            AuditCategory.GRANTED_PRIVILEGES.toString());
     public static final String OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS = "opendistro_security.audit.ignore_users";
     public static final String OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS = "opendistro_security.audit.ignore_requests";
     public static final String OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS = "opendistro_security.audit.resolve_bulk_requests";
@@ -213,7 +222,7 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_SSL_ONLY = "opendistro_security.ssl_only";
     public static final String OPENDISTRO_SECURITY_SSL_CERT_RELOAD_ENABLED = "opendistro_security.ssl_cert_reload_enabled";
     public static final String OPENDISTRO_SECURITY_DISABLE_ENVVAR_REPLACEMENT = "opendistro_security.disable_envvar_replacement";
-    
+
     public enum RolesMappingResolution {
         MAPPING_ONLY,
         BACKENDROLES_ONLY,
@@ -247,4 +256,12 @@ public class ConfigConstants {
     public static final List<String> OPENDISTRO_SECURITY_PROTECTED_INDICES_DEFAULT = Collections.emptyList();
     public static final String OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_KEY = "opendistro_security.protected_indices.roles";
     public static final List<String> OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_DEFAULT = Collections.emptyList();
+
+    public static Set<String> getSettingAsSet(final Settings settings, final String key, final List<String> defaultList, final boolean ignoreCaseForNone) {
+        final List<String> list = settings.getAsList(key, defaultList);
+        if (list.size() == 1 && "NONE".equals(ignoreCaseForNone? list.get(0).toUpperCase() : list.get(0))) {
+            return Collections.emptySet();
+        }
+        return ImmutableSet.copyOf(list);
+    }
 }
