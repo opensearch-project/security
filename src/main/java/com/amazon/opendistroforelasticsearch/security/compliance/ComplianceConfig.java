@@ -173,12 +173,12 @@ public class ComplianceConfig {
         final String opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
         final String type = settings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_TYPE_DEFAULT, null);
         final String index = settings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ES_INDEX, "'security-auditlog-'YYYY.MM.dd");
-        final Set<String> ignoredComplianceUsersForRead = AuditConfig.getSettingAsSet(
+        final Set<String> ignoredComplianceUsersForRead = ConfigConstants.getSettingAsSet(
                 settings,
                 ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS,
                 AuditConfig.DEFAULT_IGNORED_USERS,
                 false);
-        final Set<String> ignoredComplianceUsersForWrite = AuditConfig.getSettingAsSet(
+        final Set<String> ignoredComplianceUsersForWrite = ConfigConstants.getSettingAsSet(
                 settings,
                 ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS,
                 AuditConfig.DEFAULT_IGNORED_USERS,
