@@ -93,7 +93,10 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_USER_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX+"user_header";
 
     public static final String OPENDISTRO_SECURITY_INJECTED_USER = "injected_user";
-    
+
+    public static final String OPENDISTRO_SECURITY_INJECT_ROLE_ENABLED = "opendistro_security_inject_role_enabled";
+    public static final String OPENDISTRO_SECURITY_INJECT_ROLE = "opendistro_security_inject_role";
+
     public static final String OPENDISTRO_SECURITY_XFF_DONE = OPENDISTRO_SECURITY_CONFIG_PREFIX+"xff_done";
 
     public static final String SSO_LOGOUT_URL = OPENDISTRO_SECURITY_CONFIG_PREFIX+"sso_logout_url";

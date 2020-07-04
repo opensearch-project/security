@@ -49,8 +49,10 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.amazon.opendistroforelasticsearch.security.configuration.OpenDistroSecurityFlsDlsIndexSearcherWrapper;
+import com.amazon.opendistroforelasticsearch.security.rolesinfo.RolesInfoAction;
 import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenDistroSecuritySSLReloadCertsAction;
 import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenDistroSecuritySSLCertsInfoAction;
+import com.amazon.opendistroforelasticsearch.security.transport.TransportRolesInfoAction;
 import org.apache.lucene.search.QueryCachingPolicy;
 import org.apache.lucene.search.Weight;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -468,6 +470,8 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         if(!disabled && !sslOnly) {
             actions.add(new ActionHandler<>(ConfigUpdateAction.INSTANCE, TransportConfigUpdateAction.class));
             actions.add(new ActionHandler<>(WhoAmIAction.INSTANCE, TransportWhoAmIAction.class));
+            TransportRolesInfoAction.setEvaluator(evaluator, threadPool); //fixme: better way to solve this.
+            actions.add(new ActionHandler<>(RolesInfoAction.INSTANCE, TransportRolesInfoAction.class));
         }
         return actions;
     }
@@ -946,6 +950,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES, true, Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_SSL_CERT_RELOAD_ENABLED, false, Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_ACCEPT_INVALID_CONFIG, false, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_INJECT_ROLE_ENABLED, true, Property.NodeScope, Property.Filtered));
         }
         
         return settings;

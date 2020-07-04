@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import com.amazon.opendistroforelasticsearch.security.auth.RoleInjector;
 import com.amazon.opendistroforelasticsearch.security.resolver.IndexResolverReplacer;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.google.common.annotations.VisibleForTesting;
@@ -90,6 +91,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
     protected final Logger actionTrace = LogManager.getLogger("opendistro_security_action_trace");
+    private final Settings settings;
     private final PrivilegesEvaluator evalp;
     private final AdminDNs adminDns;
     private DlsFlsRequestValve dlsFlsValve;
@@ -103,6 +105,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
     public OpenDistroSecurityFilter(final Settings settings, final PrivilegesEvaluator evalp, final AdminDNs adminDns,
             DlsFlsRequestValve dlsFlsValve, AuditLog auditLog, ThreadPool threadPool, ClusterService cs,
             final CompatConfig compatConfig, final IndexResolverReplacer indexResolverReplacer) {
+        this.settings = settings;
         this.evalp = evalp;
         this.adminDns = adminDns;
         this.dlsFlsValve = dlsFlsValve;
@@ -148,7 +151,10 @@ public class OpenDistroSecurityFilter implements ActionFilter {
                 attachSourceFieldContext(request);
             }
 
-            final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+            final RoleInjector roleInjector = new RoleInjector(settings, threadContext, auditLog);
+
+            final User user = roleInjector.injectRoleEnabled() ? roleInjector.getUser() :
+                    threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
             final boolean userIsAdmin = isUserAdmin(user, adminDns);
             final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadContext);
             final boolean trustedClusterRequest = HeaderHelper.isTrustedClusterRequest(threadContext);
@@ -228,6 +234,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
 
             if(Origin.LOCAL.toString().equals(threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN))
                     && (interClusterRequest || HeaderHelper.isDirectRequest(threadContext))
+                    && !roleInjector.injectRoleEnabled()
                     ) {
 
                 chain.proceed(task, action, request, listener);
@@ -264,7 +271,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
                 log.trace("Evaluate permissions for user: {}", user.getName());
             }
 
-            final PrivilegesEvaluatorResponse pres = eval.evaluate(user, action, request, task);
+            final PrivilegesEvaluatorResponse pres = eval.evaluate(user, action, request, task, roleInjector);
             
             if (log.isDebugEnabled()) {
                 log.debug(pres);
@@ -278,6 +285,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
                 chain.proceed(task, action, request, listener);
                 return;
             } else {
+                //todo: audit, log, exp needs to have role-inject to have new exception message
                 auditLog.logMissingPrivileges(action, request, task);
                 log.debug("no permissions for {}", pres.getMissingPrivileges());
                 listener.onFailure(new ElasticsearchSecurityException("no permissions for " + pres.getMissingPrivileges()+ " and "+user, RestStatus.FORBIDDEN));

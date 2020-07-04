@@ -68,7 +68,7 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.compiler.release>8</maven.compiler.release>
 
-        <elasticsearch.version>7.7.1</elasticsearch.version>
+        <elasticsearch.version>7.7.0</elasticsearch.version>
 
         <!-- deps -->
         <netty-native.version>2.0.25.Final</netty-native.version>
@@ -482,6 +482,12 @@
             <artifactId>unboundid-ldapsdk</artifactId>
             <version>${unboundid-ldapsdk.version}</version>
             <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.amazon.opendistroforelasticsearch.commons</groupId>
+            <artifactId>opendistro-commons</artifactId>
+            <version>1.8.0.0</version>
         </dependency>
 
     </dependencies>

@@ -10,30 +10,29 @@ kibana_read_only:
 security_rest_api_access:
   reserved: true
  
-# Allows users to view alerts
-alerting_view_alerts:
-  reserved: true
-  index_permissions:
-    - index_patterns:
-      - ".opendistro-alerting-alert*"
-      allowed_actions:
-        - read 
 
-# Allows users to view and acknowledge alerts
-alerting_crud_alerts:
-  reserved: true
+# Allows users to use all alerting functionality : TODO: tighten this further.
+alerting_role:
+  reserved: false
+  cluster_permissions:
+    - cluster_monitor
   index_permissions:
     - index_patterns:
-      - ".opendistro-alerting-alert*"
+      - '.opendistro-alerting-config'
       allowed_actions:
-       - crud 
+        - indices_all
+      dls: '{"bool":{"should":[{"match":{"monitor.createdBy":"${user.name}"}},{"match":{"destination.createdBy":"${user.name}"}}]}}'
+    - index_patterns:
+      - '.opendistro-alerting-alert*'
+      allowed_actions:
+        - indices_all
+      dls: '{"match": {"monitor_created_by": "${user.name}"}}'
+    - index_patterns:
+      - "*"
+      allowed_actions:
+        - indices_monitor
+        - indices:admin/aliases/get
+        - indices:admin/mappings/get
+        - indices:monitor
 
-# Allows users to use all alerting functionality
-alerting_full_access:
-  reserved: true
-  index_permissions:
-    - index_patterns:
-      - ".opendistro-alerting-config"
-      - ".opendistro-alerting-alert*"
-      allowed_actions:
-        - crud 
+

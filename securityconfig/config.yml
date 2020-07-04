@@ -137,7 +137,7 @@ config:
           type: noop
       clientcert_auth_domain:
         description: "Authenticate via SSL client certificates"
-        http_enabled: false
+        http_enabled: true
         transport_enabled: false
         order: 2
         http_authenticator:
