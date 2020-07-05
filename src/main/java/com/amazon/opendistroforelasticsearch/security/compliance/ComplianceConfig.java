@@ -68,6 +68,7 @@ import com.google.common.collect.ImmutableSet;
 public class ComplianceConfig {
 
     private static final Logger log = LogManager.getLogger(ComplianceConfig.class);
+    public static final ComplianceConfig DEFAULT = ComplianceConfig.from(Settings.EMPTY);
     private static final int CACHE_SIZE = 1000;
     private static final String INTERNAL_ELASTICSEARCH = "internal_elasticsearch";
 
@@ -218,12 +219,12 @@ public class ComplianceConfig {
                                 Collections.singleton("*") : Arrays.stream(split).skip(1).collect(Collectors.toSet())
                 ));
         final List<String> watchedWriteIndices = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, Collections.emptyList());
-        final Set<String> ignoredComplianceUsersForRead = AuditConfig.getSettingAsSet(
+        final Set<String> ignoredComplianceUsersForRead = ConfigConstants.getSettingAsSet(
                 settings,
                 ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS,
                 AuditConfig.DEFAULT_IGNORED_USERS_LIST,
                 false);
-        final Set<String> ignoredComplianceUsersForWrite = AuditConfig.getSettingAsSet(
+        final Set<String> ignoredComplianceUsersForWrite = ConfigConstants.getSettingAsSet(
                 settings,
                 ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS,
                 AuditConfig.DEFAULT_IGNORED_USERS_LIST,

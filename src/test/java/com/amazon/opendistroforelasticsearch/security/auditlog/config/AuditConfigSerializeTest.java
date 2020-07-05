@@ -129,7 +129,7 @@ public class AuditConfigSerializeTest {
     @Test
     public void testSerialize() throws IOException {
         // arrange
-        final AuditConfig.Filter audit = new AuditConfig.Filter(true, EnumSet.of(AuditCategory.FAILED_LOGIN, AuditCategory.GRANTED_PRIVILEGES), true, EnumSet.of(AUTHENTICATED), true, true, true, true, ImmutableSet.of("ignore-user-1", "ignore-user-2"), ImmutableSet.of("ignore-request-1"));
+        final AuditConfig.Filter audit = new AuditConfig.Filter(true, true, true, true, true, true, ImmutableSet.of("ignore-user-1", "ignore-user-2"), ImmutableSet.of("ignore-request-1"), EnumSet.of(AuditCategory.FAILED_LOGIN, AuditCategory.GRANTED_PRIVILEGES), EnumSet.of(AUTHENTICATED));
         final ComplianceConfig compliance = new ComplianceConfig(true, true, true, true, Collections.singletonMap("test-read-watch-field-1", Collections.emptySet()), Collections.singleton("test-user-1"), true, false,Collections.singletonList("test-write-watch-index"), Collections.singleton("test-user-2"), Settings.EMPTY);
         final AuditConfig auditConfig = new AuditConfig(true, audit, compliance);
         // act
@@ -153,7 +153,7 @@ public class AuditConfigSerializeTest {
     public void testNullSerialize() throws IOException {
         // arrange
 
-        final AuditConfig.Filter audit = new AuditConfig.Filter(true, null, true, null, false, true, true, true, null, null);
+        final AuditConfig.Filter audit = AuditConfig.Filter.from(Collections.emptyMap());
         final ComplianceConfig compliance = new ComplianceConfig(true, true, false, true, null, null, true, false, null, null, Settings.EMPTY);
         final AuditConfig auditConfig = new AuditConfig(true, audit, compliance);
 
