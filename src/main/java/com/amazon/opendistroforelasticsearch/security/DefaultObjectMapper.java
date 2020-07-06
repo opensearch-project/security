@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.util.Map;
 
 import com.fasterxml.jackson.databind.InjectableValues;
 import org.elasticsearch.SpecialPermission;
@@ -66,6 +67,16 @@ public class DefaultObjectMapper {
         objectMapper.setInjectableValues(injectableValues);
         YAML_MAPPER.setInjectableValues(injectableValues);
         defaulOmittingObjectMapper.setInjectableValues(injectableValues);
+    }
+
+    public static boolean getOrDefault(Map<String, Object> properties, String key, boolean defaultValue) {
+        Boolean value = (Boolean)properties.get(key);
+        return value != null ? value.booleanValue() : defaultValue;
+    }
+
+    public static <T> T getOrDefault(Map<String, Object> properties, String key, T defaultValue) {
+        T value = (T)properties.get(key);
+        return value != null ? value : defaultValue;
     }
 
     public static <T> T readTree(JsonNode node, Class<T> clazz) throws IOException {

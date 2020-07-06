@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper.getOrDefault;
+
 /**
  * Class represents configuration for audit logging.
  * Expected class structure
@@ -60,8 +62,11 @@ import java.util.Set;
  */
 public class AuditConfig {
 
-    public static final Set<String> DEFAULT_IGNORED_USERS_SET = Collections.singleton("kibanaserver");
-    public static final List<String> DEFAULT_IGNORED_USERS_LIST = ImmutableList.copyOf(DEFAULT_IGNORED_USERS_SET);
+    public static final List<String> DEFAULT_IGNORED_USERS = Collections.singletonList("kibanaserver");
+
+    private AuditConfig() {
+        this(true, null, null);
+    }
 
     @JsonProperty("enabled")
     private final boolean auditLogEnabled;
@@ -80,12 +85,6 @@ public class AuditConfig {
 
     public ComplianceConfig getCompliance() {
         return compliance;
-    }
-
-    private AuditConfig() {
-        this.auditLogEnabled = true;
-        this.filter = Filter.DEFAULT;
-        this.compliance = ComplianceConfig.DEFAULT;
     }
 
     @VisibleForTesting
@@ -110,9 +109,7 @@ public class AuditConfig {
         private static final Filter DEFAULT = Filter.from(Settings.EMPTY);
 
         private final boolean isRestApiAuditEnabled;
-        private final EnumSet<AuditCategory> disabledRestCategories;
         private final boolean isTransportApiAuditEnabled;
-        private final EnumSet<AuditCategory> disabledTransportCategories;
         private final boolean resolveBulkRequests;
         private final boolean logRequestBody;
         private final boolean resolveIndices;
@@ -123,6 +120,8 @@ public class AuditConfig {
         private final Set<String> ignoredAuditRequests;
         private final WildcardMatcher ignoredAuditUsersMatcher;
         private final WildcardMatcher ignoredAuditRequestsMatcher;
+        private final EnumSet<AuditCategory> disabledRestCategories;
+        private final EnumSet<AuditCategory> disabledTransportCategories;
 
         @VisibleForTesting
         Filter(final boolean isRestApiAuditEnabled,
@@ -149,29 +148,19 @@ public class AuditConfig {
             this.disabledTransportCategories = disabledTransportCategories;
         }
 
-        private static boolean get(Map<String, Object> properties, String key, boolean defaultValue) {
-            Boolean value = (Boolean)properties.get(key);
-            return value != null ? value.booleanValue() : defaultValue;
-        }
-
-        private static <T> T get(Map<String, Object> properties, String key, T defaultValue) {
-            T value = (T)properties.get(key);
-            return value != null ? value : defaultValue;
-        }
-
         @JsonCreator
         @VisibleForTesting
         static Filter from(Map<String, Object> properties) {
-            final boolean isRestApiAuditEnabled = get(properties,"enable_rest", true);
-            final boolean isTransportAuditEnabled = get(properties,"enable_transport", true);
-            final boolean resolveBulkRequests = get(properties, "resolve_bulk_requests", false);
-            final boolean logRequestBody = get(properties, "log_request_body", true);
-            final boolean resolveIndices = get(properties, "resolve_indices", true);
-            final boolean excludeSensitiveHeaders = get(properties, "exclude_sensitive_headers", true);
-            final EnumSet<AuditCategory> disabledRestCategories =AuditCategory.parse(get(properties,"disabled_rest_categories", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT));
-            final EnumSet<AuditCategory> disabledTransportCategories = AuditCategory.parse(get(properties, "disabled_transport_categories", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT));
-            final Set<String> ignoredAuditUsers = ImmutableSet.copyOf(get(properties, "ignore_users", DEFAULT_IGNORED_USERS_LIST));
-            final Set<String> ignoreAuditRequests = ImmutableSet.copyOf(get(properties, "ignore_requests", Collections.emptyList()));
+            final boolean isRestApiAuditEnabled = getOrDefault(properties,"enable_rest", true);
+            final boolean isTransportAuditEnabled = getOrDefault(properties,"enable_transport", true);
+            final boolean resolveBulkRequests = getOrDefault(properties, "resolve_bulk_requests", false);
+            final boolean logRequestBody = getOrDefault(properties, "log_request_body", true);
+            final boolean resolveIndices = getOrDefault(properties, "resolve_indices", true);
+            final boolean excludeSensitiveHeaders = getOrDefault(properties, "exclude_sensitive_headers", true);
+            final EnumSet<AuditCategory> disabledRestCategories = AuditCategory.parse(getOrDefault(properties,"disabled_rest_categories", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT));
+            final EnumSet<AuditCategory> disabledTransportCategories = AuditCategory.parse(getOrDefault(properties, "disabled_transport_categories", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT));
+            final Set<String> ignoredAuditUsers = ImmutableSet.copyOf(getOrDefault(properties, "ignore_users", DEFAULT_IGNORED_USERS));
+            final Set<String> ignoreAuditRequests = ImmutableSet.copyOf(getOrDefault(properties, "ignore_requests", Collections.emptyList()));
 
             return new Filter(
                     isRestApiAuditEnabled,
@@ -205,7 +194,7 @@ public class AuditConfig {
             final Set<String> ignoredAuditUsers = ConfigConstants.getSettingAsSet(
                     settings,
                     ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS,
-                    DEFAULT_IGNORED_USERS_LIST,
+                    DEFAULT_IGNORED_USERS,
                     false);
 
             final Set<String> ignoreAuditRequests = ImmutableSet.copyOf(settings.getAsList(

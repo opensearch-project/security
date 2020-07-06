@@ -27,7 +27,7 @@ import static org.junit.Assert.assertEquals;
 public class AuditConfigSerializeTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final WildcardMatcher DEFAULT_IGNORED_USER = WildcardMatcher.from(AuditConfig.DEFAULT_IGNORED_USERS_SET);
+    private final WildcardMatcher DEFAULT_IGNORED_USER = WildcardMatcher.from(AuditConfig.DEFAULT_IGNORED_USERS);
 
     @Before
     public void setUp() {
@@ -130,7 +130,7 @@ public class AuditConfigSerializeTest {
     public void testSerialize() throws IOException {
         // arrange
         final AuditConfig.Filter audit = new AuditConfig.Filter(true, true, true, true, true, true, ImmutableSet.of("ignore-user-1", "ignore-user-2"), ImmutableSet.of("ignore-request-1"), EnumSet.of(AuditCategory.FAILED_LOGIN, AuditCategory.GRANTED_PRIVILEGES), EnumSet.of(AUTHENTICATED));
-        final ComplianceConfig compliance = new ComplianceConfig(true, true, true, true, Collections.singletonMap("test-read-watch-field-1", Collections.emptySet()), Collections.singleton("test-user-1"), true, false,Collections.singletonList("test-write-watch-index"), Collections.singleton("test-user-2"), Settings.EMPTY);
+        final ComplianceConfig compliance = new ComplianceConfig(true, true, true, true, Collections.singletonMap("test-read-watch-field-1", Collections.emptyList()), Collections.singleton("test-user-1"), true, false,Collections.singletonList("test-write-watch-index"), Collections.singleton("test-user-2"), Settings.EMPTY);
         final AuditConfig auditConfig = new AuditConfig(true, audit, compliance);
         // act
         final String json = objectMapper.writeValueAsString(auditConfig);
@@ -154,7 +154,7 @@ public class AuditConfigSerializeTest {
         // arrange
 
         final AuditConfig.Filter audit = AuditConfig.Filter.from(Collections.emptyMap());
-        final ComplianceConfig compliance = new ComplianceConfig(true, true, false, true, null, null, true, false, null, null, Settings.EMPTY);
+        final ComplianceConfig compliance = ComplianceConfig.from(Collections.emptyMap(), Settings.EMPTY);
         final AuditConfig auditConfig = new AuditConfig(true, audit, compliance);
 
         // act
@@ -169,9 +169,9 @@ public class AuditConfigSerializeTest {
                     "\"ignore_users\":[\"kibanaserver\"],\"ignore_requests\":[]}," +
                 "\"compliance\":{" +
                     "\"enabled\":true," +
-                    "\"external_config\":true,\"internal_config\":false," +
-                    "\"read_metadata_only\":true,\"read_watched_fields\":{},\"read_ignore_users\":[\"kibanaserver\"]," +
-                    "\"write_metadata_only\":true,\"write_log_diffs\":false,\"write_watched_indices\":[],\"write_ignore_users\":[\"kibanaserver\"]}" +
+                    "\"external_config\":false,\"internal_config\":false," +
+                    "\"read_metadata_only\":false,\"read_watched_fields\":{},\"read_ignore_users\":[\"kibanaserver\"]," +
+                    "\"write_metadata_only\":false,\"write_log_diffs\":false,\"write_watched_indices\":[],\"write_ignore_users\":[\"kibanaserver\"]}" +
                 "}", json);
     }
 
@@ -179,17 +179,8 @@ public class AuditConfigSerializeTest {
     public void testNullDeSerialize() throws IOException {
         // arrange
         final String json = "{" +
-                "\"enabled\":true," +
-                "\"audit\":{" +
-                    "\"enable_rest\":true,\"disabled_rest_categories\":null," +
-                    "\"enable_transport\":true,\"disabled_transport_categories\":null," +
-                    "\"resolve_bulk_requests\":true,\"log_request_body\":true,\"resolve_indices\":true,\"exclude_sensitive_headers\":true," +
-                    "\"ignore_users\":null,\"ignore_requests\":null}," +
-                "\"compliance\":{" +
-                    "\"enabled\":true," +
-                    "\"internal_config\":true,\"external_config\":true," +
-                    "\"read_metadata_only\":true,\"read_watched_fields\":null,\"read_ignore_users\":null," +
-                    "\"write_metadata_only\":true,\"write_log_diffs\":true,\"write_watched_indices\":null,\"write_ignore_users\":null}" +
+                "\"audit\":{}," +
+                "\"compliance\":{}" +
                 "}";
 
         // act

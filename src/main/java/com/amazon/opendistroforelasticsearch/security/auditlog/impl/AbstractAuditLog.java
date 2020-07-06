@@ -85,7 +85,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     private final IndexNameExpressionResolver resolver;
     private final ClusterService clusterService;
     private final Settings settings;
-    private volatile AuditConfig.Filter auditConfigFilter;
+    private final AuditConfig.Filter auditConfigFilter;
     private final String opendistrosecurityIndex;
     private volatile ComplianceConfig complianceConfig;
 
@@ -104,26 +104,16 @@ public abstract class AbstractAuditLog implements AuditLog {
         this.settings = settings;
         this.resolver = resolver;
         this.clusterService = clusterService;
+        this.auditConfigFilter = AuditConfig.Filter.from(settings);
+        this.auditConfigFilter.log(log);
         this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
-
-        final AuditConfig auditConfig = AuditConfig.from(settings);
-        setAuditConfigFilter(auditConfig.getFilter());
         if (dlsFlsAvailable) {
-            setComplianceConfig(auditConfig.getCompliance());
+            this.complianceConfig = ComplianceConfig.from(settings);
+            this.complianceConfig.log(log);
         } else {
             this.complianceConfig = null;
             log.debug("Compliance config is null because DLS-FLS is not available.");
         }
-    }
-
-    private void setAuditConfigFilter(AuditConfig.Filter auditConfigFilter) {
-        this.auditConfigFilter = auditConfigFilter;
-        this.auditConfigFilter.log(log);
-    }
-
-    private void setComplianceConfig(ComplianceConfig complianceConfig) {
-        this.complianceConfig = complianceConfig;
-        this.complianceConfig.log(log);
     }
 
     @Override
