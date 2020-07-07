@@ -185,21 +185,21 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
 
     private void testBoolean(final String patchResource, final int expected, final Header... headers) throws Exception {
         // make true
-        RestHelper.HttpResponse response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"add\",\"path\": \"" + patchResource + "\",\"value\": \"true\"}]", headers);
+        RestHelper.HttpResponse response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"add\",\"path\": \"" + patchResource + "\",\"value\": true}]", headers);
         assertEquals(expected, response.getStatusCode());
         if (expected == HttpStatus.SC_OK) {
             assertTrue(readTree(rh.executeGetRequest(ENDPOINT, headers).getBody()).at(patchResource).asBoolean());
         }
 
         // make false
-        response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"add\",\"path\": \"" + patchResource + "\",\"value\": \"false\"}]", headers);
+        response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"add\",\"path\": \"" + patchResource + "\",\"value\": false}]", headers);
         assertEquals(expected, response.getStatusCode());
         if (expected == HttpStatus.SC_OK) {
             assertFalse(readTree(rh.executeGetRequest(ENDPOINT, headers).getBody()).at(patchResource).asBoolean());
         }
 
         // make true
-        response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"add\",\"path\": \"" + patchResource + "\",\"value\": \"true\"}]", headers);
+        response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"add\",\"path\": \"" + patchResource + "\",\"value\": true}]", headers);
         assertEquals(expected, response.getStatusCode());
         if (expected == HttpStatus.SC_OK) {
             assertTrue(readTree(rh.executeGetRequest(ENDPOINT, headers).getBody()).at(patchResource).asBoolean());
@@ -227,7 +227,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         }
 
         // check null
-        response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"add\",\"path\": \"" + patchResource + "\",\"value\": null}]", headers);
+        response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"add\",\"path\": \"" + patchResource + "\",\"value\": []}]", headers);
         assertEquals(expectedStatus, response.getStatusCode());
         if (expectedStatus == HttpStatus.SC_OK) {
             assertEquals(0, readTree(rh.executeGetRequest(ENDPOINT, headers).getBody()).at(patchResource).size());

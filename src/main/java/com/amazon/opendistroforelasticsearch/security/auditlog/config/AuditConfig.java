@@ -22,8 +22,6 @@ import java.util.stream.Collectors;
 
 import static com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper.getOrDefault;
 
-import static com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper.getOrDefault;
-
 /**
  * Class represents configuration for audit logging.
  * Expected class structure
@@ -109,7 +107,12 @@ public class AuditConfig {
      * Audit logger will use these settings to determine what audit logs are to be generated.
      */
     public static class Filter {
+        @VisibleForTesting
         public static final Filter DEFAULT = Filter.from(Settings.EMPTY);
+        private static Set<String> KEYS = ImmutableSet.of(
+                "enable_rest", "disabled_rest_categories", "enable_transport", "disabled_transport_categories",
+                "resolve_bulk_requests", "log_request_body", "resolve_indices", "exclude_sensitive_headers",
+                "ignore_users", "ignore_requests");
 
         private final boolean isRestApiAuditEnabled;
         private final boolean isTransportApiAuditEnabled;
@@ -154,6 +157,10 @@ public class AuditConfig {
         @JsonCreator
         @VisibleForTesting
         public static Filter from(Map<String, Object> properties) {
+            if (!KEYS.containsAll(properties.keySet())) {
+                throw new IllegalArgumentException("Invalid keys present in the input data for audit filter config");
+            }
+
             final boolean isRestApiAuditEnabled = getOrDefault(properties,"enable_rest", true);
             final boolean isTransportAuditEnabled = getOrDefault(properties,"enable_transport", true);
             final boolean resolveBulkRequests = getOrDefault(properties, "resolve_bulk_requests", false);
