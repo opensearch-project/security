@@ -15,7 +15,11 @@
 
 package com.amazon.opendistroforelasticsearch.security.auditlog.compliance;
 
+import com.amazon.opendistroforelasticsearch.security.auditlog.AuditTestUtils;
+import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage;
+import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
+import com.google.common.collect.ImmutableMap;
 import org.apache.http.Header;
 import org.apache.http.HttpStatus;
 import org.elasticsearch.action.index.IndexRequest;
@@ -30,6 +34,11 @@ import com.amazon.opendistroforelasticsearch.security.auditlog.integration.TestA
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.test.DynamicSecurityConfig;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper.HttpResponse;
+
+import java.util.Collections;
+
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
@@ -84,6 +93,41 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("Salary"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("Gender"));
         Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
+    }
+
+    @Test
+    public void testComplianceEnable() throws Exception {
+        Settings additionalSettings = Settings.builder()
+                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .build();
+
+        setup(additionalSettings);
+
+        final boolean sendAdminCertificate = rh.sendAdminCertificate;
+        final String keystore = rh.keystore;
+        rh.sendAdminCertificate = true;
+        rh.keystore = "auditlog/kirk-keystore.jks";
+
+        // watch emp for write
+        AuditConfig auditConfig = new AuditConfig(true, AuditConfig.Filter.DEFAULT , ComplianceConfig.from(ImmutableMap.of("enabled", true, "write_watched_indices", Collections.singletonList("emp")), additionalSettings));
+        updateAuditConfig(AuditTestUtils.createAuditPayload(auditConfig));
+
+        // make an event happen
+        TestAuditlogImpl.clear();
+        rh.executePutRequest("emp/doc/0?refresh", "{\"Designation\" : \"CEO\", \"Gender\" : \"female\", \"Salary\" : 100}");
+        assertTrue(TestAuditlogImpl.messages.toString().contains("COMPLIANCE_DOC_WRITE"));
+
+        // disable compliance
+        auditConfig = new AuditConfig(true, AuditConfig.Filter.DEFAULT , ComplianceConfig.from(ImmutableMap.of("enabled", false, "write_watched_indices", Collections.singletonList("emp")), additionalSettings));
+        updateAuditConfig(AuditTestUtils.createAuditPayload(auditConfig));
+
+        // make an event happen
+        TestAuditlogImpl.clear();
+        rh.executePutRequest("emp/doc/1?refresh", "{\"Designation\" : \"CEO\", \"Gender\" : \"female\", \"Salary\" : 100}");
+        assertFalse(TestAuditlogImpl.messages.toString().contains("COMPLIANCE_DOC_WRITE"));
+
+        rh.sendAdminCertificate = sendAdminCertificate;
+        rh.keystore = keystore;
     }
 
     @Test
@@ -232,7 +276,6 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         System.out.println(response.getBody());
         Thread.sleep(1500);
         System.out.println(TestAuditlogImpl.sb.toString());
-        Assert.assertEquals(3, TestAuditlogImpl.messages.size());
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("external_configuration"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_EXTERNAL_CONFIG"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("elasticsearch_yml"));
