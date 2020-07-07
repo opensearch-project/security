@@ -113,9 +113,9 @@ public class AuditConfig {
         private final boolean logRequestBody;
         private final boolean resolveIndices;
         private final boolean excludeSensitiveHeaders;
-        @JsonProperty(value = "ignore_users")
+        @JsonProperty("ignore_users")
         private final Set<String> ignoredAuditUsers;
-        @JsonProperty(value = "ignore_requests")
+        @JsonProperty("ignore_requests")
         private final Set<String> ignoredAuditRequests;
         private final WildcardMatcher ignoredAuditUsersMatcher;
         private final WildcardMatcher ignoredAuditRequestsMatcher;
@@ -216,7 +216,7 @@ public class AuditConfig {
          * Checks if auditing for REST API is enabled or disabled
          * @return true/false
          */
-        @JsonProperty(value = "enable_rest")
+        @JsonProperty("enable_rest")
         public boolean isRestApiAuditEnabled() {
             return isRestApiAuditEnabled;
         }
@@ -225,7 +225,7 @@ public class AuditConfig {
          * Checks if auditing for Transport API is enabled or disabled
          * @return true/false
          */
-        @JsonProperty(value = "enable_transport")
+        @JsonProperty("enable_transport")
         public boolean isTransportApiAuditEnabled() {
             return isTransportApiAuditEnabled;
         }
@@ -234,7 +234,7 @@ public class AuditConfig {
          * Checks if bulk requests must be resolved during auditing
          * @return true/false
          */
-        @JsonProperty(value = "resolve_bulk_requests")
+        @JsonProperty("resolve_bulk_requests")
         public boolean shouldResolveBulkRequests() {
             return resolveBulkRequests;
         }
@@ -243,7 +243,7 @@ public class AuditConfig {
          * Checks if request body must be logged
          * @return true/false
          */
-        @JsonProperty(value = "log_request_body")
+        @JsonProperty("log_request_body")
         public boolean shouldLogRequestBody() {
             return logRequestBody;
         }
@@ -252,7 +252,7 @@ public class AuditConfig {
          * Check if indices must be resolved during auditing
          * @return true/false
          */
-        @JsonProperty(value = "resolve_indices")
+        @JsonProperty("resolve_indices")
         public boolean shouldResolveIndices() {
             return resolveIndices;
         }
@@ -261,7 +261,7 @@ public class AuditConfig {
          * Checks if sensitive headers eg: Authorization must be excluded in log messages
          * @return true/false
          */
-        @JsonProperty(value = "exclude_sensitive_headers")
+        @JsonProperty("exclude_sensitive_headers")
         public boolean shouldExcludeSensitiveHeaders() {
             return excludeSensitiveHeaders;
         }
@@ -298,7 +298,7 @@ public class AuditConfig {
          * Disabled categories for REST API auditing
          * @return set of categories
          */
-        @JsonProperty(value = "disabled_rest_categories")
+        @JsonProperty("disabled_rest_categories")
         public EnumSet<AuditCategory> getDisabledRestCategories() {
             return disabledRestCategories;
         }
@@ -307,7 +307,7 @@ public class AuditConfig {
          * Disabled categories for Transport API auditing
          * @return set of categories
          */
-        @JsonProperty(value = "disabled_transport_categories")
+        @JsonProperty("disabled_transport_categories")
         public EnumSet<AuditCategory> getDisabledTransportCategories() {
             return disabledTransportCategories;
         }
