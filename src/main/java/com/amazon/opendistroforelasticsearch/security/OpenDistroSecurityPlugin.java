@@ -40,7 +40,6 @@ import java.security.MessageDigest;
 import java.security.PrivilegedAction;
 import java.security.Security;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -48,6 +47,7 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.amazon.opendistroforelasticsearch.security.auditlog.NullAuditLog;
 import com.amazon.opendistroforelasticsearch.security.configuration.OpenDistroSecurityFlsDlsIndexSearcherWrapper;
 import com.amazon.opendistroforelasticsearch.security.configuration.Salt;
 import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenDistroSecuritySSLReloadCertsAction;
@@ -184,9 +184,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     private final boolean sslOnly;
     private final List<String> demoCertHashes = new ArrayList<String>(3);
     private volatile OpenDistroSecurityFilter odsf;
-    private volatile Environment environment;
     private volatile IndexResolverReplacer irr;
-    private AtomicBoolean externalConfigLogged = new AtomicBoolean();
     private volatile NamedXContentRegistry namedXContentRegistry = null;
     private volatile DlsFlsRequestValve dlsFlsValve = null;
     private volatile Salt salt;
@@ -707,7 +705,6 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         this.threadPool = threadPool;
         this.cs = clusterService;
         this.localClient = localClient;
-        this.environment = environment;
 
         final List<Object> components = new ArrayList<Object>();
 
@@ -721,7 +718,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
 
         final IndexNameExpressionResolver resolver = new IndexNameExpressionResolver();
         irr = new IndexResolverReplacer(resolver, clusterService, cih);
-        auditLog = ReflectionHelper.instantiateAuditLog(settings, configPath, localClient, threadPool, resolver, clusterService, dlsFlsAvailable);
+        auditLog = ReflectionHelper.instantiateAuditLog(settings, configPath, localClient, threadPool, resolver, clusterService, dlsFlsAvailable, environment);
         
         sslExceptionHandler = new AuditLogSslExceptionHandler(auditLog);
 
@@ -759,6 +756,10 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         dcf.registerDCFListener(irr);
         dcf.registerDCFListener(xffResolver);
         dcf.registerDCFListener(evaluator);
+        if (!(auditLog instanceof NullAuditLog)) {
+            // Don't register if advanced modules is disabled in which case auditlog is instance of NullAuditLog
+            dcf.registerDCFListener(auditLog);
+        }
         
         cr.setDynamicConfigFactory(dcf);
         
@@ -986,13 +987,6 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         }
         final Set<ModuleInfo> securityModules = ReflectionHelper.getModulesLoaded();
         log.info("{} Open Distro Security modules loaded so far: {}", securityModules.size(), securityModules);
-        if (auditLog != null) {
-            final ComplianceConfig complianceConfig = auditLog.getComplianceConfig();
-            if(complianceConfig != null && complianceConfig.isEnabled() && complianceConfig.shouldLogExternalConfig() && !externalConfigLogged.getAndSet(true)) {
-                log.info("logging external config");
-                auditLog.logExternalConfig(settings, environment);
-            }
-        }
     }
 
     //below is a hack because it seems not possible to access RepositoriesService from a non guice class

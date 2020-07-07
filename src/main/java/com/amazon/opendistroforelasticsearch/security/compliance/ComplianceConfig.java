@@ -75,6 +75,10 @@ public class ComplianceConfig {
     public static final ComplianceConfig DEFAULT = ComplianceConfig.from(Settings.EMPTY);
     private static final int CACHE_SIZE = 1000;
     private static final String INTERNAL_ELASTICSEARCH = "internal_elasticsearch";
+    private static Set<String> KEYS = ImmutableSet.of(
+            "enabled", "external_config", "internal_config",
+            "read_metadata_only", "read_watched_fields", "read_ignore_users",
+            "write_metadata_only", "write_log_diffs", "write_watched_indices", "write_ignore_users");
 
     private final boolean logExternalConfig;
     private final boolean logInternalConfig;
@@ -212,6 +216,10 @@ public class ComplianceConfig {
     @VisibleForTesting
     @JsonCreator
     public static ComplianceConfig from(Map<String, Object> properties, @JacksonInject Settings settings) {
+        if (!KEYS.containsAll(properties.keySet())) {
+            throw new IllegalArgumentException("Invalid keys present in the input data for compliance config");
+        }
+
         final boolean enabled = getOrDefault(properties, "enabled", true);
         final boolean logExternalConfig = getOrDefault(properties, "external_config", false);
         final boolean logInternalConfig = getOrDefault(properties, "internal_config", false);
@@ -222,6 +230,7 @@ public class ComplianceConfig {
         final boolean logDiffsForWrite = getOrDefault(properties, "write_log_diffs", false);
         final List<String> watchedWriteIndicesPatterns = getOrDefault(properties, "write_watched_indices", Collections.emptyList());
         final Set<String> ignoredComplianceUsersForWrite = ImmutableSet.copyOf(getOrDefault(properties, "write_ignore_users", AuditConfig.DEFAULT_IGNORED_USERS));
+
         return new ComplianceConfig(
                 enabled,
                 logExternalConfig,
