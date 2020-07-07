@@ -35,6 +35,7 @@ import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 
+import com.fasterxml.jackson.databind.InjectableValues;
 import org.elasticsearch.SpecialPermission;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
@@ -52,6 +53,10 @@ public class NonValidatingObjectMapper {
         nonValidatingObjectMapper.configure(JsonParser.Feature.STRICT_DUPLICATE_DETECTION, false);
         nonValidatingObjectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         nonValidatingObjectMapper.configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false);
+    }
+
+    public static void inject(final InjectableValues.Std injectableValues) {
+        nonValidatingObjectMapper.setInjectableValues(injectableValues);
     }
 
     public static <T> T readValue(String string, JavaType jt) throws IOException {
