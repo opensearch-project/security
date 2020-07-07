@@ -134,10 +134,10 @@ public class ComplianceConfig {
         this.readEnabledFields = watchedReadFields.entrySet().stream()
                 .filter(entry -> !Strings.isNullOrEmpty(entry.getKey()))
                 .collect(
-                        ImmutableMap.toImmutableMap(
-                                entry -> WildcardMatcher.from(entry.getKey()),
-                                entry -> ImmutableSet.copyOf(entry.getValue())
-                        )
+                    ImmutableMap.toImmutableMap(
+                        entry -> WildcardMatcher.from(entry.getKey()),
+                        entry -> ImmutableSet.copyOf(entry.getValue())
+                    )
                 );
 
         DateTimeFormatter auditLogPattern = null;

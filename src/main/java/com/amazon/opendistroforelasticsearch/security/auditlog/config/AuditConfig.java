@@ -22,6 +22,8 @@ import java.util.stream.Collectors;
 
 import static com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper.getOrDefault;
 
+import static com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper.getOrDefault;
+
 /**
  * Class represents configuration for audit logging.
  * Expected class structure
@@ -92,7 +94,7 @@ public class AuditConfig {
     public AuditConfig(
             final boolean auditLogEnabled,
             final Filter filter,
-            ComplianceConfig compliance) {
+            final ComplianceConfig compliance) {
         this.auditLogEnabled = auditLogEnabled;
         this.filter = filter != null ? filter : Filter.DEFAULT;
         this.compliance = compliance != null ? compliance : ComplianceConfig.DEFAULT;
@@ -126,15 +128,15 @@ public class AuditConfig {
 
         @VisibleForTesting
         Filter(final boolean isRestApiAuditEnabled,
-               final boolean isTransportApiAuditEnabled,
-               final boolean resolveBulkRequests,
-               final boolean logRequestBody,
-               final boolean resolveIndices,
-               final boolean excludeSensitiveHeaders,
-               final Set<String> ignoredAuditUsers,
-               final Set<String> ignoredAuditRequests,
-               final EnumSet<AuditCategory> disabledRestCategories,
-               final EnumSet<AuditCategory> disabledTransportCategories) {
+                       final boolean isTransportApiAuditEnabled,
+                       final boolean resolveBulkRequests,
+                       final boolean logRequestBody,
+                       final boolean resolveIndices,
+                       final boolean excludeSensitiveHeaders,
+                       final Set<String> ignoredAuditUsers,
+                       final Set<String> ignoredAuditRequests,
+                       final EnumSet<AuditCategory> disabledRestCategories,
+                       final EnumSet<AuditCategory> disabledTransportCategories) {
             this.isRestApiAuditEnabled = isRestApiAuditEnabled;
             this.isTransportApiAuditEnabled = isTransportApiAuditEnabled;
             this.resolveBulkRequests = resolveBulkRequests;
