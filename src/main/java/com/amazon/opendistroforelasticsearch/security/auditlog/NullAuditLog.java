@@ -33,6 +33,7 @@ package com.amazon.opendistroforelasticsearch.security.auditlog;
 import java.io.IOException;
 import java.util.Map;
 
+import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.engine.Engine.Delete;
@@ -130,13 +131,13 @@ public class NullAuditLog implements AuditLog {
     }
 
     @Override
-    public void logExternalConfig(Settings settings, Environment environment) {
-        //noop, intentionally left empty
+    public ComplianceConfig getComplianceConfig() {
+        return null;
     }
 
     @Override
-    public ComplianceConfig getComplianceConfig() {
-        return null;
+    public void setConfig(AuditConfig auditConfig) {
+
     }
 
 }
