@@ -15,9 +15,26 @@
 
 package com.amazon.opendistroforelasticsearch.security;
 
+import java.util.Map;
+
+import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class DefaultObjectMapper {
     public static final ObjectMapper objectMapper = new ObjectMapper();
+
+    public static void inject(final InjectableValues.Std injectableValues) {
+        objectMapper.setInjectableValues(injectableValues);
+    }
+
+    public static boolean getOrDefault(Map<String, Object> properties, String key, boolean defaultValue) {
+        Boolean value = (Boolean)properties.get(key);
+        return value != null ? value.booleanValue() : defaultValue;
+    }
+
+    public static <T> T getOrDefault(Map<String, Object> properties, String key, T defaultValue) {
+        T value = (T)properties.get(key);
+        return value != null ? value : defaultValue;
+    }
 }
 
