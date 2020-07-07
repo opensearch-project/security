@@ -19,11 +19,13 @@ config:
       - AUTHENTICATED
       - GRANTED_PRIVILEGES
 
-    # Users to be excluded from auditing. Wildcard patterns are supported
+    # Users to be excluded from auditing. Wildcard patterns are supported. Eg:
+    # ignore_users: ["test-user", "employee-*"]
     ignore_users:
       - kibanaserver
 
-    # Requests to be excluded from auditing. Wildcard patterns are supported
+    # Requests to be excluded from auditing. Wildcard patterns are supported. Eg:
+    # ignore_requests: ["indices:data/read/*", "SearchRequest"]
     ignore_requests: []
 
     # Log individual operations in a bulk request
@@ -58,7 +60,8 @@ config:
     # }
     read_watched_fields: {}
 
-    # List of users to ignore for read events
+    # List of users to ignore for read events. Wildcard patterns are supported. Eg:
+    # read_ignore_users: ["test-user", "employee-*"]
     read_ignore_users:
       - kibanaserver
 
@@ -73,5 +76,6 @@ config:
     write_watched_indices: []
 
     # List of users to ignore for write events. Wildcard patterns are supported. Eg:
+    # write_ignore_users: ["test-user", "employee-*"]
     write_ignore_users:
       - kibanaserver
