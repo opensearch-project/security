@@ -112,7 +112,7 @@ public final class AuditLogImpl extends AbstractAuditLog {
 		enabled = auditConfig.isEnabled() && messageRouterEnabled;
 		onAuditConfigFilterChanged(auditConfig.getFilter());
 		if (dlsFlsAvailable) {
-			onComplianceConfigChanged(ComplianceConfig.from(auditConfig.getCompliance(), settings));
+			onComplianceConfigChanged(auditConfig.getCompliance());
 		}
 	}
 

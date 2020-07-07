@@ -17,6 +17,8 @@ package com.amazon.opendistroforelasticsearch.security.auditlog.integration;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditTestUtils;
 import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
+import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
+import com.google.common.collect.ImmutableMap;
 import org.apache.http.Header;
 import org.apache.http.HttpStatus;
 import org.apache.http.NoHttpResponseException;
@@ -54,9 +56,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         setup(additionalSettings);
         setupStarfleetIndex();
 
-        final AuditConfig auditConfig = new AuditConfig();
-        auditConfig.getFilter().setDisabledRestCategories(Collections.emptySet());
-        auditConfig.getFilter().setDisabledTransportCategories(Collections.emptySet());
+        AuditConfig auditConfig = new AuditConfig(true, AuditConfig.Filter.from(ImmutableMap.of("disabled_rest_categories", Collections.emptySet(), "disabled_transport_categories", Collections.emptySet())) , ComplianceConfig.DEFAULT);
         updateAuditConfig(AuditTestUtils.createAuditPayload(auditConfig));
 
         // test enable
@@ -65,7 +65,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(TestAuditlogImpl.messages.size() > 0);
 
         // disable
-        auditConfig.setEnabled(false);
+        auditConfig = new AuditConfig(false, AuditConfig.Filter.from(ImmutableMap.of("disabled_rest_categories", Collections.emptySet(), "disabled_transport_categories", Collections.emptySet())) , ComplianceConfig.DEFAULT);
         updateAuditConfig(AuditTestUtils.createAuditPayload(auditConfig));
 
         // assert no auditing

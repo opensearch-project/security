@@ -18,6 +18,8 @@ package com.amazon.opendistroforelasticsearch.security.auditlog.compliance;
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditTestUtils;
 import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage;
+import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
+import com.google.common.collect.ImmutableMap;
 import org.apache.http.Header;
 import org.apache.http.HttpStatus;
 import org.elasticsearch.action.index.IndexRequest;
@@ -107,8 +109,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         rh.keystore = "auditlog/kirk-keystore.jks";
 
         // watch emp for write
-        final AuditConfig auditConfig = new AuditConfig();
-        auditConfig.getCompliance().setWriteWatchedIndices(Collections.singletonList("emp"));
+        AuditConfig auditConfig = new AuditConfig(true, AuditConfig.Filter.DEFAULT , ComplianceConfig.from(ImmutableMap.of("enabled", true, "write_watched_indices", Collections.singletonList("emp")), additionalSettings));
         updateAuditConfig(AuditTestUtils.createAuditPayload(auditConfig));
 
         // make an event happen
@@ -117,7 +118,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         assertTrue(TestAuditlogImpl.messages.toString().contains("COMPLIANCE_DOC_WRITE"));
 
         // disable compliance
-        auditConfig.getCompliance().setComplianceEnabled(false);
+        auditConfig = new AuditConfig(true, AuditConfig.Filter.DEFAULT , ComplianceConfig.from(ImmutableMap.of("enabled", false, "write_watched_indices", Collections.singletonList("emp")), additionalSettings));
         updateAuditConfig(AuditTestUtils.createAuditPayload(auditConfig));
 
         // make an event happen

@@ -30,14 +30,18 @@
 
 package com.amazon.opendistroforelasticsearch.security.compliance;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
+import com.fasterxml.jackson.annotation.JacksonInject;
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -53,16 +57,22 @@ import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+
+import static com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper.getOrDefault;
 
 /**
  * This class represents all configurations for compliance.
  * DLS/FLS uses this configuration for filtering and anonymizing fields.
  * Audit Logger uses this configuration to post compliance audit logs.
  */
+@JsonAutoDetect(getterVisibility = JsonAutoDetect.Visibility.NONE)
 public class ComplianceConfig {
 
     private static final Logger log = LogManager.getLogger(ComplianceConfig.class);
+    public static final ComplianceConfig DEFAULT = ComplianceConfig.from(Settings.EMPTY);
     private static final int CACHE_SIZE = 1000;
     private static final String INTERNAL_ELASTICSEARCH = "internal_elasticsearch";
 
@@ -70,7 +80,17 @@ public class ComplianceConfig {
     private final boolean logInternalConfig;
     private final boolean logReadMetadataOnly;
     private final boolean logWriteMetadataOnly;
+    @JsonProperty("write_log_diffs")
     private final boolean logDiffsForWrite;
+    @JsonProperty("read_watched_fields")
+    private final Map<String, List<String>> watchedReadFields;
+    @JsonProperty("read_ignore_users")
+    private final Set<String> ignoredComplianceUsersForRead;
+    @JsonProperty("write_watched_indices")
+    private final List<String> watchedWriteIndicesPatterns;
+    @JsonProperty("write_ignore_users")
+    private final Set<String> ignoredComplianceUsersForWrite;
+
     private final WildcardMatcher watchedWriteIndicesMatcher;
     private final WildcardMatcher ignoredComplianceUsersForReadMatcher;
     private final WildcardMatcher ignoredComplianceUsersForWriteMatcher;
@@ -87,7 +107,7 @@ public class ComplianceConfig {
             final boolean logExternalConfig,
             final boolean logInternalConfig,
             final boolean logReadMetadataOnly,
-            final Map<String, Set<String>> watchedReadFields,
+            final Map<String, List<String>> watchedReadFields,
             final Set<String> ignoredComplianceUsersForRead,
             final boolean logWriteMetadataOnly,
             final boolean logDiffsForWrite,
@@ -106,12 +126,19 @@ public class ComplianceConfig {
         this.ignoredComplianceUsersForReadMatcher = WildcardMatcher.from(ignoredComplianceUsersForRead);
         this.ignoredComplianceUsersForWriteMatcher = WildcardMatcher.from(ignoredComplianceUsersForWrite);
         this.opendistrosecurityIndex = opendistrosecurityIndex;
+        this.watchedReadFields = watchedReadFields;
+        this.ignoredComplianceUsersForRead = ignoredComplianceUsersForRead;
+        this.watchedWriteIndicesPatterns = watchedWriteIndicesPatterns;
+        this.ignoredComplianceUsersForWrite = ignoredComplianceUsersForWrite;
 
-        //opendistro_security.compliance.pii_fields:
-        //  - indexpattern,fieldpattern,fieldpattern,....
-        this.readEnabledFields = watchedReadFields.keySet().stream()
-                .filter(key -> !Strings.isNullOrEmpty(key))
-                .collect(Collectors.toMap(WildcardMatcher::from, watchedReadFields::get));
+        this.readEnabledFields = watchedReadFields.entrySet().stream()
+                .filter(entry -> !Strings.isNullOrEmpty(entry.getKey()))
+                .collect(
+                        ImmutableMap.toImmutableMap(
+                                entry -> WildcardMatcher.from(entry.getKey()),
+                                entry -> ImmutableSet.copyOf(entry.getValue())
+                        )
+                );
 
         DateTimeFormatter auditLogPattern = null;
         String auditLogIndex = null;
@@ -138,6 +165,36 @@ public class ComplianceConfig {
                 });
     }
 
+    @VisibleForTesting
+    public ComplianceConfig(
+            final boolean enabled,
+            final boolean logExternalConfig,
+            final boolean logInternalConfig,
+            final boolean logReadMetadataOnly,
+            final Map<String, List<String>> watchedReadFields,
+            final Set<String> ignoredComplianceUsersForRead,
+            final boolean logWriteMetadataOnly,
+            final boolean logDiffsForWrite,
+            final List<String> watchedWriteIndicesPatterns,
+            final Set<String> ignoredComplianceUsersForWrite,
+            Settings settings) {
+        this(
+                enabled,
+                logExternalConfig,
+                logInternalConfig,
+                logReadMetadataOnly,
+                watchedReadFields,
+                ignoredComplianceUsersForRead,
+                logWriteMetadataOnly,
+                logDiffsForWrite,
+                watchedWriteIndicesPatterns,
+                ignoredComplianceUsersForWrite,
+                settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX),
+                settings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_TYPE_DEFAULT, null),
+                settings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ES_INDEX, "'security-auditlog-'YYYY.MM.dd")
+        );
+    }
+
     public void log(Logger logger) {
         logger.info("Auditing of external configuration is {}.", logExternalConfig ? "enabled" : "disabled");
         logger.info("Auditing of internal configuration is {}.", logInternalConfig ? "enabled" : "disabled");
@@ -152,50 +209,88 @@ public class ComplianceConfig {
         logger.info("Internal index used for posting audit logs is {}", auditLogIndex);
     }
 
+    @VisibleForTesting
+    @JsonCreator
+    public static ComplianceConfig from(Map<String, Object> properties, @JacksonInject Settings settings) {
+        final boolean enabled = getOrDefault(properties, "enabled", true);
+        final boolean logExternalConfig = getOrDefault(properties, "external_config", false);
+        final boolean logInternalConfig = getOrDefault(properties, "internal_config", false);
+        final boolean logReadMetadataOnly = getOrDefault(properties, "read_metadata_only", false);
+        final Map<String, List<String>> watchedReadFields = getOrDefault(properties, "read_watched_fields", Collections.emptyMap());
+        final Set<String> ignoredComplianceUsersForRead = ImmutableSet.copyOf(getOrDefault(properties, "read_ignore_users", AuditConfig.DEFAULT_IGNORED_USERS));
+        final boolean logWriteMetadataOnly = getOrDefault(properties, "write_metadata_only", false);
+        final boolean logDiffsForWrite = getOrDefault(properties, "write_log_diffs", false);
+        final List<String> watchedWriteIndicesPatterns = getOrDefault(properties, "write_watched_indices", Collections.emptyList());
+        final Set<String> ignoredComplianceUsersForWrite = ImmutableSet.copyOf(getOrDefault(properties, "write_ignore_users", AuditConfig.DEFAULT_IGNORED_USERS));
+        return new ComplianceConfig(
+                enabled,
+                logExternalConfig,
+                logInternalConfig,
+                logReadMetadataOnly,
+                watchedReadFields,
+                ignoredComplianceUsersForRead,
+                logWriteMetadataOnly,
+                logDiffsForWrite,
+                watchedWriteIndicesPatterns,
+                ignoredComplianceUsersForWrite,
+                settings
+        );
+    }
+
     /**
      * Create compliance configuration from Settings defined in elasticsearch.yml
      * @param settings settings
      * @return compliance configuration
      */
     public static ComplianceConfig from(Settings settings) {
-        final AuditConfig.Compliance compliance = AuditConfig.from(settings).getCompliance();
-        return from(compliance, settings);
-    }
-
-    /**
-     * Create compliance configuration from audit
-     * opendistrosecurityIndex - used to determine if internal index is written to or read from.
-     * type - checks if log destination used is internal elasticsearch.
-     * index - the index used for storing audit logs to avoid monitoring it.
-     * @param configCompliance configCompliance
-     * @param settings settings
-     * @return ComplianceConfig
-     */
-    public static ComplianceConfig from(AuditConfig.Compliance configCompliance, Settings settings) {
-        final String opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
-        final String type = settings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_TYPE_DEFAULT, null);
-        final String index = settings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ES_INDEX, "'security-auditlog-'YYYY.MM.dd");
+        final boolean logExternalConfig = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED, false);
+        final boolean logInternalConfig = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, false);
+        final boolean logReadMetadataOnly = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_METADATA_ONLY, false);
+        final boolean logWriteMetadataOnly = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_METADATA_ONLY, false);
+        final boolean logDiffsForWrite = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS, false);
+        final List<String> watchedReadFields = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS,
+                Collections.emptyList(), false);
+        //opendistro_security.compliance.pii_fields:
+        //  - indexpattern,fieldpattern,fieldpattern,....
+        final Map<String, List<String>> readEnabledFields = watchedReadFields.stream()
+                .map(watchedReadField -> watchedReadField.split(","))
+                .filter(split -> split.length != 0 && !Strings.isNullOrEmpty(split[0]))
+                .collect(ImmutableMap.toImmutableMap(
+                        split -> split[0],
+                        split -> split.length == 1 ?
+                                ImmutableList.of("*") : Arrays.stream(split).skip(1).collect(ImmutableList.toImmutableList())
+                ));
+        final List<String> watchedWriteIndices = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, Collections.emptyList());
+        final Set<String> ignoredComplianceUsersForRead = ConfigConstants.getSettingAsSet(
+                settings,
+                ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS,
+                AuditConfig.DEFAULT_IGNORED_USERS,
+                false);
+        final Set<String> ignoredComplianceUsersForWrite = ConfigConstants.getSettingAsSet(
+                settings,
+                ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS,
+                AuditConfig.DEFAULT_IGNORED_USERS,
+                false);
 
         return new ComplianceConfig(
-                configCompliance.isComplianceEnabled(),
-                configCompliance.isExternalConfigEnabled(),
-                configCompliance.isInternalConfigEnabled(),
-                configCompliance.isReadMetadataOnly(),
-                configCompliance.getReadWatchedFields(),
-                configCompliance.getReadIgnoreUsers(),
-                configCompliance.isWriteMetadataOnly(),
-                configCompliance.isWriteLogDiffs(),
-                configCompliance.getWriteWatchedIndices(),
-                configCompliance.getWriteIgnoreUsers(),
-                opendistrosecurityIndex,
-                type,
-                index);
+                true,
+                logExternalConfig,
+                logInternalConfig,
+                logReadMetadataOnly,
+                readEnabledFields,
+                ignoredComplianceUsersForRead,
+                logWriteMetadataOnly,
+                logDiffsForWrite,
+                watchedWriteIndices,
+                ignoredComplianceUsersForWrite,
+                settings);
     }
 
     /**
      * Checks if config defined in elasticsearch config directory must be logged
      * @return true/false
      */
+    @JsonProperty("external_config")
     public boolean shouldLogExternalConfig() {
         return logExternalConfig;
     }
@@ -204,6 +299,7 @@ public class ComplianceConfig {
      * Checks if internal config must be logged
      * @return true/false
      */
+    @JsonProperty("internal_config")
     public boolean shouldLogInternalConfig() {
         return logInternalConfig;
     }
@@ -212,6 +308,7 @@ public class ComplianceConfig {
      * Checks if compliance is enabled
      * @return true/false
      */
+    @JsonProperty
     public boolean isEnabled() {
         return this.enabled;
     }
@@ -229,6 +326,7 @@ public class ComplianceConfig {
      * Checks if only metadata for write requests should be logged
      * @return true/false
      */
+    @JsonProperty("write_metadata_only")
     public boolean shouldLogWriteMetadataOnly() {
         return logWriteMetadataOnly;
     }
@@ -237,6 +335,7 @@ public class ComplianceConfig {
      * Checks if only metadata for read requests should be logged
      * @return true/false
      */
+    @JsonProperty("read_metadata_only")
     public boolean shouldLogReadMetadataOnly() {
         return logReadMetadataOnly;
     }
@@ -267,6 +366,26 @@ public class ComplianceConfig {
      */
     public boolean isComplianceWriteAuditDisabled(String user) {
         return ignoredComplianceUsersForWriteMatcher.test(user);
+    }
+
+    @VisibleForTesting
+    public Map<WildcardMatcher, Set<String>> getReadEnabledFields() {
+        return readEnabledFields;
+    }
+
+    @VisibleForTesting
+    public WildcardMatcher getWatchedWriteIndicesMatcher() {
+        return watchedWriteIndicesMatcher;
+    }
+
+    @VisibleForTesting
+    public String getOpendistrosecurityIndex() {
+        return opendistrosecurityIndex;
+    }
+
+    @VisibleForTesting
+    public String getAuditLogIndex() {
+        return auditLogIndex;
     }
 
     /**

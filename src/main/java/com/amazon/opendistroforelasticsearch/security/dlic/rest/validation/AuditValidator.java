@@ -14,9 +14,9 @@ public class AuditValidator extends AbstractConfigurationValidator {
                           final Object... param) {
         super(request, ref, esSettings, param);
         this.payloadMandatory = true;
-        this.allowedKeys.put(AuditConfig.Key.ENABLED, DataType.BOOLEAN);
-        this.allowedKeys.put(AuditConfig.Key.AUDIT, DataType.OBJECT);
-        this.allowedKeys.put(AuditConfig.Key.COMPLIANCE, DataType.OBJECT);
+        this.allowedKeys.put("enabled", DataType.BOOLEAN);
+        this.allowedKeys.put("audit", DataType.OBJECT);
+        this.allowedKeys.put("compliance", DataType.OBJECT);
     }
 
     @Override
