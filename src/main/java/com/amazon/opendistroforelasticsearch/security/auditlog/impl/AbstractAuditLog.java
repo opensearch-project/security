@@ -122,6 +122,8 @@ public abstract class AbstractAuditLog implements AuditLog {
         this.complianceConfig = complianceConfig;
         enableRoutes();
         this.complianceConfig.log(log);
+        // External config is audit logged only once per node start and config from index is not available at that time.
+        // The audit event will be created only if enabled and not already logged.
         logExternalConfig();
     }
 
