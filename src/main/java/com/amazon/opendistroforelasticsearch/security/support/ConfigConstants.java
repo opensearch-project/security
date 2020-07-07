@@ -126,13 +126,14 @@ public class ConfigConstants {
     public final static String CONFIGNAME_INTERNAL_USERS = "internalusers";
     public final static String CONFIGNAME_CONFIG = "config";
     public final static String CONFIGNAME_NODES_DN = "nodesdn";
+    public final static String CONFIGNAME_AUDIT = "audit";
     public final static String CONFIGKEY_ACTION_GROUPS_PERMISSIONS = "permissions";
     public final static String CONFIGKEY_READONLY = "readonly";
     public final static String CONFIGKEY_HIDDEN = "hidden";
 
     public static final List<String> EXISTING_CONFIG_NAMES = ImmutableList.of(CONFIGNAME_CONFIG, CONFIGNAME_ROLES, CONFIGNAME_ROLES_MAPPING,
         CONFIGNAME_INTERNAL_USERS, CONFIGNAME_ACTION_GROUPS);
-    public static final List<String> NEW_CONFIG_NAMES = ImmutableList.of(CONFIGNAME_NODES_DN);
+    public static final List<String> NEW_CONFIG_NAMES = ImmutableList.of(CONFIGNAME_NODES_DN, CONFIGNAME_AUDIT);
     public static final List<String> ALL_CONFIG_NAMES = ImmutableList.<String>builder().addAll(EXISTING_CONFIG_NAMES).addAll(NEW_CONFIG_NAMES).build();
 
     public static final String OPENDISTRO_SECURITY_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = "opendistro_security.cert.intercluster_request_evaluator_class";

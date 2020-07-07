@@ -38,7 +38,9 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
@@ -67,6 +69,7 @@ class ConfigurationLoader {
     private final Client client;
     private final Settings settings;
     private final String opendistrosecurityIndex;
+    private final AtomicBoolean isAuditConfigDocPresentInIndex = new AtomicBoolean();
 
     ConfigurationLoader(final Client client, ThreadPool threadPool, final Settings settings) {
         super();
@@ -74,6 +77,14 @@ class ConfigurationLoader {
         this.settings = settings;
         this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
         log.debug("Index is: {}", opendistrosecurityIndex);
+    }
+
+    /**
+     * Checks if audit config doc is present in security index
+     * @return true/false
+     */
+    boolean isAuditConfigDocPresentInIndex() {
+        return isAuditConfigDocPresentInIndex.get();
     }
 
     Map<String, Tuple<Long, Settings>> load(final String[] events, long timeout, TimeUnit timeUnit) throws InterruptedException, TimeoutException {
@@ -86,6 +97,12 @@ class ConfigurationLoader {
             public void success(String id, Tuple<Long, Settings> settings) {
                 if(latch.getCount() <= 0) {
                     log.error("Latch already counted down (for {} of {})  (index={})", id, Arrays.toString(events), opendistrosecurityIndex);
+                }
+
+                // Audit configuration doc is available in the index.
+                // Configuration can be hot-reloaded.
+                if (id.equals(ConfigConstants.CONFIGNAME_AUDIT)) {
+                    isAuditConfigDocPresentInIndex.set(true);
                 }
 
                 rs.put(id, settings);
@@ -104,7 +121,21 @@ class ConfigurationLoader {
             public void noData(String id) {
                 log.warn("No data for {} while retrieving configuration for {}  (index={})", id, Arrays.toString(events), opendistrosecurityIndex);
                 if (ConfigConstants.NEW_CONFIG_NAMES.contains(id)) {
-                    rs.put(id, new Tuple<>(IndexBaseConfigurationRepository.EMPTY_DOCUMENT_VERSION, Settings.builder().build()));
+                    final Tuple empty;
+                    if(id.equals(ConfigConstants.CONFIGNAME_AUDIT)) {
+                        // Audit configuration doc is not available in the index.
+                        // Configuration cannot be hot-reloaded.
+                        isAuditConfigDocPresentInIndex.set(false);
+                        try {
+                            empty = new Tuple<>(IndexBaseConfigurationRepository.EMPTY_DOCUMENT_VERSION, AuditConfig.from(settings).getAsSettings());
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    } else {
+                        empty = new Tuple<>(IndexBaseConfigurationRepository.EMPTY_DOCUMENT_VERSION, Settings.builder().build());
+                    }
+
+                    rs.put(id, empty);
                     latch.countDown();
                 }
             }
@@ -150,10 +181,10 @@ class ConfigurationLoader {
                         if(singleGetResponse.isExists() && !singleGetResponse.isSourceEmpty()) {
                             //success
                             try {
-                            final Tuple<Long, Settings> _settings = toSettings(singleGetResponse);
-                            if(_settings.v2() != null) {
-                                callback.success(singleGetResponse.getId(), _settings);
-                            } else {
+                                final Tuple<Long, Settings> _settings = toSettings(singleGetResponse);
+                                if(_settings.v2() != null) {
+                                    callback.success(singleGetResponse.getId(), _settings);
+                                } else {
                                     callback.failure(new Exception("Cannot parse settings for "+singleGetResponse.getId()));
                                 }
                             } catch (Exception e) {
