@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.util.Map;
 
 import org.elasticsearch.SpecialPermission;
 
@@ -41,6 +42,7 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -59,6 +61,22 @@ public class DefaultObjectMapper {
         defaulOmittingObjectMapper.setSerializationInclusion(Include.NON_DEFAULT);
         defaulOmittingObjectMapper.enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION);
         YAML_MAPPER.enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION);
+    }
+
+    public static void inject(final InjectableValues.Std injectableValues) {
+        objectMapper.setInjectableValues(injectableValues);
+        YAML_MAPPER.setInjectableValues(injectableValues);
+        defaulOmittingObjectMapper.setInjectableValues(injectableValues);
+    }
+
+    public static boolean getOrDefault(Map<String, Object> properties, String key, boolean defaultValue) {
+        Boolean value = (Boolean)properties.get(key);
+        return value != null ? value.booleanValue() : defaultValue;
+    }
+
+    public static <T> T getOrDefault(Map<String, Object> properties, String key, T defaultValue) {
+        T value = (T)properties.get(key);
+        return value != null ? value : defaultValue;
     }
 
     public static <T> T readTree(JsonNode node, Class<T> clazz) throws IOException {
