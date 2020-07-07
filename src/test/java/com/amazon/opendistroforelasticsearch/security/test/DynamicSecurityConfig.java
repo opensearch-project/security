@@ -50,6 +50,7 @@ public class DynamicSecurityConfig {
     private String securityInternalUsers = "internal_users.yml";
     private String securityActionGroups = "action_groups.yml";
     private String securityNodesDn = "nodes_dn.yml";
+    private String securityAudit = "audit.yml";
     private String securityConfigAsYamlString = null;
 
     public String getSecurityIndexName() {
@@ -94,7 +95,12 @@ public class DynamicSecurityConfig {
         this.securityNodesDn = securityNodesDn;
         return this;
     }
-    
+
+    public DynamicSecurityConfig setSecurityAudit(String audit) {
+        this.securityAudit = audit;
+        return this;
+    }
+
     public List<IndexRequest> getDynamicConfig(String folder) {
         
         final String prefix = folder == null?"":folder+"/";
@@ -136,6 +142,15 @@ public class DynamicSecurityConfig {
                 .id(ConfigConstants.CONFIGNAME_NODES_DN)
                 .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source(ConfigConstants.CONFIGNAME_NODES_DN, FileHelper.readYamlContent(prefix + securityNodesDn)));
+        }
+
+        final String auditYmlFile = prefix + securityAudit;
+        if (null != FileHelper.getAbsoluteFilePathFromClassPath(auditYmlFile)) {
+            ret.add(new IndexRequest(securityIndexName)
+                    .type("security")
+                    .id(ConfigConstants.CONFIGNAME_AUDIT)
+                    .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .source(ConfigConstants.CONFIGNAME_AUDIT, FileHelper.readYamlContent(auditYmlFile)));
         }
 
         return Collections.unmodifiableList(ret);

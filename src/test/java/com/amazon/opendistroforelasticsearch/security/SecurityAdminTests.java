@@ -1,10 +1,10 @@
 /*
  * Copyright 2015-2017 floragunn GmbH
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  */
 
 package com.amazon.opendistroforelasticsearch.security;
@@ -35,13 +35,13 @@ import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelpe
 import com.amazon.opendistroforelasticsearch.security.tools.OpenDistroSecurityAdmin;
 
 public class SecurityAdminTests extends SingleClusterTest {
-    
+
     @Test
     public void testSecurityAdmin() throws Exception {
         setup(Settings.EMPTY, null, Settings.EMPTY, false);
-        
+
         final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
-        
+
         List<String> argsAsList = new ArrayList<>();
         argsAsList.add("-ts");
         argsAsList.add(FileHelper.getAbsoluteFilePathFromClassPath(prefix+"truststore.jks").toFile().getAbsolutePath());
@@ -54,27 +54,27 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add("-cd");
         argsAsList.add(new File("./securityconfig").getAbsolutePath());
         argsAsList.add("-nhnv");
-        
-        
+
+
         int returnCode  = OpenDistroSecurityAdmin.execute(argsAsList.toArray(new String[0]));
         Assert.assertEquals(0, returnCode);
-        
+
         RestHelper rh = nonSslRestHelper();
         HttpResponse res;
-        
+
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
         System.out.println(res.getBody());
         assertContains(res, "*UP*");
         assertContains(res, "*strict*");
         assertNotContains(res, "*DOWN*");
     }
-    
+
     @Test
     public void testSecurityAdminInvalidYml() throws Exception {
         setup(Settings.EMPTY, new DynamicSecurityConfig(), Settings.EMPTY, true);
-        
+
         final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
-        
+
         List<String> argsAsList = new ArrayList<>();
         argsAsList.add("-ts");
         argsAsList.add(FileHelper.getAbsoluteFilePathFromClassPath(prefix+"truststore.jks").toFile().getAbsolutePath());
@@ -89,21 +89,21 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add("-t");
         argsAsList.add("roles");
         argsAsList.add("-nhnv");
-        
-        
+
+
         int returnCode  = OpenDistroSecurityAdmin.execute(argsAsList.toArray(new String[0]));
         Assert.assertNotEquals(0, returnCode);
-        
+
         RestHelper rh = nonSslRestHelper();
         HttpResponse res;
-        
+
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
         System.out.println(res.getBody());
         assertContains(res, "*UP*");
         assertContains(res, "*strict*");
         assertNotContains(res, "*DOWN*");
     }
-    
+
     @Test
     public void testSecurityAdminReloadInvalidConfig() throws Exception {
         final Settings settings = Settings.builder()
@@ -121,10 +121,10 @@ public class SecurityAdminTests extends SingleClusterTest {
         rh.keystore = "kirk-keystore.jks";
         System.out.println(rh.executePutRequest(".opendistro_security/security/roles", FileHelper.loadFile("roles_invalidxcontent.yml")).getBody());;
         Assert.assertEquals(HttpStatus.SC_OK, rh.executePutRequest(".opendistro_security/security/roles", "{\"roles\":\"dummy\"}").getStatusCode());
-        
-        
+
+
         final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
-        
+
         List<String> argsAsList = new ArrayList<>();
         argsAsList.add("-ts");
         argsAsList.add(FileHelper.getAbsoluteFilePathFromClassPath(prefix+"truststore.jks").toFile().getAbsolutePath());
@@ -136,17 +136,17 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add(clusterInfo.clustername);
         argsAsList.add("-rl");
         argsAsList.add("-nhnv");
-        
-        
+
+
         int returnCode  = OpenDistroSecurityAdmin.execute(argsAsList.toArray(new String[0]));
         Assert.assertNotEquals(0, returnCode);
-        
+
         HttpResponse res;
-        
+
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
         assertContains(res, "*UP*");
         assertContains(res, "*strict*");
         assertNotContains(res, "*DOWN*");
     }
-        
+
 }
