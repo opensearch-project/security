@@ -20,6 +20,8 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 
+import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.NodesDn;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -96,6 +98,7 @@ public class ValidateApiAction extends AbstractApiAction {
             final SecurityDynamicConfiguration<InternalUserV6> internalUsersV6 = (SecurityDynamicConfiguration<InternalUserV6>) load(CType.INTERNALUSERS, true, acceptInvalid);
             final SecurityDynamicConfiguration<RoleV6> rolesV6 = (SecurityDynamicConfiguration<RoleV6>) load(CType.ROLES, true, acceptInvalid);
             final SecurityDynamicConfiguration<RoleMappingsV6> rolesmappingV6 = (SecurityDynamicConfiguration<RoleMappingsV6>) load(CType.ROLESMAPPING, true, acceptInvalid);
+            final SecurityDynamicConfiguration<AuditConfig> auditConfigV6 = (SecurityDynamicConfiguration<AuditConfig>) load(CType.AUDIT, true);
 
             final SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsV7 = Migration.migrateActionGroups(actionGroupsV6);
             final SecurityDynamicConfiguration<ConfigV7> configV7 = Migration.migrateConfig(configV6);
@@ -103,6 +106,7 @@ public class ValidateApiAction extends AbstractApiAction {
             final Tuple<SecurityDynamicConfiguration<RoleV7>, SecurityDynamicConfiguration<TenantV7>> rolesTenantsV7 = Migration.migrateRoles(rolesV6,
                 rolesmappingV6);
             final SecurityDynamicConfiguration<RoleMappingsV7> rolesmappingV7 = Migration.migrateRoleMappings(rolesmappingV6);
+            final SecurityDynamicConfiguration<AuditConfig> auditConfigV7 = Migration.migrateAudit(auditConfigV6);
 
             successResponse(channel, "OK.");
         } catch (Exception e) {

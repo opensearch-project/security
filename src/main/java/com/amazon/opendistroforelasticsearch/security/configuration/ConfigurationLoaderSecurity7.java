@@ -37,7 +37,9 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigHelper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -74,6 +76,7 @@ public class ConfigurationLoaderSecurity7 {
     private final String securityIndex;
     private final ClusterService cs;
     private final Settings settings;
+    private final AtomicBoolean isAuditConfigDocPresentInIndex = new AtomicBoolean();
 
     ConfigurationLoaderSecurity7(final Client client, ThreadPool threadPool, final Settings settings, ClusterService cs) {
         super();
@@ -82,6 +85,14 @@ public class ConfigurationLoaderSecurity7 {
         this.securityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
         this.cs = cs;
         log.debug("Index is: {}", securityIndex);
+    }
+
+    /**
+     * Checks if audit config doc is present in security index
+     * @return true/false
+     */
+    boolean isAuditConfigDocPresentInIndex() {
+        return isAuditConfigDocPresentInIndex.get();
     }
 
     Map<CType, SecurityDynamicConfiguration<?>> load(final CType[] events, long timeout, TimeUnit timeUnit, boolean acceptInvalid) throws InterruptedException, TimeoutException {
@@ -94,6 +105,12 @@ public class ConfigurationLoaderSecurity7 {
             public void success(SecurityDynamicConfiguration<?> dConf) {
                 if(latch.getCount() <= 0) {
                     log.error("Latch already counted down (for {} of {})  (index={})", dConf.getCType().toLCString(), Arrays.toString(events), securityIndex);
+                }
+
+                // Audit configuration doc is available in the index.
+                // Configuration can be hot-reloaded.
+                if (dConf.getCType() == CType.AUDIT) {
+                    isAuditConfigDocPresentInIndex.set(true);
                 }
 
                 rs.put(dConf.getCType(), dConf);
@@ -134,6 +151,21 @@ public class ConfigurationLoaderSecurity7 {
                 if(cType == CType.NODESDN) {
                     try {
                         SecurityDynamicConfiguration<?> empty = ConfigHelper.createEmptySdc(cType, ConfigurationRepository.getDefaultConfigVersion());
+                        rs.put(cType, empty);
+                        latch.countDown();
+                        return;
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+
+                if(cType == CType.AUDIT) {
+                    // Audit configuration doc is not available in the index.
+                    // Configuration cannot be hot-reloaded.
+                    isAuditConfigDocPresentInIndex.set(false);
+                    try {
+                        SecurityDynamicConfiguration<?> empty = ConfigHelper.createEmptySdc(cType, ConfigurationRepository.getDefaultConfigVersion());
+                        empty.putCObject("config", AuditConfig.from(settings));
                         rs.put(cType, empty);
                         latch.countDown();
                         return;

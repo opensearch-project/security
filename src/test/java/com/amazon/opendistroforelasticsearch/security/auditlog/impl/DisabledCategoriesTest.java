@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
+import com.amazon.opendistroforelasticsearch.security.auditlog.AuditTestUtils;
 import com.amazon.opendistroforelasticsearch.security.test.AbstractSecurityUnitTest;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -69,7 +70,8 @@ public class DisabledCategoriesTest {
 		Builder settingsBuilder = Settings.builder();
 		settingsBuilder.put("opendistro_security.audit.type", TestAuditlogImpl.class.getName());
         settingsBuilder.put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "nonexistent");
-        new AuditLogImpl(settingsBuilder.build(), null, null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
+
+		AuditTestUtils.createAuditLog(settingsBuilder.build(), null, null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
 	}
 
 	@Test
@@ -79,7 +81,7 @@ public class DisabledCategoriesTest {
 		Builder settingsBuilder = Settings.builder();
 		settingsBuilder.put("opendistro_security.audit.type", TestAuditlogImpl.class.getName());
 		settingsBuilder.put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "nonexistent");
-		new AuditLogImpl(settingsBuilder.build(), null, null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
+		AuditTestUtils.createAuditLog(settingsBuilder.build(), null, null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
 	}
 
 	@Test
@@ -87,7 +89,7 @@ public class DisabledCategoriesTest {
 		Builder settingsBuilder  = Settings.builder();
 		settingsBuilder.put("opendistro_security.audit.type", "debug");
 		settingsBuilder.put("opendistro_security.audit.config.disabled_categories", "nonexistant, bad_headers");
-		AuditLog auditLog = new AuditLogImpl(settingsBuilder.build(), null, null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
+		AbstractAuditLog auditLog = AuditTestUtils.createAuditLog(settingsBuilder.build(), null, null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
 		logAll(auditLog);
 		String result = TestAuditlogImpl.sb.toString();
 		Assert.assertFalse(categoriesPresentInLog(result, AuditCategory.BAD_HEADERS));
@@ -103,8 +105,7 @@ public class DisabledCategoriesTest {
 
 		// we use the debug output, no ES client is needed. Also, we
 		// do not need to close.
-		AuditLogImpl auditLog = new AuditLogImpl(settingsBuilder.build(), null, null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
-
+		AbstractAuditLog auditLog = AuditTestUtils.createAuditLog(settingsBuilder.build(), null, null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
 		logAll(auditLog);
 
 		// we're using the ExecutorService in AuditLogImpl, so we need to wait
@@ -165,8 +166,7 @@ public class DisabledCategoriesTest {
 
 		// we use the debug output, no ES client is needed. Also, we
 		// do not need to close.
-		AuditLog auditLog = new AuditLogImpl(settingsBuilder.build(), null, null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
-
+		AbstractAuditLog auditLog = AuditTestUtils.createAuditLog(settingsBuilder.build(), null, null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
 		logAll(auditLog);
 
 		auditLog.close();

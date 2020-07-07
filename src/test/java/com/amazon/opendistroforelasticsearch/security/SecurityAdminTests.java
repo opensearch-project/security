@@ -52,7 +52,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add("-cn");
         argsAsList.add(clusterInfo.clustername);
         argsAsList.add("-cd");
-        argsAsList.add(new File("./securityconfig").getAbsolutePath());
+        argsAsList.add(new File("src/test/resources/").getAbsolutePath());
         argsAsList.add("-nhnv");
         
         
@@ -114,7 +114,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add("-cn");
         argsAsList.add(clusterInfo.clustername);
         argsAsList.add("-cd");
-        argsAsList.add(new File("./securityconfig").getAbsolutePath());
+        argsAsList.add(new File("src/test/resources/").getAbsolutePath());
         argsAsList.add("-nhnv");
         
         
@@ -323,7 +323,7 @@ public class SecurityAdminTests extends SingleClusterTest {
     public void testSecurityAdminValidateConfig() throws Exception {
         List<String> argsAsList = new ArrayList<>();
         argsAsList.add("-cd");
-        argsAsList.add(new File("./securityconfig").getAbsolutePath());
+        argsAsList.add(new File("src/test/resources/").getAbsolutePath());
         argsAsList.add("-vc");
         
         int returnCode  = OpenDistroSecurityAdmin.execute(argsAsList.toArray(new String[0]));
@@ -331,7 +331,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         
         argsAsList = new ArrayList<>();
         argsAsList.add("-f");
-        argsAsList.add(new File("./securityconfig/roles.yml").getAbsolutePath());
+        argsAsList.add(new File("src/test/resources/roles.yml").getAbsolutePath());
         argsAsList.add("-vc");
         
         returnCode  = OpenDistroSecurityAdmin.execute(argsAsList.toArray(new String[0]));
@@ -363,7 +363,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         
         argsAsList = new ArrayList<>();
         argsAsList.add("-f");
-        argsAsList.add(new File("./securityconfig/roles.yml").getAbsolutePath());
+        argsAsList.add(new File("src/test/resources/roles.yml").getAbsolutePath());
         argsAsList.add("-vc");
         argsAsList.add("-t");
         argsAsList.add("config");
@@ -373,7 +373,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         
         argsAsList = new ArrayList<>();
         argsAsList.add("-ks");
-        argsAsList.add(new File("./securityconfig").getAbsolutePath());
+        argsAsList.add(new File("src/test/resources/").getAbsolutePath());
         argsAsList.add("-vc");
         
         returnCode  = OpenDistroSecurityAdmin.execute(argsAsList.toArray(new String[0]));
@@ -398,7 +398,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         
         argsAsList = new ArrayList<>();
         argsAsList.add("-cd");
-        argsAsList.add(new File("./securityconfig").getAbsolutePath());
+        argsAsList.add(new File("src/test/resources/").getAbsolutePath());
         argsAsList.add("-vc");
         argsAsList.add("8");
         
