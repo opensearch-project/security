@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.Meta;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.NodesDn;
@@ -159,6 +160,19 @@ public class Migration {
         }
         
         return rms7;
+    }
+
+    public static SecurityDynamicConfiguration<AuditConfig> migrateAudit(SecurityDynamicConfiguration<AuditConfig> audit) {
+        final SecurityDynamicConfiguration<AuditConfig> migrated = SecurityDynamicConfiguration.empty();
+        migrated.setCType(audit.getCType());
+        migrated.set_meta(new Meta());
+        migrated.get_meta().setConfig_version(2);
+        migrated.get_meta().setType("audit");
+
+        for(final Entry<String, AuditConfig> entry: audit.getCEntries().entrySet()) {
+            migrated.putCEntry(entry.getKey(), entry.getValue());
+        }
+        return migrated;
     }
 
 }
