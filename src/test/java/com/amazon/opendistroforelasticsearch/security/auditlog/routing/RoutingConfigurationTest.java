@@ -16,6 +16,7 @@
 package com.amazon.opendistroforelasticsearch.security.auditlog.routing;
 
 import java.util.List;
+import java.util.Objects;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.config.ThreadPoolConfig;
 import org.elasticsearch.common.settings.Settings;
@@ -60,12 +61,12 @@ public class RoutingConfigurationTest extends AbstractAuditlogiUnitTest{
 
 	@Test
 	public void testNoDefaultSink() throws Exception {
-		Settings settings = Settings.builder().loadFromPath(FileHelper.getAbsoluteFilePathFromClassPath("auditlog/endpoints/routing/configuration_no_default.yml")).build();
-		AuditMessageRouter router = createMessageRouterComplianceEnabled(settings);
+		Settings settings = Settings.builder().loadFromPath(Objects.requireNonNull(FileHelper.getAbsoluteFilePathFromClassPath("auditlog/endpoints/routing/configuration_no_default.yml"))).build();
+		AuditMessageRouter router = new AuditMessageRouter(settings, null, null, null);
 		// no default sink, audit log not enabled
 		Assert.assertEquals(false, router.isEnabled());
 		Assert.assertEquals(null, router.defaultSink);
-		Assert.assertEquals(0, router.categorySinks.size());
+		Assert.assertEquals(null, router.categorySinks);
 		// make sure no exception is thrown
 		router.route(MockAuditMessageFactory.validAuditMessage());
 	}
@@ -90,9 +91,7 @@ public class RoutingConfigurationTest extends AbstractAuditlogiUnitTest{
 		Assert.assertEquals("default", sinks.get(0).getName());
 		Assert.assertEquals(InternalESSink.class, sinks.get(0).getClass());
 		// no valid end points for category, must use default
-		sinks = router.categorySinks.get(AuditCategory.COMPLIANCE_DOC_READ);
-		Assert.assertEquals("default", sinks.get(0).getName());
-		Assert.assertEquals(InternalESSink.class, sinks.get(0).getClass());
+		Assert.assertNull(router.categorySinks.get(AuditCategory.COMPLIANCE_DOC_READ));
 	}
 
 	@Test
@@ -127,12 +126,10 @@ public class RoutingConfigurationTest extends AbstractAuditlogiUnitTest{
 		Assert.assertEquals(InternalESSink.class, sinks.get(0).getClass());
 
 		// bad headers has no valid endpoint, so we use default
-		Assert.assertEquals("default", router.categorySinks.get(AuditCategory.BAD_HEADERS).get(0).getName());
-		Assert.assertEquals(DebugSink.class, router.categorySinks.get(AuditCategory.BAD_HEADERS).get(0).getClass());
+		Assert.assertNull(router.categorySinks.get(AuditCategory.BAD_HEADERS));
 
 		// failed login has no endpoint configuration, so we use default
-		Assert.assertEquals("default", router.categorySinks.get(AuditCategory.FAILED_LOGIN).get(0).getName());
-		Assert.assertEquals(DebugSink.class, router.categorySinks.get(AuditCategory.FAILED_LOGIN).get(0).getClass());
+		Assert.assertNull(router.categorySinks.get(AuditCategory.FAILED_LOGIN));
 
 	}
 
@@ -159,9 +156,7 @@ public class RoutingConfigurationTest extends AbstractAuditlogiUnitTest{
 		Assert.assertEquals(DebugSink.class, sinks.get(0).getClass());
 
 		// no valid endpoints for category, must fallback to default
-		sinks = router.categorySinks.get(AuditCategory.COMPLIANCE_DOC_READ);
-		Assert.assertEquals("default", sinks.get(0).getName());
-		Assert.assertEquals(DebugSink.class, sinks.get(0).getClass());
+		Assert.assertNull(router.categorySinks.get(AuditCategory.COMPLIANCE_DOC_READ));
 	}
 
 	@Test

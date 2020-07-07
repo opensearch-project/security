@@ -82,6 +82,7 @@ public class Migrater {
         retVal = migrateFile(new File(dir, "roles_mapping.yml"), CType.ROLESMAPPING, backup)  && retVal;
         retVal = migrateFile(new File(dir, "internal_users.yml"), CType.INTERNALUSERS, backup)  && retVal;
         retVal = migrateFile(new File(dir, "nodes_dn.yml"), CType.NODESDN, backup)  && retVal;
+        retVal = migrateFile(new File(dir, "audit.yml"), CType.AUDIT, backup)  && retVal;
 
         return retVal;
     }
@@ -128,6 +129,11 @@ public class Migrater {
             
             if(cType == CType.INTERNALUSERS) {
                 SecurityDynamicConfiguration<?> val = Migration.migrateInternalUsers(SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(file), CType.INTERNALUSERS, 1, 0, 0));
+                return backupAndWrite(file, val, backup);
+            }
+
+            if(cType == CType.AUDIT) {
+                SecurityDynamicConfiguration<?> val = Migration.migrateAudit(SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(file), CType.AUDIT, 1, 0, 0));
                 return backupAndWrite(file, val, backup);
             }
 
