@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v6.ActionGroupsV6;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v6.ConfigV6;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v6.InternalUserV6;
@@ -30,7 +31,8 @@ public enum CType {
     ROLES(toMap(1, RoleV6.class, 2, RoleV7.class)), 
     ROLESMAPPING(toMap(1, RoleMappingsV6.class, 2, RoleMappingsV7.class)),
     TENANTS(toMap(2, TenantV7.class)),
-    NODESDN(toMap(1, NodesDn.class, 2, NodesDn.class));
+    NODESDN(toMap(1, NodesDn.class, 2, NodesDn.class)),
+    AUDIT(toMap(1, AuditConfig.class, 2, AuditConfig.class));
 
     private Map<Integer, Class<?>> implementations;
 
