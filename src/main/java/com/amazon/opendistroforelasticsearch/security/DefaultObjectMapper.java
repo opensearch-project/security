@@ -17,11 +17,18 @@ package com.amazon.opendistroforelasticsearch.security;
 
 import java.util.Map;
 
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
 public class DefaultObjectMapper {
     public static final ObjectMapper objectMapper = new ObjectMapper();
+    public final static ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
+
+    static {
+        YAML_MAPPER.enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION);
+    }
 
     public static void inject(final InjectableValues.Std injectableValues) {
         objectMapper.setInjectableValues(injectableValues);

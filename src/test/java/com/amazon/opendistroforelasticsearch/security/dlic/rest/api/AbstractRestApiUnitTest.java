@@ -21,6 +21,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
+import com.amazon.opendistroforelasticsearch.security.auditlog.AuditTestUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpStatus;
 import org.elasticsearch.client.transport.TransportClient;
@@ -28,7 +30,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
 import org.junit.Assert;
 
-import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
 import com.amazon.opendistroforelasticsearch.security.test.DynamicSecurityConfig;
 import com.amazon.opendistroforelasticsearch.security.test.SingleClusterTest;
 import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
@@ -112,6 +113,8 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 		setup(Settings.EMPTY, new DynamicSecurityConfig(), builder.build(), init);
 		rh = restHelper();
 		rh.keystore = "restapi/kirk-keystore.jks";
+
+		AuditTestUtils.updateAuditConfig(rh, nodeOverride != null ? nodeOverride : Settings.EMPTY);
 	}
 
 	protected void deleteUser(String username) throws Exception {

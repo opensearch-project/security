@@ -41,6 +41,7 @@ import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfi
 import com.fasterxml.jackson.annotation.JacksonInject;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.logging.log4j.LogManager;
@@ -75,6 +76,10 @@ public class ComplianceConfig {
     public static final ComplianceConfig DEFAULT = ComplianceConfig.from(Settings.EMPTY);
     private static final int CACHE_SIZE = 1000;
     private static final String INTERNAL_ELASTICSEARCH = "internal_elasticsearch";
+    private static Set<String> KEYS = ImmutableSet.of(
+            "enabled", "external_config", "internal_config",
+            "read_metadata_only", "read_watched_fields", "read_ignore_users",
+            "write_metadata_only", "write_log_diffs", "write_watched_indices", "write_ignore_users");
 
     private final boolean logExternalConfig;
     private final boolean logInternalConfig;
@@ -212,6 +217,10 @@ public class ComplianceConfig {
     @VisibleForTesting
     @JsonCreator
     public static ComplianceConfig from(Map<String, Object> properties, @JacksonInject Settings settings) {
+        if (!KEYS.containsAll(properties.keySet())) {
+            throw new IllegalArgumentException("Invalid keys present in the input data for compliance config");
+        }
+
         final boolean enabled = getOrDefault(properties, "enabled", true);
         final boolean logExternalConfig = getOrDefault(properties, "external_config", false);
         final boolean logInternalConfig = getOrDefault(properties, "internal_config", false);
@@ -222,6 +231,7 @@ public class ComplianceConfig {
         final boolean logDiffsForWrite = getOrDefault(properties, "write_log_diffs", false);
         final List<String> watchedWriteIndicesPatterns = getOrDefault(properties, "write_watched_indices", Collections.emptyList());
         final Set<String> ignoredComplianceUsersForWrite = ImmutableSet.copyOf(getOrDefault(properties, "write_ignore_users", AuditConfig.DEFAULT_IGNORED_USERS));
+
         return new ComplianceConfig(
                 enabled,
                 logExternalConfig,
@@ -284,6 +294,60 @@ public class ComplianceConfig {
                 watchedWriteIndices,
                 ignoredComplianceUsersForWrite,
                 settings);
+    }
+
+    public static ComplianceConfig fromConfig(final Settings configuration, final Settings settings) {
+        if (!KEYS.containsAll(configuration.names())) {
+            throw new IllegalArgumentException("Invalid keys present in the input data for compliance config");
+        }
+
+        final boolean enabled = configuration.getAsBoolean("enabled", true);
+        final boolean logExternalConfig = configuration.getAsBoolean("external_config", false);
+        final boolean logInternalConfig = configuration.getAsBoolean("internal_config", false);
+        final boolean logReadMetadataOnly = configuration.getAsBoolean("read_metadata_only", false);
+        final Settings watchedReadFieldsSettings = configuration.getAsSettings("read_watched_fields");
+        final Map<String, List<String>> watchedReadFields = watchedReadFieldsSettings.keySet().stream().collect(ImmutableMap.toImmutableMap(key -> key, watchedReadFieldsSettings::getAsList));
+        final Set<String> ignoredComplianceUsersForRead = ImmutableSet.copyOf(configuration.getAsList(  "read_ignore_users", AuditConfig.DEFAULT_IGNORED_USERS));
+        final boolean logWriteMetadataOnly = configuration.getAsBoolean("write_metadata_only", false);
+        final boolean logDiffsForWrite = configuration.getAsBoolean( "write_log_diffs", false);
+        final List<String> watchedWriteIndicesPatterns = configuration.getAsList( "write_watched_indices", Collections.emptyList());
+        final Set<String> ignoredComplianceUsersForWrite = ImmutableSet.copyOf(configuration.getAsList( "write_ignore_users", AuditConfig.DEFAULT_IGNORED_USERS));
+
+        return new ComplianceConfig(
+                enabled,
+                logExternalConfig,
+                logInternalConfig,
+                logReadMetadataOnly,
+                watchedReadFields,
+                ignoredComplianceUsersForRead,
+                logWriteMetadataOnly,
+                logDiffsForWrite,
+                watchedWriteIndicesPatterns,
+                ignoredComplianceUsersForWrite,
+                settings
+        );
+    }
+
+    @JsonIgnore
+    public Settings getAsSettings() {
+        final Settings.Builder readWatchFieldsSettingsBuilder = Settings.builder();
+        watchedReadFields.forEach((indexPattern, fieldPatterns) -> {
+            readWatchFieldsSettingsBuilder.putList("read_watched_fields" + "." + indexPattern, fieldPatterns);
+        });
+
+        return Settings.builder()
+                .put("enabled", enabled)
+                .put("external_config", shouldLogExternalConfig())
+                .put("internal_config", shouldLogInternalConfig())
+                .put("read_metadata_only", shouldLogReadMetadataOnly())
+                .put(readWatchFieldsSettingsBuilder.build())
+                .putList("read_ignore_users", ImmutableList.copyOf(ignoredComplianceUsersForRead))
+                .put("write_metadata_only", shouldLogWriteMetadataOnly())
+                .put("write_log_diffs", shouldLogDiffsForWrite())
+                .putList("write_watched_indices", watchedWriteIndicesPatterns)
+                .putList("write_ignore_users", ImmutableList.copyOf(ignoredComplianceUsersForWrite))
+                .normalizePrefix("compliance.")
+                .build();
     }
 
     /**
