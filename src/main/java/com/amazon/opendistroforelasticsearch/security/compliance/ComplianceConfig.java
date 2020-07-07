@@ -80,15 +80,15 @@ public class ComplianceConfig {
     private final boolean logInternalConfig;
     private final boolean logReadMetadataOnly;
     private final boolean logWriteMetadataOnly;
-    @JsonProperty(value = "write_log_diffs", index = 7)
+    @JsonProperty(value = "write_log_diffs")
     private final boolean logDiffsForWrite;
-    @JsonProperty(value = "read_watched_fields", index = 4)
+    @JsonProperty(value = "read_watched_fields")
     private final Map<String, List<String>> watchedReadFields;
-    @JsonProperty(value = "read_ignore_users", index = 5)
+    @JsonProperty(value = "read_ignore_users")
     private final Set<String> ignoredComplianceUsersForRead;
-    @JsonProperty(value = "write_watched_indices", index = 8)
+    @JsonProperty(value = "write_watched_indices")
     private final List<String> watchedWriteIndicesPatterns;
-    @JsonProperty(value = "write_ignore_users", index = 9)
+    @JsonProperty(value = "write_ignore_users")
     private final Set<String> ignoredComplianceUsersForWrite;
 
     private final WildcardMatcher watchedWriteIndicesMatcher;
@@ -290,7 +290,7 @@ public class ComplianceConfig {
      * Checks if config defined in elasticsearch config directory must be logged
      * @return true/false
      */
-    @JsonProperty(value = "external_config", index = 1)
+    @JsonProperty(value = "external_config")
     public boolean shouldLogExternalConfig() {
         return logExternalConfig;
     }
@@ -299,7 +299,7 @@ public class ComplianceConfig {
      * Checks if internal config must be logged
      * @return true/false
      */
-    @JsonProperty(value = "internal_config", index = 2)
+    @JsonProperty(value = "internal_config")
     public boolean shouldLogInternalConfig() {
         return logInternalConfig;
     }
@@ -308,7 +308,7 @@ public class ComplianceConfig {
      * Checks if compliance is enabled
      * @return true/false
      */
-    @JsonProperty(index = 0)
+    @JsonProperty
     public boolean isEnabled() {
         return this.enabled;
     }
@@ -326,7 +326,7 @@ public class ComplianceConfig {
      * Checks if only metadata for write requests should be logged
      * @return true/false
      */
-    @JsonProperty(value = "write_metadata_only", index = 6)
+    @JsonProperty(value = "write_metadata_only")
     public boolean shouldLogWriteMetadataOnly() {
         return logWriteMetadataOnly;
     }
@@ -335,7 +335,7 @@ public class ComplianceConfig {
      * Checks if only metadata for read requests should be logged
      * @return true/false
      */
-    @JsonProperty(value = "read_metadata_only", index = 3)
+    @JsonProperty(value = "read_metadata_only")
     public boolean shouldLogReadMetadataOnly() {
         return logReadMetadataOnly;
     }

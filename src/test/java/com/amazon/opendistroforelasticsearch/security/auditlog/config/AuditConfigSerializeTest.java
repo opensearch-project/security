@@ -7,8 +7,13 @@ import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentFactory;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -37,24 +42,42 @@ public class AuditConfigSerializeTest {
     }
 
     @Test
-    public void testDefaultSerialize() throws JsonProcessingException {
+    public void testDefaultSerialize() throws IOException {
         // arrange
         final AuditConfig audit = new AuditConfig(true, null, null);
         // act
         final String json = objectMapper.writeValueAsString(audit);
-        assertEquals("{" +
-                "\"enabled\":true," +
-                "\"audit\":{" +
-                    "\"enable_rest\":true,\"disabled_rest_categories\":[\"GRANTED_PRIVILEGES\",\"AUTHENTICATED\"]," +
-                    "\"enable_transport\":true,\"disabled_transport_categories\":[\"GRANTED_PRIVILEGES\",\"AUTHENTICATED\"]," +
-                    "\"resolve_bulk_requests\":false,\"log_request_body\":true,\"resolve_indices\":true,\"exclude_sensitive_headers\":true," +
-                    "\"ignore_users\":[\"kibanaserver\"],\"ignore_requests\":[]}," +
-                "\"compliance\":{" +
-                    "\"enabled\":true," +
-                    "\"external_config\":false,\"internal_config\":false," +
-                    "\"read_metadata_only\":false,\"read_watched_fields\":{},\"read_ignore_users\":[\"kibanaserver\"]," +
-                    "\"write_metadata_only\":false,\"write_log_diffs\":false,\"write_watched_indices\":[],\"write_ignore_users\":[\"kibanaserver\"]}" +
-                "}", json);
+
+        final XContentBuilder jsonBuilder = XContentFactory.jsonBuilder()
+                .startObject()
+                .field("enabled", true)
+                .startObject("audit")
+                .field("enable_rest", true)
+                .field("disabled_rest_categories", ImmutableList.of("GRANTED_PRIVILEGES", "AUTHENTICATED"))
+                .field("enable_transport", true)
+                .field("disabled_transport_categories", ImmutableList.of("GRANTED_PRIVILEGES", "AUTHENTICATED"))
+                .field("resolve_bulk_requests", false)
+                .field("log_request_body", true)
+                .field("resolve_indices", true)
+                .field("exclude_sensitive_headers", true)
+                .field("ignore_users", Collections.singletonList("kibanaserver"))
+                .field("ignore_requests", Collections.emptyList())
+                .endObject()
+                .startObject("compliance")
+                .field("enabled", true)
+                .field("external_config", false)
+                .field("internal_config", false)
+                .field("read_metadata_only", false)
+                .field("read_watched_fields", Collections.emptyMap())
+                .field("read_ignore_users", Collections.singletonList("kibanaserver"))
+                .field("write_metadata_only", false)
+                .field("write_log_diffs", false)
+                .field("write_watched_indices", Collections.emptyList())
+                .field("write_ignore_users", Collections.singletonList("kibanaserver"))
+                .endObject()
+                .endObject();
+
+        assertTrue(compareJson(Strings.toString(jsonBuilder), json));
     }
 
     @Test
@@ -86,19 +109,35 @@ public class AuditConfigSerializeTest {
     @Test
     public void testDeserialize() throws IOException {
         // arrange
-        final String json = "{" +
-                "\"enabled\":true," +
-                "\"audit\":{" +
-                    "\"enable_rest\":true,\"disabled_rest_categories\":[\"AUTHENTICATED\"]," +
-                    "\"enable_transport\":true,\"disabled_transport_categories\":[\"SSL_EXCEPTION\"]," +
-                    "\"resolve_bulk_requests\":true,\"log_request_body\":true,\"resolve_indices\":true,\"exclude_sensitive_headers\":true," +
-                    "\"ignore_users\":[\"test-user-1\"],\"ignore_requests\":[\"test-request\"]}," +
-                "\"compliance\":{" +
-                    "\"enabled\":true," +
-                    "\"internal_config\":true,\"external_config\":true," +
-                    "\"read_metadata_only\":true,\"read_watched_fields\":{\"test-read-watch-field\":[\"test-field-1\"]},\"read_ignore_users\":[\"test-user-2\"]," +
-                    "\"write_metadata_only\":true,\"write_log_diffs\":true,\"write_watched_indices\":[\"test-write-watch-index\"],\"write_ignore_users\":[\"test-user-3\"]}" +
-                "}";
+        final XContentBuilder jsonBuilder = XContentFactory.jsonBuilder()
+                .startObject()
+                .field("enabled", true)
+                .startObject("audit")
+                .field("enable_rest", true)
+                .field("disabled_rest_categories", Collections.singletonList("AUTHENTICATED"))
+                .field("enable_transport", true)
+                .field("disabled_transport_categories", Collections.singletonList("SSL_EXCEPTION"))
+                .field("resolve_bulk_requests", true)
+                .field("log_request_body", true)
+                .field("resolve_indices", true)
+                .field("exclude_sensitive_headers", true)
+                .field("ignore_users", Collections.singletonList("test-user-1"))
+                .field("ignore_requests",  Collections.singletonList("test-request"))
+                .endObject()
+                .startObject("compliance")
+                .field("enabled", true)
+                .field("external_config", true)
+                .field("internal_config", true)
+                .field("read_metadata_only", true)
+                .field("read_watched_fields", Collections.singletonMap("test-read-watch-field", Collections.singleton("test-field-1")))
+                .field("read_ignore_users", Collections.singletonList("test-user-2"))
+                .field("write_metadata_only", true)
+                .field("write_log_diffs", false)
+                .field("write_watched_indices", Collections.singletonList("test-write-watch-index"))
+                .field("write_ignore_users", Collections.singletonList("test-user-3"))
+                .endObject()
+                .endObject();
+        final String json = Strings.toString(jsonBuilder);
 
         // act
         final AuditConfig auditConfig = objectMapper.readValue(json, AuditConfig.class);
@@ -132,21 +171,39 @@ public class AuditConfigSerializeTest {
         final AuditConfig.Filter audit = new AuditConfig.Filter(true, true, true, true, true, true, ImmutableSet.of("ignore-user-1", "ignore-user-2"), ImmutableSet.of("ignore-request-1"), EnumSet.of(AuditCategory.FAILED_LOGIN, AuditCategory.GRANTED_PRIVILEGES), EnumSet.of(AUTHENTICATED));
         final ComplianceConfig compliance = new ComplianceConfig(true, true, true, true, Collections.singletonMap("test-read-watch-field-1", Collections.emptyList()), Collections.singleton("test-user-1"), true, false,Collections.singletonList("test-write-watch-index"), Collections.singleton("test-user-2"), Settings.EMPTY);
         final AuditConfig auditConfig = new AuditConfig(true, audit, compliance);
+        final XContentBuilder jsonBuilder = XContentFactory.jsonBuilder()
+                .startObject()
+                .field("enabled", true)
+                .startObject("audit")
+                .field("enable_rest", true)
+                .field("disabled_rest_categories", ImmutableList.of("FAILED_LOGIN", "GRANTED_PRIVILEGES"))
+                .field("enable_transport", true)
+                .field("disabled_transport_categories", Collections.singletonList("AUTHENTICATED"))
+                .field("resolve_bulk_requests", true)
+                .field("log_request_body", true)
+                .field("resolve_indices", true)
+                .field("exclude_sensitive_headers", true)
+                .field("ignore_users", ImmutableList.of("ignore-user-1", "ignore-user-2"))
+                .field("ignore_requests",  Collections.singletonList("ignore-request-1"))
+                .endObject()
+                .startObject("compliance")
+                .field("enabled", true)
+                .field("external_config", true)
+                .field("internal_config", true)
+                .field("read_metadata_only", true)
+                .field("read_watched_fields", Collections.singletonMap("test-read-watch-field-1", Collections.emptyList()))
+                .field("read_ignore_users", Collections.singletonList("test-user-1"))
+                .field("write_metadata_only", true)
+                .field("write_log_diffs", false)
+                .field("write_watched_indices", Collections.singletonList("test-write-watch-index"))
+                .field("write_ignore_users", Collections.singletonList("test-user-2"))
+                .endObject()
+                .endObject();
+
         // act
         final String json = objectMapper.writeValueAsString(auditConfig);
         // assert
-        assertEquals("{" +
-                "\"enabled\":true," +
-                "\"audit\":{" +
-                    "\"enable_rest\":true,\"disabled_rest_categories\":[\"FAILED_LOGIN\",\"GRANTED_PRIVILEGES\"]," +
-                    "\"enable_transport\":true,\"disabled_transport_categories\":[\"AUTHENTICATED\"]," +
-                    "\"resolve_bulk_requests\":true,\"log_request_body\":true,\"resolve_indices\":true,\"exclude_sensitive_headers\":true," +
-                    "\"ignore_users\":[\"ignore-user-1\",\"ignore-user-2\"],\"ignore_requests\":[\"ignore-request-1\"]}," +
-                "\"compliance\":{" +
-                    "\"enabled\":true,\"external_config\":true,\"internal_config\":true," +
-                    "\"read_metadata_only\":true,\"read_watched_fields\":{\"test-read-watch-field-1\":[]},\"read_ignore_users\":[\"test-user-1\"]," +
-                    "\"write_metadata_only\":true,\"write_log_diffs\":false," +
-                    "\"write_watched_indices\":[\"test-write-watch-index\"],\"write_ignore_users\":[\"test-user-2\"]}}", json);
+        assertTrue(compareJson(Strings.toString(jsonBuilder), json));
     }
 
     @Test
@@ -156,23 +213,39 @@ public class AuditConfigSerializeTest {
         final AuditConfig.Filter audit = AuditConfig.Filter.from(Collections.emptyMap());
         final ComplianceConfig compliance = ComplianceConfig.from(Collections.emptyMap(), Settings.EMPTY);
         final AuditConfig auditConfig = new AuditConfig(true, audit, compliance);
+        final XContentBuilder jsonBuilder = XContentFactory.jsonBuilder()
+                .startObject()
+                .field("enabled", true)
+                .startObject("audit")
+                .field("enable_rest", true)
+                .field("disabled_rest_categories", ImmutableList.of("GRANTED_PRIVILEGES", "AUTHENTICATED"))
+                .field("enable_transport", true)
+                .field("disabled_transport_categories", ImmutableList.of("GRANTED_PRIVILEGES", "AUTHENTICATED"))
+                .field("resolve_bulk_requests", false)
+                .field("log_request_body", true)
+                .field("resolve_indices", true)
+                .field("exclude_sensitive_headers", true)
+                .field("ignore_users", ImmutableList.of("kibanaserver"))
+                .field("ignore_requests",  Collections.emptyList())
+                .endObject()
+                .startObject("compliance")
+                .field("enabled", true)
+                .field("external_config", false)
+                .field("internal_config", false)
+                .field("read_metadata_only", false)
+                .field("read_watched_fields", Collections.emptyMap())
+                .field("read_ignore_users", Collections.singletonList("kibanaserver"))
+                .field("write_metadata_only", false)
+                .field("write_log_diffs", false)
+                .field("write_watched_indices", Collections.emptyList())
+                .field("write_ignore_users", Collections.singletonList("kibanaserver"))
+                .endObject()
+                .endObject();
 
         // act
         final String json = objectMapper.writeValueAsString(auditConfig);
         // assert
-        assertEquals("{" +
-                "\"enabled\":true," +
-                "\"audit\":{" +
-                    "\"enable_rest\":true,\"disabled_rest_categories\":[\"GRANTED_PRIVILEGES\",\"AUTHENTICATED\"]," +
-                    "\"enable_transport\":true,\"disabled_transport_categories\":[\"GRANTED_PRIVILEGES\",\"AUTHENTICATED\"]," +
-                    "\"resolve_bulk_requests\":false,\"log_request_body\":true,\"resolve_indices\":true,\"exclude_sensitive_headers\":true," +
-                    "\"ignore_users\":[\"kibanaserver\"],\"ignore_requests\":[]}," +
-                "\"compliance\":{" +
-                    "\"enabled\":true," +
-                    "\"external_config\":false,\"internal_config\":false," +
-                    "\"read_metadata_only\":false,\"read_watched_fields\":{},\"read_ignore_users\":[\"kibanaserver\"]," +
-                    "\"write_metadata_only\":false,\"write_log_diffs\":false,\"write_watched_indices\":[],\"write_ignore_users\":[\"kibanaserver\"]}" +
-                "}", json);
+        assertTrue(compareJson(Strings.toString(jsonBuilder), json));
     }
 
     @Test
@@ -213,19 +286,27 @@ public class AuditConfigSerializeTest {
         iv.addValue(Settings.class, settings);
         customObjectMapper.setInjectableValues(iv);
 
-        final String json = "{" +
-                "\"enabled\":true," +
-                "\"audit\":{" +
-                    "\"enable_rest\":true,\"disabled_rest_categories\":null," +
-                    "\"enable_transport\":true,\"disabled_transport_categories\":null," +
-                    "\"resolve_bulk_requests\":true,\"log_request_body\":true,\"resolve_indices\":true,\"exclude_sensitive_headers\":true," +
-                    "\"ignore_users\":null,\"ignore_requests\":null}," +
-                "\"compliance\":{" +
-                "\"enabled\":true," +
-                    "\"internal_config\":true,\"external_config\":true," +
-                    "\"read_metadata_only\":true,\"read_watched_fields\":null,\"read_ignore_users\":null," +
-                    "\"write_metadata_only\":true,\"write_log_diffs\":true,\"write_watched_indices\":null,\"write_ignore_users\":null}" +
-                "}";
+        final XContentBuilder jsonBuilder = XContentFactory.jsonBuilder()
+                .startObject()
+                .field("enabled", true)
+                .startObject("audit")
+                .field("enable_rest", true)
+                .field("enable_transport", true)
+                .field("resolve_bulk_requests", true)
+                .field("log_request_body", true)
+                .field("resolve_indices", true)
+                .field("exclude_sensitive_headers", true)
+                .endObject()
+                .startObject("compliance")
+                .field("enabled", true)
+                .field("external_config", true)
+                .field("internal_config", true)
+                .field("read_metadata_only", true)
+                .field("write_metadata_only", true)
+                .field("write_log_diffs", false)
+                .endObject()
+                .endObject();
+        final String json = Strings.toString(jsonBuilder);
 
         // act
         final AuditConfig auditConfig = customObjectMapper.readValue(json, AuditConfig.class);
@@ -243,5 +324,11 @@ public class AuditConfigSerializeTest {
         assertEquals(WildcardMatcher.NONE, configCompliance.getWatchedWriteIndicesMatcher());
         assertEquals("test-security-index", configCompliance.getOpendistrosecurityIndex());
         assertEquals("test-auditlog-index", configCompliance.getAuditLogIndex());
+    }
+
+    private boolean compareJson(final String json1, final String json2) throws JsonProcessingException {
+        ObjectNode objectNode1 = objectMapper.readValue(json1, ObjectNode.class);
+        ObjectNode objectNode2 = objectMapper.readValue(json2, ObjectNode.class);
+        return objectNode1.equals(objectNode2);
     }
 }
