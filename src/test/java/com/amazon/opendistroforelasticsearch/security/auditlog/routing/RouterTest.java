@@ -103,8 +103,11 @@ public class RouterTest extends AbstractAuditlogiUnitTest{
     private void testMessageDeliveredForCategory(AuditMessageRouter router, AuditMessage msg, AuditCategory categoryToCheck, String ... sinkNames) {
     	Map<AuditCategory, List<AuditLogSink>> sinksForCategory = router.categorySinks;
     	for(AuditCategory category : AuditCategory.values()) {
+			List<AuditLogSink> sinks = sinksForCategory.get(category);
+			if (sinks == null) {
+				continue;
+			}
     		if (category.equals(categoryToCheck)) {
-    			List<AuditLogSink> sinks = sinksForCategory.get(category);
     			// each sink must contain our message
     			for(AuditLogSink sink : sinks) {
     				LoggingSink logSink = (LoggingSink)sink;
@@ -115,7 +118,6 @@ public class RouterTest extends AbstractAuditlogiUnitTest{
     			}
     		} else {
     			// make sure sinks are empty for all other categories, exclude default
-    			List<AuditLogSink> sinks = sinksForCategory.get(category);
     			for(AuditLogSink sink : sinks) {
     				// default is configured for multiple categories, skip
     				if (sink.getName().equals("default")) {
