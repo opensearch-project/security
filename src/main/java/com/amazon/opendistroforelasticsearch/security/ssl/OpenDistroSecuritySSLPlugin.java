@@ -30,6 +30,8 @@
 
 package com.amazon.opendistroforelasticsearch.security.ssl;
 
+import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
+import com.fasterxml.jackson.databind.InjectableValues;
 import io.netty.handler.ssl.OpenSsl;
 import io.netty.util.internal.PlatformDependent;
 
@@ -188,6 +190,10 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin,
         });
 
         this.settings = settings;
+        InjectableValues.Std injectableValues = new InjectableValues.Std();
+        injectableValues.addValue(Settings.class, settings);
+        DefaultObjectMapper.inject(injectableValues);
+
         client = !"node".equals(this.settings.get(OpenDistroSecuritySSLPlugin.CLIENT_TYPE));
         
         httpSSLEnabled = settings.getAsBoolean(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLED,
