@@ -21,6 +21,7 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Map;
 
+import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
 import org.elasticsearch.SpecialPermission;
 import org.elasticsearch.client.Client;
@@ -40,31 +41,43 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportRequest;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.routing.AuditMessageRouter;
+import org.greenrobot.eventbus.Subscribe;
 
 public final class AuditLogImpl extends AbstractAuditLog {
 
 	private final AuditMessageRouter messageRouter;
-	private final boolean enabled;
+	private final Settings settings;
+	private final boolean dlsFlsAvailable;
+	private final boolean messageRouterEnabled;
+	private volatile boolean enabled;
 
-	AuditLogImpl(final Settings settings, final Path configPath, Client clientProvider, ThreadPool threadPool,
-				 final IndexNameExpressionResolver resolver, final ClusterService clusterService) {
-		this(settings, configPath, clientProvider, threadPool, resolver, clusterService, false);
+	public AuditLogImpl(final Settings settings,
+			final Path configPath,
+			final Client clientProvider,
+			final ThreadPool threadPool,
+			final IndexNameExpressionResolver resolver,
+			final ClusterService clusterService) {
+		this(settings, configPath, clientProvider, threadPool, resolver, clusterService, null, true);
 	}
 
-	public AuditLogImpl(final Settings settings, final Path configPath, Client clientProvider, ThreadPool threadPool,
-						final IndexNameExpressionResolver resolver, final ClusterService clusterService, final boolean dlsFlsAvailable) {
-		super(settings, threadPool, resolver, clusterService, dlsFlsAvailable);
-
-		this.messageRouter = new AuditMessageRouter(settings, clientProvider, threadPool, configPath);
-		this.enabled = messageRouter.isEnabled();
-		if (enabled) {
-			ComplianceConfig complianceConfig = getComplianceConfig();
-			if (complianceConfig != null && complianceConfig.isEnabled()) {
-				messageRouter.enableRoutes(settings);
-			}
+	public AuditLogImpl(final Settings settings,
+						final Path configPath,
+						final Client clientProvider,
+						final ThreadPool threadPool,
+						final IndexNameExpressionResolver resolver,
+						final ClusterService clusterService,
+						final Environment environment,
+						final boolean dlsFlsAvailable) {
+		super(settings, threadPool, resolver, clusterService, environment);
+		this.settings = settings;
+		this.dlsFlsAvailable = dlsFlsAvailable;
+		if (!dlsFlsAvailable) {
+			log.debug("Changes to Compliance config will ignored because DLS-FLS is not available.");
 		}
+		this.messageRouter = new AuditMessageRouter(settings, clientProvider, threadPool, configPath);
+		this.messageRouterEnabled = this.messageRouter.isEnabled();
 
-		log.info("Message routing enabled: {}", this.enabled);
+		log.info("Message routing enabled: {}", this.messageRouterEnabled);
 
 		final SecurityManager sm = System.getSecurityManager();
 
@@ -92,6 +105,22 @@ public final class AuditLogImpl extends AbstractAuditLog {
 			}
 		});
 
+	}
+
+	@Subscribe
+	public void setConfig(final AuditConfig auditConfig) {
+		enabled = auditConfig.isEnabled() && messageRouterEnabled;
+		onAuditConfigFilterChanged(auditConfig.getFilter());
+		if (dlsFlsAvailable) {
+			onComplianceConfigChanged(auditConfig.getCompliance());
+		}
+	}
+
+	@Override
+	protected void enableRoutes() {
+		if (messageRouterEnabled) {
+			messageRouter.enableRoutes(settings);
+		}
 	}
 
 	@Override
@@ -212,9 +241,9 @@ public final class AuditLogImpl extends AbstractAuditLog {
 	}
 
 	@Override
-	public void logExternalConfig(Settings settings, Environment environment) {
+	protected void logExternalConfig() {
 		if (enabled) {
-			super.logExternalConfig(settings, environment);
+			super.logExternalConfig();
 		}
 	}
 

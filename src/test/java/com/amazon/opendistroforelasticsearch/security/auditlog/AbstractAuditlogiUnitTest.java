@@ -18,6 +18,7 @@ package com.amazon.opendistroforelasticsearch.security.auditlog;
 import java.util.Collection;
 
 import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
+import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import org.apache.http.Header;
 import org.elasticsearch.common.settings.Settings;
 
@@ -40,9 +41,19 @@ public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
     }
 
     protected final void setup(Settings additionalSettings) throws Exception {
-        final Settings nodeSettings = defaultNodeSettings(additionalSettings);
+        final Settings.Builder auditSettingsBuilder = Settings.builder();
+        final Settings.Builder additionalSettingsBuilder = Settings.builder().put(additionalSettings);
+        AuditConfig.DEPRECATED_KEYS.forEach(key -> {
+            if (additionalSettingsBuilder.get(key) != null) {
+                auditSettingsBuilder.put(key, additionalSettings.get(key));
+                additionalSettingsBuilder.remove(key);
+            }
+        });
+
+        final Settings nodeSettings = defaultNodeSettings(additionalSettingsBuilder.build());
         setup(Settings.EMPTY, new DynamicSecurityConfig(), nodeSettings, init);
         rh = restHelper();
+        updateAuditConfig(auditSettingsBuilder.build());
     }
 
     protected Settings defaultNodeSettings(Settings additionalSettings) {
@@ -105,9 +116,22 @@ public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
 
     protected AuditMessageRouter createMessageRouterComplianceEnabled(Settings settings) {
         AuditMessageRouter router = new AuditMessageRouter(settings, null, null, null);
-        if (router.isEnabled()) {
-            router.enableRoutes(settings);
-        }
+        router.enableRoutes(settings);
         return router;
+    }
+
+    protected void updateAuditConfig(final Settings settings) throws Exception {
+        updateAuditConfig(AuditTestUtils.createAuditPayload(settings));
+    }
+
+    protected void updateAuditConfig(final String payload) throws Exception {
+        final boolean sendAdminCertificate = rh.sendAdminCertificate;
+        final String keystore = rh.keystore;
+        rh.sendAdminCertificate = true;
+        rh.keystore = "auditlog/kirk-keystore.jks";
+        RestHelper.HttpResponse response = rh.executePutRequest("_opendistro/_security/api/audit/config", payload, new Header[0]);
+        System.out.println(response);
+        rh.sendAdminCertificate = sendAdminCertificate;
+        rh.keystore = keystore;
     }
 }

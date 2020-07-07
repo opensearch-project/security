@@ -18,12 +18,16 @@ package com.amazon.opendistroforelasticsearch.security.auditlog.routing;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.config.ThreadPoolConfig;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Maps;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.Client;
@@ -41,138 +45,147 @@ import static com.google.common.base.Preconditions.checkState;
 
 public class AuditMessageRouter {
 
-	protected final Logger log = LogManager.getLogger(this.getClass());
-	final AuditLogSink defaultSink;
-	final Map<AuditCategory, List<AuditLogSink>> categorySinks = new EnumMap<>(AuditCategory.class);
-	final SinkProvider sinkProvider;
-	final AsyncStoragePool storagePool;
-	private boolean hasMultipleEndpoints;
-	private boolean areRoutesEnabled;
+    protected final Logger log = LogManager.getLogger(this.getClass());
+    final AuditLogSink defaultSink;
+    volatile Map<AuditCategory, List<AuditLogSink>> categorySinks;
+    final SinkProvider sinkProvider;
+    final AsyncStoragePool storagePool;
 
-	public AuditMessageRouter(final Settings settings, final Client clientProvider, ThreadPool threadPool, final Path configPath) {
-		this.sinkProvider = new SinkProvider(settings, clientProvider, threadPool, configPath);
-		this.storagePool = new AsyncStoragePool(ThreadPoolConfig.getConfig(settings));
+    public AuditMessageRouter(final Settings settings, final Client clientProvider, ThreadPool threadPool, final Path configPath) {
+        this(
+            new SinkProvider(settings, clientProvider, threadPool, configPath),
+            new AsyncStoragePool(ThreadPoolConfig.getConfig(settings))
+        );
+    }
 
-		// get the default sink
-		this.defaultSink = sinkProvider.getDefaultSink();
-		if (defaultSink == null) {
-			log.warn("No default storage available, audit log may not work properly. Please check configuration.");
-		}
-	}
+    @VisibleForTesting
+    public AuditMessageRouter(SinkProvider sinkProvider, AsyncStoragePool storagePool) {
+        this.sinkProvider = sinkProvider;
+        this.storagePool = storagePool;
 
-	public boolean isEnabled() {
-		return defaultSink != null;
-	}
+        // get the default sink
+        this.defaultSink = sinkProvider.getDefaultSink();
+        if (defaultSink == null) {
+            log.warn("No default storage available, audit log may not work properly. Please check configuration.");
+        }
+    }
 
-	public final void route(final AuditMessage msg) {
-		if (!isEnabled()) {
-			// should not happen since we check in AuditLogImpl, so this is just a safeguard
-			log.error("#route(AuditMessage) called but message router is disabled");
-			return;
-		}
-		// if we do not run the compliance features or no extended configuration is present, only log to default.
-		if (!areRoutesEnabled || !hasMultipleEndpoints) {
-			store(defaultSink, msg);
-		} else {
-			for (AuditLogSink sink : categorySinks.get(msg.getCategory())) {
-				store(sink, msg);
-			}
-		}
-	}
+    public boolean isEnabled() {
+        return defaultSink != null;
+    }
 
-	public final void close() {
-		// shutdown storage pool
-		storagePool.close();
-		// close default
-		sinkProvider.close();
-	}
+    public final void route(final AuditMessage msg) {
+        if (!isEnabled()) {
+            // should not happen since we check in AuditLogImpl, so this is just a safeguard
+            log.error("#route(AuditMessage) called but message router is disabled");
+            return;
+        }
+        checkState(categorySinks != null, "categorySinks is null, prior to route() call enableRoutes().");
+        // if we do not run the compliance features or no extended configuration is present, only log to default.
+        List<AuditLogSink> auditLogSinks = categorySinks.get(msg.getCategory());
+        if (auditLogSinks == null) {
+            store(defaultSink, msg);
+        } else {
+            auditLogSinks.stream().forEach(sink -> store(sink, msg));
+        }
+    }
 
-	protected final void close(List<AuditLogSink> sinks) {
-		for (AuditLogSink sink : sinks) {
-			try {
-				log.info("Closing {}", sink.getClass().getSimpleName());
-				sink.close();
-			} catch (Exception ex) {
-				log.info("Could not close delegate '{}' due to '{}'", sink.getClass().getSimpleName(), ex.getMessage());
-			}
-		}
-	}
+    public final void close() {
+        // shutdown storage pool
+        storagePool.close();
+        // close default
+        sinkProvider.close();
+    }
 
-	public final boolean enableRoutes(Settings settings) {
-		checkState(isEnabled(), "AuditMessageRouter is disabled");
-		areRoutesEnabled = true;
-		Map<String, Object> routesConfiguration = Utils.convertJsonToxToStructuredMap(settings.getAsSettings(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_ROUTES));
-		if (!routesConfiguration.isEmpty()) {
-			hasMultipleEndpoints = true;
-			// first set up all configured routes. We do it this way so category names are case insensitive
-			// and we can warn if a non-existing category has been detected.
-			for (Entry<String, Object> routesEntry : routesConfiguration.entrySet()) {
-				log.trace("Setting up routes for endpoint {}, configuraton is {}", routesEntry.getKey(), routesEntry.getValue());
-				String categoryName = routesEntry.getKey();
-				try {
-					AuditCategory category = AuditCategory.valueOf(categoryName.toUpperCase());
-					// warn for duplicate definitions
-					if (categorySinks.get(category) != null) {
-						log.warn("Duplicate routing configuration detected for category {}, skipping.", category);
-						continue;
-					}
-					List<AuditLogSink> sinksForCategory = createSinksForCategory(category, settings.getAsSettings(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_ROUTES + "." + categoryName));
-					if (!sinksForCategory.isEmpty()) {
-						categorySinks.put(category, sinksForCategory);
-						if(log.isTraceEnabled()) {
-							log.debug("Created {} endpoints for category {}", sinksForCategory.size(), category );
-						}
-					} else {
-						log.debug("No valid endpoints found for category {} adding only default.", category );
+    protected final void close(List<AuditLogSink> sinks) {
+        for (AuditLogSink sink : sinks) {
+            try {
+                log.info("Closing {}", sink.getClass().getSimpleName());
+                sink.close();
+            } catch (Exception ex) {
+                log.info("Could not close delegate '{}' due to '{}'", sink.getClass().getSimpleName(), ex.getMessage());
+            }
+        }
+    }
 
-					}
-				} catch (Exception e ) {
-					log.error("Invalid category '{}' found in routing configuration. Must be one of: {}", categoryName, AuditCategory.values());
-				}
-			}
-			// for all non-configured categories we automatically set up the default endpoint
-			for(AuditCategory category : AuditCategory.values()) {
-				if (!categorySinks.containsKey(category)) {
-					if (log.isDebugEnabled()) {
-						log.debug("No endpoint configured for category {}, adding default endpoint", category);
-					}
-					categorySinks.put(category, Collections.singletonList(defaultSink));
-				}
-			}
-		}
-		return hasMultipleEndpoints;
-	}
+    public final void enableRoutes(Settings settings) {
+        checkState(isEnabled(), "AuditMessageRouter is disabled");
+        if (categorySinks != null) {
+            return;
+        }
+        Map<String, Object> routesConfiguration = Utils.convertJsonToxToStructuredMap(settings.getAsSettings(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_ROUTES));
+        EnumSet<AuditCategory> presentAuditCategory = EnumSet.noneOf(AuditCategory.class);
+        categorySinks = routesConfiguration.entrySet().stream()
+            .peek(entry -> log.trace("Setting up routes for endpoint {}, configuration is {}", entry.getKey(), entry.getValue()))
+            .map(entry -> {
+                String categoryName = entry.getKey();
+                try {
+                    // first set up all configured routes. We do it this way so category names are case insensitive
+                    // and we can warn if a non-existing category has been detected.
+                    AuditCategory auditCategory = AuditCategory.valueOf(categoryName.toUpperCase());
+                    return Maps.immutableEntry(auditCategory, createSinksForCategory(auditCategory, (Map<String, List<String>>)entry.getValue()));
+                } catch (IllegalArgumentException e) {
+                    log.error("Invalid category '{}' found in routing configuration. Must be one of: {}", categoryName, AuditCategory.values());
+                    return null;
+                }
+            })
+            .filter(entry -> {
+                if (entry != null) {
+                    AuditCategory category = entry.getKey();
+                    List<AuditLogSink> auditLogSinks = entry.getValue();
+                    if (auditLogSinks.isEmpty()) {
+                        log.debug("No valid endpoints found for category {}.", category);
+                        return false;
+                    }
+                    if (presentAuditCategory.add(category)) {
+                        log.debug("Created {} endpoints for category {}", auditLogSinks.size(), category);
+                        return true;
+                    }
+                    log.warn("Duplicate routing configuration {} detected for category {}, skipping.", auditLogSinks, category);
+                }
+                return false;
+            })
+            .collect(
+                Maps.toImmutableEnumMap(
+                    Map.Entry::getKey,
+                    Map.Entry::getValue
+                )
+            );
 
-	private final List<AuditLogSink> createSinksForCategory(AuditCategory category, Settings configuration) {
-		List<AuditLogSink> sinksForCategory = new LinkedList<>();
-		List<String> sinks = configuration.getAsList("endpoints");
-		if (sinks == null || sinks.isEmpty()) {
-			log.error("No endpoints configured for category {}", category);
-			return sinksForCategory;
-		}
-		for (String sinkName : sinks) {
-			AuditLogSink sink = sinkProvider.getSink(sinkName);
-			if (sink != null && !sinksForCategory.contains(sink)) {
-				sinksForCategory.add(sink);
-			} else {
-				log.error("Configured endpoint '{}' not available", sinkName);
-			}
-		}
-		return sinksForCategory;
-	}
+        // for all non-configured categories we automatically set up the default endpoint
+        log.warn("No endpoint configured for categories {}, using default endpoint", EnumSet.complementOf(presentAuditCategory));
+    }
 
-	private final void store(AuditLogSink sink, AuditMessage msg) {
-		if (sink.isHandlingBackpressure()) {
-			sink.store(msg);
-			if (log.isTraceEnabled()) {
-				log.trace("stored on sink {} synchronously", sink.getClass().getSimpleName());
-			}
-		} else {
-			storagePool.submit(msg, sink);
-			if (log.isTraceEnabled()) {
-				log.trace("will store on sink {} asynchronously", sink.getClass().getSimpleName());
-			}
-		}
-	}
+    private final List<AuditLogSink> createSinksForCategory(AuditCategory category, Map<String, List<String>> configuration) {
+        List<AuditLogSink> sinksForCategory = new LinkedList<>();
+        List<String> sinks = configuration.get("endpoints");
+        if (sinks != null && !sinks.isEmpty()) {
+            for (String sinkName : sinks) {
+                AuditLogSink sink = sinkProvider.getSink(sinkName);
+                if (sink != null && !sinksForCategory.contains(sink)) {
+                    sinksForCategory.add(sink);
+                } else {
+                    log.error("Configured endpoint '{}' not available", sinkName);
+                }
+            }
+        }
+        if (sinksForCategory.isEmpty()) {
+            log.error("No endpoints configured for category {}", category);
+        }
+        return sinksForCategory;
+    }
 
+    private final void store(AuditLogSink sink, AuditMessage msg) {
+        if (sink.isHandlingBackpressure()) {
+            sink.store(msg);
+            if (log.isTraceEnabled()) {
+                log.trace("stored on sink {} synchronously", sink.getClass().getSimpleName());
+            }
+        } else {
+            storagePool.submit(msg, sink);
+            if (log.isTraceEnabled()) {
+                log.trace("will store on sink {} asynchronously", sink.getClass().getSimpleName());
+            }
+        }
+    }
 }

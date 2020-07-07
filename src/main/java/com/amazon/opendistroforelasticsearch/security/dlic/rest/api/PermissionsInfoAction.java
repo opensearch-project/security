@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableList;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -53,15 +54,17 @@ public class PermissionsInfoAction extends BaseRestHandler {
 	private final RestApiPrivilegesEvaluator restApiPrivilegesEvaluator;
 	private final ThreadPool threadPool;
 	private final PrivilegesEvaluator privilegesEvaluator;
+	private final ConfigurationRepository configurationRepository;
 
 	protected PermissionsInfoAction(final Settings settings, final Path configPath, final RestController controller, final Client client,
-			final AdminDNs adminDNs, final ConfigurationRepository cl, final ClusterService cs,
+			final AdminDNs adminDNs, final ConfigurationRepository configurationRepository, final ClusterService cs,
 			final PrincipalExtractor principalExtractor, final PrivilegesEvaluator privilegesEvaluator, ThreadPool threadPool, AuditLog auditLog) {
 		super(settings);
 		controller.registerHandler(Method.GET, "/_opendistro/_security/api/permissionsinfo", this);
 		this.threadPool = threadPool;
 		this.privilegesEvaluator = privilegesEvaluator;
 		this.restApiPrivilegesEvaluator = new RestApiPrivilegesEvaluator(settings, adminDNs, privilegesEvaluator, principalExtractor, configPath, threadPool);
+		this.configurationRepository = configurationRepository;
 	}
 
 	@Override
@@ -96,6 +99,9 @@ public class PermissionsInfoAction extends BaseRestHandler {
             		Set<String> userRoles = privilegesEvaluator.mapRoles(user, remoteAddress);
             		Boolean hasApiAccess = restApiPrivilegesEvaluator.currentUserHasRestApiAccess(userRoles);
             		Map<Endpoint, List<Method>> disabledEndpoints = restApiPrivilegesEvaluator.getDisabledEndpointsForCurrentUser(user.getName(), userRoles);
+            		if (!configurationRepository.isAuditHotReloadingEnabled()) {
+            		   disabledEndpoints.put(Endpoint.AUDIT, ImmutableList.copyOf(Method.values()));
+            		}
 
                     builder.startObject();
                     builder.field("user", user==null?null:user.toString());
