@@ -17,6 +17,7 @@ package com.amazon.opendistroforelasticsearch.security.auditlog.impl;
 
 import java.lang.Thread.UncaughtExceptionHandler;
 
+import com.amazon.opendistroforelasticsearch.security.auditlog.AuditTestUtils;
 import org.apache.http.HttpStatus;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
@@ -49,14 +50,17 @@ public class TracingTests extends SingleClusterTest {
 
         final Settings settings = Settings.builder()
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_TYPE_DEFAULT, "debug")
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, "true")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS, "*")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, "*")
-                .put("opendistro_security.audit.resolve_bulk_requests", true)
                 .put("opendistro_security.audit.config.log4j.logger_name", "opendistro_security_action_trace")
                 .put("opendistro_security.audit.config.log4j.level", "TRACE")
                 .build();
 
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings, true, ClusterConfiguration.DEFAULT);
+
+        RestHelper rh = nonSslRestHelper();
+        rh.executePutRequest("_opendistro/_security/api/audit/config", AuditTestUtils.createAuditPayload(settings), encodeBasicHeader("admin", "admin"));
 
         try (TransportClient tc = getInternalTransportClient(this.clusterInfo, Settings.EMPTY)) {
 
@@ -67,9 +71,6 @@ public class TracingTests extends SingleClusterTest {
         }
 
 
-
-
-        RestHelper rh = nonSslRestHelper();
         System.out.println("############ check shards");
         System.out.println(rh.executeGetRequest("_cat/shards?v", encodeBasicHeader("admin", "admin")));
 
@@ -337,6 +338,9 @@ public class TracingTests extends SingleClusterTest {
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_TYPE_DEFAULT, "debug").build();
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings, true, ClusterConfiguration.DEFAULT);
 
+        RestHelper rh = nonSslRestHelper();
+        rh.executePutRequest("_opendistro/_security/api/audit/config", AuditTestUtils.createAuditPayload(settings), encodeBasicHeader("admin", "admin"));
+
         try (TransportClient tc = getInternalTransportClient(this.clusterInfo, Settings.EMPTY)) {
             tc.admin().indices().create(new CreateIndexRequest("myindex1")
             .mapping("mytype1", FileHelper.loadFile("mapping1.json"), XContentType.JSON)).actionGet();
@@ -348,7 +352,6 @@ public class TracingTests extends SingleClusterTest {
             .mapping("mytype4", FileHelper.loadFile("mapping4.json"), XContentType.JSON)).actionGet();
         }
 
-        RestHelper rh = nonSslRestHelper();
         System.out.println("############ write into mapping 1");
         String data1 = FileHelper.loadFile("auditlog/data1.json");
         String data2 = FileHelper.loadFile("auditlog/data1mod.json");
@@ -382,9 +385,14 @@ public class TracingTests extends SingleClusterTest {
     @Test
     public void testImmutableIndex() throws Exception {
         Settings settings = Settings.builder()
+                .put(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_ROLES_ENABLED, "opendistro_security_all_access")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_IMMUTABLE_INDICES, "myindex1")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_TYPE_DEFAULT, "debug").build();
+
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings, true, ClusterConfiguration.DEFAULT);
+
+        RestHelper rh = nonSslRestHelper();
+        rh.executePutRequest("_opendistro/_security/api/audit/config", AuditTestUtils.createAuditPayload(Settings.EMPTY), encodeBasicHeader("admin", "admin"));
 
         try (TransportClient tc = getInternalTransportClient(this.clusterInfo, Settings.EMPTY)) {
             tc.admin().indices().create(new CreateIndexRequest("myindex1")
@@ -393,7 +401,6 @@ public class TracingTests extends SingleClusterTest {
             .mapping("mytype2", FileHelper.loadFile("mapping1.json"), XContentType.JSON)).actionGet();
         }
 
-        RestHelper rh = nonSslRestHelper();
         System.out.println("############ immutable 1");
         String data1 = FileHelper.loadFile("auditlog/data1.json");
         String data2 = FileHelper.loadFile("auditlog/data1mod.json");
