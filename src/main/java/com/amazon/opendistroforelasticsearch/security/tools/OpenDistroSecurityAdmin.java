@@ -714,6 +714,7 @@ public class OpenDistroSecurityAdmin {
                 success = retrieveFile(tc, cd+"roles_mapping_"+date+".yml", index, "rolesmapping", legacy) && success;
                 success = retrieveFile(tc, cd+"internal_users_"+date+".yml", index, "internalusers", legacy) && success;
                 success = retrieveFile(tc, cd+"action_groups_"+date+".yml", index, "actiongroups", legacy) && success;
+                success = retrieveFile(tc, cd+"audit_"+date+".yml", index, "audit", legacy) && success;
                 final boolean populateFileIfEmpty = true;
                 success = retrieveFile(tc, cd+"nodes_dn_"+date+".yml", index, "nodesdn", legacy, populateFileIfEmpty) && success;
                 return (success?0:-1);
@@ -748,6 +749,9 @@ public class OpenDistroSecurityAdmin {
             success = uploadFile(tc, cd+"roles_mapping.yml", index, "rolesmapping", legacy, resolveEnvVars) && success;
             success = uploadFile(tc, cd+"internal_users.yml", index, "internalusers", legacy, resolveEnvVars) && success;
             success = uploadFile(tc, cd+"action_groups.yml", index, "actiongroups", legacy, resolveEnvVars) && success;
+            if (new File(cd+"audit.yml").exists()) {
+                success = uploadFile(tc, cd+"audit.yml", index, "audit", legacy, resolveEnvVars) && success;
+            }
             final boolean populateEmptyIfMissing = true;
             success = uploadFile(tc, cd+"nodes_dn.yml", index, "nodesdn", legacy, resolveEnvVars, populateEmptyIfMissing) && success;
 
@@ -758,7 +762,7 @@ public class OpenDistroSecurityAdmin {
             
             ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(ConfigConstants.ALL_CONFIG_NAMES.toArray(new String[0]))).actionGet();
             
-            success = checkConfigUpdateResponse(cur, nodesInfo, 6) && success;
+            success = checkConfigUpdateResponse(cur, nodesInfo, 7) && success;
             
             System.out.println("Done with "+(success?"success":"failures"));
             return (success?0:-1);
@@ -815,7 +819,7 @@ public class OpenDistroSecurityAdmin {
             type = _id;
             id = "0";
         }
-        
+
         System.out.println("Will update '"+type+"/" + id + "' with " + filepath+" "+(legacy?"(legacy mode)":""));
 
         try {

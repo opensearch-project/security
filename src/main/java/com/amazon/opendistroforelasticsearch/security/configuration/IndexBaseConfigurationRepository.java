@@ -39,6 +39,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -47,6 +48,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import com.google.common.collect.ImmutableMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -148,6 +150,12 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                                                 ConfigHelper.uploadFile(client, cd+"nodes_dn.yml", opendistrosecurityIndex, "nodesdn", populateEmptyIfFileMissing);
                                                 LOGGER.info("Default config applied");
                                             }
+
+                                            // audit.yml is not packaged by default
+                                            final String auditConfigPath = cd + "audit.yml";
+                                            if (new File(auditConfigPath).exists()) {
+                                                ConfigHelper.uploadFile(client, auditConfigPath, opendistrosecurityIndex, "audit");
+                                            }
                                         }
                                     } else {
                                         LOGGER.error("{} does not exist", confFile.getAbsolutePath());
@@ -196,6 +204,21 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                                         break;
                                     }
                                 }
+                            }
+
+                            final Set<String> deprecatedAuditKeysInSettings = AuditConfig.getDeprecatedKeys(settings);
+                            if (!deprecatedAuditKeysInSettings.isEmpty()) {
+                                LOGGER.warn("Following keys {} are deprecated in elasticsearch settings. They will be removed in plugin v2.0.0.0", deprecatedAuditKeysInSettings);
+                            }
+                            final boolean isAuditConfigDocPresentInIndex = cl.isAuditConfigDocPresentInIndex();
+                            if (isAuditConfigDocPresentInIndex) {
+                                if (!deprecatedAuditKeysInSettings.isEmpty()) {
+                                    LOGGER.warn("Audit configuration settings found in both index and elasticsearch settings (deprecated)");
+                                }
+                                LOGGER.info("Hot-reloading of audit configuration is enabled");
+                            } else {
+                                LOGGER.info("Hot-reloading of audit configuration is disabled. Using configuration with defaults from elasticsearch settings.  Populate the configuration in index using audit.yml or securityadmin to enable it.");
+                                auditLog.setConfig(AuditConfig.from(settings));
                             }
 
                             LOGGER.info("Node '{}' initialized", clusterService.localNode().getName());
@@ -250,6 +273,10 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
             LOGGER.info("Index {} already exists", opendistrosecurityIndex);
             return false;
         }
+    }
+
+    public boolean isAuditHotReloadingEnabled() {
+        return cl.isAuditConfigDocPresentInIndex();
     }
 
     public static ConfigurationRepository create(Settings settings, final Path configPath, final ThreadPool threadPool, Client client,  ClusterService clusterService, AuditLog auditLog) {
@@ -375,7 +402,8 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
             throw new ElasticsearchException(e);
         }
 
-        if (logComplianceEvent && auditLog.getComplianceConfig().isEnabled()) {
+        final ComplianceConfig complianceConfig = auditLog.getComplianceConfig();
+        if (logComplianceEvent && complianceConfig != null && complianceConfig.isEnabled()) {
             String configurationType = configTypes.iterator().next();
             Map<String, String> fields = new HashMap<String, String>();
             fields.put(configurationType, Strings.toString(retVal.get(configurationType).v2()));

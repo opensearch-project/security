@@ -49,6 +49,7 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestHandler;
@@ -148,15 +149,14 @@ public class ReflectionHelper {
         }
     }
 
-    public static AuditLog instantiateAuditLog(final Settings settings, final Path configPath, final Client localClient, final ThreadPool threadPool,
-            final IndexNameExpressionResolver resolver, final ClusterService clusterService, final boolean dlsFlsAvailable) {
+    public static AuditLog instantiateAuditLog(final Settings settings, final Path configPath, final Client localClient, final ThreadPool threadPool, final IndexNameExpressionResolver resolver, final ClusterService clusterService, final boolean dlsFlsAvailable, final Environment environment) {
 
         if (advancedModulesDisabled()) {
             return new NullAuditLog();
         }
 
         try {
-            final AuditLog impl = new AuditLogImpl(settings, configPath, localClient, threadPool, resolver, clusterService, dlsFlsAvailable);
+            final AuditLog impl = new AuditLogImpl(settings, configPath, localClient, threadPool, resolver, clusterService, environment, dlsFlsAvailable);
             addLoadedModule(AuditLogImpl.class);
             return impl;
         } catch (final Throwable e) {

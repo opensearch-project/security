@@ -2,12 +2,16 @@ package com.amazon.opendistroforelasticsearch.security.auditlog.config;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
 import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
+import com.amazon.opendistroforelasticsearch.security.dlic.rest.support.Utils;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.Settings;
@@ -17,6 +21,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper.getOrDefault;
 
@@ -87,17 +92,33 @@ public class AuditConfig {
     }
 
     @VisibleForTesting
-    AuditConfig(
+    public AuditConfig(
             final boolean auditLogEnabled,
             final Filter filter,
-            ComplianceConfig compliance) {
+            final ComplianceConfig compliance) {
         this.auditLogEnabled = auditLogEnabled;
         this.filter = filter != null ? filter : Filter.DEFAULT;
         this.compliance = compliance != null ? compliance : ComplianceConfig.DEFAULT;
     }
 
+    /**
+     * Create audit configuration from elasticsearch.yml settings
+     * @param settings settings
+     * @return AuditConfig
+     */
     public static AuditConfig from(final Settings settings) {
         return new AuditConfig(true, Filter.from(settings), ComplianceConfig.from(settings));
+    }
+
+    /**
+     * Create audit configuration from config json stored as settings like index doc storage for configuration.
+     * @return
+     */
+    public static AuditConfig fromConfig(final Settings configuration, final Settings elasticsearchSettings) {
+        final boolean enabled = configuration.getAsBoolean("enabled", false);
+        final Filter filter = Filter.fromConfig(configuration.getAsSettings("audit"));
+        final ComplianceConfig compliance = ComplianceConfig.fromConfig(configuration.getAsSettings("compliance"), elasticsearchSettings);
+        return new AuditConfig(enabled, filter, compliance);
     }
 
     /**
@@ -105,7 +126,12 @@ public class AuditConfig {
      * Audit logger will use these settings to determine what audit logs are to be generated.
      */
     public static class Filter {
-        private static final Filter DEFAULT = Filter.from(Settings.EMPTY);
+        @VisibleForTesting
+        public static final Filter DEFAULT = Filter.from(Settings.EMPTY);
+        private static Set<String> KEYS = ImmutableSet.of(
+                "enable_rest", "disabled_rest_categories", "enable_transport", "disabled_transport_categories",
+                "resolve_bulk_requests", "log_request_body", "resolve_indices", "exclude_sensitive_headers",
+                "ignore_users", "ignore_requests");
 
         private final boolean isRestApiAuditEnabled;
         private final boolean isTransportApiAuditEnabled;
@@ -149,7 +175,11 @@ public class AuditConfig {
 
         @JsonCreator
         @VisibleForTesting
-        static Filter from(Map<String, Object> properties) {
+        public static Filter from(Map<String, Object> properties) {
+            if (!KEYS.containsAll(properties.keySet())) {
+                throw new IllegalArgumentException("Invalid keys present in the input data for audit filter config");
+            }
+
             final boolean isRestApiAuditEnabled = getOrDefault(properties,"enable_rest", true);
             final boolean isTransportAuditEnabled = getOrDefault(properties,"enable_transport", true);
             final boolean resolveBulkRequests = getOrDefault(properties, "resolve_bulk_requests", false);
@@ -210,6 +240,52 @@ public class AuditConfig {
                     ignoreAuditRequests,
                     disabledRestCategories,
                     disabledTransportCategories);
+        }
+
+        public static Filter fromConfig(final Settings configuration) {
+            if (!KEYS.containsAll(configuration.names())) {
+                throw new IllegalArgumentException("Invalid keys present in the input data for audit filter config");
+            }
+
+            final boolean isRestApiAuditEnabled = configuration.getAsBoolean("enable_rest", true);
+            final boolean isTransportAuditEnabled = configuration.getAsBoolean("enable_transport", true);
+            final boolean resolveBulkRequests = configuration.getAsBoolean("resolve_bulk_requests", false);
+            final boolean logRequestBody = configuration.getAsBoolean("log_request_body", true);
+            final boolean resolveIndices = configuration.getAsBoolean("resolve_indices", true);
+            final boolean excludeSensitiveHeaders = configuration.getAsBoolean("exclude_sensitive_headers", true);
+            final EnumSet<AuditCategory> disabledRestCategories = AuditCategory.parse(configuration.getAsList("disabled_rest_categories", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT));
+            final EnumSet<AuditCategory> disabledTransportCategories = AuditCategory.parse(configuration.getAsList("disabled_transport_categories", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT));
+            final Set<String> ignoredAuditUsers = ImmutableSet.copyOf(configuration.getAsList("ignore_users", DEFAULT_IGNORED_USERS));
+            final Set<String> ignoreAuditRequests = ImmutableSet.copyOf(configuration.getAsList("ignore_requests", Collections.emptyList()));
+
+            return new Filter(
+                    isRestApiAuditEnabled,
+                    isTransportAuditEnabled,
+                    resolveBulkRequests,
+                    logRequestBody,
+                    resolveIndices,
+                    excludeSensitiveHeaders,
+                    ignoredAuditUsers,
+                    ignoreAuditRequests,
+                    disabledRestCategories,
+                    disabledTransportCategories);
+        }
+
+        @JsonIgnore
+        public Settings getAsSettings() {
+            return Settings.builder()
+                    .put("enable_rest", isRestApiAuditEnabled)
+                    .put("enable_transport", isTransportApiAuditEnabled)
+                    .put("resolve_bulk_requests", resolveBulkRequests)
+                    .put("log_request_body", logRequestBody)
+                    .put("resolve_indices", resolveIndices)
+                    .put("exclude_sensitive_headers", excludeSensitiveHeaders)
+                    .putList("disabled_rest_categories", disabledRestCategories.stream().map(Enum::toString).collect(ImmutableList.toImmutableList()))
+                    .putList("disabled_transport_categories", disabledTransportCategories.stream().map(Enum::toString).collect(ImmutableList.toImmutableList()))
+                    .putList("ignore_users", ImmutableList.copyOf(ignoredAuditUsers))
+                    .putList("ignore_requests", ImmutableList.copyOf(ignoredAuditRequests))
+                    .normalizePrefix("audit.")
+                    .build();
         }
 
         /**
@@ -339,5 +415,47 @@ public class AuditConfig {
                     ", ignoreAuditRequests=" + ignoredAuditRequestsMatcher +
                     '}';
         }
+    }
+
+    /**
+     * List of keys that are deprecated
+     */
+    public static final List<String> DEPRECATED_KEYS = ImmutableList.of(
+            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST,
+            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES,
+            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT,
+            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES,
+            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY,
+            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_INDICES,
+            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS,
+            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS,
+            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS,
+            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS,
+            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED,
+            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED,
+            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_METADATA_ONLY,
+            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS,
+            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS,
+            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_METADATA_ONLY,
+            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS,
+            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS,
+            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES
+    );
+
+    public static Set<String> getDeprecatedKeys(final Settings settings) {
+        return AuditConfig.DEPRECATED_KEYS
+                .stream()
+                .filter(settings::hasValue)
+                .collect(Collectors.toSet());
+    }
+
+    @JsonIgnore
+    public Settings getAsSettings() {
+        return Settings.builder()
+                .put("enabled", auditLogEnabled)
+                .put(filter.getAsSettings())
+                .put(compliance.getAsSettings())
+                .normalizePrefix("config.")
+                .build();
     }
 }
