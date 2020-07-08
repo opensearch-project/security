@@ -80,7 +80,7 @@ public class OpenDistroSecurityRestFilter {
     private final CompatConfig compatConfig;
 
     private boolean whitelisting_enabled;
-    private Map<String, List<HttpRequestMethods>> whitelisted_APIs;
+    private Map<String, List<HttpRequestMethods>> whitelisted_requests;
 
 
     public OpenDistroSecurityRestFilter(final BackendRegistry registry, final AuditLog auditLog,
@@ -95,7 +95,7 @@ public class OpenDistroSecurityRestFilter {
         this.configPath = configPath;
         this.compatConfig = compatConfig;
         this.whitelisting_enabled = false;
-        this.whitelisted_APIs = Collections.emptyMap();
+        this.whitelisted_requests = Collections.emptyMap();
     }
 
     /**
@@ -104,8 +104,8 @@ public class OpenDistroSecurityRestFilter {
      * The whitelisting check works as follows:
      * If whitelisting is not enabled, then requests are handled normally.
      * If whitelisting is enabled, then SuperAdmin is allowed access to all APIs, regardless of what is currently whitelisted.
-     * If whitelisting is enabled, then Non-SuperAdmin is allowed to access only those APIs that are whitelisted in {@link #whitelisted_APIs}
-     * For example: if whitelisting is enabled and whitelisted_APIs = ["/_cat/nodes"], then SuperAdmin can access all APIs, but non SuperAdmin
+     * If whitelisting is enabled, then Non-SuperAdmin is allowed to access only those APIs that are whitelisted in {@link #requests}
+     * For example: if whitelisting is enabled and requests = ["/_cat/nodes"], then SuperAdmin can access all APIs, but non SuperAdmin
      * can only access "/_cat/nodes"
      * Further note: Some APIs are only accessible by SuperAdmin, regardless of whitelisting. For example: /_opendistro/_security/api/whitelist is only accessible by SuperAdmin.
      * See {@link com.amazon.opendistroforelasticsearch.security.dlic.rest.api.WhitelistApiAction} for the implementation of this API.
@@ -163,17 +163,17 @@ public class OpenDistroSecurityRestFilter {
         pathWithTrailingSlash = pathWithoutTrailingSlash + '/';
 
         //check if pathWithoutTrailingSlash is whitelisted
-        if(this.whitelisted_APIs.containsKey(pathWithoutTrailingSlash) && this.whitelisted_APIs.get(pathWithoutTrailingSlash).contains(HttpRequestMethods.valueOf(request.method().toString())))
+        if(this.whitelisted_requests.containsKey(pathWithoutTrailingSlash) && this.whitelisted_requests.get(pathWithoutTrailingSlash).contains(HttpRequestMethods.valueOf(request.method().toString())))
             return true;
 
         //check if pathWithTrailingSlash is whitelisted
-        if(this.whitelisted_APIs.containsKey(pathWithTrailingSlash) && this.whitelisted_APIs.get(pathWithTrailingSlash).contains(HttpRequestMethods.valueOf(request.method().toString())))
+        if(this.whitelisted_requests.containsKey(pathWithTrailingSlash) && this.whitelisted_requests.get(pathWithTrailingSlash).contains(HttpRequestMethods.valueOf(request.method().toString())))
             return true;
         return false;
     }
 
     /**
-     * Checks against {@link #whitelisted_APIs} that a given request is whitelisted, for non SuperAdmin.
+     * Checks against {@link #whitelisted_requests} that a given request is whitelisted, for non SuperAdmin.
      * For SuperAdmin this function is bypassed.
      * In a future version, could add a regex check to improve the functionality.
      */
@@ -254,7 +254,7 @@ public class OpenDistroSecurityRestFilter {
 
     @Subscribe
     public void onWhitelistingSettingChanged(WhitelistingSettingsModel whitelistingSettingsModel) {
-        this.whitelisting_enabled = whitelistingSettingsModel.getWhitelistingEnabled();
-        this.whitelisted_APIs = whitelistingSettingsModel.getWhitelistedAPIs();
+        this.whitelisting_enabled = whitelistingSettingsModel.getEnabled();
+        this.whitelisted_requests = whitelistingSettingsModel.getWhitelistedAPIs();
     }
 }

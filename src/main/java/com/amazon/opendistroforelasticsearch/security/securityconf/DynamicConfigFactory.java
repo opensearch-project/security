@@ -378,17 +378,17 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
             super();
             this.configuration = (null == configuration.getCType() ? SecurityDynamicConfiguration.empty() :
                     (SecurityDynamicConfiguration<WhitelistingSettings>) configuration);
-            this.whitelistingSettings = this.configuration.getCEntry("whitelisting_settings");
+            this.whitelistingSettings = this.configuration.getCEntry("config");
         }
 
         @Override
-        public boolean getWhitelistingEnabled() {
-            return whitelistingSettings == null ? defaultWhitelistingEnabled : whitelistingSettings.getWhitelistingEnabled();
+        public boolean getEnabled() {
+            return whitelistingSettings == null ? defaultWhitelistingEnabled : whitelistingSettings.getEnabled();
         }
 
         @Override
         public Map<String, List<HttpRequestMethods>> getWhitelistedAPIs(){
-            return ((whitelistingSettings == null || whitelistingSettings.getWhitelistedAPIs() == null) ? defaultWhitelistedAPIs : whitelistingSettings.getWhitelistedAPIs());
+            return ((whitelistingSettings == null || whitelistingSettings.getRequests() == null) ? defaultWhitelistedAPIs : whitelistingSettings.getRequests());
         }
     }
    

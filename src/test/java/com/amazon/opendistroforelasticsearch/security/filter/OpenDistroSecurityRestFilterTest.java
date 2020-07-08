@@ -38,7 +38,7 @@ public class OpenDistroSecurityRestFilterTest extends AbstractRestApiUnitTest {
         //ADD SOME WHITELISTED APIs
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"whitelisting_enabled\": true, \"whitelisted_APIs\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}", adminCredsHeader);
+        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"enabled\": true, \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}", adminCredsHeader);
 
         log.warn("the response is:" + rh.executeGetRequest("_opendistro/_security/api/whitelist", adminCredsHeader));
 
@@ -71,7 +71,7 @@ public class OpenDistroSecurityRestFilterTest extends AbstractRestApiUnitTest {
         //ADD SOME WHITELISTED APIs - /_cat/nodes and /_cat/indices
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"whitelisting_enabled\": true, \"whitelisted_APIs\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}", nonAdminCredsHeader);
+        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"enabled\": true, \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}", nonAdminCredsHeader);
 
         //NON ADMIN TRIES ACCESSING A NON-WHITELISTED API - FORBIDDEN
         rh.sendAdminCertificate = false;
@@ -90,7 +90,7 @@ public class OpenDistroSecurityRestFilterTest extends AbstractRestApiUnitTest {
     }
 
     /**
-     * Checks that all APIs are accessible by any user when {@link WhitelistingSettings#getWhitelistingEnabled()} is false
+     * Checks that all APIs are accessible by any user when {@link WhitelistingSettings#getEnabled()} is false
      */
     @Test
     public void checkAllApisWhenWhitelistingNotEnabled() throws Exception {
@@ -99,7 +99,7 @@ public class OpenDistroSecurityRestFilterTest extends AbstractRestApiUnitTest {
         //DISABLE WHITELISTING BUT ADD SOME WHITELISTED APIs - /_cat/nodes and /_cat/plugins
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"whitelisting_enabled\": false, \"whitelisted_APIs\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}", nonAdminCredsHeader);
+        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"enabled\": false, \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}", nonAdminCredsHeader);
 
         //NON-ADMIN TRIES ACCESSING 2 APIs: One in the list and one outside - OK for both (Because whitelisting is off)
         rh.sendAdminCertificate = false;
@@ -139,7 +139,7 @@ public class OpenDistroSecurityRestFilterTest extends AbstractRestApiUnitTest {
         //WHITELIST GET /_cluster/settings
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"whitelisting_enabled\": true, \"whitelisted_APIs\": {\"/_cluster/settings\": [\"GET\"]}}", nonAdminCredsHeader);
+        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"enabled\": true, \"requests\": {\"/_cluster/settings\": [\"GET\"]}}", nonAdminCredsHeader);
 
         //NON-ADMIN TRIES ACCESSING GET - OK, PUT - FORBIDDEN
 
@@ -181,7 +181,7 @@ public class OpenDistroSecurityRestFilterTest extends AbstractRestApiUnitTest {
         //WHITELIST GET /_cluster/settings/ -  extra / in the request
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"whitelisting_enabled\": true, \"whitelisted_APIs\": {\"/_cluster/settings/\": [\"GET\"]}}", nonAdminCredsHeader);
+        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"enabled\": true, \"requests\": {\"/_cluster/settings/\": [\"GET\"]}}", nonAdminCredsHeader);
 
         //NON ADMIN ACCESS GET /_cluster/settings/ - OK
         rh.sendAdminCertificate = false;
@@ -218,7 +218,7 @@ public class OpenDistroSecurityRestFilterTest extends AbstractRestApiUnitTest {
         //WHITELIST GET /_cluster/settings (no extra / in request)
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"whitelisting_enabled\": true, \"whitelisted_APIs\": {\"/_cluster/settings\": [\"GET\"]}}", nonAdminCredsHeader);
+        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"enabled\": true, \"requests\": {\"/_cluster/settings\": [\"GET\"]}}", nonAdminCredsHeader);
 
         //NON ADMIN ACCESS GET /_cluster/settings/ - OK
         rh.sendAdminCertificate = false;

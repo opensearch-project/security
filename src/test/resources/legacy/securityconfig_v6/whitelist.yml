@@ -1,8 +1,8 @@
 ---
-#this name must be whitelisting_settings
-whitelisting_settings:
-  whitelisting_enabled: false
-  whitelisted_APIs:
+#this name must be config
+config:
+  enabled: false
+  requests:
     /_cat/nodes:
       - GET
     /_cat/plugins:

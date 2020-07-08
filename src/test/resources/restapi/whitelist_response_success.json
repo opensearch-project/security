@@ -1,1 +1,1 @@
-{"whitelisting_settings":{"whitelisting_enabled":false,"whitelisted_APIs":{"/_cat/nodes":["GET"],"/_cat/plugins": ["GET"],"/_cluster/health":["GET"],"/_cluster/settings":["GET"]}}}
+{"config":{"enabled":false,"requests":{"/_cat/nodes":["GET"],"/_cat/plugins": ["GET"],"/_cluster/health":["GET"],"/_cluster/settings":["GET"]}}}

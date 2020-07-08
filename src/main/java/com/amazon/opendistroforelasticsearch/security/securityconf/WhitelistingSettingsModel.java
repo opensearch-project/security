@@ -5,6 +5,6 @@ import java.util.List;
 import java.util.Map;
 
 public abstract class WhitelistingSettingsModel {
-    public abstract boolean getWhitelistingEnabled();
+    public abstract boolean getEnabled();
     public abstract Map<String, List<HttpRequestMethods>> getWhitelistedAPIs();
 }

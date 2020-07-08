@@ -9,7 +9,7 @@ public class WhitelistValidator extends AbstractConfigurationValidator {
     public WhitelistValidator(final RestRequest request, final BytesReference ref, final Settings esSettings, Object... param) {
         super(request, ref, esSettings, param);
         this.payloadMandatory = true;
-        allowedKeys.put("whitelisting_enabled", DataType.BOOLEAN);
-        allowedKeys.put("whitelisted_APIs", DataType.OBJECT);
+        allowedKeys.put("enabled", DataType.BOOLEAN);
+        allowedKeys.put("requests", DataType.OBJECT);
     }
 }

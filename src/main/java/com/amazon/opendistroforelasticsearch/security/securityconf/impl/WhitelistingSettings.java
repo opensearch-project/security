@@ -7,46 +7,46 @@ import java.util.List;
 import java.util.Map;
 
 public class WhitelistingSettings {
-    @JsonProperty(value = "whitelisting_enabled")
-    private boolean whitelisting_enabled;
-    @JsonProperty(value = "whitelisted_APIs")
-    private Map<String, List<HttpRequestMethods>> whitelisted_APIs;
+    @JsonProperty(value = "enabled")
+    private boolean enabled;
+    @JsonProperty(value = "requests")
+    private Map<String, List<HttpRequestMethods>> requests;
 
     /**
      * Used to parse the yml files, do not remove.
      */
     public WhitelistingSettings() {
-        whitelisting_enabled = false;
-        whitelisted_APIs = Collections.emptyMap();
+        enabled = false;
+        requests = Collections.emptyMap();
     }
 
     public WhitelistingSettings(WhitelistingSettings whitelistingSettings) {
-        this.whitelisting_enabled = whitelistingSettings.getWhitelistingEnabled();
-        this.whitelisted_APIs = whitelistingSettings.getWhitelistedAPIs();
+        this.enabled = whitelistingSettings.getEnabled();
+        this.requests = whitelistingSettings.getRequests();
     }
 
-    @JsonProperty(value = "whitelisting_enabled")
-    public boolean getWhitelistingEnabled() {
-        return this.whitelisting_enabled;
+    @JsonProperty(value = "enabled")
+    public boolean getEnabled() {
+        return this.enabled;
     }
 
-    @JsonProperty(value = "whitelisting_enabled")
-    public void setWhitelistingEnabled(boolean whitelisting_enabled) {
-        this.whitelisting_enabled = whitelisting_enabled;
+    @JsonProperty(value = "enabled")
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
     }
 
-    @JsonProperty(value = "whitelisted_APIs")
-    public Map<String, List<HttpRequestMethods>> getWhitelistedAPIs() {
-        return this.whitelisted_APIs;
+    @JsonProperty(value = "requests")
+    public Map<String, List<HttpRequestMethods>> getRequests() {
+        return this.requests;
     }
 
-    @JsonProperty(value = "whitelisted_APIs")
-    public void setWhitelistedAPIs(Map<String, List<HttpRequestMethods>> whitelistedAPIs) {
-        this.whitelisted_APIs = whitelistedAPIs;
+    @JsonProperty(value = "requests")
+    public void setRequests(Map<String, List<HttpRequestMethods>> requests) {
+        this.requests = requests;
     }
 
     @Override
     public String toString() {
-        return "WhitelistingSetting [whitelisting_enabled=" + whitelisting_enabled + ", whitelisted_APIs=" + whitelisted_APIs + ']';
+        return "WhitelistingSetting [enabled=" + enabled + ", requests=" + requests + ']';
     }
 }

@@ -58,7 +58,7 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
             assertTrue(response.getBody().contains("API allowed only for super admin."));
         }
         //CHECK PUT REQUEST
-        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"whitelisting_enabled\": true, \"whitelisted_APIs\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}", headers);
+        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"enabled\": true, \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}", headers);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(expectedStatus));
     }
 
@@ -91,7 +91,7 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
 
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        RestHelper.HttpResponse response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{ \"unknownkey\": true, \"whitelisted_APIs\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}");
+        RestHelper.HttpResponse response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{ \"unknownkey\": true, \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}");
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
         assertTrue(response.getBody().contains("invalid_keys"));
         assertHealthy();
@@ -108,7 +108,7 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
 
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        RestHelper.HttpResponse response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{ \"invalid\"::{{ [\"*\"], \"whitelisted_APIs\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}");
+        RestHelper.HttpResponse response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{ \"invalid\"::{{ [\"*\"], \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}");
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
         assertTrue(response.getBody().contains("JsonParseException"));
         assertHealthy();
@@ -212,7 +212,7 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
 
-        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"whitelisting_enabled\": true, \"whitelisted_APIs\": {\"/_cat/nodes\": [\"GE\"],\"/_cat/indices\": [\"PUT\"] }}", adminCredsHeader);
+        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"enabled\": true, \"requests\": {\"/_cat/nodes\": [\"GE\"],\"/_cat/indices\": [\"PUT\"] }}", adminCredsHeader);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_INTERNAL_SERVER_ERROR));
         assertTrue(response.getBody().contains("\\\"GE\\\": not one of the values accepted for Enum class"));
     }
@@ -220,7 +220,7 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
     /**
      * Tests that the PATCH Api works correctly.
      * Note: boolean variables are not recognized as valid paths in "replace" operation when they are false.
-     * To get around this issue, to update boolean variables (here: whitelisting_enabled), one must use the "add" operation instead.
+     * To get around this issue, to update boolean variables (here: 'enabled'), one must use the "add" operation instead.
      *
      * @throws Exception
      */
@@ -230,35 +230,35 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
 
-        //PATCH entire whitelisting_settings entry
-        response = rh.executePatchRequest("_opendistro/_security/api/whitelist", "[{ \"op\": \"replace\", \"path\": \"/whitelisting_settings\", \"value\": {\"whitelisting_enabled\": true, \"whitelisted_APIs\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"PUT\"] }}}]", new Header[0]);
+        //PATCH entire config entry
+        response = rh.executePatchRequest("_opendistro/_security/api/whitelist", "[{ \"op\": \"replace\", \"path\": \"/config\", \"value\": {\"enabled\": true, \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"PUT\"] }}}]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         response = rh.executeGetRequest("_opendistro/_security/api/whitelist", adminCredsHeader);
-        assertEquals(response.getBody(),"{\"whitelisting_settings\":{\"whitelisting_enabled\":true,\"whitelisted_APIs\":{\"/_cat/nodes\":[\"GET\"],\"/_cat/indices\":[\"PUT\"]}}}");
+        assertEquals(response.getBody(),"{\"config\":{\"enabled\":true,\"requests\":{\"/_cat/nodes\":[\"GET\"],\"/_cat/indices\":[\"PUT\"]}}}");
 
-        //PATCH just whitelisted_APIs
-        response = rh.executePatchRequest("_opendistro/_security/api/whitelist", "[{ \"op\": \"replace\", \"path\": \"/whitelisting_settings/whitelisted_APIs\", \"value\": {\"/_cat/nodes\": [\"GET\"]}}]", new Header[0]);
+        //PATCH just requests
+        response = rh.executePatchRequest("_opendistro/_security/api/whitelist", "[{ \"op\": \"replace\", \"path\": \"/config/requests\", \"value\": {\"/_cat/nodes\": [\"GET\"]}}]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         response = rh.executeGetRequest("_opendistro/_security/api/whitelist", adminCredsHeader);
-        assertTrue(response.getBody().contains("\"whitelisted_APIs\":{\"/_cat/nodes\":[\"GET\"]}"));
+        assertTrue(response.getBody().contains("\"requests\":{\"/_cat/nodes\":[\"GET\"]}"));
 
-        //PATCH just whitelisted_enabled using "replace" operation  - works when whitelisting_enabled is already true
-        response = rh.executePatchRequest("_opendistro/_security/api/whitelist", "[{ \"op\": \"replace\", \"path\": \"/whitelisting_settings/whitelisting_enabled\", \"value\": false}]", new Header[0]);
+        //PATCH just whitelisted_enabled using "replace" operation  - works when enabled is already true
+        response = rh.executePatchRequest("_opendistro/_security/api/whitelist", "[{ \"op\": \"replace\", \"path\": \"/config/enabled\", \"value\": false}]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         response = rh.executeGetRequest("_opendistro/_security/api/whitelist", adminCredsHeader);
-        assertTrue(response.getBody().contains("\"whitelisting_enabled\":false"));
+        assertTrue(response.getBody().contains("\"enabled\":false"));
 
-        //PATCH just whitelisting_enabled using "add" operation when it is currently false - works correctly
-        response = rh.executePatchRequest("_opendistro/_security/api/whitelist", "[{ \"op\": \"add\", \"path\": \"/whitelisting_settings/whitelisting_enabled\", \"value\": true}]", new Header[0]);
+        //PATCH just enabled using "add" operation when it is currently false - works correctly
+        response = rh.executePatchRequest("_opendistro/_security/api/whitelist", "[{ \"op\": \"add\", \"path\": \"/config/enabled\", \"value\": true}]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         response = rh.executeGetRequest("_opendistro/_security/api/whitelist", adminCredsHeader);
-        assertTrue(response.getBody().contains("\"whitelisting_enabled\":true"));
+        assertTrue(response.getBody().contains("\"enabled\":true"));
 
-        //PATCH just whitelisting_enabled using "add" operation when it is currently true - works correctly
-        response = rh.executePatchRequest("_opendistro/_security/api/whitelist", "[{ \"op\": \"add\", \"path\": \"/whitelisting_settings/whitelisting_enabled\", \"value\": false}]", new Header[0]);
+        //PATCH just enabled using "add" operation when it is currently true - works correctly
+        response = rh.executePatchRequest("_opendistro/_security/api/whitelist", "[{ \"op\": \"add\", \"path\": \"/config/enabled\", \"value\": false}]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());response = rh.executeGetRequest("_opendistro/_security/api/whitelist", adminCredsHeader);
         response = rh.executeGetRequest("_opendistro/_security/api/whitelist", adminCredsHeader);
-        assertTrue(response.getBody().contains("\"whitelisting_enabled\":false"));
+        assertTrue(response.getBody().contains("\"enabled\":false"));
     }
 }
 
