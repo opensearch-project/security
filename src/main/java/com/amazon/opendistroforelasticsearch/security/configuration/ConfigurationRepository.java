@@ -40,11 +40,13 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import com.google.common.collect.ImmutableMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -144,6 +146,12 @@ public class ConfigurationRepository {
                                         ConfigHelper.uploadFile(client, cd +"whitelist.yml", opendistrosecurityIndex, CType.WHITELIST, DEFAULT_CONFIG_VERSION, populateEmptyIfFileMissing);
                                         LOGGER.info("Default config applied");
                                     }
+
+                                    // audit.yml is not packaged by default
+                                    final String auditConfigPath = cd + "audit.yml";
+                                    if (new File(auditConfigPath).exists()) {
+                                        ConfigHelper.uploadFile(client, auditConfigPath, opendistrosecurityIndex, CType.AUDIT, DEFAULT_CONFIG_VERSION);
+                                    }
                                 }
                             } else {
                                 LOGGER.error("{} does not exist", confFile.getAbsolutePath());
@@ -196,6 +204,21 @@ public class ConfigurationRepository {
                         }
                     }
 
+                    final Set<String> deprecatedAuditKeysInSettings = AuditConfig.getDeprecatedKeys(settings);
+                    if (!deprecatedAuditKeysInSettings.isEmpty()) {
+                        LOGGER.warn("Following keys {} are deprecated in elasticsearch settings. They will be removed in plugin v2.0.0.0", deprecatedAuditKeysInSettings);
+                    }
+                    final boolean isAuditConfigDocPresentInIndex = cl.isAuditConfigDocPresentInIndex();
+                    if (isAuditConfigDocPresentInIndex) {
+                        if (!deprecatedAuditKeysInSettings.isEmpty()) {
+                            LOGGER.warn("Audit configuration settings found in both index and elasticsearch settings (deprecated)");
+                        }
+                        LOGGER.info("Hot-reloading of audit configuration is enabled");
+                    } else {
+                        LOGGER.info("Hot-reloading of audit configuration is disabled. Using configuration with defaults from elasticsearch settings.  Populate the configuration in index using audit.yml or securityadmin to enable it.");
+                        auditLog.setConfig(AuditConfig.from(settings));
+                    }
+
                     LOGGER.info("Node '{}' initialized", clusterService.localNode().getName());
 
                 } catch (Exception e) {
@@ -245,6 +268,10 @@ public class ConfigurationRepository {
             LOGGER.error("Error during node initialization: {}", e2, e2);
             bgThread.start();
         }
+    }
+
+    public boolean isAuditHotReloadingEnabled() {
+        return cl.isAuditConfigDocPresentInIndex();
     }
 
     public static ConfigurationRepository create(Settings settings, final Path configPath, final ThreadPool threadPool,

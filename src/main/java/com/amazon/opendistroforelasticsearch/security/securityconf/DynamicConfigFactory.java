@@ -9,6 +9,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.HttpRequestMethods;
+import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.NodesDn;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.WhitelistingSettings;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
@@ -161,6 +162,8 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         final ConfigModel cm;
         final NodesDnModel nm = new NodesDnModelImpl(nodesDn);
         final WhitelistingSettingsModel wsm = new WhitelistingSettingsModelImpl(whitelistingSetting);
+        final AuditConfig audit = (AuditConfig)cr.getConfiguration(CType.AUDIT).getCEntry("config");
+
         if(config.getImplementingClass() == ConfigV7.class) {
                 //statics
                 
@@ -220,6 +223,9 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         eventBus.post(ium);
         eventBus.post(nm);
         eventBus.post(wsm);
+        if (cr.isAuditHotReloadingEnabled()) {
+            eventBus.post(audit);
+        }
 
         initialized.set(true);
         

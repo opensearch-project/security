@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.List;
 
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.WhitelistingSettings;
+import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
@@ -116,6 +117,7 @@ public class MigrateApiAction extends AbstractApiAction {
         final SecurityDynamicConfiguration<RoleMappingsV6> rolesmappingV6 = (SecurityDynamicConfiguration<RoleMappingsV6>) load(CType.ROLESMAPPING, true);
         final SecurityDynamicConfiguration<NodesDn> nodesDnV6 = (SecurityDynamicConfiguration<NodesDn>) load(CType.NODESDN, true);
         final SecurityDynamicConfiguration<WhitelistingSettings> whitelistingSettingV6 = (SecurityDynamicConfiguration<WhitelistingSettings>) load(CType.WHITELIST, true);
+        final SecurityDynamicConfiguration<AuditConfig> auditConfigV6 = (SecurityDynamicConfiguration<AuditConfig>) load(CType.AUDIT, true);
 
         final SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsV7 = Migration.migrateActionGroups(actionGroupsV6);
         final SecurityDynamicConfiguration<ConfigV7> configV7 = Migration.migrateConfig(configV6);
@@ -125,6 +127,7 @@ public class MigrateApiAction extends AbstractApiAction {
         final SecurityDynamicConfiguration<RoleMappingsV7> rolesmappingV7 = Migration.migrateRoleMappings(rolesmappingV6);
         final SecurityDynamicConfiguration<NodesDn> nodesDnV7 = Migration.migrateNodesDn(nodesDnV6);
         final SecurityDynamicConfiguration<WhitelistingSettings> whitelistingSettingV7 = Migration.migrateWhitelistingSetting(whitelistingSettingV6);
+        final SecurityDynamicConfiguration<AuditConfig> auditConfigV7 = Migration.migrateAudit(auditConfigV6);
 
         final int replicas = cs.state().metadata().index(opendistroIndex).getNumberOfReplicas();
         final String autoExpandReplicas = cs.state().metadata().index(opendistroIndex).getSettings().get(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS);
@@ -172,6 +175,8 @@ public class MigrateApiAction extends AbstractApiAction {
                                                 XContentHelper.toXContent(nodesDnV7, XContentType.JSON, false)));
                                         br.add(new IndexRequest().id(CType.WHITELIST.toLCString()).source(CType.WHITELIST.toLCString(),
                                                 XContentHelper.toXContent(whitelistingSettingV7, XContentType.JSON, false)));
+                                        br.add(new IndexRequest().id(CType.AUDIT.toLCString()).source(CType.AUDIT.toLCString(),
+                                                XContentHelper.toXContent(auditConfigV7, XContentType.JSON, false)));
                                     } catch (final IOException e1) {
                                         log.error("Unable to create bulk request " + e1, e1);
                                         internalErrorResponse(channel, "Unable to create bulk request.");

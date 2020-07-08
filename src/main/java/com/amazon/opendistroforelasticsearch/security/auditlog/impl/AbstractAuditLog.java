@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
@@ -85,9 +86,13 @@ public abstract class AbstractAuditLog implements AuditLog {
     private final IndexNameExpressionResolver resolver;
     private final ClusterService clusterService;
     private final Settings settings;
-    private final AuditConfig.Filter auditConfigFilter;
+    private volatile AuditConfig.Filter auditConfigFilter;
     private final String opendistrosecurityIndex;
     private volatile ComplianceConfig complianceConfig;
+    private final Environment environment;
+    private AtomicBoolean externalConfigLogged = new AtomicBoolean();
+
+    protected abstract void enableRoutes();
 
     private static final List<String> writeClasses = new ArrayList<>();
     {
@@ -98,22 +103,29 @@ public abstract class AbstractAuditLog implements AuditLog {
         writeClasses.add(DeleteRequest.class.getSimpleName());
     }
 
-    protected AbstractAuditLog(Settings settings, final ThreadPool threadPool, final IndexNameExpressionResolver resolver, final ClusterService clusterService, final boolean dlsFlsAvailable) {
+    protected AbstractAuditLog(Settings settings, final ThreadPool threadPool, final IndexNameExpressionResolver resolver, final ClusterService clusterService, final Environment environment) {
         super();
         this.threadPool = threadPool;
         this.settings = settings;
         this.resolver = resolver;
         this.clusterService = clusterService;
-        this.auditConfigFilter = AuditConfig.Filter.from(settings);
-        this.auditConfigFilter.log(log);
         this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
-        if (dlsFlsAvailable) {
-            this.complianceConfig = ComplianceConfig.from(settings);
-            this.complianceConfig.log(log);
-        } else {
-            this.complianceConfig = null;
-            log.debug("Compliance config is null because DLS-FLS is not available.");
-        }
+        this.environment = environment;
+    }
+
+    protected void onAuditConfigFilterChanged(AuditConfig.Filter auditConfigFilter) {
+        this.auditConfigFilter = auditConfigFilter;
+        this.auditConfigFilter.log(log);
+    }
+
+    protected void onComplianceConfigChanged(ComplianceConfig complianceConfig) {
+        this.complianceConfig = complianceConfig;
+        enableRoutes();
+        this.complianceConfig.log(log);
+        // External config is audit logged only once per node start and config from index is not available at that time.
+        // The audit event will be created only if enabled and not already logged.
+        // external_config parameter in audit config can be hot-reloaded which will impact functionality of this function.
+        logExternalConfig();
     }
 
     @Override
@@ -358,7 +370,7 @@ public abstract class AbstractAuditLog implements AuditLog {
 
     @Override
     public void logDocumentRead(String index, String id, ShardId shardId, Map<String, String> fieldNameValues) {
-
+        final ComplianceConfig complianceConfig = getComplianceConfig();
         if(complianceConfig == null || !complianceConfig.readHistoryEnabledForIndex(index)) {
             return;
         }
@@ -372,7 +384,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         AuditCategory category = opendistrosecurityIndex.equals(index)? AuditCategory.COMPLIANCE_INTERNAL_CONFIG_READ: AuditCategory.COMPLIANCE_DOC_READ;
 
         String effectiveUser = getUser();
-        if(!checkComplianceFilter(category, effectiveUser, getOrigin())) {
+        if(!checkComplianceFilter(category, effectiveUser, getOrigin(), complianceConfig)) {
             return;
         }
 
@@ -423,7 +435,7 @@ public abstract class AbstractAuditLog implements AuditLog {
 
     @Override
     public void logDocumentWritten(ShardId shardId, GetResult originalResult, Index currentIndex, IndexResult result) {
-
+        final ComplianceConfig complianceConfig = getComplianceConfig();
         if(complianceConfig == null || !complianceConfig.writeHistoryEnabledForIndex(shardId.getIndexName())) {
             return;
         }
@@ -432,7 +444,7 @@ public abstract class AbstractAuditLog implements AuditLog {
 
         String effectiveUser = getUser();
 
-        if(!checkComplianceFilter(category, effectiveUser, getOrigin())) {
+        if(!checkComplianceFilter(category, effectiveUser, getOrigin(), complianceConfig)) {
             return;
         }
 
@@ -521,7 +533,8 @@ public abstract class AbstractAuditLog implements AuditLog {
 
         String effectiveUser = getUser();
 
-        if(!checkComplianceFilter(AuditCategory.COMPLIANCE_DOC_WRITE, effectiveUser, getOrigin())) {
+        final ComplianceConfig complianceConfig = getComplianceConfig();
+        if (complianceConfig == null || !complianceConfig.isEnabled() || !checkComplianceFilter(AuditCategory.COMPLIANCE_DOC_WRITE, effectiveUser, getOrigin(), complianceConfig)) {
             return;
         }
 
@@ -538,13 +551,14 @@ public abstract class AbstractAuditLog implements AuditLog {
         save(msg);
     }
 
-    @Override
-    public void logExternalConfig(Settings settings, Environment environment) {
+    protected void logExternalConfig() {
 
-        if(!checkComplianceFilter(AuditCategory.COMPLIANCE_EXTERNAL_CONFIG, null, getOrigin())) {
+        final ComplianceConfig complianceConfig = getComplianceConfig();
+        if (complianceConfig == null || !complianceConfig.isEnabled() || !complianceConfig.shouldLogExternalConfig() || !checkComplianceFilter(AuditCategory.COMPLIANCE_EXTERNAL_CONFIG, null, getOrigin(), complianceConfig) || externalConfigLogged.getAndSet(true)) {
             return;
         }
 
+        log.info("logging external config");
         final Map<String, Object> configAsMap = Utils.convertJsonToxToStructuredMap(settings);
 
         final SecurityManager sm = System.getSecurityManager();
@@ -703,7 +717,7 @@ public abstract class AbstractAuditLog implements AuditLog {
 
     }
 
-    private boolean checkComplianceFilter(final AuditCategory category, final String effectiveUser, Origin origin) {
+    private boolean checkComplianceFilter(final AuditCategory category, final String effectiveUser, Origin origin, ComplianceConfig complianceConfig) {
         if(log.isTraceEnabled()) {
             log.trace("Check for COMPLIANCE category:{}, effectiveUser:{}, origin: {}", category, effectiveUser, origin);
         }

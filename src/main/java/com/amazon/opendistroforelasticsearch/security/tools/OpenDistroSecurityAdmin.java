@@ -49,6 +49,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.NodesDn;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.WhitelistingSettings;
 import org.apache.commons.cli.CommandLine;
@@ -753,6 +754,7 @@ public class OpenDistroSecurityAdmin {
                 success = retrieveFile(tc, cd+"roles_mapping_"+date+".yml", index, "rolesmapping", legacy) && success;
                 success = retrieveFile(tc, cd+"internal_users_"+date+".yml", index, "internalusers", legacy) && success;
                 success = retrieveFile(tc, cd+"action_groups_"+date+".yml", index, "actiongroups", legacy) && success;
+                success = retrieveFile(tc, cd+"audit_"+date+".yml", index, "audit", legacy) && success;
 
                 if(!legacy) {
                     success = retrieveFile(tc, cd+"security_tenants_"+date+".yml", index, "tenants", legacy) && success;
@@ -871,7 +873,7 @@ public class OpenDistroSecurityAdmin {
                 return false;
             }
         }
-        
+
         System.out.println("Will update '"+type+"/" + id + "' with " + filepath+" "+(legacy?"(legacy mode)":""));
         
         try (Reader reader = ConfigHelper.createFileOrStringReader(CType.fromString(_id), legacy ? 1 : 2, filepath, populateEmptyIfMissing)) {
@@ -1215,6 +1217,8 @@ public class OpenDistroSecurityAdmin {
         }
         success = retrieveFile(tc, backupDir.getAbsolutePath()+"/nodes_dn.yml", index, "nodesdn", legacy, true) && success;
         success = retrieveFile(tc, backupDir.getAbsolutePath()+"/whitelist.yml", index, "whitelist", legacy, true) && success;
+        success = retrieveFile(tc, backupDir.getAbsolutePath() + "/audit.yml", index, "audit", legacy) && success;
+
         return success?0:-1;
     }
     
@@ -1233,6 +1237,9 @@ public class OpenDistroSecurityAdmin {
 
         success = uploadFile(tc, cd+"nodes_dn.yml", index, "nodesdn", legacy, resolveEnvVars, true) && success;
         success = uploadFile(tc, cd+"whitelist.yml", index, "whitelist", legacy, resolveEnvVars) && success;
+        if (new File(cd+"audit.yml").exists()) {
+            success = uploadFile(tc, cd + "audit.yml", index, "audit", legacy, resolveEnvVars) && success;
+        }
 
         if(!success) {
             System.out.println("ERR: cannot upload configuration, see errors above");
@@ -1280,7 +1287,7 @@ public class OpenDistroSecurityAdmin {
                     Migration.migrateWhitelistingSetting(SecurityDynamicConfiguration.fromNode(
                             DefaultObjectMapper.YAML_MAPPER.readTree(ConfigHelper.createFileOrStringReader(CType.WHITELIST, 1, new File(backupDir,"whitelist.yml").getAbsolutePath(), true)),
                             CType.WHITELIST, 1, 0, 0));
-
+            SecurityDynamicConfiguration<AuditConfig> audit = Migration.migrateAudit(SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir,"audit.yml")), CType.AUDIT, 1, 0, 0));
 
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/action_groups.yml"), actionGroupsV7);
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/config.yml"), configV7);
@@ -1290,6 +1297,8 @@ public class OpenDistroSecurityAdmin {
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/roles_mapping.yml"), rolesmappingV7);
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/nodes_dn.yml"), nodesDn);
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/whitelist.yml"), whitelistingSettings);
+            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/audit.yml"), audit);
+
         } catch (Exception e) {
             System.out.println("ERR: Unable to migrate config files due to "+e);
             e.printStackTrace();
@@ -1353,7 +1362,10 @@ public class OpenDistroSecurityAdmin {
             if(new File(cd+"tenants.yml").exists() && version != 6) {
                 success = validateConfigFile(cd+"tenants.yml", CType.TENANTS, version) && success;
             }
-            
+            if (new File(cd+"audit.yml").exists()) {
+                success = validateConfigFile(cd+"audit.yml", CType.AUDIT, version) && success;
+            }
+
             return success?0:-1;
 
         }
@@ -1374,7 +1386,7 @@ public class OpenDistroSecurityAdmin {
     
     private static String[] getTypes(boolean legacy) {
         if(legacy) {
-            return new String[]{"config","roles","rolesmapping","internalusers","actiongroups","nodesdn"};
+            return new String[]{"config","roles","rolesmapping","internalusers","actiongroups","nodesdn", "audit"};
         }
         return CType.lcStringValues().toArray(new String[0]);
     }
