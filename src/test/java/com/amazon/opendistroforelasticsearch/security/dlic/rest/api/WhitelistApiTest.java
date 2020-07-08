@@ -22,10 +22,11 @@ import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Unit testing class to verify that {@link WhitelistApiAction} works correctly.
+ * Testing class to verify that {@link WhitelistApiAction} works correctly.
  * Check {@link com.amazon.opendistroforelasticsearch.security.filter.OpenDistroSecurityRestFilter} for extra tests for whitelisting functionality.
  */
 public class WhitelistApiTest extends AbstractRestApiUnitTest {
@@ -41,8 +42,6 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
     /**
      * Helper function to test the GET and PUT endpoints.
      *
-     * @param expectedStatus
-     * @param headers
      * @throws Exception
      */
     private void testGetAndPut(final int expectedStatus, final Header... headers) throws Exception {
@@ -216,6 +215,50 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
         response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"whitelisting_enabled\": true, \"whitelisted_APIs\": {\"/_cat/nodes\": [\"GE\"],\"/_cat/indices\": [\"PUT\"] }}", adminCredsHeader);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_INTERNAL_SERVER_ERROR));
         assertTrue(response.getBody().contains("\\\"GE\\\": not one of the values accepted for Enum class"));
+    }
+
+    /**
+     * Tests that the PATCH Api works correctly.
+     * Note: boolean variables are not recognized as valid paths in "replace" operation when they are false.
+     * To get around this issue, to update boolean variables (here: whitelisting_enabled), one must use the "add" operation instead.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testPatchApi() throws Exception{
+        setup();
+        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.sendAdminCertificate = true;
+
+        //PATCH entire whitelisting_settings entry
+        response = rh.executePatchRequest("_opendistro/_security/api/whitelist", "[{ \"op\": \"replace\", \"path\": \"/whitelisting_settings\", \"value\": {\"whitelisting_enabled\": true, \"whitelisted_APIs\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"PUT\"] }}}]", new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        response = rh.executeGetRequest("_opendistro/_security/api/whitelist", adminCredsHeader);
+        assertEquals(response.getBody(),"{\"whitelisting_settings\":{\"whitelisting_enabled\":true,\"whitelisted_APIs\":{\"/_cat/nodes\":[\"GET\"],\"/_cat/indices\":[\"PUT\"]}}}");
+
+        //PATCH just whitelisted_APIs
+        response = rh.executePatchRequest("_opendistro/_security/api/whitelist", "[{ \"op\": \"replace\", \"path\": \"/whitelisting_settings/whitelisted_APIs\", \"value\": {\"/_cat/nodes\": [\"GET\"]}}]", new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        response = rh.executeGetRequest("_opendistro/_security/api/whitelist", adminCredsHeader);
+        assertTrue(response.getBody().contains("\"whitelisted_APIs\":{\"/_cat/nodes\":[\"GET\"]}"));
+
+        //PATCH just whitelisted_enabled using "replace" operation  - works when whitelisting_enabled is already true
+        response = rh.executePatchRequest("_opendistro/_security/api/whitelist", "[{ \"op\": \"replace\", \"path\": \"/whitelisting_settings/whitelisting_enabled\", \"value\": false}]", new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        response = rh.executeGetRequest("_opendistro/_security/api/whitelist", adminCredsHeader);
+        assertTrue(response.getBody().contains("\"whitelisting_enabled\":false"));
+
+        //PATCH just whitelisting_enabled using "add" operation when it is currently false - works correctly
+        response = rh.executePatchRequest("_opendistro/_security/api/whitelist", "[{ \"op\": \"add\", \"path\": \"/whitelisting_settings/whitelisting_enabled\", \"value\": true}]", new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        response = rh.executeGetRequest("_opendistro/_security/api/whitelist", adminCredsHeader);
+        assertTrue(response.getBody().contains("\"whitelisting_enabled\":true"));
+
+        //PATCH just whitelisting_enabled using "add" operation when it is currently true - works correctly
+        response = rh.executePatchRequest("_opendistro/_security/api/whitelist", "[{ \"op\": \"add\", \"path\": \"/whitelisting_settings/whitelisting_enabled\", \"value\": false}]", new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());response = rh.executeGetRequest("_opendistro/_security/api/whitelist", adminCredsHeader);
+        response = rh.executeGetRequest("_opendistro/_security/api/whitelist", adminCredsHeader);
+        assertTrue(response.getBody().contains("\"whitelisting_enabled\":false"));
     }
 }
 

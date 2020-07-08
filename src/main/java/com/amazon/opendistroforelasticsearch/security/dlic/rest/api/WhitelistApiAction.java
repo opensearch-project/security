@@ -43,8 +43,25 @@ import java.util.List;
  * Example calling the PUT API as SuperAdmin using curl (if http basic auth is on):
  * curl -v --cacert path_to_config/root-ca.pem --cert path_to_config/kirk.pem --key path_to_config/kirk-key.pem -XPUT https://localhost:9200/_opendistro/_security/api/whitelist -H "Content-Type: application/json" -d’
  * {
- * "whitelisting_enabled" : false,
- * "whitelisted_APIs" : {"/_cat/nodes": ["GET"], "/_opendistro/_security/api/whitelist": ["GET"]}
+ *      "whitelisting_enabled" : false,
+ *      "whitelisted_APIs" : {"/_cat/nodes": ["GET"], "/_opendistro/_security/api/whitelist": ["GET"]}
+ * }
+ *
+ * Example using the PATCH API to change the whitelisted_APIs as SuperAdmin:
+ * curl -v --cacert path_to_config/root-ca.pem --cert path_to_config/kirk.pem --key path_to_config/kirk-key.pem -XPATCH https://localhost:9200/_opendistro/_security/api/whitelist -H "Content-Type: application/json" -d’
+ * {
+ *      "op":"replace",
+ *      "path":"/whitelisting_settings/whitelisted_APIs",
+ *      "value": {"/_cat/nodes": ["GET"], "/_opendistro/_security/api/whitelist": ["GET"]}
+ * }
+ *
+ * To update whitelisting_enabled, use the "add" operation instead of the "replace" operation, since boolean variables are not recognized as valid paths when they are false.
+ * eg:
+ * curl -v --cacert path_to_config/root-ca.pem --cert path_to_config/kirk.pem --key path_to_config/kirk-key.pem -XPATCH https://localhost:9200/_opendistro/_security/api/whitelist -H "Content-Type: application/json" -d’
+ * {
+ *      "op":"add",
+ *      "path":"/whitelisting_settings/whitelisting_enabled",
+ *      "value": true
  * }
  *
  * The backing data is stored in {@link ConfigConstants#OPENDISTRO_SECURITY_CONFIG_INDEX_NAME} which is populated during bootstrap.
@@ -52,10 +69,11 @@ import java.util.List;
  * be used to populate the index.
  * <p>
  */
-public class WhitelistApiAction extends AbstractApiAction {
+public class WhitelistApiAction extends PatchableResourceApiAction {
     private static final List<Route> routes = ImmutableList.of(
             new Route(RestRequest.Method.GET, "/_opendistro/_security/api/whitelist"),
-            new Route(RestRequest.Method.PUT, "/_opendistro/_security/api/whitelist")
+            new Route(RestRequest.Method.PUT, "/_opendistro/_security/api/whitelist"),
+            new Route(RestRequest.Method.PATCH, "/_opendistro/_security/api/whitelist")
     );
 
     private static final String name = "whitelisting_settings";

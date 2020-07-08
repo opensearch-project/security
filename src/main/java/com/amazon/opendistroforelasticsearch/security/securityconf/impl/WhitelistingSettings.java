@@ -31,8 +31,8 @@ public class WhitelistingSettings {
     }
 
     @JsonProperty(value = "whitelisting_enabled")
-    public void setWhitelistingEnabled(Boolean whitelistingEnabled) {
-        this.whitelisting_enabled = whitelistingEnabled;
+    public void setWhitelistingEnabled(boolean whitelisting_enabled) {
+        this.whitelisting_enabled = whitelisting_enabled;
     }
 
     @JsonProperty(value = "whitelisted_APIs")

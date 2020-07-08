@@ -372,7 +372,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         SecurityDynamicConfiguration<WhitelistingSettings> configuration;
         WhitelistingSettings whitelistingSettings;
         private static final Map<String, List<HttpRequestMethods>> defaultWhitelistedAPIs = Collections.emptyMap();
-        private static final Boolean defaultWhitelistingEnabled = false;
+        private static final boolean defaultWhitelistingEnabled = false;
 
         public WhitelistingSettingsModelImpl(SecurityDynamicConfiguration<?> configuration) {
             super();
@@ -382,7 +382,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         }
 
         @Override
-        public Boolean getWhitelistingEnabled() {
+        public boolean getWhitelistingEnabled() {
             return whitelistingSettings == null ? defaultWhitelistingEnabled : whitelistingSettings.getWhitelistingEnabled();
         }
 

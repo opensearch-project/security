@@ -130,7 +130,7 @@ public class OpenDistroSecurityRestFilter {
     /**
      * Checks if a given user is a SuperAdmin
      */
-    private Boolean userIsSuperAdmin(User user, AdminDNs adminDNs) {
+    private boolean userIsSuperAdmin(User user, AdminDNs adminDNs) {
         return user != null && adminDNs.isAdmin(user);
     }
 
