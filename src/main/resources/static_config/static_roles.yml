@@ -87,6 +87,14 @@ kibana_server:
   - "indices:data/read/scroll*"
   index_permissions:
   - index_patterns:
+    - ".apm-custom-link"
+    allowed_actions:
+    - "indices_all"
+  - index_patterns:
+    - ".apm-agent-configuration"
+    allowed_actions:
+    - "indices_all"
+  - index_patterns:
     - ".kibana"
     allowed_actions:
     - "indices_all"
