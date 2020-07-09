@@ -199,32 +199,7 @@ suggest:
   - "indices:data/read/suggest*"
   type: "index"
   description: "Allow suggestions"
-ODS_CLUSTER_MANAGE_ILM:
-  reserved: true
-  hidden: false
-  static: true
-  allowed_actions:
-  - "cluster:admin/ilm/*"
-  type: "cluster"
-  description: "Manage index lifecycles (cluster)"
-ODS_CLUSTER_READ_ILM:
-  reserved: true
-  hidden: false
-  static: true
-  allowed_actions:
-  - "cluster:admin/ilm/get"
-  - "cluster:admin/ilm/operation_mode/get"
-  type: "cluster"
-  description: "Read index lifecycles (cluster)"
-ODS_INDICES_MANAGE_ILM:
-  reserved: true
-  hidden: false
-  static: true
-  allowed_actions:
-  - "indices:admin/ilm/*"
-  type: "index"
-  description: "Manage index lifecycles (index)"
-ODS_CLUSTER_MANAGE_INDEX_TEMPLATES:
+cluster_manage_index_templates:
   reserved: true
   hidden: false
   static: true
@@ -232,7 +207,7 @@ ODS_CLUSTER_MANAGE_INDEX_TEMPLATES:
   - "indices:admin/template/*"
   type: "cluster"
   description: "Manage index templates"
-ODS_CLUSTER_MANAGE_PIPELINES:
+cluster_manage_pipelines:
   reserved: true
   hidden: false
   static: true
