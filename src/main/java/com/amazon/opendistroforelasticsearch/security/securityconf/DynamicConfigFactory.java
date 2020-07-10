@@ -8,8 +8,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.amazon.opendistroforelasticsearch.security.dlic.rest.api.WhitelistApiAction;
-import com.amazon.opendistroforelasticsearch.security.securityconf.impl.HttpRequestMethods;
 import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.NodesDn;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.WhitelistingSettings;
@@ -53,6 +51,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     private static SecurityDynamicConfiguration<RoleV7> staticRoles = SecurityDynamicConfiguration.empty();
     private static SecurityDynamicConfiguration<ActionGroupsV7> staticActionGroups = SecurityDynamicConfiguration.empty();
     private static SecurityDynamicConfiguration<TenantV7> staticTenants = SecurityDynamicConfiguration.empty();
+    private static final WhitelistingSettings defaultWhitelistingSettings = new WhitelistingSettings();
 
     static void resetStatics() {
         staticRoles = SecurityDynamicConfiguration.empty();
@@ -153,7 +152,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
                     " rolesmapping: " + rolesmapping.getImplementingClass() + " with " + rolesmapping.getCEntries().size() + " entries\n" +
                     " tenants: " + tenants.getImplementingClass() + " with " + tenants.getCEntries().size() + " entries\n" +
                     " nodesdn: " + nodesDn.getImplementingClass() + " with " + nodesDn.getCEntries().size() + " entries\n" +
-                    " whitelistingSetting: " + whitelistingSetting.getImplementingClass() + " with " + whitelistingSetting.getCEntries().size() + " entries\n";
+                    " whitelist " + whitelistingSetting.getImplementingClass() + " with " + whitelistingSetting.getCEntries().size() + " entries\n";
             log.debug(logmsg);
             
         }
@@ -223,7 +222,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         eventBus.post(dcm);
         eventBus.post(ium);
         eventBus.post(nm);
-        eventBus.post(whitelist);
+        eventBus.post(whitelist==null? defaultWhitelistingSettings: whitelist);
         if (cr.isAuditHotReloadingEnabled()) {
             eventBus.post(audit);
         }
