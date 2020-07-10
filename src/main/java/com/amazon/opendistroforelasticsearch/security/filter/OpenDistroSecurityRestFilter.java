@@ -30,16 +30,11 @@
 
 package com.amazon.opendistroforelasticsearch.security.filter;
 
-import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 
 import javax.net.ssl.SSLPeerUnverifiedException;
 
 import com.amazon.opendistroforelasticsearch.security.configuration.AdminDNs;
-import com.amazon.opendistroforelasticsearch.security.securityconf.impl.HttpRequestMethods;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.WhitelistingSettings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -79,8 +74,7 @@ public class OpenDistroSecurityRestFilter {
     private final Path configPath;
     private final CompatConfig compatConfig;
 
-    private boolean whitelistingEnabled;
-    private Map<String, List<HttpRequestMethods>> whitelistedRequests;
+    private WhitelistingSettings whitelistingSettings;
 
 
     public OpenDistroSecurityRestFilter(final BackendRegistry registry, final AuditLog auditLog,
@@ -94,8 +88,7 @@ public class OpenDistroSecurityRestFilter {
         this.settings = settings;
         this.configPath = configPath;
         this.compatConfig = compatConfig;
-        this.whitelistingEnabled = false;
-        this.whitelistedRequests = Collections.emptyMap();
+        this.whitelistingSettings = new WhitelistingSettings();
     }
 
     /**
@@ -119,7 +112,7 @@ public class OpenDistroSecurityRestFilter {
                 org.apache.logging.log4j.ThreadContext.clearAll();
                 if (!checkAndAuthenticateRequest(request, channel, client)) {
                     User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-                    if (userIsSuperAdmin(user, adminDNs) || checkRequestIsAllowed(request, channel, client)) {
+                    if (userIsSuperAdmin(user, adminDNs) || whitelistingSettings.checkRequestIsAllowed(request, channel, client)) {
                         original.handleRequest(request, channel, client);
                     }
                 }
@@ -133,64 +126,6 @@ public class OpenDistroSecurityRestFilter {
     private boolean userIsSuperAdmin(User user, AdminDNs adminDNs) {
         return user != null && adminDNs.isAdmin(user);
     }
-
-    /**
-     * Helper function to check if a rest request is whitelisted, by checking if the path is whitelisted,
-     * and then if the Http method is whitelisted.
-     * This method also contains logic to trim the path request, and check both with and without extra '/'
-     * This allows users to whitelist either /_cluster/settings/ or /_cluster/settings, to avoid potential issues.
-     * This also ensures that requests to the cluster can have a trailing '/'
-     * Scenarios:
-     * 1. Whitelisted API does not have an extra '/'. eg: If GET /_cluster/settings is whitelisted, these requests have the following response:
-     *      GET /_cluster/settings  - OK
-     *      GET /_cluster/settings/ - OK
-     *
-     * 2. Whitelisted API has an extra '/'. eg: If GET /_cluster/settings/ is whitelisted, these requests have the following response:
-     *      GET /_cluster/settings  - OK
-     *      GET /_cluster/settings/ - OK
-     */
-    private boolean requestIsWhitelisted(RestRequest request){
-
-        //ALSO ALLOWS REQUEST TO HAVE TRAILING '/'
-        //pathWithoutTrailingSlash stores the endpoint path without extra '/'. eg: /_cat/nodes
-        //pathWithTrailingSlash stores the endpoint path with extra '/'. eg: /_cat/nodes/
-        String path = request.path();
-        String pathWithoutTrailingSlash;
-        String pathWithTrailingSlash;
-
-        //first obtain pathWithoutTrailingSlash, then add a '/' to it to get pathWithTrailingSlash
-        pathWithoutTrailingSlash = path.endsWith("/") ? path.substring(0, path.length() - 1) : path;
-        pathWithTrailingSlash = pathWithoutTrailingSlash + '/';
-
-        //check if pathWithoutTrailingSlash is whitelisted
-        if(this.whitelistedRequests.containsKey(pathWithoutTrailingSlash) && this.whitelistedRequests.get(pathWithoutTrailingSlash).contains(HttpRequestMethods.valueOf(request.method().toString())))
-            return true;
-
-        //check if pathWithTrailingSlash is whitelisted
-        if(this.whitelistedRequests.containsKey(pathWithTrailingSlash) && this.whitelistedRequests.get(pathWithTrailingSlash).contains(HttpRequestMethods.valueOf(request.method().toString())))
-            return true;
-        return false;
-    }
-
-    /**
-     * Checks against {@link #whitelistedRequests} that a given request is whitelisted, for non SuperAdmin.
-     * For SuperAdmin this function is bypassed.
-     * In a future version, could add a regex check to improve the functionality.
-     */
-    private boolean checkRequestIsAllowed(RestRequest request, RestChannel channel,
-                                          NodeClient client) throws IOException {
-        // if whitelisting is enabled but the request is not whitelisted, then return false, otherwise true.
-        if (this.whitelistingEnabled && !requestIsWhitelisted(request)){
-            channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, channel.newErrorBuilder().startObject()
-                    .field("error", request.method() + " " + request.path() + " API not whitelisted")
-                    .field("status", RestStatus.FORBIDDEN)
-                    .endObject()
-            ));
-            return false;
-        }
-        return true;
-    }
-
 
     private boolean checkAndAuthenticateRequest(RestRequest request, RestChannel channel,
                                                 NodeClient client) throws Exception {
@@ -254,7 +189,6 @@ public class OpenDistroSecurityRestFilter {
 
     @Subscribe
     public void onWhitelistingSettingChanged(WhitelistingSettings whitelistingSettings) {
-        this.whitelistingEnabled = whitelistingSettings.getEnabled();
-        this.whitelistedRequests = whitelistingSettings.getRequests();
+        this.whitelistingSettings = whitelistingSettings;
     }
 }

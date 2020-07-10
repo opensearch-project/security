@@ -8,7 +8,7 @@ _meta:
 # if enabled is false, the whitelisting feature is removed.
 # This is like removing the check that checks if an API is whitelisted.
 # This is equivalent to continuing with the usual access control checks, and removing all the code that implements whitelisting.
-# if enabled is true, then all users except SuperAdmin can access only the APIs in whitelistedAPIs
+# if enabled is true, then all users except SuperAdmin can access only the APIs in requests
 # SuperAdmin can access all APIs.
 # SuperAdmin is defined by the SuperAdmin certificate, which is configured in the elasticsearch.yml setting: opendistro_security.authcz.admin_dn:
 # Refer to the example setting in elasticsearch.yml.example, and the opendistro documentation to know more about configuring SuperAdmin.

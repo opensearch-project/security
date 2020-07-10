@@ -102,7 +102,6 @@ public class WhitelistApiAction extends PatchableResourceApiAction {
         final SecurityDynamicConfiguration<?> configuration = load(getConfigName(), true);
         filter(configuration);
         successResponse(channel, configuration);
-        return;
     }
 
     @Override
