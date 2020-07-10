@@ -143,6 +143,7 @@ public class ConfigurationRepository {
                                         }
                                         final boolean populateEmptyIfFileMissing = true;
                                         ConfigHelper.uploadFile(client, cd+"nodes_dn.yml", opendistrosecurityIndex, CType.NODESDN, DEFAULT_CONFIG_VERSION, populateEmptyIfFileMissing);
+                                        ConfigHelper.uploadFile(client, cd + "whitelist.yml", opendistrosecurityIndex, CType.WHITELIST, DEFAULT_CONFIG_VERSION, populateEmptyIfFileMissing);
                                         LOGGER.info("Default config applied");
                                     }
 

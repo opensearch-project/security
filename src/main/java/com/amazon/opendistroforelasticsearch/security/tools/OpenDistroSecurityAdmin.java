@@ -51,6 +51,7 @@ import java.util.Map;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.NodesDn;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.WhitelistingSettings;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -761,6 +762,7 @@ public class OpenDistroSecurityAdmin {
 
                 final boolean populateFileIfEmpty = true;
                 success = retrieveFile(tc, cd+"nodes_dn_"+date+".yml", index, "nodesdn", legacy, populateFileIfEmpty) && success;
+                success = retrieveFile(tc, cd+"whitelist_"+date+".yml", index, "whitelist", legacy, populateFileIfEmpty) && success;
                 return (success?0:-1);
             }
 
@@ -1214,6 +1216,7 @@ public class OpenDistroSecurityAdmin {
             success = retrieveFile(tc, backupDir.getAbsolutePath()+"/tenants.yml", index, "tenants", legacy) && success;
         }
         success = retrieveFile(tc, backupDir.getAbsolutePath()+"/nodes_dn.yml", index, "nodesdn", legacy, true) && success;
+        success = retrieveFile(tc, backupDir.getAbsolutePath()+"/whitelist.yml", index, "whitelist", legacy, true) && success;
         success = retrieveFile(tc, backupDir.getAbsolutePath() + "/audit.yml", index, "audit", legacy) && success;
 
         return success?0:-1;
@@ -1233,6 +1236,7 @@ public class OpenDistroSecurityAdmin {
         }
 
         success = uploadFile(tc, cd+"nodes_dn.yml", index, "nodesdn", legacy, resolveEnvVars, true) && success;
+        success = uploadFile(tc, cd+"whitelist.yml", index, "whitelist", legacy, resolveEnvVars) && success;
         if (new File(cd+"audit.yml").exists()) {
             success = uploadFile(tc, cd + "audit.yml", index, "audit", legacy, resolveEnvVars) && success;
         }
@@ -1279,6 +1283,10 @@ public class OpenDistroSecurityAdmin {
                 Migration.migrateNodesDn(SecurityDynamicConfiguration.fromNode(
                     DefaultObjectMapper.YAML_MAPPER.readTree(ConfigHelper.createFileOrStringReader(CType.NODESDN, 1, new File(backupDir,"nodes_dn.yml").getAbsolutePath(), true)),
                     CType.NODESDN, 1, 0, 0));
+            SecurityDynamicConfiguration<WhitelistingSettings> whitelistingSettings =
+                    Migration.migrateWhitelistingSetting(SecurityDynamicConfiguration.fromNode(
+                            DefaultObjectMapper.YAML_MAPPER.readTree(ConfigHelper.createFileOrStringReader(CType.WHITELIST, 1, new File(backupDir,"whitelist.yml").getAbsolutePath(), true)),
+                            CType.WHITELIST, 1, 0, 0));
             SecurityDynamicConfiguration<AuditConfig> audit = Migration.migrateAudit(SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir,"audit.yml")), CType.AUDIT, 1, 0, 0));
 
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/action_groups.yml"), actionGroupsV7);
@@ -1288,6 +1296,7 @@ public class OpenDistroSecurityAdmin {
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/tenants.yml"), rolesTenantsV7.v2());
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/roles_mapping.yml"), rolesmappingV7);
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/nodes_dn.yml"), nodesDn);
+            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/whitelist.yml"), whitelistingSettings);
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/audit.yml"), audit);
 
         } catch (Exception e) {

@@ -92,6 +92,7 @@ opendistro_security_all_access:
   hosts: []
   users:
   - "nagilum"
+  - "admin_all_access"
   and_backend_roles: []
   description: "Migrated from v6"
 opendistro_security_public:
@@ -112,6 +113,7 @@ opendistro_security_role_vulcans:
   users:
   - "kirk"
   - "sarek"
+  - "admin_all_access"
   and_backend_roles: []
   description: "Migrated from v6"
 opendistro_security_role_klingons:

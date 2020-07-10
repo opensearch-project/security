@@ -53,3 +53,11 @@ hide:
   backend_roles: []
   attributes: {}
   description: "Hidden user - password - hide"
+admin_all_access:
+  hash: "$2y$12$ft8tXtxb.dyO/5MrDXHLc.e1o3dktEQJMvR2e.sgVDyD/gR7G9dLS"
+  reserved: false
+  hidden: false
+  backend_roles:
+    - "vulcan"
+  attributes: {}
+  description: "sample user with all_access, used to test whitelisting"

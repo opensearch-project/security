@@ -20,6 +20,7 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.WhitelistingSettings;
 import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
@@ -115,6 +116,7 @@ public class MigrateApiAction extends AbstractApiAction {
         final SecurityDynamicConfiguration<RoleV6> rolesV6 = (SecurityDynamicConfiguration<RoleV6>) load(CType.ROLES, true);
         final SecurityDynamicConfiguration<RoleMappingsV6> rolesmappingV6 = (SecurityDynamicConfiguration<RoleMappingsV6>) load(CType.ROLESMAPPING, true);
         final SecurityDynamicConfiguration<NodesDn> nodesDnV6 = (SecurityDynamicConfiguration<NodesDn>) load(CType.NODESDN, true);
+        final SecurityDynamicConfiguration<WhitelistingSettings> whitelistingSettingV6 = (SecurityDynamicConfiguration<WhitelistingSettings>) load(CType.WHITELIST, true);
         final SecurityDynamicConfiguration<AuditConfig> auditConfigV6 = (SecurityDynamicConfiguration<AuditConfig>) load(CType.AUDIT, true);
 
         final SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsV7 = Migration.migrateActionGroups(actionGroupsV6);
@@ -124,6 +126,7 @@ public class MigrateApiAction extends AbstractApiAction {
                 rolesmappingV6);
         final SecurityDynamicConfiguration<RoleMappingsV7> rolesmappingV7 = Migration.migrateRoleMappings(rolesmappingV6);
         final SecurityDynamicConfiguration<NodesDn> nodesDnV7 = Migration.migrateNodesDn(nodesDnV6);
+        final SecurityDynamicConfiguration<WhitelistingSettings> whitelistingSettingV7 = Migration.migrateWhitelistingSetting(whitelistingSettingV6);
         final SecurityDynamicConfiguration<AuditConfig> auditConfigV7 = Migration.migrateAudit(auditConfigV6);
 
         final int replicas = cs.state().metadata().index(opendistroIndex).getNumberOfReplicas();
@@ -170,6 +173,8 @@ public class MigrateApiAction extends AbstractApiAction {
                                                 XContentHelper.toXContent(rolesmappingV7, XContentType.JSON, false)));
                                         br.add(new IndexRequest().id(CType.NODESDN.toLCString()).source(CType.NODESDN.toLCString(),
                                                 XContentHelper.toXContent(nodesDnV7, XContentType.JSON, false)));
+                                        br.add(new IndexRequest().id(CType.WHITELIST.toLCString()).source(CType.WHITELIST.toLCString(),
+                                                XContentHelper.toXContent(whitelistingSettingV7, XContentType.JSON, false)));
                                         br.add(new IndexRequest().id(CType.AUDIT.toLCString()).source(CType.AUDIT.toLCString(),
                                                 XContentHelper.toXContent(auditConfigV7, XContentType.JSON, false)));
                                     } catch (final IOException e1) {

@@ -34,6 +34,8 @@ import java.nio.file.Path;
 
 import javax.net.ssl.SSLPeerUnverifiedException;
 
+import com.amazon.opendistroforelasticsearch.security.configuration.AdminDNs;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.WhitelistingSettings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
@@ -59,6 +61,7 @@ import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLRequestHelper.
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.HTTPHelper;
 import com.amazon.opendistroforelasticsearch.security.user.User;
+import org.greenrobot.eventbus.Subscribe;
 
 public class OpenDistroSecurityRestFilter {
 
@@ -71,6 +74,9 @@ public class OpenDistroSecurityRestFilter {
     private final Path configPath;
     private final CompatConfig compatConfig;
 
+    private WhitelistingSettings whitelistingSettings;
+
+
     public OpenDistroSecurityRestFilter(final BackendRegistry registry, final AuditLog auditLog,
             final ThreadPool threadPool, final PrincipalExtractor principalExtractor,
             final Settings settings, final Path configPath, final CompatConfig compatConfig) {
@@ -82,22 +88,47 @@ public class OpenDistroSecurityRestFilter {
         this.settings = settings;
         this.configPath = configPath;
         this.compatConfig = compatConfig;
+        this.whitelistingSettings = new WhitelistingSettings();
     }
-    
-    public RestHandler wrap(RestHandler original) {
+
+    /**
+     * This function wraps around all rest requests
+     * If the request is authenticated, then it goes through a whitelisting check.
+     * The whitelisting check works as follows:
+     * If whitelisting is not enabled, then requests are handled normally.
+     * If whitelisting is enabled, then SuperAdmin is allowed access to all APIs, regardless of what is currently whitelisted.
+     * If whitelisting is enabled, then Non-SuperAdmin is allowed to access only those APIs that are whitelisted in {@link #requests}
+     * For example: if whitelisting is enabled and requests = ["/_cat/nodes"], then SuperAdmin can access all APIs, but non SuperAdmin
+     * can only access "/_cat/nodes"
+     * Further note: Some APIs are only accessible by SuperAdmin, regardless of whitelisting. For example: /_opendistro/_security/api/whitelist is only accessible by SuperAdmin.
+     * See {@link com.amazon.opendistroforelasticsearch.security.dlic.rest.api.WhitelistApiAction} for the implementation of this API.
+     * SuperAdmin is identified by credentials, which can be passed in the curl request.
+     */
+    public RestHandler wrap(RestHandler original, AdminDNs adminDNs) {
         return new RestHandler() {
             
             @Override
             public void handleRequest(RestRequest request, RestChannel channel, NodeClient client) throws Exception {
                 org.apache.logging.log4j.ThreadContext.clearAll();
-                if(!checkAndAuthenticateRequest(request, channel, client)) {
-                    original.handleRequest(request, channel, client);
+                if (!checkAndAuthenticateRequest(request, channel, client)) {
+                    User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+                    if (userIsSuperAdmin(user, adminDNs) || whitelistingSettings.checkRequestIsAllowed(request, channel, client)) {
+                        original.handleRequest(request, channel, client);
+                    }
                 }
             }
         };
     }
 
-    private boolean checkAndAuthenticateRequest(RestRequest request, RestChannel channel, NodeClient client) throws Exception {
+    /**
+     * Checks if a given user is a SuperAdmin
+     */
+    private boolean userIsSuperAdmin(User user, AdminDNs adminDNs) {
+        return user != null && adminDNs.isAdmin(user);
+    }
+
+    private boolean checkAndAuthenticateRequest(RestRequest request, RestChannel channel,
+                                                NodeClient client) throws Exception {
 
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, Origin.REST.toString());
         
@@ -154,5 +185,10 @@ public class OpenDistroSecurityRestFilter {
         }
         
         return false;
+    }
+
+    @Subscribe
+    public void onWhitelistingSettingChanged(WhitelistingSettings whitelistingSettings) {
+        this.whitelistingSettings = whitelistingSettings;
     }
 }
