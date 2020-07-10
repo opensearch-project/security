@@ -44,7 +44,10 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
      *
      * @throws Exception
      */
-    private void testGetAndPut(final int expectedStatus, final Header... headers) throws Exception {
+    private void testGetAndPut(final int expectedStatus, final boolean sendAdminCertificate, final Header... headers) throws Exception {
+
+        final boolean prevSendAdminCertificate = rh.sendAdminCertificate;
+        rh.sendAdminCertificate = sendAdminCertificate;
 
         //CHECK GET REQUEST
         response = rh.executeGetRequest("_opendistro/_security/api/whitelist", headers);
@@ -60,6 +63,8 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
         //CHECK PUT REQUEST
         response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"enabled\": true, \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}", headers);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(expectedStatus));
+
+        rh.sendAdminCertificate = prevSendAdminCertificate;
     }
 
     /**
@@ -143,35 +148,18 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
     @Test
     public void testWhitelistApi() throws Exception {
         setupWithRestRoles(null);
+         rh.keystore = "restapi/kirk-keystore.jks";
+        // No creds, no admin certificate - UNAUTHORIZED
+        testGetAndPut(HttpStatus.SC_UNAUTHORIZED, false);
 
-        {
-            // No creds, no admin certificate - UNAUTHORIZED
-            rh.keystore = "restapi/kirk-keystore.jks";
-            rh.sendAdminCertificate = false;
-            testGetAndPut(HttpStatus.SC_UNAUTHORIZED);
-        }
+        //non admin creds, no admin certificate - FORBIDDEN
+        testGetAndPut(HttpStatus.SC_FORBIDDEN, false, nonAdminCredsHeader);
 
+        // admin creds, no admin certificate - FORBIDDEN
+        testGetAndPut(HttpStatus.SC_FORBIDDEN, false, adminCredsHeader);
 
-        {
-            //non admin creds, no admin certificate - FORBIDDEN
-            rh.keystore = "restapi/kirk-keystore.jks";
-            rh.sendAdminCertificate = false;
-            testGetAndPut(HttpStatus.SC_FORBIDDEN, nonAdminCredsHeader);
-        }
-
-        {
-            // admin creds, no admin certificate - FORBIDDEN
-            rh.keystore = "restapi/kirk-keystore.jks";
-            rh.sendAdminCertificate = false;
-            testGetAndPut(HttpStatus.SC_FORBIDDEN, adminCredsHeader);
-        }
-
-        {
-            // any creds, admin certificate - OK
-            rh.keystore = "restapi/kirk-keystore.jks";
-            rh.sendAdminCertificate = true;
-            testGetAndPut(HttpStatus.SC_OK, nonAdminCredsHeader);
-        }
+        // any creds, admin certificate - OK
+        testGetAndPut(HttpStatus.SC_OK, true, nonAdminCredsHeader);
     }
 
     @Test
@@ -190,12 +178,9 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
         setupWithRestRoles(settings);
         TestAuditlogImpl.clear();
 
-        {
-            // any creds, admin certificate - OK
-            rh.keystore = "restapi/kirk-keystore.jks";
-            rh.sendAdminCertificate = true;
-            testGetAndPut(HttpStatus.SC_OK, nonAdminCredsHeader);
-        }
+        // any creds, admin certificate - OK
+        rh.keystore = "restapi/kirk-keystore.jks";
+        testGetAndPut(HttpStatus.SC_OK, true, nonAdminCredsHeader);
 
         //TESTS THAT 1 READ AND 1 WRITE HAPPENS IN testGetAndPut()
         final Map<AuditCategory, Long> expectedCategoryCounts = ImmutableMap.of(

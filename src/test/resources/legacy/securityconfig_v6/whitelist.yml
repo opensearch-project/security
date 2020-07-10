@@ -1,4 +1,3 @@
----
 #this name must be config
 config:
   enabled: false

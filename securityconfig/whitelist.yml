@@ -67,6 +67,3 @@ config:
       - GET
     /_cat/nodes:
       - GET
-
-
-

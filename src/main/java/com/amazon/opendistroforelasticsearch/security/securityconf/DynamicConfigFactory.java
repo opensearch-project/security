@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.amazon.opendistroforelasticsearch.security.dlic.rest.api.WhitelistApiAction;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.HttpRequestMethods;
 import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.NodesDn;
@@ -161,7 +162,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         final InternalUsersModel ium;
         final ConfigModel cm;
         final NodesDnModel nm = new NodesDnModelImpl(nodesDn);
-        final WhitelistingSettingsModel wsm = new WhitelistingSettingsModelImpl(whitelistingSetting);
+        final WhitelistingSettings whitelist = (WhitelistingSettings) cr.getConfiguration(CType.WHITELIST).getCEntry("config");
         final AuditConfig audit = (AuditConfig)cr.getConfiguration(CType.AUDIT).getCEntry("config");
 
         if(config.getImplementingClass() == ConfigV7.class) {
@@ -222,7 +223,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         eventBus.post(dcm);
         eventBus.post(ium);
         eventBus.post(nm);
-        eventBus.post(wsm);
+        eventBus.post(whitelist);
         if (cr.isAuditHotReloadingEnabled()) {
             eventBus.post(audit);
         }
@@ -372,30 +373,4 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
                     ImmutableMap.toImmutableMap(Entry::getKey, entry -> WildcardMatcher.from(entry.getValue().getNodesDn(), false)));
         }
     }
-
-    private static class WhitelistingSettingsModelImpl extends WhitelistingSettingsModel {
-
-        SecurityDynamicConfiguration<WhitelistingSettings> configuration;
-        WhitelistingSettings whitelistingSettings;
-        private static final Map<String, List<HttpRequestMethods>> defaultWhitelistedAPIs = Collections.emptyMap();
-        private static final boolean defaultWhitelistingEnabled = false;
-
-        public WhitelistingSettingsModelImpl(SecurityDynamicConfiguration<?> configuration) {
-            super();
-            this.configuration = (null == configuration.getCType() ? SecurityDynamicConfiguration.empty() :
-                    (SecurityDynamicConfiguration<WhitelistingSettings>) configuration);
-            this.whitelistingSettings = this.configuration.getCEntry("config");
-        }
-
-        @Override
-        public boolean getEnabled() {
-            return whitelistingSettings == null ? defaultWhitelistingEnabled : whitelistingSettings.getEnabled();
-        }
-
-        @Override
-        public Map<String, List<HttpRequestMethods>> getWhitelistedAPIs(){
-            return ((whitelistingSettings == null || whitelistingSettings.getRequests() == null) ? defaultWhitelistedAPIs : whitelistingSettings.getRequests());
-        }
-    }
-   
 }

@@ -40,7 +40,7 @@ import javax.net.ssl.SSLPeerUnverifiedException;
 
 import com.amazon.opendistroforelasticsearch.security.configuration.AdminDNs;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.HttpRequestMethods;
-import com.amazon.opendistroforelasticsearch.security.securityconf.WhitelistingSettingsModel;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.WhitelistingSettings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
@@ -79,8 +79,8 @@ public class OpenDistroSecurityRestFilter {
     private final Path configPath;
     private final CompatConfig compatConfig;
 
-    private boolean whitelisting_enabled;
-    private Map<String, List<HttpRequestMethods>> whitelisted_requests;
+    private boolean whitelistingEnabled;
+    private Map<String, List<HttpRequestMethods>> whitelistedRequests;
 
 
     public OpenDistroSecurityRestFilter(final BackendRegistry registry, final AuditLog auditLog,
@@ -94,8 +94,8 @@ public class OpenDistroSecurityRestFilter {
         this.settings = settings;
         this.configPath = configPath;
         this.compatConfig = compatConfig;
-        this.whitelisting_enabled = false;
-        this.whitelisted_requests = Collections.emptyMap();
+        this.whitelistingEnabled = false;
+        this.whitelistedRequests = Collections.emptyMap();
     }
 
     /**
@@ -163,24 +163,24 @@ public class OpenDistroSecurityRestFilter {
         pathWithTrailingSlash = pathWithoutTrailingSlash + '/';
 
         //check if pathWithoutTrailingSlash is whitelisted
-        if(this.whitelisted_requests.containsKey(pathWithoutTrailingSlash) && this.whitelisted_requests.get(pathWithoutTrailingSlash).contains(HttpRequestMethods.valueOf(request.method().toString())))
+        if(this.whitelistedRequests.containsKey(pathWithoutTrailingSlash) && this.whitelistedRequests.get(pathWithoutTrailingSlash).contains(HttpRequestMethods.valueOf(request.method().toString())))
             return true;
 
         //check if pathWithTrailingSlash is whitelisted
-        if(this.whitelisted_requests.containsKey(pathWithTrailingSlash) && this.whitelisted_requests.get(pathWithTrailingSlash).contains(HttpRequestMethods.valueOf(request.method().toString())))
+        if(this.whitelistedRequests.containsKey(pathWithTrailingSlash) && this.whitelistedRequests.get(pathWithTrailingSlash).contains(HttpRequestMethods.valueOf(request.method().toString())))
             return true;
         return false;
     }
 
     /**
-     * Checks against {@link #whitelisted_requests} that a given request is whitelisted, for non SuperAdmin.
+     * Checks against {@link #whitelistedRequests} that a given request is whitelisted, for non SuperAdmin.
      * For SuperAdmin this function is bypassed.
      * In a future version, could add a regex check to improve the functionality.
      */
     private boolean checkRequestIsAllowed(RestRequest request, RestChannel channel,
                                           NodeClient client) throws IOException {
         // if whitelisting is enabled but the request is not whitelisted, then return false, otherwise true.
-        if (this.whitelisting_enabled && !requestIsWhitelisted(request)){
+        if (this.whitelistingEnabled && !requestIsWhitelisted(request)){
             channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, channel.newErrorBuilder().startObject()
                     .field("error", request.method() + " " + request.path() + " API not whitelisted")
                     .field("status", RestStatus.FORBIDDEN)
@@ -253,8 +253,8 @@ public class OpenDistroSecurityRestFilter {
     }
 
     @Subscribe
-    public void onWhitelistingSettingChanged(WhitelistingSettingsModel whitelistingSettingsModel) {
-        this.whitelisting_enabled = whitelistingSettingsModel.getEnabled();
-        this.whitelisted_requests = whitelistingSettingsModel.getWhitelistedAPIs();
+    public void onWhitelistingSettingChanged(WhitelistingSettings whitelistingSettings) {
+        this.whitelistingEnabled = whitelistingSettings.getEnabled();
+        this.whitelistedRequests = whitelistingSettings.getRequests();
     }
 }
