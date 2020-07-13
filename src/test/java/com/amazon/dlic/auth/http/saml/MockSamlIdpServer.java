@@ -37,14 +37,11 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLException;
@@ -89,6 +86,8 @@ import org.apache.http.io.HttpMessageWriterFactory;
 import org.apache.http.message.BasicHttpRequest;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpRequestHandler;
+import org.apache.xml.security.algorithms.JCEMapper;
+import org.apache.xml.security.utils.EncryptionConstants;
 import org.joda.time.DateTime;
 import org.opensaml.core.xml.XMLObject;
 import org.opensaml.core.xml.XMLObjectBuilderFactory;
@@ -106,38 +105,27 @@ import org.opensaml.saml.common.messaging.context.SAMLProtocolContext;
 import org.opensaml.saml.common.xml.SAMLConstants;
 import org.opensaml.saml.saml2.binding.decoding.impl.HTTPRedirectDeflateDecoder;
 import org.opensaml.saml.saml2.binding.security.impl.SAML2HTTPRedirectDeflateSignatureSecurityHandler;
-import org.opensaml.saml.saml2.core.Assertion;
-import org.opensaml.saml.saml2.core.Attribute;
-import org.opensaml.saml.saml2.core.AttributeStatement;
-import org.opensaml.saml.saml2.core.AttributeValue;
-import org.opensaml.saml.saml2.core.AuthnContext;
-import org.opensaml.saml.saml2.core.AuthnContextClassRef;
-import org.opensaml.saml.saml2.core.AuthnRequest;
-import org.opensaml.saml.saml2.core.AuthnStatement;
-import org.opensaml.saml.saml2.core.Conditions;
-import org.opensaml.saml.saml2.core.Issuer;
-import org.opensaml.saml.saml2.core.LogoutRequest;
-import org.opensaml.saml.saml2.core.NameID;
-import org.opensaml.saml.saml2.core.NameIDType;
-import org.opensaml.saml.saml2.core.Response;
-import org.opensaml.saml.saml2.core.Status;
-import org.opensaml.saml.saml2.core.StatusCode;
-import org.opensaml.saml.saml2.core.Subject;
-import org.opensaml.saml.saml2.core.SubjectConfirmation;
-import org.opensaml.saml.saml2.core.SubjectConfirmationData;
+import org.opensaml.saml.saml2.core.*;
+import org.opensaml.saml.saml2.encryption.Encrypter;
 import org.opensaml.saml.saml2.metadata.EntityDescriptor;
 import org.opensaml.saml.saml2.metadata.IDPSSODescriptor;
 import org.opensaml.saml.saml2.metadata.KeyDescriptor;
 import org.opensaml.saml.saml2.metadata.NameIDFormat;
 import org.opensaml.saml.saml2.metadata.SingleLogoutService;
 import org.opensaml.saml.saml2.metadata.SingleSignOnService;
+import org.opensaml.security.credential.BasicCredential;
 import org.opensaml.security.credential.Credential;
 import org.opensaml.security.credential.CredentialResolver;
 import org.opensaml.security.credential.UsageType;
 import org.opensaml.security.credential.impl.StaticCredentialResolver;
 import org.opensaml.security.x509.BasicX509Credential;
+import org.opensaml.xmlsec.EncryptionParameters;
 import org.opensaml.xmlsec.SignatureValidationParameters;
 import org.opensaml.xmlsec.context.SecurityParametersContext;
+import org.opensaml.xmlsec.encryption.EncryptedData;
+import org.opensaml.xmlsec.encryption.support.DataEncryptionParameters;
+import org.opensaml.xmlsec.encryption.support.EncryptionException;
+import org.opensaml.xmlsec.encryption.support.KeyEncryptionParameters;
 import org.opensaml.xmlsec.keyinfo.KeyInfoCredentialResolver;
 import org.opensaml.xmlsec.keyinfo.KeyInfoGenerator;
 import org.opensaml.xmlsec.keyinfo.impl.StaticKeyInfoCredentialResolver;
@@ -168,6 +156,7 @@ class MockSamlIdpServer implements Closeable {
     private final int port;
     private final String uri;
     private final boolean ssl;
+    private boolean encryptAssertion = false;
     private boolean wantAuthnRequestsSigned;
     private String idpEntityId;
     private X509Certificate signingCertificate;
@@ -179,6 +168,7 @@ class MockSamlIdpServer implements Closeable {
     private X509Certificate spSignatureCertificate;
     private String endpointQueryString;
     private String defaultAssertionConsumerService;
+
 
     MockSamlIdpServer() throws IOException {
         this(SocketUtils.findAvailableTcpPort());
@@ -433,7 +423,6 @@ class MockSamlIdpServer implements Closeable {
             response.setIssueInstant(new DateTime());
 
             Assertion assertion = createSamlElement(Assertion.class);
-            response.getAssertions().add(assertion);
 
             assertion.setID(nextId());
             assertion.setIssueInstant(new DateTime());
@@ -482,6 +471,7 @@ class MockSamlIdpServer implements Closeable {
                 }
             }
 
+
             if (signResponses) {
                 Signature signature = createSamlElement(Signature.class);
                 assertion.setSignature(signature);
@@ -495,13 +485,31 @@ class MockSamlIdpServer implements Closeable {
                 Signer.signObject(signature);
             }
 
+            if (this.encryptAssertion){
+                Encrypter encrypter = getEncrypter();
+                EncryptedAssertion encryptedAssertion = encrypter.encrypt(assertion);
+                response.getEncryptedAssertions().add(encryptedAssertion);
+            } else {
+                response.getAssertions().add(assertion);
+            }
+
+
             String marshalledXml = marshallSamlXml(response);
 
             return Base64Support.encode(marshalledXml.getBytes("UTF-8"), Base64Support.UNCHUNKED);
 
-        } catch (MarshallingException | SignatureException | UnsupportedEncodingException e) {
+        } catch (MarshallingException | SignatureException | UnsupportedEncodingException | EncryptionException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private Encrypter getEncrypter() {
+        KeyEncryptionParameters kek = new KeyEncryptionParameters();
+        kek.setAlgorithm(EncryptionConstants.ALGO_ID_KEYTRANSPORT_RSA15);
+        kek.setEncryptionCredential(new BasicX509Credential(spSignatureCertificate));
+        Encrypter encrypter = new Encrypter( new DataEncryptionParameters(),kek);
+        encrypter.setKeyPlacement(Encrypter.KeyPlacement.INLINE);
+        return encrypter;
     }
 
     @SuppressWarnings("unchecked")
@@ -1102,6 +1110,8 @@ class MockSamlIdpServer implements Closeable {
     public void setSignResponses(boolean signResponses) {
         this.signResponses = signResponses;
     }
+
+    public void setEncryptAssertion(boolean encryptAssertion) { this.encryptAssertion = encryptAssertion;}
 
     public X509Certificate getSpSignatureCertificate() {
         return spSignatureCertificate;

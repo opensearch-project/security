@@ -124,9 +124,13 @@ public class HTTPSamlAuthenticatorTest {
         mockSamlIdpServer.loadSigningKeys("saml/kirk-keystore.jks", "kirk");
         mockSamlIdpServer.setAuthenticateUser("horst");
         mockSamlIdpServer.setEndpointQueryString(null);
+        mockSamlIdpServer.setSpSignatureCertificate(spSigningCertificate);
+        mockSamlIdpServer.setEncryptAssertion(true);
 
         Settings settings = Settings.builder().put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
                 .put("kibana_url", "http://wherever").put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
+                .put("sp.signature_private_key", "-BEGIN PRIVATE KEY-\n"
+                        + Base64.getEncoder().encodeToString(spSigningPrivateKey.getEncoded()) + "-END PRIVATE KEY-")
                 .put("exchange_key", "abc").put("roles_key", "roles").put("path.home", ".").build();
 
         HTTPSamlAuthenticator samlAuthenticator = new HTTPSamlAuthenticator(settings, null);
