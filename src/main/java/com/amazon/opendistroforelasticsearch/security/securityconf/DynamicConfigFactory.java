@@ -300,15 +300,15 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         public List<String> getOpenDistroSecurityRoles(String user) {
             InternalUserV7 tmp = internalUserV7SecurityDynamicConfiguration.getCEntry(user);
 
-            // Filtering out hidden and reserved roles for existing users
+            // Filtering out hidden and non-existent roles for existing users
             return tmp == null ? ImmutableList.of() :
-                tmp.getOpendistro_security_roles().stream().filter(role -> !isHiddenReservedOrNonExistent(role)).collect(ImmutableList.toImmutableList());
+                tmp.getOpendistro_security_roles().stream().filter(role -> !isHiddenOrNonExistent(role)).collect(ImmutableList.toImmutableList());
         }
 
-        // We will remove opendistro security mapping for roles that are hidden/reserved or non-existent in the roles configuration
-        private boolean isHiddenReservedOrNonExistent(String rolename) {
+        // We will remove opendistro security mapping for roles that are hidden or non-existent in the roles configuration
+        private boolean isHiddenOrNonExistent(String rolename) {
             final RoleV7 role = roleV7SecurityDynamicConfiguration.getCEntry(rolename);
-            return role == null || role.isHidden() || role.isReserved();
+            return role == null || role.isHidden();
         }
     }
     

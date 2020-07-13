@@ -25,14 +25,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ThreadContext.StoredContext;
@@ -153,7 +151,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 			return;
 		}
 
-		if (!isReservedAndAccessible(existingConfiguration, name)) {
+		if (isReadOnly(existingConfiguration, name)) {
 			forbidden(channel, "Resource '"+ name +"' is read-only.");
 			return;
 		}
@@ -196,7 +194,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 			return;
 		}
 
-		if (!isReservedAndAccessible(existingConfiguration, name)) {
+		if (isReadOnly(existingConfiguration, name)) {
 			forbidden(channel, "Resource '"+ name +"' is read-only.");
 			return;
 		}
@@ -548,12 +546,15 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		return adminDNs.isAdmin(user);
 	}
 
-	protected boolean isReservedAndAccessible(final SecurityDynamicConfiguration<?> existingConfiguration,
-											  String name) {
-		if( isReserved(existingConfiguration, name) && !isSuperAdmin()) {
-			return false;
-		}
-		return true;
+	/**
+	 * Resource is readonly if it is reserved and user is not super admin.
+	 * @param existingConfiguration Configuration
+	 * @param name
+	 * @return True if resource readonly
+	 */
+	protected boolean isReadOnly(final SecurityDynamicConfiguration<?> existingConfiguration,
+								 String name) {
+		return isSuperAdmin() ? false: isReserved(existingConfiguration, name);
 	}
 
 }

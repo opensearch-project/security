@@ -48,6 +48,7 @@ opendistro_security_reserved:
       masked_fields: null
       allowed_actions:
         - "ALL"
+
 opendistro_security_internal:
   reserved: false
   hidden: true
