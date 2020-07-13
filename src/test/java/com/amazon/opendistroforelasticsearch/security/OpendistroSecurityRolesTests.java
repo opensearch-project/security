@@ -73,6 +73,7 @@ public class OpendistroSecurityRolesTests extends SingleClusterTest {
 				.setSecurityInternalUsers("internal_users_sr.yml"), Settings.EMPTY, true);
 
 		RestHelper rh = nonSslRestHelper();
+		rh.sendAdminCertificate = false;
 
 		HttpResponse resc = rh.executeGetRequest("_opendistro/_security/authinfo?pretty", encodeBasicHeader("sr_user", "nagilum"));
 		Assert.assertTrue(resc.getBody().contains("sr_user"));
@@ -81,7 +82,7 @@ public class OpendistroSecurityRolesTests extends SingleClusterTest {
 		// Ensure hidden reserved and non-existent roles are not available
 		Assert.assertFalse(resc.getBody().contains("xyz_sr_non_existent"));
 		Assert.assertFalse(resc.getBody().contains("xyz_sr_hidden"));
-		Assert.assertFalse(resc.getBody().contains("xyz_sr_reserved"));
+		Assert.assertTrue(resc.getBody().contains("xyz_sr_reserved"));
 
 		Assert.assertTrue(resc.getBody().contains("backend_roles=[abc_ber]"));
 		Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());

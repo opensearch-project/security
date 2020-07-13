@@ -104,7 +104,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         }
 
         // check if resource is writeable
-        if (!isReservedAndAccessible(internalUsersConfiguration, username)) {
+        if (isReadOnly(internalUsersConfiguration, username)) {
             forbidden(channel, "Resource '" + username + "' is read-only.");
             return;
         }
@@ -123,8 +123,8 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
                     return;
                 }
 
-                if (isReserved(rolesConfiguration, role)) {
-                    forbidden(channel, "Role '" + role + "' is reserved.");
+                if (isReadOnly(rolesConfiguration, role)) {
+                    forbidden(channel, "Role '" + role + "' is read-only.");
                     return;
                 }
             }
