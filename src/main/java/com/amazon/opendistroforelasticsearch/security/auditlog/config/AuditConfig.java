@@ -2,7 +2,6 @@ package com.amazon.opendistroforelasticsearch.security.auditlog.config;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
 import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
-import com.amazon.opendistroforelasticsearch.security.dlic.rest.support.Utils;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 
@@ -10,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -128,7 +128,7 @@ public class AuditConfig {
     public static class Filter {
         @VisibleForTesting
         public static final Filter DEFAULT = Filter.from(Settings.EMPTY);
-        private static Set<String> KEYS = ImmutableSet.of(
+        private static Set<String> FIELDS = ImmutableSet.of(
                 "enable_rest", "disabled_rest_categories", "enable_transport", "disabled_transport_categories",
                 "resolve_bulk_requests", "log_request_body", "resolve_indices", "exclude_sensitive_headers",
                 "ignore_users", "ignore_requests");
@@ -175,9 +175,9 @@ public class AuditConfig {
 
         @JsonCreator
         @VisibleForTesting
-        public static Filter from(Map<String, Object> properties) {
-            if (!KEYS.containsAll(properties.keySet())) {
-                throw new IllegalArgumentException("Invalid keys present in the input data for audit filter config");
+        public static Filter from(Map<String, Object> properties) throws JsonProcessingException {
+            if (!FIELDS.containsAll(properties.keySet())) {
+                throw new UnrecognizedPropertyException(null, "Unrecognized field(s) present in the input data for audit filter config", null, Filter.class, null, null);
             }
 
             final boolean isRestApiAuditEnabled = getOrDefault(properties,"enable_rest", true);
@@ -243,7 +243,7 @@ public class AuditConfig {
         }
 
         public static Filter fromConfig(final Settings configuration) {
-            if (!KEYS.containsAll(configuration.names())) {
+            if (!FIELDS.containsAll(configuration.names())) {
                 throw new IllegalArgumentException("Invalid keys present in the input data for audit filter config");
             }
 

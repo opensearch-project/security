@@ -18,8 +18,11 @@ package com.amazon.opendistroforelasticsearch.security;
 import java.util.Map;
 
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
 public class DefaultObjectMapper {
@@ -34,9 +37,25 @@ public class DefaultObjectMapper {
         objectMapper.setInjectableValues(injectableValues);
     }
 
-    public static boolean getOrDefault(Map<String, Object> properties, String key, boolean defaultValue) {
-        Boolean value = (Boolean)properties.get(key);
-        return value != null ? value.booleanValue() : defaultValue;
+    public static boolean getOrDefault(Map<String, Object> properties, String key, boolean defaultValue) throws JsonProcessingException {
+        Object value = properties.get(key);
+        if (value == null) {
+            return defaultValue;
+        } else if (value instanceof Boolean) {
+            return (boolean)value;
+        } else if (value instanceof String) {
+            String text = ((String)value).trim();
+            if ("true".equals(text) || "True".equals(text)) {
+                return true;
+            }
+            if ("false".equals(text) || "False".equals(text)) {
+                return false;
+            }
+            throw InvalidFormatException.from(null,
+                    "Cannot deserialize value of type 'boolean' from String \"" + text + "\": only \"true\" or \"false\" recognized)",
+                    null, Boolean.class);
+        }
+        throw MismatchedInputException.from(null, Boolean.class, "Cannot deserialize instance of 'boolean' out of '" + value + "' (Property: " + key + ")");
     }
 
     public static <T> T getOrDefault(Map<String, Object> properties, String key, T defaultValue) {
