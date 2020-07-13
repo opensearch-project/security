@@ -94,8 +94,8 @@ public class ConfigConstants {
 
     public static final String OPENDISTRO_SECURITY_INJECTED_USER = "injected_user";
 
-    public static final String OPENDISTRO_SECURITY_INJECT_ROLE_ENABLED = "opendistro_security_inject_role_enabled";
-    public static final String OPENDISTRO_SECURITY_INJECT_ROLE = "opendistro_security_inject_role";
+    public static final String OPENDISTRO_SECURITY_INJECTED_ROLES_ENABLED = "opendistro_security_injected_roles_enabled";
+    public static final String OPENDISTRO_SECURITY_INJECTED_ROLES = "opendistro_security_injected_roles";
 
     public static final String OPENDISTRO_SECURITY_XFF_DONE = OPENDISTRO_SECURITY_CONFIG_PREFIX+"xff_done";
 

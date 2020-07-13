@@ -35,7 +35,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import com.amazon.opendistroforelasticsearch.security.auth.RoleInjector;
+import com.amazon.opendistroforelasticsearch.security.auth.RolesInjector;
 import com.amazon.opendistroforelasticsearch.security.resolver.IndexResolverReplacer;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.google.common.annotations.VisibleForTesting;
@@ -151,9 +151,8 @@ public class OpenDistroSecurityFilter implements ActionFilter {
                 attachSourceFieldContext(request);
             }
 
-            final RoleInjector roleInjector = new RoleInjector(settings, threadContext, auditLog);
-
-            final User user = roleInjector.injectRoleEnabled() ? roleInjector.getUser() :
+            final RolesInjector rolesInjector = new RolesInjector(settings, threadContext);
+            final User user = rolesInjector.isRoleInjected() ? rolesInjector.getUser() :
                     threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
             final boolean userIsAdmin = isUserAdmin(user, adminDns);
             final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadContext);
@@ -234,7 +233,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
 
             if(Origin.LOCAL.toString().equals(threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN))
                     && (interClusterRequest || HeaderHelper.isDirectRequest(threadContext))
-                    && !roleInjector.injectRoleEnabled()
+                    && !rolesInjector.isRoleInjected()
                     ) {
 
                 chain.proceed(task, action, request, listener);
@@ -271,7 +270,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
                 log.trace("Evaluate permissions for user: {}", user.getName());
             }
 
-            final PrivilegesEvaluatorResponse pres = eval.evaluate(user, action, request, task, roleInjector);
+            final PrivilegesEvaluatorResponse pres = eval.evaluate(user, action, request, task, rolesInjector);
             
             if (log.isDebugEnabled()) {
                 log.debug(pres);
