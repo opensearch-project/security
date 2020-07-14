@@ -30,10 +30,12 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * todo: desc
- *
- * user_name|role_1,role_2
- *
+ * This is used to inject opendistro-roles into the request when there is no user involved like periodic plugin 
+ * background jobs. The roles injection is done using thread-context at transport layer only. You can't inject 
+ * roles using REST api. Using this we can enforce fine-grained-access-control for the calls plugins make.
+ * 
+ * Format for the injected string: user_name|role_1,role_2
+ * User name is ignored.
  */
 
 final public class RolesInjector {

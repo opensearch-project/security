@@ -15,8 +15,6 @@
 
 package com.amazon.opendistroforelasticsearch.security.auth;
 
-import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
-import com.amazon.opendistroforelasticsearch.security.auditlog.NullAuditLog;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 
@@ -44,7 +42,6 @@ public class RolesInjectorTest {
         ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
         threadContext.putTransient(OPENDISTRO_SECURITY_INJECTED_ROLES, "user1|role_1,role_2");
         Settings settings = Settings.builder().put(OPENDISTRO_SECURITY_INJECTED_ROLES_ENABLED,"true").build();
-        AuditLog auditLog = new NullAuditLog();
 
         RolesInjector rolesInjector = new RolesInjector(settings, threadContext);
         assertEquals(true, rolesInjector.isRoleInjected());
