@@ -37,7 +37,12 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import javax.crypto.KeyGenerator;
@@ -168,7 +173,6 @@ class MockSamlIdpServer implements Closeable {
     private X509Certificate spSignatureCertificate;
     private String endpointQueryString;
     private String defaultAssertionConsumerService;
-
 
     MockSamlIdpServer() throws IOException {
         this(SocketUtils.findAvailableTcpPort());
@@ -1111,7 +1115,9 @@ class MockSamlIdpServer implements Closeable {
         this.signResponses = signResponses;
     }
 
-    public void setEncryptAssertion(boolean encryptAssertion) { this.encryptAssertion = encryptAssertion;}
+    public void setEncryptAssertion(boolean encryptAssertion) {
+        this.encryptAssertion = encryptAssertion;
+    }
 
     public X509Certificate getSpSignatureCertificate() {
         return spSignatureCertificate;

@@ -54,8 +54,8 @@ public class Saml2SettingsProvider {
     private final MetadataResolver metadataResolver;
     private final String idpEntityId;
     private final PrivateKey spSignaturePrivateKey;
-    private  Saml2Settings cachedSaml2Settings;
-    private  DateTime metadataUpdateTime;
+    private Saml2Settings cachedSaml2Settings;
+    private DateTime metadataUpdateTime;
 
     Saml2SettingsProvider(Settings esSettings, MetadataResolver metadataResolver, PrivateKey spSignaturePrivateKey) {
         this.esSettings = esSettings;
@@ -91,8 +91,6 @@ public class Saml2SettingsProvider {
             initMisc(configProperties);
 
             SettingsBuilder settingsBuilder = new SettingsBuilder();
-
-            configProperties.put(SettingsBuilder.SP_PRIVATEKEY_PROPERTY_KEY, this.spSignaturePrivateKey);
 
             // TODO allow overriding of IdP metadata?
             settingsBuilder.fromValues(configProperties);
@@ -138,6 +136,7 @@ public class Saml2SettingsProvider {
     private void initMisc(HashMap<String, Object> configProperties) {
         configProperties.put(SettingsBuilder.STRICT_PROPERTY_KEY, true);
         configProperties.put(SettingsBuilder.SECURITY_REJECT_UNSOLICITED_RESPONSES_WITH_INRESPONSETO, true);
+        configProperties.put(SettingsBuilder.SP_PRIVATEKEY_PROPERTY_KEY, this.spSignaturePrivateKey);
     }
 
     private void initSpEndpoints(HashMap<String, Object> configProperties) {
