@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
+import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
 import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import com.fasterxml.jackson.annotation.JacksonInject;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
@@ -77,10 +78,7 @@ public class ComplianceConfig {
     public static final ComplianceConfig DEFAULT = ComplianceConfig.from(Settings.EMPTY);
     private static final int CACHE_SIZE = 1000;
     private static final String INTERNAL_ELASTICSEARCH = "internal_elasticsearch";
-    private static Set<String> FIELDS = ImmutableSet.of(
-            "enabled", "external_config", "internal_config",
-            "read_metadata_only", "read_watched_fields", "read_ignore_users",
-            "write_metadata_only", "write_log_diffs", "write_watched_indices", "write_ignore_users");
+    public static Set<String> FIELDS = DefaultObjectMapper.getFields(ComplianceConfig.class);
 
     private final boolean logExternalConfig;
     private final boolean logInternalConfig;
