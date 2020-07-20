@@ -35,7 +35,10 @@ import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Map;
+import java.util.Set;
 
+import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
+import com.google.common.collect.ImmutableSet;
 import org.elasticsearch.SpecialPermission;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
@@ -223,4 +226,13 @@ public class DefaultObjectMapper {
         return objectMapper.getTypeFactory();
     }
 
+    public static Set<String> getFields(Class cls) {
+        return objectMapper
+                .getSerializationConfig()
+                .introspect(getTypeFactory().constructType(cls))
+                .findProperties()
+                .stream()
+                .map(BeanPropertyDefinition::getName)
+                .collect(ImmutableSet.toImmutableSet());
+    }
 }
