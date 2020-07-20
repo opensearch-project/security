@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ExceptionsHelper;
@@ -194,16 +195,21 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 			return;
 		}
 
+		final Settings additionalSettings = additionalSettingsBuilder.build();
+
+		if (isReadonlyFieldUpdated(existingAsSettings.v2(), additionalSettings)) {
+			conflict(channel, "Attempted to update read-only property.");
+			return;
+		}
+
 		if (log.isTraceEnabled()) {
-			log.trace(additionalSettingsBuilder.build());
+			log.trace(additionalSettings);
 		}
 
 		final Map<String, Object> con = Utils.convertJsonToxToStructuredMap(existingAsSettings.v2());
-
 		boolean existed = con.containsKey(name);
 
-		con.put(name, Utils.convertJsonToxToStructuredMap(additionalSettingsBuilder.build()));
-
+		con.put(name, Utils.convertJsonToxToStructuredMap(additionalSettings));
 		saveAnUpdateConfigs(client, request, getConfigName(), Utils.convertStructuredMapToBytes(con), new OnSucessActionListener<IndexResponse>(channel) {
 
 			@Override
@@ -291,6 +297,16 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		}
 	}
 
+	protected boolean isReadonlyFieldUpdated(final JsonNode existingResource, final JsonNode targetResource) {
+		// Default is false. Override function for additional logic
+		return false;
+	}
+
+	protected boolean isReadonlyFieldUpdated(final Settings configuration, final Settings targetResource) {
+		// Default is false. Override function for additional logic
+		return false;
+	}
+
 	abstract class OnSucessActionListener<Response> implements ActionListener<Response> {
 
 		private final RestChannel channel;
@@ -351,10 +367,10 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 			client.execute(ConfigUpdateAction.INSTANCE, cur, new ActionListener<ConfigUpdateResponse>() {
 				@Override
 				public void onResponse(final ConfigUpdateResponse ur) {
-                    if(ur.hasFailures()) {
-                        delegate.onFailure(ur.failures().get(0));
-                        return;
-                    }
+					if(ur.hasFailures()) {
+						delegate.onFailure(ur.failures().get(0));
+						return;
+					}
 					delegate.onResponse(response);
 				}
 
@@ -524,6 +540,10 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
 	protected boolean isHidden(Settings settings, String resourceName) {
 		return settings.getAsBoolean(resourceName+ "." + ConfigConstants.CONFIGKEY_HIDDEN, Boolean.FALSE);
+	}
+
+	protected void conflict(RestChannel channel, String message) {
+		response(channel, RestStatus.CONFLICT, RestStatus.CONFLICT.name(), message);
 	}
 
 	/**
