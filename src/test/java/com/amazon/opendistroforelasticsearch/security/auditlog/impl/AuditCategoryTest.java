@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 import static com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory.AUTHENTICATED;
 import static com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory.BAD_HEADERS;
@@ -47,7 +48,7 @@ public class AuditCategoryTest {
 
         @Test
         public void testAuditCategoryEnumSetGenerationWhenEmpty() {
-            EnumSet<AuditCategory> categories = AuditCategory.parse(input);
+            Set<AuditCategory> categories = AuditCategory.parse(input);
             Assert.assertEquals(categories, expected);
         }
     }

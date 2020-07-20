@@ -15,7 +15,15 @@
 
 package com.amazon.opendistroforelasticsearch.security;
 
+import java.security.AccessController;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
 import java.util.Map;
+import java.util.Set;
+
+import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
+import com.fasterxml.jackson.databind.type.TypeFactory;
+import com.google.common.collect.ImmutableSet;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -24,6 +32,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import org.elasticsearch.SpecialPermission;
 
 public class DefaultObjectMapper {
     public static final ObjectMapper objectMapper = new ObjectMapper();
@@ -61,6 +70,32 @@ public class DefaultObjectMapper {
     public static <T> T getOrDefault(Map<String, Object> properties, String key, T defaultValue) {
         T value = (T)properties.get(key);
         return value != null ? value : defaultValue;
+    }
+
+    public static String writeValueAsString(Object value) throws JsonProcessingException {
+        final SecurityManager sm = System.getSecurityManager();
+        if (sm != null) {
+            sm.checkPermission(new SpecialPermission());
+        }
+        try {
+            return AccessController.doPrivileged((PrivilegedExceptionAction<String>) () -> objectMapper.writeValueAsString(value));
+        } catch (final PrivilegedActionException e) {
+            throw (JsonProcessingException) e.getCause();
+        }
+    }
+
+    public static TypeFactory getTypeFactory() {
+        return objectMapper.getTypeFactory();
+    }
+
+    public static Set<String> getFields(Class cls) {
+        return objectMapper
+                .getSerializationConfig()
+                .introspect(getTypeFactory().constructType(cls))
+                .findProperties()
+                .stream()
+                .map(BeanPropertyDefinition::getName)
+                .collect(ImmutableSet.toImmutableSet());
     }
 }
 

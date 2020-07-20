@@ -143,6 +143,11 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
             }
         }
 
+        if (isReadonlyFieldUpdated(existingResourceAsJsonNode, patchedResourceAsJsonNode)) {
+            request.params().clear();
+            conflict(channel, "Attempted to update read-only property.");
+            return;
+        }
 
         AbstractConfigurationValidator validator = getValidator(request, patchedResourceAsJsonNode);
 
@@ -215,6 +220,12 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
                             new BytesRestResponse(RestStatus.BAD_REQUEST, originalValidator.errorsAsXContent(channel)));
                     return;
                 }
+            }
+
+            if (isReadonlyFieldUpdated(oldResource, patchedResource)) {
+                request.params().clear();
+                conflict(channel, "Attempted to update read-only property.");
+                return;
             }
 
             if (oldResource == null || !oldResource.equals(patchedResource)) {

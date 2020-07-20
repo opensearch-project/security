@@ -10,7 +10,16 @@ import com.amazon.opendistroforelasticsearch.security.dlic.rest.validation.Audit
 import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvaluator;
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.PrincipalExtractor;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+
+import com.amazon.opendistroforelasticsearch.security.dlic.rest.support.Utils;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Streams;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -26,6 +35,9 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Rest handler for fetching and updating audit configuration.
@@ -106,6 +118,11 @@ import java.nio.file.Path;
  */
 public class AuditApiAction extends PatchableResourceApiAction {
     private static final String RESOURCE_NAME = "config";
+    @VisibleForTesting
+    public static final String READONLY_FIELD = "_readonly";
+    @VisibleForTesting
+    public static final String STATIC_RESOURCE = "/static_config/static_audit.yml";
+    private final List<String> readonlyFields;
     private final PrivilegesEvaluator privilegesEvaluator;
     private final ThreadContext threadContext;
 
@@ -123,6 +140,22 @@ public class AuditApiAction extends PatchableResourceApiAction {
         super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, privilegesEvaluator, threadPool, auditLog);
         this.privilegesEvaluator = privilegesEvaluator;
         this.threadContext = threadPool.getThreadContext();
+        try {
+            this.readonlyFields = Streams.stream(DefaultObjectMapper.YAML_MAPPER
+                    .readTree(AuditApiAction.class.getResourceAsStream(STATIC_RESOURCE))
+                    .get(READONLY_FIELD)
+                    .iterator())
+                    .map(JsonNode::textValue)
+                    .collect(ImmutableList.toImmutableList());
+            if (!AuditConfig.FIELD_PATHS.containsAll(this.readonlyFields)) {
+                throw new ElasticsearchException("Invalid read-only field paths provided in static resource file " + STATIC_RESOURCE);
+            }
+        } catch (IOException e) {
+            throw new ElasticsearchException("Unable to load audit static resource file", e);
+        } catch (Exception e) {
+            log.error("error : ", e);
+            throw e;
+        }
     }
 
     @Override
@@ -149,7 +182,8 @@ public class AuditApiAction extends PatchableResourceApiAction {
         final Tuple<Long, Settings.Builder> settingsBuilder = load(getConfigName(), true);
         final Settings configurationSettings = settingsBuilder.v2().build();
         final AuditConfig auditConfig = AuditConfig.fromConfig(configurationSettings.getAsSettings(getResourceName()), settings);
-        final String json = DefaultObjectMapper.objectMapper.writeValueAsString(ImmutableMap.of(
+        final String json = DefaultObjectMapper.writeValueAsString(ImmutableMap.of(
+                READONLY_FIELD, this.readonlyFields,
                 RESOURCE_NAME, auditConfig
         ));
         channel.sendResponse(new BytesRestResponse(RestStatus.OK, "application/json", json));
@@ -195,5 +229,22 @@ public class AuditApiAction extends PatchableResourceApiAction {
     @Override
     protected String getConfigName() {
         return ConfigConstants.CONFIGNAME_AUDIT;
+    }
+
+    @Override
+    protected boolean isReadonlyFieldUpdated(final JsonNode existingResource, final JsonNode targetResource) {
+        if (!isSuperAdmin()) {
+            return readonlyFields
+                    .stream()
+                    .anyMatch(path -> !existingResource.at(path).equals(targetResource.at(path)));
+        }
+        return false;
+    }
+
+    @Override
+    protected boolean isReadonlyFieldUpdated(final Settings configuration, final Settings targetResource) {
+        return isReadonlyFieldUpdated(
+                Utils.convertJsonToJackson(configuration).get(getResourceName()),
+                Utils.convertJsonToJackson(targetResource));
     }
 }
