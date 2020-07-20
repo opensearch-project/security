@@ -199,6 +199,11 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 			return;
 		}
 
+		if (isReadonlyFieldUpdated(existingConfiguration, content)) {
+			conflict(channel, "Attempted to update read-only property.");
+			return;
+		}
+
 		if (log.isTraceEnabled() && content != null) {
 			log.trace(content.toString());
 		}
@@ -274,6 +279,16 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 			builder.removeHidden();
 		}
 		builder.set_meta(null);
+	}
+
+	protected boolean isReadonlyFieldUpdated(final JsonNode existingResource, final JsonNode targetResource) {
+		// Default is false. Override function for additional logic
+		return false;
+	}
+
+	protected boolean isReadonlyFieldUpdated(final SecurityDynamicConfiguration<?> configuration, final JsonNode targetResource) {
+		// Default is false. Override function for additional logic
+		return false;
 	}
 
 	abstract class OnSucessActionListener<Response> implements ActionListener<Response> {
@@ -496,6 +511,10 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
 	protected void unprocessable(RestChannel channel, String message) {
 		response(channel, RestStatus.UNPROCESSABLE_ENTITY, message);
+	}
+
+	protected void conflict(RestChannel channel, String message) {
+		response(channel, RestStatus.CONFLICT, message);
 	}
 
 	protected void notImplemented(RestChannel channel, Method method) {
