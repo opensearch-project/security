@@ -139,7 +139,7 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
         }
 
         {
-            // any creds, admin certificate, disallowed key - OK
+            // any creds, admin certificate, disallowed key - FORBIDDEN
             rh.keystore = "restapi/kirk-keystore.jks";
             rh.sendAdminCertificate = true;
 
