@@ -475,6 +475,13 @@
                     <include>KEYS</include>
                 </includes>
             </resource>
+            <resource>
+                <directory>${basedir}/src/main/resources</directory>
+                <filtering>false</filtering>
+                <includes>
+                    <include>static_config/**/*.yml</include>
+                </includes>
+            </resource>
         </resources>
         <plugins>
             <plugin>
