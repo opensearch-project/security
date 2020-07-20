@@ -24,7 +24,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
+import com.google.common.collect.ImmutableSet;
 import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.ExceptionsHelper;
@@ -197,5 +199,18 @@ public class Utils {
         Arrays.fill(salt, (byte) 0);
         Arrays.fill(clearTextPassword, '\0');
         return hash;
+    }
+
+    /**
+     * Generate field resource paths
+     * @param fields fields
+     * @param prefix prefix path
+     * @return new set of fields resource paths
+     */
+    public static Set<String> generateFieldResourcePaths(final Set<String> fields, final String prefix) {
+        return fields
+                .stream()
+                .map(field -> prefix + field)
+                .collect(ImmutableSet.toImmutableSet());
     }
 }
