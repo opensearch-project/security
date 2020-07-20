@@ -103,7 +103,7 @@ public class NodesDnApiAction extends PatchableResourceApiAction {
     @Override
     protected boolean isReadOnly(SecurityDynamicConfiguration<?> existingConfiguration, String name) {
         if (STATIC_ES_YML_NODES_DN.equals(name)) {
-            return false;
+            return true;
         }
         return super.isReadOnly(existingConfiguration, name);
     }
