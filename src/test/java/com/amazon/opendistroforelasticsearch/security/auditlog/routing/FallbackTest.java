@@ -108,24 +108,20 @@ public class FallbackTest extends AbstractAuditlogiUnitTest {
 		router = createMessageRouterComplianceEnabled(settings);
 		msg = MockAuditMessageFactory.validAuditMessage(AuditCategory.FAILED_LOGIN);
 		router.route(msg);
-		sinks = router.categorySinks.get(AuditCategory.FAILED_LOGIN);
-		sink = sinks.get(0);
-		Assert.assertEquals("default", sink.getName());
-		Assert.assertEquals(LoggingSink.class, sink.getClass());
-		loggingSkin = (LoggingSink) sink;
+		Assert.assertNull(router.categorySinks.get(AuditCategory.FAILED_LOGIN));
+		loggingSkin = (LoggingSink) router.defaultSink;
 		Assert.assertEquals(1, loggingSkin.messages.size());
 		Assert.assertEquals(msg, loggingSkin.messages.get(0));
 		// all others must be empty
-		assertLoggingSinksEmpty(router, AuditCategory.FAILED_LOGIN);
+		assertLoggingSinksEmpty(router);
 
 	}
 
-	private void assertLoggingSinksEmpty(AuditMessageRouter router, AuditCategory exclude) {
+	private void assertLoggingSinksEmpty(AuditMessageRouter router) {
 		// get all sinks
 		List<AuditLogSink> allSinks = router.categorySinks.values().stream().flatMap(Collection::stream).collect(Collectors.toList());
 		allSinks = allSinks.stream().filter(sink -> (sink instanceof LoggingSink)).collect(Collectors.toList());
 		allSinks.removeAll(Collections.singleton(router.defaultSink));
-		allSinks.removeAll(router.categorySinks.get(exclude));
 		for(AuditLogSink sink : allSinks) {
 			LoggingSink loggingSink = (LoggingSink)sink;
 			Assert.assertEquals(0, loggingSink.messages.size());

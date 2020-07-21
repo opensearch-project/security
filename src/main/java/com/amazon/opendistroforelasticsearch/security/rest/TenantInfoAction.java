@@ -40,7 +40,7 @@ import java.util.SortedMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.node.NodeClient;
-import org.elasticsearch.cluster.metadata.AliasOrIndex;
+import org.elasticsearch.cluster.metadata.IndexAbstraction;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
@@ -108,7 +108,7 @@ public class TenantInfoAction extends BaseRestHandler {
 
                     	builder.startObject();
 	
-                    	final SortedMap<String, AliasOrIndex> lookup = clusterService.state().metaData().getAliasAndIndexLookup();
+                    	final SortedMap<String, IndexAbstraction> lookup = clusterService.state().metadata().getIndicesLookup();
                     	for(final String indexOrAlias: lookup.keySet()) {
                     		final String tenant = tenantNameForIndex(indexOrAlias);
                     		if(tenant != null) {

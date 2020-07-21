@@ -58,8 +58,10 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.http.HttpInfo;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.node.PluginAwareNode;
+import org.elasticsearch.transport.TransportInfo;
 
 import com.amazon.opendistroforelasticsearch.security.test.NodeSettingsSupplier;
 import com.amazon.opendistroforelasticsearch.security.test.helper.cluster.ClusterConfiguration.NodeSettings;
@@ -288,44 +290,44 @@ public final class ClusterHelper {
 
 
             for (NodeInfo nodeInfo: masterNodes) {
-                final TransportAddress is = nodeInfo.getTransport().getAddress()
-                        .publishAddress();
-                clusterInfo.nodePort = is.getPort();
-                clusterInfo.nodeHost = is.getAddress();
+                final TransportInfo transportInfo = nodeInfo.getInfo(TransportInfo.class);
+                final TransportAddress transportAddress = transportInfo.getAddress().publishAddress();
+                clusterInfo.nodePort = transportAddress.getPort();
+                clusterInfo.nodeHost = transportAddress.getAddress();
             }
 
             if(!clientNodes.isEmpty()) {
                 NodeInfo nodeInfo = clientNodes.get(0);
-                if (nodeInfo.getHttp() != null && nodeInfo.getHttp().address() != null) {
-                    final TransportAddress his = nodeInfo.getHttp().address()
-                            .publishAddress();
-                    clusterInfo.httpPort = his.getPort();
-                    clusterInfo.httpHost = his.getAddress();
-                    clusterInfo.httpAdresses.add(his);
+                final HttpInfo httpInfo = nodeInfo.getInfo(HttpInfo.class);
+                if (httpInfo != null && httpInfo.address() != null) {
+                    final TransportAddress transportAddress = httpInfo.address().publishAddress();
+                    clusterInfo.httpPort = transportAddress.getPort();
+                    clusterInfo.httpHost = transportAddress.getAddress();
+                    clusterInfo.httpAdresses.add(transportAddress);
                 } else {
                     throw new RuntimeException("no http host/port for client node");
                 }
             } else if(!dataNodes.isEmpty()) {
 
                 for (NodeInfo nodeInfo: dataNodes) {
-                    if (nodeInfo.getHttp() != null && nodeInfo.getHttp().address() != null) {
-                        final TransportAddress his = nodeInfo.getHttp().address()
-                                .publishAddress();
-                        clusterInfo.httpPort = his.getPort();
-                        clusterInfo.httpHost = his.getAddress();
-                        clusterInfo.httpAdresses.add(his);
+                    final HttpInfo httpInfo = nodeInfo.getInfo(HttpInfo.class);
+                    if (httpInfo != null && httpInfo.address() != null) {
+                        final TransportAddress transportAddress = httpInfo.address().publishAddress();
+                        clusterInfo.httpPort = transportAddress.getPort();
+                        clusterInfo.httpHost = transportAddress.getAddress();
+                        clusterInfo.httpAdresses.add(transportAddress);
                         break;
                     }
                 }
             }  else  {
 
                 for (NodeInfo nodeInfo: nodes) {
-                    if (nodeInfo.getHttp() != null && nodeInfo.getHttp().address() != null) {
-                        final TransportAddress his = nodeInfo.getHttp().address()
-                                .publishAddress();
-                        clusterInfo.httpPort = his.getPort();
-                        clusterInfo.httpHost = his.getAddress();
-                        clusterInfo.httpAdresses.add(his);
+                    final HttpInfo httpInfo = nodeInfo.getInfo(HttpInfo.class);
+                    if (httpInfo != null && httpInfo.address() != null) {
+                        final TransportAddress transportAddress = httpInfo.address().publishAddress();
+                        clusterInfo.httpPort = transportAddress.getPort();
+                        clusterInfo.httpHost = transportAddress.getAddress();
+                        clusterInfo.httpAdresses.add(transportAddress);
                         break;
                     }
                 }

@@ -64,6 +64,8 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.MultimapBuilder.SetMultimapBuilder;
 import com.google.common.collect.SetMultimap;
 
+import static org.elasticsearch.cluster.metadata.IndexAbstraction.Type.ALIAS;
+
 public class ConfigModelV7 extends ConfigModel {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
@@ -556,7 +558,7 @@ public class ConfigModelV7 extends ConfigModel {
 
                         //#557
                         //final String[] allIndices = resolver.concreteIndexNames(cs.state(), IndicesOptions.lenientExpandOpen(), "*");
-                        final String[] allIndices = cs.state().metaData().getConcreteAllOpenIndices();
+                        final String[] allIndices = cs.state().metadata().getConcreteAllOpenIndices();
                         Arrays.stream(allIndices).filter(permitted).forEach(res::add);
                     }
                     retVal.addAll(res);
@@ -743,8 +745,10 @@ public class ConfigModelV7 extends ConfigModel {
             WildcardMatcher matcher = WildcardMatcher.from(unresolved);
             String[] resolved = null;
             if (!(matcher instanceof WildcardMatcher.Exact)) {
-                final String[] aliasesForPermittedPattern = cs.state().getMetaData().getAliasAndIndexLookup().entrySet().stream()
-                        .filter(e -> e.getValue().isAlias()).filter(e -> matcher.test(e.getKey())).map(e -> e.getKey())
+                final String[] aliasesForPermittedPattern = cs.state().getMetadata().getIndicesLookup().entrySet().stream()
+                        .filter(e -> e.getValue().getType() == ALIAS)
+                        .filter(e -> matcher.test(e.getKey()))
+                        .map(e -> e.getKey())
                         .toArray(String[]::new);
 
                 if (aliasesForPermittedPattern.length > 0) {

@@ -31,7 +31,6 @@
 package com.amazon.opendistroforelasticsearch.security;
 
 import java.io.IOException;
-import java.lang.reflect.Constructor;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
@@ -41,7 +40,6 @@ import java.security.MessageDigest;
 import java.security.PrivilegedAction;
 import java.security.Security;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -49,7 +47,9 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.lucene.index.DirectoryReader;
+import com.amazon.opendistroforelasticsearch.security.auditlog.NullAuditLog;
+import com.amazon.opendistroforelasticsearch.security.configuration.OpenDistroSecurityFlsDlsIndexSearcherWrapper;
+import com.amazon.opendistroforelasticsearch.security.configuration.Salt;
 import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenDistroSecuritySSLReloadCertsAction;
 import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenDistroSecuritySSLCertsInfoAction;
 import org.apache.lucene.search.QueryCachingPolicy;
@@ -68,7 +68,6 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.Lifecycle.State;
-import org.elasticsearch.common.CheckedFunction;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.component.LifecycleListener;
 import org.elasticsearch.common.inject.Inject;
@@ -91,7 +90,6 @@ import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.http.HttpServerTransport.Dispatcher;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexModule;
-import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.cache.query.QueryCache;
 import org.elasticsearch.index.shard.SearchOperationListener;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
@@ -125,7 +123,6 @@ import com.amazon.opendistroforelasticsearch.security.action.whoami.TransportWho
 import com.amazon.opendistroforelasticsearch.security.action.whoami.WhoAmIAction;
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLogSslExceptionHandler;
-import com.amazon.opendistroforelasticsearch.security.auditlog.NullAuditLog;
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog.Origin;
 import com.amazon.opendistroforelasticsearch.security.auth.BackendRegistry;
 import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
@@ -170,7 +167,6 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
 
     private static final String KEYWORD = ".keyword";
     private final boolean dlsFlsAvailable;
-    private final Constructor<?> dlsFlsConstructor;
     private boolean sslCertReloadEnabled;
     private volatile OpenDistroSecurityRestFilter securityRestHandler;
     private volatile OpenDistroSecurityInterceptor odsi;
@@ -188,11 +184,10 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     private final boolean sslOnly;
     private final List<String> demoCertHashes = new ArrayList<String>(3);
     private volatile OpenDistroSecurityFilter odsf;
-    private volatile Environment environment;
     private volatile IndexResolverReplacer irr;
-    private AtomicBoolean externalConfigLogged = new AtomicBoolean();
     private volatile NamedXContentRegistry namedXContentRegistry = null;
     private volatile DlsFlsRequestValve dlsFlsValve = null;
+    private volatile Salt salt;
 
     @Override
     public void close() throws IOException {
@@ -233,7 +228,6 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
 
         if (disabled) {
             this.dlsFlsAvailable = false;
-            this.dlsFlsConstructor = null;
             this.advancedModulesEnabled = false;
             this.sslOnly = false;
             this.sslCertReloadEnabled = false;
@@ -245,7 +239,6 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
 
         if (sslOnly) {
             this.dlsFlsAvailable = false;
-            this.dlsFlsConstructor = null;
             this.advancedModulesEnabled = false;
             this.sslCertReloadEnabled = false;
             log.warn("Open Distro Security plugin run in ssl only mode. No authentication or authorization is performed");
@@ -296,13 +289,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             throw new IllegalStateException(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLED+" must be set to 'true'");
         }
 
-        if(!client) {
-            dlsFlsConstructor = ReflectionHelper.instantiateDlsFlsConstructor();
-            dlsFlsAvailable = dlsFlsConstructor != null;
-        } else {
-            dlsFlsAvailable = false;
-            dlsFlsConstructor = null;
-        }
+        dlsFlsAvailable = !client && advancedModulesEnabled;
 
         if(!client) {
             final List<Path> filesWithWrongPermissions = AccessController.doPrivileged(new PrivilegedAction<List<Path>>() {
@@ -472,7 +459,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             return (rh) -> rh;
         }
 
-        return (rh) -> securityRestHandler.wrap(rh);
+        return (rh) -> securityRestHandler.wrap(rh, adminDns);
     }
 
     @Override
@@ -485,45 +472,18 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         return actions;
     }
 
-    private CheckedFunction<DirectoryReader, DirectoryReader, IOException>  loadFlsDlsIndexSearcherWrapper(final IndexService indexService,
-            final ComplianceIndexingOperationListener ciol) {
-        try {
-            CheckedFunction<DirectoryReader, DirectoryReader, IOException>  flsdlsWrapper = (CheckedFunction<DirectoryReader, DirectoryReader, IOException> ) dlsFlsConstructor
-                    .newInstance(indexService, settings, Objects.requireNonNull(adminDns),
-                            Objects.requireNonNull(cs),
-                            Objects.requireNonNull(auditLog),
-                            Objects.requireNonNull(ciol),
-                            Objects.requireNonNull(evaluator));
-            if(log.isDebugEnabled()) {
-                log.debug("FLS/DLS enabled for index {}", indexService.index().getName());
-            }
-            return flsdlsWrapper;
-        } catch(Exception ex) {
-            throw new RuntimeException("Failed to enable FLS/DLS", ex);
-        }
-    }
-
     @Override
     public void onIndexModule(IndexModule indexModule) {
         //called for every index!
 
         if (!disabled && !client && !sslOnly) {
-            final ComplianceConfig complianceConfig = auditLog.getComplianceConfig();
-            log.debug("Handle complianceConfig="+complianceConfig+"/dlsFlsAvailable: "+dlsFlsAvailable+"/auditLog="+auditLog.getClass()+" for onIndexModule() of index "+indexModule.getIndex().getName());
+            log.debug("Handle dlsFlsAvailable: "+dlsFlsAvailable+"/auditLog="+auditLog.getClass()+" for onIndexModule() of index "+indexModule.getIndex().getName());
             if (dlsFlsAvailable) {
 
-                final ComplianceIndexingOperationListener ciol;
+                final ComplianceIndexingOperationListener ciol = ReflectionHelper.instantiateComplianceListener(Objects.requireNonNull(auditLog));
+                indexModule.addIndexOperationListener(ciol);
 
-                assert complianceConfig!=null:"compliance config must not be null here";
-                
-                if(complianceConfig.writeHistoryEnabledForIndex(indexModule.getIndex().getName())) {
-                    ciol = ReflectionHelper.instantiateComplianceListener(Objects.requireNonNull(auditLog));
-                    indexModule.addIndexOperationListener(ciol);
-                } else {
-                    ciol = new ComplianceIndexingOperationListener();
-                }
-
-                indexModule.setReaderWrapper(indexService -> loadFlsDlsIndexSearcherWrapper(indexService, ciol));
+                indexModule.setReaderWrapper(indexService -> new OpenDistroSecurityFlsDlsIndexSearcherWrapper(indexService, settings, adminDns, cs, auditLog, ciol, evaluator, salt));
                 indexModule.forceQueryCacheProvider((indexSettings,nodeCache)->new QueryCache() {
 
                     @Override
@@ -563,9 +523,6 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                     }
                 });
             } else {
-                
-                assert complianceConfig==null:"compliance config must be null here";
-                
                 indexModule.setReaderWrapper(
                         indexService -> new OpenDistroSecurityIndexSearcherWrapper(indexService, settings, Objects.requireNonNull(adminDns), Objects.requireNonNull(evaluator)));
             }
@@ -726,16 +683,28 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     @Override
     public Collection<Object> createComponents(Client localClient, ClusterService clusterService, ThreadPool threadPool,
             ResourceWatcherService resourceWatcherService, ScriptService scriptService, NamedXContentRegistry xContentRegistry,
-            Environment environment, NodeEnvironment nodeEnvironment, NamedWriteableRegistry namedWriteableRegistry, IndexNameExpressionResolver indexNameExpressionResolver) {
+            Environment environment, NodeEnvironment nodeEnvironment, NamedWriteableRegistry namedWriteableRegistry,
+            IndexNameExpressionResolver indexNameExpressionResolver, Supplier<RepositoriesService> repositoriesServiceSupplier) {
 
         if(sslOnly) {
-            return super.createComponents(localClient, clusterService, threadPool, resourceWatcherService, scriptService, xContentRegistry, environment, nodeEnvironment, namedWriteableRegistry, indexNameExpressionResolver);
+            return super.createComponents(
+                    localClient,
+                    clusterService,
+                    threadPool,
+                    resourceWatcherService,
+                    scriptService,
+                    xContentRegistry,
+                    environment,
+                    nodeEnvironment,
+                    namedWriteableRegistry,
+                    indexNameExpressionResolver,
+                    repositoriesServiceSupplier
+            );
         }
         
         this.threadPool = threadPool;
         this.cs = clusterService;
         this.localClient = localClient;
-        this.environment = environment;
 
         final List<Object> components = new ArrayList<Object>();
 
@@ -744,12 +713,12 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         }
         final ClusterInfoHolder cih = new ClusterInfoHolder();
         this.cs.addListener(cih);
-
+        this.salt = Salt.from(settings);
         dlsFlsValve = ReflectionHelper.instantiateDlsFlsValve();
 
         final IndexNameExpressionResolver resolver = new IndexNameExpressionResolver();
         irr = new IndexResolverReplacer(resolver, clusterService, cih);
-        auditLog = ReflectionHelper.instantiateAuditLog(settings, configPath, localClient, threadPool, resolver, clusterService, dlsFlsAvailable);
+        auditLog = ReflectionHelper.instantiateAuditLog(settings, configPath, localClient, threadPool, resolver, clusterService, dlsFlsAvailable, environment);
         
         sslExceptionHandler = new AuditLogSslExceptionHandler(auditLog);
 
@@ -772,26 +741,13 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
 
         final XFFResolver xffResolver = new XFFResolver(threadPool);
         backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool);
-        
-        final CompatConfig compatConfig = new CompatConfig(environment);
-        
 
+        final CompatConfig compatConfig = new CompatConfig(environment);
 
         evaluator = new PrivilegesEvaluator(clusterService, threadPool, cr, resolver, auditLog,
                 settings, privilegesInterceptor, cih, irr, advancedModulesEnabled);
 
-        
-        final DynamicConfigFactory dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih);
-        dcf.registerDCFListener(backendRegistry);
-        dcf.registerDCFListener(compatConfig);
-        dcf.registerDCFListener(irr);
-        dcf.registerDCFListener(xffResolver);
-        dcf.registerDCFListener(evaluator);
-        
-        cr.setDynamicConfigFactory(dcf);
-        
         odsf = new OpenDistroSecurityFilter(settings, evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs, compatConfig, irr);
-
 
         final String principalExtractorClass = settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, null);
 
@@ -800,6 +756,23 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         } else {
             principalExtractor = ReflectionHelper.instantiatePrincipalExtractor(principalExtractorClass);
         }
+
+        securityRestHandler = new OpenDistroSecurityRestFilter(backendRegistry, auditLog, threadPool,
+                principalExtractor, settings, configPath, compatConfig);
+
+        final DynamicConfigFactory dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih);
+        dcf.registerDCFListener(backendRegistry);
+        dcf.registerDCFListener(compatConfig);
+        dcf.registerDCFListener(irr);
+        dcf.registerDCFListener(xffResolver);
+        dcf.registerDCFListener(evaluator);
+        dcf.registerDCFListener(securityRestHandler);
+        if (!(auditLog instanceof NullAuditLog)) {
+            // Don't register if advanced modules is disabled in which case auditlog is instance of NullAuditLog
+            dcf.registerDCFListener(auditLog);
+        }
+
+        cr.setDynamicConfigFactory(dcf);
 
         odsi = new OpenDistroSecurityInterceptor(settings, threadPool, backendRegistry, auditLog, principalExtractor,
                 interClusterRequestEvaluator, cs, Objects.requireNonNull(sslExceptionHandler), Objects.requireNonNull(cih));
@@ -821,7 +794,6 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         components.add(odsi);
         components.add(dcf);
 
-        securityRestHandler = new OpenDistroSecurityRestFilter(backendRegistry, auditLog, threadPool, principalExtractor, settings, configPath, compatConfig);
 
         return components;
 
@@ -1014,13 +986,6 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         }
         final Set<ModuleInfo> securityModules = ReflectionHelper.getModulesLoaded();
         log.info("{} Open Distro Security modules loaded so far: {}", securityModules.size(), securityModules);
-        if (auditLog != null) {
-            final ComplianceConfig complianceConfig = auditLog.getComplianceConfig();
-            if(complianceConfig != null && complianceConfig.isEnabled() && complianceConfig.shouldLogExternalConfig() && !externalConfigLogged.getAndSet(true)) {
-                log.info("logging external config");
-                auditLog.logExternalConfig(settings, environment);
-            }
-        }
     }
 
     //below is a hack because it seems not possible to access RepositoriesService from a non guice class

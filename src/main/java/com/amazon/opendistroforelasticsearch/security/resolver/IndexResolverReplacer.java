@@ -78,7 +78,7 @@ import org.elasticsearch.action.termvectors.MultiTermVectorsRequest;
 import org.elasticsearch.action.termvectors.TermVectorsRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.AliasOrIndex;
+import org.elasticsearch.cluster.metadata.IndexAbstraction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -101,6 +101,8 @@ import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+
+import static org.elasticsearch.cluster.metadata.IndexAbstraction.Type.ALIAS;
 
 public class IndexResolverReplacer {
 
@@ -228,10 +230,10 @@ public class IndexResolverReplacer {
                             .collect(Collectors.toSet());
             final WildcardMatcher dateResolvedMatcher = WildcardMatcher.from(dateResolvedLocalRequestedPatterns);
             //fill matchingAliases
-            final Map<String, AliasOrIndex> lookup = state.metaData().getAliasAndIndexLookup();
+            final Map<String, IndexAbstraction> lookup = state.metadata().getIndicesLookup();
             matchingAliases = lookup.entrySet()
                     .stream()
-                    .filter(e -> e.getValue().isAlias())
+                    .filter(e -> e.getValue().getType() == ALIAS)
                     .map(Map.Entry::getKey)
                     .filter(dateResolvedMatcher)
                     .collect(Collectors.toSet());

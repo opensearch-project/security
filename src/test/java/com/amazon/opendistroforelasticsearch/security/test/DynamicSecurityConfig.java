@@ -50,6 +50,8 @@ public class DynamicSecurityConfig {
     private String securityInternalUsers = "internal_users.yml";
     private String securityActionGroups = "action_groups.yml";
     private String securityNodesDn = "nodes_dn.yml";
+    private String securityWhitelist= "whitelist.yml";
+    private String securityAudit = "audit.yml";
     private String securityConfigAsYamlString = null;
     private String type = "_doc";
     private String legacyConfigFolder = "";
@@ -57,6 +59,7 @@ public class DynamicSecurityConfig {
     public String getSecurityIndexName() {
         return securityIndexName;
     }
+
     public DynamicSecurityConfig setSecurityIndexName(String securityIndexName) {
         this.securityIndexName = securityIndexName;
         return this;
@@ -94,6 +97,16 @@ public class DynamicSecurityConfig {
 
     public DynamicSecurityConfig setSecurityNodesDn(String nodesDn) {
         this.securityNodesDn = nodesDn;
+        return this;
+    }
+
+    public DynamicSecurityConfig setSecurityWhitelist(String whitelist){
+        this.securityWhitelist = whitelist;
+        return this;
+    }
+
+    public DynamicSecurityConfig setSecurityAudit(String audit) {
+        this.securityAudit = audit;
         return this;
     }
 
@@ -151,10 +164,29 @@ public class DynamicSecurityConfig {
 
         if (null != FileHelper.getAbsoluteFilePathFromClassPath(prefix + securityNodesDn)) {
             ret.add(new IndexRequest(securityIndexName)
-                .type(type)
-                .id(CType.NODESDN.toLCString())
-                .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                .source(CType.NODESDN.toLCString(), FileHelper.readYamlContent(prefix+securityNodesDn)));
+                    .type(type)
+                    .id(CType.NODESDN.toLCString())
+                    .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .source(CType.NODESDN.toLCString(), FileHelper.readYamlContent(prefix + securityNodesDn)));
+
+        }
+
+        final String whitelistYmlFile = prefix + securityWhitelist;
+        if (null != FileHelper.getAbsoluteFilePathFromClassPath(whitelistYmlFile)) {
+            ret.add(new IndexRequest(securityIndexName)
+                    .type(type)
+                    .id(CType.WHITELIST.toLCString())
+                    .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .source(CType.WHITELIST.toLCString(), FileHelper.readYamlContent(whitelistYmlFile)));
+        }
+
+        final String auditYmlFile = prefix + securityAudit;
+        if (null != FileHelper.getAbsoluteFilePathFromClassPath(auditYmlFile)) {
+            ret.add(new IndexRequest(securityIndexName)
+                    .type(type)
+                    .id(CType.AUDIT.toLCString())
+                    .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .source(CType.AUDIT.toLCString(), FileHelper.readYamlContent(auditYmlFile)));
         }
 
         return Collections.unmodifiableList(ret);

@@ -1,0 +1,46 @@
+_meta:
+  type: "audit"
+  config_version: 2
+
+config:
+  # enable/disable auditlog
+  enabled: true
+
+  audit:
+    # rest
+    enable_rest: false
+    disabled_rest_categories: []
+
+    # transport
+    enable_transport: false
+    disabled_transport_categories: []
+
+    # ignore
+    ignore_users:
+      - kibanaserver
+    ignore_requests: []
+
+    # verbose attributes
+    resolve_bulk_requests: false
+    log_request_body: false
+    resolve_indices: false
+    exclude_sensitive_headers: false
+
+  compliance:
+    # enable/disable compliance
+    enabled: true
+
+    # configs
+    internal_config: true
+    external_config: false
+  
+    # compliance read
+    read_metadata_only: false
+    read_watched_fields: {}
+    read_ignore_users: []
+
+    # compliance write
+    write_metadata_only: false
+    write_log_diffs: false
+    write_watched_indices: []
+    write_ignore_users: []

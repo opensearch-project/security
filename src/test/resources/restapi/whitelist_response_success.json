@@ -1,0 +1,1 @@
+{"config":{"enabled":false,"requests":{"/_cat/nodes":["GET"],"/_cat/plugins": ["GET"],"/_cluster/health":["GET"],"/_cluster/settings":["GET"]}}}

@@ -39,7 +39,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateListener;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.index.Index;
@@ -114,10 +114,10 @@ public class ClusterInfoHolder implements ClusterStateListener {
     }
     
     private static boolean clusterHas6xIndices(ClusterState state) {
-        final Iterator<IndexMetaData> indices = state.metaData().indices().valuesIt();
-        for(;indices.hasNext();) {
-            final IndexMetaData indexMetaData = indices.next();
-            if(indexMetaData.getCreationVersion().before(Version.V_7_0_0)) {
+        final Iterator<IndexMetadata> indices = state.metadata().indices().valuesIt();
+        while (indices.hasNext()) {
+            final IndexMetadata indexMetadata = indices.next();
+            if (indexMetadata.getCreationVersion().before(Version.V_7_0_0)) {
                 return true;
             }
         }

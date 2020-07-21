@@ -45,7 +45,7 @@ import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelpe
 public class OpendistroSecurityRolesTests extends SingleClusterTest {
 
 	@Test
-	public void testSecurityRAnon() throws Exception {
+	public void testOpenDistroSecurityRolesAnon() throws Exception {
 
 		setup(Settings.EMPTY, new DynamicSecurityConfig()
 				.setSecurityInternalUsers("internal_users_sr.yml")
@@ -61,27 +61,35 @@ public class OpendistroSecurityRolesTests extends SingleClusterTest {
 		resc = rh.executeGetRequest("_opendistro/_security/authinfo?pretty", encodeBasicHeader("sr_user", "nagilum"));
 		Assert.assertTrue(resc.getBody().contains("sr_user"));
 		Assert.assertTrue(resc.getBody().contains("xyz_sr"));
+		Assert.assertFalse(resc.getBody().contains("opendistro_security_kibana_server"));
 		Assert.assertTrue(resc.getBody().contains("backend_roles=[abc_ber]"));
 		Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
 	}
 
 	@Test
-	public void testSecurityR() throws Exception {
+	public void testOpenDistroSecurityRoles() throws Exception {
 
 		setup(Settings.EMPTY, new DynamicSecurityConfig()
 				.setSecurityInternalUsers("internal_users_sr.yml"), Settings.EMPTY, true);
 
 		RestHelper rh = nonSslRestHelper();
+		rh.sendAdminCertificate = false;
 
 		HttpResponse resc = rh.executeGetRequest("_opendistro/_security/authinfo?pretty", encodeBasicHeader("sr_user", "nagilum"));
 		Assert.assertTrue(resc.getBody().contains("sr_user"));
 		Assert.assertTrue(resc.getBody().contains("xyz_sr"));
+
+		// Ensure hidden reserved and non-existent roles are not available
+		Assert.assertFalse(resc.getBody().contains("xyz_sr_non_existent"));
+		Assert.assertFalse(resc.getBody().contains("xyz_sr_hidden"));
+		Assert.assertTrue(resc.getBody().contains("xyz_sr_reserved"));
+
 		Assert.assertTrue(resc.getBody().contains("backend_roles=[abc_ber]"));
 		Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
 	}
 
 	@Test
-	public void testSecurityRImpersonation() throws Exception {
+	public void testOpenDistroSecurityRolesImpersonation() throws Exception {
 
 		Settings settings = Settings.builder()
 				.putList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".sr_user", "sr_impuser")

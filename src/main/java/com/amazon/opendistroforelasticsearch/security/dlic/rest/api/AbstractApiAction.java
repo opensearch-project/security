@@ -25,14 +25,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ThreadContext.StoredContext;
@@ -153,7 +151,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 			return;
 		}
 
-		if (!isReservedAndAccessible(existingConfiguration, name)) {
+		if (isReadOnly(existingConfiguration, name)) {
 			forbidden(channel, "Resource '"+ name +"' is read-only.");
 			return;
 		}
@@ -196,8 +194,13 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 			return;
 		}
 
-		if (!isReservedAndAccessible(existingConfiguration, name)) {
+		if (isReadOnly(existingConfiguration, name)) {
 			forbidden(channel, "Resource '"+ name +"' is read-only.");
+			return;
+		}
+
+		if (isReadonlyFieldUpdated(existingConfiguration, content)) {
+			conflict(channel, "Attempted to update read-only property.");
 			return;
 		}
 
@@ -265,15 +268,27 @@ public abstract class AbstractApiAction extends BaseRestHandler {
     }
 
 	protected boolean ensureIndexExists() {
-		if (!cs.state().metaData().hasConcreteIndex(this.opendistroIndex)) {
+		if (!cs.state().metadata().hasConcreteIndex(this.opendistroIndex)) {
 			return false;
 		}
 		return true;
 	}
 
 	protected void filter(SecurityDynamicConfiguration<?> builder) {
-		builder.removeHidden();
+		if (!isSuperAdmin()){
+			builder.removeHidden();
+		}
 		builder.set_meta(null);
+	}
+
+	protected boolean isReadonlyFieldUpdated(final JsonNode existingResource, final JsonNode targetResource) {
+		// Default is false. Override function for additional logic
+		return false;
+	}
+
+	protected boolean isReadonlyFieldUpdated(final SecurityDynamicConfiguration<?> configuration, final JsonNode targetResource) {
+		// Default is false. Override function for additional logic
+		return false;
 	}
 
 	abstract class OnSucessActionListener<Response> implements ActionListener<Response> {
@@ -498,6 +513,10 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		response(channel, RestStatus.UNPROCESSABLE_ENTITY, message);
 	}
 
+	protected void conflict(RestChannel channel, String message) {
+		response(channel, RestStatus.CONFLICT, message);
+	}
+
 	protected void notImplemented(RestChannel channel, Method method) {
 		response(channel, RestStatus.NOT_IMPLEMENTED,
 				"Method " + method.name() + " not supported for this action.");
@@ -513,8 +532,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 	}
 
 	protected final boolean isHidden(SecurityDynamicConfiguration<?> configuration, String resourceName) {
-		final Object o = configuration.getCEntry(resourceName);
-		return o != null && o instanceof Hideable && ((Hideable) o).isHidden();
+		return configuration.isHidden(resourceName) && !isSuperAdmin();
 	}
 
 	protected final boolean isStatic(SecurityDynamicConfiguration<?> configuration, String resourceName) {
@@ -547,12 +565,15 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		return adminDNs.isAdmin(user);
 	}
 
-	protected boolean isReservedAndAccessible(final SecurityDynamicConfiguration<?> existingConfiguration,
-											  String name) {
-		if( isReserved(existingConfiguration, name) && !isSuperAdmin()) {
-			return false;
-		}
-		return true;
+	/**
+	 * Resource is readonly if it is reserved and user is not super admin.
+	 * @param existingConfiguration Configuration
+	 * @param name
+	 * @return True if resource readonly
+	 */
+	protected boolean isReadOnly(final SecurityDynamicConfiguration<?> existingConfiguration,
+								 String name) {
+		return isSuperAdmin() ? false: isReserved(existingConfiguration, name);
 	}
 
 }

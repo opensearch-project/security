@@ -5,10 +5,12 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.Meta;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.NodesDn;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.WhitelistingSettings;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v6.*;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.*;
 import org.elasticsearch.common.Strings;
@@ -111,6 +113,19 @@ public class Migration {
         return migrated;
     }
 
+    public static SecurityDynamicConfiguration<WhitelistingSettings> migrateWhitelistingSetting(SecurityDynamicConfiguration<WhitelistingSettings> whitelistingSetting) {
+        final SecurityDynamicConfiguration<WhitelistingSettings> migrated = SecurityDynamicConfiguration.empty();
+        migrated.setCType(whitelistingSetting.getCType());
+        migrated.set_meta(new Meta());
+        migrated.get_meta().setConfig_version(2);
+        migrated.get_meta().setType("whitelist");
+
+        for(final Entry<String, WhitelistingSettings> entry: whitelistingSetting.getCEntries().entrySet()) {
+            migrated.putCEntry(entry.getKey(), new WhitelistingSettings(entry.getValue()));
+        }
+        return migrated;
+    }
+
     public static SecurityDynamicConfiguration<InternalUserV7>  migrateInternalUsers(SecurityDynamicConfiguration<InternalUserV6> r6is) throws MigrationException {
         final SecurityDynamicConfiguration<InternalUserV7> i7 = SecurityDynamicConfiguration.empty();
         i7.setCType(r6is.getCType());
@@ -159,6 +174,19 @@ public class Migration {
         }
         
         return rms7;
+    }
+
+    public static SecurityDynamicConfiguration<AuditConfig> migrateAudit(SecurityDynamicConfiguration<AuditConfig> audit) {
+        final SecurityDynamicConfiguration<AuditConfig> migrated = SecurityDynamicConfiguration.empty();
+        migrated.setCType(audit.getCType());
+        migrated.set_meta(new Meta());
+        migrated.get_meta().setConfig_version(2);
+        migrated.get_meta().setType("audit");
+
+        for(final Entry<String, AuditConfig> entry: audit.getCEntries().entrySet()) {
+            migrated.putCEntry(entry.getKey(), entry.getValue());
+        }
+        return migrated;
     }
 
 }

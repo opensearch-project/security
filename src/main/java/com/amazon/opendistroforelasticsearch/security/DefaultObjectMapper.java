@@ -34,16 +34,23 @@ import java.io.IOException;
 import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.util.Map;
+import java.util.Set;
 
+import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
+import com.google.common.collect.ImmutableSet;
 import org.elasticsearch.SpecialPermission;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
@@ -59,6 +66,38 @@ public class DefaultObjectMapper {
         defaulOmittingObjectMapper.setSerializationInclusion(Include.NON_DEFAULT);
         defaulOmittingObjectMapper.enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION);
         YAML_MAPPER.enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION);
+    }
+
+    public static void inject(final InjectableValues.Std injectableValues) {
+        objectMapper.setInjectableValues(injectableValues);
+        YAML_MAPPER.setInjectableValues(injectableValues);
+        defaulOmittingObjectMapper.setInjectableValues(injectableValues);
+    }
+
+    public static boolean getOrDefault(Map<String, Object> properties, String key, boolean defaultValue) throws JsonProcessingException {
+        Object value = properties.get(key);
+        if (value == null) {
+            return defaultValue;
+        } else if (value instanceof Boolean) {
+            return (boolean)value;
+        } else if (value instanceof String) {
+            String text = ((String)value).trim();
+            if ("true".equals(text) || "True".equals(text)) {
+                return true;
+            }
+            if ("false".equals(text) || "False".equals(text)) {
+                return false;
+            }
+            throw InvalidFormatException.from(null,
+                    "Cannot deserialize value of type 'boolean' from String \"" + text + "\": only \"true\" or \"false\" recognized)",
+                    null, Boolean.class);
+        }
+        throw MismatchedInputException.from(null, Boolean.class, "Cannot deserialize instance of 'boolean' out of '" + value + "' (Property: " + key + ")");
+    }
+
+    public static <T> T getOrDefault(Map<String, Object> properties, String key, T defaultValue) {
+        T value = (T)properties.get(key);
+        return value != null ? value : defaultValue;
     }
 
     public static <T> T readTree(JsonNode node, Class<T> clazz) throws IOException {
@@ -187,4 +226,13 @@ public class DefaultObjectMapper {
         return objectMapper.getTypeFactory();
     }
 
+    public static Set<String> getFields(Class cls) {
+        return objectMapper
+                .getSerializationConfig()
+                .introspect(getTypeFactory().constructType(cls))
+                .findProperties()
+                .stream()
+                .map(BeanPropertyDefinition::getName)
+                .collect(ImmutableSet.toImmutableSet());
+    }
 }

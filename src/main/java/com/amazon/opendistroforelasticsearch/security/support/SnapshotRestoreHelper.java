@@ -73,7 +73,7 @@ public class SnapshotRestoreHelper {
         SnapshotInfo snapshotInfo = null;
         
         try {
-            setCurrentThreadName(ThreadPool.Names.GENERIC);
+            setCurrentThreadName("[" + ThreadPool.Names.GENERIC + "]");
             for (SnapshotId snapshotId : PlainActionFuture.get(repository::getRepositoryData).getSnapshotIds()) {
                 if (snapshotId.getName().equals(restoreRequest.snapshot())) {
 
