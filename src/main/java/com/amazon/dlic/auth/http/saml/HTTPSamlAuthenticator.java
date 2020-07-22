@@ -122,7 +122,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
 
             this.metadataResolver = createMetadataResolver(settings, configPath);
 
-            this.saml2SettingsProvider = new Saml2SettingsProvider(settings, this.metadataResolver);
+            this.saml2SettingsProvider = new Saml2SettingsProvider(settings, this.metadataResolver, spSignaturePrivateKey);
 
             try {
                 this.saml2SettingsProvider.getCached();
