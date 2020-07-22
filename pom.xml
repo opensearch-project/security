@@ -80,7 +80,7 @@
         <jjwt.version>0.10.5</jjwt.version>
         <ldaptive.version>1.2.3</ldaptive.version>
         <http.commons.version>4.5.3</http.commons.version>
-        <cxf.version>3.2.2</cxf.version>
+        <cxf.version>3.2.14</cxf.version>
 
         <!-- assembly descriptors -->
         <elasticsearch.assembly.descriptor>${basedir}/src/main/assemblies/plugin.xml</elasticsearch.assembly.descriptor>
