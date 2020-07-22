@@ -13,10 +13,11 @@ import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvalu
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.PrincipalExtractor;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Streams;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -30,7 +31,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Rest handler for fetching and updating audit configuration.
@@ -134,9 +134,12 @@ public class AuditApiAction extends PatchableResourceApiAction {
         this.privilegesEvaluator = privilegesEvaluator;
         this.threadContext = threadPool.getThreadContext();
         try {
-            final Map<String, List<String>> readonlyMap = DefaultObjectMapper.YAML_MAPPER
-                    .readValue(this.getClass().getResourceAsStream(STATIC_RESOURCE), new TypeReference<Map<String, List<String>>>() {});
-            this.readonlyFields = readonlyMap.get(READONLY_FIELD);
+            this.readonlyFields = Streams.stream(DefaultObjectMapper.YAML_MAPPER
+                    .readTree(AuditApiAction.class.getResourceAsStream(STATIC_RESOURCE))
+                    .get(READONLY_FIELD)
+                    .iterator())
+                    .map(JsonNode::textValue)
+                    .collect(ImmutableList.toImmutableList());
             if (!AuditConfig.FIELD_PATHS.containsAll(this.readonlyFields)) {
                 throw new StaticResourceException("Invalid read-only field paths provided in static resource file " + STATIC_RESOURCE);
             }
