@@ -1049,9 +1049,10 @@ xyz_sr:
         - "*"
   tenant_permissions: []
 
+# This role is hidden in rolesmapping
 xyz_sr_hidden:
   reserved: false
-  hidden: true
+  hidden: false
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions:
     - "OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS_RO"
