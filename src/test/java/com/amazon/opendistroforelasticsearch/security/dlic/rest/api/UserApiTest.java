@@ -123,7 +123,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             new Header[0]);
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
         settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(settings.get("message"), "Role 'opendistro_security_hidden' is not found.");
+        Assert.assertEquals(settings.get("message"), "Role 'opendistro_security_hidden' is not available.");
 
         // Associating with reserved role is allowed (for superamdin)
         response = rh.executePutRequest("/_opendistro/_security/api/internalusers/test", "{ \"opendistro_security_roles\": [\"opendistro_security_reserved\"], " +
@@ -136,7 +136,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             new Header[0]);
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
         settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(settings.get("message"), "Role 'non_existent' is not found.");
+        Assert.assertEquals(settings.get("message"), "Role 'non_existent' is not available.");
 
         // Wrong config keys
         response = rh.executePutRequest("/_opendistro/_security/api/internalusers/nagilum", "{\"some\": \"thing\", \"other\": \"thing\"}",

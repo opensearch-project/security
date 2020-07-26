@@ -376,4 +376,12 @@ role_foo_index:
 role_foo_all:
   users:
     - foo_all
-
+xyz_sr_hidden:
+  reserved: false
+  hidden: true
+  backend_roles: []
+  hosts: []
+  users:
+    - "test_user"
+  and_backend_roles: []
+  description: "Migrated from v6"
