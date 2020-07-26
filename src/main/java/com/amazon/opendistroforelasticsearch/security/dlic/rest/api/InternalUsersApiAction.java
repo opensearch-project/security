@@ -115,18 +115,24 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         final ObjectNode contentAsNode = (ObjectNode) content;
         final SecurityJsonNode securityJsonNode = new SecurityJsonNode(contentAsNode);
 
-        // Don't allow user to add hidden, reserved or non-existent role
+        // Don't allow user to add hidden, reserved or non-existent rolesmapping
         final List<String> opendistroSecurityRoles = securityJsonNode.get("opendistro_security_roles").asList();
         if (opendistroSecurityRoles != null) {
             final SecurityDynamicConfiguration<?> rolesConfiguration = load(CType.ROLES, false);
+            final SecurityDynamicConfiguration<?> rolesmappingConfiguration = load(CType.ROLESMAPPING, false);
             for (final String role: opendistroSecurityRoles) {
 
-                if (!rolesConfiguration.exists(role) || rolesConfiguration.isHidden(role)) {
-                    notFound(channel, "Role '"+role+"' is not found.");
+                if (rolesConfiguration.getCEntry(role) == null) {
+                    notFound(channel, "Role '"+role+"' is not available.");
                     return;
                 }
 
-                if (isReadOnly(rolesConfiguration, role)) {
+                if (rolesmappingConfiguration.isHidden(role)) {
+                    notFound(channel, "Role '"+role+"' is not available.");
+                    return;
+                }
+
+                if (isReadOnly(rolesmappingConfiguration, role)) {
                     forbidden(channel, "Role '" + role + "' is read-only.");
                     return;
                 }
