@@ -83,8 +83,10 @@
         <cxf.version>3.2.14</cxf.version>
         <kafka.version>2.5.0</kafka.version>
         <java-saml.version>2.5.0</java-saml.version>
+        <opensaml.version>3.4.5</opensaml.version>
         <commons-codec.version>1.14</commons-codec.version>
         <xmlsec.version>2.2.0</xmlsec.version>
+        <cryptacular.version>1.1.4</cryptacular.version>
 
         <!-- assembly descriptors -->
         <elasticsearch.assembly.descriptor>${basedir}/src/main/assemblies/plugin.xml</elasticsearch.assembly.descriptor>
@@ -121,6 +123,11 @@
                 <groupId>org.apache.santuario</groupId>
                 <artifactId>xmlsec</artifactId>
                 <version>${xmlsec.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.cryptacular</groupId>
+                <artifactId>cryptacular</artifactId>
+                <version>${cryptacular.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -346,7 +353,7 @@
         <dependency>
             <groupId>org.opensaml</groupId>
             <artifactId>opensaml-saml-impl</artifactId>
-            <version>3.3.0</version>
+            <version>${opensaml.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>joda-time</groupId>
