@@ -19,6 +19,7 @@ public enum Endpoint {
     ACCOUNT,
     ACTIONGROUPS,
     AUDIT,
+    AUDITLOG,
     CACHE,
     CONFIG,
     ROLES,
