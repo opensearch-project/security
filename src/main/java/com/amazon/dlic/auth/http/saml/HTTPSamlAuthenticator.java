@@ -271,9 +271,9 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
 
                         InitializationService.initialize();
 
-                        new org.opensaml.saml.config.XMLObjectProviderInitializer().init();
-                        new org.opensaml.saml.config.SAMLConfigurationInitializer().init();
-                        new org.opensaml.xmlsec.config.XMLObjectProviderInitializer().init();
+                        new org.opensaml.saml.config.impl.XMLObjectProviderInitializer().init();
+                        new org.opensaml.saml.config.impl.SAMLConfigurationInitializer().init();
+                        new org.opensaml.xmlsec.config.impl.XMLObjectProviderInitializer().init();
                     } finally {
                         thread.setContextClassLoader(originalClassLoader);
                     }
