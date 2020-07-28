@@ -4,15 +4,14 @@ import java.util.Collections;
 import java.util.List;
 
 import com.amazon.opendistroforelasticsearch.security.securityconf.Hideable;
+import com.amazon.opendistroforelasticsearch.security.securityconf.RoleMappings;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v6.RoleMappingsV6;
 
-public class RoleMappingsV7 implements Hideable {
+public class RoleMappingsV7 extends RoleMappings implements Hideable {
 
     private boolean reserved;
     private boolean hidden;
     private List<String> backend_roles = Collections.emptyList();
-    private List<String> hosts= Collections.emptyList();
-    private List<String> users= Collections.emptyList();
     private List<String> and_backend_roles= Collections.emptyList();
     private String description;
 
@@ -25,10 +24,10 @@ public class RoleMappingsV7 implements Hideable {
         this.reserved = roleMappingsV6.isReserved();
         this.hidden = roleMappingsV6.isHidden();
         this.backend_roles = roleMappingsV6.getBackendroles();
-        this.hosts = roleMappingsV6.getHosts();
-        this.users = roleMappingsV6.getUsers();
         this.and_backend_roles = roleMappingsV6.getAndBackendroles();
         this.description = "Migrated from v6";
+        setHosts(roleMappingsV6.getHosts());
+        setUsers(roleMappingsV6.getUsers());
     }
 
     public boolean isReserved() {
@@ -67,30 +66,6 @@ public class RoleMappingsV7 implements Hideable {
 
 
 
-    public List<String> getHosts() {
-        return hosts;
-    }
-
-
-
-    public void setHosts(List<String> hosts) {
-        this.hosts = hosts;
-    }
-
-
-
-    public List<String> getUsers() {
-        return users;
-    }
-
-
-
-    public void setUsers(List<String> users) {
-        this.users = users;
-    }
-
-
-
     public List<String> getAnd_backend_roles() {
         return and_backend_roles;
     }
@@ -117,8 +92,8 @@ public class RoleMappingsV7 implements Hideable {
 
     @Override
     public String toString() {
-        return "RoleMappingsV7 [reserved=" + reserved + ", hidden=" + hidden + ", backend_roles=" + backend_roles + ", hosts=" + hosts + ", users="
-                + users + ", and_backend_roles=" + and_backend_roles + ", description=" + description + "]";
+        return "RoleMappingsV7 [reserved=" + reserved + ", hidden=" + hidden + ", backend_roles=" + backend_roles + ", hosts=" + getHosts() + ", users="
+                + getUsers() + ", and_backend_roles=" + and_backend_roles + ", description=" + description + "]";
     }
 
 
