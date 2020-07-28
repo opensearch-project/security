@@ -160,16 +160,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         AuditMessage msg = new AuditMessage(AuditCategory.FAILED_LOGIN, clusterService, getOrigin(), Origin.REST);
         TransportAddress remoteAddress = getRemoteAddress();
         msg.addRemoteAddress(remoteAddress);
-        if(request != null && auditConfigFilter.shouldLogRequestBody() && request.hasContentOrSourceParam()) {
-            msg.addTupleToRequestBody(request.contentOrSourceParam());
-        }
-
-        if(request != null) {
-            msg.addPath(request.path());
-            msg.addRestHeaders(request.getHeaders(), auditConfigFilter.shouldExcludeSensitiveHeaders());
-            msg.addRestParams(request.params());
-        }
-
+        msg.addRestRequestInfo(request, auditConfigFilter);
         msg.addInitiatingUser(initiatingUser);
         msg.addEffectiveUser(effectiveUser);
         msg.addIsAdminDn(securityadmin);
@@ -202,16 +193,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         AuditMessage msg = new AuditMessage(AuditCategory.AUTHENTICATED, clusterService, getOrigin(), Origin.REST);
         TransportAddress remoteAddress = getRemoteAddress();
         msg.addRemoteAddress(remoteAddress);
-        if(request != null && auditConfigFilter.shouldLogRequestBody() && request.hasContentOrSourceParam()) {
-            msg.addTupleToRequestBody(request.contentOrSourceParam());
-        }
-
-        if(request != null) {
-            msg.addPath(request.path());
-            msg.addRestHeaders(request.getHeaders(), auditConfigFilter.shouldExcludeSensitiveHeaders());
-            msg.addRestParams(request.params());
-        }
-
+        msg.addRestRequestInfo(request, auditConfigFilter);
         msg.addInitiatingUser(initiatingUser);
         msg.addEffectiveUser(effectiveUser);
         msg.addIsAdminDn(securityadmin);
@@ -227,15 +209,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         AuditMessage msg = new AuditMessage(AuditCategory.MISSING_PRIVILEGES, clusterService, getOrigin(), Origin.REST);
         TransportAddress remoteAddress = getRemoteAddress();
         msg.addRemoteAddress(remoteAddress);
-        if(request != null && auditConfigFilter.shouldLogRequestBody() && request.hasContentOrSourceParam()) {
-            msg.addTupleToRequestBody(request.contentOrSourceParam());
-        }
-        if(request != null) {
-            msg.addPath(request.path());
-            msg.addRestHeaders(request.getHeaders(), auditConfigFilter.shouldExcludeSensitiveHeaders());
-            msg.addRestParams(request.params());
-        }
-
+        msg.addRestRequestInfo(request, auditConfigFilter);
         msg.addEffectiveUser(effectiveUser);
         save(msg);
     }
@@ -297,15 +271,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         AuditMessage msg = new AuditMessage(AuditCategory.BAD_HEADERS, clusterService, getOrigin(), Origin.REST);
         TransportAddress remoteAddress = getRemoteAddress();
         msg.addRemoteAddress(remoteAddress);
-        if(request != null && auditConfigFilter.shouldLogRequestBody() && request.hasContentOrSourceParam()) {
-            msg.addTupleToRequestBody(request.contentOrSourceParam());
-        }
-        if(request != null) {
-            msg.addPath(request.path());
-            msg.addRestHeaders(request.getHeaders(), auditConfigFilter.shouldExcludeSensitiveHeaders());
-            msg.addRestParams(request.params());
-        }
-
+        msg.addRestRequestInfo(request, auditConfigFilter);
         msg.addEffectiveUser(getUser());
 
         save(msg);
@@ -354,15 +320,7 @@ public abstract class AbstractAuditLog implements AuditLog {
 
         TransportAddress remoteAddress = getRemoteAddress();
         msg.addRemoteAddress(remoteAddress);
-        if(request != null && auditConfigFilter.shouldLogRequestBody() && request.hasContentOrSourceParam()) {
-            msg.addTupleToRequestBody(request.contentOrSourceParam());
-        }
-
-        if(request != null) {
-            msg.addPath(request.path());
-            msg.addRestHeaders(request.getHeaders(), auditConfigFilter.shouldExcludeSensitiveHeaders());
-            msg.addRestParams(request.params());
-        }
+        msg.addRestRequestInfo(request, auditConfigFilter);
         msg.addException(t);
         msg.addEffectiveUser(getUser());
         save(msg);
