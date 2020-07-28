@@ -729,4 +729,76 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(auditlogContents.contains("indices:data/write/bulk"));
         Assert.assertTrue(auditlogContents.contains("indices:data/read/search"));
     }
+
+    @Test
+    public void testRestMethod() throws Exception {
+        final Settings settings = Settings.builder()
+                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, true)
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, false)
+                .build();
+        setup(settings);
+        final Header adminHeader = encodeBasicHeader("admin", "admin");
+
+        // test GET
+        TestAuditlogImpl.clear();
+        rh.executeGetRequest("test", adminHeader);
+        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("\"audit_rest_request_method\" : \"GET\""));
+
+        // test PUT
+        TestAuditlogImpl.clear();
+        rh.executePutRequest("test/_doc/0", "{}", adminHeader);
+        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("\"audit_rest_request_method\" : \"PUT\""));
+
+        // test DELETE
+        TestAuditlogImpl.clear();
+        rh.executeDeleteRequest("test", adminHeader);
+        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("\"audit_rest_request_method\" : \"DELETE\""));
+
+        // test POST
+        TestAuditlogImpl.clear();
+        rh.executePostRequest("test/_doc", "{}", adminHeader);
+        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("\"audit_rest_request_method\" : \"POST\""));
+
+        // test PATCH
+        TestAuditlogImpl.clear();
+        rh.executePatchRequest("/_opendistro/_security/api/audit", "[]");
+        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("\"audit_rest_request_method\" : \"PATCH\""));
+
+        // test MISSING_PRIVILEGES
+        // admin does not have REST role here
+        TestAuditlogImpl.clear();
+        rh.executePatchRequest("/_opendistro/_security/api/audit", "[]", adminHeader);
+        Assert.assertEquals(2, TestAuditlogImpl.messages.size());
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("MISSING_PRIVILEGES"));
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("AUTHENTICATED"));
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("\"audit_rest_request_method\" : \"PATCH\""));
+
+        // test AUTHENTICATED
+        TestAuditlogImpl.clear();
+        rh.executeGetRequest("test", adminHeader);
+        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("AUTHENTICATED"));
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("\"audit_rest_request_method\" : \"GET\""));
+
+        // test FAILED_LOGIN
+        TestAuditlogImpl.clear();
+        rh.executeGetRequest("test", encodeBasicHeader("random", "random"));
+        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("FAILED_LOGIN"));
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("\"audit_rest_request_method\" : \"GET\""));
+
+        // test BAD_HEADERS
+        TestAuditlogImpl.clear();
+        rh.executeGetRequest("test", new BasicHeader("_opendistro_security_user", "xxx"));
+        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("BAD_HEADERS"));
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("\"audit_rest_request_method\" : \"GET\""));
+    }
 }
