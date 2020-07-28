@@ -53,12 +53,13 @@ public class ConfigV6 {
 
         public boolean multitenancy_enabled = true;
         public String server_username = "kibanaserver";
+        public String opendistro_role = "";
         public String index = ".kibana";
         public boolean do_not_fail_on_forbidden;
         @Override
         public String toString() {
-            return "Kibana [multitenancy_enabled=" + multitenancy_enabled + ", server_username=" + server_username + ", index=" + index
-                    + ", do_not_fail_on_forbidden=" + do_not_fail_on_forbidden + "]";
+            return "Kibana [multitenancy_enabled=" + multitenancy_enabled + ", server_username=" + server_username + ", opendistro_role=" + opendistro_role
+                    + ", index=" + index + ", do_not_fail_on_forbidden=" + do_not_fail_on_forbidden + "]";
         }
         
         
