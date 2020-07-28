@@ -28,6 +28,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.elasticsearch.ExceptionsHelper;
@@ -40,6 +41,7 @@ import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.rest.RestRequest;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
@@ -72,6 +74,7 @@ public final class AuditMessage {
     //public static final String REST_REQUEST_BODY = "audit_rest_request_body";
     public static final String REST_REQUEST_PARAMS = "audit_rest_request_params";
     public static final String REST_REQUEST_HEADERS = "audit_rest_request_headers";
+    public static final String REST_REQUEST_METHOD = "audit_rest_request_method";
 
     public static final String TRANSPORT_REQUEST_TYPE = "audit_transport_request_type";
     public static final String TRANSPORT_ACTION = "audit_transport_action";
@@ -312,6 +315,24 @@ public final class AuditMessage {
                 auditInfo.put(REST_REQUEST_HEADERS, headersClone);
             } else {
                 auditInfo.put(REST_REQUEST_HEADERS, new HashMap<String, List<String>>(headers));
+            }
+        }
+    }
+
+    void addRestMethod(final RestRequest.Method method) {
+        if (method != null) {
+            auditInfo.put(REST_REQUEST_METHOD, method);
+        }
+    }
+
+    void addRestRequestInfo(final RestRequest request, final AuditConfig.Filter filter) {
+        if (request != null) {
+            addPath(request.path());
+            addRestHeaders(request.getHeaders(), filter.shouldExcludeSensitiveHeaders());
+            addRestParams(request.params());
+            addRestMethod(request.method());
+            if (filter.shouldLogRequestBody() && request.hasContentOrSourceParam()) {
+                addTupleToRequestBody(request.contentOrSourceParam());
             }
         }
     }
