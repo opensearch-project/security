@@ -247,6 +247,21 @@ public abstract class AbstractAuditLog implements AuditLog {
     }
 
     @Override
+    public void logIndexEvent(String privilege, TransportRequest request, Task task) {
+        if(!checkTransportFilter(AuditCategory.INDEX_EVENT, privilege, getUser(), request)) {
+            return;
+        }
+        // log only cluster admin action
+        if (!privilege.startsWith("indices:admin/")) {
+            return;
+        }
+        final TransportAddress remoteAddress = getRemoteAddress();
+        final List<AuditMessage> msgs = RequestResolver.resolve(AuditCategory.INDEX_EVENT, getOrigin(), null, privilege, getUser(), null, null, remoteAddress, request, getThreadContextHeaders(), task, resolver, clusterService, settings, auditConfigFilter.shouldLogRequestBody(), auditConfigFilter.shouldResolveIndices(), auditConfigFilter.shouldResolveBulkRequests(), opendistrosecurityIndex, auditConfigFilter.shouldExcludeSensitiveHeaders(), null);
+
+        msgs.forEach(this::save);
+    }
+
+    @Override
     public void logBadHeaders(TransportRequest request, String action, Task task) {
 
         if(!checkTransportFilter(AuditCategory.BAD_HEADERS, action, getUser(), request)) {
