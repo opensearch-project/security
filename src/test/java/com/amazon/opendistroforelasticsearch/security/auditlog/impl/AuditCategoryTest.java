@@ -39,7 +39,7 @@ public class AuditCategoryTest {
                     {Arrays.asList("bAd_HeAdErS"), EnumSet.of(BAD_HEADERS)},
                     {Arrays.asList("BAD_HEADERS", "AUTHENTICATED"), EnumSet.of(BAD_HEADERS, AUTHENTICATED)},
                     {Arrays.asList("BAD_HEADERS", "FAILED_LOGIN", "MISSING_PRIVILEGES", "GRANTED_PRIVILEGES",
-                            "OPENDISTRO_SECURITY_INDEX_ATTEMPT", "SSL_EXCEPTION", "AUTHENTICATED",
+                            "OPENDISTRO_SECURITY_INDEX_ATTEMPT", "SSL_EXCEPTION", "AUTHENTICATED", "INDEX_EVENT",
                             "COMPLIANCE_DOC_READ", "COMPLIANCE_DOC_WRITE", "COMPLIANCE_EXTERNAL_CONFIG",
                             "COMPLIANCE_INTERNAL_CONFIG_READ", "COMPLIANCE_INTERNAL_CONFIG_WRITE"
                     ), EnumSet.allOf(AuditCategory.class)},
