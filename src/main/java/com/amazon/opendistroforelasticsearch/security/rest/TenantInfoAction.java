@@ -34,8 +34,16 @@ import static org.elasticsearch.rest.RestRequest.Method.GET;
 import static org.elasticsearch.rest.RestRequest.Method.POST;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 import java.util.SortedMap;
+import com.google.common.base.Strings;
 
+import com.amazon.opendistroforelasticsearch.security.configuration.ConfigurationRepository;
+import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigFactory;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
+import com.amazon.opendistroforelasticsearch.security.securityconf.RoleMappings;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.node.NodeClient;
@@ -57,6 +65,8 @@ import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvalu
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 
+import com.google.common.collect.ImmutableList;
+
 public class TenantInfoAction extends BaseRestHandler {
 
     private final Logger log = LogManager.getLogger(this.getClass());
@@ -64,17 +74,21 @@ public class TenantInfoAction extends BaseRestHandler {
     private final ThreadContext threadContext;
     private final ClusterService clusterService;
     private final AdminDNs adminDns;
+    private final ConfigurationRepository configurationRepository;
 
     public TenantInfoAction(final Settings settings, final RestController controller, 
-    		final PrivilegesEvaluator evaluator, final ThreadPool threadPool, final ClusterService clusterService, final AdminDNs adminDns) {
+    		final PrivilegesEvaluator evaluator, final ThreadPool threadPool, final ClusterService clusterService, final AdminDNs adminDns,
+                            final ConfigurationRepository configurationRepository) {
         super();
         this.threadContext = threadPool.getThreadContext();
         this.evaluator = evaluator;
         this.clusterService = clusterService;
         this.adminDns = adminDns;
-        controller.registerHandler(GET, "/_opendistro/_security/tenantinfo", this);
-        controller.registerHandler(POST, "/_opendistro/_security/tenantinfo", this);
+        this.configurationRepository = configurationRepository;
+        controller.registerHandler(RestRequest.Method.GET, "/_opendistro/_security/tenantinfo", this);
+        controller.registerHandler(RestRequest.Method.POST, "/_opendistro/_security/tenantinfo", this);
     }
+
 
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
@@ -90,9 +104,7 @@ public class TenantInfoAction extends BaseRestHandler {
                     final User user = (User)threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
                     
                     //only allowed for admins or the kibanaserveruser
-                    if(user == null || 
-                    		(!user.getName().equals(evaluator.kibanaServerUsername()))
-                    		 && !adminDns.isAdmin(user)) {
+                    if(!isAuthorized()) {
                         response = new BytesRestResponse(RestStatus.FORBIDDEN,"");
                     } else {
 
@@ -127,7 +139,40 @@ public class TenantInfoAction extends BaseRestHandler {
             }
         };
     }
-    
+
+    private boolean isAuthorized() {
+        final User user = (User)threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+
+        if (user == null) {
+            return false;
+        }
+
+        // check if the user is a kibanauser or super admin
+        if (user.getName().equals(evaluator.kibanaServerUsername()) || adminDns.isAdmin(user)) {
+            return true;
+        }
+
+        // If user check failed by name and admin, check if the users belong to kibana opendistro role
+        final SecurityDynamicConfiguration<?> rolesMappingConfiguration = load(CType.ROLESMAPPING, true);
+
+        // check if kibanaOpendistroRole is present in RolesMapping and if yes, check if user is a part of this role
+        if (rolesMappingConfiguration != null) {
+            String kibanaOpendistroRole = evaluator.kibanaOpendistroRole();
+            if (Strings.isNullOrEmpty(kibanaOpendistroRole)) {
+                return false;
+            }
+            RoleMappings roleMapping = (RoleMappings) rolesMappingConfiguration.getCEntries().getOrDefault(kibanaOpendistroRole, null);
+            return roleMapping != null && roleMapping.getUsers().contains(user.getName());
+        }
+
+        return false;
+    }
+
+    private final SecurityDynamicConfiguration<?> load(final CType config, boolean logComplianceEvent) {
+        SecurityDynamicConfiguration<?> loaded = configurationRepository.getConfigurationsFromIndex(Collections.singleton(config), logComplianceEvent).get(config).deepClone();
+        return DynamicConfigFactory.addStatics(loaded);
+    }
+
     private String tenantNameForIndex(String index) {
     	String[] indexParts;
     	if(index == null 
@@ -162,6 +207,6 @@ public class TenantInfoAction extends BaseRestHandler {
     public String getName() {
         return "Tenant Info Action";
     }
-    
-    
+
+
 }
