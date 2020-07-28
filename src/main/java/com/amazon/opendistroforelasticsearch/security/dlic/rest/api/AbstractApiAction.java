@@ -286,9 +286,8 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 	}
 
 	protected void filter(Settings.Builder builder) {
-		Settings settings = builder.build();
-
 		if (!isSuperAdmin()){
+			Settings settings = builder.build();
 			for (String key: settings.names()) {
 				if (settings.getAsBoolean(key+".hidden", false)) {
 					for (String subKey : settings.getByPrefix(key).keySet()) {
@@ -297,7 +296,6 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 				}
 			}
 		}
-
 	}
 
 	protected boolean isReadonlyFieldUpdated(final JsonNode existingResource, final JsonNode targetResource) {
