@@ -384,13 +384,16 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		// check if request is authorized
 		String authError = restApiPrivilegesEvaluator.checkAccessPermissions(request, getEndpoint());
 
+		final User user = (User) threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+		final String userName = user == null ? null : user.getName();
 		if (authError != null) {
 			log.error("No permission to access REST API: " + authError);
-			final User user = (User) threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-			auditLog.logMissingPrivileges(authError, user == null ? null : user.getName(), request);
+			auditLog.logMissingPrivileges(authError, userName, request);
 			// for rest request
 			request.params().clear();
 			return channel -> forbidden(channel, "No permission to access REST API: " + authError);
+		} else {
+			auditLog.logGrantedPrivileges(userName, request);
 		}
 
 		final Object originalUser = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);

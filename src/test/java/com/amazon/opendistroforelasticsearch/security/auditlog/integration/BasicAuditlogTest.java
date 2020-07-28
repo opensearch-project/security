@@ -17,6 +17,7 @@ package com.amazon.opendistroforelasticsearch.security.auditlog.integration;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditTestUtils;
 import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
+import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
 import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
 import com.google.common.collect.ImmutableMap;
 import org.apache.http.Header;
@@ -244,6 +245,45 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("REST"));
         Assert.assertFalse(TestAuditlogImpl.sb.toString().toLowerCase().contains("authorization"));
         Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
+    }
+
+    @Test
+    public void testGrantedPrivilegesRest() throws Exception {
+        final Settings additionalSettings = Settings.builder()
+                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_ROLES_ENABLED, "opendistro_security_all_access")
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "AUTHENTICATED")
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
+                .build();
+
+        setup(additionalSettings);
+        setupStarfleetIndex();
+
+        testPrivilegeRest(HttpStatus.SC_OK, "/_opendistro/_security/api/roles", AuditCategory.GRANTED_PRIVILEGES);
+    }
+
+    @Test
+    public void testMissingPrivilegesRest() throws Exception {
+        final Settings additionalSettings = Settings.builder()
+                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "AUTHENTICATED")
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
+                .build();
+        setup(additionalSettings);
+        setupStarfleetIndex();
+
+        testPrivilegeRest(HttpStatus.SC_FORBIDDEN, "/_opendistro/_security/api/roles", AuditCategory.MISSING_PRIVILEGES);
+    }
+
+    private void testPrivilegeRest(final int expectedStatus, final String endpoint, final AuditCategory category) throws Exception {
+        TestAuditlogImpl.clear();
+        final HttpResponse response = rh.executeGetRequest(endpoint, encodeBasicHeader("admin", "admin"));
+        Assert.assertEquals(expectedStatus, response.getStatusCode());
+        final String auditlog = TestAuditlogImpl.sb.toString();
+        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
+        Assert.assertTrue(auditlog.contains("\"audit_category\" : \"" + category +"\""));
+        Assert.assertTrue(auditlog.contains("\"audit_rest_request_path\" : \"" + endpoint + "\""));
+        Assert.assertTrue(auditlog.contains("\"audit_request_effective_user\" : \"admin\""));
     }
 
     @Test
