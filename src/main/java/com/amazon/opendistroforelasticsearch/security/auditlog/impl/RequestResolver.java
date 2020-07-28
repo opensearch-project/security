@@ -32,6 +32,7 @@ import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequ
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
+import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.bulk.BulkItemRequest;
 import org.elasticsearch.action.bulk.BulkShardRequest;
 import org.elasticsearch.action.delete.DeleteRequest;
@@ -211,6 +212,16 @@ public final class RequestResolver {
             final CreateIndexRequest cir = (CreateIndexRequest) request;
             final String[] indices = arrayOrEmpty(cir.indices());
             addIndicesSourceSafe(msg, indices, resolver, cs, null, null, settings, resolveIndices, logRequestBody, false, opendistrosecurityIndex);
+            if (logRequestBody) {
+                msg.addMapToRequestBody(Utils.convertJsonToxToStructuredMap(cir.settings()));
+            }
+        } else if (request instanceof UpdateSettingsRequest) {
+            final UpdateSettingsRequest usr = (UpdateSettingsRequest) request;
+            final String[] indices = arrayOrEmpty(usr.indices());
+            addIndicesSourceSafe(msg, indices, resolver, cs, null, null, settings, resolveIndices, logRequestBody, false, opendistrosecurityIndex);
+            if (logRequestBody) {
+                msg.addMapToRequestBody(Utils.convertJsonToxToStructuredMap(usr.settings()));
+            }
         } else if (request instanceof DeleteIndexRequest) {
             final DeleteIndexRequest dir = (DeleteIndexRequest) request;
             final String[] indices = arrayOrEmpty(dir.indices());

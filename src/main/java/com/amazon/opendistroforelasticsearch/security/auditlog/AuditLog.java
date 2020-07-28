@@ -61,6 +61,9 @@ public interface AuditLog extends Closeable {
     void logMissingPrivileges(String privilege, TransportRequest request, Task task);
     void logGrantedPrivileges(String privilege, TransportRequest request, Task task);
 
+    // index event requests
+    void logIndexEvent(String privilege, TransportRequest request, Task task);
+
     //spoof
     void logBadHeaders(TransportRequest request, String action, Task task);
     void logBadHeaders(RestRequest request);
