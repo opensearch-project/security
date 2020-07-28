@@ -731,6 +731,49 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
     }
 
     @Test
+    public void testIndexRequests() throws Exception {
+        final Settings settings = Settings.builder()
+                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, false)
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "AUTHENTICATED,GRANTED_PRIVILEGES")
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY, true)
+                .build();
+        setup(settings);
+
+        // test create index
+        TestAuditlogImpl.clear();
+        rh.executePutRequest("/twitter", "{\"settings\":{\"index\":{\"number_of_shards\":3,\"number_of_replicas\":2}}}", encodeBasicHeader("admin", "admin"));
+        String auditlogs = TestAuditlogImpl.sb.toString();
+        Assert.assertTrue(auditlogs.contains("\"audit_category\" : \"INDEX_EVENT\""));
+        Assert.assertTrue(auditlogs.contains("\"audit_transport_request_type\" : \"CreateIndexRequest\","));
+        Assert.assertTrue(auditlogs.contains("\"audit_request_body\" : \"{\\\"index\\\":{\\\"number_of_shards\\\":\\\"3\\\",\\\"number_of_replicas\\\":\\\"2\\\"}}\""));
+
+        // test update index
+        TestAuditlogImpl.clear();
+        rh.executePutRequest("/twitter/_settings", "{\"index\":{\"number_of_replicas\":1}}", encodeBasicHeader("admin", "admin"));
+        auditlogs = TestAuditlogImpl.sb.toString();
+        Assert.assertTrue(auditlogs.contains("\"audit_category\" : \"INDEX_EVENT\""));
+        Assert.assertTrue(auditlogs.contains("\"audit_transport_request_type\" : \"UpdateSettingsRequest\","));
+        Assert.assertTrue(auditlogs.contains("\"audit_request_body\" : \"{\\\"index\\\":{\\\"number_of_replicas\\\":\\\"1\\\"}}\""));
+
+        // test put mapping
+        TestAuditlogImpl.clear();
+        rh.executePutRequest("/twitter/_mapping", "{\"properties\":{\"message\":{\"type\":\"keyword\"}}}", encodeBasicHeader("admin", "admin"));
+        auditlogs = TestAuditlogImpl.sb.toString();
+        Assert.assertTrue(auditlogs.contains("\"audit_category\" : \"INDEX_EVENT\""));
+        Assert.assertTrue(auditlogs.contains("\"audit_transport_request_type\" : \"PutMappingRequest\","));
+        Assert.assertTrue(auditlogs.contains("\"{\\\"properties\\\":{\\\"message\\\":{\\\"type\\\":\\\"keyword\\\"}}}\""));
+
+        // test delete index
+        TestAuditlogImpl.clear();
+        rh.executeDeleteRequest("/twitter", encodeBasicHeader("admin", "admin"));
+        auditlogs = TestAuditlogImpl.sb.toString();
+        Assert.assertTrue(auditlogs.contains("\"audit_category\" : \"INDEX_EVENT\""));
+        Assert.assertTrue(auditlogs.contains("\"audit_transport_request_type\" : \"DeleteIndexRequest\","));
+    }
+
+    @Test
     public void testRestMethod() throws Exception {
         final Settings settings = Settings.builder()
                 .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
