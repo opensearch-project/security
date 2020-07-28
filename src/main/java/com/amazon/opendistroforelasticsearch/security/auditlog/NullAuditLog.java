@@ -121,6 +121,11 @@ public class NullAuditLog implements AuditLog {
     }
 
     @Override
+    public void logGrantedPrivileges(String effectiveUser, RestRequest request) {
+        //noop, intentionally left empty
+    }
+
+    @Override
     public void logDocumentRead(String index, String id, ShardId shardId, Map<String, String> fieldNameValues) {
         //noop, intentionally left empty
     }
