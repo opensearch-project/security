@@ -833,6 +833,10 @@ public class PrivilegesEvaluator implements ConfigurationChangeListener {
         return getConfigSettings().get("opendistro_security.dynamic.kibana.server_username","kibanaserver");
     }
 
+    public String kibanaOpendistroRole() {
+        return getConfigSettings().get("opendistro_security.dynamic.kibana.opendistro_role","");
+    }
+
     private Set<String> evaluateAdditionalIndexPermissions(final ActionRequest request, final String originalAction) {
       //--- check inner bulk requests
         final Set<String> additionalPermissionsRequired = new HashSet<>();

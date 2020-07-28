@@ -355,7 +355,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 				.executeGetRequest("_opendistro/_security/api/configuration/" + ConfigConstants.CONFIGNAME_INTERNAL_USERS);
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 		Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-		Assert.assertEquals(49, settings.size());
+		Assert.assertEquals(42, settings.size());
 
 		addUserWithPassword("tooshoort", "", HttpStatus.SC_BAD_REQUEST);
 		addUserWithPassword("tooshoort", "123", HttpStatus.SC_BAD_REQUEST);
