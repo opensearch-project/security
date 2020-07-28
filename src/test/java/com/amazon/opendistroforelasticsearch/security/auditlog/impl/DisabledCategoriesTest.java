@@ -209,6 +209,8 @@ public class DisabledCategoriesTest {
 		logTransportBadHeaders(auditLog);
 		logTransportFailedLogin(auditLog);
 		logTransportSucceededLogin(auditLog);
+
+		logIndexEvent(auditLog);
     }
 
 	 protected void logRestSucceededLogin(AuditLog auditLog) {
@@ -255,6 +257,10 @@ public class DisabledCategoriesTest {
     protected void logAuthenticatedRequest(AuditLog auditLog) {
     	auditLog.logGrantedPrivileges("action.success", new TransportRequest.Empty(), null);
     }
+
+	protected void logIndexEvent(AuditLog auditLog) {
+		auditLog.logIndexEvent("indices:admin/test/action", new TransportRequest.Empty(), null);
+	}
 
     private static final AuditCategory[] filterComplianceCategories(AuditCategory[] cats) {
         List<AuditCategory> retval = new ArrayList<AuditCategory>();
