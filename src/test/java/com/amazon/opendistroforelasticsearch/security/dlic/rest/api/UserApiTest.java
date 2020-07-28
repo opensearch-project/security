@@ -47,7 +47,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 				.executeGetRequest("_opendistro/_security/api/" + CType.INTERNALUSERS.toLCString());
 		Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
 		Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-		Assert.assertEquals(30, settings.size());
+		Assert.assertEquals(42, settings.size());
 		// --- GET
 
 		// GET, user admin, exists
@@ -352,7 +352,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 		System.out.println(response.getBody());
 		Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-		Assert.assertEquals(49, settings.size());
+		Assert.assertEquals(42, settings.size());
 
 		addUserWithPassword("tooshoort", "", HttpStatus.SC_BAD_REQUEST);
 		addUserWithPassword("tooshoort", "123", HttpStatus.SC_BAD_REQUEST);
@@ -426,7 +426,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 				.executeGetRequest("_opendistro/_security/api/" + CType.INTERNALUSERS.toLCString());
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 		Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-		Assert.assertEquals(49, settings.size());
+		Assert.assertEquals(42, settings.size());
 
 		addUserWithPassword(".my.dotuser0", "$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m",
 				HttpStatus.SC_CREATED);

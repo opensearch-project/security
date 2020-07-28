@@ -114,6 +114,10 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
         return config.dynamic.kibana.server_username;
     }
     @Override
+    public String getKibanaOpendistroRole() {
+        return config.dynamic.kibana.opendistro_role;
+    }
+    @Override
     public String getKibanaIndexname() {
         return config.dynamic.kibana.index;
     }
