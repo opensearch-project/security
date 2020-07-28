@@ -205,7 +205,9 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
 
             //rebuild v7 Models
             dcm = new DynamicConfigModelV7(getConfigV7(config), esSettings, configPath, iab);
-            ium = new InternalUsersModelV7((SecurityDynamicConfiguration<InternalUserV7>) internalusers, (SecurityDynamicConfiguration<RoleV7>) roles);
+            ium = new InternalUsersModelV7((SecurityDynamicConfiguration<InternalUserV7>) internalusers,
+                (SecurityDynamicConfiguration<RoleV7>) roles,
+                (SecurityDynamicConfiguration<RoleMappingsV7>) rolesmapping);
             cm = new ConfigModelV7((SecurityDynamicConfiguration<RoleV7>) roles,(SecurityDynamicConfiguration<RoleMappingsV7>)rolesmapping, (SecurityDynamicConfiguration<ActionGroupsV7>)actionGroups, (SecurityDynamicConfiguration<TenantV7>) tenants,dcm, esSettings);
 
         } else {
@@ -260,12 +262,17 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         
         private final SecurityDynamicConfiguration<InternalUserV7> internalUserV7SecurityDynamicConfiguration;
 
-        private final SecurityDynamicConfiguration<RoleV7> roleV7SecurityDynamicConfiguration;
+        private final SecurityDynamicConfiguration<RoleV7> rolesV7SecurityDynamicConfiguration;
+
+        private final SecurityDynamicConfiguration<RoleMappingsV7> rolesMappingsV7SecurityDynamicConfiguration;
         
-        public InternalUsersModelV7(SecurityDynamicConfiguration<InternalUserV7> internalUserV7SecurityDynamicConfiguration, SecurityDynamicConfiguration<RoleV7> roleV7SecurityDynamicConfiguration) {
+        public InternalUsersModelV7(SecurityDynamicConfiguration<InternalUserV7> internalUserV7SecurityDynamicConfiguration,
+                                    SecurityDynamicConfiguration<RoleV7> rolesV7SecurityDynamicConfiguration,
+                                    SecurityDynamicConfiguration<RoleMappingsV7> rolesMappingsV7SecurityDynamicConfiguration) {
             super();
             this.internalUserV7SecurityDynamicConfiguration = internalUserV7SecurityDynamicConfiguration;
-            this.roleV7SecurityDynamicConfiguration = roleV7SecurityDynamicConfiguration;
+            this.rolesV7SecurityDynamicConfiguration = rolesV7SecurityDynamicConfiguration;
+            this.rolesMappingsV7SecurityDynamicConfiguration = rolesMappingsV7SecurityDynamicConfiguration;
         }
 
         @Override
@@ -300,22 +307,22 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         public List<String> getOpenDistroSecurityRoles(String user) {
             InternalUserV7 tmp = internalUserV7SecurityDynamicConfiguration.getCEntry(user);
 
-            // Filtering out hidden and non-existent roles for existing users
+            // Opendistro security roles should only contain roles that exist in the roles dynamic config.
+            // We should filter out any roles that have hidden rolesmapping.
             return tmp == null ? ImmutableList.of() :
-                tmp.getOpendistro_security_roles().stream().filter(role -> !isHiddenOrNonExistent(role)).collect(ImmutableList.toImmutableList());
+                tmp.getOpendistro_security_roles().stream().filter(role -> !isRolesMappingHidden(role) && rolesV7SecurityDynamicConfiguration.exists(role)).collect(ImmutableList.toImmutableList());
         }
 
-        // We will remove opendistro security mapping for roles that are hidden or non-existent in the roles configuration
-        private boolean isHiddenOrNonExistent(String rolename) {
-            final RoleV7 role = roleV7SecurityDynamicConfiguration.getCEntry(rolename);
-            return role == null || role.isHidden();
+        // Remove any hidden rolesmapping from the opendistro security roles
+        private boolean isRolesMappingHidden(String rolename) {
+            final RoleMappingsV7 roleMapping = rolesMappingsV7SecurityDynamicConfiguration.getCEntry(rolename);
+            return roleMapping!=null && roleMapping.isHidden();
         }
     }
     
     private static class InternalUsersModelV6 extends InternalUsersModel {
         
         SecurityDynamicConfiguration<InternalUserV6> configuration;
-        
         
 
         public InternalUsersModelV6(SecurityDynamicConfiguration<InternalUserV6> configuration) {
