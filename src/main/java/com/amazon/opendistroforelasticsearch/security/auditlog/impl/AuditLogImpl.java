@@ -170,6 +170,13 @@ public final class AuditLogImpl extends AbstractAuditLog {
 	}
 
 	@Override
+	public void logGrantedPrivileges(String effectiveUser, RestRequest request) {
+		if (enabled) {
+			super.logGrantedPrivileges(effectiveUser, request);
+		}
+	}
+
+	@Override
 	public void logMissingPrivileges(String privilege, TransportRequest request, Task task) {
 		if (enabled) {
 			super.logMissingPrivileges(privilege, request, task);
