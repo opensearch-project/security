@@ -200,6 +200,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
 
                 if(userIsAdmin && !confRequest && !internalRequest && !passThroughRequest) {
                     auditLog.logGrantedPrivileges(action, request, task);
+                    auditLog.logIndexEvent(action, request, task);
                 }
 
                 chain.proceed(task, action, request, listener);
@@ -274,6 +275,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
             
             if (pres.isAllowed()) {
                 auditLog.logGrantedPrivileges(action, request, task);
+                auditLog.logIndexEvent(action, request, task);
                 if(!dlsFlsValve.invoke(request, listener, pres.getAllowedFlsFields(), pres.getMaskedFields(), pres.getQueries())) {
                     return;
                 }
