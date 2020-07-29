@@ -106,11 +106,6 @@ public class ComplianceConfig {
     private final String auditLogIndex;
     private final boolean enabled;
 
-    // Needed by Jackson
-    private ComplianceConfig() {
-        this(true, false, false, false, Collections.emptyMap(), Collections.emptySet(), false, false, Collections.emptyList(), Collections.emptySet(), Settings.EMPTY);
-    }
-
     private ComplianceConfig(
             final boolean enabled,
             final boolean logExternalConfig,
