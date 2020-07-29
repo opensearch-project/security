@@ -78,7 +78,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.greenrobot.eventbus.Subscribe;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
-import com.amazon.opendistroforelasticsearch.security.auth.RolesInjector;
 import com.amazon.opendistroforelasticsearch.security.configuration.ClusterInfoHolder;
 import com.amazon.opendistroforelasticsearch.security.configuration.ConfigurationRepository;
 import com.amazon.opendistroforelasticsearch.security.resolver.IndexResolverReplacer;
@@ -165,7 +164,7 @@ public class PrivilegesEvaluator {
     }
 
     public PrivilegesEvaluatorResponse evaluate(final User user, String action0, final ActionRequest request,
-                                                Task task, final RolesInjector rolesInjector) {
+                                                Task task, final Set<String> injectedRoles) {
 
         if (!isInitialized()) {
             throw new ElasticsearchSecurityException("Open Distro Security is not initialized.");
@@ -180,8 +179,7 @@ public class PrivilegesEvaluator {
         }
 
         final TransportAddress caller = Objects.requireNonNull((TransportAddress) this.threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS));
-        final Set<String> mappedRoles = rolesInjector.isRoleInjected() ?
-                rolesInjector.getInjectedRoles() : mapRoles(user, caller);
+        final Set<String> mappedRoles = (injectedRoles == null) ? mapRoles(user, caller) : injectedRoles;
         final SecurityRoles securityRoles = getSecurityRoles(mappedRoles);
 
         final PrivilegesEvaluatorResponse presponse = new PrivilegesEvaluatorResponse();
