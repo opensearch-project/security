@@ -70,7 +70,6 @@ public class AuditConfig {
     public static final List<String> DEFAULT_IGNORED_USERS = Collections.singletonList("kibanaserver");
     private static Set<String> FIELDS = DefaultObjectMapper.getFields(AuditConfig.class);
 
-    // Needed by Jackson
     private AuditConfig() {
         this(true, null, null);
     }
@@ -131,11 +130,6 @@ public class AuditConfig {
         private final WildcardMatcher ignoredAuditRequestsMatcher;
         private final Set<AuditCategory> disabledRestCategories;
         private final Set<AuditCategory> disabledTransportCategories;
-
-        // Needed by Jackson
-        private Filter() {
-            this(true, true, false, true, true, true, Collections.emptySet(), Collections.emptySet(), Collections.emptySet(), Collections.emptySet());
-        }
 
         @VisibleForTesting
         Filter(final boolean isRestApiAuditEnabled,
