@@ -55,7 +55,7 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
     }
 
     @Test
-    public void testAllRolesNotContainMetaHeader() throws Exception {
+    public void testAllRolesForSuperAdmin() throws Exception {
 
         setup();
 
@@ -64,6 +64,9 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         HttpResponse response = rh.executeGetRequest("_opendistro/_security/api/roles");
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Assert.assertFalse(response.getBody().contains("_meta"));
+
+        // Super admin should be able to see all roles including hidden
+        Assert.assertTrue(response.getBody().contains("opendistro_security_hidden"));
     }
 
     @Test
@@ -142,8 +145,8 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         Assert.assertFalse(response.getBody().contains("\"cluster_permissions\":[\"*\"]"));
         Assert.assertTrue(response.getBody().contains("\"cluster_permissions\" : ["));
 
-        // hidden role
-        response = rh.executeGetRequest("/_opendistro/_security/api/roles/opendistro_security_internal", new Header[0]);
+        // Super admin should be able to describe hidden role
+        response = rh.executeGetRequest("/_opendistro/_security/api/roles/opendistro_security_hidden", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Assert.assertTrue(response.getBody().contains("\"hidden\":true"));
 
