@@ -25,14 +25,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ThreadContext.StoredContext;
@@ -272,11 +270,6 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		return DynamicConfigFactory.addStatics(loaded);
 	}
 
-	protected final SecurityDynamicConfiguration<?> load(final CType config, boolean logComplianceEvent, boolean acceptInvalid) {
-		SecurityDynamicConfiguration<?> loaded = cl.getConfigurationsFromIndex(Collections.singleton(config), logComplianceEvent, acceptInvalid).get(config).deepClone();
-        return DynamicConfigFactory.addStatics(loaded);
-    }
-
 	protected boolean ensureIndexExists() {
 		if (!cs.state().metaData().hasConcreteIndex(this.opendistroIndex)) {
 			return false;
@@ -338,7 +331,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		}
 	}
 
-	protected static class ConfigUpdatingActionListener<Response> implements ActionListener<Response>{
+    protected static class ConfigUpdatingActionListener<Response> implements ActionListener<Response>{
 
 		private final Client client;
 		private final ActionListener<Response> delegate;
@@ -398,12 +391,10 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		final String userName = user == null ? null : user.getName();
 		if (authError != null) {
 			log.error("No permission to access REST API: " + authError);
-			auditLog.logMissingPrivileges(authError, userName, request);
+			auditLog.logMissingPrivileges(authError, user == null ? null : user.getName(), request);
 			// for rest request
 			request.params().clear();
 			return channel -> forbidden(channel, "No permission to access REST API: " + authError);
-		} else {
-			auditLog.logGrantedPrivileges(userName, request);
 		}
 
 		final Object originalUser = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
@@ -587,6 +578,35 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 	protected boolean isReadOnly(final SecurityDynamicConfiguration<?> existingConfiguration,
 								 String name) {
 		return isSuperAdmin() ? false: isReserved(existingConfiguration, name);
+	}
+
+	/**
+	 * Checks if it is valid to add role to opendistro_security_roles or rolesmapping.
+	 * Role can be mapped to user if it exists. Only superadmin can add hidden or reserved roles.
+	 *
+	 * @param channel	Rest Channel for response
+	 * @param role		Name of the role
+	 * @return True if role can be mapped
+	 */
+	protected boolean isValidRolesMapping(final RestChannel channel, final String role) {
+		final SecurityDynamicConfiguration<?> rolesConfiguration = load(CType.ROLES, false);
+		final SecurityDynamicConfiguration<?> rolesMappingConfiguration = load(CType.ROLESMAPPING, false);
+
+		if (!rolesConfiguration.exists(role)) {
+			notFound(channel, "Role '"+role+"' is not available for role-mapping.");
+			return false;
+		}
+
+		if (isHidden(rolesConfiguration, role) || isHidden(rolesMappingConfiguration, role)) {
+			notFound(channel, "Role '"+role+"' is not available for role-mapping.");
+			return false;
+		}
+
+		if (isReadOnly(rolesMappingConfiguration, role)) {
+			forbidden(channel, "Role '" + role + "' has read-only role-mapping.");
+			return false;
+		}
+		return true;
 	}
 
 }
