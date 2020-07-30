@@ -107,7 +107,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 	 */
 	protected abstract void registerHandlers(RestController controller, Settings settings);
 
-	protected abstract AbstractConfigurationValidator getValidator(RestRequest request, BytesReference ref, Object... params);
+    protected abstract AbstractConfigurationValidator getValidator(RestRequest request, BytesReference ref, Object... params);
 
 	protected abstract String getResourceName();
 
@@ -585,6 +585,35 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 	protected boolean isReadOnly(final SecurityDynamicConfiguration<?> existingConfiguration,
 								 String name) {
 		return isSuperAdmin() ? false: isReserved(existingConfiguration, name);
+	}
+
+	/**
+	 * Checks if it is valid to add role to opendistro_security_roles or rolesmapping.
+	 * Role can be mapped to user if it exists. Only superadmin can add hidden or reserved roles.
+	 *
+	 * @param channel	Rest Channel for response
+	 * @param role		Name of the role
+	 * @return True if role can be mapped
+	 */
+	protected boolean isValidRolesMapping(final RestChannel channel, final String role) {
+		final SecurityDynamicConfiguration<?> rolesConfiguration = load(CType.ROLES, false);
+		final SecurityDynamicConfiguration<?> rolesMappingConfiguration = load(CType.ROLESMAPPING, false);
+
+		if (!rolesConfiguration.exists(role)) {
+			notFound(channel, "Role '"+role+"' is not available for role-mapping.");
+			return false;
+		}
+
+		if (isHidden(rolesConfiguration, role) || isHidden(rolesMappingConfiguration, role)) {
+			notFound(channel, "Role '"+role+"' is not available for role-mapping.");
+			return false;
+		}
+
+		if (isReadOnly(rolesMappingConfiguration, role)) {
+			forbidden(channel, "Role '" + role + "' has read-only role-mapping.");
+			return false;
+		}
+		return true;
 	}
 
 }
