@@ -88,11 +88,6 @@ public class TenantInfoAction extends BaseRestHandler {
     }
 
     @Override
-    public List<Route> routes() {
-        return routes;
-    }
-
-    @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
         return new RestChannelConsumer() {
 
