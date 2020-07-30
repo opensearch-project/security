@@ -17,6 +17,20 @@ opendistro_security_unittest_1:
     allowed_actions:
     - "*"
   tenant_permissions: []
+opendistro_security_role_starfleet_library:
+  reserved: true
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions: []
+  index_permissions:
+    - index_patterns:
+        - "abc*"
+      dls: null
+      fls: null
+      masked_fields: null
+      allowed_actions:
+        - "ALL"
+  tenant_permissions: []
 
 opendistro_security_hidden:
   reserved: false
@@ -33,7 +47,6 @@ opendistro_security_hidden:
       allowed_actions:
         - "ALL"
   tenant_permissions: []
-
 opendistro_security_reserved:
   reserved: true
   hidden: false
@@ -48,7 +61,6 @@ opendistro_security_reserved:
       masked_fields: null
       allowed_actions:
         - "ALL"
-
 opendistro_security_internal:
   reserved: false
   hidden: true
@@ -57,7 +69,7 @@ opendistro_security_internal:
   - "OPENDISTRO_SECURITY_CLUSTER_ALL"
   index_permissions:
   - index_patterns:
-    - "*"
+    - "abc*"
     dls: null
     fls: null
     masked_fields: null
