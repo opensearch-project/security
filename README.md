@@ -34,7 +34,7 @@ Open Distro for Elasticsearch Security is an Elasticsearch plugin that offers en
 * Field-level security
 * REST management API
 
-### Audit/Complaince logging:
+### Audit/Compliance logging:
 * Audit logging 
 * Compliance logging for GDPR, HIPAA, PCI, SOX and ISO compliance
 
