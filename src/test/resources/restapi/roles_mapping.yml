@@ -87,14 +87,13 @@ opendistro_security_theindex_admin:
   - "theindexadmin"
   and_backend_roles: []
   description: "Migrated from v6"
-opendistro_security_role_internal:
+opendistro_security_internal:
   reserved: false
   hidden: true
-  backend_roles:
-  - "starfleet*"
-  - "ambassador"
+  backend_roles: []
   hosts: []
-  users: []
+  users:
+    - "test"
   and_backend_roles: []
   description: "Migrated from v6"
 opendistro_security_zdummy_all:
