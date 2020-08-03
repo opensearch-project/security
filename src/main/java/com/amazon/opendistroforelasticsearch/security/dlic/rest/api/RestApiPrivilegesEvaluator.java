@@ -344,8 +344,8 @@ public class RestApiPrivilegesEvaluator {
 		if (this.roleBasedAccessEnabled) {
 
 			// get current user and roles
-			final User user = (User) threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-			final TransportAddress remoteAddress = (TransportAddress) threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
+			final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+			final TransportAddress remoteAddress = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
 
 			// map the users Security roles
 			Set<String> userRoles = privilegesEvaluator.mapRoles(user, remoteAddress);

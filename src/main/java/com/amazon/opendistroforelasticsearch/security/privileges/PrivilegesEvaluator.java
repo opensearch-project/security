@@ -177,7 +177,7 @@ public class PrivilegesEvaluator {
             action0 = "indices:admin/create";
         }
 
-        final TransportAddress caller = Objects.requireNonNull((TransportAddress) this.threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS));
+        final TransportAddress caller = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
         final Set<String> mappedRoles = mapRoles(user, caller);
         final SecurityRoles securityRoles = getSecurityRoles(mappedRoles);
 
