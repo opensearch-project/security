@@ -76,7 +76,7 @@
         <log4j.version>2.11.1</log4j.version>
         <guava.version>25.1-jre</guava.version>
         <commons.cli.version>1.3.1</commons.cli.version>
-        <jackson-databind.version>2.11.0</jackson-databind.version>
+        <jackson-databind.version>2.11.2</jackson-databind.version>
         <jjwt.version>0.10.5</jjwt.version>
         <ldaptive.version>1.2.3</ldaptive.version>
         <http.commons.version>4.5.3</http.commons.version>
