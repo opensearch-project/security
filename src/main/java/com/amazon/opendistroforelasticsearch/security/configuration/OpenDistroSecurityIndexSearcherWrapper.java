@@ -122,11 +122,8 @@ public class OpenDistroSecurityIndexSearcherWrapper implements CheckedFunction<D
     }
 
     protected final boolean isPermittedOnIndex() {
-        final TransportAddress caller = (TransportAddress) this.threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
-        final User user = (User) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        if (caller == null || user == null) {
-            return false;
-        }
+        final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        final TransportAddress caller = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
         final Set<String> securityRoles = evaluator.mapRoles(user, caller);
         if (allowedRolesMatcher.matchAny(securityRoles)) {
             return true;
