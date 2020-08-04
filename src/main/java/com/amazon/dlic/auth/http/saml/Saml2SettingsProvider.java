@@ -15,7 +15,9 @@
 
 package com.amazon.dlic.auth.http.saml;
 
+import java.security.AccessController;
 import java.security.PrivateKey;
+import java.security.PrivilegedAction;
 import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.HashMap;
@@ -26,6 +28,8 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import org.elasticsearch.SpecialPermission;
 import org.elasticsearch.common.settings.Settings;
 import org.joda.time.DateTime;
 import org.opensaml.core.criterion.EntityIdCriterion;
@@ -95,8 +99,8 @@ public class Saml2SettingsProvider {
             // TODO allow overriding of IdP metadata?
             settingsBuilder.fromValues(configProperties);
             settingsBuilder.fromValues(new SamlSettingsMap(this.esSettings));
-
-            return settingsBuilder.build();
+            SpecialPermission.check();
+            return AccessController.doPrivileged((PrivilegedAction<Saml2Settings>) () -> settingsBuilder.build());
         } catch (ResolverException e) {
             throw new AuthenticatorUnavailableException(e);
         }
