@@ -17,14 +17,12 @@ package com.amazon.opendistroforelasticsearch.security.auth;
 
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.user.User;
+import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 
-import java.net.InetAddress;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -44,29 +42,37 @@ final public class RolesInjector {
     }
 
     public Set<String> injectUserAndRoles(final ThreadContext ctx) {
-
-        if(log.isDebugEnabled()){
-            log.debug("Injected role str: "+ ctx.getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES));
-        }
-        String injectedStr = ctx.getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES);
-        if (Strings.isNullOrEmpty(injectedStr)) {
+        final String injectedUserAndRoles = ctx.getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES);
+        if (injectedUserAndRoles == null) {
             return null;
         }
-        User user = parseUser(injectedStr);
-        Set<String> roles = parseRoles(injectedStr);
+
+        if(log.isDebugEnabled()){
+            log.debug("Injected roles: "+ injectedUserAndRoles);
+        }
+
+        String[] strs = injectedUserAndRoles.split("\\|");
+        if (strs.length == 0) {
+            log.error("Roles injected string malformed, could not extract parts. User string was '{}.'" +
+                    " Roles injection failed.", injectedUserAndRoles);
+            return null;
+        }
+        if (Strings.isNullOrEmpty(strs[0].trim())) {
+            log.error("Username must not be null, injected string was '{}.' Roles injection failed.", injectedUserAndRoles);
+            return null;
+        }
+        User user = new User(strs[0]);
+
+        if (strs.length < 2 || Strings.isNullOrEmpty(strs[1].trim())) {
+            log.error("Roles must not be null, injected string was '{}.' Roles injection failed.", injectedUserAndRoles);
+            return null;
+        }
+        Set<String> roles = new HashSet<>(ImmutableSet.copyOf(strs[1].split(",")));
+
         if(user != null && roles != null) {
-            addRemoteAddr(ctx);
             addUser(user, ctx);
         }
         return roles;
-    }
-
-    private void addRemoteAddr(final ThreadContext threadContext) {
-        if(threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS) != null)
-            return;
-
-        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS,
-                new TransportAddress(InetAddress.getLoopbackAddress(), 9300));
     }
 
     private void addUser(final User user, final ThreadContext threadContext) {
@@ -74,39 +80,5 @@ final public class RolesInjector {
             return;
 
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
-    }
-
-    /*
-     * Input string format: user|role_1,role2
-     */
-    private User parseUser(final String injectedStr) {
-        String[] strs = injectedStr.split("\\|");
-        if (strs.length == 0) {
-            log.error("Roles injected string malformed, could not extract parts. User string was '{}.'" +
-                    " Roles injection failed.", injectedStr);
-            return null;
-        }
-        if (Strings.isNullOrEmpty(strs[0].trim())) {
-            log.error("Username must not be null, injected string was '{}.' Roles injection failed.", injectedStr);
-            return null;
-        }
-        return new User(strs[0]);
-    }
-
-    /*
-     * Input string format: user|role_1,role2
-     */
-    private Set<String> parseRoles(final String injectedStr) {
-        String[] strs = injectedStr.split("\\|");
-        if (strs.length == 1) {
-            log.error("Roles injected string malformed, could not extract parts. User string was '{}.'" +
-                    " Roles injection failed.", injectedStr);
-            return null;
-        }
-        if (Strings.isNullOrEmpty(strs[1].trim())) {
-            log.error("Roles must not be null, injected string was '{}.' Roles injection failed.", injectedStr);
-            return null;
-        }
-        return new HashSet<>(Arrays.asList(strs[1].split(",")));
     }
 }
