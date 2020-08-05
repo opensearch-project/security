@@ -86,6 +86,11 @@ public class NullAuditLog implements AuditLog {
     }
 
     @Override
+    public void logIndexEvent(String privilege, TransportRequest request, Task task) {
+        //noop, intentionally left empty
+    }
+
+    @Override
     public void logBadHeaders(TransportRequest request, String action, Task task) {
         //noop, intentionally left empty
     }
@@ -112,6 +117,11 @@ public class NullAuditLog implements AuditLog {
 
     @Override
     public void logMissingPrivileges(String privilege, String effectiveUser, RestRequest request) {
+        //noop, intentionally left empty
+    }
+
+    @Override
+    public void logGrantedPrivileges(String effectiveUser, RestRequest request) {
         //noop, intentionally left empty
     }
 

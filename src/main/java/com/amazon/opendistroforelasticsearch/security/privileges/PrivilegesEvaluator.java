@@ -178,7 +178,7 @@ public class PrivilegesEvaluator {
             action0 = "indices:admin/create";
         }
 
-        final TransportAddress caller = Objects.requireNonNull((TransportAddress) this.threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS));
+        final TransportAddress caller = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
         final Set<String> mappedRoles = (injectedRoles == null) ? mapRoles(user, caller) : injectedRoles;
         final SecurityRoles securityRoles = getSecurityRoles(mappedRoles);
 
@@ -466,6 +466,10 @@ public class PrivilegesEvaluator {
 
     public String kibanaServerUsername() {
         return dcm.getKibanaServerUsername();
+    }
+
+    public String kibanaOpendistroRole() {
+        return dcm.getKibanaOpendistroRole();
     }
 
     private Set<String> evaluateAdditionalIndexPermissions(final ActionRequest request, final String originalAction) {

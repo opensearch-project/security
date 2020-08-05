@@ -155,6 +155,44 @@ public class HTTPSamlAuthenticatorTest {
     }
 
     @Test
+    public void decryptAssertionsTest() throws Exception {
+        mockSamlIdpServer.setAuthenticateUser("horst");
+        mockSamlIdpServer.setEndpointQueryString(null);
+        mockSamlIdpServer.setSpSignatureCertificate(spSigningCertificate);
+        mockSamlIdpServer.setEncryptAssertion(true);
+
+        Settings settings = Settings.builder().put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
+                .put("kibana_url", "http://wherever").put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
+                .put("sp.signature_private_key", "-BEGIN PRIVATE KEY-\n"
+                        + Base64.getEncoder().encodeToString(spSigningPrivateKey.getEncoded()) + "-END PRIVATE KEY-")
+                .put("exchange_key", "abc").put("roles_key", "roles").put("path.home", ".").build();
+
+        HTTPSamlAuthenticator samlAuthenticator = new HTTPSamlAuthenticator(settings, null);
+
+        AuthenticateHeaders authenticateHeaders = getAutenticateHeaders(samlAuthenticator);
+
+        String encodedSamlResponse = mockSamlIdpServer.handleSsoGetRequestURI(authenticateHeaders.location);
+
+        RestRequest tokenRestRequest = buildTokenExchangeRestRequest(encodedSamlResponse, authenticateHeaders);
+        TestRestChannel tokenRestChannel = new TestRestChannel(tokenRestRequest);
+
+        samlAuthenticator.reRequestAuthentication(tokenRestChannel, null);
+
+        String responseJson = new String(BytesReference.toBytes(tokenRestChannel.response.content()));
+        HashMap<String, Object> response = DefaultObjectMapper.objectMapper.readValue(responseJson,
+                new TypeReference<HashMap<String, Object>>() {
+                });
+        String authorization = (String) response.get("authorization");
+
+        Assert.assertNotNull("Expected authorization attribute in JSON: " + responseJson, authorization);
+
+        JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(authorization.replaceAll("\\s*bearer\\s*", ""));
+        JwtToken jwt = jwtConsumer.getJwtToken();
+
+        Assert.assertEquals("horst", jwt.getClaim("sub"));
+    }
+
+    @Test
     public void testMetadataBody() throws Exception {
         mockSamlIdpServer.setSignResponses(true);
         mockSamlIdpServer.loadSigningKeys("saml/kirk-keystore.jks", "kirk");

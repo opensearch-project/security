@@ -11,6 +11,27 @@ opendistro_security_unittest_1:
   - "CN=spock,OU=client,O=client,L=Test,C=DE"
   and_backend_roles: []
   description: "Migrated from v6"
+
+opendistro_security_hidden:
+  reserved: false
+  hidden: true
+  backend_roles:
+  - "hidden*"
+  hosts: []
+  users: []
+  and_backend_roles: []
+  description: "Migrated from v6"
+
+opendistro_security_reserved:
+  reserved: true
+  hidden: false
+  backend_roles:
+  - "reserved*"
+  hosts: []
+  users: ["nagilum"]
+  and_backend_roles: []
+  description: "Migrated from v6"
+
 opendistro_security_role_starfleet_library:
   reserved: true
   hidden: false
@@ -66,14 +87,13 @@ opendistro_security_theindex_admin:
   - "theindexadmin"
   and_backend_roles: []
   description: "Migrated from v6"
-opendistro_security_role_internal:
+opendistro_security_internal:
   reserved: false
   hidden: true
-  backend_roles:
-  - "starfleet*"
-  - "ambassador"
+  backend_roles: []
   hosts: []
-  users: []
+  users:
+    - "test"
   and_backend_roles: []
   description: "Migrated from v6"
 opendistro_security_zdummy_all:

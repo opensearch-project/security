@@ -121,24 +121,23 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Assert.assertTrue(response.getBody().contains("\"hidden\":true"));
 
-        // Associating with reserved or hidden role is not allowed
-        response = rh.executePutRequest("/_opendistro/_security/api/internalusers/nagilum", "{ \"opendistro_security_roles\": [\"opendistro_security_hidden\"]}",
-            new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
-        settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(settings.get("message"), "Role 'opendistro_security_hidden' is not found.");
+        // Associating with hidden role is allowed (for superadmin)
+        response = rh.executePutRequest("/_opendistro/_security/api/internalusers/test", "{ \"opendistro_security_roles\": " +
+                "[\"opendistro_security_hidden\"]}", new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
+        // Associating with reserved role is allowed (for superadmin)
+        response = rh.executePutRequest("/_opendistro/_security/api/internalusers/test", "{ \"opendistro_security_roles\": [\"opendistro_security_reserved\"], " +
+                "\"hash\": \"123\"}",
+            new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+
+        // Associating with non-existent role is not allowed
         response = rh.executePutRequest("/_opendistro/_security/api/internalusers/nagilum", "{ \"opendistro_security_roles\": [\"non_existent\"]}",
             new Header[0]);
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
         settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(settings.get("message"), "Role 'non_existent' is not found.");
-
-        response = rh.executePutRequest("/_opendistro/_security/api/internalusers/nagilum", "{ \"opendistro_security_roles\": [\"opendistro_security_reserved\"]}",
-            new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
-        settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(settings.get("message"), "Role 'opendistro_security_reserved' is reserved.");
+        Assert.assertEquals(settings.get("message"), "Role 'non_existent' is not available for role-mapping.");
 
         // Wrong config keys
         response = rh.executePutRequest("/_opendistro/_security/api/internalusers/nagilum", "{\"some\": \"thing\", \"other\": \"thing\"}",
@@ -556,6 +555,13 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         // Put hidden users
         response = rh.executePutRequest("/_opendistro/_security/api/internalusers/hide", "[{ \"op\": \"add\", \"path\": \"/sarek/description\", \"value\": \"foo\" }]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+
+        // Put reserved role is forbidden for non-superadmin
+        response = rh.executePutRequest("/_opendistro/_security/api/internalusers/nagilum", "{ \"opendistro_security_roles\": [\"opendistro_security_reserved\"]}",
+            new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
+        Assert.assertEquals(settings.get("message"), "Role 'opendistro_security_reserved' has read-only role-mapping.");
 
         // Patch single hidden user
         response = rh.executePatchRequest("/_opendistro/_security/api/internalusers/hide", "[{ \"op\": \"add\", \"path\": \"/description\", \"value\": \"foo\" }]", new Header[0]);

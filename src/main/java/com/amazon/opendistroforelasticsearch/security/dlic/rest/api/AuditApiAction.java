@@ -1,14 +1,21 @@
 package com.amazon.opendistroforelasticsearch.security.dlic.rest.api;
 
+import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
+import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import com.amazon.opendistroforelasticsearch.security.configuration.AdminDNs;
 import com.amazon.opendistroforelasticsearch.security.configuration.ConfigurationRepository;
+import com.amazon.opendistroforelasticsearch.security.configuration.StaticResourceException;
+import com.amazon.opendistroforelasticsearch.security.dlic.rest.support.Utils;
 import com.amazon.opendistroforelasticsearch.security.dlic.rest.validation.AbstractConfigurationValidator;
 import com.amazon.opendistroforelasticsearch.security.dlic.rest.validation.AuditValidator;
 import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvaluator;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.PrincipalExtractor;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -23,6 +30,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Rest handler for fetching and updating audit configuration.
@@ -109,6 +117,11 @@ public class AuditApiAction extends PatchableResourceApiAction {
     );
 
     private static final String RESOURCE_NAME = "config";
+    @VisibleForTesting
+    public static final String READONLY_FIELD = "_readonly";
+    @VisibleForTesting
+    public static final String STATIC_RESOURCE = "/static_config/static_audit.yml";
+    private final List<String> readonlyFields;
     private final PrivilegesEvaluator privilegesEvaluator;
     private final ThreadContext threadContext;
 
@@ -126,6 +139,16 @@ public class AuditApiAction extends PatchableResourceApiAction {
         super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, privilegesEvaluator, threadPool, auditLog);
         this.privilegesEvaluator = privilegesEvaluator;
         this.threadContext = threadPool.getThreadContext();
+        try {
+            this.readonlyFields = DefaultObjectMapper.YAML_MAPPER
+                    .readValue(this.getClass().getResourceAsStream(STATIC_RESOURCE), new TypeReference<Map<String, List<String>>>() {})
+                    .get(READONLY_FIELD);
+            if (!AuditConfig.FIELD_PATHS.containsAll(this.readonlyFields)) {
+                throw new StaticResourceException("Invalid read-only field paths provided in static resource file " + STATIC_RESOURCE);
+            }
+        } catch (IOException e) {
+            throw new StaticResourceException("Unable to load audit static resource file", e);
+        }
     }
 
     @Override
@@ -151,6 +174,21 @@ public class AuditApiAction extends PatchableResourceApiAction {
             return;
         }
         super.handlePut(channel, request, client, content);
+    }
+
+    @Override
+    protected void handleGet(final RestChannel channel, RestRequest request, Client client, final JsonNode content) {
+        final SecurityDynamicConfiguration<?> configuration = load(getConfigName(), true);
+        filter(configuration);
+
+        final String resourcename = getResourceName();
+        if (!configuration.exists(resourcename)) {
+            notFound(channel, "Resource '" + resourcename + "' not found.");
+            return;
+        }
+
+        configuration.putCObject(READONLY_FIELD, readonlyFields);
+        successResponse(channel, configuration);
     }
 
     @Override
@@ -181,5 +219,20 @@ public class AuditApiAction extends PatchableResourceApiAction {
     @Override
     protected CType getConfigName() {
         return CType.AUDIT;
+    }
+
+    @Override
+    protected boolean isReadonlyFieldUpdated(final JsonNode existingResource, final JsonNode targetResource) {
+        if (!isSuperAdmin()) {
+            return readonlyFields
+                    .stream()
+                    .anyMatch(path -> !existingResource.at(path).equals(targetResource.at(path)));
+        }
+        return false;
+    }
+
+    @Override
+    protected boolean isReadonlyFieldUpdated(final SecurityDynamicConfiguration<?> configuration, final JsonNode targetResource) {
+        return isReadonlyFieldUpdated(Utils.convertJsonToJackson(configuration, false).get(getResourceName()), targetResource);
     }
 }

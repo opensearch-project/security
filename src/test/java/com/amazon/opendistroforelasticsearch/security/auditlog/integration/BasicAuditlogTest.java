@@ -17,6 +17,7 @@ package com.amazon.opendistroforelasticsearch.security.auditlog.integration;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditTestUtils;
 import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
+import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
 import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
 import com.google.common.collect.ImmutableMap;
 import org.apache.http.Header;
@@ -244,6 +245,45 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("REST"));
         Assert.assertFalse(TestAuditlogImpl.sb.toString().toLowerCase().contains("authorization"));
         Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
+    }
+
+    @Test
+    public void testGrantedPrivilegesRest() throws Exception {
+        final Settings additionalSettings = Settings.builder()
+                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_ROLES_ENABLED, "opendistro_security_all_access")
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "AUTHENTICATED")
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
+                .build();
+
+        setup(additionalSettings);
+        setupStarfleetIndex();
+
+        testPrivilegeRest(HttpStatus.SC_OK, "/_opendistro/_security/api/roles", AuditCategory.GRANTED_PRIVILEGES);
+    }
+
+    @Test
+    public void testMissingPrivilegesRest() throws Exception {
+        final Settings additionalSettings = Settings.builder()
+                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "AUTHENTICATED")
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
+                .build();
+        setup(additionalSettings);
+        setupStarfleetIndex();
+
+        testPrivilegeRest(HttpStatus.SC_FORBIDDEN, "/_opendistro/_security/api/roles", AuditCategory.MISSING_PRIVILEGES);
+    }
+
+    private void testPrivilegeRest(final int expectedStatus, final String endpoint, final AuditCategory category) throws Exception {
+        TestAuditlogImpl.clear();
+        final HttpResponse response = rh.executeGetRequest(endpoint, encodeBasicHeader("admin", "admin"));
+        Assert.assertEquals(expectedStatus, response.getStatusCode());
+        final String auditlog = TestAuditlogImpl.sb.toString();
+        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
+        Assert.assertTrue(auditlog.contains("\"audit_category\" : \"" + category +"\""));
+        Assert.assertTrue(auditlog.contains("\"audit_rest_request_path\" : \"" + endpoint + "\""));
+        Assert.assertTrue(auditlog.contains("\"audit_request_effective_user\" : \"admin\""));
     }
 
     @Test
@@ -728,5 +768,120 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(auditlogContents.contains("indices:data/write/delete/byquery"));
         Assert.assertTrue(auditlogContents.contains("indices:data/write/bulk"));
         Assert.assertTrue(auditlogContents.contains("indices:data/read/search"));
+    }
+
+    @Test
+    public void testIndexRequests() throws Exception {
+        final Settings settings = Settings.builder()
+                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, false)
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "AUTHENTICATED,GRANTED_PRIVILEGES")
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY, true)
+                .build();
+        setup(settings);
+
+        // test create index
+        TestAuditlogImpl.clear();
+        rh.executePutRequest("/twitter", "{\"settings\":{\"index\":{\"number_of_shards\":3,\"number_of_replicas\":2}}}", encodeBasicHeader("admin", "admin"));
+        String auditlogs = TestAuditlogImpl.sb.toString();
+        Assert.assertTrue(auditlogs.contains("\"audit_category\" : \"INDEX_EVENT\""));
+        Assert.assertTrue(auditlogs.contains("\"audit_transport_request_type\" : \"CreateIndexRequest\","));
+        Assert.assertTrue(auditlogs.contains("\"audit_request_body\" : \"{\\\"index\\\":{\\\"number_of_shards\\\":\\\"3\\\",\\\"number_of_replicas\\\":\\\"2\\\"}}\""));
+
+        // test update index
+        TestAuditlogImpl.clear();
+        rh.executePutRequest("/twitter/_settings", "{\"index\":{\"number_of_replicas\":1}}", encodeBasicHeader("admin", "admin"));
+        auditlogs = TestAuditlogImpl.sb.toString();
+        Assert.assertTrue(auditlogs.contains("\"audit_category\" : \"INDEX_EVENT\""));
+        Assert.assertTrue(auditlogs.contains("\"audit_transport_request_type\" : \"UpdateSettingsRequest\","));
+        Assert.assertTrue(auditlogs.contains("\"audit_request_body\" : \"{\\\"index\\\":{\\\"number_of_replicas\\\":\\\"1\\\"}}\""));
+
+        // test put mapping
+        TestAuditlogImpl.clear();
+        rh.executePutRequest("/twitter/_mapping", "{\"properties\":{\"message\":{\"type\":\"keyword\"}}}", encodeBasicHeader("admin", "admin"));
+        auditlogs = TestAuditlogImpl.sb.toString();
+        Assert.assertTrue(auditlogs.contains("\"audit_category\" : \"INDEX_EVENT\""));
+        Assert.assertTrue(auditlogs.contains("\"audit_transport_request_type\" : \"PutMappingRequest\","));
+        Assert.assertTrue(auditlogs.contains("\"{\\\"properties\\\":{\\\"message\\\":{\\\"type\\\":\\\"keyword\\\"}}}\""));
+
+        // test delete index
+        TestAuditlogImpl.clear();
+        rh.executeDeleteRequest("/twitter", encodeBasicHeader("admin", "admin"));
+        auditlogs = TestAuditlogImpl.sb.toString();
+        Assert.assertTrue(auditlogs.contains("\"audit_category\" : \"INDEX_EVENT\""));
+        Assert.assertTrue(auditlogs.contains("\"audit_transport_request_type\" : \"DeleteIndexRequest\","));
+    }
+
+    @Test
+    public void testRestMethod() throws Exception {
+        final Settings settings = Settings.builder()
+                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, true)
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, false)
+                .build();
+        setup(settings);
+        final Header adminHeader = encodeBasicHeader("admin", "admin");
+
+        // test GET
+        TestAuditlogImpl.clear();
+        rh.executeGetRequest("test", adminHeader);
+        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("\"audit_rest_request_method\" : \"GET\""));
+
+        // test PUT
+        TestAuditlogImpl.clear();
+        rh.executePutRequest("test/_doc/0", "{}", adminHeader);
+        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("\"audit_rest_request_method\" : \"PUT\""));
+
+        // test DELETE
+        TestAuditlogImpl.clear();
+        rh.executeDeleteRequest("test", adminHeader);
+        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("\"audit_rest_request_method\" : \"DELETE\""));
+
+        // test POST
+        TestAuditlogImpl.clear();
+        rh.executePostRequest("test/_doc", "{}", adminHeader);
+        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("\"audit_rest_request_method\" : \"POST\""));
+
+        // test PATCH
+        TestAuditlogImpl.clear();
+        rh.executePatchRequest("/_opendistro/_security/api/audit", "[]");
+        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("\"audit_rest_request_method\" : \"PATCH\""));
+
+        // test MISSING_PRIVILEGES
+        // admin does not have REST role here
+        TestAuditlogImpl.clear();
+        rh.executePatchRequest("/_opendistro/_security/api/audit", "[]", adminHeader);
+        Assert.assertEquals(2, TestAuditlogImpl.messages.size());
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("MISSING_PRIVILEGES"));
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("AUTHENTICATED"));
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("\"audit_rest_request_method\" : \"PATCH\""));
+
+        // test AUTHENTICATED
+        TestAuditlogImpl.clear();
+        rh.executeGetRequest("test", adminHeader);
+        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("AUTHENTICATED"));
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("\"audit_rest_request_method\" : \"GET\""));
+
+        // test FAILED_LOGIN
+        TestAuditlogImpl.clear();
+        rh.executeGetRequest("test", encodeBasicHeader("random", "random"));
+        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("FAILED_LOGIN"));
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("\"audit_rest_request_method\" : \"GET\""));
+
+        // test BAD_HEADERS
+        TestAuditlogImpl.clear();
+        rh.executeGetRequest("test", new BasicHeader("_opendistro_security_user", "xxx"));
+        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("BAD_HEADERS"));
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("\"audit_rest_request_method\" : \"GET\""));
     }
 }

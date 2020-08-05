@@ -107,7 +107,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         }
 
         // check if resource is writeable
-        if (!isReservedAndAccessible(internalUsersConfiguration, username)) {
+        if (isReadOnly(internalUsersConfiguration, username)) {
             forbidden(channel, "Resource '" + username + "' is read-only.");
             return;
         }
@@ -115,21 +115,11 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         final ObjectNode contentAsNode = (ObjectNode) content;
         final SecurityJsonNode securityJsonNode = new SecurityJsonNode(contentAsNode);
 
-        // Don't allow user to add hidden, reserved or non-existent role
+        // Don't allow user to add non-existent role or a role for which role-mapping is hidden or reserved
         final List<String> opendistroSecurityRoles = securityJsonNode.get("opendistro_security_roles").asList();
         if (opendistroSecurityRoles != null) {
-            final SecurityDynamicConfiguration<?> rolesConfiguration = load(CType.ROLES, false);
             for (final String role: opendistroSecurityRoles) {
-
-                if (!rolesConfiguration.exists(role) || rolesConfiguration.isHidden(role)) {
-                    notFound(channel, "Role '"+role+"' is not found.");
-                    return;
-                }
-
-                if (isReserved(rolesConfiguration, role)) {
-                    forbidden(channel, "Role '" + role + "' is reserved.");
-                    return;
-                }
+                if (!isValidRolesMapping(channel, role)) return;
             }
         }
 

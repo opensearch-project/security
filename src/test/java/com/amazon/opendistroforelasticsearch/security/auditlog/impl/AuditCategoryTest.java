@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 import static com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory.AUTHENTICATED;
 import static com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory.BAD_HEADERS;
@@ -38,7 +39,7 @@ public class AuditCategoryTest {
                     {Arrays.asList("bAd_HeAdErS"), EnumSet.of(BAD_HEADERS)},
                     {Arrays.asList("BAD_HEADERS", "AUTHENTICATED"), EnumSet.of(BAD_HEADERS, AUTHENTICATED)},
                     {Arrays.asList("BAD_HEADERS", "FAILED_LOGIN", "MISSING_PRIVILEGES", "GRANTED_PRIVILEGES",
-                            "OPENDISTRO_SECURITY_INDEX_ATTEMPT", "SSL_EXCEPTION", "AUTHENTICATED",
+                            "OPENDISTRO_SECURITY_INDEX_ATTEMPT", "SSL_EXCEPTION", "AUTHENTICATED", "INDEX_EVENT",
                             "COMPLIANCE_DOC_READ", "COMPLIANCE_DOC_WRITE", "COMPLIANCE_EXTERNAL_CONFIG",
                             "COMPLIANCE_INTERNAL_CONFIG_READ", "COMPLIANCE_INTERNAL_CONFIG_WRITE"
                     ), EnumSet.allOf(AuditCategory.class)},
@@ -47,7 +48,7 @@ public class AuditCategoryTest {
 
         @Test
         public void testAuditCategoryEnumSetGenerationWhenEmpty() {
-            EnumSet<AuditCategory> categories = AuditCategory.parse(input);
+            Set<AuditCategory> categories = AuditCategory.parse(input);
             Assert.assertEquals(categories, expected);
         }
     }

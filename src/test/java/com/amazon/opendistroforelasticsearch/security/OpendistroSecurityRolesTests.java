@@ -70,18 +70,24 @@ public class OpendistroSecurityRolesTests extends SingleClusterTest {
 	public void testOpenDistroSecurityRoles() throws Exception {
 
 		setup(Settings.EMPTY, new DynamicSecurityConfig()
+				.setSecurityRolesMapping("roles_mapping.yml")
 				.setSecurityInternalUsers("internal_users_sr.yml"), Settings.EMPTY, true);
 
 		RestHelper rh = nonSslRestHelper();
+		rh.sendAdminCertificate = false;
 
 		HttpResponse resc = rh.executeGetRequest("_opendistro/_security/authinfo?pretty", encodeBasicHeader("sr_user", "nagilum"));
 		Assert.assertTrue(resc.getBody().contains("sr_user"));
 		Assert.assertTrue(resc.getBody().contains("xyz_sr"));
 
-		// Ensure hidden reserved and non-existent roles are not available
+		// Opendistro_security_roles cannot contain roles that don't exist.
 		Assert.assertFalse(resc.getBody().contains("xyz_sr_non_existent"));
+
+		// Opendistro_security_roles can contain reserved roles.
+		Assert.assertTrue(resc.getBody().contains("xyz_sr_reserved"));
+
+		// Opendistro_security_roles cannot contain roles that are hidden in rolesmapping.yml.
 		Assert.assertFalse(resc.getBody().contains("xyz_sr_hidden"));
-		Assert.assertFalse(resc.getBody().contains("xyz_sr_reserved"));
 
 		Assert.assertTrue(resc.getBody().contains("backend_roles=[abc_ber]"));
 		Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());

@@ -22,7 +22,6 @@ import java.security.PrivilegedAction;
 import java.util.Map;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
-import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
 import org.elasticsearch.SpecialPermission;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -171,6 +170,13 @@ public final class AuditLogImpl extends AbstractAuditLog {
 	}
 
 	@Override
+	public void logGrantedPrivileges(String effectiveUser, RestRequest request) {
+		if (enabled) {
+			super.logGrantedPrivileges(effectiveUser, request);
+		}
+	}
+
+	@Override
 	public void logMissingPrivileges(String privilege, TransportRequest request, Task task) {
 		if (enabled) {
 			super.logMissingPrivileges(privilege, request, task);
@@ -181,6 +187,13 @@ public final class AuditLogImpl extends AbstractAuditLog {
 	public void logGrantedPrivileges(String privilege, TransportRequest request, Task task) {
 		if (enabled) {
 			super.logGrantedPrivileges(privilege, request, task);
+		}
+	}
+
+	@Override
+	public void logIndexEvent(String privilege, TransportRequest request, Task task) {
+		if (enabled) {
+			super.logIndexEvent(privilege, request, task);
 		}
 	}
 

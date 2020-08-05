@@ -160,16 +160,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         AuditMessage msg = new AuditMessage(AuditCategory.FAILED_LOGIN, clusterService, getOrigin(), Origin.REST);
         TransportAddress remoteAddress = getRemoteAddress();
         msg.addRemoteAddress(remoteAddress);
-        if(request != null && auditConfigFilter.shouldLogRequestBody() && request.hasContentOrSourceParam()) {
-            msg.addTupleToRequestBody(request.contentOrSourceParam());
-        }
-
-        if(request != null) {
-            msg.addPath(request.path());
-            msg.addRestHeaders(request.getHeaders(), auditConfigFilter.shouldExcludeSensitiveHeaders());
-            msg.addRestParams(request.params());
-        }
-
+        msg.addRestRequestInfo(request, auditConfigFilter);
         msg.addInitiatingUser(initiatingUser);
         msg.addEffectiveUser(effectiveUser);
         msg.addIsAdminDn(securityadmin);
@@ -202,16 +193,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         AuditMessage msg = new AuditMessage(AuditCategory.AUTHENTICATED, clusterService, getOrigin(), Origin.REST);
         TransportAddress remoteAddress = getRemoteAddress();
         msg.addRemoteAddress(remoteAddress);
-        if(request != null && auditConfigFilter.shouldLogRequestBody() && request.hasContentOrSourceParam()) {
-            msg.addTupleToRequestBody(request.contentOrSourceParam());
-        }
-
-        if(request != null) {
-            msg.addPath(request.path());
-            msg.addRestHeaders(request.getHeaders(), auditConfigFilter.shouldExcludeSensitiveHeaders());
-            msg.addRestParams(request.params());
-        }
-
+        msg.addRestRequestInfo(request, auditConfigFilter);
         msg.addInitiatingUser(initiatingUser);
         msg.addEffectiveUser(effectiveUser);
         msg.addIsAdminDn(securityadmin);
@@ -227,15 +209,20 @@ public abstract class AbstractAuditLog implements AuditLog {
         AuditMessage msg = new AuditMessage(AuditCategory.MISSING_PRIVILEGES, clusterService, getOrigin(), Origin.REST);
         TransportAddress remoteAddress = getRemoteAddress();
         msg.addRemoteAddress(remoteAddress);
-        if(request != null && auditConfigFilter.shouldLogRequestBody() && request.hasContentOrSourceParam()) {
-            msg.addTupleToRequestBody(request.contentOrSourceParam());
-        }
-        if(request != null) {
-            msg.addPath(request.path());
-            msg.addRestHeaders(request.getHeaders(), auditConfigFilter.shouldExcludeSensitiveHeaders());
-            msg.addRestParams(request.params());
+        msg.addRestRequestInfo(request, auditConfigFilter);
+        msg.addEffectiveUser(effectiveUser);
+        save(msg);
+    }
+
+    @Override
+    public void logGrantedPrivileges(String effectiveUser, RestRequest request) {
+        if(!checkRestFilter(AuditCategory.GRANTED_PRIVILEGES, effectiveUser, request)) {
+            return;
         }
 
+        AuditMessage msg = new AuditMessage(AuditCategory.GRANTED_PRIVILEGES, clusterService, getOrigin(), Origin.REST);
+        msg.addRemoteAddress(getRemoteAddress());
+        msg.addRestRequestInfo(request, auditConfigFilter);
         msg.addEffectiveUser(effectiveUser);
         save(msg);
     }
@@ -273,6 +260,21 @@ public abstract class AbstractAuditLog implements AuditLog {
     }
 
     @Override
+    public void logIndexEvent(String privilege, TransportRequest request, Task task) {
+        if(!checkTransportFilter(AuditCategory.INDEX_EVENT, privilege, getUser(), request)) {
+            return;
+        }
+        // log only cluster admin action
+        if (!privilege.startsWith("indices:admin/")) {
+            return;
+        }
+        final TransportAddress remoteAddress = getRemoteAddress();
+        final List<AuditMessage> msgs = RequestResolver.resolve(AuditCategory.INDEX_EVENT, getOrigin(), null, privilege, getUser(), null, null, remoteAddress, request, getThreadContextHeaders(), task, resolver, clusterService, settings, auditConfigFilter.shouldLogRequestBody(), auditConfigFilter.shouldResolveIndices(), auditConfigFilter.shouldResolveBulkRequests(), opendistrosecurityIndex, auditConfigFilter.shouldExcludeSensitiveHeaders(), null);
+
+        msgs.forEach(this::save);
+    }
+
+    @Override
     public void logBadHeaders(TransportRequest request, String action, Task task) {
 
         if(!checkTransportFilter(AuditCategory.BAD_HEADERS, action, getUser(), request)) {
@@ -297,15 +299,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         AuditMessage msg = new AuditMessage(AuditCategory.BAD_HEADERS, clusterService, getOrigin(), Origin.REST);
         TransportAddress remoteAddress = getRemoteAddress();
         msg.addRemoteAddress(remoteAddress);
-        if(request != null && auditConfigFilter.shouldLogRequestBody() && request.hasContentOrSourceParam()) {
-            msg.addTupleToRequestBody(request.contentOrSourceParam());
-        }
-        if(request != null) {
-            msg.addPath(request.path());
-            msg.addRestHeaders(request.getHeaders(), auditConfigFilter.shouldExcludeSensitiveHeaders());
-            msg.addRestParams(request.params());
-        }
-
+        msg.addRestRequestInfo(request, auditConfigFilter);
         msg.addEffectiveUser(getUser());
 
         save(msg);
@@ -354,15 +348,7 @@ public abstract class AbstractAuditLog implements AuditLog {
 
         TransportAddress remoteAddress = getRemoteAddress();
         msg.addRemoteAddress(remoteAddress);
-        if(request != null && auditConfigFilter.shouldLogRequestBody() && request.hasContentOrSourceParam()) {
-            msg.addTupleToRequestBody(request.contentOrSourceParam());
-        }
-
-        if(request != null) {
-            msg.addPath(request.path());
-            msg.addRestHeaders(request.getHeaders(), auditConfigFilter.shouldExcludeSensitiveHeaders());
-            msg.addRestParams(request.params());
-        }
+        msg.addRestRequestInfo(request, auditConfigFilter);
         msg.addException(t);
         msg.addEffectiveUser(getUser());
         save(msg);

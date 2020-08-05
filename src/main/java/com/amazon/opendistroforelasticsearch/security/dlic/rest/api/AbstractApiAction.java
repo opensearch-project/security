@@ -25,14 +25,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ThreadContext.StoredContext;
@@ -101,7 +99,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		this.auditLog = auditLog;
 	}
 
-	protected abstract AbstractConfigurationValidator getValidator(RestRequest request, BytesReference ref, Object... params);
+    protected abstract AbstractConfigurationValidator getValidator(RestRequest request, BytesReference ref, Object... params);
 
 	protected abstract String getResourceName();
 
@@ -153,7 +151,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 			return;
 		}
 
-		if (!isReservedAndAccessible(existingConfiguration, name)) {
+		if (isReadOnly(existingConfiguration, name)) {
 			forbidden(channel, "Resource '"+ name +"' is read-only.");
 			return;
 		}
@@ -196,8 +194,13 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 			return;
 		}
 
-		if (!isReservedAndAccessible(existingConfiguration, name)) {
+		if (isReadOnly(existingConfiguration, name)) {
 			forbidden(channel, "Resource '"+ name +"' is read-only.");
+			return;
+		}
+
+		if (isReadonlyFieldUpdated(existingConfiguration, content)) {
+			conflict(channel, "Attempted to update read-only property.");
 			return;
 		}
 
@@ -276,6 +279,16 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 			builder.removeHidden();
 		}
 		builder.set_meta(null);
+	}
+
+	protected boolean isReadonlyFieldUpdated(final JsonNode existingResource, final JsonNode targetResource) {
+		// Default is false. Override function for additional logic
+		return false;
+	}
+
+	protected boolean isReadonlyFieldUpdated(final SecurityDynamicConfiguration<?> configuration, final JsonNode targetResource) {
+		// Default is false. Override function for additional logic
+		return false;
 	}
 
 	abstract class OnSucessActionListener<Response> implements ActionListener<Response> {
@@ -371,13 +384,16 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		// check if request is authorized
 		String authError = restApiPrivilegesEvaluator.checkAccessPermissions(request, getEndpoint());
 
+		final User user = (User) threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+		final String userName = user == null ? null : user.getName();
 		if (authError != null) {
 			log.error("No permission to access REST API: " + authError);
-			final User user = (User) threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-			auditLog.logMissingPrivileges(authError, user == null ? null : user.getName(), request);
+			auditLog.logMissingPrivileges(authError, userName, request);
 			// for rest request
 			request.params().clear();
 			return channel -> forbidden(channel, "No permission to access REST API: " + authError);
+		} else {
+			auditLog.logGrantedPrivileges(userName, request);
 		}
 
 		final Object originalUser = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
@@ -500,6 +516,10 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		response(channel, RestStatus.UNPROCESSABLE_ENTITY, message);
 	}
 
+	protected void conflict(RestChannel channel, String message) {
+		response(channel, RestStatus.CONFLICT, message);
+	}
+
 	protected void notImplemented(RestChannel channel, Method method) {
 		response(channel, RestStatus.NOT_IMPLEMENTED,
 				"Method " + method.name() + " not supported for this action.");
@@ -548,9 +568,41 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		return adminDNs.isAdmin(user);
 	}
 
-	protected boolean isReservedAndAccessible(final SecurityDynamicConfiguration<?> existingConfiguration,
-											  String name) {
-		if( isReserved(existingConfiguration, name) && !isSuperAdmin()) {
+	/**
+	 * Resource is readonly if it is reserved and user is not super admin.
+	 * @param existingConfiguration Configuration
+	 * @param name
+	 * @return True if resource readonly
+	 */
+	protected boolean isReadOnly(final SecurityDynamicConfiguration<?> existingConfiguration,
+								 String name) {
+		return isSuperAdmin() ? false: isReserved(existingConfiguration, name);
+	}
+
+	/**
+	 * Checks if it is valid to add role to opendistro_security_roles or rolesmapping.
+	 * Role can be mapped to user if it exists. Only superadmin can add hidden or reserved roles.
+	 *
+	 * @param channel	Rest Channel for response
+	 * @param role		Name of the role
+	 * @return True if role can be mapped
+	 */
+	protected boolean isValidRolesMapping(final RestChannel channel, final String role) {
+		final SecurityDynamicConfiguration<?> rolesConfiguration = load(CType.ROLES, false);
+		final SecurityDynamicConfiguration<?> rolesMappingConfiguration = load(CType.ROLESMAPPING, false);
+
+		if (!rolesConfiguration.exists(role)) {
+			notFound(channel, "Role '"+role+"' is not available for role-mapping.");
+			return false;
+		}
+
+		if (isHidden(rolesConfiguration, role) || isHidden(rolesMappingConfiguration, role)) {
+			notFound(channel, "Role '"+role+"' is not available for role-mapping.");
+			return false;
+		}
+
+		if (isReadOnly(rolesMappingConfiguration, role)) {
+			forbidden(channel, "Role '" + role + "' has read-only role-mapping.");
 			return false;
 		}
 		return true;

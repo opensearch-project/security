@@ -34,7 +34,7 @@
     <groupId>com.amazon.opendistroforelasticsearch</groupId>
     <artifactId>opendistro_security</artifactId>
     <packaging>jar</packaging>
-    <version>1.9.0.0</version>
+    <version>1.9.0.1</version>
     <name>Open Distro Security for Elasticsearch</name>
     <description>Open Distro For Elasticsearch Security</description>
     <url>https://github.com/opendistro-for-elasticsearch/security</url>
@@ -72,15 +72,21 @@
 
         <!-- deps -->
         <netty-native.version>2.0.25.Final</netty-native.version>
-        <bc.version>1.62</bc.version>
+        <bc.version>1.66</bc.version>
         <log4j.version>2.11.1</log4j.version>
         <guava.version>25.1-jre</guava.version>
         <commons.cli.version>1.3.1</commons.cli.version>
-        <jackson-databind.version>2.11.0</jackson-databind.version>
+        <jackson-databind.version>2.11.2</jackson-databind.version>
         <jjwt.version>0.10.5</jjwt.version>
         <ldaptive.version>1.2.3</ldaptive.version>
         <http.commons.version>4.5.3</http.commons.version>
-        <cxf.version>3.2.2</cxf.version>
+        <cxf.version>3.2.14</cxf.version>
+        <kafka.version>2.5.0</kafka.version>
+        <java-saml.version>2.5.0</java-saml.version>
+        <opensaml.version>3.4.5</opensaml.version>
+        <commons-codec.version>1.14</commons-codec.version>
+        <xmlsec.version>2.2.0</xmlsec.version>
+        <cryptacular.version>1.1.4</cryptacular.version>
 
         <!-- assembly descriptors -->
         <elasticsearch.assembly.descriptor>${basedir}/src/main/assemblies/plugin.xml</elasticsearch.assembly.descriptor>
@@ -98,13 +104,33 @@
         <url>https://github.com/opendistro-for-elasticsearch/security</url>
         <connection>scm:git:git@github.com:opendistro-for-elasticsearch/security.git</connection>
         <developerConnection>scm:git:git@github.com:opendistro-for-elasticsearch/security.git</developerConnection>
-        <tag>1.9.0.0</tag>
+        <tag>1.9.0.1</tag>
     </scm>
 
     <issueManagement>
         <system>GitHub</system>
         <url>https://github.com/opendistro-for-elasticsearch/security/issues</url>
     </issueManagement>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>commons-codec</groupId>
+                <artifactId>commons-codec</artifactId>
+                <version>${commons-codec.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.santuario</groupId>
+                <artifactId>xmlsec</artifactId>
+                <version>${xmlsec.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.cryptacular</groupId>
+                <artifactId>cryptacular</artifactId>
+                <version>${cryptacular.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
 
@@ -156,7 +182,7 @@
         <!-- Bouncycastle -->
         <dependency>
             <groupId>org.bouncycastle</groupId>
-            <artifactId>bcpg-jdk15on</artifactId>
+            <artifactId>bcprov-jdk15on</artifactId>
             <version>${bc.version}</version>
         </dependency>
 
@@ -295,7 +321,7 @@
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka-clients</artifactId>
-            <version>2.0.1</version>
+            <version>${kafka.version}</version>
             <exclusions>
                 <exclusion>
                     <artifactId>slf4j-api</artifactId>
@@ -306,7 +332,7 @@
         <dependency>
             <groupId>com.onelogin</groupId>
             <artifactId>java-saml</artifactId>
-            <version>2.3.0</version>
+            <version>${java-saml.version}</version>
 
             <exclusions>
                 <exclusion>
@@ -327,7 +353,7 @@
         <dependency>
             <groupId>org.opensaml</groupId>
             <artifactId>opensaml-saml-impl</artifactId>
-            <version>3.3.0</version>
+            <version>${opensaml.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>joda-time</groupId>
@@ -458,7 +484,7 @@
         <dependency>
             <groupId>org.springframework.kafka</groupId>
             <artifactId>spring-kafka-test</artifactId>
-            <version>2.2.7.RELEASE</version>
+            <version>2.5.4.RELEASE</version>
             <scope>test</scope>
         </dependency>
 

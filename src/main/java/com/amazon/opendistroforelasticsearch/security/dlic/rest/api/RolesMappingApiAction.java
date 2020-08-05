@@ -15,15 +15,21 @@
 
 package com.amazon.opendistroforelasticsearch.security.dlic.rest.api;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 
+import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
+import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.rest.RestRequest.Method;
@@ -53,6 +59,36 @@ public class RolesMappingApiAction extends PatchableResourceApiAction {
 			final AdminDNs adminDNs, final ConfigurationRepository cl, final ClusterService cs,
             final PrincipalExtractor principalExtractor, final PrivilegesEvaluator evaluator, ThreadPool threadPool, AuditLog auditLog) {
 		super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
+	}
+
+	@Override
+	protected void handlePut(RestChannel channel, final RestRequest request, final Client client, final JsonNode content) throws IOException {
+		final String name = request.param("name");
+
+		if (name == null || name.length() == 0) {
+			badRequestResponse(channel, "No " + getResourceName() + " specified.");
+			return;
+		}
+
+		final SecurityDynamicConfiguration<?> rolesMappingConfiguration = load(getConfigName(), false);
+		final boolean rolesMappingExists = rolesMappingConfiguration.exists(name);
+
+		if (!isValidRolesMapping(channel, name)) return;
+
+		rolesMappingConfiguration.putCObject(name, DefaultObjectMapper.readTree(content, rolesMappingConfiguration.getImplementingClass()));
+
+		saveAnUpdateConfigs(client, request, getConfigName(), rolesMappingConfiguration, new OnSucessActionListener<IndexResponse>(channel) {
+
+			@Override
+			public void onResponse(IndexResponse response) {
+				if (rolesMappingExists) {
+					successResponse(channel, "'" + name + "' updated.");
+				} else {
+					createdResponse(channel, "'" + name + "' created.");
+				}
+
+			}
+		});
 	}
 
 	@Override
