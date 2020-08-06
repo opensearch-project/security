@@ -69,10 +69,10 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
 		response = rh.executeGetRequest("/_opendistro/_security/api/rolesmapping", new Header[0]);
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
-	        // GET, rolesmapping is hidden, allowed for super admin
-        	response = rh.executeGetRequest("/_opendistro/_security/api/rolesmapping/opendistro_security_role_internal", new Header[0]);
-        	Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-		Assert.assertTrue(response.getBody().contains("\"hidden\":true"));
+		// GET, rolesmapping is hidden, allowed for super admin
+		response = rh.executeGetRequest("/_opendistro/_security/api/rolesmapping/opendistro_security_role_internal", new Header[0]);
+		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+		Assert.assertTrue(response.getBody().contains("\"hidden\":\"true\""));
 
 		// create index
 		setupStarfleetIndex();

@@ -169,7 +169,7 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
         rh.sendAdminCertificate = true;
         response = rh.executeGetRequest("/_opendistro/_security/api/actiongroups/INTERNAL", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-        Assert.assertTrue(response.getBody().contains("\"hidden\":true"));
+        Assert.assertTrue(response.getBody().contains("\"hidden\":\"true\""));
 
 		// -- DELETE hidden resource, must be 404
         rh.sendAdminCertificate = true;
