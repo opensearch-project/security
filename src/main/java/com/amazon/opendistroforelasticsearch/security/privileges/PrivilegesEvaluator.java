@@ -163,7 +163,8 @@ public class PrivilegesEvaluator {
         return configModel !=null && configModel.getSecurityRoles() != null && dcm != null;
     }
 
-    public PrivilegesEvaluatorResponse evaluate(final User user, String action0, final ActionRequest request, Task task) {
+    public PrivilegesEvaluatorResponse evaluate(final User user, String action0, final ActionRequest request,
+                                                Task task, final Set<String> injectedRoles) {
 
         if (!isInitialized()) {
             throw new ElasticsearchSecurityException("Open Distro Security is not initialized.");
@@ -178,7 +179,7 @@ public class PrivilegesEvaluator {
         }
 
         final TransportAddress caller = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
-        final Set<String> mappedRoles = mapRoles(user, caller);
+        final Set<String> mappedRoles = (injectedRoles == null) ? mapRoles(user, caller) : injectedRoles;
         final SecurityRoles securityRoles = getSecurityRoles(mappedRoles);
 
         final PrivilegesEvaluatorResponse presponse = new PrivilegesEvaluatorResponse();
@@ -187,6 +188,7 @@ public class PrivilegesEvaluator {
         if (log.isDebugEnabled()) {
             log.debug("### evaluate permissions for {} on {}", user, clusterService.localNode().getName());
             log.debug("action: "+action0+" ("+request.getClass().getSimpleName()+")");
+            log.debug("mapped roles: {}",mappedRoles.toString());
         }
 
         final Resolved requestedResolved = irr.resolveRequest(request);

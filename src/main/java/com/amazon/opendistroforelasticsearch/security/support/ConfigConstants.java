@@ -100,7 +100,7 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_USER_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX+"user_header";
 
     public static final String OPENDISTRO_SECURITY_INJECTED_USER = "injected_user";
-    
+
     public static final String OPENDISTRO_SECURITY_XFF_DONE = OPENDISTRO_SECURITY_CONFIG_PREFIX+"xff_done";
 
     public static final String SSO_LOGOUT_URL = OPENDISTRO_SECURITY_CONFIG_PREFIX+"sso_logout_url";
@@ -256,6 +256,9 @@ public class ConfigConstants {
     public static final List<String> OPENDISTRO_SECURITY_PROTECTED_INDICES_DEFAULT = Collections.emptyList();
     public static final String OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_KEY = "opendistro_security.protected_indices.roles";
     public static final List<String> OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_DEFAULT = Collections.emptyList();
+
+    // Roles injection for plugins
+    public static final String OPENDISTRO_SECURITY_INJECTED_ROLES = "opendistro_security_injected_roles";
 
     public static Set<String> getSettingAsSet(final Settings settings, final String key, final List<String> defaultList, final boolean ignoreCaseForNone) {
         final List<String> list = settings.getAsList(key, defaultList);
