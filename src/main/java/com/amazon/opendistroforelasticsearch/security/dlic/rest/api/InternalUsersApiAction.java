@@ -109,7 +109,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
 
         final Tuple<Long, Settings> configurationSettings = loadAsSettings(getConfigName(), false);
 
-        if (isHidden(configurationSettings.v2(), username)) {
+        if (!isHiddenAndAccessible(configurationSettings.v2(), username)) {
             forbidden(channel, "Resource '" + username + "' is not available.");
             return;
         }

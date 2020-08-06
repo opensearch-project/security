@@ -71,9 +71,10 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
 		Assert.assertFalse(response.getBody().contains("\"cluster\":[\"*\"]"));
 		Assert.assertTrue(response.getBody().contains("\"cluster\" : ["));
 
-	    // hidden role
+		// hidden role
         response = rh.executeGetRequest("/_opendistro/_security/api/roles/internal", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        Assert.assertTrue(response.getBody().contains("\"hidden\":\"true\""));
 
 		// create index
 		setupStarfleetIndex();
@@ -102,9 +103,10 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
 		response = rh.executeDeleteRequest("/_opendistro/_security/api/roles/opendistro_security_transport_client", new Header[0]);
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
-	    // hidden role
+		// hidden role allowed for superadmin
         response = rh.executeDeleteRequest("/_opendistro/_security/api/roles/internal", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        Assert.assertTrue(response.getBody().contains("'internal' deleted.\""));
 
 		// remove complete role mapping for opendistro_security_role_starfleet_captains
 		response = rh.executeDeleteRequest("/_opendistro/_security/api/roles/opendistro_security_role_starfleet_captains", new Header[0]);
@@ -165,10 +167,10 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
 				FileHelper.loadFile("restapi/roles_captains.json"), new Header[0]);
 		Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
 
-        // put hidden role, must be forbidden
+		// put hidden role, must be forbidden, but allowed for super admin
         response = rh.executePutRequest("/_opendistro/_security/api/roles/internal",
-                FileHelper.loadFile("restapi/roles_captains.json"), new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+			FileHelper.loadFile("restapi/roles_captains.json"), new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
 
 		// restore starfleet role
 		response = rh.executePutRequest("/_opendistro/_security/api/roles/opendistro_security_role_starfleet",
@@ -279,10 +281,10 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         response = rh.executePatchRequest("/_opendistro/_security/api/roles/opendistro_security_transport_client", "[{ \"op\": \"add\", \"path\": \"/cluster\", \"value\": [\"foo\"] }]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
-        // PATCH hidden resource, must be not found
+        // PATCH hidden resource, must be not found, can be found for superadmin, but will fail with no path present exception
         rh.sendAdminCertificate = true;
         response = rh.executePatchRequest("/_opendistro/_security/api/roles/internal", "[{ \"op\": \"add\", \"path\": \"/a/b/c\", \"value\": [ \"foo\", \"bar\" ] }]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // PATCH value of hidden flag, must fail with validation error
         rh.sendAdminCertificate = true;
@@ -325,10 +327,11 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         response = rh.executePatchRequest("/_opendistro/_security/api/roles", "[{ \"op\": \"remove\", \"path\": \"/opendistro_security_transport_client\" }]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
-        // PATCH hidden resource, must be bad request
+        // PATCH hidden resource, must be bad request, but allowed for superadmin
         rh.sendAdminCertificate = true;
         response = rh.executePatchRequest("/_opendistro/_security/api/roles", "[{ \"op\": \"remove\", \"path\": \"/internal\"}]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        Assert.assertTrue(response.getBody().contains("\"message\":\"Resource updated."));
 
         // PATCH value of hidden flag, must fail with validation error
         rh.sendAdminCertificate = true;
@@ -378,8 +381,6 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
 
         HttpResponse response;
 
-        response = rh.executeGetRequest("_opendistro/_security/api/roles");
-
         // Delete read only roles
         response = rh.executeDeleteRequest("/_opendistro/_security/api/roles/opendistro_security_transport_client" , new Header[0]);
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
@@ -397,6 +398,15 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         response = rh.executePatchRequest("/_opendistro/_security/api/roles/", "[{ \"op\": \"add\", \"path\": \"/opendistro_security_transport_client/readonly\", \"value\": \"false\" }]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
+        // get hidden role
+        response = rh.executeGetRequest("_opendistro/_security/api/roles/internal");
+        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+
+        // delete hidden role
+        response = rh.executeDeleteRequest("/_opendistro/_security/api/roles/internal" , new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+
     }
     
 }
+

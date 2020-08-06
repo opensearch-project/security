@@ -34,13 +34,21 @@ import static org.elasticsearch.rest.RestRequest.Method.GET;
 import static org.elasticsearch.rest.RestRequest.Method.POST;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Map;
+import java.util.ArrayList;
 import java.util.SortedMap;
+
+import com.amazon.opendistroforelasticsearch.security.configuration.IndexBaseConfigurationRepository;
+import com.amazon.opendistroforelasticsearch.security.dlic.rest.support.Utils;
+import com.google.common.base.Strings;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.metadata.AliasOrIndex;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -64,9 +72,11 @@ public class TenantInfoAction extends BaseRestHandler {
     private final ThreadContext threadContext;
     private final ClusterService clusterService;
     private final AdminDNs adminDns;
+    protected final IndexBaseConfigurationRepository configurationRepository;
 
     public TenantInfoAction(final Settings settings, final RestController controller, 
-    		final PrivilegesEvaluator evaluator, final ThreadPool threadPool, final ClusterService clusterService, final AdminDNs adminDns) {
+            final PrivilegesEvaluator evaluator, final ThreadPool threadPool, final ClusterService clusterService, final AdminDNs adminDns,
+                            final IndexBaseConfigurationRepository configurationRepository) {
         super(settings);
         this.threadContext = threadPool.getThreadContext();
         this.evaluator = evaluator;
@@ -74,6 +84,7 @@ public class TenantInfoAction extends BaseRestHandler {
         this.adminDns = adminDns;
         controller.registerHandler(GET, "/_opendistro/_security/tenantinfo", this);
         controller.registerHandler(POST, "/_opendistro/_security/tenantinfo", this);
+        this.configurationRepository = configurationRepository;
     }
 
     @Override
@@ -90,9 +101,7 @@ public class TenantInfoAction extends BaseRestHandler {
                     final User user = (User)threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
                     
                     //only allowed for admins or the kibanaserveruser
-                    if(user == null || 
-                    		(!user.getName().equals(evaluator.kibanaServerUsername()))
-                    		 && !adminDns.isAdmin(user)) {
+                    if(!isAuthorized()) {
                         response = new BytesRestResponse(RestStatus.FORBIDDEN,"");
                     } else {
 
@@ -127,7 +136,46 @@ public class TenantInfoAction extends BaseRestHandler {
             }
         };
     }
-    
+
+    private boolean isAuthorized() {
+        final User user = (User)threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+
+        if (user == null) {
+            return false;
+        }
+
+        // check if the user is a kibanauser or super admin
+        if (user.getName().equals(evaluator.kibanaServerUsername()) || adminDns.isAdmin(user)) {
+            return true;
+        }
+
+        // If user check failed by name and admin, check if the users belong to kibana opendistro role
+        final Tuple<Long, Settings.Builder> rolesMapping = load(ConfigConstants.CONFIGNAME_ROLES_MAPPING, true);
+        final Map<String, Object> rolesMappingConfiguration = Utils.convertJsonToxToStructuredMap(rolesMapping.v2().build());
+
+        // check if kibanaOpendistroRole is present in RolesMapping and if yes, check if user is a part of this role
+        if (rolesMappingConfiguration != null) {
+            String kibanaOpendistroRole = evaluator.kibanaOpendistroRole();
+            if (Strings.isNullOrEmpty(kibanaOpendistroRole)) {
+                return false;
+            }
+
+            Map<String, Object> kibanaOpendistroRoleEntry = (Map<String, Object>) rolesMappingConfiguration.getOrDefault(kibanaOpendistroRole, null);
+
+            if (kibanaOpendistroRoleEntry != null) {
+                ArrayList<String> kibanaOpendistroRoleUsers = (ArrayList<String>) kibanaOpendistroRoleEntry.get("users");
+                return kibanaOpendistroRoleUsers != null && kibanaOpendistroRoleUsers.contains(user.getName());
+            }
+        }
+
+        return false;
+    }
+
+    protected final Tuple<Long, Settings.Builder> load(final String config, boolean logComplianceEvent) {
+        Tuple<Long, Settings> t = configurationRepository.loadConfigurations(Collections.singleton(config), logComplianceEvent).get(config);
+        return new Tuple<Long, Settings.Builder>(t.v1(), Settings.builder().put(t.v2()));
+    }
+
     private String tenantNameForIndex(String index) {
     	String[] indexParts;
     	if(index == null 
