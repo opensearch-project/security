@@ -18,6 +18,7 @@ package com.amazon.opendistroforelasticsearch.security.auth;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 import com.google.common.collect.ImmutableSet;
+import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.Strings;
@@ -46,10 +47,7 @@ final public class RolesInjector {
         if (injectedUserAndRoles == null) {
             return null;
         }
-
-        if(log.isDebugEnabled()){
-            log.debug("Injected roles: "+ injectedUserAndRoles);
-        }
+        log.debug("Injected roles: {}", injectedUserAndRoles);
 
         String[] strs = injectedUserAndRoles.split("\\|");
         if (strs.length == 0) {
@@ -57,13 +55,14 @@ final public class RolesInjector {
                     " Roles injection failed.", injectedUserAndRoles);
             return null;
         }
-        if (Strings.isNullOrEmpty(strs[0].trim())) {
+
+        if (StringUtils.isEmpty(StringUtils.trim(strs[0]))) {
             log.error("Username must not be null, injected string was '{}.' Roles injection failed.", injectedUserAndRoles);
             return null;
         }
         User user = new User(strs[0]);
 
-        if (strs.length < 2 || Strings.isNullOrEmpty(strs[1].trim())) {
+        if (strs.length < 2 || StringUtils.isEmpty(StringUtils.trim(strs[0]))) {
             log.error("Roles must not be null, injected string was '{}.' Roles injection failed.", injectedUserAndRoles);
             return null;
         }

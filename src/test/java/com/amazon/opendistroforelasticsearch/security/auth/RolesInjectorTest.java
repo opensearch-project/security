@@ -63,7 +63,8 @@ public class RolesInjectorTest {
                 "invalid",
                 "role_1,role_2",
                 " | ",
-                "  "
+                "  ",
+                "|"
         );
 
         corruptedStrs.forEach(name -> {
