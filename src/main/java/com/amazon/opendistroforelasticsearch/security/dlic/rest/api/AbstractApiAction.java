@@ -145,7 +145,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
 		final Tuple<Long, Settings> existingAsSettings = loadAsSettings(getConfigName(), false);
 
-		if (isHidden(existingAsSettings.v2(), name)) {
+		if (!isHiddenAndAccessible(existingAsSettings.v2(), name)) {
 			notFound(channel, getResourceName() + " " + name + " not found.");
 			return;
 		}
@@ -185,7 +185,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
 		final Tuple<Long, Settings> existingAsSettings = loadAsSettings(getConfigName(), false);
 
-		if (isHidden(existingAsSettings.v2(), name)) {
+		if (!isHiddenAndAccessible(existingAsSettings.v2(), name)) {
 			forbidden(channel, "Resource '"+ name +"' is not available.");
 			return;
 		}
@@ -286,12 +286,13 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 	}
 
 	protected void filter(Settings.Builder builder) {
-		Settings settings = builder.build();
-
-		for (String key: settings.names()) {
-			if (settings.getAsBoolean(key+".hidden", false)) {
-				for (String subKey : settings.getByPrefix(key).keySet()) {
-					builder.remove(key+subKey);
+		if (!isSuperAdmin()){
+			Settings settings = builder.build();
+			for (String key: settings.names()) {
+				if (settings.getAsBoolean(key+".hidden", false)) {
+					for (String subKey : settings.getByPrefix(key).keySet()) {
+						builder.remove(key+subKey);
+					}
 				}
 			}
 		}
@@ -545,6 +546,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		return settings.getAsBoolean(resourceName+ "." + ConfigConstants.CONFIGKEY_HIDDEN, Boolean.FALSE);
 	}
 
+
 	protected void conflict(RestChannel channel, String message) {
 		response(channel, RestStatus.CONFLICT, RestStatus.CONFLICT.name(), message);
 	}
@@ -576,6 +578,13 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
 	protected boolean isReadOnlyAndAccessible(Settings settings, String name) {
 		if( isReadOnly(settings, name) && !isSuperAdmin()) {
+			return false;
+		}
+		return true;
+	}
+
+	protected boolean isHiddenAndAccessible(Settings settings, String name) {
+		if( isHidden(settings, name) && !isSuperAdmin()) {
 			return false;
 		}
 		return true;

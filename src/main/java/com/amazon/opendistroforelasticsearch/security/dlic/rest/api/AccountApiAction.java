@@ -191,7 +191,7 @@ public class AccountApiAction extends AbstractApiAction {
             return;
         }
 
-        if (isHidden(existingAsSettings.v2(), username)) {
+        if (!isHiddenAndAccessible(existingAsSettings.v2(), username)) {
             forbidden(channel, "Resource '" + username + "' is not available.");
             return;
         }
