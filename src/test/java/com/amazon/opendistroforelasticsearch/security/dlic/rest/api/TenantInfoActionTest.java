@@ -17,6 +17,7 @@ package com.amazon.opendistroforelasticsearch.security.dlic.rest.api;
 
 import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvaluator;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
+import com.amazon.opendistroforelasticsearch.security.test.DynamicSecurityConfig;
 import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper;
 import org.apache.http.Header;
@@ -29,18 +30,21 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 public class TenantInfoActionTest extends AbstractRestApiUnitTest {
-    private String payload = "{\"hosts\":[],\"users\":[\"sarek\"]," +
-            "\"backend_roles\":[\"starfleet*\",\"ambassador\"],\"and_backend_roles\":[],\"description\":\"Migrated " +
-            "from v6\"}";
+    private String payload = "{\"hosts\":[],\"users\":[\"sarek\"]}";
 
     @Test
     public void testTenantInfoAPI() throws Exception {
+
         Settings settings = Settings.builder().put(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, true).build();
         setup(settings);
 
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        RestHelper.HttpResponse response = rh.executeGetRequest("_opendistro/_security/tenantinfo");
+
+        RestHelper.HttpResponse response = rh.executePutRequest("/_opendistro/_security/api/securityconfig/opendistro_security", FileHelper.loadFile("restapi/securityconfig_tenantinfo.json"), new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+
+        response = rh.executeGetRequest("_opendistro/_security/tenantinfo");
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         rh.sendAdminCertificate = false;
@@ -54,11 +58,14 @@ public class TenantInfoActionTest extends AbstractRestApiUnitTest {
         rh.sendAdminCertificate = true;
 
         //update security config
-        response = rh.executePatchRequest("/_opendistro/_security/api/securityconfig", "[{\"op\": \"add\",\"path\": \"/config/dynamic/kibana/opendistro_role\",\"value\": \"opendistro_security_role_internal\"}]", new Header[0]);
+        response = rh.executePutRequest("/_opendistro/_security/api/securityconfig/opendistro_security", FileHelper.loadFile("restapi/securityconfig_tenantinfo.json"), new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
-        response = rh.executePutRequest("/_opendistro/_security/api/rolesmapping/opendistro_security_role_internal", payload, new Header[0]);
+        response = rh.executePatchRequest("/_opendistro/_security/api/securityconfig", "[{\"op\": \"replace\",\"path\": \"/opendistro_security/dynamic/kibana/opendistro_role\",\"value\": \"internal\"}]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+
+        response = rh.executePutRequest("/_opendistro/_security/api/rolesmapping/internal", payload, new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
 
         rh.sendAdminCertificate = false;
 

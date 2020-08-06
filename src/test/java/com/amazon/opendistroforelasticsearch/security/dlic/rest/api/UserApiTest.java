@@ -46,7 +46,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 				.executeGetRequest("_opendistro/_security/api/configuration/" + ConfigConstants.CONFIGNAME_INTERNAL_USERS);
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 		Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-		Assert.assertEquals(8, settings.size());
+		Assert.assertEquals(15, settings.size());
 
 		// --- GET
 
@@ -355,7 +355,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 				.executeGetRequest("_opendistro/_security/api/configuration/" + ConfigConstants.CONFIGNAME_INTERNAL_USERS);
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 		Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-		Assert.assertEquals(42, settings.size());
+		Assert.assertEquals(15, settings.size());
 
 		addUserWithPassword("tooshoort", "", HttpStatus.SC_BAD_REQUEST);
 		addUserWithPassword("tooshoort", "123", HttpStatus.SC_BAD_REQUEST);
@@ -430,7 +430,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
                 .executeGetRequest("_opendistro/_security/api/configuration/" + ConfigConstants.CONFIGNAME_INTERNAL_USERS);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(8, settings.size());
+        Assert.assertEquals(15, settings.size());
 
         addDotUserUserWithHash("my.dotuser0", "$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m",
                 HttpStatus.SC_BAD_REQUEST, false);
@@ -485,7 +485,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 
         // Put hidden users
         response = rh.executePutRequest("/_opendistro/_security/api/internalusers/hide", "[{ \"op\": \"add\", \"path\": \"/sarek/description\", \"value\": \"foo\" }]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // Patch single hidden user
         response = rh.executePatchRequest("/_opendistro/_security/api/internalusers/hide", "[{ \"op\": \"add\", \"path\": \"/description\", \"value\": \"foo\" }]", new Header[0]);

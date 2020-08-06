@@ -72,9 +72,9 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
 		Assert.assertTrue(response.getBody().contains("\"cluster\" : ["));
 
 		// hidden role
-        response = rh.executeGetRequest("/_opendistro/_security/api/roles/opendistro_security_internal", new Header[0]);
+        response = rh.executeGetRequest("/_opendistro/_security/api/roles/internal", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-        Assert.assertTrue(response.getBody().contains("\"hidden\":true"));
+        Assert.assertTrue(response.getBody().contains("\"hidden\":\"true\""));
 
 		// create index
 		setupStarfleetIndex();
@@ -104,9 +104,9 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
 		// hidden role allowed for superadmin
-        response = rh.executeDeleteRequest("/_opendistro/_security/api/roles/opendistro_security_internal", new Header[0]);
+        response = rh.executeDeleteRequest("/_opendistro/_security/api/roles/internal", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-        Assert.assertTrue(response.getBody().contains("'opendistro_security_internal' deleted."));
+        Assert.assertTrue(response.getBody().contains("'internal' deleted.\""));
 
 		// remove complete role mapping for opendistro_security_role_starfleet_captains
 		response = rh.executeDeleteRequest("/_opendistro/_security/api/roles/opendistro_security_role_starfleet_captains", new Header[0]);
@@ -399,25 +399,14 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
         // get hidden role
-        response = rh.executeGetRequest("_opendistro/_security/api/roles/opendistro_security_internal");
+        response = rh.executeGetRequest("_opendistro/_security/api/roles/internal");
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
 
         // delete hidden role
-        response = rh.executeDeleteRequest("/_opendistro/_security/api/roles/opendistro_security_internal" , new Header[0]);
+        response = rh.executeDeleteRequest("/_opendistro/_security/api/roles/internal" , new Header[0]);
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
-
-        // put hidden role
-        response = rh.executePutRequest("/_opendistro/_security/api/roles/opendistro_security_internal", "[{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"foo\" }]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
-
-        // Patch single hidden roles
-        response = rh.executePatchRequest("/_opendistro/_security/api/roles/opendistro_security_internal", "[{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"foo\" }]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
-
-        // Patch multiple hidden roles
-        response = rh.executePatchRequest("/_opendistro/_security/api/roles/", "[{ \"op\": \"add\", \"path\": \"/opendistro_security_internal/description\", \"value\": \"foo\" }]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
     }
     
 }
+

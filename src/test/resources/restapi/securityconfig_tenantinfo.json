@@ -1,0 +1,148 @@
+{
+  "dynamic":{
+    "filtered_alias_mode":"warn",
+    "disable_rest_auth": false,
+    "disable_intertransport_auth":false,
+    "respect_request_indices_options":false,
+    "kibana":{
+      "multitenancy_enabled":true,
+      "server_username":"kibanaserver",
+      "index":".kibana",
+      "opendistro_role":"kibana_server"
+    },
+    "http":{
+      "anonymous_auth_enabled":false,
+      "xff":{
+        "enabled":false,
+        "internalProxies":"192\\.168\\.0\\.10|192\\.168\\.0\\.11",
+        "remoteIpHeader":"x-forwarded-for"
+      }
+    },
+    "authc":{
+      "authentication_domain_saml": {
+        "http_enabled" : true,
+        "transport_enabled" : false,
+        "order" : 5,
+        "http_authenticator" : {
+          "challenge" : true,
+          "type" : "saml",
+          "config" : {
+            "idp" : {
+              "metadata_content" : "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" entityID=\"http://test.entity\">\n    <md:IDPSSODescriptor WantAuthnRequestsSigned=\"false\" protocolSupportEnumeration=\"urn:oasis:names:tc:SAML:2.0:protocol\">\n        <md:KeyDescriptor use=\"signing\">\n            <ds:KeyInfo xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\">\n                <ds:X509Data>\n                    <ds:X509Certificate>MIIEQ</ds:X509Certificate>\n                </ds:X509Data>\n            </ds:KeyInfo>\n        </md:KeyDescriptor>\n        <md:SingleLogoutService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect\" Location=\"http://localhost:33667/saml/slo\" />\n        <md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat>\n        <md:SingleSignOnService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect\" Location=\"http://localhost:33667/saml/sso\" />\n    </md:IDPSSODescriptor>\n</md:EntityDescriptor>",
+              "entity_id" : "http://example.com"
+            },
+            "sp" : {
+              "entity_id" : "kibana-saml"
+            },
+            "kibana_url" : "http://example.com/_plugin/kibana",
+            "roles_key" : "Role",
+            "exchange_key" : "aaaaabbbbbaaaaabbbbbaaaaabbbbbaaaaabbbbabaaaaabbbbb"
+          }
+        }
+      },
+      "authentication_domain_kerb":{
+        "http_enabled":false,
+        "transport_enabled":false,
+        "order":3,
+        "http_authenticator":{
+          "challenge":true,
+          "type":"kerberos",
+          "config":{
+                }
+             },
+             "authentication_backend":{
+                "type":"noop",
+                "config":{
+
+                }
+             }
+          },
+          "authentication_domain_clientcert":{
+             "http_enabled":false,
+             "transport_enabled":false,
+             "order":1,
+             "http_authenticator":{
+                "challenge":true,
+                "type":"clientcert",
+                "config":{
+
+                }
+             },
+             "authentication_backend":{
+                "type":"noop",
+                "config":{
+
+                }
+             }
+          },
+          "authentication_domain_proxy":{
+             "http_enabled":false,
+             "transport_enabled":false,
+             "order":2,
+             "http_authenticator":{
+                "challenge":true,
+                "type":"proxy",
+                "config":{
+                   "user_header":"x-proxy-user",
+                   "roles_header":"x-proxy-roles"
+                }
+             },
+             "authentication_backend":{
+                "type":"noop",
+                "config":{
+
+                }
+             }
+          },
+          "authentication_domain_basic_internal":{
+             "http_enabled":true,
+             "transport_enabled":true,
+             "order":0,
+             "http_authenticator":{
+                "challenge":true,
+                "type":"basic",
+                "config":{
+
+                }
+             },
+             "authentication_backend":{
+                "type":"intern",
+                "config":{
+
+                }
+             }
+          }
+       },
+       "authz":{
+          "roles_from_xxx":{
+             "http_enabled":false,
+             "transport_enabled":false,
+             "order":0,
+             "authorization_backend":{
+                "type":"xxx",
+                "config":{
+
+                }
+             }
+          },
+          "roles_from_myldap":{
+             "http_enabled":false,
+             "transport_enabled":false,
+             "order":0,
+             "authorization_backend":{
+                "type":"ldap",
+                "config":{
+                   "rolesearch":"(uniqueMember={0})",
+                   "resolve_nested_roles":true,
+                   "rolebase":"ou=groups,o=TEST",
+                   "rolename":"cn"
+                }
+             }
+          }
+       },
+       "do_not_fail_on_forbidden":false,
+       "multi_rolespan_enabled":false,
+       "hosts_resolver_mode":"ip-only"
+    }
+ 
+}
