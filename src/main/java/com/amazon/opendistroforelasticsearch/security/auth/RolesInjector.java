@@ -57,16 +57,16 @@ final public class RolesInjector {
         }
 
         if (StringUtils.isEmpty(StringUtils.trim(strs[0]))) {
-            log.error("Username must not be null, injected string was '{}.' Roles injection failed.", injectedUserAndRoles);
+            log.error("Username must be provided, injected string was '{}.' Roles injection failed.", injectedUserAndRoles);
             return null;
         }
         User user = new User(strs[0]);
 
         if (strs.length < 2 || StringUtils.isEmpty(StringUtils.trim(strs[0]))) {
-            log.error("Roles must not be null, injected string was '{}.' Roles injection failed.", injectedUserAndRoles);
+            log.error("Roles must be provided, injected string was '{}.' Roles injection failed.", injectedUserAndRoles);
             return null;
         }
-        Set<String> roles = new HashSet<>(ImmutableSet.copyOf(strs[1].split(",")));
+        Set<String> roles = ImmutableSet.copyOf(strs[1].split(","));
 
         if(user != null && roles != null) {
             addUser(user, ctx);
