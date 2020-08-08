@@ -4,6 +4,7 @@ import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditTestUtils;
 import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
+import com.amazon.opendistroforelasticsearch.security.dlic.rest.validation.AuditValidator;
 import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -98,6 +99,44 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
                 .map(JsonNode::textValue)
                 .collect(Collectors.toList());
         assertEquals(testCategories, actual);
+    }
+
+    @Test
+    public void testInvalidDisabledCategories() throws Exception {
+        setupWithRestRoles(null);
+        rh.sendAdminCertificate = true;
+        final ObjectMapper objectMapper = DefaultObjectMapper.objectMapper;
+
+        // test bad request for REST disabled categories
+        AuditConfig auditConfig = new AuditConfig(true, AuditConfig.Filter.from(
+                ImmutableMap.of("disabled_rest_categories", ImmutableList.of("INDEX_EVENT", "COMPLIANCE_DOC_READ"))
+        ), ComplianceConfig.DEFAULT);
+        RestHelper.HttpResponse response = response = rh.executePutRequest(CONFIG_ENDPOINT, objectMapper.writeValueAsString(auditConfig));
+        assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+
+        // test success for REST disabled categories
+        auditConfig = new AuditConfig(true, AuditConfig.Filter.from(
+                ImmutableMap.of("disabled_rest_categories",
+                        ImmutableList.of("BAD_HEADERS", "SSL_EXCEPTION", "AUTHENTICATED", "FAILED_LOGIN", "GRANTED_PRIVILEGES", "MISSING_PRIVILEGES"))
+        ), ComplianceConfig.DEFAULT);
+        response = rh.executePutRequest(CONFIG_ENDPOINT, objectMapper.writeValueAsString(auditConfig));
+        assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+
+        // test bad request for transport disabled categories
+        auditConfig = new AuditConfig(true, AuditConfig.Filter.from(
+                ImmutableMap.of("disabled_transport_categories",
+                        ImmutableList.of("COMPLIANCE_DOC_READ", "COMPLIANCE_DOC_WRITE"))
+        ), ComplianceConfig.DEFAULT);
+        response = rh.executePutRequest(CONFIG_ENDPOINT, objectMapper.writeValueAsString(auditConfig));
+        assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+
+        // test success for transport disabled categories
+        auditConfig = new AuditConfig(true, AuditConfig.Filter.from(
+                ImmutableMap.of("disabled_transport_categories",
+                        ImmutableList.of("BAD_HEADERS", "SSL_EXCEPTION", "AUTHENTICATED", "FAILED_LOGIN", "GRANTED_PRIVILEGES", "MISSING_PRIVILEGES", "INDEX_EVENT", "OPENDISTRO_SECURITY_INDEX_ATTEMPT"))
+        ), ComplianceConfig.DEFAULT);
+        response = rh.executePutRequest(CONFIG_ENDPOINT, objectMapper.writeValueAsString(auditConfig));
+        assertEquals(HttpStatus.SC_OK, response.getStatusCode());
     }
 
     @Test
