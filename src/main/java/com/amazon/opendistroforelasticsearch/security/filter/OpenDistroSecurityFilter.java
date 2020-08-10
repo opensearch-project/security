@@ -87,10 +87,12 @@ import com.amazon.opendistroforelasticsearch.security.support.HeaderHelper;
 import com.amazon.opendistroforelasticsearch.security.support.SourceFieldsContext;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 
+import static com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin.isActionTraceEnabled;
+import static com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin.traceAction;
+
 public class OpenDistroSecurityFilter implements ActionFilter {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
-    protected final Logger actionTrace = LogManager.getLogger("opendistro_security_action_trace");
     private final PrivilegesEvaluator evalp;
     private final AdminDNs adminDns;
     private DlsFlsRequestValve dlsFlsValve;
@@ -168,7 +170,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
                 org.apache.logging.log4j.ThreadContext.put("user", user.getName());
             }
                         
-            if(actionTrace.isTraceEnabled()) {
+            if (isActionTraceEnabled()) {
 
                 String count = "";
                 if(request instanceof BulkRequest) {
@@ -183,7 +185,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
                     count = ""+((MultiSearchRequest) request).requests().size();
                 }
 
-                actionTrace.trace("Node "+cs.localNode().getName()+" -> "+action+" ("+count+"): userIsAdmin="+userIsAdmin+"/conRequest="+confRequest+"/internalRequest="+internalRequest
+                traceAction("Node "+cs.localNode().getName()+" -> "+action+" ("+count+"): userIsAdmin="+userIsAdmin+"/conRequest="+confRequest+"/internalRequest="+internalRequest
                         +"origin="+threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN)+"/directRequest="+HeaderHelper.isDirectRequest(threadContext)+"/remoteAddress="+request.remoteAddress());
 
 

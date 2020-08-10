@@ -68,9 +68,10 @@ import com.amazon.opendistroforelasticsearch.security.support.HeaderHelper;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 import com.google.common.base.Strings;
 
+import static com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin.isActionTraceEnabled;
+
 public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extends OpenDistroSecuritySSLRequestHandler<T> {
 
-    protected final Logger actionTrace = LogManager.getLogger("opendistro_security_action_trace");
     private final BackendRegistry backendRegistry;
     private final AuditLog auditLog;
     private final InterClusterRequestEvaluator requestEvalProvider;
@@ -155,7 +156,7 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
                     getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, new TransportAddress((InetSocketAddress) Base64Helper.deserializeObject(originalRemoteAddress)));
                 }
 
-                if(actionTrace.isTraceEnabled()) {
+                if (isActionTraceEnabled()) {
                     getThreadContext().putHeader("_opendistro_security_trace"+System.currentTimeMillis()+"#"+UUID.randomUUID().toString(), Thread.currentThread().getName()+" DIR -> "+transportChannel.getChannelType()+" "+getThreadContext().getHeaders());
                 }
 
@@ -275,7 +276,7 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
                     }
                 }
 
-                if(actionTrace.isTraceEnabled()) {
+                if (isActionTraceEnabled()) {
                     getThreadContext().putHeader("_opendistro_security_trace"+System.currentTimeMillis()+"#"+UUID.randomUUID().toString(), Thread.currentThread().getName()+" NETTI -> "+transportChannel.getChannelType()+" "+getThreadContext().getHeaders().entrySet().stream().filter(p->!p.getKey().startsWith("_opendistro_security_trace")).collect(Collectors.toMap(p -> p.getKey(), p -> p.getValue())));
                 }
 
@@ -286,7 +287,7 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
             }
         } finally {
 
-            if(actionTrace.isTraceEnabled()) {
+            if (isActionTraceEnabled()) {
                 getThreadContext().putHeader("_opendistro_security_trace"+System.currentTimeMillis()+"#"+UUID.randomUUID().toString(), Thread.currentThread().getName()+" FIN -> "+transportChannel.getChannelType()+" "+getThreadContext().getHeaders());
             }
 

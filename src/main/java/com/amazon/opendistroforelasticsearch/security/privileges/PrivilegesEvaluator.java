@@ -89,11 +89,12 @@ import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 
+import static com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin.traceAction;
+
 public class PrivilegesEvaluator {
 
     private static final WildcardMatcher ACTION_MATCHER = WildcardMatcher.from("indices:data/read/*search*");
     protected final Logger log = LogManager.getLogger(this.getClass());
-    protected final Logger actionTrace = LogManager.getLogger("opendistro_security_action_trace");
     private final ClusterService clusterService;
 
     private final IndexNameExpressionResolver resolver;
@@ -528,8 +529,8 @@ public class PrivilegesEvaluator {
             additionalPermissionsRequired.addAll(ConfigConstants.OPENDISTRO_SECURITY_SNAPSHOT_RESTORE_NEEDED_WRITE_PRIVILEGES);
         }
 
-        if(actionTrace.isTraceEnabled() && additionalPermissionsRequired.size() > 1) {
-            actionTrace.trace(("Additional permissions required: "+additionalPermissionsRequired));
+        if (additionalPermissionsRequired.size() > 1) {
+            traceAction("Additional permissions required: {}", additionalPermissionsRequired);
         }
 
         if(log.isDebugEnabled() && additionalPermissionsRequired.size() > 1) {

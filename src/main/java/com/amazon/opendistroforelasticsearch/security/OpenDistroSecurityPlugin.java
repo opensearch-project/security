@@ -52,6 +52,9 @@ import com.amazon.opendistroforelasticsearch.security.configuration.OpenDistroSe
 import com.amazon.opendistroforelasticsearch.security.configuration.Salt;
 import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenDistroSecuritySSLReloadCertsAction;
 import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenDistroSecuritySSLCertsInfoAction;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.QueryCachingPolicy;
 import org.apache.lucene.search.Weight;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -166,6 +169,8 @@ import com.google.common.collect.Lists;
 public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin implements ClusterPlugin, MapperPlugin {
 
     private static final String KEYWORD = ".keyword";
+    private static final Logger actionTrace = LogManager.getLogger("opendistro_security_action_trace");
+
     private final boolean dlsFlsAvailable;
     private boolean sslCertReloadEnabled;
     private volatile OpenDistroSecurityRestFilter securityRestHandler;
@@ -188,6 +193,18 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     private volatile NamedXContentRegistry namedXContentRegistry = null;
     private volatile DlsFlsRequestValve dlsFlsValve = null;
     private volatile Salt salt;
+
+    public static boolean isActionTraceEnabled() {
+        return actionTrace.isTraceEnabled();
+    }
+
+    public static void traceAction(String message) {
+        actionTrace.trace(message);
+    }
+
+    public static void traceAction(String message, Object p0) {
+        actionTrace.trace(message, p0);
+    }
 
     @Override
     public void close() throws IOException {
