@@ -17,6 +17,11 @@
 
 package com.amazon.opendistroforelasticsearch.security.ssl.transport;
 
+import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.nio.NioSocketChannel;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.security.AccessController;
@@ -213,6 +218,7 @@ public class OpenDistroSecuritySSLNettyTransport extends Netty4Transport {
                                 (SSLSocket) factory.createSocket(node.getAddress().getAddress(), node.getAddress().getPort());
                         logger.info("trying Handshake");
                         // we dont need full handshake, we can just do ClientHello alone, Need to evaluate more on the same
+                        socket.setSoTimeout(50);
                         socket.startHandshake();
                     } catch (SSLException e) {
                         logger.error("Unable to handshake", e);
