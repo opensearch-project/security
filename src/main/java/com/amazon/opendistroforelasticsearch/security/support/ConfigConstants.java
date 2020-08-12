@@ -96,6 +96,8 @@ public class ConfigConstants {
      */
     public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_PRINCIPAL = OPENDISTRO_SECURITY_CONFIG_PREFIX+"ssl_transport_principal";
 
+    public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_DUAL_MODE_HTTP = OPENDISTRO_SECURITY_CONFIG_PREFIX+"ssl_dual_mode_http";
+
     public static final String OPENDISTRO_SECURITY_USER = OPENDISTRO_SECURITY_CONFIG_PREFIX+"user";
     public static final String OPENDISTRO_SECURITY_USER_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX+"user_header";
 
@@ -220,6 +222,7 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_COMPLIANCE_SALT_DEFAULT = "e1ukloTsQlOgPquJ";//16 chars
     public static final String OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED  = "opendistro_security.compliance.history.internal_config_enabled";
     public static final String OPENDISTRO_SECURITY_SSL_ONLY = "opendistro_security.ssl_only";
+    public static final String OPENDISTRO_SECURITY_SSL_DUAL_MODE_ENABLED = "opendistro_security.ssl_dual_mode_enabled";
     public static final String OPENDISTRO_SECURITY_SSL_CERT_RELOAD_ENABLED = "opendistro_security.ssl_cert_reload_enabled";
     public static final String OPENDISTRO_SECURITY_DISABLE_ENVVAR_REPLACEMENT = "opendistro_security.disable_envvar_replacement";
 
