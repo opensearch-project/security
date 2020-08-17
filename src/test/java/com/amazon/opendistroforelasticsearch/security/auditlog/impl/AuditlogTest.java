@@ -19,12 +19,15 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditTestUtils;
+import com.amazon.opendistroforelasticsearch.security.dlic.rest.validation.AuditValidator;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.rest.RestRequest;
+import org.elasticsearch.transport.TransportRequest;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -129,5 +132,27 @@ public class AuditlogTest {
         AbstractAuditLog al = AuditTestUtils.createAuditLog(settings, null,  null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
         al.logSSLException(null, new Exception("test retry"));
         Assert.assertNull(RetrySink.getMsg());
+    }
+
+    @Test
+    public void testRestFilterEnabledCheck() {
+        final Settings settings = Settings.builder()
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, false)
+                .build();
+        final AbstractAuditLog al = AuditTestUtils.createAuditLog(settings, null,  null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
+        for (AuditCategory category: AuditCategory.values()) {
+            Assert.assertFalse(al.checkRestFilter(category, "user", mock(RestRequest.class)));
+        }
+    }
+
+    @Test
+    public void testTransportFilterEnabledCheck() {
+        final Settings settings = Settings.builder()
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, false)
+                .build();
+        final AbstractAuditLog al = AuditTestUtils.createAuditLog(settings, null,  null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
+        for (AuditCategory category: AuditCategory.values()) {
+            Assert.assertFalse(al.checkTransportFilter(category, "action", "user", mock(TransportRequest.class)));
+        }
     }
 }
