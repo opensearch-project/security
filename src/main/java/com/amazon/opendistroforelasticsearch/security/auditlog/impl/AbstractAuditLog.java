@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 
 import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
 import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -632,7 +633,8 @@ public abstract class AbstractAuditLog implements AuditLog {
         return threadPool.getThreadContext().getHeaders();
     }
 
-    private boolean checkTransportFilter(final AuditCategory category, final String action, final String effectiveUser, TransportRequest request) {
+    @VisibleForTesting
+    boolean checkTransportFilter(final AuditCategory category, final String action, final String effectiveUser, TransportRequest request) {
 
         if(log.isTraceEnabled()) {
             log.trace("Check category:{}, action:{}, effectiveUser:{}, request:{}", category, action, effectiveUser, request==null?null:request.getClass().getSimpleName());
@@ -640,14 +642,7 @@ public abstract class AbstractAuditLog implements AuditLog {
 
 
         if (!auditConfigFilter.isTransportApiAuditEnabled()) {
-            //ignore for certain categories
-            if(category != AuditCategory.FAILED_LOGIN
-                    && category != AuditCategory.MISSING_PRIVILEGES
-                    && category != AuditCategory.OPENDISTRO_SECURITY_INDEX_ATTEMPT) {
-
-                return false;
-            }
-
+            return false;
         }
 
         //skip internals
@@ -739,21 +734,14 @@ public abstract class AbstractAuditLog implements AuditLog {
         return true;
     }
 
-
-    private boolean checkRestFilter(final AuditCategory category, final String effectiveUser, RestRequest request) {
+    @VisibleForTesting
+    boolean checkRestFilter(final AuditCategory category, final String effectiveUser, RestRequest request) {
         if(log.isTraceEnabled()) {
             log.trace("Check for REST category:{}, effectiveUser:{}, request:{}", category, effectiveUser, request==null?null:request.path());
         }
 
         if (!auditConfigFilter.isRestApiAuditEnabled()) {
-            //ignore for certain categories
-            if(category != AuditCategory.FAILED_LOGIN
-                    && category != AuditCategory.MISSING_PRIVILEGES
-                    && category != AuditCategory.OPENDISTRO_SECURITY_INDEX_ATTEMPT) {
-
-                return false;
-            }
-
+            return false;
         }
 
         if (auditConfigFilter.isAuditDisabled(effectiveUser)) {
