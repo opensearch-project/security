@@ -32,6 +32,8 @@ import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
+import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLUtil;
+import io.netty.channel.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ExceptionsHelper;
@@ -51,11 +53,6 @@ import com.amazon.opendistroforelasticsearch.security.ssl.OpenDistroSecurityKeyS
 import com.amazon.opendistroforelasticsearch.security.ssl.SslExceptionHandler;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConfigConstants;
 
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandler;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelOutboundHandlerAdapter;
-import io.netty.channel.ChannelPromise;
 import io.netty.handler.codec.DecoderException;
 import io.netty.handler.ssl.SslHandler;
 
@@ -64,6 +61,7 @@ public class OpenDistroSecuritySSLNettyTransport extends Netty4Transport {
     private static final Logger logger = LogManager.getLogger(OpenDistroSecuritySSLNettyTransport.class);
     private final OpenDistroSecurityKeyStore odsks;
     private final SslExceptionHandler errorHandler;
+    private final SSLUtil sslUtil;
 
     public OpenDistroSecuritySSLNettyTransport(final Settings settings, final Version version, final ThreadPool threadPool, final NetworkService networkService,
             final PageCacheRecycler pageCacheRecycler, final NamedWriteableRegistry namedWriteableRegistry,
@@ -72,6 +70,7 @@ public class OpenDistroSecuritySSLNettyTransport extends Netty4Transport {
 
         this.odsks = odsks;
         this.errorHandler = errorHandler;
+        this.sslUtil = new SSLUtil();
     }
 
     @Override
@@ -108,8 +107,17 @@ public class OpenDistroSecuritySSLNettyTransport extends Netty4Transport {
         @Override
         protected void initChannel(Channel ch) throws Exception {
             super.initChannel(ch);
-            final ChannelHandler portUnificationHandler = new OpenDistroPortUnificationHandler(settings, odsks);
-            ch.pipeline().addFirst("port_unification_handler", portUnificationHandler);
+
+            boolean isDualModeEnabled = OpenDistroSSLDualModeConfig.getInstance().isIsDualModeEnabled();
+
+            if (isDualModeEnabled) {
+                logger.info("SSL Dual mode enabled, using port unification handler");
+                final ChannelHandler portUnificationHandler = new OpenDistroPortUnificationHandler(odsks, sslUtil);
+                ch.pipeline().addFirst("port_unification_handler", portUnificationHandler);
+            } else {
+                final SslHandler sslHandler = new SslHandler(odsks.createServerTransportSSLEngine());
+                ch.pipeline().addFirst("ssl_server", sslHandler);
+            }
         }
 
         @Override
@@ -208,10 +216,12 @@ public class OpenDistroSecuritySSLNettyTransport extends Netty4Transport {
 
             boolean isSSL = true;
 
-            if (OpenDistroSSLMode.isDualSSLMode()) {
+            boolean isDualModeEnabled = OpenDistroSSLDualModeConfig.getInstance().isIsDualModeEnabled();
+
+            if (isDualModeEnabled) {
                 isSSL = AccessController.doPrivileged((PrivilegedAction<Boolean>) () -> {
                     try {
-                        logger.info("Connecting to address {} and port {}",
+                        logger.debug("Connecting to address {} and port {}",
                                 node.getAddress().getAddress(), node.getAddress().getPort());
                         SSLSocketFactory factory =
                                 (SSLSocketFactory) SSLSocketFactory.getDefault();
@@ -223,14 +233,14 @@ public class OpenDistroSecuritySSLNettyTransport extends Netty4Transport {
                         socket.startHandshake();
                     } catch (SSLException e) {
                         logger.error("Unable to handshake", e);
-                        // there is no custom exception thrown if the server doesnt speak SSL instead it is inferred from
+                        // there is no custom exception thrown if the server doesn't speak SSL instead it is inferred from
                         // message
                         if (e.getMessage().equals("Unsupported or unrecognized SSL message") ||
                                 e.getMessage().equals("Remote host terminated the handshake")) {
                             return false;
                         }
                     } catch (Exception e) {
-                        logger.info("We dont worry much any other SSL errors", e);
+                        logger.debug("We don't worry much any other SSL errors", e);
                     }
                     return true;
                 });
