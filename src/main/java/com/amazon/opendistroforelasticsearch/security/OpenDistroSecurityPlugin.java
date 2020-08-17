@@ -720,6 +720,8 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                     repositoriesServiceSupplier
             );
         }
+
+        OpenDistroSSLDualModeConfig.init(clusterService.getClusterSettings(), clusterService.getSettings());
         
         this.threadPool = threadPool;
         this.cs = clusterService;
@@ -843,9 +845,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_SSL_ONLY, false, Property.NodeScope, Property.Filtered));
 
         // currently dual mode is supported only when ssl_only is enabled, but this stance would change in future
-        if (sslOnly) {
-            settings.add(OpenDistroSSLDualModeConfig.SSL_DUAL_MODE_SETTING);
-        }
+        settings.add(OpenDistroSSLDualModeConfig.SSL_DUAL_MODE_SETTING);
 
         // Protected index settings
         settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_DEFAULT, Property.NodeScope, Property.Filtered, Property.Final));

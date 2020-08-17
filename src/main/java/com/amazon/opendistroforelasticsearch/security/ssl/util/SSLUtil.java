@@ -19,7 +19,7 @@ public class SSLUtil {
 
     private static final Logger logger = LogManager.getLogger(SSLUtil.class);
 
-    public static boolean isTLS(ByteBuf buffer) {
+    public boolean isTLS(ByteBuf buffer) {
         int packetLength = 0;
         int offset = buffer.readerIndex();
 
