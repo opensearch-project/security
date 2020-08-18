@@ -1,6 +1,7 @@
 package com.amazon.opendistroforelasticsearch.security.ssl.transport;
 
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.ClusterSettings;
@@ -52,6 +53,11 @@ public class OpenDistroSSLDualModeConfig {
 
         INSTANCE = new OpenDistroSSLDualModeConfig(clusterSettings, settings);
         return INSTANCE;
+    }
+
+    @VisibleForTesting
+    protected void destroy() {
+        INSTANCE = null;
     }
 
 
