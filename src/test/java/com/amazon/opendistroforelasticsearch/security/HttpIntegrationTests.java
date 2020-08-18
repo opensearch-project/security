@@ -33,6 +33,7 @@ package com.amazon.opendistroforelasticsearch.security;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 
+import com.amazon.opendistroforelasticsearch.security.ssl.transport.OpenDistroSSLDualModeConfigTestHelper;
 import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpStatus;
 import org.apache.http.NoHttpResponseException;
@@ -687,9 +688,19 @@ public class HttpIntegrationTests extends SingleClusterTest {
     }
 
     @Test
-    public void testSslOnlyMode() throws Exception {
+    public void testSslOnlyModeDualModeEnabled() throws Exception {
+        testSslOnlyMode(true);
+    }
+
+    @Test
+    public void testSslOnlyModeDualModeDisabled() throws Exception {
+        testSslOnlyMode(false);
+    }
+
+    private void testSslOnlyMode(boolean dualModeEnabled) throws Exception {
         final Settings settings = Settings.builder()
                 .put(ConfigConstants.OPENDISTRO_SECURITY_SSL_ONLY, true)
+                .put(ConfigConstants.OPENDISTRO_SECURITY_SSL_DUAL_MODE_ENABLED, dualModeEnabled)
                 .build();
         setupSslOnlyMode(settings);
         final RestHelper rh = nonSslRestHelper();
@@ -704,6 +715,36 @@ public class HttpIntegrationTests extends SingleClusterTest {
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
 
         res = rh.executeGetRequest("/_search");
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+    }
+
+    @Test
+    public void testSslOnlyModeDualModeWithNonSSLMasterNode() throws Exception {
+        OpenDistroSSLDualModeConfigTestHelper.resetDualModeConfig();
+
+        final Settings settings = Settings.builder()
+                .put(ConfigConstants.OPENDISTRO_SECURITY_SSL_ONLY, true)
+                .put(ConfigConstants.OPENDISTRO_SECURITY_SSL_DUAL_MODE_ENABLED, true)
+                .build();
+        setupSslOnlyModeWithMasterNodeWithoutSSL(settings);
+        final RestHelper rh = nonSslRestHelper();
+
+        HttpResponse res = rh.executeGetRequest("/_search");
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+    }
+
+    @Test
+    public void testSslOnlyModeDualModeWithNonSSLDataNode() throws Exception {
+        OpenDistroSSLDualModeConfigTestHelper.resetDualModeConfig();
+
+        final Settings settings = Settings.builder()
+                .put(ConfigConstants.OPENDISTRO_SECURITY_SSL_ONLY, true)
+                .put(ConfigConstants.OPENDISTRO_SECURITY_SSL_DUAL_MODE_ENABLED, true)
+                .build();
+        setupSslOnlyModeWithDataNodeWithoutSSL(settings);
+        final RestHelper rh = nonSslRestHelper();
+
+        HttpResponse res = rh.executeGetRequest("/_search");
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
     }
 

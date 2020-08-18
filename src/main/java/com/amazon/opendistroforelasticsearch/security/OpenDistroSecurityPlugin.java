@@ -708,6 +708,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             Environment environment, NodeEnvironment nodeEnvironment, NamedWriteableRegistry namedWriteableRegistry,
             IndexNameExpressionResolver indexNameExpressionResolver, Supplier<RepositoriesService> repositoriesServiceSupplier) {
 
+        OpenDistroSSLDualModeConfig.init(clusterService.getClusterSettings(), clusterService.getSettings());
         if(sslOnly) {
             return super.createComponents(
                     localClient,
@@ -723,8 +724,6 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                     repositoriesServiceSupplier
             );
         }
-
-        OpenDistroSSLDualModeConfig.init(clusterService.getClusterSettings(), clusterService.getSettings());
         
         this.threadPool = threadPool;
         this.cs = clusterService;
