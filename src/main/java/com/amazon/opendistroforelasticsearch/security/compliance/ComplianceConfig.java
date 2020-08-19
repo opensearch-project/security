@@ -42,6 +42,7 @@ import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfi
 import com.fasterxml.jackson.annotation.JacksonInject;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
@@ -72,6 +73,7 @@ import static com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper
  * Audit Logger uses this configuration to post compliance audit logs.
  */
 @JsonAutoDetect(getterVisibility = JsonAutoDetect.Visibility.NONE)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ComplianceConfig {
 
     private static final Logger log = LogManager.getLogger(ComplianceConfig.class);
