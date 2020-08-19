@@ -228,15 +228,14 @@ public class OpenDistroSecuritySSLNettyTransport extends Netty4Transport {
                         SSLSocket socket =
                                 (SSLSocket) factory.createSocket(node.getAddress().getAddress(), node.getAddress().getPort());
                         logger.info("trying Handshake");
-                        // we dont need full handshake, we can just do ClientHello alone, Need to evaluate more on the same
-                        socket.setSoTimeout(50);
                         socket.startHandshake();
                     } catch (SSLException e) {
                         logger.error("Unable to handshake", e);
                         // there is no custom exception thrown if the server doesn't speak SSL instead it is inferred from
                         // message
                         if (e.getMessage().equals("Unsupported or unrecognized SSL message") ||
-                                e.getMessage().equals("Remote host terminated the handshake")) {
+                            e.getMessage().equals("Remote host terminated the handshake") ||
+                            e.getMessage().equals("Connection closed by peer")) {
                             return false;
                         }
                     } catch (Exception e) {
