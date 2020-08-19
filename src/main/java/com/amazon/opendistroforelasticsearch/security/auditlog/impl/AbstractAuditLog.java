@@ -646,19 +646,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         }
 
         //skip internals
-        if(action != null
-                &&
-                ( action.startsWith("internal:")
-                        || action.startsWith("cluster:monitor")
-                        || action.startsWith("indices:monitor")
-                )
-        ) {
-
-
-            //if(log.isTraceEnabled()) {
-            //    log.trace("Skipped audit log message due to category ({}) or action ({}) does not match", category, action);
-            //}
-
+        if (action != null && action.startsWith("internal:")) {
             return false;
         }
 
@@ -690,7 +678,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         }
 
 
-        //skip cluster:monitor, index:monitor, internal:*
+        //skip internal:*
         //check transport audit enabled
         //check category enabled
         //check action
