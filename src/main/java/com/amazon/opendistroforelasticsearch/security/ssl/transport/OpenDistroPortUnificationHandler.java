@@ -18,7 +18,11 @@ package com.amazon.opendistroforelasticsearch.security.ssl.transport;
 import com.amazon.opendistroforelasticsearch.security.ssl.OpenDistroSecurityKeyStore;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLUtil;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.io.BaseEncoding;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import org.elasticsearch.transport.TcpTransport;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.codec.ByteToMessageDecoder;
@@ -59,6 +63,16 @@ public class OpenDistroPortUnificationHandler extends ByteToMessageDecoder {
         if (in.readableBytes() < 5) {
             return;
         }
+
+        byte[] readBytes = new byte[5];
+        ByteBuf header = in.getBytes(in.readerIndex(), readBytes);
+        logger.info("Got bytes {}", BaseEncoding.base16().lowerCase().encode(readBytes));
+        if (readBytes[0] == 0X44 && readBytes[1] == 0x55) {
+            ctx.writeAndFlush(Unpooled.copiedBuffer(new byte[]{0X44, 0X55, 0X41, 0X4c}))
+                    .addListener(ChannelFutureListener.CLOSE);
+            return;
+        }
+
         logger.debug("Checking if dual ssl mode or not");
         if (this.sslUtils.isTLS(in)) {
             logger.debug("Identified request as SSL request");
