@@ -18,7 +18,10 @@ import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -72,56 +75,72 @@ public class SSLDualModeAction extends BaseRestHandler {
         return new RestChannelConsumer() {
             @Override
             public void accept(RestChannel restChannel) throws Exception {
-                BytesRestResponse response = null;
 
                 switch (request.method()) {
                     case GET:
-                        response = getDualModeResponse(restChannel,
+                        BytesRestResponse response = getDualModeResponse(restChannel,
                                 settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_SSL_DUAL_MODE_ENABLED,
                                         false));
+                        restChannel.sendResponse(response);
                         break;
                     case PUT:
                         try {
                             ClusterUpdateSettingsRequest clusterUpdateSettingsRequest = new ClusterUpdateSettingsRequest();
                             clusterUpdateSettingsRequest.persistentSettings(DISABLE_SSL_DUAL_MODE);
-                            boolean isSettingsApplied = client.admin()
+                            client.admin()
                                     .cluster()
-                                    .updateSettings(clusterUpdateSettingsRequest)
-                                    .actionGet().isAcknowledged();
-                            if (!isSettingsApplied) {
-                                response = getErrorMessageResponse(restChannel, "Unable to apply opendistro ssl dual mode settings");
-                                break;
-                            }
-                            response = getDualModeResponse(restChannel, false);
+                                    .updateSettings(clusterUpdateSettingsRequest, new ActionListener<ClusterUpdateSettingsResponse>() {
+                                        @Override
+                                        public void onResponse(ClusterUpdateSettingsResponse clusterUpdateSettingsResponse) {
+                                            restChannel.sendResponse(getDualModeResponse(restChannel, false));
+                                        }
+
+                                        @Override
+                                        public void onFailure(Exception e) {
+                                            BytesRestResponse response = getErrorMessageResponse(restChannel, "Unable to apply opendistro ssl dual mode settings");
+                                            restChannel.sendResponse(response);
+                                        }
+                                    });
                         } catch (Exception e) {
                             logger.error("Unable to update open distro SSL dual mode settings", e);
                             response = getErrorMessageResponse(restChannel,
                                     String.format("Unable to apply opendistro ssl dual mode settings due to %s", e.getMessage()));
+                            restChannel.sendResponse(response);
                         }
                         break;
                 }
-
-                restChannel.sendResponse(response);
 
             }
         };
     }
 
-    private BytesRestResponse getErrorMessageResponse(RestChannel restChannel, String errorMessage) throws IOException {
-        XContentBuilder builder = restChannel.newBuilder();
-        builder.startObject();
-        builder.field(RESPONSE_ERROR_FIELD, errorMessage);
-        builder.endObject();
-        builder.close();
+    private static BytesRestResponse getErrorMessageResponse(RestChannel restChannel, String errorMessage) {
+        XContentBuilder builder;
+        try {
+            builder = restChannel.newBuilder();
+            builder.startObject();
+            builder.field(RESPONSE_ERROR_FIELD, errorMessage);
+            builder.endObject();
+            builder.close();
+        } catch (IOException e) {
+            logger.error("Unable to generate response", e);
+            throw new ElasticsearchException(e);
+        }
         return new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, builder);
     }
 
-    private BytesRestResponse getDualModeResponse(RestChannel restChannel, boolean enabled) throws IOException {
-        XContentBuilder builder = restChannel.newBuilder();
-        builder.startObject();
-        builder.field(RESPONSE_ENABLED_FIELD, enabled);
-        builder.endObject();
-        builder.close();
+    private BytesRestResponse getDualModeResponse(RestChannel restChannel, boolean enabled) {
+        XContentBuilder builder;
+        try {
+            builder = restChannel.newBuilder();
+            builder.startObject();
+            builder.field(RESPONSE_ENABLED_FIELD, enabled);
+            builder.endObject();
+            builder.close();
+        } catch (IOException e) {
+            logger.error("Unable to generate response", e);
+            throw new ElasticsearchException(e);
+        }
         return new BytesRestResponse(RestStatus.OK, builder);
     }
 }
