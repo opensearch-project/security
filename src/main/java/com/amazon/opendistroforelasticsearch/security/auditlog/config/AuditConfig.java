@@ -23,6 +23,7 @@ import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
@@ -80,6 +81,7 @@ import static com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper
  *   }
  * }
  */
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class AuditConfig {
 
     public static final List<String> DEFAULT_IGNORED_USERS = Collections.singletonList("kibanaserver");
@@ -126,6 +128,7 @@ public class AuditConfig {
      * Filter represents set of filtering configuration settings for audit logging.
      * Audit logger will use these settings to determine what audit logs are to be generated.
      */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class Filter {
         @VisibleForTesting
         public static final Filter DEFAULT = Filter.from(Settings.EMPTY);
