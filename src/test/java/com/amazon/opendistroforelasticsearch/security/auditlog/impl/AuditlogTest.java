@@ -155,4 +155,19 @@ public class AuditlogTest {
             Assert.assertFalse(al.checkTransportFilter(category, "action", "user", mock(TransportRequest.class)));
         }
     }
+
+    @Test
+    public void testTransportFilterMonitorActionsCheck() {
+        final Settings settings = Settings.builder()
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
+                .build();
+        final AbstractAuditLog al = AuditTestUtils.createAuditLog(settings, null,  null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
+        for (AuditCategory category: AuditCategory.values()) {
+            Assert.assertTrue(al.checkTransportFilter(category, "cluster:monitor/any", "user", mock(TransportRequest.class)));
+            Assert.assertTrue(al.checkTransportFilter(category, "indices:data/any", "user", mock(TransportRequest.class)));
+            Assert.assertFalse(al.checkTransportFilter(category, "internal:any", "user", mock(TransportRequest.class)));
+
+        }
+    }
 }
