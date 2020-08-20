@@ -494,6 +494,58 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         }
     }
 
+    @Test
+    public void testPatchRequest() throws Exception {
+        setupWithRestRoles();
+        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.sendAdminCertificate = true;
+
+        // update with non-default configuration
+        AuditConfig auditConfig = new AuditConfig(true, AuditConfig.Filter.from(
+                ImmutableMap.<String, Object>builder()
+                        .put("enable_rest", false)
+                        .put("disabled_rest_categories", Collections.emptyList())
+                        .put("enable_transport", false)
+                        .put("disabled_transport_categories", Collections.emptyList())
+                        .put("resolve_bulk_requests", false)
+                        .put("resolve_indices", false)
+                        .put("log_request_body", false)
+                        .put("exclude_sensitive_headers", false)
+                        .put("ignore_users", Collections.emptyList())
+                        .put("ignore_requests", Collections.emptyList())
+                        .build())
+        , ComplianceConfig.from(
+                ImmutableMap.<String, Object>builder()
+                        .put("enabled", true)
+                        .put("external_config", false)
+                        .put("internal_config", false)
+                        .put("read_metadata_only", false)
+                        .put("read_watched_fields", Collections.emptyMap())
+                        .put("read_ignore_users", Collections.emptyList())
+                        .put("write_metadata_only", true)
+                        .put("write_log_diffs", true)
+                        .put("write_watched_indices", Collections.emptyList())
+                        .put("write_ignore_users", Collections.emptyList())
+                        .build(), Settings.EMPTY));
+        final String payload = DefaultObjectMapper.writeValueAsString(auditConfig, false);
+
+        // update config
+        RestHelper.HttpResponse response = rh.executePutRequest(CONFIG_ENDPOINT, payload);
+        assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+
+        // make patch request
+        response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"add\",\"path\": \"" + "/config/enabled" + "\",\"value\": " + true + "}]");
+        assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+
+        // get config
+        response = rh.executeGetRequest(ENDPOINT);
+        assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        final JsonNode configNode = readTree(response.getBody()).get("config");
+
+        // verify configs are same
+        assertEquals(readTree(payload), configNode);
+    }
+
     private String getTestPayload() {
         return "{" +
                 "\"enabled\":true," +
