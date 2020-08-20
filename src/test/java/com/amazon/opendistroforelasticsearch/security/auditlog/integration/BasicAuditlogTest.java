@@ -213,7 +213,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("\"audit_request_effective_user\" : \"admin\""));
         Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("REST"));
         Assert.assertFalse(TestAuditlogImpl.sb.toString().toLowerCase().contains("authorization"));
-        Assert.assertEquals(TestAuditlogImpl.messages.get(0).getAsMap().get(AuditMessage.TASK_ID),
+        Assert.assertEquals(TestAuditlogImpl.messages.get(1).getAsMap().get(AuditMessage.TASK_ID),
         TestAuditlogImpl.messages.get(1).getAsMap().get(AuditMessage.TASK_ID));
         Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
     }
