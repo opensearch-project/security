@@ -401,19 +401,23 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 				.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
 		final Object originalOrigin = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN);
 
-		return channel -> {
-
-			try (StoredContext ctx = threadPool.getThreadContext().stashContext()) {
-
+		return channel -> threadPool.generic().submit(() -> {
+			try (StoredContext ignore = threadPool.getThreadContext().stashContext()) {
 				threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
 				threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, originalUser);
 				threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, originalRemoteAddress);
 				threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, originalOrigin);
 
 				handleApiRequest(channel, request, client);
-
+			} catch (Exception e) {
+				log.error("Error processing request {}", request, e);
+				try {
+					channel.sendResponse(new BytesRestResponse(channel, e));
+				} catch (IOException ioe) {
+					throw ExceptionsHelper.convertToElastic(e);
+				}
 			}
-		};
+		});
 	}
 
 	protected boolean checkConfigUpdateResponse(final ConfigUpdateResponse response) {

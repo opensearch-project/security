@@ -38,6 +38,7 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.http.HttpHandlingSettings;
 import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.SharedGroupFactory;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
@@ -46,8 +47,9 @@ public class OpenDistroSecurityNonSslHttpServerTransport extends Netty4HttpServe
 
 
     public OpenDistroSecurityNonSslHttpServerTransport(final Settings settings, final NetworkService networkService, final BigArrays bigArrays,
-            final ThreadPool threadPool, final NamedXContentRegistry namedXContentRegistry, final Dispatcher dispatcher, ClusterSettings clusterSettings) {
-        super(settings, networkService, bigArrays, threadPool, namedXContentRegistry, dispatcher, clusterSettings);
+            final ThreadPool threadPool, final NamedXContentRegistry namedXContentRegistry, final Dispatcher dispatcher,
+            ClusterSettings clusterSettings, SharedGroupFactory sharedGroupFactory) {
+        super(settings, networkService, bigArrays, threadPool, namedXContentRegistry, dispatcher, clusterSettings, sharedGroupFactory);
     }
 
     @Override

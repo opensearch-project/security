@@ -36,6 +36,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.SharedGroupFactory;
 
 import com.amazon.opendistroforelasticsearch.security.ssl.OpenDistroSecurityKeyStore;
 import com.amazon.opendistroforelasticsearch.security.ssl.SslExceptionHandler;
@@ -45,8 +46,8 @@ import com.amazon.opendistroforelasticsearch.security.ssl.http.netty.ValidatingD
 public class OpenDistroSecurityHttpServerTransport extends OpenDistroSecuritySSLNettyHttpServerTransport {
     
     public OpenDistroSecurityHttpServerTransport(final Settings settings, final NetworkService networkService,
-            final BigArrays bigArrays, final ThreadPool threadPool, final OpenDistroSecurityKeyStore odsks,
-            final SslExceptionHandler sslExceptionHandler, final NamedXContentRegistry namedXContentRegistry, final ValidatingDispatcher dispatcher, final ClusterSettings clusterSettings) {
-        super(settings, networkService, bigArrays, threadPool, odsks, namedXContentRegistry, dispatcher, sslExceptionHandler, clusterSettings);
+                                                 final BigArrays bigArrays, final ThreadPool threadPool, final OpenDistroSecurityKeyStore odsks,
+                                                 final SslExceptionHandler sslExceptionHandler, final NamedXContentRegistry namedXContentRegistry, final ValidatingDispatcher dispatcher, final ClusterSettings clusterSettings, SharedGroupFactory sharedGroupFactory) {
+        super(settings, networkService, bigArrays, threadPool, odsks, namedXContentRegistry, dispatcher, sslExceptionHandler, clusterSettings, sharedGroupFactory);
     }
 }
