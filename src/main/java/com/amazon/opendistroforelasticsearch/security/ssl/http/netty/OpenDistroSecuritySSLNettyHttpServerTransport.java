@@ -28,6 +28,7 @@ import org.elasticsearch.http.HttpChannel;
 import org.elasticsearch.http.HttpHandlingSettings;
 import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.SharedGroupFactory;
 
 import com.amazon.opendistroforelasticsearch.security.ssl.OpenDistroSecurityKeyStore;
 import com.amazon.opendistroforelasticsearch.security.ssl.SslExceptionHandler;
@@ -44,9 +45,9 @@ public class OpenDistroSecuritySSLNettyHttpServerTransport extends Netty4HttpSer
     private final SslExceptionHandler errorHandler;
     
     public OpenDistroSecuritySSLNettyHttpServerTransport(final Settings settings, final NetworkService networkService, final BigArrays bigArrays,
-            final ThreadPool threadPool, final OpenDistroSecurityKeyStore odsks, final NamedXContentRegistry namedXContentRegistry, final ValidatingDispatcher dispatcher,
-            final SslExceptionHandler errorHandler, ClusterSettings clusterSettings) {
-        super(settings, networkService, bigArrays, threadPool, namedXContentRegistry, dispatcher, clusterSettings);
+                                                         final ThreadPool threadPool, final OpenDistroSecurityKeyStore odsks, final NamedXContentRegistry namedXContentRegistry, final ValidatingDispatcher dispatcher,
+                                                         final SslExceptionHandler errorHandler, ClusterSettings clusterSettings, SharedGroupFactory sharedGroupFactory) {
+        super(settings, networkService, bigArrays, threadPool, namedXContentRegistry, dispatcher, clusterSettings, sharedGroupFactory);
         this.odsks = odsks;
         this.errorHandler = errorHandler;
     }

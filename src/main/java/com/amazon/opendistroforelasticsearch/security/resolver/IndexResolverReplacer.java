@@ -178,7 +178,7 @@ public class IndexResolverReplacer {
         if(remoteClusterService.isCrossClusterSearchEnabled() && enableCrossClusterResolution) {
             remoteIndices = new HashSet<>();
             final Map<String, OriginalIndices> remoteClusterIndices = OpenDistroSecurityPlugin.GuiceHolder.getRemoteClusterService()
-                    .groupIndices(indicesOptions, requestedPatterns0, idx -> resolver.hasIndexOrAlias(idx, clusterService.state()));
+                    .groupIndices(indicesOptions, requestedPatterns0, idx -> resolver.hasIndexAbstraction(idx, clusterService.state()));
             final Set<String> remoteClusters = remoteClusterIndices.keySet().stream()
                     .filter(k->!RemoteClusterService.LOCAL_CLUSTER_GROUP_KEY.equals(k)).collect(Collectors.toSet());
             for(String remoteCluster : remoteClusters) {

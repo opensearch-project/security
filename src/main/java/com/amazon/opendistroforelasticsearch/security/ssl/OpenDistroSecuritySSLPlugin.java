@@ -72,6 +72,7 @@ import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestHandler;
 import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.SharedGroupFactory;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportInterceptor;
 import org.elasticsearch.watcher.ResourceWatcherService;
@@ -215,7 +216,8 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin,
         if (!client && httpSSLEnabled) {
             
             final ValidatingDispatcher validatingDispatcher = new ValidatingDispatcher(threadPool.getThreadContext(), dispatcher, settings, configPath, NOOP_SSL_EXCEPTION_HANDLER);
-            final OpenDistroSecuritySSLNettyHttpServerTransport sgsnht = new OpenDistroSecuritySSLNettyHttpServerTransport(settings, networkService, bigArrays, threadPool, odsks, xContentRegistry, validatingDispatcher, NOOP_SSL_EXCEPTION_HANDLER, clusterSettings);
+            final SharedGroupFactory sharedGroupFactory = new SharedGroupFactory(settings);
+            final OpenDistroSecuritySSLNettyHttpServerTransport sgsnht = new OpenDistroSecuritySSLNettyHttpServerTransport(settings, networkService, bigArrays, threadPool, odsks, xContentRegistry, validatingDispatcher, NOOP_SSL_EXCEPTION_HANDLER, clusterSettings, sharedGroupFactory);
 
             return Collections.singletonMap("com.amazon.opendistroforelasticsearch.security.ssl.http.netty.OpenDistroSecuritySSLNettyHttpServerTransport", () -> sgsnht);
             
@@ -259,8 +261,9 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin,
         
         Map<String, Supplier<Transport>> transports = new HashMap<String, Supplier<Transport>>();
         if (transportSSLEnabled) {
+            SharedGroupFactory sharedGroupFactory = new SharedGroupFactory(settings);
             transports.put("com.amazon.opendistroforelasticsearch.security.ssl.http.netty.OpenDistroSecuritySSLNettyTransport",
-                    () -> new OpenDistroSecuritySSLNettyTransport(settings, Version.CURRENT, threadPool, networkService, pageCacheRecycler, namedWriteableRegistry, circuitBreakerService, odsks, NOOP_SSL_EXCEPTION_HANDLER));
+                    () -> new OpenDistroSecuritySSLNettyTransport(settings, Version.CURRENT, threadPool, networkService, pageCacheRecycler, namedWriteableRegistry, circuitBreakerService, odsks, NOOP_SSL_EXCEPTION_HANDLER, sharedGroupFactory));
 
         }
         return transports;
