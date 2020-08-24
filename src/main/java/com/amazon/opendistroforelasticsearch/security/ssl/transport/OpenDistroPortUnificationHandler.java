@@ -18,15 +18,14 @@ package com.amazon.opendistroforelasticsearch.security.ssl.transport;
 import com.amazon.opendistroforelasticsearch.security.ssl.OpenDistroSecurityKeyStore;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLUtil;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.io.BaseEncoding;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import org.elasticsearch.transport.TcpTransport;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.ssl.SslHandler;
+import java.nio.charset.StandardCharsets;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -34,8 +33,7 @@ import javax.net.ssl.SSLException;
 import java.util.List;
 
 /**
- * Manipulates the current pipeline dynamically to enable
- * TLS
+ * Modifies the current pipeline dynamically to enable TLS
  */
 public class OpenDistroPortUnificationHandler extends ByteToMessageDecoder {
 
@@ -59,21 +57,19 @@ public class OpenDistroPortUnificationHandler extends ByteToMessageDecoder {
 
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
-        // Will use the first five bytes to detect a protocol.
-        if (in.readableBytes() < 5) {
+        // Will use the first six bytes to detect a protocol.
+        if (in.readableBytes() < 6) {
+            return;
+        }
+        int offset = in.readerIndex();
+        if (in.getCharSequence(offset, 6, StandardCharsets.UTF_8).equals("DUALCM")) {
+            logger.debug("Received DualSSL Client Hello message");
+            ByteBuf responseBuffer = Unpooled.buffer(6);
+            responseBuffer.writeCharSequence("DUALSM", StandardCharsets.UTF_8);
+            ctx.writeAndFlush(responseBuffer).addListener(ChannelFutureListener.CLOSE);
             return;
         }
 
-        byte[] readBytes = new byte[5];
-        ByteBuf header = in.getBytes(in.readerIndex(), readBytes);
-        logger.info("Got bytes {}", BaseEncoding.base16().lowerCase().encode(readBytes));
-        if (readBytes[0] == 0X44 && readBytes[1] == 0x55) {
-            ctx.writeAndFlush(Unpooled.copiedBuffer(new byte[]{0X44, 0X55, 0X41, 0X4c}))
-                    .addListener(ChannelFutureListener.CLOSE);
-            return;
-        }
-
-        logger.debug("Checking if dual ssl mode or not");
         if (this.sslUtils.isTLS(in)) {
             logger.debug("Identified request as SSL request");
             enableSsl(ctx);
@@ -81,7 +77,6 @@ public class OpenDistroPortUnificationHandler extends ByteToMessageDecoder {
             logger.debug("Identified request as non SSL request, running in HTTP mode as dual mode is enabled");
             ctx.pipeline().remove(this);
         }
-
     }
 
     private void enableSsl(ChannelHandlerContext ctx) throws SSLException {
