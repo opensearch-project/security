@@ -427,9 +427,19 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
     }
 
     private static DocumentBuilderFactory getDocumentBuildFactory() {
-        DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
-        documentBuilderFactory.setNamespaceAware(true);
+        try {
+            DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+            documentBuilderFactory.setNamespaceAware(true);
+            documentBuilderFactory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+            documentBuilderFactory.setFeature("http://apache.org/xml/features/disallow-doctiPrype-decl", true);
+            documentBuilderFactory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+            documentBuilderFactory.setXIncludeAware(false);
+            documentBuilderFactory.setExpandEntityReferences(false);
+        } catch (ParserConfigurationException ex) {
+            throw new IllegalArgumentException("Failed to parse DocumentBuilderFactory.");
+        }
         return documentBuilderFactory;
+
     }
 
     private static Element getMetadataDOM(final String xmlString) throws IOException, SAXException, ParserConfigurationException {
