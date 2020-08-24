@@ -17,11 +17,8 @@
 
 package com.amazon.opendistroforelasticsearch.security.ssl.transport;
 
-import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.nio.NioSocketChannel;
+import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConnectionTestResult;
+import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConnectionTestUtil;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.security.AccessController;
@@ -29,8 +26,6 @@ import java.security.PrivilegedAction;
 
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
 
 import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLUtil;
 import io.netty.channel.*;
@@ -108,7 +103,7 @@ public class OpenDistroSecuritySSLNettyTransport extends Netty4Transport {
         protected void initChannel(Channel ch) throws Exception {
             super.initChannel(ch);
 
-            boolean isDualModeEnabled = OpenDistroSSLDualModeConfig.getInstance().isIsDualModeEnabled();
+            boolean isDualModeEnabled = OpenDistroSSLDualModeConfig.getInstance().isDualModeEnabled();
 
             if (isDualModeEnabled) {
                 logger.info("SSL Dual mode enabled, using port unification handler");
@@ -201,6 +196,7 @@ public class OpenDistroSecuritySSLNettyTransport extends Netty4Transport {
         private final boolean hostnameVerificationEnabled;
         private final boolean hostnameVerificationResovleHostName;
         private DiscoveryNode node;
+        private SSLConnectionTestResult connectionTestResult;
 
         public SSLClientChannelInitializer(DiscoveryNode node) {
             this.node = node;
@@ -208,48 +204,30 @@ public class OpenDistroSecuritySSLNettyTransport extends Netty4Transport {
                     SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, true);
             hostnameVerificationResovleHostName = settings.getAsBoolean(
                     SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, true);
+
+            connectionTestResult = SSLConnectionTestResult.SSL_AVAILABLE;
+            if (OpenDistroSSLDualModeConfig.getInstance().isDualModeEnabled()) {
+                SSLConnectionTestUtil sslConnectionTestUtil = new SSLConnectionTestUtil(node);
+                connectionTestResult = AccessController.doPrivileged((PrivilegedAction<SSLConnectionTestResult>) sslConnectionTestUtil::testConnection);
+            }
         }
 
         @Override
         protected void initChannel(Channel ch) throws Exception {
             super.initChannel(ch);
 
-            boolean isSSL = true;
-
-            boolean isDualModeEnabled = OpenDistroSSLDualModeConfig.getInstance().isIsDualModeEnabled();
-
-            if (isDualModeEnabled) {
-                isSSL = AccessController.doPrivileged((PrivilegedAction<Boolean>) () -> {
-                    try {
-                        logger.debug("Connecting to address {} and port {}",
-                                node.getAddress().getAddress(), node.getAddress().getPort());
-                        SSLSocketFactory factory =
-                                (SSLSocketFactory) SSLSocketFactory.getDefault();
-                        SSLSocket socket =
-                                (SSLSocket) factory.createSocket(node.getAddress().getAddress(), node.getAddress().getPort());
-                        logger.info("trying Handshake");
-                        socket.startHandshake();
-                    } catch (SSLException e) {
-                        logger.error("Unable to handshake", e);
-                        // there is no custom exception thrown if the server doesn't speak SSL instead it is inferred from
-                        // message
-                        if (e.getMessage().equals("Unsupported or unrecognized SSL message") ||
-                            e.getMessage().equals("Remote host terminated the handshake") ||
-                            e.getMessage().equals("Connection closed by peer")) {
-                            return false;
-                        }
-                    } catch (Exception e) {
-                        logger.debug("We don't worry much any other SSL errors", e);
-                    }
-                    return true;
-                });
+            if(connectionTestResult == SSLConnectionTestResult.ES_PING_FAILED) {
+                logger.error("ES Ping has failed, closing channel");
+                ch.close();
+                return;
             }
-            if (isSSL) {
-                logger.info("Connection to {} needs to be ssl, adding ssl handler to the client channel ", node.getHostName());
+
+            if (connectionTestResult == SSLConnectionTestResult.SSL_AVAILABLE) {
+                logger.debug("Connection to {} needs to be ssl, adding ssl handler to the client channel ", node.getHostName());
                 ch.pipeline().addFirst("client_ssl_handler", new ClientSSLHandler(odsks, hostnameVerificationEnabled,
                         hostnameVerificationResovleHostName, errorHandler));
             } else {
-                logger.info("Connection to {} needs to be non ssl ", node.getHostName());
+                logger.debug("Connection to {} needs to be non ssl", node.getHostName());
             }
         }
 
