@@ -90,7 +90,6 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
     private AuthTokenProcessorHandler authTokenProcessorHandler;
     private HTTPJwtAuthenticator httpJwtAuthenticator;
     private Settings jwtSettings;
-    private static final DocumentBuilderFactory documentBuilderFactory = getDocumentBuildFactory();
 
     private static int resolverIdCounter = 0;
 
@@ -426,17 +425,9 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
         }
     }
 
-    private static DocumentBuilderFactory getDocumentBuildFactory() {
-        DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
-        documentBuilderFactory.setNamespaceAware(true);
-        return documentBuilderFactory;
-    }
-
     private static Element getMetadataDOM(final String xmlString) throws IOException, SAXException, ParserConfigurationException {
-        DocumentBuilder builder = null;
         try {
-            builder = documentBuilderFactory.newDocumentBuilder();
-            Document doc = builder.parse(new InputSource(new StringReader(xmlString)));
+            Document doc = Util.loadXML(xmlString);
             return doc.getDocumentElement();
         } catch (Exception e) {
             log.error("Error while parsing SAML Metadata Body {}", xmlString, e);
