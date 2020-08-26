@@ -206,7 +206,7 @@ public class OpenDistroSecuritySSLNettyTransport extends Netty4Transport {
 
             connectionTestResult = SSLConnectionTestResult.SSL_AVAILABLE;
             if (OpenDistroSSLDualModeConfig.getInstance().isDualModeEnabled()) {
-                SSLConnectionTestUtil sslConnectionTestUtil = new SSLConnectionTestUtil(node);
+                SSLConnectionTestUtil sslConnectionTestUtil = new SSLConnectionTestUtil(node.getAddress().getAddress(), node.getAddress().getPort());
                 connectionTestResult = AccessController.doPrivileged((PrivilegedAction<SSLConnectionTestResult>) sslConnectionTestUtil::testConnection);
             }
         }
