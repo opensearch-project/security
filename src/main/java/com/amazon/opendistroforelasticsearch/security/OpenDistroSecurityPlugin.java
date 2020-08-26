@@ -208,8 +208,10 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
 
     @Override
     public void close() throws IOException {
-        //TODO implement close
         super.close();
+        if (auditLog != null) {
+            auditLog.close();
+        }
     }
 
     private final SslExceptionHandler evaluateSslExceptionHandler() {

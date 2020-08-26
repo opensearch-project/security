@@ -49,6 +49,7 @@ public final class AuditLogImpl extends AbstractAuditLog {
 	private final boolean dlsFlsAvailable;
 	private final boolean messageRouterEnabled;
 	private volatile boolean enabled;
+	private final Thread shutdownHook;
 
 	public AuditLogImpl(final Settings settings,
 			final Path configPath,
@@ -85,23 +86,11 @@ public final class AuditLogImpl extends AbstractAuditLog {
 			sm.checkPermission(new SpecialPermission());
 		}
 
-		AccessController.doPrivileged(new PrivilegedAction<Object>() {
-			@Override
-			public Object run() {
-				Runtime.getRuntime().addShutdownHook(new Thread() {
-
-					@Override
-					public void run() {
-						try {
-							close();
-						} catch (final IOException e) {
-							log.warn("Exception while shutting down message router", e);
-						}
-					}
-				});
-				log.debug("Shutdown Hook registered");
-				return null;
-			}
+		shutdownHook = new Thread(() -> messageRouter.close());
+		AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
+			Runtime.getRuntime().addShutdownHook(shutdownHook);
+			log.debug("Shutdown Hook registered");
+			return null;
 		});
 
 	}
@@ -125,6 +114,22 @@ public final class AuditLogImpl extends AbstractAuditLog {
 	@Override
 	public void close() throws IOException {
 		messageRouter.close();
+
+		final SecurityManager sm = System.getSecurityManager();
+
+		if (sm != null) {
+			log.debug("Security Manager present");
+			sm.checkPermission(new SpecialPermission());
+		}
+
+		AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
+			if (Runtime.getRuntime().removeShutdownHook(shutdownHook)) {
+				log.debug("Shutdown Hook unregistered");
+			} else {
+				log.warn("Shutdown Hook {} was not registered", shutdownHook);
+			}
+			return null;
+		});
 	}
 
 	@Override
