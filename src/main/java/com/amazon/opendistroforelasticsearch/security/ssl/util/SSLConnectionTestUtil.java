@@ -1,6 +1,21 @@
+/*
+ * Portions Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License").
+ * You may not use this file except in compliance with the License.
+ * A copy of the License is located at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * or in the "license" file accompanying this file. This file is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ * express or implied. See the License for the specific language governing
+ * permissions and limitations under the License.
+ */
+
 package com.amazon.opendistroforelasticsearch.security.ssl.util;
 
-import com.amazon.opendistroforelasticsearch.security.ssl.transport.OpenDistroSSLDualModeConfig;
+import com.google.common.annotations.VisibleForTesting;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -10,7 +25,6 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.node.DiscoveryNode;
 
 /**
  * Utility class to test if the server supports SSL connections.
@@ -24,10 +38,28 @@ public class SSLConnectionTestUtil {
     public static final byte[] ES_PING_MSG = new byte[]{(byte) 'E', (byte) 'S', (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF};
     private boolean esPingReplyReceived;
     private boolean dualSSLProbeReplyReceived;
-    private final DiscoveryNode discoveryNode;
+    private final String host;
+    private final int port;
+    private Socket testSocket = null;
+    private OutputStreamWriter testOutputStreamWriter = null;
+    private InputStreamReader testInputStreamReader = null;
 
-    public SSLConnectionTestUtil(final DiscoveryNode discoveryNode) {
-        this.discoveryNode = discoveryNode;
+    public SSLConnectionTestUtil(final String host, final int port) {
+        this.host = host;
+        this.port = port;
+        esPingReplyReceived = false;
+        dualSSLProbeReplyReceived = false;
+    }
+
+    @VisibleForTesting
+    protected SSLConnectionTestUtil(final String host, final int port, final Socket testSocket, final OutputStreamWriter testOutputStreamWriter,
+        final InputStreamReader testInputStreamReader) {
+        this.testSocket = testSocket;
+        this.testOutputStreamWriter = testOutputStreamWriter;
+        this.testInputStreamReader = testInputStreamReader;
+
+        this.host = host;
+        this.port = port;
         esPingReplyReceived = false;
         dualSSLProbeReplyReceived = false;
     }
@@ -55,13 +87,21 @@ public class SSLConnectionTestUtil {
         boolean dualSslSupported = false;
         Socket socket = null;
         try {
-            socket = new Socket(discoveryNode.getAddress().getAddress(), discoveryNode.getAddress().getPort());
+            OutputStreamWriter outputStreamWriter;
+            InputStreamReader inputStreamReader;
+            if(testSocket != null) {
+                socket = testSocket;
+                outputStreamWriter = testOutputStreamWriter;
+                inputStreamReader = testInputStreamReader;
+            } else {
+                socket = new Socket(host, port);
+                outputStreamWriter = new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8);
+                inputStreamReader = new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8);
+            }
 
-            OutputStreamWriter outputStreamWriter = new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8);
-            InputStreamReader inputStreamReader = new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8);
             outputStreamWriter.write("DUALCM");
             outputStreamWriter.flush();
-            logger.debug("Sent DualSSL Client Hello msg to {}", discoveryNode.getHostName());
+            logger.debug("Sent DualSSL Client Hello msg to {}", host);
 
             StringBuilder sb = new StringBuilder();
             int currentChar;
@@ -70,22 +110,22 @@ public class SSLConnectionTestUtil {
             }
 
             if (sb.toString().equals("DUALSM")) {
-                logger.debug("Received DualSSL Server Hello msg from {}", discoveryNode.getHostName());
+                logger.debug("Received DualSSL Server Hello msg from {}", host);
                 dualSslSupported = true;
             }
         } catch (IOException e) {
-            logger.debug("DualSSL client check failed for {}, exception {}", discoveryNode.getHostName(), e.getMessage());
+            logger.debug("DualSSL client check failed for {}, exception {}", host, e.getMessage());
         } finally {
-            logger.debug("Closing DualSSL check client socket for {}", discoveryNode.getHostName());
+            logger.debug("Closing DualSSL check client socket for {}", host);
             if (socket != null && socket.isConnected()) {
                 try {
                     socket.close();
                 } catch (IOException e) {
-                    logger.error("Exception occurred while closing DualSSL check client socket for {}. Exception: {}", discoveryNode.getHostName(), e.getMessage());
+                    logger.error("Exception occurred while closing DualSSL check client socket for {}. Exception: {}", host, e.getMessage());
                 }
             }
         }
-        logger.debug("dualSslClient check with server {}, server supports ssl = {}", discoveryNode.getHostName(), dualSslSupported);
+        logger.debug("dualSslClient check with server {}, server supports ssl = {}", host, dualSslSupported);
         return dualSslSupported;
     }
 
@@ -93,11 +133,15 @@ public class SSLConnectionTestUtil {
         boolean pingSucceeded = false;
         Socket socket = null;
         try {
-            socket = new Socket(discoveryNode.getAddress().getAddress(), discoveryNode.getAddress().getPort());
+            if(testSocket != null) {
+                socket = testSocket;
+            } else {
+                socket = new Socket(host, port);
+            }
             OutputStream outputStream = socket.getOutputStream();
             InputStream inputStream = socket.getInputStream();
 
-            logger.debug("Sending ES Ping to {}", discoveryNode.getHostName());
+            logger.debug("Sending ES Ping to {}", host);
             outputStream.write(ES_PING_MSG);
             outputStream.flush();
 
@@ -109,31 +153,31 @@ public class SSLConnectionTestUtil {
                 byteBufIndex++;
             }
             if (byteBufIndex == 6) {
-                logger.debug("Received reply for ES Ping. from {}", discoveryNode.getHostName());
+                logger.debug("Received reply for ES Ping. from {}", host);
                 pingSucceeded = true;
                 for(int i = 0; i < 6; i++) {
                     if (response[i] != ES_PING_MSG[i]) {
                         // Unexpected byte in response
-                        logger.error("Received unexpected byte in ES Ping reply from {}", discoveryNode.getHostName());
+                        logger.error("Received unexpected byte in ES Ping reply from {}", host);
                         pingSucceeded = false;
                         break;
                     }
                 }
             }
         } catch (IOException ex) {
-            logger.error("ES Ping failed for {}, exception: {}", discoveryNode.getHostName(), ex.getMessage());
+            logger.error("ES Ping failed for {}, exception: {}", host, ex.getMessage());
         } finally {
-            logger.debug("Closing ES Ping client socket for connection to {}", discoveryNode.getHostName());
+            logger.debug("Closing ES Ping client socket for connection to {}", host);
             if (socket != null && socket.isConnected()) {
                 try {
                     socket.close();
                 } catch (IOException e) {
-                    logger.error("Exception occurred while closing socket for {}. Exception: {}", discoveryNode.getHostName(), e.getMessage());
+                    logger.error("Exception occurred while closing socket for {}. Exception: {}", host, e.getMessage());
                 }
             }
         }
 
-        logger.debug("ES Ping check to server {} result = {}", discoveryNode.getHostName(), pingSucceeded);
+        logger.debug("ES Ping check to server {} result = {}", host, pingSucceeded);
         return pingSucceeded;
     }
 }
