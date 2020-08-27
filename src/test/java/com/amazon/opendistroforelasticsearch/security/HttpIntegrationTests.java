@@ -725,6 +725,10 @@ public class HttpIntegrationTests extends SingleClusterTest {
             res = rh.executePutRequest("_opendistro/_security/ssl_dual_mode/_disable", null);
             Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
             Assert.assertEquals("{\"enabled\":false}", res.getBody());
+
+            res = rh.executeGetRequest("/_opendistro/_security/ssl_dual_mode");
+            Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+            Assert.assertEquals("{\"enabled\":false}", res.getBody());
         }
     }
 

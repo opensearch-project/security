@@ -66,21 +66,21 @@ public class SSLConnectionTestUtil {
 
     /**
      * Test connection to server by performing the below steps:
-     * - Send ES Ping to check if the server replies to the ES Ping message
      * - Send Client Hello to check if the server replies with Server Hello which indicates that Server understands SSL
+     * - Send ES Ping to check if the server replies to the ES Ping message
      *
      * @return SSLConnectionTestResult i.e. ES_PING_FAILED or SSL_NOT_AVAILABLE or SSL_AVAILABLE
      */
     public SSLConnectionTestResult testConnection() {
-        if (!sendESPing()) {
-            return SSLConnectionTestResult.ES_PING_FAILED;
+        if (sendDualSSLClientHello()) {
+            return SSLConnectionTestResult.SSL_AVAILABLE;
         }
 
-        if (!sendDualSSLClientHello()) {
+        if (sendESPing()) {
             return SSLConnectionTestResult.SSL_NOT_AVAILABLE;
         }
 
-        return SSLConnectionTestResult.SSL_AVAILABLE;
+        return SSLConnectionTestResult.ES_PING_FAILED;
     }
 
     private boolean sendDualSSLClientHello() {

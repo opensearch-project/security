@@ -14,6 +14,7 @@
  */
 package com.amazon.opendistroforelasticsearch.security.rest;
 
+import com.amazon.opendistroforelasticsearch.security.ssl.transport.OpenDistroSSLDualModeConfig;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
@@ -78,9 +79,8 @@ public class SSLDualModeAction extends BaseRestHandler {
 
                 switch (request.method()) {
                     case GET:
-                        BytesRestResponse response = getDualModeResponse(restChannel,
-                                settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_SSL_DUAL_MODE_ENABLED,
-                                        false));
+                        boolean isDualModeEnabled = OpenDistroSSLDualModeConfig.getInstance().isDualModeEnabled();
+                        BytesRestResponse response = getDualModeResponse(restChannel, isDualModeEnabled);
                         restChannel.sendResponse(response);
                         break;
                     case PUT:
