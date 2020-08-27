@@ -78,7 +78,6 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         rh.sendAdminCertificate = true;
         HttpResponse response = rh.executePutRequest("_opendistro/_security/api/roles/dup", "{ \"cluster_permissions\": [\"*\"], \"cluster_permissions\": [\"*\"] }");
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-        Assert.assertTrue(response.getBody().contains("JsonParseException"));
         assertHealthy();
     }
 
@@ -104,7 +103,6 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         rh.sendAdminCertificate = true;
         HttpResponse response = rh.executePutRequest("_opendistro/_security/api/roles/dup", "{ \"invalid\"::{{ [\"*\"], \"cluster_permissions\": [\"*\"] }");
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-        Assert.assertTrue(response.getBody().contains("JsonParseException"));
         assertHealthy();
     }
 

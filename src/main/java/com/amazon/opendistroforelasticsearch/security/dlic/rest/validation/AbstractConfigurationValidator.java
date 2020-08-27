@@ -78,8 +78,6 @@ public abstract class AbstractConfigurationValidator {
     /** The error type */
     protected ErrorType errorType = ErrorType.NONE;
 
-    protected Exception lastException;
-
     /** Behaviour regarding payload */
     protected boolean payloadMandatory = false;
 
@@ -139,7 +137,6 @@ public abstract class AbstractConfigurationValidator {
             } catch (IOException e) {
                 log.error(ErrorType.BODY_NOT_PARSEABLE.toString(), e);
                 this.errorType = ErrorType.BODY_NOT_PARSEABLE;
-                lastException = e;
                 return false;
             }
         }
@@ -188,7 +185,6 @@ public abstract class AbstractConfigurationValidator {
         } catch (Exception e) {
             log.error(ErrorType.BODY_NOT_PARSEABLE.toString(), e);
             this.errorType = ErrorType.BODY_NOT_PARSEABLE;
-            lastException = e;
             return false;
         }
 
@@ -233,9 +229,6 @@ public abstract class AbstractConfigurationValidator {
         try {
             final XContentBuilder builder = channel.newBuilder();
             builder.startObject();
-            if(lastException != null) {
-                builder.field("details", lastException.toString());
-            }
             switch (this.errorType) {
                 case NONE:
                     builder.field("status", "error");
