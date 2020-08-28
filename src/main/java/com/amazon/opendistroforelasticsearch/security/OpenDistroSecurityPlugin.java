@@ -108,6 +108,7 @@ import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusterService;
+import org.elasticsearch.transport.SharedGroupFactory;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.Transport.Connection;
 import org.elasticsearch.transport.TransportChannel;
@@ -663,7 +664,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         if (transportSSLEnabled) {
             transports.put("com.amazon.opendistroforelasticsearch.security.ssl.http.netty.OpenDistroSecuritySSLNettyTransport",
                     () -> new OpenDistroSecuritySSLNettyTransport(settings, Version.CURRENT, threadPool, networkService, pageCacheRecycler,
-                            namedWriteableRegistry, circuitBreakerService, odsks, evaluateSslExceptionHandler()));
+                            namedWriteableRegistry, circuitBreakerService, odsks, evaluateSslExceptionHandler(), sharedGroupFactory));
         }
         return transports;
     }
@@ -685,13 +686,13 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                         settings, configPath, evaluateSslExceptionHandler());
                 //TODO close odshst
                 final OpenDistroSecurityHttpServerTransport odshst = new OpenDistroSecurityHttpServerTransport(settings, networkService, bigArrays,
-                        threadPool, odsks, evaluateSslExceptionHandler(), xContentRegistry, validatingDispatcher, clusterSettings);
+                        threadPool, odsks, evaluateSslExceptionHandler(), xContentRegistry, validatingDispatcher, clusterSettings, sharedGroupFactory);
 
                 return Collections.singletonMap("com.amazon.opendistroforelasticsearch.security.http.OpenDistroSecurityHttpServerTransport",
                         () -> odshst);
             } else if (!client) {
                 return Collections.singletonMap("com.amazon.opendistroforelasticsearch.security.http.OpenDistroSecurityHttpServerTransport",
-                        () -> new OpenDistroSecurityNonSslHttpServerTransport(settings, networkService, bigArrays, threadPool, xContentRegistry, dispatcher, clusterSettings));
+                        () -> new OpenDistroSecurityNonSslHttpServerTransport(settings, networkService, bigArrays, threadPool, xContentRegistry, dispatcher, clusterSettings, sharedGroupFactory));
             }
         }
         return Collections.emptyMap();

@@ -50,6 +50,7 @@ import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.SharedGroupFactory;
 
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 
@@ -64,10 +65,12 @@ import com.google.common.collect.ImmutableMap;
 public class UserInjectorPlugin extends Plugin implements NetworkPlugin {
     
     Settings settings;
+    private final SharedGroupFactory sharedGroupFactory;
     ThreadPool threadPool;
     
     public UserInjectorPlugin(final Settings settings, final Path configPath) {        
         this.settings = settings;
+        sharedGroupFactory = new SharedGroupFactory(settings);
     }
 
     @Override
@@ -77,14 +80,14 @@ public class UserInjectorPlugin extends Plugin implements NetworkPlugin {
 
         final UserInjectingDispatcher validatingDispatcher = new UserInjectingDispatcher(dispatcher);
         return ImmutableMap.of("com.amazon.opendistroforelasticsearch.security.http.UserInjectingServerTransport",
-                () -> new UserInjectingServerTransport(settings, networkService, bigArrays, threadPool, xContentRegistry, validatingDispatcher, clusterSettings));
+                () -> new UserInjectingServerTransport(settings, networkService, bigArrays, threadPool, xContentRegistry, validatingDispatcher, clusterSettings, sharedGroupFactory));
     }
     
     class UserInjectingServerTransport extends Netty4HttpServerTransport {
         
         public UserInjectingServerTransport(final Settings settings, final NetworkService networkService, final BigArrays bigArrays,
-                final ThreadPool threadPool, final NamedXContentRegistry namedXContentRegistry, final Dispatcher dispatcher, ClusterSettings clusterSettings) {
-            super(settings, networkService, bigArrays, threadPool, namedXContentRegistry, dispatcher, clusterSettings);
+                                            final ThreadPool threadPool, final NamedXContentRegistry namedXContentRegistry, final Dispatcher dispatcher, ClusterSettings clusterSettings, SharedGroupFactory sharedGroupFactory) {
+            super(settings, networkService, bigArrays, threadPool, namedXContentRegistry, dispatcher, clusterSettings, sharedGroupFactory);
         }
     }
     
