@@ -16,6 +16,7 @@ package com.amazon.opendistroforelasticsearch.security.ssl.transport;
 
 
 import com.amazon.opendistroforelasticsearch.security.ssl.OpenDistroSecurityKeyStore;
+import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConnectionTestUtil;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLUtil;
 import com.google.common.annotations.VisibleForTesting;
 import io.netty.buffer.ByteBuf;
@@ -62,10 +63,10 @@ public class OpenDistroPortUnificationHandler extends ByteToMessageDecoder {
             return;
         }
         int offset = in.readerIndex();
-        if (in.getCharSequence(offset, 6, StandardCharsets.UTF_8).equals("DUALCM")) {
+        if (in.getCharSequence(offset, 6, StandardCharsets.UTF_8).equals(SSLConnectionTestUtil.DUAL_MODE_CLIENT_HELLO_MSG)) {
             logger.debug("Received DualSSL Client Hello message");
             ByteBuf responseBuffer = Unpooled.buffer(6);
-            responseBuffer.writeCharSequence("DUALSM", StandardCharsets.UTF_8);
+            responseBuffer.writeCharSequence(SSLConnectionTestUtil.DUAL_MODE_SERVER_HELLO_MSG, StandardCharsets.UTF_8);
             ctx.writeAndFlush(responseBuffer).addListener(ChannelFutureListener.CLOSE);
             return;
         }

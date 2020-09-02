@@ -36,11 +36,13 @@ public class SSLConnectionTestUtil {
 
     private static final Logger logger = LogManager.getLogger(SSLConnectionTestUtil.class);
     public static final byte[] ES_PING_MSG = new byte[]{(byte) 'E', (byte) 'S', (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF};
+    public static final String DUAL_MODE_CLIENT_HELLO_MSG = "DUALCM";
+    public static final String DUAL_MODE_SERVER_HELLO_MSG = "DUALSM";
     private boolean esPingReplyReceived;
     private boolean dualSSLProbeReplyReceived;
     private final String host;
     private final int port;
-    private Socket testSocket = null;
+    private Socket overriddenSocket = null;
     private OutputStreamWriter testOutputStreamWriter = null;
     private InputStreamReader testInputStreamReader = null;
 
@@ -52,9 +54,9 @@ public class SSLConnectionTestUtil {
     }
 
     @VisibleForTesting
-    protected SSLConnectionTestUtil(final String host, final int port, final Socket testSocket, final OutputStreamWriter testOutputStreamWriter,
+    protected SSLConnectionTestUtil(final String host, final int port, final Socket overriddenSocket, final OutputStreamWriter testOutputStreamWriter,
         final InputStreamReader testInputStreamReader) {
-        this.testSocket = testSocket;
+        this.overriddenSocket = overriddenSocket;
         this.testOutputStreamWriter = testOutputStreamWriter;
         this.testInputStreamReader = testInputStreamReader;
 
@@ -89,8 +91,8 @@ public class SSLConnectionTestUtil {
         try {
             OutputStreamWriter outputStreamWriter;
             InputStreamReader inputStreamReader;
-            if(testSocket != null) {
-                socket = testSocket;
+            if(overriddenSocket != null) {
+                socket = overriddenSocket;
                 outputStreamWriter = testOutputStreamWriter;
                 inputStreamReader = testInputStreamReader;
             } else {
@@ -99,7 +101,7 @@ public class SSLConnectionTestUtil {
                 inputStreamReader = new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8);
             }
 
-            outputStreamWriter.write("DUALCM");
+            outputStreamWriter.write(DUAL_MODE_CLIENT_HELLO_MSG);
             outputStreamWriter.flush();
             logger.debug("Sent DualSSL Client Hello msg to {}", host);
 
@@ -109,7 +111,7 @@ public class SSLConnectionTestUtil {
                 sb.append((char) currentChar);
             }
 
-            if (sb.toString().equals("DUALSM")) {
+            if (sb.toString().equals(DUAL_MODE_SERVER_HELLO_MSG)) {
                 logger.debug("Received DualSSL Server Hello msg from {}", host);
                 dualSslSupported = true;
             }
@@ -117,7 +119,7 @@ public class SSLConnectionTestUtil {
             logger.debug("DualSSL client check failed for {}, exception {}", host, e.getMessage());
         } finally {
             logger.debug("Closing DualSSL check client socket for {}", host);
-            if (socket != null && socket.isConnected()) {
+            if (socket != null) {
                 try {
                     socket.close();
                 } catch (IOException e) {
@@ -133,8 +135,8 @@ public class SSLConnectionTestUtil {
         boolean pingSucceeded = false;
         Socket socket = null;
         try {
-            if(testSocket != null) {
-                socket = testSocket;
+            if(overriddenSocket != null) {
+                socket = overriddenSocket;
             } else {
                 socket = new Socket(host, port);
             }
@@ -168,7 +170,7 @@ public class SSLConnectionTestUtil {
             logger.error("ES Ping failed for {}, exception: {}", host, ex.getMessage());
         } finally {
             logger.debug("Closing ES Ping client socket for connection to {}", host);
-            if (socket != null && socket.isConnected()) {
+            if (socket != null) {
                 try {
                     socket.close();
                 } catch (IOException e) {

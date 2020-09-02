@@ -15,15 +15,23 @@
 package com.amazon.opendistroforelasticsearch.security.ssl.transport;
 
 import com.amazon.opendistroforelasticsearch.security.ssl.OpenDistroSecurityKeyStore;
+import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConnectionTestUtil;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.ssl.SslHandler;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 
 public class OpenDistroPortUnificationHandlerTests {
@@ -60,9 +68,9 @@ public class OpenDistroPortUnificationHandlerTests {
         OpenDistroPortUnificationHandler handler = new OpenDistroPortUnificationHandler(openDistroSecurityKeyStore, sslHandler, sslUtil);
 
         ByteBufAllocator alloc = PooledByteBufAllocator.DEFAULT;
-        ByteBuf buffer = alloc.directBuffer(5);
+        ByteBuf buffer = alloc.directBuffer(6);
 
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 6; i++) {
             buffer.writeByte(1);
         }
 
@@ -82,9 +90,9 @@ public class OpenDistroPortUnificationHandlerTests {
         OpenDistroPortUnificationHandler handler = new OpenDistroPortUnificationHandler(openDistroSecurityKeyStore, sslHandler, sslUtil);
 
         ByteBufAllocator alloc = PooledByteBufAllocator.DEFAULT;
-        ByteBuf buffer = alloc.directBuffer(5);
+        ByteBuf buffer = alloc.directBuffer(6);
 
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 6; i++) {
             buffer.writeByte(1);
         }
 
@@ -97,5 +105,26 @@ public class OpenDistroPortUnificationHandlerTests {
                 .addAfter("port_unification_handler", "ssl_server", sslHandler);
         Mockito.verify(pipeline,
                 Mockito.times(1)).remove(handler);
+    }
+
+    @Test
+    public void testDualModeClientHelloMessage() throws Exception {
+        ChannelFuture channelFuture = Mockito.mock(ChannelFuture.class);
+        Mockito.when(ctx.writeAndFlush(Mockito.any())).thenReturn(channelFuture);
+        Mockito.when(channelFuture.addListener(Mockito.any())).thenReturn(channelFuture);
+
+        ByteBufAllocator alloc = PooledByteBufAllocator.DEFAULT;
+        ByteBuf buffer = alloc.directBuffer(6);
+        buffer.writeCharSequence(SSLConnectionTestUtil.DUAL_MODE_CLIENT_HELLO_MSG, StandardCharsets.UTF_8);
+
+        OpenDistroPortUnificationHandler handler = new OpenDistroPortUnificationHandler(openDistroSecurityKeyStore, sslHandler, sslUtil);
+        List<Object> decodedObjs = new ArrayList<>();
+        handler.decode(ctx, buffer, decodedObjs);
+
+        ArgumentCaptor<ByteBuf> serverHelloReplyBuffer = ArgumentCaptor.forClass(ByteBuf.class);
+        Mockito.verify(ctx, Mockito.times(1)).writeAndFlush(serverHelloReplyBuffer.capture());
+
+        String actualReply = serverHelloReplyBuffer.getValue().getCharSequence(0, 6, StandardCharsets.UTF_8).toString();
+        Assert.assertEquals(SSLConnectionTestUtil.DUAL_MODE_SERVER_HELLO_MSG, actualReply);
     }
 }

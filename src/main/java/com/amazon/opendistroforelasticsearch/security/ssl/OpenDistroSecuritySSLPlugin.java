@@ -19,7 +19,6 @@ package com.amazon.opendistroforelasticsearch.security.ssl;
 
 import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
 import com.amazon.opendistroforelasticsearch.security.NonValidatingObjectMapper;
-import com.amazon.opendistroforelasticsearch.security.ssl.transport.OpenDistroSSLDualModeConfig;
 import com.fasterxml.jackson.databind.InjectableValues;
 import io.netty.handler.ssl.OpenSsl;
 import io.netty.util.internal.PlatformDependent;
@@ -279,6 +278,7 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin,
         if(client) {
             return components;
         }
+
         final String principalExtractorClass = settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, null);
 
         if(principalExtractorClass == null) {
