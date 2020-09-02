@@ -28,7 +28,6 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 
 import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLUtil;
-import io.netty.channel.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ExceptionsHelper;
@@ -48,6 +47,11 @@ import com.amazon.opendistroforelasticsearch.security.ssl.OpenDistroSecurityKeyS
 import com.amazon.opendistroforelasticsearch.security.ssl.SslExceptionHandler;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConfigConstants;
 
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelOutboundHandlerAdapter;
+import io.netty.channel.ChannelPromise;
 import io.netty.handler.codec.DecoderException;
 import io.netty.handler.ssl.SslHandler;
 
@@ -103,9 +107,9 @@ public class OpenDistroSecuritySSLNettyTransport extends Netty4Transport {
         protected void initChannel(Channel ch) throws Exception {
             super.initChannel(ch);
 
-            boolean isDualModeEnabled = OpenDistroSSLDualModeConfig.getInstance().isDualModeEnabled();
+            boolean dualModeEnabled = OpenDistroSSLDualModeConfig.getInstance().isDualModeEnabled();
 
-            if (isDualModeEnabled) {
+            if (dualModeEnabled) {
                 logger.info("SSL Dual mode enabled, using port unification handler");
                 final ChannelHandler portUnificationHandler = new OpenDistroPortUnificationHandler(odsks, sslUtil);
                 ch.pipeline().addFirst("port_unification_handler", portUnificationHandler);
@@ -163,10 +167,9 @@ public class OpenDistroSecuritySSLNettyTransport extends Netty4Transport {
 
 
             try {
-                final InetSocketAddress inetSocketAddress = (InetSocketAddress) remoteAddress;
 
                 if (hostnameVerificationEnabled) {
-
+                    final InetSocketAddress inetSocketAddress = (InetSocketAddress) remoteAddress;
                     String hostname = null;
 
                     if (hostnameVerificationResovleHostName) {
@@ -195,7 +198,7 @@ public class OpenDistroSecuritySSLNettyTransport extends Netty4Transport {
     protected class SSLClientChannelInitializer extends Netty4Transport.ClientChannelInitializer {
         private final boolean hostnameVerificationEnabled;
         private final boolean hostnameVerificationResovleHostName;
-        private DiscoveryNode node;
+        private final DiscoveryNode node;
         private SSLConnectionTestResult connectionTestResult;
 
         public SSLClientChannelInitializer(DiscoveryNode node) {

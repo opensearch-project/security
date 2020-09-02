@@ -617,8 +617,6 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     @Override
     public List<TransportInterceptor> getTransportInterceptors(NamedWriteableRegistry namedWriteableRegistry, ThreadContext threadContext) {
         List<TransportInterceptor> interceptors = new ArrayList<TransportInterceptor>(1);
-        log.info("odsi disabled {}", disabled);
-        log.info("odsi sslonly {}", sslOnly);
         if (!client && !disabled && !sslOnly) {
             interceptors.add(new TransportInterceptor() {
 

@@ -40,14 +40,14 @@ public class OpenDistroSSLDualModeConfig {
                 false);
         logger.info("SSL set dual mode status enabled is {}", dualModeEnabled);
         clusterSettings.addSettingsUpdateConsumer(SSL_DUAL_MODE_SETTING,
-                isDualModeEnabled -> {
-                    logger.info("Detected change in settings for dual mode {}", isDualModeEnabled);
-                    setDualModeEnabled(isDualModeEnabled);
+                dualModeEnabledClusterSetting -> {
+                    logger.info("Detected change in settings for dual mode {}", dualModeEnabledClusterSetting);
+                    setDualModeEnabled(dualModeEnabledClusterSetting);
                 });
     }
 
-    private void setDualModeEnabled(boolean isDualModeEnabled) {
-        this.dualModeEnabled = isDualModeEnabled;
+    private void setDualModeEnabled(boolean dualModeEnabled) {
+        this.dualModeEnabled = dualModeEnabled;
     }
 
     public boolean isDualModeEnabled() {

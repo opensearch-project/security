@@ -53,7 +53,6 @@ public class SSLConnectionTestUtilTests {
             .thenReturn((int)'S')
             .thenReturn((int)'M')
             .thenReturn(-1);
-        Mockito.when(socket.isConnected()).thenReturn(true);
         Mockito.doNothing().when(socket).close();
 
         SSLConnectionTestUtil connectionTestUtil = new SSLConnectionTestUtil("127.0.0.1", 443, socket, outputStreamWriter, inputStreamReader);
@@ -68,7 +67,6 @@ public class SSLConnectionTestUtilTests {
     public void testConnectionSSLNotAvailable() throws Exception {
         setupMocksForClientHelloFailure();
         setupMocksForEsPingSuccess();
-        Mockito.when(socket.isConnected()).thenReturn(true);
         Mockito.doNothing().when(socket).close();
 
         SSLConnectionTestUtil connectionTestUtil = new SSLConnectionTestUtil("127.0.0.1", 443, socket, outputStreamWriter, inputStreamReader);
@@ -86,7 +84,6 @@ public class SSLConnectionTestUtilTests {
             .when(outputStreamWriter)
             .write(Mockito.anyString());
         setupMocksForEsPingSuccess();
-        Mockito.when(socket.isConnected()).thenReturn(true);
         Mockito.doNothing().when(socket).close();
 
         SSLConnectionTestUtil connectionTestUtil = new SSLConnectionTestUtil("127.0.0.1", 443, socket, outputStreamWriter, inputStreamReader);
@@ -100,25 +97,6 @@ public class SSLConnectionTestUtilTests {
     }
 
     @Test
-    public void testConnectionSSLNotAvailableIOExceptionSocketClosed() throws Exception {
-        Mockito.doThrow(new IOException("Socket closed")).when(outputStreamWriter).write(Mockito.anyString());
-        setupMocksForEsPingSuccess();
-        Mockito.when(socket.isConnected())
-            .thenReturn(true)
-            .thenReturn(false);
-        Mockito.doNothing().when(socket).close();
-
-        SSLConnectionTestUtil connectionTestUtil = new SSLConnectionTestUtil("127.0.0.1", 443, socket, outputStreamWriter, inputStreamReader);
-        SSLConnectionTestResult result = connectionTestUtil.testConnection();
-
-        verifyClientHelloSend();
-        Mockito.verifyZeroInteractions(inputStreamReader);
-        verifyEsPingSend();
-        Mockito.verify(socket, Mockito.times(1)).close();
-        Assert.assertEquals("Unexpected result for testConnection invocation", SSLConnectionTestResult.SSL_NOT_AVAILABLE, result);
-    }
-
-    @Test
     public void testConnectionEsPingFailed() throws Exception {
         setupMocksForClientHelloFailure();
         Mockito.when(socket.getOutputStream()).thenReturn(outputStream);
@@ -126,7 +104,6 @@ public class SSLConnectionTestUtilTests {
         Mockito.doNothing().when(outputStream).write(Mockito.any(byte[].class));
         Mockito.when(inputStream.read())
             .thenReturn(-1);
-        Mockito.when(socket.isConnected()).thenReturn(true);
         Mockito.doNothing().when(socket).close();
 
         SSLConnectionTestUtil connectionTestUtil = new SSLConnectionTestUtil("127.0.0.1", 443, socket, outputStreamWriter, inputStreamReader);
@@ -151,7 +128,6 @@ public class SSLConnectionTestUtilTests {
             .thenReturn(0xFF)
             .thenReturn(0xFF)
             .thenReturn(0xFF);
-        Mockito.when(socket.isConnected()).thenReturn(true);
         Mockito.doNothing().when(socket).close();
 
         SSLConnectionTestUtil connectionTestUtil = new SSLConnectionTestUtil("127.0.0.1", 443, socket, outputStreamWriter, inputStreamReader);
@@ -169,7 +145,6 @@ public class SSLConnectionTestUtilTests {
         Mockito.when(socket.getOutputStream()).thenReturn(outputStream);
         Mockito.when(socket.getInputStream()).thenReturn(inputStream);
         Mockito.doThrow(new IOException("Error while writing bytes to output stream")).when(outputStream).write(Mockito.any(byte[].class));
-        Mockito.when(socket.isConnected()).thenReturn(true);
         Mockito.doNothing().when(socket).close();
 
         SSLConnectionTestUtil connectionTestUtil = new SSLConnectionTestUtil("127.0.0.1", 443, socket, outputStreamWriter, inputStreamReader);
@@ -179,28 +154,6 @@ public class SSLConnectionTestUtilTests {
         verifyEsPingSend();
         Mockito.verifyZeroInteractions(inputStream);
         Mockito.verify(socket, Mockito.times(2)).close();
-        Assert.assertEquals("Unexpected result for testConnection invocation", SSLConnectionTestResult.ES_PING_FAILED, result);
-    }
-
-    @Test
-    public void testConnectionEsPingFailedIOExceptionSocketClosed() throws Exception {
-        setupMocksForClientHelloFailure();
-        Mockito.when(socket.getOutputStream()).thenReturn(outputStream);
-        Mockito.when(socket.getInputStream()).thenReturn(inputStream);
-        Mockito.doThrow(new IOException("Socket closed")).when(outputStream).write(Mockito.any(byte[].class));
-        Mockito.when(socket.isConnected())
-            .thenReturn(true)
-            .thenReturn(false);
-        Mockito.doNothing().when(socket).close();
-
-
-        SSLConnectionTestUtil connectionTestUtil = new SSLConnectionTestUtil("127.0.0.1", 443, socket, outputStreamWriter, inputStreamReader);
-        SSLConnectionTestResult result = connectionTestUtil.testConnection();
-
-        verifyClientHelloSend();
-        verifyEsPingSend();
-        Mockito.verifyZeroInteractions(inputStream);
-        Mockito.verify(socket, Mockito.times(1)).close();
         Assert.assertEquals("Unexpected result for testConnection invocation", SSLConnectionTestResult.ES_PING_FAILED, result);
     }
 

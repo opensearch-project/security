@@ -698,6 +698,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
     }
 
     private void testSslOnlyMode(boolean dualModeEnabled) throws Exception {
+        OpenDistroSSLDualModeConfigTestHelper.resetDualModeConfig();
         final Settings settings = Settings.builder()
                 .put(ConfigConstants.OPENDISTRO_SECURITY_SSL_ONLY, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_SSL_DUAL_MODE_ENABLED, dualModeEnabled)

@@ -1,23 +1,19 @@
 package com.amazon.opendistroforelasticsearch.security.ssl.util;
 
 import io.netty.buffer.ByteBuf;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import java.nio.ByteOrder;
 
 
 public class SSLUtil {
 
-    static final int SSL_CONTENT_TYPE_CHANGE_CIPHER_SPEC = 20;
-    static final int SSL_CONTENT_TYPE_ALERT = 21;
-    static final int SSL_CONTENT_TYPE_HANDSHAKE = 22;
-    static final int SSL_CONTENT_TYPE_APPLICATION_DATA = 23;
-    static final int SSL_CONTENT_TYPE_EXTENSION_HEARTBEAT = 24;
+    private static final int SSL_CONTENT_TYPE_CHANGE_CIPHER_SPEC = 20;
+    private static final int SSL_CONTENT_TYPE_ALERT = 21;
+    private static final int SSL_CONTENT_TYPE_HANDSHAKE = 22;
+    private static final int SSL_CONTENT_TYPE_APPLICATION_DATA = 23;
+    private static final int SSL_CONTENT_TYPE_EXTENSION_HEARTBEAT = 24;
 
-    static final int SSL_RECORD_HEADER_LENGTH = 5;
-
-    private static final Logger logger = LogManager.getLogger(SSLUtil.class);
+    private static final int SSL_RECORD_HEADER_LENGTH = 5;
 
     public boolean isTLS(ByteBuf buffer) {
         int packetLength = 0;

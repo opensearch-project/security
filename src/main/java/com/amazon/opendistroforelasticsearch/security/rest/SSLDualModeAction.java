@@ -37,11 +37,11 @@ import static org.elasticsearch.rest.RestRequest.Method.PUT;
 
 public class SSLDualModeAction extends BaseRestHandler {
 
-    public static final String RESPONSE_ENABLED_FIELD = "enabled";
-    public static final String RESPONSE_ERROR_FIELD = "error";
+    private static final String RESPONSE_ENABLED_FIELD = "enabled";
+    private static final String RESPONSE_ERROR_FIELD = "error";
 
-    ClusterSettings clusterSettings;
-    Settings settings;
+    private ClusterSettings clusterSettings;
+    private Settings settings;
 
     private static final Logger logger = LogManager.getLogger(SSLDualModeAction.class);
 
@@ -56,7 +56,7 @@ public class SSLDualModeAction extends BaseRestHandler {
             .put(ConfigConstants.OPENDISTRO_SECURITY_SSL_DUAL_MODE_ENABLED, false)
             .build();
 
-    public SSLDualModeAction(Settings settings, ClusterSettings clusterSettings) {
+    public SSLDualModeAction(final Settings settings, final ClusterSettings clusterSettings) {
         this.settings = settings;
         this.clusterSettings = clusterSettings;
     }
@@ -114,7 +114,7 @@ public class SSLDualModeAction extends BaseRestHandler {
         };
     }
 
-    private static BytesRestResponse getErrorMessageResponse(RestChannel restChannel, String errorMessage) {
+    private BytesRestResponse getErrorMessageResponse(final RestChannel restChannel, final String errorMessage) {
         XContentBuilder builder;
         try {
             builder = restChannel.newBuilder();
@@ -129,7 +129,7 @@ public class SSLDualModeAction extends BaseRestHandler {
         return new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, builder);
     }
 
-    private BytesRestResponse getDualModeResponse(RestChannel restChannel, boolean enabled) {
+    private BytesRestResponse getDualModeResponse(final RestChannel restChannel, final boolean enabled) {
         XContentBuilder builder;
         try {
             builder = restChannel.newBuilder();
