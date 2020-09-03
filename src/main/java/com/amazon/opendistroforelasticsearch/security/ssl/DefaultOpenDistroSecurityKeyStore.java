@@ -594,7 +594,7 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
         boolean newCertsExpireBeforeCurrentCerts = Arrays.stream(newX509Certs)
             .anyMatch(cert -> {
                 Date notAfterDate = cert.getNotAfter();
-                return notAfterDate.before(earliestExpiryDate) || notAfterDate.equals(earliestExpiryDate);
+                return notAfterDate.after(earliestExpiryDate);
             });
 
         return !newCertsExpireBeforeCurrentCerts;
