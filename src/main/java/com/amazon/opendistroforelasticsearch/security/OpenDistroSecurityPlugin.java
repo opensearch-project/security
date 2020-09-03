@@ -765,7 +765,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         final CompatConfig compatConfig = new CompatConfig(environment);
 
         evaluator = new PrivilegesEvaluator(clusterService, threadPool, cr, resolver, auditLog,
-                settings, privilegesInterceptor, cih, irr, advancedModulesEnabled);
+                settings, privilegesInterceptor, cih, irr, advancedModulesEnabled, adminDns);
 
         odsf = new OpenDistroSecurityFilter(settings, evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs, compatConfig, irr);
 
@@ -847,6 +847,10 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_DEFAULT, Property.NodeScope, Property.Filtered, Property.Final));
         settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_DEFAULT, Function.identity(), Property.NodeScope, Property.Filtered, Property.Final));
         settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_DEFAULT, Function.identity(), Property.NodeScope, Property.Filtered, Property.Final));
+
+        // System index settings
+        settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_SYSTEM_INDICES_ENABLED_KEY, ConfigConstants.OPENDISTRO_SECURITY_SYSTEM_INDICES_ENABLED_DEFAULT, Property.NodeScope, Property.Filtered, Property.Final));
+        settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_SYSTEM_INDICES_KEY, ConfigConstants.OPENDISTRO_SECURITY_SYSTEM_INDICES_DEFAULT, Function.identity(), Property.NodeScope, Property.Filtered, Property.Final));
 
         if(!sslOnly) {
             settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_ADMIN_DN, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here

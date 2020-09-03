@@ -1,0 +1,14 @@
+---
+_meta:
+  type: "rolesmapping"
+  config_version: 2
+
+opendistro_security_all_access:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "admin_all_access"
+  and_backend_roles: []
+  description: "Full index permissions"
