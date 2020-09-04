@@ -97,7 +97,7 @@ public class OpenDistroSecurityIndexSearcherWrapper implements CheckedFunction<D
             return new EmptyFilterLeafReader.EmptyDirectoryReader(reader);
         }
 
-        if (systemIndexEnabled && isBlockedSystemIndexRequest() && !isAdminAuthenticatedOrInternalRequest()) {
+        if (systemIndexEnabled && isBlockedSystemIndexRequest() && !isAdminDnOrPluginRequest()) {
             return new EmptyFilterLeafReader.EmptyDirectoryReader(reader);
         }
 
@@ -133,6 +133,18 @@ public class OpenDistroSecurityIndexSearcherWrapper implements CheckedFunction<D
 
     protected final boolean isBlockedSystemIndexRequest() {
         return systemIndexMatcher.test(index.getName());
+    }
+
+    protected final boolean isAdminDnOrPluginRequest() {
+        final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        if(user == null) {
+            // allow request without user from plugin.
+            return true;
+        } else if (adminDns.isAdmin(user)) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     protected final boolean isPermittedOnIndex() {
