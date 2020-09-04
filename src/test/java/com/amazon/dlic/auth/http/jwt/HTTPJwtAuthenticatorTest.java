@@ -15,10 +15,12 @@
 
 package com.amazon.dlic.auth.http.jwt;
 
+
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 
+import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -206,8 +208,6 @@ public class HTTPJwtAuthenticatorTest {
     @Test
     public void testRoles() throws Exception {
 
-
-
         Settings settings = Settings.builder()
                 .put("signing_key", BaseEncoding.base64().encode(secretKey))
                 .put("roles_key", "roles")
@@ -216,6 +216,41 @@ public class HTTPJwtAuthenticatorTest {
         String jwsToken = Jwts.builder()
                 .setSubject("Leonard McCoy")
                 .claim("roles", "role1,role2")
+                .signWith(SignatureAlgorithm.HS512, secretKey).compact();
+
+        HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
+        Map<String, String> headers = new HashMap<String, String>();
+        headers.put("Authorization", jwsToken);
+
+        AuthCredentials creds = jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<String, String>()), null);
+        Assert.assertNotNull(creds);
+        Assert.assertEquals("Leonard McCoy", creds.getUsername());
+        Assert.assertEquals(2, creds.getBackendRoles().size());
+    }
+
+    @Test
+    public void testNestedRoles() throws Exception {
+        class NextedRoles implements Serializable {
+            private String[] roles = {"role1", "role2"};
+
+            public String[] getRoles() {
+                return roles;
+            }
+
+            public void setRoles(String[] roles) {
+                this.roles = roles;
+            }
+        }
+
+        Settings settings = Settings.builder()
+                .put("signing_key", BaseEncoding.base64().encode(secretKey))
+                .put("roles_key", "realm_access.roles")
+                .build();
+
+        String jwsToken = Jwts.builder()
+                .setSubject("Leonard McCoy")
+
+                .claim("realm_access", new NextedRoles())
                 .signWith(SignatureAlgorithm.HS512, secretKey).compact();
 
         HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);

@@ -24,7 +24,9 @@ import java.security.PrivilegedAction;
 import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
@@ -175,7 +177,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
             	return null;
             }
 
-            final String[] roles = extractRoles(claims, request);
+            final String[] roles = extractRoles(claims);
 
             final AuthCredentials ac = new AuthCredentials(subject, roles).markComplete();
 
@@ -228,19 +230,27 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     }
 
     @SuppressWarnings("unchecked")
-    protected String[] extractRoles(final Claims claims, final RestRequest request) {
+    protected String[] extractRoles(final Claims claims) {
     	// no roles key specified
     	if(rolesKey == null) {
     		return new String[0];
     	}
-		// try to get roles from claims, first as Object to avoid having to catch the ExpectedTypeException
-    	final Object rolesObject = claims.get(rolesKey, Object.class);
-    	if(rolesObject == null) {
-    		log.warn("Failed to get roles from JWT claims with roles_key '{}'. Check if this key is correct and available in the JWT payload.", rolesKey);
-    		return new String[0];
-    	}
 
-    	String[] roles = String.valueOf(rolesObject).split(",");
+        String[] roles = new String[0];
+    	Object rolesObject;
+
+    	if (rolesKey.contains(".")){
+    	    // try to get nested roles e.g. keycloak roles
+            rolesObject = getNestedRoles(claims);
+        } else {
+            // try to get roles from claims, first as Object to avoid having to catch the ExpectedTypeException
+    	    rolesObject = claims.get(rolesKey, Object.class);
+            if(rolesObject == null) {
+                log.warn("Failed to get roles from JWT claims with roles_key '{}'. Check if this key is correct and available in the JWT payload.", rolesKey);
+            } else {
+                roles = String.valueOf(rolesObject).split(",");
+            }
+        }
 
     	// We expect a String or Collection. If we find something else, convert to String but issue a warning
     	if (!(rolesObject instanceof String) && !(rolesObject instanceof Collection<?>)) {
@@ -254,6 +264,31 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     	}
 
     	return roles;
+    }
+
+    /**
+     * Returns the roles from a nested claim
+     * @param claims the claims
+     * @return the roles as ArrayList
+     */
+    private Object getNestedRoles(Claims claims) {
+        String[] keys = rolesKey.split("\\.");
+        Object value = null;
+
+        for (String key: keys) {
+            if (value == null) {
+                value = claims.get(key, Object.class);
+            } else {
+                if (value instanceof Map) {
+                    value = ((Map) value).get(key);
+
+                    if (value instanceof ArrayList) {
+                        return value;
+                    }
+                }
+            }
+        }
+        return value;
     }
 
     private static PublicKey getPublicKey(final byte[] keyBytes, final String algo) throws NoSuchAlgorithmException, InvalidKeySpecException {
