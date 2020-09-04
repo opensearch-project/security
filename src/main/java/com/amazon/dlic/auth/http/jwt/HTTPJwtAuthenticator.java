@@ -231,14 +231,13 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
 
     @SuppressWarnings("unchecked")
     protected String[] extractRoles(final Claims claims) {
-    	// no roles key specified
+        String[] roles = new String[0];
+        // no roles key specified
     	if(rolesKey == null) {
-    		return new String[0];
+    		return roles;
     	}
 
-        String[] roles = new String[0];
     	Object rolesObject;
-
     	if (rolesKey.contains(".")){
     	    // try to get nested roles e.g. keycloak roles
             rolesObject = getNestedRoles(claims);
@@ -247,6 +246,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     	    rolesObject = claims.get(rolesKey, Object.class);
             if(rolesObject == null) {
                 log.warn("Failed to get roles from JWT claims with roles_key '{}'. Check if this key is correct and available in the JWT payload.", rolesKey);
+                return roles;
             } else {
                 roles = String.valueOf(rolesObject).split(",");
             }
