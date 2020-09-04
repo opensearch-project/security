@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
@@ -55,6 +56,9 @@ public final class AuditMessage {
 
     //clustername and cluster uuid
     private static final WildcardMatcher AUTHORIZATION_HEADER = WildcardMatcher.from("Authorization", false);
+    private static final String SENSITIVE_KEY = "password";
+    private static final String SENSITIVE_REPLACEMENT_VALUE = "__SENSITIVE__";
+    private static final Pattern SENSITIVE_PATHS = Pattern.compile("/_opendistro/_security/api/(account.*|internalusers.*|user.*)");
     public static final String FORMAT_VERSION = "audit_format_version";
     public static final String CATEGORY = "audit_category";
     public static final String REQUEST_EFFECTIVE_USER = "audit_request_effective_user";
@@ -323,12 +327,25 @@ public final class AuditMessage {
 
     void addRestRequestInfo(final RestRequest request, final AuditConfig.Filter filter) {
         if (request != null) {
-            addPath(request.path());
+            final String path = request.path();
+            addPath(path);
             addRestHeaders(request.getHeaders(), filter.shouldExcludeSensitiveHeaders());
             addRestParams(request.params());
             addRestMethod(request.method());
             if (filter.shouldLogRequestBody() && request.hasContentOrSourceParam()) {
-                addTupleToRequestBody(request.contentOrSourceParam());
+                try {
+                    final Tuple<XContentType, BytesReference> xContentTuple = request.contentOrSourceParam();
+                    final String requestBody =  XContentHelper.convertToJson(xContentTuple.v2(), false, xContentTuple.v1());
+                    if (path != null && requestBody != null
+                            && SENSITIVE_PATHS.matcher(path).matches()
+                            && requestBody.contains(SENSITIVE_KEY)) {
+                        auditInfo.put(REQUEST_BODY, SENSITIVE_REPLACEMENT_VALUE);
+                    } else {
+                        auditInfo.put(REQUEST_BODY, requestBody);
+                    }
+                } catch (IOException e) {
+                    auditInfo.put(REQUEST_BODY, "ERROR: Unable to generate request body");
+                }
             }
         }
     }
