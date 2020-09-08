@@ -274,11 +274,11 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin,
             IndexNameExpressionResolver indexNameExpressionResolver, Supplier<RepositoriesService> repositoriesServiceSupplier) {
 
         final List<Object> components = new ArrayList<>(1);
-        
+
         if(client) {
             return components;
         }
-        
+
         final String principalExtractorClass = settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, null);
 
         if(principalExtractorClass == null) {
