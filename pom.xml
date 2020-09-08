@@ -159,6 +159,12 @@
             </exclusions>
         </dependency>
 
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>apache-hadoop-kerberos-util</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+
         <!-- Guava -->
         <dependency>
             <groupId>com.google.guava</groupId>

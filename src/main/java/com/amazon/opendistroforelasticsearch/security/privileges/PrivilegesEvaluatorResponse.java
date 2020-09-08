@@ -35,12 +35,12 @@ import java.util.Map;
 import java.util.Set;
 
 public class PrivilegesEvaluatorResponse {
-    boolean allowed = false;
-    Set<String> missingPrivileges = new HashSet<String>();
-    Map<String,Set<String>> allowedFlsFields;
-    Map<String,Set<String>> maskedFields;
-    Map<String,Set<String>> queries;
-    PrivilegesEvaluatorResponseState state = PrivilegesEvaluatorResponseState.PENDING;
+    public boolean allowed = false;
+    public Set<String> missingPrivileges = new HashSet<String>();
+    public Map<String,Set<String>> allowedFlsFields;
+    public Map<String,Set<String>> maskedFields;
+    public Map<String,Set<String>> queries;
+    public PrivilegesEvaluatorResponseState state = PrivilegesEvaluatorResponseState.PENDING;
     
     public boolean isAllowed() {
         return allowed;

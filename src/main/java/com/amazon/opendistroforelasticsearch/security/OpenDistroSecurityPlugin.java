@@ -50,6 +50,9 @@ import java.util.stream.Stream;
 import com.amazon.opendistroforelasticsearch.security.auditlog.NullAuditLog;
 import com.amazon.opendistroforelasticsearch.security.configuration.OpenDistroSecurityFlsDlsIndexSearcherWrapper;
 import com.amazon.opendistroforelasticsearch.security.configuration.Salt;
+import com.amazon.opendistroforelasticsearch.security.privileges.OpenDistroPrivilegesEvaluator;
+import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvaluator;
+import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvaluatorFactory;
 import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenDistroSecuritySSLReloadCertsAction;
 import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenDistroSecuritySSLCertsInfoAction;
 
@@ -142,7 +145,6 @@ import com.amazon.opendistroforelasticsearch.security.filter.OpenDistroSecurityR
 import com.amazon.opendistroforelasticsearch.security.http.OpenDistroSecurityHttpServerTransport;
 import com.amazon.opendistroforelasticsearch.security.http.OpenDistroSecurityNonSslHttpServerTransport;
 import com.amazon.opendistroforelasticsearch.security.http.XFFResolver;
-import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvaluator;
 import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesInterceptor;
 import com.amazon.opendistroforelasticsearch.security.resolver.IndexResolverReplacer;
 import com.amazon.opendistroforelasticsearch.security.rest.KibanaInfoAction;
@@ -764,8 +766,21 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
 
         final CompatConfig compatConfig = new CompatConfig(environment);
 
-        evaluator = new PrivilegesEvaluator(clusterService, threadPool, cr, resolver, auditLog,
-                settings, privilegesInterceptor, cih, irr, advancedModulesEnabled);
+        log.debug("Evaluator = " + settings.get(ConfigConstants.OPENDISTRO_SECURITY_PRIVILEGES_EVALUATOR));
+
+        try {
+            evaluator = (PrivilegesEvaluator) PrivilegesEvaluatorFactory.getPrivilegesEvaluator(clusterService, threadPool, cr, resolver, auditLog, settings, privilegesInterceptor, cih, irr, advancedModulesEnabled);
+        } catch (Throwable e) {
+            throw new ElasticsearchException("Caught exception while initializing privileges evaluator . Please investigate: "
+                    + e.getCause()
+                    + Arrays.asList(e.getStackTrace())
+                    .stream()
+                    .map(Objects::toString)
+                    .collect(Collectors.joining("\n"))
+            );
+        }
+
+        log.debug("evaluator initialized");
 
         odsf = new OpenDistroSecurityFilter(settings, evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs, compatConfig, irr);
 
@@ -981,6 +996,19 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES, true, Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_SSL_CERT_RELOAD_ENABLED, false, Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_ACCEPT_INVALID_CONFIG, false, Property.NodeScope, Property.Filtered));
+
+            // Privilege Evaluator Setting
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_PRIVILEGES_EVALUATOR, "", Property.NodeScope, Property.Filtered));
+
+            // RangerPrivilegesEvaluator Settings
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_AUTH_RANGER_APP_ID, "", Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_AUTH_RANGER_SERVICE_TYPE, "", Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_HADOOP_HOME_DIR, "", Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_HADOOP_CORE_SITE_XML, "", Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_HADOOP_HDFS_SITE_XML, "", Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_KERBEROS_UGI_KEYTAB_FILEPATH, "", Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_KERBEROS_UGI_KEYTAB_PRINCIPAL, "", Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_KERBEROS_AUTH_TO_LOCAL_FILE_PATH,"", Property.NodeScope, Property.Filtered));
         }
         
         return settings;
