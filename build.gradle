@@ -38,7 +38,7 @@ ospackage {
     user 'root'
     permissionGroup 'root'
 
-    requires('elasticsearch-oss', "7.9.0", EQUAL)
+    requires('elasticsearch-oss', "7.9.1", EQUAL)
     packager = 'Amazon'
     vendor = 'Amazon'
     os = 'LINUX'
