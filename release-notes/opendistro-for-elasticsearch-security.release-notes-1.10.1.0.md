@@ -1,6 +1,6 @@
-## 2020-08-28 Version 1.10.0.0
+## 2020-09-09 Version 1.10.1.0
 
-Supported Elasticsearch version 7.9.0
+Support Elasticsearch version 7.9.1
 
 ### Enhancements
 
@@ -23,6 +23,7 @@ Supported Elasticsearch version 7.9.0
 
 ### Maintenance
 
+* Support ES 7.9.1 ([#706](https://github.com/opendistro-for-elasticsearch/security/pull/706))
 * Support ES 7.9.0 ([#661](https://github.com/opendistro-for-elasticsearch/security/pull/661))
 * Close AuditLog while closing OpenDistroSecurityPlugin and unregister shutdown hook when closing AuditLogImpl. ([#663](https://github.com/opendistro-for-elasticsearch/security/pull/663))
 * Fix unit tests failures in HTTPSamlAuthenticatorTest ([#664](https://github.com/opendistro-for-elasticsearch/security/pull/664))
