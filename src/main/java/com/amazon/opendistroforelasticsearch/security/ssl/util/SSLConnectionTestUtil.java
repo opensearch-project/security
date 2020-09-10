@@ -38,6 +38,7 @@ public class SSLConnectionTestUtil {
     public static final byte[] ES_PING_MSG = new byte[]{(byte) 'E', (byte) 'S', (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF};
     public static final String DUAL_MODE_CLIENT_HELLO_MSG = "DUALCM";
     public static final String DUAL_MODE_SERVER_HELLO_MSG = "DUALSM";
+    private static final int SOCKET_TIMEOUT_MILLIS = 10 * 1000;
     private boolean esPingReplyReceived;
     private boolean dualSSLProbeReplyReceived;
     private final String host;
@@ -101,6 +102,7 @@ public class SSLConnectionTestUtil {
                 inputStreamReader = new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8);
             }
 
+            socket.setSoTimeout(SOCKET_TIMEOUT_MILLIS);
             outputStreamWriter.write(DUAL_MODE_CLIENT_HELLO_MSG);
             outputStreamWriter.flush();
             logger.debug("Sent DualSSL Client Hello msg to {}", host);
@@ -140,6 +142,8 @@ public class SSLConnectionTestUtil {
             } else {
                 socket = new Socket(host, port);
             }
+
+            socket.setSoTimeout(SOCKET_TIMEOUT_MILLIS);
             OutputStream outputStream = socket.getOutputStream();
             InputStream inputStream = socket.getInputStream();
 
