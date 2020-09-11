@@ -106,6 +106,10 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
 
     private void handleSinglePatch(RestChannel channel, RestRequest request, Client client, String name,
             SecurityDynamicConfiguration<?> existingConfiguration, ObjectNode existingAsObjectNode, JsonNode jsonPatch) throws IOException {
+        if (isResourceNameInvalid(channel, name)) {
+            return;
+        }
+
         if (isHidden(existingConfiguration, name)) {
             notFound(channel, getResourceName() + " " + name + " not found.");
             return;
@@ -190,6 +194,10 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
             JsonNode patchedResource = patchedAsJsonNode.get(resourceName);
 
             if (oldResource != null && !oldResource.equals(patchedResource)) {
+
+                if (isResourceNameInvalid(channel, resourceName)) {
+                    return;
+                }
 
                 if (isReadOnly(existingConfiguration, resourceName)) {
                     forbidden(channel, "Resource '" + resourceName + "' is read-only.");

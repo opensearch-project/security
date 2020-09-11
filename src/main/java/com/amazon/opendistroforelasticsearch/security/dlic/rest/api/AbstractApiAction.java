@@ -31,6 +31,7 @@ import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ThreadContext.StoredContext;
@@ -177,8 +178,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
 		final String name = request.param("name");
 
-		if (name == null || name.length() == 0) {
-			badRequestResponse(channel, "No " + getResourceName() + " specified.");
+		if (isResourceNameInvalid(channel, name)) {
 			return;
 		}
 
@@ -612,4 +612,16 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		return true;
 	}
 
+	boolean isResourceNameInvalid(final RestChannel channel, final String resourceName) {
+		if (Strings.isNullOrEmpty(resourceName)) {
+			badRequestResponse(channel, "No " + getResourceName() + " specified.");
+			return true;
+		}
+
+		if (!ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_RESOURCE_NAME_REGEX.matcher(resourceName).matches()) {
+			badRequestResponse(channel, "Resource name must contain only alphanumeric characters, underscores or hyphens.");
+			return true;
+		}
+		return false;
+	}
 }

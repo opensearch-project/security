@@ -39,6 +39,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -236,6 +237,7 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_RESTAPI_ENDPOINTS_DISABLED = "opendistro_security.restapi.endpoints_disabled";
     public static final String OPENDISTRO_SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX = "opendistro_security.restapi.password_validation_regex";
     public static final String OPENDISTRO_SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE = "opendistro_security.restapi.password_validation_error_message";
+    public static final Pattern OPENDISTRO_SECURITY_RESTAPI_RESOURCE_NAME_REGEX = Pattern.compile("^[a-zA-Z0-9_-]+$"); // alphanumeric characters, underscores and hyphens
 
     // Illegal Opcodes from here on
     public static final String OPENDISTRO_SECURITY_UNSUPPORTED_DISABLE_REST_AUTH_INITIALLY = "opendistro_security.unsupported.disable_rest_auth_initially";

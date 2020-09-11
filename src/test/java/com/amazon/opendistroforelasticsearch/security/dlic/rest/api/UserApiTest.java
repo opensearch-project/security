@@ -367,7 +367,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         Assert.assertTrue(roles.contains("starfleet"));
         Assert.assertTrue(roles.contains("captains"));
 
-        addUserWithPassword("$1aAAAAAAAAC", "$1aAAAAAAAAC", HttpStatus.SC_CREATED);
+        addUserWithPassword("$1aAAAAAAAAC", "$1aAAAAAAAAC", HttpStatus.SC_BAD_REQUEST);
         addUserWithPassword("abc", "abc", HttpStatus.SC_CREATED);
 
 
@@ -431,7 +431,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         addUserWithPassword("$1aAAAAAAAac", "$1aAAAAAAAAC", HttpStatus.SC_BAD_REQUEST);
         addUserWithPassword(URLEncoder.encode("$1aAAAAAAAac%", "UTF-8"), "$1aAAAAAAAAC%", HttpStatus.SC_BAD_REQUEST);
         addUserWithPassword(URLEncoder.encode("$1aAAAAAAAac%!=\"/\\;:test&~@^", "UTF-8").replace("+", "%2B"), "$1aAAAAAAAac%!=\\\"/\\\\;:test&~@^", HttpStatus.SC_BAD_REQUEST);
-        addUserWithPassword(URLEncoder.encode("$1aAAAAAAAac%!=\"/\\;: test&", "UTF-8"), "$1aAAAAAAAac%!=\\\"/\\\\;: test&123", HttpStatus.SC_CREATED);
+        addUserWithPassword(URLEncoder.encode("$1aAAAAAAAac%!=\"/\\;: test&", "UTF-8"), "$1aAAAAAAAac%!=\\\"/\\\\;: test&123", HttpStatus.SC_BAD_REQUEST);
 
         response = rh.executeGetRequest("/_opendistro/_security/api/internalusers/nothinghthere?pretty", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
@@ -474,16 +474,16 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(56, settings.size());
 
         addUserWithPassword(".my.dotuser0", "$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m",
-                HttpStatus.SC_CREATED);
+                HttpStatus.SC_BAD_REQUEST);
 
         addUserWithPassword(".my.dot.user0", "12345678",
-                HttpStatus.SC_CREATED);
+                HttpStatus.SC_BAD_REQUEST);
 
         addUserWithHash(".my.dotuser1", "$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m",
-                HttpStatus.SC_CREATED);
+                HttpStatus.SC_BAD_REQUEST);
 
         addUserWithPassword(".my.dot.user2", "12345678",
-                HttpStatus.SC_CREATED);
+                HttpStatus.SC_BAD_REQUEST);
 
     }
 

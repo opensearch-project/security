@@ -91,8 +91,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
 
         final String username = request.param("name");
 
-        if (username == null || username.length() == 0) {
-            badRequestResponse(channel, "No " + getResourceName() + " specified.");
+        if (isResourceNameInvalid(channel, username)) {
             return;
         }
 

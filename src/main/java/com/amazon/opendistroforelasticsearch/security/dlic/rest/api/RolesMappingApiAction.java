@@ -65,8 +65,7 @@ public class RolesMappingApiAction extends PatchableResourceApiAction {
 	protected void handlePut(RestChannel channel, final RestRequest request, final Client client, final JsonNode content) throws IOException {
 		final String name = request.param("name");
 
-		if (name == null || name.length() == 0) {
-			badRequestResponse(channel, "No " + getResourceName() + " specified.");
+		if (isResourceNameInvalid(channel, name)) {
 			return;
 		}
 
