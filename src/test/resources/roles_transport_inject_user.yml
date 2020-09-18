@@ -1,0 +1,13 @@
+---
+_meta:
+  type: "rolesmapping"
+  config_version: 2
+opendistro_security_all_access:
+  reserved: false
+  hidden: false
+  backend_roles: ["injecttest"]
+  hosts: []
+  users:
+    - "nagilum"
+  and_backend_roles: []
+  description: "Migrated from v6"

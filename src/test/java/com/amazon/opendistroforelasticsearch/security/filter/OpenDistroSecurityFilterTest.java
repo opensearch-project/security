@@ -16,6 +16,7 @@
 package com.amazon.opendistroforelasticsearch.security.filter;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
+import com.amazon.opendistroforelasticsearch.security.auth.BackendRegistry;
 import com.amazon.opendistroforelasticsearch.security.configuration.AdminDNs;
 import com.amazon.opendistroforelasticsearch.security.configuration.CompatConfig;
 import com.amazon.opendistroforelasticsearch.security.configuration.DlsFlsRequestValve;
@@ -77,7 +78,8 @@ public class OpenDistroSecurityFilterTest {
                 mock(ThreadPool.class),
                 mock(ClusterService.class),
                 mock(CompatConfig.class),
-                mock(IndexResolverReplacer.class)
+                mock(IndexResolverReplacer.class),
+                mock(BackendRegistry.class)
         );
         assertEquals(expected, filter.getImmutableIndicesMatcher());
     }
