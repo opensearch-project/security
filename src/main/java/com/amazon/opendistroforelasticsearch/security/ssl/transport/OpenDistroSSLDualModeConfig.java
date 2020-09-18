@@ -31,14 +31,15 @@ public class OpenDistroSSLDualModeConfig {
     private static final Logger logger = LogManager.getLogger(OpenDistroSSLDualModeConfig.class);
 
     private static OpenDistroSSLDualModeConfig INSTANCE;
+    private final boolean isSSLOnly;
     private volatile boolean dualModeEnabled;
 
     private OpenDistroSSLDualModeConfig(final ClusterSettings clusterSettings, final Settings settings) {
         // currently dual mode can be enabled only when SSLOnly is enabled. This stance can change in future.
-        boolean isSSLOnly = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_SSL_ONLY, false);
-        dualModeEnabled = isSSLOnly && settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_SSL_DUAL_MODE_ENABLED,
+        isSSLOnly = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_SSL_ONLY, false);
+        dualModeEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_SSL_DUAL_MODE_ENABLED,
                 false);
-        logger.info("SSL set dual mode status enabled is {}", dualModeEnabled);
+        logger.info("SSL set dual mode status enabled is {}", isDualModeEnabled());
         clusterSettings.addSettingsUpdateConsumer(SSL_DUAL_MODE_SETTING,
                 dualModeEnabledClusterSetting -> {
                     logger.info("Detected change in settings for dual mode {}", dualModeEnabledClusterSetting);
@@ -51,7 +52,7 @@ public class OpenDistroSSLDualModeConfig {
     }
 
     public boolean isDualModeEnabled() {
-        return dualModeEnabled;
+        return isSSLOnly && dualModeEnabled;
     }
 
     public static synchronized OpenDistroSSLDualModeConfig getInstance() {

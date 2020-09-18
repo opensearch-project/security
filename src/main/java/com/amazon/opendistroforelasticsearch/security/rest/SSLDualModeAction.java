@@ -48,13 +48,11 @@ public class SSLDualModeAction extends BaseRestHandler {
     private static final List<Route> routes = ImmutableList.of(
             // gets the current status of ssl dual mode
             new Route(GET, "/_opendistro/_security/ssl_dual_mode"),
-            // disables ssl dual mode. We don't provide API to enable dual mode due to security concerns
-            new Route(PUT, "/_opendistro/_security/ssl_dual_mode/_disable")
+            // disables ssl dual mode
+            new Route(PUT, "/_opendistro/_security/ssl_dual_mode/_disable"),
+            // enables ssl dual mode
+            new Route(PUT, "/_opendistro/_security/ssl_dual_mode/_enable")
     );
-
-    private static final Settings DISABLE_SSL_DUAL_MODE = Settings.builder()
-            .put(ConfigConstants.OPENDISTRO_SECURITY_SSL_DUAL_MODE_ENABLED, false)
-            .build();
 
     public SSLDualModeAction(final Settings settings, final ClusterSettings clusterSettings) {
         this.settings = settings;
@@ -79,28 +77,40 @@ public class SSLDualModeAction extends BaseRestHandler {
 
                 switch (request.method()) {
                     case GET:
-                        boolean isDualModeEnabled = OpenDistroSSLDualModeConfig.getInstance().isDualModeEnabled();
-                        BytesRestResponse response = getDualModeResponse(restChannel, isDualModeEnabled);
+                        boolean dualModeEnabled = OpenDistroSSLDualModeConfig.getInstance().isDualModeEnabled();
+                        BytesRestResponse response = getDualModeResponse(restChannel, dualModeEnabled);
                         restChannel.sendResponse(response);
                         break;
                     case PUT:
                         try {
-                            ClusterUpdateSettingsRequest clusterUpdateSettingsRequest = new ClusterUpdateSettingsRequest();
-                            clusterUpdateSettingsRequest.persistentSettings(DISABLE_SSL_DUAL_MODE);
-                            client.admin()
-                                    .cluster()
-                                    .updateSettings(clusterUpdateSettingsRequest, new ActionListener<ClusterUpdateSettingsResponse>() {
-                                        @Override
-                                        public void onResponse(ClusterUpdateSettingsResponse clusterUpdateSettingsResponse) {
-                                            restChannel.sendResponse(getDualModeResponse(restChannel, false));
-                                        }
+                            final boolean enableDualMode;
+                            if (request.path().endsWith("_enable")) {
+                                enableDualMode = true;
+                            } else {
+                                enableDualMode = false;
+                            }
 
-                                        @Override
-                                        public void onFailure(Exception e) {
-                                            BytesRestResponse response = getErrorMessageResponse(restChannel, "Unable to apply opendistro ssl dual mode settings");
-                                            restChannel.sendResponse(response);
-                                        }
-                                    });
+                            Settings dualModeSetting = Settings.builder()
+                                .put(ConfigConstants.OPENDISTRO_SECURITY_SSL_DUAL_MODE_ENABLED, enableDualMode)
+                                .build();
+
+                            ClusterUpdateSettingsRequest clusterUpdateSettingsRequest = new ClusterUpdateSettingsRequest();
+                            clusterUpdateSettingsRequest.persistentSettings(dualModeSetting);
+                            client.admin()
+                                .cluster()
+                                .updateSettings(clusterUpdateSettingsRequest, new ActionListener<ClusterUpdateSettingsResponse>() {
+                                    @Override
+                                    public void onResponse(ClusterUpdateSettingsResponse clusterUpdateSettingsResponse) {
+                                        restChannel.sendResponse(getDualModeResponse(restChannel, enableDualMode));
+                                    }
+
+                                    @Override
+                                    public void onFailure(Exception e) {
+                                        BytesRestResponse response = getErrorMessageResponse(restChannel,
+                                            String.format("Unable to apply opendistro ssl dual mode settings due to %s", e.getMessage()));
+                                        restChannel.sendResponse(response);
+                                    }
+                                });
                         } catch (Exception e) {
                             logger.error("Unable to update open distro SSL dual mode settings", e);
                             response = getErrorMessageResponse(restChannel,
