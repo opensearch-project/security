@@ -31,6 +31,7 @@
 package com.amazon.opendistroforelasticsearch.security.support;
 
 import com.amazon.dlic.auth.ldap.LdapUser;
+import com.amazon.opendistroforelasticsearch.security.auth.UserInjector;
 import org.ldaptive.AbstractLdapBean;
 import org.ldaptive.LdapAttribute;
 import org.ldaptive.LdapEntry;
@@ -76,7 +77,7 @@ public class Base64Helper {
         SocketAddress.class,
         InetSocketAddress.class,
         Pattern.class,
-        User.class,
+        UserInjector.InjectedUser.class,
         SourceFieldsContext.class,
         LdapUser.class,
         SearchEntry.class,
@@ -90,7 +91,8 @@ public class Base64Helper {
         Number.class,
         Collection.class,
         Map.class,
-        Enum.class
+        Enum.class,
+        User.class
     );
 
     private static final Set<String> SAFE_CLASS_NAMES = Collections.singleton(

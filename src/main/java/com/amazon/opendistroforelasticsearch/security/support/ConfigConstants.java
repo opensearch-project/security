@@ -100,6 +100,7 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_USER_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX+"user_header";
 
     public static final String OPENDISTRO_SECURITY_INJECTED_USER = "injected_user";
+    public static final String OPENDISTRO_SECURITY_INJECTED_USER_HEADER = "injected_user_header";
 
     public static final String OPENDISTRO_SECURITY_XFF_DONE = OPENDISTRO_SECURITY_CONFIG_PREFIX+"xff_done";
 
