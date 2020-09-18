@@ -241,6 +241,12 @@ public class BackendRegistry {
     	      return null;
     	  }
 
+        User injectedUser = userInjector.injectUser(request, task, action);
+
+        if(injectedUser != null) {
+            return injectedUser;
+        }
+
         User origPKIUser = new User(sslPrincipal);
         
         if(adminDns.isAdmin(origPKIUser)) {
@@ -494,7 +500,9 @@ public class BackendRegistry {
 
         if(authenticated) {
             final User impersonatedUser = impersonate(request, authenticatedUser);
-            threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, impersonatedUser==null?authenticatedUser:impersonatedUser);
+            final User loggedInUser = impersonatedUser==null?authenticatedUser:impersonatedUser;
+            threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, loggedInUser);
+            threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER_STRING, loggedInUser.getUserString());
             auditLog.logSucceededLogin((impersonatedUser == null ? authenticatedUser : impersonatedUser).getName(), false,
                     authenticatedUser.getName(), request);
         } else {

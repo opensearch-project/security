@@ -145,8 +145,19 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
             //bypass non-netty requests
             if(channelType.equals("direct")) {
                 final String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
+                final String injectedUserHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER_HEADER);
 
-                if(!Strings.isNullOrEmpty(userHeader)) {
+                if(Strings.isNullOrEmpty(userHeader)) {
+                    //user can be null when a node client wants connect
+                    //getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, User.OPENDISTRO_SECURITY_INTERNAL);
+                    User user = null;
+                    if(!Strings.isNullOrEmpty(injectedUserHeader)) {
+                        final String principal = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PRINCIPAL);
+                        if((user = backendRegistry.authenticate(request, principal, task, task.getAction())) != null) {
+                            getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
+                        }
+                    }
+                } else {
                     getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, Objects.requireNonNull((User) Base64Helper.deserializeObject(userHeader)));
                 }
 
@@ -202,10 +213,17 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
                         || HeaderHelper.isTrustedClusterRequest(getThreadContext())) {
 
                     final String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
+                    final String injectedUserHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER_HEADER);
 
                     if(Strings.isNullOrEmpty(userHeader)) {
                         //user can be null when a node client wants connect
                         //getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, User.OPENDISTRO_SECURITY_INTERNAL);
+                        User user = null;
+                        if(!Strings.isNullOrEmpty(injectedUserHeader)) {
+                            if((user = backendRegistry.authenticate(request, principal, task, task.getAction())) != null) {
+                                getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
+                            }
+                        }
                     } else {
                         getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, Objects.requireNonNull((User) Base64Helper.deserializeObject(userHeader)));
                     }

@@ -40,6 +40,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.rest.RestRequest;
+import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
@@ -48,6 +49,7 @@ import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.OpenDistroSecurityUtils;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 import com.google.common.base.Strings;
+import org.elasticsearch.transport.TransportRequest;
 
 public class UserInjector {
 
@@ -66,33 +68,30 @@ public class UserInjector {
 
     }
 
-    boolean injectUser(RestRequest request) {
-
+    private User getUser(String injectedUserString) {
         if (!injectUserEnabled) {
-            return false;
+            return null;
         }
-
-        String injectedUserString = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER);
 
         if (log.isDebugEnabled()) {
             log.debug("Injected user string: {}", injectedUserString);
         }
 
         if (Strings.isNullOrEmpty(injectedUserString)) {
-            return false;
+            return null;
         }
         // username|role1,role2|remoteIP:port|attributeKey,attributeValue,attributeKey,attributeValue, ...|requestedTenant
         String[] parts = injectedUserString.split("\\|");
 
         if (parts.length == 0) {
             log.error("User string malformed, could not extract parts. User string was '{}.' User injection failed.", injectedUserString);
-            return false;
+            return null;
         }
 
         // username
         if (Strings.isNullOrEmpty(parts[0])) {
             log.error("Username must not be null, user string was '{}.' User injection failed.", injectedUserString);
-            return false;
+            return null;
         }
 
         final User user = new User(parts[0]);
@@ -109,7 +108,7 @@ public class UserInjector {
             Map<String, String> attributes = OpenDistroSecurityUtils.mapFromArray((parts[3].split(",")));
             if (attributes == null) {
                 log.error("Could not parse custom attributes {}, user injection failed.", parts[3]);
-                return false;
+                return null;
             } else {
                 user.addAttributes(attributes);
             }
@@ -120,6 +119,20 @@ public class UserInjector {
             user.setRequestedTenant(parts[4]);
         }
 
+        // mark user injected for proper admin handling
+        user.setInjected(true);
+        return user;
+    }
+
+    boolean injectUser(RestRequest request) {
+        String injectedUserString = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER);
+
+        User user = getUser(injectedUserString);
+        if(user == null) {
+            return false;
+        }
+
+        String[] parts = injectedUserString.split("\\|");
         // remote IP - we can set it only once, so we do it last. If non is given,
         // BackendRegistry/XFFResolver will do the job
         if (parts.length > 2 && !Strings.isNullOrEmpty(parts[2])) {
@@ -142,8 +155,6 @@ public class UserInjector {
             threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, xffResolver.resolve(request));
         }
 
-        // mark user injected for proper admin handling
-        user.setInjected(true);
 
         threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
         auditLog.logSucceededLogin(parts[0], true, null, request);
@@ -152,5 +163,18 @@ public class UserInjector {
         }
         return true;
 
+    }
+
+    User injectUser(TransportRequest transportRequest, Task task, String action) {
+        String injectedUserString = threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER_HEADER);
+        User user = getUser(injectedUserString);
+        if(user == null) {
+            return null;
+        }
+        auditLog.logSucceededLogin(user.getName(), true, null, transportRequest, action, task);
+        if (log.isTraceEnabled()) {
+            log.trace("Injected user object:{} ", user.toString());
+        }
+        return user;
     }
 }
