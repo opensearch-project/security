@@ -66,10 +66,34 @@ public class UserInjector {
 
     }
 
-    boolean injectUser(RestRequest request) {
+    public static class InjectedUser extends User {
+        private transient TransportAddress transportAddress;
 
+        public InjectedUser(String name) {
+            super(name);
+        }
+
+        public TransportAddress getTransportAddress() {
+            return transportAddress;
+        }
+
+        public void setTransportAddress(String addr) throws UnknownHostException, IllegalArgumentException {
+            // format is ip:port
+            String[] ipAndPort = addr.split(":");
+            if (ipAndPort.length != 2) {
+                throw new IllegalArgumentException("Remote address must have format ip:port");
+            }
+
+            InetAddress iAdress = InetAddress.getByName(ipAndPort[0]);
+            int port = Integer.parseInt(ipAndPort[1]);
+
+            this.transportAddress = new TransportAddress(iAdress, port);
+        }
+    }
+
+    InjectedUser getInjectedUser() {
         if (!injectUserEnabled) {
-            return false;
+            return null;
         }
 
         String injectedUserString = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER);
@@ -79,28 +103,28 @@ public class UserInjector {
         }
 
         if (Strings.isNullOrEmpty(injectedUserString)) {
-            return false;
+            return null;
         }
         // username|role1,role2|remoteIP:port|attributeKey,attributeValue,attributeKey,attributeValue, ...|requestedTenant
         String[] parts = injectedUserString.split("\\|");
 
         if (parts.length == 0) {
             log.error("User string malformed, could not extract parts. User string was '{}.' User injection failed.", injectedUserString);
-            return false;
+            return null;
         }
 
         // username
         if (Strings.isNullOrEmpty(parts[0])) {
             log.error("Username must not be null, user string was '{}.' User injection failed.", injectedUserString);
-            return false;
+            return null;
         }
 
-        final User user = new User(parts[0]);
+        final InjectedUser injectedUser = new InjectedUser(parts[0]);
 
         // backend roles
         if (parts.length > 1 && !Strings.isNullOrEmpty(parts[1])) {
             if (parts[1].length() > 0) {
-                user.addRoles(Arrays.asList(parts[1].split(",")));
+                injectedUser.addRoles(Arrays.asList(parts[1].split(",")));
             }
         }
 
@@ -109,48 +133,55 @@ public class UserInjector {
             Map<String, String> attributes = OpenDistroSecurityUtils.mapFromArray((parts[3].split(",")));
             if (attributes == null) {
                 log.error("Could not parse custom attributes {}, user injection failed.", parts[3]);
-                return false;
+                return null;
             } else {
-                user.addAttributes(attributes);
+                injectedUser.addAttributes(attributes);
             }
         }
 
         // requested tenant
         if (parts.length > 4 && !Strings.isNullOrEmpty(parts[4])) {
-            user.setRequestedTenant(parts[4]);
+            injectedUser.setRequestedTenant(parts[4]);
         }
 
         // remote IP - we can set it only once, so we do it last. If non is given,
         // BackendRegistry/XFFResolver will do the job
         if (parts.length > 2 && !Strings.isNullOrEmpty(parts[2])) {
-            // format is ip:port
-            String[] ipAndPort = parts[2].split(":");
-            if (ipAndPort.length != 2) {
-                log.error("Remote address must have format ip:port, was: {}. User injection failed.", parts[2]);
-                return false;
-            } else {
-                try {
-                    InetAddress iAdress = InetAddress.getByName(ipAndPort[0]);
-                    int port = Integer.parseInt(ipAndPort[1]);
-                    threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, new TransportAddress(iAdress, port));
-                } catch (UnknownHostException | NumberFormatException e) {
-                    log.error("Cannot parse remote IP or port: {}, user injection failed.", parts[2], e);
-                    return false;
-                }
+            try {
+                injectedUser.setTransportAddress(parts[2]);
+            } catch (UnknownHostException | IllegalArgumentException e) {
+                log.error("Cannot parse remote IP or port: {}, user injection failed.", parts[2], e);
+                return null;
             }
+        }
+
+        // mark user injected for proper admin handling
+        injectedUser.setInjected(true);
+
+        if (log.isTraceEnabled()) {
+            log.trace("Injected user object:{} ", injectedUser.toString());
+        }
+
+        return injectedUser;
+    }
+
+
+    boolean injectUser(RestRequest request) {
+        InjectedUser injectedUser = getInjectedUser();
+        if(injectedUser == null) {
+            return false;
+        }
+
+        // Set remote address into the thread context
+        if (injectedUser.getTransportAddress() != null) {
+            threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, injectedUser.getTransportAddress());
         } else {
             threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, xffResolver.resolve(request));
         }
 
-        // mark user injected for proper admin handling
-        user.setInjected(true);
+        threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, injectedUser);
+        auditLog.logSucceededLogin(injectedUser.getName(), true, null, request);
 
-        threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
-        auditLog.logSucceededLogin(parts[0], true, null, request);
-        if (log.isTraceEnabled()) {
-            log.trace("Injected user object:{} ", user.toString());
-        }
         return true;
-
     }
 }
