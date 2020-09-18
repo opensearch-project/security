@@ -229,18 +229,28 @@ public class BackendRegistry {
     }
 
     public User authenticate(final TransportRequest request, final String sslPrincipal, final Task task, final String action) {
+        if(log.isDebugEnabled() && request.remoteAddress() != null) {
+            log.debug("Transport authentication request from {}", request.remoteAddress());
+        }
 
-    	  if(log.isDebugEnabled() && request.remoteAddress() != null) {
-    		  log.debug("Transport authentication request from {}", request.remoteAddress());
-    	  }
+        if (request.remoteAddress() != null && isBlocked(request.remoteAddress().address().getAddress())) {
+            if (log.isDebugEnabled()) {
+                log.debug("Rejecting transport request because of blocked address: " + request.remoteAddress());
+            }
+            return null;
+        }
 
-    	  if (request.remoteAddress() != null && isBlocked(request.remoteAddress().address().getAddress())) {
-    	      if (log.isDebugEnabled()) {
-    	          log.debug("Rejecting transport request because of blocked address: " + request.remoteAddress());
-    	      }
-    	      return null;
-    	  }
+        UserInjector.InjectedUser injectedUser = userInjector.getInjectedUser();
 
+        if(injectedUser != null) {
+            auditLog.logSucceededLogin(injectedUser.getName(), true, null, request, action, task);
+            return injectedUser;
+        }
+
+        if(sslPrincipal == null) {
+            return null;
+        }
+        
         User origPKIUser = new User(sslPrincipal);
         
         if(adminDns.isAdmin(origPKIUser)) {
