@@ -98,6 +98,7 @@ public class OpenDistroSecurityIndexSearcherWrapper implements CheckedFunction<D
         }
 
         if (systemIndexEnabled && isBlockedSystemIndexRequest() && !isAdminDnOrPluginRequest()) {
+            log.warn("search action for {} is not allowed for a non adminDN user", index.getName());
             return new EmptyFilterLeafReader.EmptyDirectoryReader(reader);
         }
 

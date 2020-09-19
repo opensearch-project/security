@@ -765,7 +765,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         final CompatConfig compatConfig = new CompatConfig(environment);
 
         evaluator = new PrivilegesEvaluator(clusterService, threadPool, cr, resolver, auditLog,
-                settings, privilegesInterceptor, cih, irr, advancedModulesEnabled, adminDns);
+                settings, privilegesInterceptor, cih, irr, advancedModulesEnabled);
 
         odsf = new OpenDistroSecurityFilter(settings, evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs, compatConfig, irr);
 

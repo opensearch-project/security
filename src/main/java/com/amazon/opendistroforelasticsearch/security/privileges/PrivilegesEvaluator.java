@@ -37,7 +37,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import com.amazon.opendistroforelasticsearch.security.configuration.AdminDNs;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchSecurityException;
@@ -115,19 +115,17 @@ public class PrivilegesEvaluator {
     private final SnapshotRestoreEvaluator snapshotRestoreEvaluator;
     private final OpenDistroSecurityIndexAccessEvaluator securityIndexAccessEvaluator;
     private final OpenDistroProtectedIndexAccessEvaluator protectedIndexAccessEvaluator;
-    private final OpenDistroSystemIndexAccessEvaluator systemIndexAccessEvaluator;
     private final TermsAggregationEvaluator termsAggregationEvaluator;
 
     private final DlsFlsEvaluator dlsFlsEvaluator;
 
     private final boolean advancedModulesEnabled;
     private DynamicConfigModel dcm;
-    final AdminDNs adminDns;
 
     public PrivilegesEvaluator(final ClusterService clusterService, final ThreadPool threadPool,
                                final ConfigurationRepository configurationRepository, final IndexNameExpressionResolver resolver,
                                AuditLog auditLog, final Settings settings, final PrivilegesInterceptor privilegesInterceptor, final ClusterInfoHolder clusterInfoHolder,
-                               final IndexResolverReplacer irr, boolean advancedModulesEnabled, final AdminDNs adminDns) {
+                               final IndexResolverReplacer irr, boolean advancedModulesEnabled) {
 
         super();
         this.clusterService = clusterService;
@@ -146,11 +144,9 @@ public class PrivilegesEvaluator {
         snapshotRestoreEvaluator = new SnapshotRestoreEvaluator(settings, auditLog);
         securityIndexAccessEvaluator = new OpenDistroSecurityIndexAccessEvaluator(settings, auditLog, irr);
         protectedIndexAccessEvaluator = new OpenDistroProtectedIndexAccessEvaluator(settings, auditLog);
-        systemIndexAccessEvaluator = new OpenDistroSystemIndexAccessEvaluator(settings, auditLog);
         dlsFlsEvaluator = new DlsFlsEvaluator(settings, threadPool);
         termsAggregationEvaluator = new TermsAggregationEvaluator();
         this.advancedModulesEnabled = advancedModulesEnabled;
-        this.adminDns = adminDns;
     }
 
     @Subscribe
@@ -229,11 +225,6 @@ public class PrivilegesEvaluator {
 
         // Protected index access
         if (protectedIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved, presponse, securityRoles).isComplete()) {
-            return presponse;
-        }
-
-        if (systemIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved,
-                presponse, isAdminDN(user, adminDns)).isComplete()) {
             return presponse;
         }
 
@@ -642,12 +633,5 @@ public class PrivilegesEvaluator {
         }
 
         return Collections.unmodifiableList(ret);
-    }
-
-    private static boolean isAdminDN(User user, final AdminDNs adminDns) {
-        if (user != null && adminDns.isAdminDN(user.getName())) {
-            return true;
-        }
-        return false;
     }
 }
