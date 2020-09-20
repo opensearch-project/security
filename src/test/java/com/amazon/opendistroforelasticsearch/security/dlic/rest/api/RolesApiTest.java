@@ -466,19 +466,19 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
 
         // Delete read only roles
         response = rh.executeDeleteRequest("/_opendistro/_security/api/roles/opendistro_security_transport_client" , new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_METHOD_NOT_ALLOWED, response.getStatusCode());
 
         // Put read only roles
         response = rh.executePutRequest("/_opendistro/_security/api/roles/opendistro_security_transport_client", "[{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"foo\" }]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_METHOD_NOT_ALLOWED, response.getStatusCode());
 
         // Patch single read only roles
         response = rh.executePatchRequest("/_opendistro/_security/api/roles/opendistro_security_transport_client", "[{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"foo\" }]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_METHOD_NOT_ALLOWED, response.getStatusCode());
 
         // Patch multiple read only roles
         response = rh.executePatchRequest("/_opendistro/_security/api/roles/", "[{ \"op\": \"add\", \"path\": \"/opendistro_security_transport_client/description\", \"value\": \"foo\" }]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_METHOD_NOT_ALLOWED, response.getStatusCode());
 
         // get hidden role
         response = rh.executeGetRequest("_opendistro/_security/api/roles/opendistro_security_internal");
@@ -490,7 +490,7 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
 
         // put hidden role
         response = rh.executePutRequest("/_opendistro/_security/api/roles/opendistro_security_internal", "[{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"foo\" }]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
 
         // Patch single hidden roles
         response = rh.executePatchRequest("/_opendistro/_security/api/roles/opendistro_security_internal", "[{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"foo\" }]", new Header[0]);
@@ -498,7 +498,7 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
 
         // Patch multiple hidden roles
         response = rh.executePatchRequest("/_opendistro/_security/api/roles/", "[{ \"op\": \"add\", \"path\": \"/opendistro_security_internal/description\", \"value\": \"foo\" }]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
 
     }
 

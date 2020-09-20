@@ -146,13 +146,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
 		final SecurityDynamicConfiguration<?> existingConfiguration = load(getConfigName(), false);
 
-		if (isHidden(existingConfiguration, name)) {
-			notFound(channel, getResourceName() + " " + name + " not found.");
-			return;
-		}
-
-		if (isReadOnly(existingConfiguration, name)) {
-			forbidden(channel, "Resource '"+ name +"' is read-only.");
+		if (isWriteable(channel, existingConfiguration, name)) {
 			return;
 		}
 
@@ -189,13 +183,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		    return;
 		}
 
-		if (isHidden(existingConfiguration, name)) {
-			forbidden(channel, "Resource '"+ name +"' is not available.");
-			return;
-		}
-
-		if (isReadOnly(existingConfiguration, name)) {
-			forbidden(channel, "Resource '"+ name +"' is read-only.");
+		if (isWriteable(channel, existingConfiguration, name)) {
 			return;
 		}
 
@@ -529,6 +517,10 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 				"Method " + method.name() + " not supported for this action.");
 	}
 
+	void methodNotAllowed(RestChannel channel, String message) {
+        response(channel, RestStatus.METHOD_NOT_ALLOWED, message);
+    }
+
 	protected final boolean isReserved(SecurityDynamicConfiguration<?> configuration, String resourceName) {
 		if(isStatic(configuration, resourceName)) { //static is also always reserved
 			return true;
@@ -606,10 +598,23 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		}
 
 		if (isReadOnly(rolesMappingConfiguration, role)) {
-			forbidden(channel, "Role '" + role + "' has read-only role-mapping.");
+			methodNotAllowed(channel, "Role '" + role + "' has read-only role-mapping.");
 			return false;
 		}
 		return true;
 	}
 
+	boolean isWriteable(final RestChannel channel, final SecurityDynamicConfiguration<?> configuration, final String name) {
+		if (isHidden(configuration, name)) {
+			notFound(channel, "Resource '"+ name +"' is not available.");
+			return true;
+		}
+
+		if (isReadOnly(configuration, name)) {
+            methodNotAllowed(channel, "Resource '"+ name +"' is read-only.");
+			return true;
+		}
+
+		return false;
+	}
 }

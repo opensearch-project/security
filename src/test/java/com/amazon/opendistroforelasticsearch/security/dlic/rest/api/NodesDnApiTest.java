@@ -143,7 +143,7 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
             rh.keystore = "restapi/kirk-keystore.jks";
             rh.sendAdminCertificate = true;
 
-            final int expectedStatus = HttpStatus.SC_FORBIDDEN;
+            final int expectedStatus = HttpStatus.SC_METHOD_NOT_ALLOWED;
 
             response = rh.executePutRequest("_opendistro/_security/api/nodesdn/" + NodesDnApiAction.STATIC_ES_YML_NODES_DN, "{\"nodes_dn\": [\"cn=popeye\"]}", nonAdminCredsHeader);
             assertThat(response.getBody(), response.getStatusCode(), equalTo(expectedStatus));

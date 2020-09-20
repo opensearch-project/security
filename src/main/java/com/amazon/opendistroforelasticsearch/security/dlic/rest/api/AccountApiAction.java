@@ -15,7 +15,6 @@
 
 package com.amazon.opendistroforelasticsearch.security.dlic.rest.api;
 
-import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
 import com.amazon.opendistroforelasticsearch.security.configuration.AdminDNs;
 import com.amazon.opendistroforelasticsearch.security.configuration.ConfigurationRepository;
@@ -30,7 +29,6 @@ import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.SecurityJsonNode;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.client.Client;
@@ -193,13 +191,7 @@ public class AccountApiAction extends AbstractApiAction {
             return;
         }
 
-        if (isHidden(internalUser, username)) {
-            forbidden(channel, "Resource '" + username + "' is not available.");
-            return;
-        }
-
-        if (isReadOnly(internalUser, username)) {
-            forbidden(channel, "Resource '" + username + "' is read-only.");
+        if (isWriteable(channel, internalUser, username)) {
             return;
         }
 

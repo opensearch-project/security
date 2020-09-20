@@ -150,7 +150,7 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         assertTrue(body.getAsBoolean("is_reserved", false));
         payload = "{\"password\":\"" + testPass + "\", \"current_password\":\"" + "sarek" + "\"}";
         response = rh.executePutRequest(ENDPOINT, payload, encodeBasicHeader("sarek", "sarek"));
-        assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        assertEquals(HttpStatus.SC_METHOD_NOT_ALLOWED, response.getStatusCode());
 
         // test - hidden user - hide
         response = rh.executeGetRequest(ENDPOINT, encodeBasicHeader("hide", "hide"));
@@ -159,7 +159,7 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         assertTrue(body.getAsBoolean("is_hidden", false));
         payload = "{\"password\":\"" + testPass + "\", \"current_password\":\"" + "hide" + "\"}";
         response = rh.executePutRequest(ENDPOINT, payload, encodeBasicHeader("hide", "hide"));
-        assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
 
         // test - admin with admin cert - internal user does not exist
         rh.keystore = "restapi/kirk-keystore.jks";
