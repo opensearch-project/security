@@ -146,7 +146,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
 		final SecurityDynamicConfiguration<?> existingConfiguration = load(getConfigName(), false);
 
-		if (isWriteable(channel, existingConfiguration, name)) {
+		if (!isWriteable(channel, existingConfiguration, name)) {
 			return;
 		}
 
@@ -183,7 +183,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		    return;
 		}
 
-		if (isWriteable(channel, existingConfiguration, name)) {
+		if (!isWriteable(channel, existingConfiguration, name)) {
 			return;
 		}
 
@@ -607,14 +607,14 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 	boolean isWriteable(final RestChannel channel, final SecurityDynamicConfiguration<?> configuration, final String name) {
 		if (isHidden(configuration, name)) {
 			notFound(channel, "Resource '"+ name +"' is not available.");
-			return true;
+			return false;
 		}
 
 		if (isReadOnly(configuration, name)) {
             methodNotAllowed(channel, "Resource '"+ name +"' is read-only.");
-			return true;
+			return false;
 		}
 
-		return false;
+		return true;
 	}
 }

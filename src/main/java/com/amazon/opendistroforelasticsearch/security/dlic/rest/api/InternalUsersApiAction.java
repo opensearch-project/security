@@ -101,7 +101,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
 
         final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);
 
-        if (isWriteable(channel, internalUsersConfiguration, username)) {
+        if (!isWriteable(channel, internalUsersConfiguration, username)) {
             return;
         }
 

@@ -191,7 +191,7 @@ public class AccountApiAction extends AbstractApiAction {
             return;
         }
 
-        if (isWriteable(channel, internalUser, username)) {
+        if (!isWriteable(channel, internalUser, username)) {
             return;
         }
 

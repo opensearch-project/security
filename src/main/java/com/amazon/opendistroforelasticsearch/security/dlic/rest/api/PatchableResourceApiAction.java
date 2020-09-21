@@ -107,7 +107,7 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
     private void handleSinglePatch(RestChannel channel, RestRequest request, Client client, String name,
             SecurityDynamicConfiguration<?> existingConfiguration, ObjectNode existingAsObjectNode, JsonNode jsonPatch) throws IOException {
 
-        if (isWriteable(channel, existingConfiguration, name)) {
+        if (!isWriteable(channel, existingConfiguration, name)) {
             return;
         }
 
@@ -184,7 +184,7 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
             JsonNode oldResource = existingAsObjectNode.get(resourceName);
             JsonNode patchedResource = patchedAsJsonNode.get(resourceName);
 
-            if (oldResource != null && !oldResource.equals(patchedResource) && isWriteable(channel, existingConfiguration, resourceName)) {
+            if (oldResource != null && !oldResource.equals(patchedResource) && !isWriteable(channel, existingConfiguration, resourceName)) {
                 return;
             }
         }
