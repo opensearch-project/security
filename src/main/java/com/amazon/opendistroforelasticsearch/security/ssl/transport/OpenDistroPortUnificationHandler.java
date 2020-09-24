@@ -1,5 +1,5 @@
 /*
- * Portions Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -38,20 +38,20 @@ import java.util.List;
  */
 public class OpenDistroPortUnificationHandler extends ByteToMessageDecoder {
 
-    private final OpenDistroSecurityKeyStore odsks;
     private static final Logger logger = LogManager.getLogger(OpenDistroPortUnificationHandler.class);
+    private final OpenDistroSecurityKeyStore openDistroSecurityKeyStore;
 
-    private SslHandler providedSSLHandler;
-    private SSLUtil sslUtils;
+    private final SslHandler providedSSLHandler;
+    private final SSLUtil sslUtils;
 
-    public OpenDistroPortUnificationHandler(OpenDistroSecurityKeyStore odsks, SSLUtil sslUtils) {
-        this(odsks, null, sslUtils);
+    public OpenDistroPortUnificationHandler(OpenDistroSecurityKeyStore openDistroSecurityKeyStore, SSLUtil sslUtils) {
+        this(openDistroSecurityKeyStore, null, sslUtils);
     }
 
     @VisibleForTesting
-    protected OpenDistroPortUnificationHandler(OpenDistroSecurityKeyStore odsks, SslHandler providedSSLHandler,
+    protected OpenDistroPortUnificationHandler(OpenDistroSecurityKeyStore openDistroSecurityKeyStore, SslHandler providedSSLHandler,
                                                SSLUtil sslUtils) {
-        this.odsks = odsks;
+        this.openDistroSecurityKeyStore = openDistroSecurityKeyStore;
         this.providedSSLHandler = providedSSLHandler;
         this.sslUtils = sslUtils;
     }
@@ -85,7 +85,7 @@ public class OpenDistroPortUnificationHandler extends ByteToMessageDecoder {
         if (providedSSLHandler != null) {
             sslHandler = providedSSLHandler;
         } else {
-            sslHandler = new SslHandler(odsks.createServerTransportSSLEngine());
+            sslHandler = new SslHandler(openDistroSecurityKeyStore.createServerTransportSSLEngine());
         }
         ChannelPipeline p = ctx.pipeline();
         p.addAfter("port_unification_handler", "ssl_server", sslHandler);

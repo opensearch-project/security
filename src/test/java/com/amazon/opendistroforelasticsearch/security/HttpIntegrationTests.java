@@ -33,7 +33,6 @@ package com.amazon.opendistroforelasticsearch.security;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 
-import com.amazon.opendistroforelasticsearch.security.ssl.transport.OpenDistroSSLDualModeConfigTestHelper;
 import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpStatus;
 import org.apache.http.NoHttpResponseException;
@@ -698,7 +697,6 @@ public class HttpIntegrationTests extends SingleClusterTest {
     }
 
     private void testSslOnlyMode(boolean dualModeEnabled) throws Exception {
-        OpenDistroSSLDualModeConfigTestHelper.resetDualModeConfig();
         final Settings settings = Settings.builder()
                 .put(ConfigConstants.OPENDISTRO_SECURITY_SSL_ONLY, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_SSL_DUAL_MODE_ENABLED, dualModeEnabled)
@@ -751,8 +749,6 @@ public class HttpIntegrationTests extends SingleClusterTest {
 
     @Test
     public void testSslOnlyModeDualModeWithNonSSLMasterNode() throws Exception {
-        OpenDistroSSLDualModeConfigTestHelper.resetDualModeConfig();
-
         final Settings settings = Settings.builder()
                 .put(ConfigConstants.OPENDISTRO_SECURITY_SSL_ONLY, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_SSL_DUAL_MODE_ENABLED, true)
@@ -766,8 +762,6 @@ public class HttpIntegrationTests extends SingleClusterTest {
 
     @Test
     public void testSslOnlyModeDualModeWithNonSSLDataNode() throws Exception {
-        OpenDistroSSLDualModeConfigTestHelper.resetDualModeConfig();
-
         final Settings settings = Settings.builder()
                 .put(ConfigConstants.OPENDISTRO_SECURITY_SSL_ONLY, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_SSL_DUAL_MODE_ENABLED, true)

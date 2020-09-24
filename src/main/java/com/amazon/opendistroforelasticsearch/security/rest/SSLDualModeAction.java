@@ -1,5 +1,5 @@
 /*
- * Portions Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -37,14 +37,10 @@ import static org.elasticsearch.rest.RestRequest.Method.PUT;
 
 public class SSLDualModeAction extends BaseRestHandler {
 
+    private static final Logger logger = LogManager.getLogger(SSLDualModeAction.class);
     private static final String RESPONSE_ENABLED_FIELD = "enabled";
     private static final String RESPONSE_ERROR_FIELD = "error";
-
-    private ClusterSettings clusterSettings;
-    private Settings settings;
-
-    private static final Logger logger = LogManager.getLogger(SSLDualModeAction.class);
-
+    private final OpenDistroSSLDualModeConfig openDistroSSLDualModeConfig;
     private static final List<Route> routes = ImmutableList.of(
             // gets the current status of ssl dual mode
             new Route(GET, "/_opendistro/_security/ssl_dual_mode"),
@@ -54,9 +50,13 @@ public class SSLDualModeAction extends BaseRestHandler {
             new Route(PUT, "/_opendistro/_security/ssl_dual_mode/_enable")
     );
 
-    public SSLDualModeAction(final Settings settings, final ClusterSettings clusterSettings) {
+    private final ClusterSettings clusterSettings;
+    private final Settings settings;
+
+    public SSLDualModeAction(final Settings settings, final ClusterSettings clusterSettings, final OpenDistroSSLDualModeConfig openDistroSSLDualModeConfig) {
         this.settings = settings;
         this.clusterSettings = clusterSettings;
+        this.openDistroSSLDualModeConfig = openDistroSSLDualModeConfig;
     }
 
     @Override
@@ -76,18 +76,28 @@ public class SSLDualModeAction extends BaseRestHandler {
             public void accept(RestChannel restChannel) throws Exception {
 
                 switch (request.method()) {
-                    case GET:
-                        boolean dualModeEnabled = OpenDistroSSLDualModeConfig.getInstance().isDualModeEnabled();
+                    case GET: {
+                        boolean dualModeEnabled = false;
+                        if(openDistroSSLDualModeConfig.isDualModeEnabled()) {
+                            dualModeEnabled = true;
+                        }
                         BytesRestResponse response = getDualModeResponse(restChannel, dualModeEnabled);
                         restChannel.sendResponse(response);
                         break;
-                    case PUT:
+                    }
+                    case PUT: {
                         try {
                             final boolean enableDualMode;
                             if (request.path().endsWith("_enable")) {
                                 enableDualMode = true;
-                            } else {
+                            } else if (request.path().endsWith("_disable")) {
                                 enableDualMode = false;
+                            } else {
+                                logger.error("Unsupported operation: {}", request.path());
+                                BytesRestResponse response = getErrorMessageResponse(restChannel,
+                                    String.format("Unsupported operation: {}", request.path()));
+                                restChannel.sendResponse(response);
+                                break;
                             }
 
                             Settings dualModeSetting = Settings.builder()
@@ -113,11 +123,12 @@ public class SSLDualModeAction extends BaseRestHandler {
                                 });
                         } catch (Exception e) {
                             logger.error("Unable to update open distro SSL dual mode settings", e);
-                            response = getErrorMessageResponse(restChannel,
-                                    String.format("Unable to apply opendistro ssl dual mode settings due to %s", e.getMessage()));
+                            BytesRestResponse response = getErrorMessageResponse(restChannel,
+                                String.format("Unable to apply opendistro ssl dual mode settings due to %s", e.getMessage()));
                             restChannel.sendResponse(response);
                         }
                         break;
+                    }
                 }
 
             }

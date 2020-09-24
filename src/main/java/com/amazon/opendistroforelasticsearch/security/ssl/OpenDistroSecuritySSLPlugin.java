@@ -19,6 +19,7 @@ package com.amazon.opendistroforelasticsearch.security.ssl;
 
 import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
 import com.amazon.opendistroforelasticsearch.security.NonValidatingObjectMapper;
+import com.amazon.opendistroforelasticsearch.security.ssl.transport.OpenDistroSSLDualModeConfig;
 import com.fasterxml.jackson.databind.InjectableValues;
 import io.netty.handler.ssl.OpenSsl;
 import io.netty.util.internal.PlatformDependent;
@@ -101,13 +102,13 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin,
     protected PrincipalExtractor principalExtractor;
     protected final Path configPath;
     private final static SslExceptionHandler NOOP_SSL_EXCEPTION_HANDLER = new SslExceptionHandler() {};
-    
+    protected OpenDistroSSLDualModeConfig openDistroSSLDualModeConfig;
+
 //    public OpenDistroSecuritySSLPlugin(final Settings settings, final Path configPath) {
 //        this(settings, configPath, false);
 //    }
 
     protected OpenDistroSecuritySSLPlugin(final Settings settings, final Path configPath, boolean disabled) {
-     
         if(disabled) {
             this.settings = null;
             this.sharedGroupFactory = null;
@@ -267,7 +268,8 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin,
         Map<String, Supplier<Transport>> transports = new HashMap<String, Supplier<Transport>>();
         if (transportSSLEnabled) {
             transports.put("com.amazon.opendistroforelasticsearch.security.ssl.http.netty.OpenDistroSecuritySSLNettyTransport",
-                    () -> new OpenDistroSecuritySSLNettyTransport(settings, Version.CURRENT, threadPool, networkService, pageCacheRecycler, namedWriteableRegistry, circuitBreakerService, odsks, NOOP_SSL_EXCEPTION_HANDLER, sharedGroupFactory));
+                    () -> new OpenDistroSecuritySSLNettyTransport(settings, Version.CURRENT, threadPool, networkService, pageCacheRecycler, namedWriteableRegistry, circuitBreakerService, odsks, NOOP_SSL_EXCEPTION_HANDLER, sharedGroupFactory,
+                        openDistroSSLDualModeConfig));
 
         }
         return transports;
