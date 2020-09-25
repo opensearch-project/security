@@ -61,7 +61,7 @@ public class OpenDistroSecurityIndexAccessEvaluator {
 
     // for system-indices configuration
     private final WildcardMatcher systemIndexMatcher;
-    private final Boolean systemIndexEnabled;
+    private final boolean systemIndexEnabled;
 
     public OpenDistroSecurityIndexAccessEvaluator(final Settings settings, AuditLog auditLog, IndexResolverReplacer irr) {
         this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
@@ -155,6 +155,6 @@ public class OpenDistroSecurityIndexAccessEvaluator {
     }
 
     private boolean matchAnySystemIndices(final Resolved requestedResolved){
-        return systemIndexEnabled & systemIndexMatcher.matchAny(requestedResolved.getAllIndices());
+        return systemIndexEnabled && systemIndexMatcher.matchAny(requestedResolved.getAllIndices());
     }
 }
