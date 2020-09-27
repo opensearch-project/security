@@ -40,7 +40,9 @@ import java.util.stream.Collectors;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
+
 import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
 import com.amazon.opendistroforelasticsearch.security.auth.internal.InternalAuthenticationBackend;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v6.ConfigV6;
@@ -132,8 +134,8 @@ public class ConfigV7 {
         }
     }
 
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public static class Kibana {
-
         public boolean multitenancy_enabled = true;
         public String server_username = "kibanaserver";
         public String opendistro_role = "";
@@ -143,9 +145,6 @@ public class ConfigV7 {
             return "Kibana [multitenancy_enabled=" + multitenancy_enabled + ", server_username=" + server_username + ", opendistro_role=" + opendistro_role
             + ", index=" + index + "]";
         }
-        
-        
-        
     }
     
     public static class Http {

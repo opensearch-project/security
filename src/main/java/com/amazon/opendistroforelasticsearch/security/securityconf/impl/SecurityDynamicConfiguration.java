@@ -32,9 +32,9 @@
 package com.amazon.opendistroforelasticsearch.security.securityconf.impl;
 
 import java.io.IOException;
-import java.io.Reader;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -48,18 +48,57 @@ import org.elasticsearch.common.xcontent.XContentType;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.databind.ser.BeanPropertyWriter;
+import com.fasterxml.jackson.databind.ser.BeanSerializer;
+import com.fasterxml.jackson.databind.type.TypeFactory;
+
 import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
 import com.amazon.opendistroforelasticsearch.security.NonValidatingObjectMapper;
 import com.amazon.opendistroforelasticsearch.security.securityconf.Hashed;
 import com.amazon.opendistroforelasticsearch.security.securityconf.Hideable;
 import com.amazon.opendistroforelasticsearch.security.securityconf.StaticDefinable;
-import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.RoleV7;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v6.ConfigV6;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.ConfigV7;
 
 public class SecurityDynamicConfiguration<T> implements ToXContent {
     
     private static final TypeReference<HashMap<String,Object>> typeRefMSO = new TypeReference<HashMap<String,Object>>() {};
+    private static final String TRANSIENT = "transient";
+    public static final ToXContent.MapParams TRANSIENT_PARAMS = new ToXContent.MapParams(Collections.singletonMap(TRANSIENT, "true"));
+    private static final ObjectMapper objectMapper = createObjectMapper();
+
+    private static ObjectMapper createObjectMapper() {
+        final ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        objectMapper.enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION);
+        return registerModule(objectMapper);
+    }
+
+    private static ObjectMapper registerModule(ObjectMapper objectMapper) {
+        final SimpleModule module = new SimpleModule();
+        module.addSerializer(ConfigV7.Kibana.class, createSerializer(objectMapper, ConfigV7.Kibana.class));
+        module.addSerializer(ConfigV6.Kibana.class, createSerializer(objectMapper, ConfigV6.Kibana.class));
+        return objectMapper.registerModule(module);
+    }
+
+    private static JsonSerializer createSerializer(ObjectMapper objectMapper, Class cls) {
+        final TypeFactory typeFactory = objectMapper.getTypeFactory();
+        final JavaType type = typeFactory.constructType(cls);
+        final List<BeanPropertyDefinition> properties = objectMapper.getSerializationConfig().introspect(type).findProperties();
+        final BeanPropertyWriter[] beanPropertyWriters = properties.stream()
+                .map(p -> new BeanPropertyWriter(p, p.getPrimaryMember(), null, p.getPrimaryType(), null, null, null, false, null, null))
+                .toArray(size -> new BeanPropertyWriter[size]);
+        return new BeanSerializer(type, null, beanPropertyWriters, null);
+    }
 
     @JsonIgnore
     private final Map<String, T> centries = new HashMap<>();
@@ -219,8 +258,15 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     @Override
     @JsonIgnore
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        final boolean omitDefaults = params != null && params.paramAsBoolean("omit_defaults", false);
-        return builder.map(DefaultObjectMapper.readValue(DefaultObjectMapper.writeValueAsString(this, omitDefaults), typeRefMSO));
+        String json;
+        if (params == null) {
+            json = DefaultObjectMapper.writeValueAsString(this, false);
+        } else if (params.paramAsBoolean(TRANSIENT, false)) {
+            json = DefaultObjectMapper.writeValueAsString(objectMapper, this);
+        } else {
+            json = DefaultObjectMapper.writeValueAsString(this, params.paramAsBoolean("omit_defaults", false));
+        }
+        return builder.map(DefaultObjectMapper.readValue(json, typeRefMSO));
     }
     
     @Override

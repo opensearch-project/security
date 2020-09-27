@@ -40,6 +40,7 @@ import java.util.regex.Pattern;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
 import com.amazon.opendistroforelasticsearch.security.auth.internal.InternalAuthenticationBackend;
@@ -81,8 +82,8 @@ public class ConfigV6 {
         }
     }
 
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public static class Kibana {
-
         public boolean multitenancy_enabled = true;
         public String server_username = "kibanaserver";
         public String opendistro_role = "";
@@ -93,9 +94,6 @@ public class ConfigV6 {
             return "Kibana [multitenancy_enabled=" + multitenancy_enabled + ", server_username=" + server_username + ", opendistro_role=" + opendistro_role
                     + ", index=" + index + ", do_not_fail_on_forbidden=" + do_not_fail_on_forbidden + "]";
         }
-        
-        
-        
     }
     
     public static class Http {

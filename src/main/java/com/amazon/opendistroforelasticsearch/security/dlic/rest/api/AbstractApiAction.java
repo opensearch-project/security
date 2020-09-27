@@ -68,6 +68,8 @@ import com.amazon.opendistroforelasticsearch.security.ssl.transport.PrincipalExt
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 
+import static com.amazon.opendistroforelasticsearch.security.securityconf.impl.SecurityDynamicConfiguration.TRANSIENT_PARAMS;
+
 public abstract class AbstractApiAction extends BaseRestHandler {
 
 	protected final Logger log = LogManager.getLogger(this.getClass());
@@ -450,7 +452,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 	protected static XContentBuilder convertToJson(RestChannel channel, ToXContent toxContent) {
 		try {
 			XContentBuilder builder = channel.newBuilder();
-			toxContent.toXContent(builder, ToXContent.EMPTY_PARAMS);
+			toxContent.toXContent(builder, TRANSIENT_PARAMS);
 			return builder;
 		} catch (IOException e) {
 			throw ExceptionsHelper.convertToElastic(e);

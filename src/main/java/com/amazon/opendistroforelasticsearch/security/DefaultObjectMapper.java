@@ -161,6 +161,10 @@ public class DefaultObjectMapper {
     }
 
     public static String writeValueAsString(Object value, boolean omitDefaults) throws JsonProcessingException {
+        return writeValueAsString(omitDefaults ? defaulOmittingObjectMapper : objectMapper, value);
+    }
+
+    public static String writeValueAsString(ObjectMapper objectMapper, Object value) throws JsonProcessingException {
 
         final SecurityManager sm = System.getSecurityManager();
 
@@ -169,12 +173,7 @@ public class DefaultObjectMapper {
         }
 
         try {
-            return AccessController.doPrivileged(new PrivilegedExceptionAction<String>() {
-                @Override
-                public String run() throws Exception {
-                    return (omitDefaults?defaulOmittingObjectMapper:objectMapper).writeValueAsString(value);
-                }
-            });
+            return AccessController.doPrivileged((PrivilegedExceptionAction<String>) () -> objectMapper.writeValueAsString(value));
         } catch (final PrivilegedActionException e) {
             throw (JsonProcessingException) e.getCause();
         }
