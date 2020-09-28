@@ -249,7 +249,7 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES = "opendistro_security.unsupported.load_static_resources";
     public static final String OPENDISTRO_SECURITY_UNSUPPORTED_ACCEPT_INVALID_CONFIG = "opendistro_security.unsupported.accept_invalid_config";
 
-    // Protected indices settings
+    // Protected indices settings. Marked for deprecation, after all config indices move to System indices.
     public static final String OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_KEY = "opendistro_security.protected_indices.enabled";
     public static final Boolean OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_DEFAULT = false;
     public static final String OPENDISTRO_SECURITY_PROTECTED_INDICES_KEY = "opendistro_security.protected_indices.indices";
@@ -259,6 +259,12 @@ public class ConfigConstants {
 
     // Roles injection for plugins
     public static final String OPENDISTRO_SECURITY_INJECTED_ROLES = "opendistro_security_injected_roles";
+
+    // System indices settings
+    public static final String OPENDISTRO_SECURITY_SYSTEM_INDICES_ENABLED_KEY = "opendistro_security.system_indices.enabled";
+    public static final Boolean OPENDISTRO_SECURITY_SYSTEM_INDICES_ENABLED_DEFAULT = false;
+    public static final String OPENDISTRO_SECURITY_SYSTEM_INDICES_KEY = "opendistro_security.system_indices.indices";
+    public static final List<String> OPENDISTRO_SECURITY_SYSTEM_INDICES_DEFAULT = Collections.emptyList();
 
     public static Set<String> getSettingAsSet(final Settings settings, final String key, final List<String> defaultList, final boolean ignoreCaseForNone) {
         final List<String> list = settings.getAsList(key, defaultList);

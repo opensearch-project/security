@@ -58,12 +58,18 @@ public class OpenDistroSecurityIndexAccessEvaluator {
     private final WildcardMatcher securityDeniedActionMatcher;
     private final IndexResolverReplacer irr;
     private final boolean filterSecurityIndex;
-    
+
+    // for system-indices configuration
+    private final WildcardMatcher systemIndexMatcher;
+    private final boolean systemIndexEnabled;
+
     public OpenDistroSecurityIndexAccessEvaluator(final Settings settings, AuditLog auditLog, IndexResolverReplacer irr) {
         this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
         this.auditLog = auditLog;
         this.irr = irr;
         this.filterSecurityIndex = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_FILTER_SECURITYINDEX_FROM_ALL_REQUESTS, false);
+        this.systemIndexMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_SYSTEM_INDICES_KEY, ConfigConstants.OPENDISTRO_SECURITY_SYSTEM_INDICES_DEFAULT));
+        this.systemIndexEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_SYSTEM_INDICES_ENABLED_KEY, ConfigConstants.OPENDISTRO_SECURITY_SYSTEM_INDICES_ENABLED_DEFAULT);
 
         final boolean restoreSecurityIndexEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_RESTORE_SECURITYINDEX_ENABLED, false);
 
@@ -87,8 +93,7 @@ public class OpenDistroSecurityIndexAccessEvaluator {
     public PrivilegesEvaluatorResponse evaluate(final ActionRequest request, final Task task, final String action, final Resolved requestedResolved,
             final PrivilegesEvaluatorResponse presponse)  {
 
-        
-        if (requestedResolved.getAllIndices().contains(opendistrosecurityIndex)
+        if ((requestedResolved.getAllIndices().contains(opendistrosecurityIndex) || matchAnySystemIndices(requestedResolved))
                 && securityDeniedActionMatcher.test(action)) {
             if(filterSecurityIndex) {
                 Set<String> allWithoutSecurity = new HashSet<>(requestedResolved.getAllIndices());
@@ -129,7 +134,8 @@ public class OpenDistroSecurityIndexAccessEvaluator {
             }
         }
 
-        if(requestedResolved.getAllIndices().contains(opendistrosecurityIndex) || requestedResolved.isLocalAll()) {
+        if(requestedResolved.getAllIndices().contains(opendistrosecurityIndex) || requestedResolved.isLocalAll()
+                || matchAnySystemIndices(requestedResolved)) {
 
             if(request instanceof SearchRequest) {
                 ((SearchRequest)request).requestCache(Boolean.FALSE);
@@ -146,5 +152,9 @@ public class OpenDistroSecurityIndexAccessEvaluator {
             }
         }
         return presponse;
+    }
+
+    private boolean matchAnySystemIndices(final Resolved requestedResolved){
+        return systemIndexEnabled && systemIndexMatcher.matchAny(requestedResolved.getAllIndices());
     }
 }
