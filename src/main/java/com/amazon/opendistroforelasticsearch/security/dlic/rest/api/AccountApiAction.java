@@ -193,13 +193,7 @@ public class AccountApiAction extends AbstractApiAction {
             return;
         }
 
-        if (isHidden(internalUser, username)) {
-            forbidden(channel, "Resource '" + username + "' is not available.");
-            return;
-        }
-
-        if (isReadOnly(internalUser, username)) {
-            forbidden(channel, "Resource '" + username + "' is read-only.");
+        if (!isWriteable(channel, internalUser, username)) {
             return;
         }
 

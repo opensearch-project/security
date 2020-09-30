@@ -101,14 +101,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
 
         final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);
 
-        if (isHidden(internalUsersConfiguration, username)) {
-            forbidden(channel, "Resource '" + username + "' is not available.");
-            return;
-        }
-
-        // check if resource is writeable
-        if (isReadOnly(internalUsersConfiguration, username)) {
-            forbidden(channel, "Resource '" + username + "' is read-only.");
+        if (!isWriteable(channel, internalUsersConfiguration, username)) {
             return;
         }
 

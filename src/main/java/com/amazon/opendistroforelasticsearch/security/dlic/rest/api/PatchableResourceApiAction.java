@@ -106,13 +106,7 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
 
     private void handleSinglePatch(RestChannel channel, RestRequest request, Client client, String name,
             SecurityDynamicConfiguration<?> existingConfiguration, ObjectNode existingAsObjectNode, JsonNode jsonPatch) throws IOException {
-        if (isHidden(existingConfiguration, name)) {
-            notFound(channel, getResourceName() + " " + name + " not found.");
-            return;
-        }
-
-        if (isReadOnly(existingConfiguration, name)) {
-            forbidden(channel, "Resource '" + name + "' is read-only.");
+        if (!isWriteable(channel, existingConfiguration, name)) {
             return;
         }
 
@@ -189,17 +183,8 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
             JsonNode oldResource = existingAsObjectNode.get(resourceName);
             JsonNode patchedResource = patchedAsJsonNode.get(resourceName);
 
-            if (oldResource != null && !oldResource.equals(patchedResource)) {
-
-                if (isReadOnly(existingConfiguration, resourceName)) {
-                    forbidden(channel, "Resource '" + resourceName + "' is read-only.");
-                    return;
-                }
-
-                if (isHidden(existingConfiguration, resourceName)) {
-                    badRequestResponse(channel, "Resource name '" + resourceName + "' is reserved");
-                    return;
-                }
+            if (oldResource != null && !oldResource.equals(patchedResource) && !isWriteable(channel, existingConfiguration, resourceName)) {
+                return;
             }
         }
 

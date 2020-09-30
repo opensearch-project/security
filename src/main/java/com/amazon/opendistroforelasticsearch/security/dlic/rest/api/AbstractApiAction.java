@@ -146,13 +146,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
 		final SecurityDynamicConfiguration<?> existingConfiguration = load(getConfigName(), false);
 
-		if (isHidden(existingConfiguration, name)) {
-			notFound(channel, getResourceName() + " " + name + " not found.");
-			return;
-		}
-
-		if (isReadOnly(existingConfiguration, name)) {
-			forbidden(channel, "Resource '"+ name +"' is read-only.");
+		if (!isWriteable(channel, existingConfiguration, name)) {
 			return;
 		}
 
@@ -189,13 +183,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		    return;
 		}
 
-		if (isHidden(existingConfiguration, name)) {
-			forbidden(channel, "Resource '"+ name +"' is not available.");
-			return;
-		}
-
-		if (isReadOnly(existingConfiguration, name)) {
-			forbidden(channel, "Resource '"+ name +"' is read-only.");
+		if (!isWriteable(channel, existingConfiguration, name)) {
 			return;
 		}
 
@@ -600,16 +588,24 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 			return false;
 		}
 
-		if (isHidden(rolesConfiguration, role) || isHidden(rolesMappingConfiguration, role)) {
-			notFound(channel, "Role '"+role+"' is not available for role-mapping.");
+		if (isHidden(rolesConfiguration, role)) {
+			notFound(channel, "Role '" + role + "' is not available for role-mapping.");
 			return false;
 		}
 
-		if (isReadOnly(rolesMappingConfiguration, role)) {
-			forbidden(channel, "Role '" + role + "' has read-only role-mapping.");
+		return isWriteable(channel, rolesMappingConfiguration, role);
+	}
+
+	boolean isWriteable(final RestChannel channel, final SecurityDynamicConfiguration<?> configuration, final String resourceName) {
+		if (isHidden(configuration, resourceName)) {
+			notFound(channel, "Resource '" + resourceName + "' is not available.");
+			return false;
+		}
+
+		if (isReadOnly(configuration, resourceName)) {
+			forbidden(channel, "Resource '" + resourceName + "' is read-only.");
 			return false;
 		}
 		return true;
 	}
-
 }
