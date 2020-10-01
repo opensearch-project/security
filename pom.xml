@@ -885,11 +885,8 @@
                                 <fileSet>
                                     <directory>${project.build.directory}/releases/</directory>
                                     <includes>
-                                        <include>*.zip</include>
+                                        <include>opendistro_security-${version}.zip</include>
                                     </includes>
-                                    <excludes>
-                                        <exclude>*sgadmin*</exclude>
-                                    </excludes>
                                 </fileSet>
                             </fileSets>
                             <algorithms>
