@@ -55,7 +55,7 @@ import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenDistroSecurit
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import com.amazon.opendistroforelasticsearch.security.ssl.transport.OpenDistroSSLDualModeConfig;
+import com.amazon.opendistroforelasticsearch.security.ssl.transport.OpenDistroSSLConfig;
 import org.apache.lucene.search.QueryCachingPolicy;
 import org.apache.lucene.search.Weight;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -228,10 +228,6 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         return settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_DISABLED, false);
     }
     
-    private static boolean isSslOnlyMode(final Settings settings) {
-        return settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_SSL_ONLY, false);
-    }
-
     /**
      * SSL Cert Reload will be enabled only if security is not disabled and not in we are not using sslOnly mode.
      * @param settings Elastic configuration settings
@@ -243,7 +239,6 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
 
     public OpenDistroSecurityPlugin(final Settings settings, final Path configPath) {
         super(settings, configPath, isDisabled(settings));
-        openDistroSSLDualModeConfig = new OpenDistroSSLDualModeConfig(settings);
 
         disabled = isDisabled(settings);
         sslCertReloadEnabled = isSslCertReloadEnabled(settings);
@@ -257,7 +252,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             return;
         }
         
-        sslOnly = isSslOnlyMode(settings);
+        sslOnly = openDistroSSLConfig.isSslOnlyMode();
 
         if (sslOnly) {
             this.dlsFlsAvailable = false;
@@ -469,7 +464,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                 handlers.addAll(apiHandler);
                 log.debug("Added {} management rest handler(s)", apiHandler.size());
             } else {
-                handlers.add(new SSLDualModeAction(settings, clusterSettings, openDistroSSLDualModeConfig));
+                handlers.add(new SSLDualModeAction(settings, clusterSettings, openDistroSSLConfig));
             }
         }
 
@@ -668,7 +663,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         if (transportSSLEnabled) {
             transports.put("com.amazon.opendistroforelasticsearch.security.ssl.http.netty.OpenDistroSecuritySSLNettyTransport",
                     () -> new OpenDistroSecuritySSLNettyTransport(settings, Version.CURRENT, threadPool, networkService, pageCacheRecycler,
-                            namedWriteableRegistry, circuitBreakerService, odsks, evaluateSslExceptionHandler(), sharedGroupFactory, openDistroSSLDualModeConfig));
+                            namedWriteableRegistry, circuitBreakerService, odsks, evaluateSslExceptionHandler(), sharedGroupFactory, openDistroSSLConfig));
         }
         return transports;
     }
@@ -710,7 +705,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             Environment environment, NodeEnvironment nodeEnvironment, NamedWriteableRegistry namedWriteableRegistry,
             IndexNameExpressionResolver indexNameExpressionResolver, Supplier<RepositoriesService> repositoriesServiceSupplier) {
 
-        openDistroSSLDualModeConfig.registerClusterSettingsChangeListener(clusterService.getClusterSettings());
+        openDistroSSLConfig.registerClusterSettingsChangeListener(clusterService.getClusterSettings());
         if(sslOnly) {
             return super.createComponents(
                     localClient,
@@ -849,7 +844,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_SSL_ONLY, false, Property.NodeScope, Property.Filtered));
 
         // currently dual mode is supported only when ssl_only is enabled, but this stance would change in future
-        settings.add(OpenDistroSSLDualModeConfig.SSL_DUAL_MODE_SETTING);
+        settings.add(OpenDistroSSLConfig.SSL_DUAL_MODE_SETTING);
 
         // Protected index settings
         settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_DEFAULT, Property.NodeScope, Property.Filtered, Property.Final));

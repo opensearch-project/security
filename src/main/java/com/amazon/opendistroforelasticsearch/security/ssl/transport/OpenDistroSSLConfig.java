@@ -22,18 +22,18 @@ import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
-public class OpenDistroSSLDualModeConfig {
+public class OpenDistroSSLConfig {
 
     public static final Setting<Boolean> SSL_DUAL_MODE_SETTING = Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_SSL_DUAL_MODE_ENABLED,
             true, Setting.Property.NodeScope, Setting.Property.Dynamic, Setting.Property.Filtered);
 
-    private static final Logger logger = LogManager.getLogger(OpenDistroSSLDualModeConfig.class);
+    private static final Logger logger = LogManager.getLogger(OpenDistroSSLConfig.class);
 
-    private final boolean isSSLOnly;
+    private final boolean sslOnly;
     private volatile boolean dualModeEnabled;
 
-    public OpenDistroSSLDualModeConfig(final Settings settings) {
-        isSSLOnly = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_SSL_ONLY, false);
+    public OpenDistroSSLConfig(final Settings settings) {
+        sslOnly = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_SSL_ONLY, false);
         dualModeEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_SSL_DUAL_MODE_ENABLED,
                 false);
         logger.info("SSL dual mode is {}", isDualModeEnabled() ? "enabled" : "disabled");
@@ -53,7 +53,10 @@ public class OpenDistroSSLDualModeConfig {
 
     public boolean isDualModeEnabled() {
         // currently dual mode can be enabled only when SSLOnly is enabled. This stance can change in future.
-        return isSSLOnly && dualModeEnabled;
+        return sslOnly && dualModeEnabled;
     }
 
+    public boolean isSslOnlyMode() {
+        return sslOnly;
+    }
 }

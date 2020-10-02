@@ -61,18 +61,18 @@ public class OpenDistroSecuritySSLNettyTransport extends Netty4Transport {
     private final OpenDistroSecurityKeyStore odsks;
     private final SslExceptionHandler errorHandler;
     private final SSLUtil sslUtil;
-    private final OpenDistroSSLDualModeConfig openDistroSSLDualModeConfig;
+    private final OpenDistroSSLConfig openDistroSSLConfig;
 
     public OpenDistroSecuritySSLNettyTransport(final Settings settings, final Version version, final ThreadPool threadPool, final NetworkService networkService,
             final PageCacheRecycler pageCacheRecycler, final NamedWriteableRegistry namedWriteableRegistry,
             final CircuitBreakerService circuitBreakerService, final OpenDistroSecurityKeyStore odsks, final SslExceptionHandler errorHandler, SharedGroupFactory sharedGroupFactory,
-            final OpenDistroSSLDualModeConfig openDistroSSLDualModeConfig) {
+            final OpenDistroSSLConfig openDistroSSLConfig) {
         super(settings, version, threadPool, networkService, pageCacheRecycler, namedWriteableRegistry, circuitBreakerService, sharedGroupFactory);
 
         this.odsks = odsks;
         this.errorHandler = errorHandler;
         this.sslUtil = new SSLUtil();
-        this.openDistroSSLDualModeConfig = openDistroSSLDualModeConfig;
+        this.openDistroSSLConfig = openDistroSSLConfig;
     }
 
     @Override
@@ -110,10 +110,10 @@ public class OpenDistroSecuritySSLNettyTransport extends Netty4Transport {
         protected void initChannel(Channel ch) throws Exception {
             super.initChannel(ch);
 
-            boolean dualModeEnabled = openDistroSSLDualModeConfig.isDualModeEnabled();
+            boolean dualModeEnabled = openDistroSSLConfig.isDualModeEnabled();
             if (dualModeEnabled) {
                 logger.info("SSL Dual mode enabled, using port unification handler");
-                final ChannelHandler portUnificationHandler = new OpenDistroPortUnificationHandler(odsks, sslUtil);
+                final ChannelHandler portUnificationHandler = new DualModeSSLHandler(odsks, sslUtil);
                 ch.pipeline().addFirst("port_unification_handler", portUnificationHandler);
             } else {
                 final SslHandler sslHandler = new SslHandler(odsks.createServerTransportSSLEngine());
@@ -211,7 +211,7 @@ public class OpenDistroSecuritySSLNettyTransport extends Netty4Transport {
                     SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, true);
 
             connectionTestResult = SSLConnectionTestResult.SSL_AVAILABLE;
-            if (openDistroSSLDualModeConfig.isDualModeEnabled()) {
+            if (openDistroSSLConfig.isDualModeEnabled()) {
                 SSLConnectionTestUtil sslConnectionTestUtil = new SSLConnectionTestUtil(node.getAddress().getAddress(), node.getAddress().getPort());
                 connectionTestResult = AccessController.doPrivileged((PrivilegedAction<SSLConnectionTestResult>) sslConnectionTestUtil::testConnection);
             }

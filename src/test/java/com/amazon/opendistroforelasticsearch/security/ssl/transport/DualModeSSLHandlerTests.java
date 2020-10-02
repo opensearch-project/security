@@ -31,10 +31,9 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
 import org.mockito.Mockito;
 
-public class OpenDistroPortUnificationHandlerTests {
+public class DualModeSSLHandlerTests {
 
     private OpenDistroSecurityKeyStore openDistroSecurityKeyStore;
     private ChannelPipeline pipeline;
@@ -55,7 +54,7 @@ public class OpenDistroPortUnificationHandlerTests {
 
     @Test
     public void testInvalidMessage() throws Exception {
-        OpenDistroPortUnificationHandler handler = new OpenDistroPortUnificationHandler(openDistroSecurityKeyStore, sslUtil);
+        DualModeSSLHandler handler = new DualModeSSLHandler(openDistroSecurityKeyStore, sslUtil);
 
         ByteBufAllocator alloc = PooledByteBufAllocator.DEFAULT;
         handler.decode(ctx, alloc.directBuffer(4), null);
@@ -65,7 +64,7 @@ public class OpenDistroPortUnificationHandlerTests {
 
     @Test
     public void testValidTLSMessage() throws Exception {
-        OpenDistroPortUnificationHandler handler = new OpenDistroPortUnificationHandler(openDistroSecurityKeyStore, sslHandler, sslUtil);
+        DualModeSSLHandler handler = new DualModeSSLHandler(openDistroSecurityKeyStore, sslHandler, sslUtil);
 
         ByteBufAllocator alloc = PooledByteBufAllocator.DEFAULT;
         ByteBuf buffer = alloc.directBuffer(6);
@@ -87,7 +86,7 @@ public class OpenDistroPortUnificationHandlerTests {
 
     @Test
     public void testNonTLSMessage() throws Exception {
-        OpenDistroPortUnificationHandler handler = new OpenDistroPortUnificationHandler(openDistroSecurityKeyStore, sslHandler, sslUtil);
+        DualModeSSLHandler handler = new DualModeSSLHandler(openDistroSecurityKeyStore, sslHandler, sslUtil);
 
         ByteBufAllocator alloc = PooledByteBufAllocator.DEFAULT;
         ByteBuf buffer = alloc.directBuffer(6);
@@ -117,7 +116,7 @@ public class OpenDistroPortUnificationHandlerTests {
         ByteBuf buffer = alloc.directBuffer(6);
         buffer.writeCharSequence(SSLConnectionTestUtil.DUAL_MODE_CLIENT_HELLO_MSG, StandardCharsets.UTF_8);
 
-        OpenDistroPortUnificationHandler handler = new OpenDistroPortUnificationHandler(openDistroSecurityKeyStore, sslHandler, sslUtil);
+        DualModeSSLHandler handler = new DualModeSSLHandler(openDistroSecurityKeyStore, sslHandler, sslUtil);
         List<Object> decodedObjs = new ArrayList<>();
         handler.decode(ctx, buffer, decodedObjs);
 

@@ -36,20 +36,20 @@ import java.util.List;
 /**
  * Modifies the current pipeline dynamically to enable TLS
  */
-public class OpenDistroPortUnificationHandler extends ByteToMessageDecoder {
+public class DualModeSSLHandler extends ByteToMessageDecoder {
 
-    private static final Logger logger = LogManager.getLogger(OpenDistroPortUnificationHandler.class);
+    private static final Logger logger = LogManager.getLogger(DualModeSSLHandler.class);
     private final OpenDistroSecurityKeyStore openDistroSecurityKeyStore;
 
     private final SslHandler providedSSLHandler;
     private final SSLUtil sslUtils;
 
-    public OpenDistroPortUnificationHandler(OpenDistroSecurityKeyStore openDistroSecurityKeyStore, SSLUtil sslUtils) {
+    public DualModeSSLHandler(OpenDistroSecurityKeyStore openDistroSecurityKeyStore, SSLUtil sslUtils) {
         this(openDistroSecurityKeyStore, null, sslUtils);
     }
 
     @VisibleForTesting
-    protected OpenDistroPortUnificationHandler(OpenDistroSecurityKeyStore openDistroSecurityKeyStore, SslHandler providedSSLHandler,
+    protected DualModeSSLHandler(OpenDistroSecurityKeyStore openDistroSecurityKeyStore, SslHandler providedSSLHandler,
                                                SSLUtil sslUtils) {
         this.openDistroSecurityKeyStore = openDistroSecurityKeyStore;
         this.providedSSLHandler = providedSSLHandler;
