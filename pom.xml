@@ -868,36 +868,6 @@
                             </execution>
                         </executions>
                     </plugin>
-                    <plugin>
-                        <groupId>com.floragunn</groupId>
-                        <artifactId>checksum-maven-plugin</artifactId>
-                        <version>1.7.1</version>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>files</goal>
-                                </goals>
-                                <phase>package</phase>
-                            </execution>
-                        </executions>
-                        <configuration>
-                            <fileSets>
-                                <fileSet>
-                                    <directory>${project.build.directory}/releases/</directory>
-                                    <includes>
-                                        <include>opendistro_security-${version}.zip</include>
-                                    </includes>
-                                </fileSet>
-                            </fileSets>
-                            <algorithms>
-                                <algorithm>SHA-512</algorithm>
-                            </algorithms>
-                            <individualFiles>true</individualFiles>
-                            <appendFilename>true</appendFilename>
-                            <attachChecksums>true</attachChecksums>
-                            <csvSummary>false</csvSummary>
-                        </configuration>
-                    </plugin>
                 </plugins>
             </build>
             <dependencies>
