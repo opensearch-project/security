@@ -218,4 +218,36 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
     }
 
+    @Test
+    public void testBCryptHashRedaction() throws Exception {
+        final Settings settings = Settings.builder()
+                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_ROLES_ENABLED, "opendistro_security_all_access")
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, false)
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, false)
+                .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, true)
+                .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS, true)
+                .build();
+        setup(settings);
+        rh.sendAdminCertificate = true;
+        rh.keystore = "kirk-keystore.jks";
+
+        // read internal users and verify no BCrypt hash is present in audit logs
+        TestAuditlogImpl.clear();
+        rh.executeGetRequest("/_opendistro/_security/api/internalusers");
+        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
+        Assert.assertFalse(AuditMessage.BCRYPT_HASH.matcher(TestAuditlogImpl.sb.toString()).matches());
+
+        // read internal user worf and verify no BCrypt hash is present in audit logs
+        TestAuditlogImpl.clear();
+        rh.executeGetRequest("/_opendistro/_security/api/internalusers/worf");
+        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
+        Assert.assertFalse(AuditMessage.BCRYPT_HASH.matcher(TestAuditlogImpl.sb.toString()).matches());
+
+        // create internal user and verify no BCrypt hash is present in audit logs
+        TestAuditlogImpl.clear();
+        rh.executePutRequest("/_opendistro/_security/api/internalusers/test",  "{ \"password\":\"test\"}");
+        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
+        Assert.assertFalse(AuditMessage.BCRYPT_HASH.matcher(TestAuditlogImpl.sb.toString()).matches());
+    }
 }

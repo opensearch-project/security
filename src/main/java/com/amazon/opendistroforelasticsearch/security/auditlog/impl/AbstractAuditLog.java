@@ -72,7 +72,6 @@ import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfi
 import com.amazon.opendistroforelasticsearch.security.dlic.rest.support.Utils;
 import com.amazon.opendistroforelasticsearch.security.support.Base64Helper;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
-import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.flipkart.zjsonpatch.JsonDiff;
@@ -403,12 +402,12 @@ public abstract class AbstractAuditLog implements AuditLog {
                         try {
                             Map<String, String> map = fieldNameValues.entrySet().stream()
                                     .collect(Collectors.toMap(entry -> "id", entry -> new String(BaseEncoding.base64().decode(((Entry<String, String>) entry).getValue()), StandardCharsets.UTF_8)));
-                            msg.addMapToRequestBody(Utils.convertJsonToxToStructuredMap(map.get("id")));
+                            msg.addSecurityConfigMapToRequestBody(Utils.convertJsonToxToStructuredMap(map.get("id")), id);
                         } catch (Exception e) {
-                            msg.addMapToRequestBody(new HashMap<String, Object>(fieldNameValues));
+                            msg.addSecurityConfigMapToRequestBody(fieldNameValues, id);
                         }
                     } else {
-                        msg.addMapToRequestBody(new HashMap<String, Object>(fieldNameValues));
+                        msg.addMapToRequestBody(fieldNameValues);
                     }
                 }
             } catch (Exception e) {
@@ -435,13 +434,14 @@ public abstract class AbstractAuditLog implements AuditLog {
             return;
         }
 
+        final String id = currentIndex.id();
         AuditMessage msg = new AuditMessage(category, clusterService, getOrigin(), null);
         TransportAddress remoteAddress = getRemoteAddress();
         msg.addRemoteAddress(remoteAddress);
         msg.addEffectiveUser(effectiveUser);
         msg.addIndices(new String[]{shardId.getIndexName()});
         msg.addResolvedIndices(new String[]{shardId.getIndexName()});
-        msg.addId(currentIndex.id());
+        msg.addId(id);
         msg.addShardId(shardId);
         msg.addComplianceDocVersion(result.getVersion());
         msg.addComplianceOperation(result.isCreated()?Operation.CREATE:Operation.UPDATE);
@@ -472,12 +472,14 @@ public abstract class AbstractAuditLog implements AuditLog {
                     } catch (Exception e) {
                         log.error(e);
                     }
+                    final JsonNode diffnode = JsonDiff.asJson(DefaultObjectMapper.objectMapper.readTree(originalSource), DefaultObjectMapper.objectMapper.readTree(currentSource));
+                    msg.addSecurityConfigWriteDiffSource(diffnode.size() == 0 ? "" : diffnode.toString(), id);
                 } else {
                     originalSource = XContentHelper.convertToJson(originalResult.internalSourceRef(), false, XContentType.JSON);
                     currentSource = XContentHelper.convertToJson(currentIndex.source(), false, XContentType.JSON);
+                    final JsonNode diffnode = JsonDiff.asJson(DefaultObjectMapper.objectMapper.readTree(originalSource), DefaultObjectMapper.objectMapper.readTree(currentSource));
+                    msg.addComplianceWriteDiffSource(diffnode.size() == 0 ? "" : diffnode.toString());
                 }
-                final JsonNode diffnode = JsonDiff.asJson(DefaultObjectMapper.objectMapper.readTree(originalSource), DefaultObjectMapper.objectMapper.readTree(currentSource));
-                msg.addComplianceWriteDiffSource(diffnode.size() == 0?"":diffnode.toString());
             } catch (Exception e) {
                 log.error("Unable to generate diff for {}",msg.toPrettyString(),e);
             }
@@ -490,10 +492,10 @@ public abstract class AbstractAuditLog implements AuditLog {
                 try (XContentParser parser = XContentHelper.createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, currentIndex.source(), XContentType.JSON)) {
                    Object base64 = parser.map().values().iterator().next();
                    if(base64 instanceof String) {
-                       msg.addUnescapedJsonToRequestBody(new String(BaseEncoding.base64().decode((String) base64)));
-                    } else {
-                        msg.addTupleToRequestBody(new Tuple<XContentType, BytesReference>(XContentType.JSON, currentIndex.source()));
-                    }
+                       msg.addSecurityConfigContentToRequestBody(new String(BaseEncoding.base64().decode((String) base64)), id);
+                   } else {
+                       msg.addSecurityConfigTupleToRequestBody(new Tuple<XContentType, BytesReference>(XContentType.JSON, currentIndex.source()), id);
+                   }
                 } catch (Exception e) {
                     log.error(e);
                 }

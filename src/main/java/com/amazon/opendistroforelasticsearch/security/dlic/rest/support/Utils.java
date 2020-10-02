@@ -71,7 +71,7 @@ public class Utils {
         }
     }
 
-    public static BytesReference convertStructuredMapToBytes(Map<String, Object> structuredMap) {
+    private static BytesReference convertStructuredMapToBytes(Map<String, ?> structuredMap) {
         try {
             return BytesReference.bytes(JsonXContent.contentBuilder().map(structuredMap));
         } catch (IOException e) {
@@ -79,7 +79,7 @@ public class Utils {
         }
     }
 
-    public static String convertStructuredMapToJson(Map<String, Object> structuredMap) {
+    public static String convertStructuredMapToJson(Map<String, ?> structuredMap) {
         try {
             return XContentHelper.convertToJson(convertStructuredMapToBytes(structuredMap), false, XContentType.JSON);
         } catch (IOException e) {
