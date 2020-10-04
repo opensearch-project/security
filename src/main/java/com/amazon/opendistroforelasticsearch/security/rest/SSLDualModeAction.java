@@ -47,19 +47,13 @@ public class SSLDualModeAction extends BaseRestHandler {
     private final OpenDistroSSLConfig openDistroSSLConfig;
     private static final List<Route> routes = ImmutableList.of(
             // gets the current status of ssl dual mode
-            new Route(GET, "/_opendistro/_security/ssl_dual_mode"),
-            // disables ssl dual mode
-            new Route(PUT, "/_opendistro/_security/ssl_dual_mode/_disable"),
-            // enables ssl dual mode
-            new Route(PUT, "/_opendistro/_security/ssl_dual_mode/_enable")
+            new Route(GET, "/_opendistro/_security/ssl_dual_mode")
     );
 
-    private final ClusterSettings clusterSettings;
     private final Settings settings;
 
-    public SSLDualModeAction(final Settings settings, final ClusterSettings clusterSettings, final OpenDistroSSLConfig openDistroSSLConfig) {
+    public SSLDualModeAction(final Settings settings, final OpenDistroSSLConfig openDistroSSLConfig) {
         this.settings = settings;
-        this.clusterSettings = clusterSettings;
         this.openDistroSSLConfig = openDistroSSLConfig;
     }
 
@@ -74,84 +68,15 @@ public class SSLDualModeAction extends BaseRestHandler {
     }
 
     @Override
-    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
-        return new RestChannelConsumer() {
-            @Override
-            public void accept(RestChannel restChannel) throws Exception {
-
-                switch (request.method()) {
-                    case GET: {
-                        boolean dualModeEnabled = false;
-                        if(openDistroSSLConfig.isDualModeEnabled()) {
-                            dualModeEnabled = true;
-                        }
-                        BytesRestResponse response = getDualModeResponse(restChannel, dualModeEnabled);
-                        restChannel.sendResponse(response);
-                        break;
-                    }
-                    case PUT: {
-                        try {
-                            final boolean enableDualMode;
-                            if (request.path().endsWith("_enable")) {
-                                enableDualMode = true;
-                            } else if (request.path().endsWith("_disable")) {
-                                enableDualMode = false;
-                            } else {
-                                logger.error("Unsupported operation: {}", request.path());
-                                BytesRestResponse response = getErrorMessageResponse(restChannel,
-                                    String.format("Unsupported operation: {}", request.path()));
-                                restChannel.sendResponse(response);
-                                break;
-                            }
-
-                            Settings dualModeSetting = Settings.builder()
-                                .put(ConfigConstants.OPENDISTRO_SECURITY_SSL_DUAL_MODE_ENABLED, enableDualMode)
-                                .build();
-
-                            ClusterUpdateSettingsRequest clusterUpdateSettingsRequest = new ClusterUpdateSettingsRequest();
-                            clusterUpdateSettingsRequest.persistentSettings(dualModeSetting);
-                            client.admin()
-                                .cluster()
-                                .updateSettings(clusterUpdateSettingsRequest, new ActionListener<ClusterUpdateSettingsResponse>() {
-                                    @Override
-                                    public void onResponse(ClusterUpdateSettingsResponse clusterUpdateSettingsResponse) {
-                                        restChannel.sendResponse(getDualModeResponse(restChannel, enableDualMode));
-                                    }
-
-                                    @Override
-                                    public void onFailure(Exception e) {
-                                        BytesRestResponse response = getErrorMessageResponse(restChannel,
-                                            String.format("Unable to apply opendistro ssl dual mode settings due to %s", e.getMessage()));
-                                        restChannel.sendResponse(response);
-                                    }
-                                });
-                        } catch (Exception e) {
-                            logger.error("Unable to update open distro SSL dual mode settings", e);
-                            BytesRestResponse response = getErrorMessageResponse(restChannel,
-                                String.format("Unable to apply opendistro ssl dual mode settings due to %s", e.getMessage()));
-                            restChannel.sendResponse(response);
-                        }
-                        break;
-                    }
-                }
-
+    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
+        return restChannel -> {
+            boolean dualModeEnabled = false;
+            if (openDistroSSLConfig.isDualModeEnabled()) {
+                dualModeEnabled = true;
             }
+            BytesRestResponse response = getDualModeResponse(restChannel, dualModeEnabled);
+            restChannel.sendResponse(response);
         };
-    }
-
-    private BytesRestResponse getErrorMessageResponse(final RestChannel restChannel, final String errorMessage) {
-        XContentBuilder builder;
-        try {
-            builder = restChannel.newBuilder();
-            builder.startObject();
-            builder.field(RESPONSE_ERROR_FIELD, errorMessage);
-            builder.endObject();
-            builder.close();
-        } catch (IOException e) {
-            logger.error("Unable to generate response", e);
-            throw new ElasticsearchException(e);
-        }
-        return new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, builder);
     }
 
     private BytesRestResponse getDualModeResponse(final RestChannel restChannel, final boolean enabled) {

@@ -464,7 +464,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                 handlers.addAll(apiHandler);
                 log.debug("Added {} management rest handler(s)", apiHandler.size());
             } else {
-                handlers.add(new SSLDualModeAction(settings, clusterSettings, openDistroSSLConfig));
+                handlers.add(new SSLDualModeAction(settings, openDistroSSLConfig));
             }
         }
 
