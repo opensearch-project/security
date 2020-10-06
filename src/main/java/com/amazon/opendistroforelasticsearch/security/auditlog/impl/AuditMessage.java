@@ -26,9 +26,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.stream.Collectors;
+import java.util.regex.Pattern;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
+import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.elasticsearch.ExceptionsHelper;
@@ -54,7 +55,10 @@ import com.amazon.opendistroforelasticsearch.security.dlic.rest.support.Utils;
 public final class AuditMessage {
 
     //clustername and cluster uuid
-    private static final String AUTHORIZATION_HEADER = "Authorization";
+    private static final WildcardMatcher AUTHORIZATION_HEADER = WildcardMatcher.from("Authorization", false);
+    private static final String SENSITIVE_KEY = "password";
+    private static final String SENSITIVE_REPLACEMENT_VALUE = "__SENSITIVE__";
+    private static final Pattern SENSITIVE_PATHS = Pattern.compile("/_opendistro/_security/api/(account.*|internalusers.*|user.*)");
     public static final String FORMAT_VERSION = "audit_format_version";
     public static final String CATEGORY = "audit_category";
     public static final String REQUEST_EFFECTIVE_USER = "audit_request_effective_user";
@@ -307,15 +311,11 @@ public final class AuditMessage {
 
     public void addRestHeaders(Map<String,List<String>> headers, boolean excludeSensitiveHeaders) {
         if(headers != null && !headers.isEmpty()) {
-            if(excludeSensitiveHeaders) {
-                final Map<String, List<String>> headersClone = new HashMap<String, List<String>>(headers)
-                        .entrySet().stream()
-                        .filter(map -> !map.getKey().equalsIgnoreCase(AUTHORIZATION_HEADER))
-                        .collect(Collectors.toMap(p -> p.getKey(), p -> p.getValue()));
-                auditInfo.put(REST_REQUEST_HEADERS, headersClone);
-            } else {
-                auditInfo.put(REST_REQUEST_HEADERS, new HashMap<String, List<String>>(headers));
+            final Map<String, List<String>> headersClone = new HashMap<>(headers);
+            if (excludeSensitiveHeaders) {
+                headersClone.keySet().removeIf(AUTHORIZATION_HEADER);
             }
+            auditInfo.put(REST_REQUEST_HEADERS, headersClone);
         }
     }
 
@@ -327,27 +327,36 @@ public final class AuditMessage {
 
     void addRestRequestInfo(final RestRequest request, final AuditConfig.Filter filter) {
         if (request != null) {
-            addPath(request.path());
+            final String path = request.path();
+            addPath(path);
             addRestHeaders(request.getHeaders(), filter.shouldExcludeSensitiveHeaders());
             addRestParams(request.params());
             addRestMethod(request.method());
             if (filter.shouldLogRequestBody() && request.hasContentOrSourceParam()) {
-                addTupleToRequestBody(request.contentOrSourceParam());
+                try {
+                    final Tuple<XContentType, BytesReference> xContentTuple = request.contentOrSourceParam();
+                    final String requestBody =  XContentHelper.convertToJson(xContentTuple.v2(), false, xContentTuple.v1());
+                    if (path != null && requestBody != null
+                            && SENSITIVE_PATHS.matcher(path).matches()
+                            && requestBody.contains(SENSITIVE_KEY)) {
+                        auditInfo.put(REQUEST_BODY, SENSITIVE_REPLACEMENT_VALUE);
+                    } else {
+                        auditInfo.put(REQUEST_BODY, requestBody);
+                    }
+                } catch (IOException e) {
+                    auditInfo.put(REQUEST_BODY, "ERROR: Unable to generate request body");
+                }
             }
         }
     }
 
     public void addTransportHeaders(Map<String,String> headers, boolean excludeSensitiveHeaders) {
         if(headers != null && !headers.isEmpty()) {
-            if(excludeSensitiveHeaders) {
-                final Map<String,String> headersClone = new HashMap<String,String>(headers)
-                        .entrySet().stream()
-                        .filter(map -> !map.getKey().equalsIgnoreCase(AUTHORIZATION_HEADER))
-                        .collect(Collectors.toMap(p -> p.getKey(), p -> p.getValue()));
-                auditInfo.put(TRANSPORT_REQUEST_HEADERS, headersClone);
-            } else {
-                auditInfo.put(TRANSPORT_REQUEST_HEADERS, new HashMap<String,String>(headers));
+            final Map<String, String> headersClone = new HashMap<>(headers);
+            if (excludeSensitiveHeaders) {
+                headersClone.keySet().removeIf(AUTHORIZATION_HEADER);
             }
+            auditInfo.put(TRANSPORT_REQUEST_HEADERS, headersClone);
         }
     }
 

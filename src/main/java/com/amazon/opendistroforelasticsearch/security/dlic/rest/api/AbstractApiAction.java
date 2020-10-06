@@ -99,7 +99,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		this.auditLog = auditLog;
 	}
 
-	protected abstract AbstractConfigurationValidator getValidator(RestRequest request, BytesReference ref, Object... params);
+    protected abstract AbstractConfigurationValidator getValidator(RestRequest request, BytesReference ref, Object... params);
 
 	protected abstract String getResourceName();
 
@@ -146,13 +146,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
 		final SecurityDynamicConfiguration<?> existingConfiguration = load(getConfigName(), false);
 
-		if (isHidden(existingConfiguration, name)) {
-			notFound(channel, getResourceName() + " " + name + " not found.");
-			return;
-		}
-
-		if (isReadOnly(existingConfiguration, name)) {
-			forbidden(channel, "Resource '"+ name +"' is read-only.");
+		if (!isWriteable(channel, existingConfiguration, name)) {
 			return;
 		}
 
@@ -189,13 +183,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		    return;
 		}
 
-		if (isHidden(existingConfiguration, name)) {
-			forbidden(channel, "Resource '"+ name +"' is not available.");
-			return;
-		}
-
-		if (isReadOnly(existingConfiguration, name)) {
-			forbidden(channel, "Resource '"+ name +"' is read-only.");
+		if (!isWriteable(channel, existingConfiguration, name)) {
 			return;
 		}
 
@@ -401,19 +389,23 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 				.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
 		final Object originalOrigin = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN);
 
-		return channel -> {
-
-			try (StoredContext ctx = threadPool.getThreadContext().stashContext()) {
-
+		return channel -> threadPool.generic().submit(() -> {
+			try (StoredContext ignore = threadPool.getThreadContext().stashContext()) {
 				threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
 				threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, originalUser);
 				threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, originalRemoteAddress);
 				threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, originalOrigin);
 
 				handleApiRequest(channel, request, client);
-
+			} catch (Exception e) {
+				log.error("Error processing request {}", request, e);
+				try {
+					channel.sendResponse(new BytesRestResponse(channel, e));
+				} catch (IOException ioe) {
+					throw ExceptionsHelper.convertToElastic(e);
+				}
 			}
-		};
+		});
 	}
 
 	protected boolean checkConfigUpdateResponse(final ConfigUpdateResponse response) {
@@ -579,4 +571,41 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		return isSuperAdmin() ? false: isReserved(existingConfiguration, name);
 	}
 
+	/**
+	 * Checks if it is valid to add role to opendistro_security_roles or rolesmapping.
+	 * Role can be mapped to user if it exists. Only superadmin can add hidden or reserved roles.
+	 *
+	 * @param channel	Rest Channel for response
+	 * @param role		Name of the role
+	 * @return True if role can be mapped
+	 */
+	protected boolean isValidRolesMapping(final RestChannel channel, final String role) {
+		final SecurityDynamicConfiguration<?> rolesConfiguration = load(CType.ROLES, false);
+		final SecurityDynamicConfiguration<?> rolesMappingConfiguration = load(CType.ROLESMAPPING, false);
+
+		if (!rolesConfiguration.exists(role)) {
+			notFound(channel, "Role '"+role+"' is not available for role-mapping.");
+			return false;
+		}
+
+		if (isHidden(rolesConfiguration, role)) {
+			notFound(channel, "Role '" + role + "' is not available for role-mapping.");
+			return false;
+		}
+
+		return isWriteable(channel, rolesMappingConfiguration, role);
+	}
+
+	boolean isWriteable(final RestChannel channel, final SecurityDynamicConfiguration<?> configuration, final String resourceName) {
+		if (isHidden(configuration, resourceName)) {
+			notFound(channel, "Resource '" + resourceName + "' is not available.");
+			return false;
+		}
+
+		if (isReadOnly(configuration, resourceName)) {
+			forbidden(channel, "Resource '" + resourceName + "' is read-only.");
+			return false;
+		}
+		return true;
+	}
 }

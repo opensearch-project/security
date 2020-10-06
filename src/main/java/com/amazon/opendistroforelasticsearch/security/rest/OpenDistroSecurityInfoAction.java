@@ -100,8 +100,8 @@ public class OpenDistroSecurityInfoAction extends BaseRestHandler {
                     final boolean verbose = request.paramAsBoolean("verbose", false);
                     
                     final X509Certificate[] certs = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PEER_CERTIFICATES);
-                    final User user = (User)threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-                    final TransportAddress remoteAddress = (TransportAddress) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
+                    final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+                    final TransportAddress remoteAddress = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
 
                     final Set<String> securityRoles = evaluator.mapRoles(user, remoteAddress);
 

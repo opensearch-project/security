@@ -213,7 +213,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("\"audit_request_effective_user\" : \"admin\""));
         Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("REST"));
         Assert.assertFalse(TestAuditlogImpl.sb.toString().toLowerCase().contains("authorization"));
-        Assert.assertEquals(TestAuditlogImpl.messages.get(0).getAsMap().get(AuditMessage.TASK_ID),
+        Assert.assertEquals(TestAuditlogImpl.messages.get(1).getAsMap().get(AuditMessage.TASK_ID),
         TestAuditlogImpl.messages.get(1).getAsMap().get(AuditMessage.TASK_ID));
         Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
     }
@@ -883,5 +883,42 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertEquals(1, TestAuditlogImpl.messages.size());
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("BAD_HEADERS"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("\"audit_rest_request_method\" : \"GET\""));
+    }
+
+    @Test
+    public void testSensitiveMethodRedaction() throws Exception {
+        final Settings settings = Settings.builder()
+                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, true)
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "AUTHENTICATED")
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, false)
+                .build();
+        setup(settings);
+        rh.sendAdminCertificate = true;
+        final String expectedRequestBody = "\"audit_request_body\" : \"__SENSITIVE__\"";
+
+        // test PUT accounts API
+        TestAuditlogImpl.clear();
+        rh.executePutRequest("/_opendistro/_security/api/account", "{\"password\":\"new-pass\", \"current_password\":\"curr-passs\"}");
+        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains(expectedRequestBody));
+
+        // test PUT internal users API
+        TestAuditlogImpl.clear();
+        rh.executePutRequest("/_opendistro/_security/api/internalusers/test1", "{\"password\":\"new-pass\", \"backend_roles\":[], \"attributes\": {}}");
+        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains(expectedRequestBody));
+
+        // test PATCH internal users API
+        TestAuditlogImpl.clear();
+        rh.executePatchRequest("/_opendistro/_security/api/internalusers/test1", "[{\"op\":\"add\", \"path\":\"/password\", \"value\": \"test-pass\"}]");
+        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains(expectedRequestBody));
+
+        // test PUT users API
+        TestAuditlogImpl.clear();
+        rh.executePutRequest("/_opendistro/_security/api/user/test2", "{\"password\":\"new-pass\", \"backend_roles\":[], \"attributes\": {}}");
+        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains(expectedRequestBody));
     }
 }

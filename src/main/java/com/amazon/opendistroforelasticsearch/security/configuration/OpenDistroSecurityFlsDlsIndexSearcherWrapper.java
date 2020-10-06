@@ -27,7 +27,7 @@ import org.apache.lucene.search.Query;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.mapper.MapperService;
+import org.elasticsearch.index.mapper.IgnoredFieldMapper;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardUtils;
 
@@ -42,8 +42,12 @@ import com.google.common.collect.Sets;
 
 public class OpenDistroSecurityFlsDlsIndexSearcherWrapper extends OpenDistroSecurityIndexSearcherWrapper {
 
-    private static final Set<String> metaFields = Sets.union(Sets.newHashSet("_source", "_version", "_field_names", "_seq_no", "_primary_term"),
-            Sets.newHashSet(MapperService.getAllMetaFields()));
+    // TODO: the list is outdated. It is necessary to change how meta fields are handled in the near future.
+    //  We may consider using MapperService.isMetadataField() instead of relying on the static set or
+    //  (if it is too costly or does not meet requirements) use IndicesModule.getBuiltInMetadataFields()
+    //  for ES version specific Set of meta fields
+    private static final Set<String> metaFields = Sets.newHashSet("_source", "_version", "_field_names",
+            "_seq_no", "_primary_term", "_id", IgnoredFieldMapper.NAME, "_index", "_routing", "_size", "_timestamp", "_ttl", "_type");
     private final ClusterService clusterService;
     private final IndexService indexService;
     private final AuditLog auditlog;
@@ -92,8 +96,7 @@ public class OpenDistroSecurityFlsDlsIndexSearcherWrapper extends OpenDistroSecu
             final String maskedEval = OpenDistroSecurityUtils.evalMap(maskedFieldsMap, index.getName());
 
             if (flsEval != null) {
-                flsFields = new HashSet<>(metaFields);
-                flsFields.addAll(allowedFlsFields.get(flsEval));
+                flsFields = Sets.union(metaFields, allowedFlsFields.get(flsEval));
             }
 
 

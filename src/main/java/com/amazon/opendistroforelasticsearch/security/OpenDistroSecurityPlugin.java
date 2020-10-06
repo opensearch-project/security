@@ -52,6 +52,9 @@ import com.amazon.opendistroforelasticsearch.security.configuration.OpenDistroSe
 import com.amazon.opendistroforelasticsearch.security.configuration.Salt;
 import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenDistroSecuritySSLReloadCertsAction;
 import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenDistroSecuritySSLCertsInfoAction;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.QueryCachingPolicy;
 import org.apache.lucene.search.Weight;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -105,6 +108,7 @@ import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusterService;
+import org.elasticsearch.transport.SharedGroupFactory;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.Transport.Connection;
 import org.elasticsearch.transport.TransportChannel;
@@ -166,6 +170,8 @@ import com.google.common.collect.Lists;
 public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin implements ClusterPlugin, MapperPlugin {
 
     private static final String KEYWORD = ".keyword";
+    private static final Logger actionTrace = LogManager.getLogger("opendistro_security_action_trace");
+
     private final boolean dlsFlsAvailable;
     private boolean sslCertReloadEnabled;
     private volatile OpenDistroSecurityRestFilter securityRestHandler;
@@ -189,10 +195,24 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     private volatile DlsFlsRequestValve dlsFlsValve = null;
     private volatile Salt salt;
 
+    public static boolean isActionTraceEnabled() {
+        return actionTrace.isTraceEnabled();
+    }
+
+    public static void traceAction(String message) {
+        actionTrace.trace(message);
+    }
+
+    public static void traceAction(String message, Object p0) {
+        actionTrace.trace(message, p0);
+    }
+
     @Override
     public void close() throws IOException {
-        //TODO implement close
         super.close();
+        if (auditLog != null) {
+            auditLog.close();
+        }
     }
 
     private final SslExceptionHandler evaluateSslExceptionHandler() {
@@ -644,7 +664,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         if (transportSSLEnabled) {
             transports.put("com.amazon.opendistroforelasticsearch.security.ssl.http.netty.OpenDistroSecuritySSLNettyTransport",
                     () -> new OpenDistroSecuritySSLNettyTransport(settings, Version.CURRENT, threadPool, networkService, pageCacheRecycler,
-                            namedWriteableRegistry, circuitBreakerService, odsks, evaluateSslExceptionHandler()));
+                            namedWriteableRegistry, circuitBreakerService, odsks, evaluateSslExceptionHandler(), sharedGroupFactory));
         }
         return transports;
     }
@@ -666,13 +686,13 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                         settings, configPath, evaluateSslExceptionHandler());
                 //TODO close odshst
                 final OpenDistroSecurityHttpServerTransport odshst = new OpenDistroSecurityHttpServerTransport(settings, networkService, bigArrays,
-                        threadPool, odsks, evaluateSslExceptionHandler(), xContentRegistry, validatingDispatcher, clusterSettings);
+                        threadPool, odsks, evaluateSslExceptionHandler(), xContentRegistry, validatingDispatcher, clusterSettings, sharedGroupFactory);
 
                 return Collections.singletonMap("com.amazon.opendistroforelasticsearch.security.http.OpenDistroSecurityHttpServerTransport",
                         () -> odshst);
             } else if (!client) {
                 return Collections.singletonMap("com.amazon.opendistroforelasticsearch.security.http.OpenDistroSecurityHttpServerTransport",
-                        () -> new OpenDistroSecurityNonSslHttpServerTransport(settings, networkService, bigArrays, threadPool, xContentRegistry, dispatcher, clusterSettings));
+                        () -> new OpenDistroSecurityNonSslHttpServerTransport(settings, networkService, bigArrays, threadPool, xContentRegistry, dispatcher, clusterSettings, sharedGroupFactory));
             }
         }
         return Collections.emptyMap();
@@ -827,6 +847,10 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_DEFAULT, Property.NodeScope, Property.Filtered, Property.Final));
         settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_DEFAULT, Function.identity(), Property.NodeScope, Property.Filtered, Property.Final));
         settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_DEFAULT, Function.identity(), Property.NodeScope, Property.Filtered, Property.Final));
+
+        // System index settings
+        settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_SYSTEM_INDICES_ENABLED_KEY, ConfigConstants.OPENDISTRO_SECURITY_SYSTEM_INDICES_ENABLED_DEFAULT, Property.NodeScope, Property.Filtered, Property.Final));
+        settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_SYSTEM_INDICES_KEY, ConfigConstants.OPENDISTRO_SECURITY_SYSTEM_INDICES_DEFAULT, Function.identity(), Property.NodeScope, Property.Filtered, Property.Final));
 
         if(!sslOnly) {
             settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_ADMIN_DN, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here

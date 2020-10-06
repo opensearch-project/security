@@ -18,6 +18,8 @@ package com.amazon.opendistroforelasticsearch.security.auditlog.impl;
 import java.lang.Thread.UncaughtExceptionHandler;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditTestUtils;
+
+import net.jcip.annotations.NotThreadSafe;
 import org.apache.http.HttpStatus;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
@@ -27,6 +29,10 @@ import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentType;
+
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.Logger;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -38,6 +44,7 @@ import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelpe
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper.HttpResponse;
 
+@NotThreadSafe
 public class TracingTests extends SingleClusterTest {
 
     @Override
@@ -48,13 +55,15 @@ public class TracingTests extends SingleClusterTest {
     @Test
     public void testHTTPTrace() throws Exception {
 
+        Logger logger = (Logger) LogManager.getLogger("opendistro_security_action_trace");
+        final Level level = logger.getLevel();
+        logger.setLevel(Level.TRACE);
+
         final Settings settings = Settings.builder()
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_TYPE_DEFAULT, "debug")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, "true")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS, "*")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, "*")
-                .put("opendistro_security.audit.config.log4j.logger_name", "opendistro_security_action_trace")
-                .put("opendistro_security.audit.config.log4j.level", "TRACE")
                 .build();
 
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings, true, ClusterConfiguration.DEFAULT);
@@ -219,7 +228,7 @@ public class TracingTests extends SingleClusterTest {
         "}";
 
         System.out.println(rh.executePostRequest("a/b/_delete_by_query", dbqBody, encodeBasicHeader("admin", "admin")));
-
+        logger.setLevel(level);
         Thread.sleep(5000);
     }
 

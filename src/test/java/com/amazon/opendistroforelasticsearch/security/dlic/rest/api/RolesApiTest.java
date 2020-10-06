@@ -55,7 +55,7 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
     }
 
     @Test
-    public void testAllRolesNotContainMetaHeader() throws Exception {
+    public void testAllRolesForSuperAdmin() throws Exception {
 
         setup();
 
@@ -64,6 +64,9 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         HttpResponse response = rh.executeGetRequest("_opendistro/_security/api/roles");
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Assert.assertFalse(response.getBody().contains("_meta"));
+
+        // Super admin should be able to see all roles including hidden
+        Assert.assertTrue(response.getBody().contains("opendistro_security_hidden"));
     }
 
     @Test
@@ -75,7 +78,6 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         rh.sendAdminCertificate = true;
         HttpResponse response = rh.executePutRequest("_opendistro/_security/api/roles/dup", "{ \"cluster_permissions\": [\"*\"], \"cluster_permissions\": [\"*\"] }");
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-        Assert.assertTrue(response.getBody().contains("JsonParseException"));
         assertHealthy();
     }
 
@@ -101,7 +103,6 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         rh.sendAdminCertificate = true;
         HttpResponse response = rh.executePutRequest("_opendistro/_security/api/roles/dup", "{ \"invalid\"::{{ [\"*\"], \"cluster_permissions\": [\"*\"] }");
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-        Assert.assertTrue(response.getBody().contains("JsonParseException"));
         assertHealthy();
     }
 
@@ -142,8 +143,8 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         Assert.assertFalse(response.getBody().contains("\"cluster_permissions\":[\"*\"]"));
         Assert.assertTrue(response.getBody().contains("\"cluster_permissions\" : ["));
 
-        // hidden role
-        response = rh.executeGetRequest("/_opendistro/_security/api/roles/opendistro_security_internal", new Header[0]);
+        // Super admin should be able to describe hidden role
+        response = rh.executeGetRequest("/_opendistro/_security/api/roles/opendistro_security_hidden", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Assert.assertTrue(response.getBody().contains("\"hidden\":true"));
 
@@ -489,7 +490,7 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
 
         // put hidden role
         response = rh.executePutRequest("/_opendistro/_security/api/roles/opendistro_security_internal", "[{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"foo\" }]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
 
         // Patch single hidden roles
         response = rh.executePatchRequest("/_opendistro/_security/api/roles/opendistro_security_internal", "[{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"foo\" }]", new Header[0]);
@@ -497,7 +498,7 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
 
         // Patch multiple hidden roles
         response = rh.executePatchRequest("/_opendistro/_security/api/roles/", "[{ \"op\": \"add\", \"path\": \"/opendistro_security_internal/description\", \"value\": \"foo\" }]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
 
     }
 

@@ -61,13 +61,9 @@ import org.opensaml.saml.metadata.resolver.impl.AbstractMetadataResolver;
 import org.opensaml.saml.metadata.resolver.impl.DOMMetadataResolver;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
-import java.io.StringReader;
 
 
 public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
@@ -90,7 +86,6 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
     private AuthTokenProcessorHandler authTokenProcessorHandler;
     private HTTPJwtAuthenticator httpJwtAuthenticator;
     private Settings jwtSettings;
-    private static final DocumentBuilderFactory documentBuilderFactory = getDocumentBuildFactory();
 
     private static int resolverIdCounter = 0;
 
@@ -426,17 +421,9 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
         }
     }
 
-    private static DocumentBuilderFactory getDocumentBuildFactory() {
-        DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
-        documentBuilderFactory.setNamespaceAware(true);
-        return documentBuilderFactory;
-    }
-
     private static Element getMetadataDOM(final String xmlString) throws IOException, SAXException, ParserConfigurationException {
-        DocumentBuilder builder = null;
         try {
-            builder = documentBuilderFactory.newDocumentBuilder();
-            Document doc = builder.parse(new InputSource(new StringReader(xmlString)));
+            Document doc = Util.loadXML(xmlString.trim());
             return doc.getDocumentElement();
         } catch (Exception e) {
             log.error("Error while parsing SAML Metadata Body {}", xmlString, e);

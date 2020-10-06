@@ -54,14 +54,13 @@ public class TenantInfoActionTest extends AbstractRestApiUnitTest {
         rh.sendAdminCertificate = true;
 
         //update security config
-        response = rh.executePatchRequest("/_opendistro/_security/api/securityconfig", "[{\"op\": \"add\",\"path\": \"/config/dynamic/kibana/opendistro_role\",\"value\": \"opendistro_security_role_internal\"}]", new Header[0]);
+        response = rh.executePatchRequest("/_opendistro/_security/api/securityconfig", "[{\"op\": \"add\",\"path\": \"/config/dynamic/kibana/opendistro_role\",\"value\": \"opendistro_security_internal\"}]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
-        response = rh.executePutRequest("/_opendistro/_security/api/rolesmapping/opendistro_security_role_internal", payload, new Header[0]);
+        response = rh.executePutRequest("/_opendistro/_security/api/rolesmapping/opendistro_security_internal", payload, new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         rh.sendAdminCertificate = false;
-
         response = rh.executeGetRequest("_opendistro/_security/tenantinfo");
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
     }

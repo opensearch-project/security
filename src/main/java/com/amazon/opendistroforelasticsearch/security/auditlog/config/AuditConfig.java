@@ -1,3 +1,18 @@
+/*
+ * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License").
+ *  You may not use this file except in compliance with the License.
+ *  A copy of the License is located at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  or in the "license" file accompanying this file. This file is distributed
+ *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ *  express or implied. See the License for the specific language governing
+ *  permissions and limitations under the License.
+ */
+
 package com.amazon.opendistroforelasticsearch.security.auditlog.config;
 
 import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
@@ -8,6 +23,7 @@ import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
@@ -65,6 +81,7 @@ import static com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper
  *   }
  * }
  */
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class AuditConfig {
 
     public static final List<String> DEFAULT_IGNORED_USERS = Collections.singletonList("kibanaserver");
@@ -111,6 +128,7 @@ public class AuditConfig {
      * Filter represents set of filtering configuration settings for audit logging.
      * Audit logger will use these settings to determine what audit logs are to be generated.
      */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class Filter {
         @VisibleForTesting
         public static final Filter DEFAULT = Filter.from(Settings.EMPTY);

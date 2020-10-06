@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import com.amazon.opendistroforelasticsearch.security.auth.RolesInjector;
 import com.amazon.opendistroforelasticsearch.security.resolver.IndexResolverReplacer;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.google.common.annotations.VisibleForTesting;
@@ -86,10 +87,12 @@ import com.amazon.opendistroforelasticsearch.security.support.HeaderHelper;
 import com.amazon.opendistroforelasticsearch.security.support.SourceFieldsContext;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 
+import static com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin.isActionTraceEnabled;
+import static com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin.traceAction;
+
 public class OpenDistroSecurityFilter implements ActionFilter {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
-    protected final Logger actionTrace = LogManager.getLogger("opendistro_security_action_trace");
     private final PrivilegesEvaluator evalp;
     private final AdminDNs adminDns;
     private DlsFlsRequestValve dlsFlsValve;
@@ -99,6 +102,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
     private final CompatConfig compatConfig;
     private final IndexResolverReplacer indexResolverReplacer;
     private final WildcardMatcher immutableIndicesMatcher;
+    private final RolesInjector rolesInjector;
 
     public OpenDistroSecurityFilter(final Settings settings, final PrivilegesEvaluator evalp, final AdminDNs adminDns,
             DlsFlsRequestValve dlsFlsValve, AuditLog auditLog, ThreadPool threadPool, ClusterService cs,
@@ -112,6 +116,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
         this.compatConfig = compatConfig;
         this.indexResolverReplacer = indexResolverReplacer;
         this.immutableIndicesMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList()));
+        this.rolesInjector = new RolesInjector();
         log.info("{} indices are made immutable.", immutableIndicesMatcher);
     }
 
@@ -147,7 +152,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
             if (complianceConfig != null && complianceConfig.isEnabled()) {
                 attachSourceFieldContext(request);
             }
-
+            final Set<String> injectedRoles = rolesInjector.injectUserAndRoles(threadContext);
             final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
             final boolean userIsAdmin = isUserAdmin(user, adminDns);
             final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadContext);
@@ -165,7 +170,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
                 org.apache.logging.log4j.ThreadContext.put("user", user.getName());
             }
                         
-            if(actionTrace.isTraceEnabled()) {
+            if (isActionTraceEnabled()) {
 
                 String count = "";
                 if(request instanceof BulkRequest) {
@@ -180,7 +185,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
                     count = ""+((MultiSearchRequest) request).requests().size();
                 }
 
-                actionTrace.trace("Node "+cs.localNode().getName()+" -> "+action+" ("+count+"): userIsAdmin="+userIsAdmin+"/conRequest="+confRequest+"/internalRequest="+internalRequest
+                traceAction("Node "+cs.localNode().getName()+" -> "+action+" ("+count+"): userIsAdmin="+userIsAdmin+"/conRequest="+confRequest+"/internalRequest="+internalRequest
                         +"origin="+threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN)+"/directRequest="+HeaderHelper.isDirectRequest(threadContext)+"/remoteAddress="+request.remoteAddress());
 
 
@@ -229,6 +234,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
 
             if(Origin.LOCAL.toString().equals(threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN))
                     && (interClusterRequest || HeaderHelper.isDirectRequest(threadContext))
+                    && (injectedRoles == null)
                     ) {
 
                 chain.proceed(task, action, request, listener);
@@ -265,7 +271,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
                 log.trace("Evaluate permissions for user: {}", user.getName());
             }
 
-            final PrivilegesEvaluatorResponse pres = eval.evaluate(user, action, request, task);
+            final PrivilegesEvaluatorResponse pres = eval.evaluate(user, action, request, task, injectedRoles);
             
             if (log.isDebugEnabled()) {
                 log.debug(pres);
@@ -281,8 +287,11 @@ public class OpenDistroSecurityFilter implements ActionFilter {
                 return;
             } else {
                 auditLog.logMissingPrivileges(action, request, task);
-                log.debug("no permissions for {}", pres.getMissingPrivileges());
-                listener.onFailure(new ElasticsearchSecurityException("no permissions for " + pres.getMissingPrivileges()+ " and "+user, RestStatus.FORBIDDEN));
+                String err = (injectedRoles == null) ?
+                        String.format("no permissions for %s and %s", pres.getMissingPrivileges(), user) :
+                        String.format("no permissions for %s and associated roles %s", pres.getMissingPrivileges(), injectedRoles);
+                log.debug(err);
+                listener.onFailure(new ElasticsearchSecurityException(err, RestStatus.FORBIDDEN));
                 return;
             }
         } catch (Throwable e) {

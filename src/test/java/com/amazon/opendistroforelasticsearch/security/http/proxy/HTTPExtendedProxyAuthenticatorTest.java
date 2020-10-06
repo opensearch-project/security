@@ -207,6 +207,11 @@ public class HTTPExtendedProxyAuthenticatorTest {
         public HttpRequest releaseAndCopy() {
             return null;
         }
+
+        @Override
+        public Exception getInboundException() {
+            return null;
+        }
     }
     
     static class HttpChannelImpl implements HttpChannel {

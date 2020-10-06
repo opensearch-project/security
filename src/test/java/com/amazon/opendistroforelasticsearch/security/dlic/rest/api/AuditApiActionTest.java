@@ -1,9 +1,25 @@
+/*
+ * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License").
+ *  You may not use this file except in compliance with the License.
+ *  A copy of the License is located at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  or in the "license" file accompanying this file. This file is distributed
+ *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ *  express or implied. See the License for the specific language governing
+ *  permissions and limitations under the License.
+ */
+
 package com.amazon.opendistroforelasticsearch.security.dlic.rest.api;
 
 import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditTestUtils;
 import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
+import com.amazon.opendistroforelasticsearch.security.dlic.rest.validation.AuditValidator;
 import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -97,6 +113,47 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
                 .map(JsonNode::textValue)
                 .collect(Collectors.toList());
         assertEquals(testCategories, actual);
+    }
+
+    @Test
+    public void testInvalidDisabledCategories() throws Exception {
+        setupWithRestRoles(null);
+        rh.sendAdminCertificate = true;
+
+        // test bad request for REST disabled categories
+        AuditConfig auditConfig = new AuditConfig(true, AuditConfig.Filter.from(
+                ImmutableMap.of("disabled_rest_categories", ImmutableList.of("INDEX_EVENT", "COMPLIANCE_DOC_READ"))
+        ), ComplianceConfig.DEFAULT);
+        ObjectNode json = DefaultObjectMapper.objectMapper.valueToTree(auditConfig);
+        RestHelper.HttpResponse response = rh.executePutRequest(CONFIG_ENDPOINT, writeValueAsString(json, false));
+        assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+
+        // test success for REST disabled categories
+        auditConfig = new AuditConfig(true, AuditConfig.Filter.from(
+                ImmutableMap.of("disabled_rest_categories",
+                        ImmutableList.of("BAD_HEADERS", "SSL_EXCEPTION", "AUTHENTICATED", "FAILED_LOGIN", "GRANTED_PRIVILEGES", "MISSING_PRIVILEGES"))
+        ), ComplianceConfig.DEFAULT);
+        json = DefaultObjectMapper.objectMapper.valueToTree(auditConfig);
+        response = rh.executePutRequest(CONFIG_ENDPOINT, writeValueAsString(json, false));
+        assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+
+        // test bad request for transport disabled categories
+        auditConfig = new AuditConfig(true, AuditConfig.Filter.from(
+                ImmutableMap.of("disabled_transport_categories",
+                        ImmutableList.of("COMPLIANCE_DOC_READ", "COMPLIANCE_DOC_WRITE"))
+        ), ComplianceConfig.DEFAULT);
+        json = DefaultObjectMapper.objectMapper.valueToTree(auditConfig);
+        response = rh.executePutRequest(CONFIG_ENDPOINT, writeValueAsString(json, false));
+        assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+
+        // test success for transport disabled categories
+        auditConfig = new AuditConfig(true, AuditConfig.Filter.from(
+                ImmutableMap.of("disabled_transport_categories",
+                        ImmutableList.of("BAD_HEADERS", "SSL_EXCEPTION", "AUTHENTICATED", "FAILED_LOGIN", "GRANTED_PRIVILEGES", "MISSING_PRIVILEGES", "INDEX_EVENT", "OPENDISTRO_SECURITY_INDEX_ATTEMPT"))
+        ), ComplianceConfig.DEFAULT);
+        json = DefaultObjectMapper.objectMapper.valueToTree(auditConfig);
+        response = rh.executePutRequest(CONFIG_ENDPOINT, writeValueAsString(json, false));
+        assertEquals(HttpStatus.SC_OK, response.getStatusCode());
     }
 
     @Test
@@ -450,6 +507,58 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         if (expectedStatus == HttpStatus.SC_OK) {
             assertEquals(0, readTree(rh.executeGetRequest(ENDPOINT, headers).getBody()).at(patchResource).size());
         }
+    }
+
+    @Test
+    public void testPatchRequest() throws Exception {
+        setupWithRestRoles();
+        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.sendAdminCertificate = true;
+
+        // update with non-default configuration
+        AuditConfig auditConfig = new AuditConfig(true, AuditConfig.Filter.from(
+                ImmutableMap.<String, Object>builder()
+                        .put("enable_rest", false)
+                        .put("disabled_rest_categories", Collections.emptyList())
+                        .put("enable_transport", false)
+                        .put("disabled_transport_categories", Collections.emptyList())
+                        .put("resolve_bulk_requests", false)
+                        .put("resolve_indices", false)
+                        .put("log_request_body", false)
+                        .put("exclude_sensitive_headers", false)
+                        .put("ignore_users", Collections.emptyList())
+                        .put("ignore_requests", Collections.emptyList())
+                        .build())
+        , ComplianceConfig.from(
+                ImmutableMap.<String, Object>builder()
+                        .put("enabled", true)
+                        .put("external_config", false)
+                        .put("internal_config", false)
+                        .put("read_metadata_only", false)
+                        .put("read_watched_fields", Collections.emptyMap())
+                        .put("read_ignore_users", Collections.emptyList())
+                        .put("write_metadata_only", true)
+                        .put("write_log_diffs", true)
+                        .put("write_watched_indices", Collections.emptyList())
+                        .put("write_ignore_users", Collections.emptyList())
+                        .build(), Settings.EMPTY));
+        final String payload = DefaultObjectMapper.writeValueAsString(auditConfig, false);
+
+        // update config
+        RestHelper.HttpResponse response = rh.executePutRequest(CONFIG_ENDPOINT, payload);
+        assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+
+        // make patch request
+        response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"add\",\"path\": \"" + "/config/enabled" + "\",\"value\": " + true + "}]");
+        assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+
+        // get config
+        response = rh.executeGetRequest(ENDPOINT);
+        assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        final JsonNode configNode = readTree(response.getBody()).get("config");
+
+        // verify configs are same
+        assertEquals(readTree(payload), configNode);
     }
 
     private String getTestPayload() {

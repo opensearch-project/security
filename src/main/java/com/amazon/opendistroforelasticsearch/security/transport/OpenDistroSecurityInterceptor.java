@@ -72,9 +72,10 @@ import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 import com.google.common.collect.Maps;
 
+import static com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin.isActionTraceEnabled;
+
 public class OpenDistroSecurityInterceptor {
 
-    protected final Logger actionTrace = LogManager.getLogger("opendistro_security_action_trace");
     protected final Logger log = LogManager.getLogger(getClass());
     private BackendRegistry backendRegistry;
     private AuditLog auditLog;
@@ -178,7 +179,7 @@ public class OpenDistroSecurityInterceptor {
 
             ensureCorrectHeaders(remoteAddress0, user0, origin0);
 
-            if(actionTrace.isTraceEnabled()) {
+            if (isActionTraceEnabled()) {
                 getThreadContext().putHeader("_opendistro_security_trace"+System.currentTimeMillis()+"#"+UUID.randomUUID().toString(), Thread.currentThread().getName()+" IC -> "+action+" "+getThreadContext().getHeaders().entrySet().stream().filter(p->!p.getKey().startsWith("_opendistro_security_trace")).collect(Collectors.toMap(p -> p.getKey(), p -> p.getValue())));
             }
 

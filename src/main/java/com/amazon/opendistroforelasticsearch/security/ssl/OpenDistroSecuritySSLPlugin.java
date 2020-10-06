@@ -72,6 +72,7 @@ import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestHandler;
 import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.SharedGroupFactory;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportInterceptor;
 import org.elasticsearch.watcher.ResourceWatcherService;
@@ -95,6 +96,7 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin,
     protected final boolean httpSSLEnabled;
     protected final boolean transportSSLEnabled;
     protected final Settings settings;
+    protected final SharedGroupFactory sharedGroupFactory;
     protected final OpenDistroSecurityKeyStore odsks;
     protected PrincipalExtractor principalExtractor;
     protected final Path configPath;
@@ -108,6 +110,7 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin,
      
         if(disabled) {
             this.settings = null;
+            this.sharedGroupFactory = null;
             this.client = false;
             this.httpSSLEnabled = false;
             this.transportSSLEnabled = false;
@@ -182,6 +185,7 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin,
         });
 
         this.settings = settings;
+        this.sharedGroupFactory = new SharedGroupFactory(settings);
         InjectableValues.Std injectableValues = new InjectableValues.Std();
         injectableValues.addValue(Settings.class, settings);
         DefaultObjectMapper.inject(injectableValues);
@@ -215,7 +219,10 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin,
         if (!client && httpSSLEnabled) {
             
             final ValidatingDispatcher validatingDispatcher = new ValidatingDispatcher(threadPool.getThreadContext(), dispatcher, settings, configPath, NOOP_SSL_EXCEPTION_HANDLER);
-            final OpenDistroSecuritySSLNettyHttpServerTransport sgsnht = new OpenDistroSecuritySSLNettyHttpServerTransport(settings, networkService, bigArrays, threadPool, odsks, xContentRegistry, validatingDispatcher, NOOP_SSL_EXCEPTION_HANDLER, clusterSettings);
+            final OpenDistroSecuritySSLNettyHttpServerTransport sgsnht =
+                    new OpenDistroSecuritySSLNettyHttpServerTransport(settings, networkService, bigArrays, threadPool,
+                            odsks, xContentRegistry, validatingDispatcher, NOOP_SSL_EXCEPTION_HANDLER, clusterSettings,
+                            sharedGroupFactory);
 
             return Collections.singletonMap("com.amazon.opendistroforelasticsearch.security.ssl.http.netty.OpenDistroSecuritySSLNettyHttpServerTransport", () -> sgsnht);
             
@@ -260,7 +267,7 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin,
         Map<String, Supplier<Transport>> transports = new HashMap<String, Supplier<Transport>>();
         if (transportSSLEnabled) {
             transports.put("com.amazon.opendistroforelasticsearch.security.ssl.http.netty.OpenDistroSecuritySSLNettyTransport",
-                    () -> new OpenDistroSecuritySSLNettyTransport(settings, Version.CURRENT, threadPool, networkService, pageCacheRecycler, namedWriteableRegistry, circuitBreakerService, odsks, NOOP_SSL_EXCEPTION_HANDLER));
+                    () -> new OpenDistroSecuritySSLNettyTransport(settings, Version.CURRENT, threadPool, networkService, pageCacheRecycler, namedWriteableRegistry, circuitBreakerService, odsks, NOOP_SSL_EXCEPTION_HANDLER, sharedGroupFactory));
 
         }
         return transports;

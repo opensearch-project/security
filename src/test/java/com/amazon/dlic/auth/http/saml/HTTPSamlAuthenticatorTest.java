@@ -48,8 +48,10 @@ import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.rest.RestRequest.Method;
 import org.elasticsearch.rest.RestResponse;
 import org.elasticsearch.rest.RestStatus;
-import org.junit.AfterClass;
+
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.opensaml.saml.saml2.core.NameIDType;
@@ -64,7 +66,7 @@ import static com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator.IDP_METADATA_
 import static com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator.IDP_METADATA_URL;
 
 public class HTTPSamlAuthenticatorTest {
-    protected static MockSamlIdpServer mockSamlIdpServer;
+    protected MockSamlIdpServer mockSamlIdpServer;
     private static final Pattern WWW_AUTHENTICATE_PATTERN = Pattern
             .compile("([^\\s]+)\\s*([^\\s=]+)=\"([^\"]+)\"\\s*([^\\s=]+)=\"([^\"]+)\"\\s*([^\\s=]+)=\"([^\"]+)\"\\s*");
 
@@ -100,15 +102,14 @@ public class HTTPSamlAuthenticatorTest {
     private static X509Certificate spSigningCertificate;
     private static PrivateKey spSigningPrivateKey;
 
-    @BeforeClass
-    public static void setUp() throws Exception {
+    @Before
+    public void setUp() throws Exception {
         mockSamlIdpServer = new MockSamlIdpServer();
         mockSamlIdpServer.start();
-        initSpSigningKeys();
     }
 
-    @AfterClass
-    public static void tearDown() {
+    @After
+    public void tearDown() {
         if (mockSamlIdpServer != null) {
             try {
                 mockSamlIdpServer.close();
@@ -637,7 +638,8 @@ public class HTTPSamlAuthenticatorTest {
                 .withHeaders(ImmutableMap.of("Content-Type", "application/json")).build();
     }
 
-    private static void initSpSigningKeys() {
+    @BeforeClass
+    public static void initSpSigningKeys() {
         try {
             KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
 

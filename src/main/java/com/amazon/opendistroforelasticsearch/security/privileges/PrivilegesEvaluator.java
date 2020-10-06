@@ -48,9 +48,13 @@ import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotR
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesAction;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
+import org.elasticsearch.action.admin.indices.create.AutoCreateAction;
+import org.elasticsearch.action.admin.indices.create.CreateIndexAction;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexAction;
 import org.elasticsearch.action.admin.indices.mapping.get.GetFieldMappingsRequest;
+import org.elasticsearch.action.admin.indices.mapping.put.AutoPutMappingAction;
+import org.elasticsearch.action.admin.indices.mapping.put.PutMappingAction;
 import org.elasticsearch.action.bulk.BulkAction;
 import org.elasticsearch.action.bulk.BulkItemRequest;
 import org.elasticsearch.action.bulk.BulkShardRequest;
@@ -89,11 +93,12 @@ import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 
+import static com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin.traceAction;
+
 public class PrivilegesEvaluator {
 
     private static final WildcardMatcher ACTION_MATCHER = WildcardMatcher.from("indices:data/read/*search*");
     protected final Logger log = LogManager.getLogger(this.getClass());
-    protected final Logger actionTrace = LogManager.getLogger("opendistro_security_action_trace");
     private final ClusterService clusterService;
 
     private final IndexNameExpressionResolver resolver;
@@ -163,7 +168,8 @@ public class PrivilegesEvaluator {
         return configModel !=null && configModel.getSecurityRoles() != null && dcm != null;
     }
 
-    public PrivilegesEvaluatorResponse evaluate(final User user, String action0, final ActionRequest request, Task task) {
+    public PrivilegesEvaluatorResponse evaluate(final User user, String action0, final ActionRequest request,
+                                                Task task, final Set<String> injectedRoles) {
 
         if (!isInitialized()) {
             throw new ElasticsearchSecurityException("Open Distro Security is not initialized.");
@@ -173,12 +179,16 @@ public class PrivilegesEvaluator {
             action0 = "indices:admin/upgrade";
         }
 
-        if ("indices:admin/auto_create".equals(action0)) {
-            action0 = "indices:admin/create";
+        if (AutoCreateAction.NAME.equals(action0)) {
+            action0 = CreateIndexAction.NAME;
         }
 
-        final TransportAddress caller = Objects.requireNonNull((TransportAddress) this.threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS));
-        final Set<String> mappedRoles = mapRoles(user, caller);
+        if (AutoPutMappingAction.NAME.equals(action0)) {
+            action0 = PutMappingAction.NAME;
+        }
+
+        final TransportAddress caller = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
+        final Set<String> mappedRoles = (injectedRoles == null) ? mapRoles(user, caller) : injectedRoles;
         final SecurityRoles securityRoles = getSecurityRoles(mappedRoles);
 
         final PrivilegesEvaluatorResponse presponse = new PrivilegesEvaluatorResponse();
@@ -187,6 +197,7 @@ public class PrivilegesEvaluator {
         if (log.isDebugEnabled()) {
             log.debug("### evaluate permissions for {} on {}", user, clusterService.localNode().getName());
             log.debug("action: "+action0+" ("+request.getClass().getSimpleName()+")");
+            log.debug("mapped roles: {}",mappedRoles.toString());
         }
 
         final Resolved requestedResolved = irr.resolveRequest(request);
@@ -526,8 +537,8 @@ public class PrivilegesEvaluator {
             additionalPermissionsRequired.addAll(ConfigConstants.OPENDISTRO_SECURITY_SNAPSHOT_RESTORE_NEEDED_WRITE_PRIVILEGES);
         }
 
-        if(actionTrace.isTraceEnabled() && additionalPermissionsRequired.size() > 1) {
-            actionTrace.trace(("Additional permissions required: "+additionalPermissionsRequired));
+        if (additionalPermissionsRequired.size() > 1) {
+            traceAction("Additional permissions required: {}", additionalPermissionsRequired);
         }
 
         if(log.isDebugEnabled() && additionalPermissionsRequired.size() > 1) {

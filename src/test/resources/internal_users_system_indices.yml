@@ -1,0 +1,11 @@
+---
+_meta:
+  type: "internalusers"
+  config_version: 2
+admin_all_access:
+  hash: "$2y$12$ft8tXtxb.dyO/5MrDXHLc.e1o3dktEQJMvR2e.sgVDyD/gR7G9dLS"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "User mapped to all cluster and index permissions but no role to view protected index"

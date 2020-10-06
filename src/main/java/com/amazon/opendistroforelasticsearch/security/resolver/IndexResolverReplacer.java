@@ -61,6 +61,7 @@ import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkShardRequest;
 import org.elasticsearch.action.delete.DeleteRequest;
+import org.elasticsearch.action.fieldcaps.FieldCapabilitiesIndexRequest;
 import org.elasticsearch.action.fieldcaps.FieldCapabilitiesRequest;
 import org.elasticsearch.action.get.MultiGetRequest;
 import org.elasticsearch.action.get.MultiGetRequest.Item;
@@ -178,7 +179,7 @@ public class IndexResolverReplacer {
         if(remoteClusterService.isCrossClusterSearchEnabled() && enableCrossClusterResolution) {
             remoteIndices = new HashSet<>();
             final Map<String, OriginalIndices> remoteClusterIndices = OpenDistroSecurityPlugin.GuiceHolder.getRemoteClusterService()
-                    .groupIndices(indicesOptions, requestedPatterns0, idx -> resolver.hasIndexOrAlias(idx, clusterService.state()));
+                    .groupIndices(indicesOptions, requestedPatterns0, idx -> resolver.hasIndexAbstraction(idx, clusterService.state()));
             final Set<String> remoteClusters = remoteClusterIndices.keySet().stream()
                     .filter(k->!RemoteClusterService.LOCAL_CLUSTER_GROUP_KEY.equals(k)).collect(Collectors.toSet());
             for(String remoteCluster : remoteClusters) {
@@ -705,10 +706,23 @@ public class IndexResolverReplacer {
             }
 
             String[] newIndices = provider.provide(indicesL.toArray(new String[0]), request, true);
-            if(checkIndices(request, newIndices, true, allowEmptyIndices) == false) {
+            if (!checkIndices(request, newIndices, true, allowEmptyIndices)) {
                 return false;
             }
             ((SingleShardRequest) request).index(newIndices.length!=1?null:newIndices[0]);
+        } else if (request instanceof FieldCapabilitiesIndexRequest) {
+            // FieldCapabilitiesIndexRequest does not support replacing the indexes.
+            // However, the indexes are always determined by FieldCapabilitiesRequest which will be reduced below
+            // (implements Replaceable). So IF an index arrives here, we can be sure that we have
+            // at least privileges for indices:data/read/field_caps
+            FieldCapabilitiesIndexRequest fieldCapabilitiesRequest = (FieldCapabilitiesIndexRequest) request;
+
+            String index = fieldCapabilitiesRequest.index();
+
+            String[] newIndices = provider.provide(new String[]{index}, request, true);
+            if (!checkIndices(request, newIndices, true, allowEmptyIndices)) {
+                return false;
+            }
         } else if (request instanceof IndexRequest) {
             String[] newIndices = provider.provide(((IndexRequest) request).indices(), request, true);
             if(checkIndices(request, newIndices, true, allowEmptyIndices) == false) {
