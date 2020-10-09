@@ -80,7 +80,7 @@ mvn clean test
 * Build artifacts (zip, deb, rpm)
 
 ```
-mvn clean package -DskipTests
+mvn clean package -Padvanced -DskipTests
 artifact_zip=`ls $(pwd)/target/releases/opendistro_security-*.zip | grep -v admin-standalone`
 ./gradlew build buildDeb buildRpm --no-daemon -ParchivePath=$artifact_zip -Dbuild.snapshot=false
 ```

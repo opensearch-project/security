@@ -42,7 +42,7 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Package
-      run: mvn -B clean package -DskipTests
+      run: mvn -B clean package -Padvanced -DskipTests
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v1
