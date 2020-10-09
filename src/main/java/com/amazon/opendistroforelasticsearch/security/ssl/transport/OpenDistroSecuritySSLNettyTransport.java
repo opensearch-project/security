@@ -27,7 +27,7 @@ import java.security.PrivilegedAction;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 
-import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLUtil;
+import com.amazon.opendistroforelasticsearch.security.ssl.util.TLSUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ExceptionsHelper;
@@ -60,7 +60,6 @@ public class OpenDistroSecuritySSLNettyTransport extends Netty4Transport {
     private static final Logger logger = LogManager.getLogger(OpenDistroSecuritySSLNettyTransport.class);
     private final OpenDistroSecurityKeyStore odsks;
     private final SslExceptionHandler errorHandler;
-    private final SSLUtil sslUtil;
     private final OpenDistroSSLConfig openDistroSSLConfig;
 
     public OpenDistroSecuritySSLNettyTransport(final Settings settings, final Version version, final ThreadPool threadPool, final NetworkService networkService,
@@ -71,7 +70,6 @@ public class OpenDistroSecuritySSLNettyTransport extends Netty4Transport {
 
         this.odsks = odsks;
         this.errorHandler = errorHandler;
-        this.sslUtil = new SSLUtil();
         this.openDistroSSLConfig = openDistroSSLConfig;
     }
 
@@ -113,7 +111,7 @@ public class OpenDistroSecuritySSLNettyTransport extends Netty4Transport {
             boolean dualModeEnabled = openDistroSSLConfig.isDualModeEnabled();
             if (dualModeEnabled) {
                 logger.info("SSL Dual mode enabled, using port unification handler");
-                final ChannelHandler portUnificationHandler = new DualModeSSLHandler(odsks, sslUtil);
+                final ChannelHandler portUnificationHandler = new DualModeSSLHandler(odsks);
                 ch.pipeline().addFirst("port_unification_handler", portUnificationHandler);
             } else {
                 final SslHandler sslHandler = new SslHandler(odsks.createServerTransportSSLEngine());
@@ -222,7 +220,7 @@ public class OpenDistroSecuritySSLNettyTransport extends Netty4Transport {
             super.initChannel(ch);
 
             if(connectionTestResult == SSLConnectionTestResult.ES_PING_FAILED) {
-                logger.error("ES Ping has failed, closing channel");
+                logger.error("SSL dual mode is enabled but dual mode handshake and ES ping has failed during client connection setup, closing channel");
                 ch.close();
                 return;
             }

@@ -25,18 +25,22 @@ import org.elasticsearch.common.settings.Settings;
 public class OpenDistroSSLConfig {
 
     public static final Setting<Boolean> SSL_DUAL_MODE_SETTING = Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_SSL_DUAL_MODE_ENABLED,
-            true, Setting.Property.NodeScope, Setting.Property.Dynamic, Setting.Property.Filtered);
+            true, Setting.Property.NodeScope, Setting.Property.Dynamic); // Not filtered
 
     private static final Logger logger = LogManager.getLogger(OpenDistroSSLConfig.class);
 
     private final boolean sslOnly;
     private volatile boolean dualModeEnabled;
 
-    public OpenDistroSSLConfig(final Settings settings) {
-        sslOnly = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_SSL_ONLY, false);
-        dualModeEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_SSL_DUAL_MODE_ENABLED,
-                false);
+    public OpenDistroSSLConfig(final boolean sslOnly, final boolean dualModeEnabled) {
+        this.sslOnly = sslOnly;
+        this.dualModeEnabled = dualModeEnabled;
         logger.info("SSL dual mode is {}", isDualModeEnabled() ? "enabled" : "disabled");
+    }
+
+    public OpenDistroSSLConfig(final Settings settings) {
+        this(settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_SSL_ONLY, false),
+            settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_SSL_DUAL_MODE_ENABLED, false));
     }
 
     public void registerClusterSettingsChangeListener(final ClusterSettings clusterSettings) {

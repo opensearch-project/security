@@ -17,7 +17,7 @@ package com.amazon.opendistroforelasticsearch.security.ssl.transport;
 
 import com.amazon.opendistroforelasticsearch.security.ssl.OpenDistroSecurityKeyStore;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConnectionTestUtil;
-import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLUtil;
+import com.amazon.opendistroforelasticsearch.security.ssl.util.TLSUtil;
 import com.google.common.annotations.VisibleForTesting;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -42,18 +42,15 @@ public class DualModeSSLHandler extends ByteToMessageDecoder {
     private final OpenDistroSecurityKeyStore openDistroSecurityKeyStore;
 
     private final SslHandler providedSSLHandler;
-    private final SSLUtil sslUtils;
 
-    public DualModeSSLHandler(OpenDistroSecurityKeyStore openDistroSecurityKeyStore, SSLUtil sslUtils) {
-        this(openDistroSecurityKeyStore, null, sslUtils);
+    public DualModeSSLHandler(OpenDistroSecurityKeyStore openDistroSecurityKeyStore) {
+        this(openDistroSecurityKeyStore, null);
     }
 
     @VisibleForTesting
-    protected DualModeSSLHandler(OpenDistroSecurityKeyStore openDistroSecurityKeyStore, SslHandler providedSSLHandler,
-                                               SSLUtil sslUtils) {
+    protected DualModeSSLHandler(OpenDistroSecurityKeyStore openDistroSecurityKeyStore, SslHandler providedSSLHandler) {
         this.openDistroSecurityKeyStore = openDistroSecurityKeyStore;
         this.providedSSLHandler = providedSSLHandler;
-        this.sslUtils = sslUtils;
     }
 
     @Override
@@ -71,7 +68,7 @@ public class DualModeSSLHandler extends ByteToMessageDecoder {
             return;
         }
 
-        if (this.sslUtils.isTLS(in)) {
+        if (TLSUtil.isTLS(in)) {
             logger.debug("Identified request as SSL request");
             enableSsl(ctx);
         } else {

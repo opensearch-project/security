@@ -19,17 +19,20 @@ import io.netty.buffer.ByteBuf;
 import java.nio.ByteOrder;
 
 
-public class SSLUtil {
+public class TLSUtil {
 
     private static final int SSL_CONTENT_TYPE_CHANGE_CIPHER_SPEC = 20;
     private static final int SSL_CONTENT_TYPE_ALERT = 21;
     private static final int SSL_CONTENT_TYPE_HANDSHAKE = 22;
     private static final int SSL_CONTENT_TYPE_APPLICATION_DATA = 23;
     private static final int SSL_CONTENT_TYPE_EXTENSION_HEARTBEAT = 24;
-
     private static final int SSL_RECORD_HEADER_LENGTH = 5;
 
-    public boolean isTLS(ByteBuf buffer) {
+    private TLSUtil() {
+
+    }
+
+    public static boolean isTLS(ByteBuf buffer) {
         int packetLength = 0;
         int offset = buffer.readerIndex();
 
@@ -67,7 +70,7 @@ public class SSLUtil {
         return tls;
     }
 
-    static private int unsignedShortBE(ByteBuf buffer, int offset) {
+    private static int unsignedShortBE(ByteBuf buffer, int offset) {
         return buffer.order() == ByteOrder.BIG_ENDIAN ?
                 buffer.getUnsignedShort(offset) : buffer.getUnsignedShortLE(offset);
     }

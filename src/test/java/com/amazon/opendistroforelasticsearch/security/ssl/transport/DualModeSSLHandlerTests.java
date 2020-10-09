@@ -16,7 +16,7 @@ package com.amazon.opendistroforelasticsearch.security.ssl.transport;
 
 import com.amazon.opendistroforelasticsearch.security.ssl.OpenDistroSecurityKeyStore;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConnectionTestUtil;
-import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLUtil;
+import com.amazon.opendistroforelasticsearch.security.ssl.util.TLSUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.PooledByteBufAllocator;
@@ -35,11 +35,13 @@ import org.mockito.Mockito;
 
 public class DualModeSSLHandlerTests {
 
+    public static final int TLS_MAJOR_VERSION = 3;
+    public static final int TLS_MINOR_VERSION = 0;
+
     private OpenDistroSecurityKeyStore openDistroSecurityKeyStore;
     private ChannelPipeline pipeline;
     private ChannelHandlerContext ctx;
     private SslHandler sslHandler;
-    private SSLUtil sslUtil;
 
     @Before
     public void setup() {
@@ -49,12 +51,11 @@ public class DualModeSSLHandlerTests {
 
         openDistroSecurityKeyStore = Mockito.mock(OpenDistroSecurityKeyStore.class);
         sslHandler = Mockito.mock(SslHandler.class);
-        sslUtil = Mockito.mock(SSLUtil.class);
     }
 
     @Test
     public void testInvalidMessage() throws Exception {
-        DualModeSSLHandler handler = new DualModeSSLHandler(openDistroSecurityKeyStore, sslUtil);
+        DualModeSSLHandler handler = new DualModeSSLHandler(openDistroSecurityKeyStore);
 
         ByteBufAllocator alloc = PooledByteBufAllocator.DEFAULT;
         handler.decode(ctx, alloc.directBuffer(4), null);
@@ -64,16 +65,16 @@ public class DualModeSSLHandlerTests {
 
     @Test
     public void testValidTLSMessage() throws Exception {
-        DualModeSSLHandler handler = new DualModeSSLHandler(openDistroSecurityKeyStore, sslHandler, sslUtil);
+        DualModeSSLHandler handler = new DualModeSSLHandler(openDistroSecurityKeyStore, sslHandler);
 
         ByteBufAllocator alloc = PooledByteBufAllocator.DEFAULT;
         ByteBuf buffer = alloc.directBuffer(6);
-
-        for (int i = 0; i < 6; i++) {
-            buffer.writeByte(1);
-        }
-
-        Mockito.when(sslUtil.isTLS(buffer)).thenReturn(true);
+        buffer.writeByte(20);
+        buffer.writeByte(TLS_MAJOR_VERSION);
+        buffer.writeByte(TLS_MINOR_VERSION);
+        buffer.writeByte(100);
+        buffer.writeByte(0);
+        buffer.writeByte(0);
 
         handler.decode(ctx, buffer, null);
         // ensure ssl handler is added
@@ -86,7 +87,7 @@ public class DualModeSSLHandlerTests {
 
     @Test
     public void testNonTLSMessage() throws Exception {
-        DualModeSSLHandler handler = new DualModeSSLHandler(openDistroSecurityKeyStore, sslHandler, sslUtil);
+        DualModeSSLHandler handler = new DualModeSSLHandler(openDistroSecurityKeyStore, sslHandler);
 
         ByteBufAllocator alloc = PooledByteBufAllocator.DEFAULT;
         ByteBuf buffer = alloc.directBuffer(6);
@@ -94,8 +95,6 @@ public class DualModeSSLHandlerTests {
         for (int i = 0; i < 6; i++) {
             buffer.writeByte(1);
         }
-
-        Mockito.when(sslUtil.isTLS(buffer)).thenReturn(false);
 
         handler.decode(ctx, buffer, null);
         // ensure ssl handler is added
@@ -116,7 +115,7 @@ public class DualModeSSLHandlerTests {
         ByteBuf buffer = alloc.directBuffer(6);
         buffer.writeCharSequence(SSLConnectionTestUtil.DUAL_MODE_CLIENT_HELLO_MSG, StandardCharsets.UTF_8);
 
-        DualModeSSLHandler handler = new DualModeSSLHandler(openDistroSecurityKeyStore, sslHandler, sslUtil);
+        DualModeSSLHandler handler = new DualModeSSLHandler(openDistroSecurityKeyStore, sslHandler);
         List<Object> decodedObjs = new ArrayList<>();
         handler.decode(ctx, buffer, decodedObjs);
 

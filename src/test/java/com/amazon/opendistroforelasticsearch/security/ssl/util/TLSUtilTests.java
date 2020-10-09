@@ -21,7 +21,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class SSLUtilTests {
+public class TLSUtilTests {
 
     public static final int TLS_MAJOR_VERSION = 3;
     public static final int TLS_MINOR_VERSION = 0;
@@ -33,7 +33,6 @@ public class SSLUtilTests {
 
     @Test
     public void testSSLUtilSuccess() {
-        SSLUtil util = new SSLUtil();
         // byte 20 to 24 are ssl headers
         for (int byteToSend = 20; byteToSend <= 24; byteToSend++) {
             ByteBufAllocator alloc = PooledByteBufAllocator.DEFAULT;
@@ -42,14 +41,13 @@ public class SSLUtilTests {
             buffer.writeByte(TLS_MAJOR_VERSION);
             buffer.writeByte(TLS_MINOR_VERSION);
             buffer.writeByte(100);
-            Assert.assertTrue(util.isTLS(buffer));
+            Assert.assertTrue(TLSUtil.isTLS(buffer));
         }
 
     }
 
     @Test
     public void testSSLUtilWrongTLSVersion() {
-        SSLUtil util = new SSLUtil();
         // byte 20 to 24 are ssl headers
         for (int byteToSend = 20; byteToSend <= 24; byteToSend++) {
             ByteBufAllocator alloc = PooledByteBufAllocator.DEFAULT;
@@ -59,14 +57,13 @@ public class SSLUtilTests {
             buffer.writeByte(100);
             buffer.writeByte(TLS_MINOR_VERSION);
             buffer.writeByte(100);
-            Assert.assertFalse(util.isTLS(buffer));
+            Assert.assertFalse(TLSUtil.isTLS(buffer));
         }
 
     }
 
     @Test
     public void testSSLUtilInvalidContentLength() {
-        SSLUtil util = new SSLUtil();
         // byte 20 to 24 are ssl headers
         for (int byteToSend = 20; byteToSend <= 24; byteToSend++) {
             ByteBufAllocator alloc = PooledByteBufAllocator.DEFAULT;
@@ -76,7 +73,7 @@ public class SSLUtilTests {
             buffer.writeByte(TLS_MINOR_VERSION);
             //setting content length as 0
             buffer.writeByte(0);
-            Assert.assertFalse(util.isTLS(buffer));
+            Assert.assertFalse(TLSUtil.isTLS(buffer));
         }
 
     }

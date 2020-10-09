@@ -109,7 +109,6 @@ import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusterService;
-import org.elasticsearch.transport.SharedGroupFactory;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.Transport.Connection;
 import org.elasticsearch.transport.TransportChannel;
@@ -148,7 +147,6 @@ import com.amazon.opendistroforelasticsearch.security.resolver.IndexResolverRepl
 import com.amazon.opendistroforelasticsearch.security.rest.KibanaInfoAction;
 import com.amazon.opendistroforelasticsearch.security.rest.OpenDistroSecurityHealthAction;
 import com.amazon.opendistroforelasticsearch.security.rest.OpenDistroSecurityInfoAction;
-import com.amazon.opendistroforelasticsearch.security.rest.SSLDualModeAction;
 import com.amazon.opendistroforelasticsearch.security.rest.TenantInfoAction;
 import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigFactory;
 import com.amazon.opendistroforelasticsearch.security.ssl.OpenDistroSecuritySSLPlugin;
@@ -188,7 +186,6 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     private volatile Client localClient;
     private final boolean disabled;
     private final boolean advancedModulesEnabled;
-    private final boolean sslOnly;
     private final List<String> demoCertHashes = new ArrayList<String>(3);
     private volatile OpenDistroSecurityFilter odsf;
     private volatile IndexResolverReplacer irr;
@@ -217,7 +214,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     }
 
     private final SslExceptionHandler evaluateSslExceptionHandler() {
-        if (client || disabled || sslOnly) {
+        if (client || disabled || openDistroSSLConfig.isSslOnlyMode()) {
             return new SslExceptionHandler(){};
         }
 
@@ -246,15 +243,12 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         if (disabled) {
             this.dlsFlsAvailable = false;
             this.advancedModulesEnabled = false;
-            this.sslOnly = false;
             this.sslCertReloadEnabled = false;
             log.warn("Open Distro Security plugin installed but disabled. This can expose your configuration (including passwords) to the public.");
             return;
         }
         
-        sslOnly = openDistroSSLConfig.isSslOnlyMode();
-
-        if (sslOnly) {
+        if (openDistroSSLConfig.isSslOnlyMode()) {
             this.dlsFlsAvailable = false;
             this.advancedModulesEnabled = false;
             this.sslCertReloadEnabled = false;
@@ -302,7 +296,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
 
         log.info("Clustername: {}", settings.get("cluster.name","elasticsearch"));
 
-        if (!transportSSLEnabled && !sslOnly) {
+        if (!transportSSLEnabled && !openDistroSSLConfig.isSslOnlyMode()) {
             throw new IllegalStateException(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLED+" must be set to 'true'");
         }
 
@@ -448,7 +442,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
 
             handlers.addAll(super.getRestHandlers(settings, restController, clusterSettings, indexScopedSettings, settingsFilter, indexNameExpressionResolver, nodesInCluster));
 
-            if(!sslOnly) {
+            if(!openDistroSSLConfig.isSslOnlyMode()) {
                 handlers.add(new OpenDistroSecurityInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool)));
                 handlers.add(new KibanaInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool)));
                 handlers.add(new OpenDistroSecurityHealthAction(settings, restController, Objects.requireNonNull(backendRegistry)));
@@ -463,8 +457,6 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                         .instantiateMngtRestApiHandler(settings, configPath, restController, localClient, adminDns, cr, cs, Objects.requireNonNull(principalExtractor),  evaluator, threadPool, Objects.requireNonNull(auditLog));
                 handlers.addAll(apiHandler);
                 log.debug("Added {} management rest handler(s)", apiHandler.size());
-            } else {
-                handlers.add(new SSLDualModeAction(settings, openDistroSSLConfig));
             }
         }
 
@@ -474,7 +466,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     @Override
     public UnaryOperator<RestHandler> getRestHandlerWrapper(final ThreadContext threadContext) {
 
-        if(client || disabled || sslOnly) {
+        if(client || disabled || openDistroSSLConfig.isSslOnlyMode()) {
             return (rh) -> rh;
         }
 
@@ -484,7 +476,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     @Override
     public List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
         List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> actions = new ArrayList<>(1);
-        if(!disabled && !sslOnly) {
+        if(!disabled && !openDistroSSLConfig.isSslOnlyMode()) {
             actions.add(new ActionHandler<>(ConfigUpdateAction.INSTANCE, TransportConfigUpdateAction.class));
             actions.add(new ActionHandler<>(WhoAmIAction.INSTANCE, TransportWhoAmIAction.class));
         }
@@ -495,7 +487,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     public void onIndexModule(IndexModule indexModule) {
         //called for every index!
 
-        if (!disabled && !client && !sslOnly) {
+        if (!disabled && !client && !openDistroSSLConfig.isSslOnlyMode()) {
             log.debug("Handle dlsFlsAvailable: "+dlsFlsAvailable+"/auditLog="+auditLog.getClass()+" for onIndexModule() of index "+indexModule.getIndex().getName());
             if (dlsFlsAvailable) {
 
@@ -606,7 +598,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     @Override
     public List<ActionFilter> getActionFilters() {
         List<ActionFilter> filters = new ArrayList<>(1);
-        if (!client && !disabled && !sslOnly) {
+        if (!client && !disabled && !openDistroSSLConfig.isSslOnlyMode()) {
             filters.add(Objects.requireNonNull(odsf));
         }
         return filters;
@@ -616,7 +608,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     public List<TransportInterceptor> getTransportInterceptors(NamedWriteableRegistry namedWriteableRegistry, ThreadContext threadContext) {
         List<TransportInterceptor> interceptors = new ArrayList<TransportInterceptor>(1);
 
-        if (!client && !disabled && !sslOnly) {
+        if (!client && !disabled && !openDistroSSLConfig.isSslOnlyMode()) {
             interceptors.add(new TransportInterceptor() {
 
                 @Override
@@ -656,7 +648,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             CircuitBreakerService circuitBreakerService, NamedWriteableRegistry namedWriteableRegistry, NetworkService networkService) {
         Map<String, Supplier<Transport>> transports = new HashMap<String, Supplier<Transport>>();
         
-        if(sslOnly) {
+        if(openDistroSSLConfig.isSslOnlyMode()) {
             return super.getTransports(settings, threadPool, pageCacheRecycler, circuitBreakerService, namedWriteableRegistry, networkService);
         }
         
@@ -673,7 +665,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             PageCacheRecycler pageCacheRecycler, CircuitBreakerService circuitBreakerService, NamedXContentRegistry xContentRegistry,
             NetworkService networkService, Dispatcher dispatcher, ClusterSettings clusterSettings) {
 
-        if(sslOnly) {
+        if(openDistroSSLConfig.isSslOnlyMode()) {
             return super.getHttpTransports(settings, threadPool, bigArrays, pageCacheRecycler, circuitBreakerService, xContentRegistry,
              networkService, dispatcher, clusterSettings);
         }
@@ -706,7 +698,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             IndexNameExpressionResolver indexNameExpressionResolver, Supplier<RepositoriesService> repositoriesServiceSupplier) {
 
         openDistroSSLConfig.registerClusterSettingsChangeListener(clusterService.getClusterSettings());
-        if(sslOnly) {
+        if(openDistroSSLConfig.isSslOnlyMode()) {
             return super.createComponents(
                     localClient,
                     clusterService,
@@ -830,7 +822,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
 
         builder.put(super.additionalSettings());
 
-        if(!sslOnly){
+        if(!openDistroSSLConfig.isSslOnlyMode()){
           builder.put(NetworkModule.TRANSPORT_TYPE_KEY, "com.amazon.opendistroforelasticsearch.security.ssl.http.netty.OpenDistroSecuritySSLNettyTransport");
           builder.put(NetworkModule.HTTP_TYPE_KEY, "com.amazon.opendistroforelasticsearch.security.http.OpenDistroSecurityHttpServerTransport");
         }
@@ -851,18 +843,17 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_DEFAULT, Function.identity(), Property.NodeScope, Property.Filtered, Property.Final));
         settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_DEFAULT, Function.identity(), Property.NodeScope, Property.Filtered, Property.Final));
 
-        if(!sslOnly) {
-            settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_ADMIN_DN, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
+        if(!openDistroSSLConfig.isSslOnlyMode()) {
+            settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_ADMIN_DN, Collections.emptyList(), Function.identity(), Property.NodeScope, Property.Filtered));
     
             settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.groupSetting(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_IMPERSONATION_DN+".", Property.NodeScope)); //not filtered here
-    
+            settings.add(Setting.groupSetting(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_IMPERSONATION_DN+".", Property.NodeScope, Property.Filtered));
             settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_CERT_OID, Property.NodeScope, Property.Filtered));
     
             settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_CERT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_NODES_DN, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
+            settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_NODES_DN, Collections.emptyList(), Function.identity(), Property.NodeScope, Property.Filtered));
 
-            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, false, Property.NodeScope));//not filtered here
+            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, false, Property.NodeScope, Property.Filtered));
     
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE,
                     Property.NodeScope, Property.Filtered));
@@ -878,15 +869,15 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES, false, Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, false, Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, true, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.groupSetting(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".", Property.NodeScope)); //not filtered here
+            settings.add(Setting.groupSetting(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".", Property.NodeScope, Property.Filtered));
     
             settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_ROLES_MAPPING_RESOLUTION, Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_DISABLE_ENVVAR_REPLACEMENT, false, Property.NodeScope, Property.Filtered));
     
             // Security - Audit
             settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_TYPE_DEFAULT, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.groupSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_ROUTES + ".", Property.NodeScope));
-            settings.add(Setting.groupSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_ENDPOINTS + ".",  Property.NodeScope));
+            settings.add(Setting.groupSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_ROUTES + ".", Property.NodeScope, Property.Filtered));
+            settings.add(Setting.groupSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_ENDPOINTS + ".",  Property.NodeScope, Property.Filtered));
             settings.add(Setting.intSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_THREADPOOL_SIZE, 10, Property.NodeScope, Property.Filtered));
             settings.add(Setting.intSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_THREADPOOL_MAX_QUEUE_LEN, 100*1000, Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY, true, Property.NodeScope, Property.Filtered));
@@ -896,12 +887,12 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             final List<String> disabledCategories = new ArrayList<String>(2);
             disabledCategories.add("AUTHENTICATED");
             disabledCategories.add("GRANTED_PRIVILEGES");
-            settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, disabledCategories, Function.identity(), Property.NodeScope)); //not filtered here
-            settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, disabledCategories, Function.identity(), Property.NodeScope)); //not filtered here
+            settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, disabledCategories, Function.identity(), Property.NodeScope, Property.Filtered));
+            settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, disabledCategories, Function.identity(), Property.NodeScope, Property.Filtered));
             final List<String> ignoredUsers = new ArrayList<String>(2);
             ignoredUsers.add("kibanaserver");
-            settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS, ignoredUsers, Function.identity(), Property.NodeScope)); //not filtered here
-            settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
+            settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS, ignoredUsers, Function.identity(), Property.NodeScope, Property.Filtered));
+            settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS, Collections.emptyList(), Function.identity(), Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, false, Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS, true, Property.NodeScope, Property.Filtered));
     
@@ -911,7 +902,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ES_TYPE, Property.NodeScope, Property.Filtered));
     
             // External ES
-            settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_HTTP_ENDPOINTS, Lists.newArrayList("localhost:9200"), Function.identity(), Property.NodeScope)); //not filtered here
+            settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_HTTP_ENDPOINTS, Lists.newArrayList("localhost:9200"), Function.identity(), Property.NodeScope, Property.Filtered));
             settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_USERNAME, Property.NodeScope, Property.Filtered));
             settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_PASSWORD, Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_ENABLE_SSL, false, Property.NodeScope, Property.Filtered));
@@ -925,8 +916,8 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_PEMTRUSTEDCAS_CONTENT, Property.NodeScope, Property.Filtered));
             settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_PEMTRUSTEDCAS_FILEPATH, Property.NodeScope, Property.Filtered));
             settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_JKS_CERT_ALIAS, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_ENABLED_SSL_CIPHERS, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
-            settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_ENABLED_SSL_PROTOCOLS, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
+            settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_ENABLED_SSL_CIPHERS, Collections.emptyList(), Function.identity(), Property.NodeScope, Property.Filtered));
+            settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_ENABLED_SSL_PROTOCOLS, Collections.emptyList(), Function.identity(), Property.NodeScope, Property.Filtered));
     
             // Webhooks
             settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_WEBHOOK_URL, Property.NodeScope, Property.Filtered));
@@ -947,24 +938,24 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     
     
             // Open Distro Security - REST API
-            settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_ROLES_ENABLED, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
-            settings.add(Setting.groupSetting(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_ENDPOINTS_DISABLED + ".", Property.NodeScope));
+            settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_ROLES_ENABLED, Collections.emptyList(), Function.identity(), Property.NodeScope, Property.Filtered));
+            settings.add(Setting.groupSetting(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_ENDPOINTS_DISABLED + ".", Property.NodeScope, Property.Filtered));
             
             settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX, Property.NodeScope, Property.Filtered));
             settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE, Property.NodeScope, Property.Filtered));
 
             
             // Compliance
-            settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
-            settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
+            settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, Collections.emptyList(), Function.identity(), Property.NodeScope, Property.Filtered));
+            settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS, Collections.emptyList(), Function.identity(), Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_METADATA_ONLY, false, Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_METADATA_ONLY, false, Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS, false, Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED, false, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
-            settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
+            settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS, Collections.emptyList(), Function.identity(), Property.NodeScope, Property.Filtered));
+            settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS, Collections.emptyList(), Function.identity(), Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_DISABLE_ANONYMOUS_AUTHENTICATION, false, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
+            settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList(), Function.identity(), Property.NodeScope, Property.Filtered));
             settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT, Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, false, Property.NodeScope, Property.Filtered));
 
@@ -988,23 +979,11 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         
         return settings;
     }
-
-    @Override
-    public List<String> getSettingsFilter() {
-        List<String> settingsFilter = new ArrayList<>();
-
-        if(disabled) {
-            return settingsFilter;
-        }
-
-        settingsFilter.add("opendistro_security.*");
-        return settingsFilter;
-    }
     
     @Override
     public void onNodeStarted() {
         log.info("Node started");
-        if(!sslOnly && !client && !disabled) {
+        if(!openDistroSSLConfig.isSslOnlyMode() && !client && !disabled) {
             cr.initOnNodeStart();
         }
         final Set<ModuleInfo> securityModules = ReflectionHelper.getModulesLoaded();
@@ -1018,7 +997,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     @Override
     public Collection<Class<? extends LifecycleComponent>> getGuiceServiceClasses() {
 
-        if (client || disabled || sslOnly) {
+        if (client || disabled || openDistroSSLConfig.isSslOnlyMode()) {
             return Collections.emptyList();
         }
 

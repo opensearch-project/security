@@ -109,7 +109,6 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin,
 //    }
 
     protected OpenDistroSecuritySSLPlugin(final Settings settings, final Path configPath, boolean disabled) {
-        openDistroSSLConfig = new OpenDistroSSLConfig(settings);
         if(disabled) {
             this.settings = null;
             this.sharedGroupFactory = null;
@@ -118,6 +117,7 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin,
             this.transportSSLEnabled = false;
             this.odsks = null;
             this.configPath = null;
+            openDistroSSLConfig = new OpenDistroSSLConfig(false, false);
             
             AccessController.doPrivileged(new PrivilegedAction<Object>() {
                 @Override
@@ -130,7 +130,7 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin,
             
             return;
         }
-        
+        openDistroSSLConfig = new OpenDistroSSLConfig(settings);
         this.configPath = configPath;
         
         if(this.configPath != null) {
@@ -337,10 +337,10 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin,
         settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.listSetting(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLED_CIPHERS, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
-        settings.add(Setting.listSetting(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLED_PROTOCOLS, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
-        settings.add(Setting.listSetting(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
-        settings.add(Setting.listSetting(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
+        settings.add(Setting.listSetting(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLED_CIPHERS, Collections.emptyList(), Function.identity(), Property.NodeScope, Property.Filtered));
+        settings.add(Setting.listSetting(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLED_PROTOCOLS, Collections.emptyList(), Function.identity(), Property.NodeScope, Property.Filtered));
+        settings.add(Setting.listSetting(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, Collections.emptyList(), Function.identity(), Property.NodeScope, Property.Filtered));
+        settings.add(Setting.listSetting(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, Collections.emptyList(), Function.identity(), Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_CLIENT_EXTERNAL_CONTEXT_ID, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, Property.NodeScope, Property.Filtered));
 
@@ -385,11 +385,5 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin,
         
         return builder.build();
     }
-    
-    @Override
-    public List<String> getSettingsFilter() {
-        List<String> settingsFilter = new ArrayList<>();
-        settingsFilter.add("opendistro_security.*");
-        return settingsFilter;
-    }
+
 }
