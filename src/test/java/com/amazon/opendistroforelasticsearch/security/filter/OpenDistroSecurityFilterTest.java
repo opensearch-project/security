@@ -24,6 +24,8 @@ import com.amazon.opendistroforelasticsearch.security.resolver.IndexResolverRepl
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.google.common.collect.ImmutableSet;
+
+import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -66,6 +68,7 @@ public class OpenDistroSecurityFilterTest {
     @Test
     public void testImmutableIndicesWildcardMatcher() {
         final OpenDistroSecurityFilter filter = new OpenDistroSecurityFilter(
+                mock(Client.class),
                 settings,
                 mock(PrivilegesEvaluator.class),
                 mock(AdminDNs.class),

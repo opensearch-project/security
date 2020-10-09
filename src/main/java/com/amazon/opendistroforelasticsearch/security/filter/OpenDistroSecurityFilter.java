@@ -41,6 +41,8 @@ import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
@@ -49,6 +51,9 @@ import org.elasticsearch.action.DocWriteRequest.OpType;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
+import org.elasticsearch.action.admin.indices.create.CreateIndexAction;
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
+import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.bulk.BulkItemRequest;
 import org.elasticsearch.action.bulk.BulkRequest;
@@ -62,6 +67,7 @@ import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.support.ActionFilter;
 import org.elasticsearch.action.support.ActionFilterChain;
 import org.elasticsearch.action.update.UpdateRequest;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
@@ -92,6 +98,8 @@ import static com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityP
 
 public class OpenDistroSecurityFilter implements ActionFilter {
 
+    private static final String CREATE_INDEX_ERROR_MSG = "Request to create new index {} with aliases {} was not acknowledged";
+
     protected final Logger log = LogManager.getLogger(this.getClass());
     private final PrivilegesEvaluator evalp;
     private final AdminDNs adminDns;
@@ -103,10 +111,12 @@ public class OpenDistroSecurityFilter implements ActionFilter {
     private final IndexResolverReplacer indexResolverReplacer;
     private final WildcardMatcher immutableIndicesMatcher;
     private final RolesInjector rolesInjector;
+    private final Client client;
 
-    public OpenDistroSecurityFilter(final Settings settings, final PrivilegesEvaluator evalp, final AdminDNs adminDns,
-            DlsFlsRequestValve dlsFlsValve, AuditLog auditLog, ThreadPool threadPool, ClusterService cs,
-            final CompatConfig compatConfig, final IndexResolverReplacer indexResolverReplacer) {
+    public OpenDistroSecurityFilter(final Client client, final Settings settings, final PrivilegesEvaluator evalp, final AdminDNs adminDns,
+                                    DlsFlsRequestValve dlsFlsValve, AuditLog auditLog, ThreadPool threadPool, ClusterService cs,
+                                    final CompatConfig compatConfig, final IndexResolverReplacer indexResolverReplacer) {
+        this.client = client;
         this.evalp = evalp;
         this.adminDns = adminDns;
         this.dlsFlsValve = dlsFlsValve;
@@ -283,7 +293,30 @@ public class OpenDistroSecurityFilter implements ActionFilter {
                 if(!dlsFlsValve.invoke(request, listener, pres.getAllowedFlsFields(), pres.getMaskedFields(), pres.getQueries())) {
                     return;
                 }
-                chain.proceed(task, action, request, listener);
+                final CreateIndexRequest createIndexRequest = pres.getRequest();
+                if (createIndexRequest == null) {
+                    chain.proceed(task, action, request, listener);
+                } else {
+                    client.admin().indices().create(createIndexRequest, new ActionListener<CreateIndexResponse>() {
+                        @Override
+                        public void onResponse(CreateIndexResponse createIndexResponse) {
+                            log.debug("CreateIndexRequest {}, CreateIndexResponse {}", createIndexRequest, createIndexResponse);
+                            if (createIndexResponse.isAcknowledged()) {
+                                chain.proceed(task, action, request, listener);
+                            } else {
+                                Exception e = new ElasticsearchException(CREATE_INDEX_ERROR_MSG, createIndexRequest.index(), createIndexRequest.aliases());
+                                log.error(e.getMessage());
+                                listener.onFailure(e);
+                            }
+                        }
+
+                        @Override
+                        public void onFailure(Exception e) {
+                            log.error(CREATE_INDEX_ERROR_MSG, createIndexRequest.index(), createIndexRequest.aliases());
+                            listener.onFailure(e);
+                        }
+                    });
+                }
                 return;
             } else {
                 auditLog.logMissingPrivileges(action, request, task);
