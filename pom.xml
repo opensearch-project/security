@@ -829,28 +829,13 @@
     </build>
     <profiles>
         <profile>
-            <id>veracode</id>
+            <id>advanced</id>
             <build>
                 <plugins>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-assembly-plugin</artifactId>
                         <executions>
-                            <execution>
-                                <id>veracode</id>
-                                <phase>package</phase>
-                                <configuration>
-                                    <appendAssemblyId>true</appendAssemblyId>
-                                    <tarLongFileMode>posix</tarLongFileMode>
-                                    <outputDirectory>${project.build.directory}/veracode/</outputDirectory>
-                                    <descriptors>
-                                        <descriptor>${veracode.descriptor}</descriptor>
-                                    </descriptors>
-                                </configuration>
-                                <goals>
-                                    <goal>single</goal>
-                                </goals>
-                            </execution>
                             <execution>
                                 <id>plugin</id>
                                 <phase>package</phase>
@@ -875,6 +860,53 @@
                                     <outputDirectory>${project.build.directory}/releases/</outputDirectory>
                                     <descriptors>
                                         <descriptor>${securitystandalone.descriptor}</descriptor>
+                                    </descriptors>
+                                </configuration>
+                                <goals>
+                                    <goal>single</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+            <dependencies>
+                <dependency>
+                    <groupId>org.elasticsearch.plugin</groupId>
+                    <artifactId>lang-mustache-client</artifactId>
+                    <version>${elasticsearch.version}</version>
+                </dependency>
+
+                <dependency>
+                    <groupId>org.elasticsearch.plugin</groupId>
+                    <artifactId>parent-join-client</artifactId>
+                    <version>${elasticsearch.version}</version>
+                </dependency>
+
+                <dependency>
+                    <groupId>org.elasticsearch.plugin</groupId>
+                    <artifactId>aggs-matrix-stats-client</artifactId>
+                    <version>${elasticsearch.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>veracode</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>veracode</id>
+                                <phase>package</phase>
+                                <configuration>
+                                    <appendAssemblyId>true</appendAssemblyId>
+                                    <tarLongFileMode>posix</tarLongFileMode>
+                                    <outputDirectory>${project.build.directory}/veracode/</outputDirectory>
+                                    <descriptors>
+                                        <descriptor>${veracode.descriptor}</descriptor>
                                     </descriptors>
                                 </configuration>
                                 <goals>
