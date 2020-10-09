@@ -389,7 +389,7 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
 
 		// Patch multiple hidden roles mapping
 		response = rh.executePatchRequest("/_opendistro/_security/api/rolesmapping", "[{ \"op\": \"add\", \"path\": \"/opendistro_security_internal/description\", \"value\": \"foo\" }]", new Header[0]);
-		Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+		Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
 
 	}
 }

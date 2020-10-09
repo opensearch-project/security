@@ -60,9 +60,12 @@ public class OpenDistroSecurityIndexSearcherWrapper implements CheckedFunction<D
     private final AdminDNs adminDns;
     private ConfigModel configModel;
     private final PrivilegesEvaluator evaluator;
-    private final WildcardMatcher indexMatcher;
+    private final WildcardMatcher protectedIndexMatcher;
     private final WildcardMatcher allowedRolesMatcher;
     private final Boolean protectedIndexEnabled;
+
+    private final Boolean systemIndexEnabled;
+    private final WildcardMatcher systemIndexMatcher;
 
     //constructor is called per index, so avoid costly operations here
     public OpenDistroSecurityIndexSearcherWrapper(final IndexService indexService, final Settings settings, final AdminDNs adminDNs, final PrivilegesEvaluator evaluator) {
@@ -71,9 +74,12 @@ public class OpenDistroSecurityIndexSearcherWrapper implements CheckedFunction<D
         this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
         this.evaluator = evaluator;
         this.adminDns = adminDNs;
-        this.indexMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_KEY));
+        this.protectedIndexMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_KEY));
         this.allowedRolesMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_KEY));
         this.protectedIndexEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_DEFAULT);
+
+        this.systemIndexEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_SYSTEM_INDICES_ENABLED_KEY, ConfigConstants.OPENDISTRO_SECURITY_SYSTEM_INDICES_ENABLED_DEFAULT);
+        this.systemIndexMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_SYSTEM_INDICES_KEY));
     }
 
     @Subscribe
@@ -87,7 +93,12 @@ public class OpenDistroSecurityIndexSearcherWrapper implements CheckedFunction<D
         if (isSecurityIndexRequest() && !isAdminAuthenticatedOrInternalRequest()) {
             return new EmptyFilterLeafReader.EmptyDirectoryReader(reader);
         }
-        if (protectedIndexEnabled && isBlockedIndexRequest() && !isPermittedOnIndex()) {
+        if (protectedIndexEnabled && isBlockedProtectedIndexRequest() && !isPermittedOnIndex()) {
+            return new EmptyFilterLeafReader.EmptyDirectoryReader(reader);
+        }
+
+        if (systemIndexEnabled && isBlockedSystemIndexRequest() && !isAdminDnOrPluginRequest()) {
+            log.warn("search action for {} is not allowed for a non adminDN user", index.getName());
             return new EmptyFilterLeafReader.EmptyDirectoryReader(reader);
         }
 
@@ -117,8 +128,24 @@ public class OpenDistroSecurityIndexSearcherWrapper implements CheckedFunction<D
         return index.getName().equals(opendistrosecurityIndex);
     }
 
-    protected final boolean isBlockedIndexRequest() {
-        return indexMatcher.test(index.getName());
+    protected final boolean isBlockedProtectedIndexRequest() {
+        return protectedIndexMatcher.test(index.getName());
+    }
+
+    protected final boolean isBlockedSystemIndexRequest() {
+        return systemIndexMatcher.test(index.getName());
+    }
+
+    protected final boolean isAdminDnOrPluginRequest() {
+        final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        if(user == null) {
+            // allow request without user from plugin.
+            return true;
+        } else if (adminDns.isAdmin(user)) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     protected final boolean isPermittedOnIndex() {

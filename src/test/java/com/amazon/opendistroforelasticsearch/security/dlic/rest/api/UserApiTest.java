@@ -554,14 +554,14 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 
         // Put hidden users
         response = rh.executePutRequest("/_opendistro/_security/api/internalusers/hide", "[{ \"op\": \"add\", \"path\": \"/sarek/description\", \"value\": \"foo\" }]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
 
         // Put reserved role is forbidden for non-superadmin
         response = rh.executePutRequest("/_opendistro/_security/api/internalusers/nagilum", "{ \"opendistro_security_roles\": [\"opendistro_security_reserved\"]}",
             new Header[0]);
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(settings.get("message"), "Role 'opendistro_security_reserved' has read-only role-mapping.");
+        Assert.assertEquals(settings.get("message"), "Resource 'opendistro_security_reserved' is read-only.");
 
         // Patch single hidden user
         response = rh.executePatchRequest("/_opendistro/_security/api/internalusers/hide", "[{ \"op\": \"add\", \"path\": \"/description\", \"value\": \"foo\" }]", new Header[0]);
@@ -569,7 +569,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 
         // Patch multiple hidden users
         response = rh.executePatchRequest("/_opendistro/_security/api/internalusers", "[{ \"op\": \"add\", \"path\": \"/hide/description\", \"value\": \"foo\" }]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
 
     }
 

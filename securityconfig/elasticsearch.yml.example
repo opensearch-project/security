@@ -217,3 +217,9 @@ opendistro_security.audit.type: internal_elasticsearch
 # Specify a list of indices to mark as protected. These indices will only be visible / mutable by members of the above setting, in addition to needing permission to the index via a normal role.
 # opendistro_security.protected_indices.indices: ['.opendistro-alerting-config', '.opendistro-ism-*']
 
+# System indices are similar to security index, except the contents are not encrypted.
+# Indices configured as system indices can be accessed by only super-admin and no role will provide access to these indices.
+# Enable system indices
+# opendistro_security.system_indices.enabled: true
+# Specify a list of indices to mark as system. These indices will only be visible / mutable by members of the above setting, in addition to needing permission to the index via a normal role.
+# opendistro_security.system_indices.indices: ['.opendistro-alerting-config', '.opendistro-ism-*']
