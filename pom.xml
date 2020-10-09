@@ -863,7 +863,7 @@
                                 <configuration>
                                     <appendAssemblyId>false</appendAssemblyId>
                                     <tarLongFileMode>posix</tarLongFileMode>
-                                    <outputDirectory>${project.build.directory}/releases/</outputDirectory>
+                                    <outputDirectory>${project.build.directory}/../releases/</outputDirectory>
                                     <descriptors>
                                         <descriptor>${elasticsearch.assembly.descriptor}</descriptor>
                                     </descriptors>
