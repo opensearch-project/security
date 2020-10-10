@@ -526,6 +526,42 @@
     <build>
         <plugins>
             <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.1.1</version>
+                <executions>
+                    <execution>
+                        <id>plugin</id>
+                        <phase>package</phase>
+                        <configuration>
+                            <appendAssemblyId>false</appendAssemblyId>
+                            <tarLongFileMode>posix</tarLongFileMode>
+                            <outputDirectory>${project.build.directory}/releases/</outputDirectory>
+                            <descriptors>
+                                <descriptor>${elasticsearch.assembly.descriptor}</descriptor>
+                            </descriptors>
+                        </configuration>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>securityadmin</id>
+                        <phase>package</phase>
+                        <configuration>
+                            <appendAssemblyId>true</appendAssemblyId>
+                            <tarLongFileMode>posix</tarLongFileMode>
+                            <outputDirectory>${project.build.directory}/releases/</outputDirectory>
+                            <descriptors>
+                                <descriptor>${securitystandalone.descriptor}</descriptor>
+                            </descriptors>
+                        </configuration>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
                 <version>3.0.0-M2</version>
@@ -780,10 +816,6 @@
                     <artifactId>jacoco-maven-plugin</artifactId>
                     <version>0.8.3</version>
                 </plugin>
-                <plugin>
-                    <artifactId>maven-assembly-plugin</artifactId>
-                    <version>3.1.1</version>
-                </plugin>
             </plugins>
         </pluginManagement>
         <extensions>
@@ -828,98 +860,6 @@
         </resources>
     </build>
     <profiles>
-        <profile>
-            <id>advanced</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-assembly-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>plugin</id>
-                                <phase>package</phase>
-                                <configuration>
-                                    <appendAssemblyId>false</appendAssemblyId>
-                                    <tarLongFileMode>posix</tarLongFileMode>
-                                    <outputDirectory>${project.build.directory}/releases/</outputDirectory>
-                                    <descriptors>
-                                        <descriptor>${elasticsearch.assembly.descriptor}</descriptor>
-                                    </descriptors>
-                                </configuration>
-                                <goals>
-                                    <goal>single</goal>
-                                </goals>
-                            </execution>
-                            <execution>
-                                <id>securityadmin</id>
-                                <phase>package</phase>
-                                <configuration>
-                                    <appendAssemblyId>true</appendAssemblyId>
-                                    <tarLongFileMode>posix</tarLongFileMode>
-                                    <outputDirectory>${project.build.directory}/releases/</outputDirectory>
-                                    <descriptors>
-                                        <descriptor>${securitystandalone.descriptor}</descriptor>
-                                    </descriptors>
-                                </configuration>
-                                <goals>
-                                    <goal>single</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <groupId>com.floragunn</groupId>
-                        <artifactId>checksum-maven-plugin</artifactId>
-                        <version>1.7.1</version>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>files</goal>
-                                </goals>
-                                <phase>package</phase>
-                            </execution>
-                        </executions>
-                        <configuration>
-                            <fileSets>
-                                <fileSet>
-                                    <directory>${project.build.directory}/releases/</directory>
-                                    <includes>
-                                        <include>opendistro_security-${version}.zip</include>
-                                    </includes>
-                                </fileSet>
-                            </fileSets>
-                            <algorithms>
-                                <algorithm>SHA-512</algorithm>
-                            </algorithms>
-                            <individualFiles>true</individualFiles>
-                            <appendFilename>true</appendFilename>
-                            <attachChecksums>true</attachChecksums>
-                            <csvSummary>false</csvSummary>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-            <dependencies>
-                <dependency>
-                    <groupId>org.elasticsearch.plugin</groupId>
-                    <artifactId>lang-mustache-client</artifactId>
-                    <version>${elasticsearch.version}</version>
-                </dependency>
-
-                <dependency>
-                    <groupId>org.elasticsearch.plugin</groupId>
-                    <artifactId>parent-join-client</artifactId>
-                    <version>${elasticsearch.version}</version>
-                </dependency>
-
-                <dependency>
-                    <groupId>org.elasticsearch.plugin</groupId>
-                    <artifactId>aggs-matrix-stats-client</artifactId>
-                    <version>${elasticsearch.version}</version>
-                </dependency>
-            </dependencies>
-        </profile>
         <profile>
             <id>veracode</id>
             <build>
