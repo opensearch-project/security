@@ -31,7 +31,7 @@ jobs:
 
     - name: Build
       run: |
-        mvn -B clean package -Padvanced -DskipTests
+        mvn -B clean package -DskipTests
         artifact_zip=`ls $(pwd)/target/releases/opendistro_security-*.zip | grep -v admin-standalone`
         ./gradlew build buildDeb buildRpm --no-daemon -ParchivePath=$artifact_zip -Dbuild.snapshot=false
         mkdir artifacts
@@ -62,7 +62,7 @@ jobs:
         SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
       run: |
         gpg --batch --import --no-tty <(echo -e "${{ secrets.PGP_PRIVATE_KEY }}")
-        mvn -B deploy -Padvanced -Prelease -DskipTests -Dgpg.passphrase=${{ secrets.PGP_PASSPHRASE }}
+        mvn -B deploy -Prelease -DskipTests -Dgpg.passphrase=${{ secrets.PGP_PASSPHRASE }}
 
     - name: Create Github Draft Release
       id: create_release
