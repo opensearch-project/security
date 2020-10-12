@@ -830,38 +830,6 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     }
 
     @Override
-    public List<String> getSettingsFilter() {
-        List<String> settingsFilter = new ArrayList<>();
-
-        if(disabled) {
-            return settingsFilter;
-        }
-
-        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_ADMIN_DN);
-        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_IMPERSONATION_DN);
-        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_NODES_DN);
-        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED);
-        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS);
-        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_ROUTES);
-        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_ENDPOINTS);
-        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES);
-        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES);
-        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS);
-        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS);
-        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_HTTP_ENDPOINTS);
-        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_ENABLED_SSL_CIPHERS);
-        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_ENABLED_SSL_PROTOCOLS);
-        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_ROLES_ENABLED);
-        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_ENDPOINTS_DISABLED);
-        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES);
-        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS);
-        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS);
-        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS);
-        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_IMMUTABLE_INDICES);
-        return settingsFilter;
-    }
-
-    @Override
     public List<Setting<?>> getSettings() {
         List<Setting<?>> settings = new ArrayList<Setting<?>>();
         settings.addAll(super.getSettings());
@@ -1016,7 +984,40 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         
         return settings;
     }
-    
+
+    @Override
+    public List<String> getSettingsFilter() {
+        List<String> settingsFilter = new ArrayList<>();
+
+        if(disabled) {
+            return settingsFilter;
+        }
+
+        settingsFilter.addAll(super.getSettingsFilter());
+        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_ADMIN_DN);
+        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_IMPERSONATION_DN);
+        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_NODES_DN);
+        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED);
+        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS);
+        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_ROUTES);
+        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_ENDPOINTS);
+        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES);
+        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES);
+        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS);
+        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS);
+        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_HTTP_ENDPOINTS);
+        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_ENABLED_SSL_CIPHERS);
+        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_ENABLED_SSL_PROTOCOLS);
+        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_ROLES_ENABLED);
+        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_ENDPOINTS_DISABLED);
+        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES);
+        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS);
+        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS);
+        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS);
+        settingsFilter.add(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_IMMUTABLE_INDICES);
+        return settingsFilter;
+    }
+
     @Override
     public void onNodeStarted() {
         log.info("Node started");
