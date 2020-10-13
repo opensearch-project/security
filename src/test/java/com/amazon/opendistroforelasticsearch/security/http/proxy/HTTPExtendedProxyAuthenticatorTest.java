@@ -29,6 +29,8 @@
  */
 package com.amazon.opendistroforelasticsearch.security.http.proxy;
 
+import static org.hamcrest.MatcherAssert.*;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -115,6 +117,25 @@ public class HTTPExtendedProxyAuthenticatorTest {
         assertEquals("aValidUser", creds.getUsername());
         assertEquals("123,456", creds.getAttributes().get("attr.proxy.uid"));
         assertEquals("someothervalue", creds.getAttributes().get("attr.proxy.other"));
+        assertTrue(creds.isComplete());
+    }
+    
+    @Test
+    public void testTrimOnRoles() {
+    	headers.put("user", new ArrayList<>());
+        headers.put("roles", new ArrayList<>());
+        headers.get("user").add("aValidUser");
+        headers.get("roles").add("role1, role2");
+        
+        settings = Settings.builder().put(settings)
+             .put("roles_header","roles")
+             .put("roles_separator", ",")
+             .build();
+        authenticator = new HTTPExtendedProxyAuthenticator(settings,null);
+        AuthCredentials creds = authenticator.extractCredentials(new TestRestRequest(headers), context);
+        assertNotNull(creds);
+        assertEquals("aValidUser", creds.getUsername());
+        assertThat(creds.getBackendRoles(), contains("role1", "role2"));
         assertTrue(creds.isComplete());
     }
 
