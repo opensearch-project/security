@@ -533,6 +533,7 @@
                         <id>plugin</id>
                         <phase>package</phase>
                         <configuration>
+                            <attach>false</attach>
                             <appendAssemblyId>false</appendAssemblyId>
                             <tarLongFileMode>posix</tarLongFileMode>
                             <outputDirectory>${project.build.directory}/releases/</outputDirectory>
@@ -548,6 +549,7 @@
                         <id>securityadmin</id>
                         <phase>package</phase>
                         <configuration>
+                            <attach>false</attach>
                             <appendAssemblyId>true</appendAssemblyId>
                             <tarLongFileMode>posix</tarLongFileMode>
                             <outputDirectory>${project.build.directory}/releases/</outputDirectory>
