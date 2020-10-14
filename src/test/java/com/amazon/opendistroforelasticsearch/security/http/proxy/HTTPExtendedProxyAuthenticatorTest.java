@@ -29,8 +29,8 @@
  */
 package com.amazon.opendistroforelasticsearch.security.http.proxy;
 
-import static org.hamcrest.MatcherAssert.*;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -125,7 +125,7 @@ public class HTTPExtendedProxyAuthenticatorTest {
     	headers.put("user", new ArrayList<>());
         headers.put("roles", new ArrayList<>());
         headers.get("user").add("aValidUser");
-        headers.get("roles").add("role1, role2");
+        headers.get("roles").add("role1, role2,\t");
         
         settings = Settings.builder().put(settings)
              .put("roles_header","roles")

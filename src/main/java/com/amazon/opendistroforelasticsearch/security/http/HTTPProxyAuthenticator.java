@@ -31,7 +31,7 @@
 package com.amazon.opendistroforelasticsearch.security.http;
 
 import java.nio.file.Path;
-import java.util.stream.Stream;
+import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -79,7 +79,11 @@ public class HTTPProxyAuthenticator implements HTTPAuthenticator {
 
             if (!Strings.isNullOrEmpty(rolesHeader) && !Strings.isNullOrEmpty((String) request.header(rolesHeader))) {
                 String roles = (String) request.header(rolesHeader);
-                backendRoles = Stream.of(roles.split(rolesSeparator)).map(String::trim).toArray(String[]::new);
+                backendRoles = Pattern.compile(rolesSeparator)
+                        .splitAsStream(roles)
+                        .map(String::trim)
+                        .filter(role -> !Strings.isNullOrEmpty(role))
+                        .toArray(String[]::new);
             }
             return new AuthCredentials((String) request.header(userHeader), backendRoles).markComplete();
         } else {
