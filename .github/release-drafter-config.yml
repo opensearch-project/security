@@ -1,22 +1,21 @@
 # Configuration for Release Drafter: https://github.com/toolmantim/release-drafter
 template: |
-  <!-- Optional: add a release summary here -->
+  Compatible with Elasticsearch (set version here).
   $CHANGES
-name-template: $NEXT_MINOR_VERSION
-tag-template: $NEXT_MINOR_VERSION
-# Uses a more common 2-digit versioning in Jenkins plugins. Can be replaced by semver: $MAJOR.$MINOR.$PATCH
-version-template: $MAJOR.$MINOR
 
-# Emoji reference: https://gitmoji.carloscuesta.me/
+# Setting the formatting and sorting for the release notes body
+name-template: Version (set version here)
+change-template: '* $TITLE (#$NUMBER)'
+sort-by: merged_at
+sort-direction: ascending
+
+# Organizing the tagged PRs into unified ODFE categories
 categories:
-  - title: "Breaking changes"
-    label: "breaking change"
-
-  - title: "Features"
-    label: "feature"
-
   - title: "Enhancements"
-    label: "enhancements"
+    labels: "enhancement"
 
-  - title: "Bug Fixes"
+  - title: "Bug fixes"
     labels: "bug fix"
+
+  - title: "Maintenance"
+    labels: "maintenance"
