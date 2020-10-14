@@ -29,11 +29,11 @@ alerting_ack_alerts:
 alerting_full_access:
   reserved: true
   cluster_permissions:
-    - "cluster_monitor"
+    - 'cluster_monitor'
     - 'cluster:admin/opendistro/alerting/*'
   index_permissions:
     - index_patterns:
-    - '*'
+        - '*'
       allowed_actions:
         - 'indices_monitor'
         - 'indices:admin/aliases/get'
