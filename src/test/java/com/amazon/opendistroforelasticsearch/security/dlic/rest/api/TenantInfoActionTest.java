@@ -29,8 +29,12 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 public class TenantInfoActionTest extends AbstractRestApiUnitTest {
-    private String payload = "{\"hosts\":[],\"users\":[\"sarek\"]," +
+    private String userPayload = "{\"hosts\":[],\"users\":[\"sarek\"]," +
             "\"backend_roles\":[\"starfleet*\",\"ambassador\"],\"and_backend_roles\":[],\"description\":\"Migrated " +
+            "from v6\"}";
+
+    private String backendRolePayload = "{\"hosts\":[],\"users\":[]," +
+            "\"backend_roles\":[\"sarek\"],\"and_backend_roles\":[],\"description\":\"Migrated " +
             "from v6\"}";
 
     @Test
@@ -57,7 +61,15 @@ public class TenantInfoActionTest extends AbstractRestApiUnitTest {
         response = rh.executePatchRequest("/_opendistro/_security/api/securityconfig", "[{\"op\": \"add\",\"path\": \"/config/dynamic/kibana/opendistro_role\",\"value\": \"opendistro_security_internal\"}]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
-        response = rh.executePutRequest("/_opendistro/_security/api/rolesmapping/opendistro_security_internal", payload, new Header[0]);
+        response = rh.executePutRequest("/_opendistro/_security/api/rolesmapping/opendistro_security_internal", userPayload, new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+
+        rh.sendAdminCertificate = false;
+        response = rh.executeGetRequest("_opendistro/_security/tenantinfo");
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+
+        rh.sendAdminCertificate = true;
+        response = rh.executePutRequest("/_opendistro/_security/api/rolesmapping/opendistro_security_internal", backendRolePayload, new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         rh.sendAdminCertificate = false;

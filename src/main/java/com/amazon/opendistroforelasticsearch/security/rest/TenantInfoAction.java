@@ -37,6 +37,9 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.SortedMap;
+
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v6.RoleMappingsV6;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.RoleMappingsV7;
 import com.google.common.base.Strings;
 
 import com.amazon.opendistroforelasticsearch.security.configuration.ConfigurationRepository;
@@ -168,7 +171,18 @@ public class TenantInfoAction extends BaseRestHandler {
                 return false;
             }
             RoleMappings roleMapping = (RoleMappings) rolesMappingConfiguration.getCEntries().getOrDefault(kibanaOpendistroRole, null);
-            return roleMapping != null && roleMapping.getUsers().contains(user.getName());
+            if (roleMapping != null) {
+                if(roleMapping.getUsers().contains(user.getName())) {
+                    return true;
+                }
+                List<String> backendRoles = null;
+                if (roleMapping instanceof RoleMappingsV6) {
+                    backendRoles = ((RoleMappingsV6) roleMapping).getBackendroles();
+                } else if (roleMapping instanceof RoleMappingsV7) {
+                    backendRoles = ((RoleMappingsV7) roleMapping).getBackend_roles();
+                }
+                return backendRoles != null && backendRoles.contains(user.getName());
+            }
         }
 
         return false;
