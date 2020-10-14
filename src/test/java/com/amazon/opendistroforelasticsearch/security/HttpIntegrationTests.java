@@ -417,7 +417,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", new BasicHeader("x-forwarded-for", "localhost,192.168.0.1,10.0.0.2"),new BasicHeader("x-proxy-user", "scotty")).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", new BasicHeader("x-forwarded-for", "localhost,192.168.0.1,10.0.0.2"),new BasicHeader("X-Proxy-User", "scotty")).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", new BasicHeader("x-forwarded-for", "localhost,192.168.0.1,10.0.0.2"),new BasicHeader("x-proxy-user", "scotty"),new BasicHeader("x-proxy-roles", "starfleet,engineer")).getStatusCode());
-
+        
     }
 
     @Test
@@ -689,14 +689,17 @@ public class HttpIntegrationTests extends SingleClusterTest {
     @Test
     public void testSslOnlyMode() throws Exception {
         final Settings settings = Settings.builder()
-            .put(ConfigConstants.OPENDISTRO_SECURITY_SSL_ONLY, true)
-            .build();
+                .put(ConfigConstants.OPENDISTRO_SECURITY_SSL_ONLY, true)
+                .build();
         setupSslOnlyMode(settings);
         final RestHelper rh = nonSslRestHelper();
+
         HttpResponse res = rh.executeGetRequest("_opendistro/_security/sslinfo");
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+
         res = rh.executePutRequest("/xyz/_doc/1","{\"a\":5}");
         Assert.assertEquals(HttpStatus.SC_CREATED, res.getStatusCode());
+
         res = rh.executeGetRequest("/_mappings");
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
 

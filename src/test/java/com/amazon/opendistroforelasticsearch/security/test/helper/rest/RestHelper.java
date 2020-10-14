@@ -254,12 +254,6 @@ public class RestHelper {
 			hcb.setSSLSocketFactory(sslsf);
 		}
 
-		RequestConfig.Builder requestBuilder = RequestConfig.custom();
-		requestBuilder.setConnectTimeout(10000);
-		requestBuilder.setConnectionRequestTimeout(10000);
-		hcb.setDefaultRequestConfig(requestBuilder.build());
-
-
 		hcb.setDefaultSocketConfig(SocketConfig.custom().setSoTimeout(60 * 1000).build());
 
 		return hcb.build();
