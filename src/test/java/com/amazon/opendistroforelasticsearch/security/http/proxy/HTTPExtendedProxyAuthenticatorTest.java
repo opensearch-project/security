@@ -29,8 +29,6 @@
  */
 package com.amazon.opendistroforelasticsearch.security.http.proxy;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -38,6 +36,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +59,7 @@ import org.junit.Test;
 import com.amazon.opendistroforelasticsearch.security.http.proxy.HTTPExtendedProxyAuthenticator;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
+import com.google.common.collect.ImmutableSet;
 
 public class HTTPExtendedProxyAuthenticatorTest {
 
@@ -135,7 +135,7 @@ public class HTTPExtendedProxyAuthenticatorTest {
         AuthCredentials creds = authenticator.extractCredentials(new TestRestRequest(headers), context);
         assertNotNull(creds);
         assertEquals("aValidUser", creds.getUsername());
-        assertThat(creds.getBackendRoles(), contains("role1", "role2"));
+        assertEquals(ImmutableSet.of("role1", "role2"), creds.getBackendRoles());
         assertTrue(creds.isComplete());
     }
 

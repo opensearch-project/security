@@ -50,10 +50,12 @@ public class HTTPProxyAuthenticator implements HTTPAuthenticator {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
     private volatile Settings settings;
+    private final Pattern rolesSeparator;
 
     public HTTPProxyAuthenticator(Settings settings, final Path configPath) {
         super();
         this.settings = settings;
+        this.rolesSeparator =  Pattern.compile(settings.get("roles_separator", ","));
     }
 
     @Override
@@ -65,7 +67,6 @@ public class HTTPProxyAuthenticator implements HTTPAuthenticator {
         
         final String userHeader = settings.get("user_header");
         final String rolesHeader = settings.get("roles_header");
-        final String rolesSeparator = settings.get("roles_separator", ",");
         
         if(log.isDebugEnabled()) {
             log.debug("headers {}", request.getHeaders());
@@ -79,10 +80,10 @@ public class HTTPProxyAuthenticator implements HTTPAuthenticator {
 
             if (!Strings.isNullOrEmpty(rolesHeader) && !Strings.isNullOrEmpty((String) request.header(rolesHeader))) {
                 String roles = (String) request.header(rolesHeader);
-                backendRoles = Pattern.compile(rolesSeparator)
+                backendRoles = rolesSeparator
                         .splitAsStream(roles)
                         .map(String::trim)
-                        .filter(role -> !Strings.isNullOrEmpty(role))
+                        .filter(role -> !"".equals(role))
                         .toArray(String[]::new);
             }
             return new AuthCredentials((String) request.header(userHeader), backendRoles).markComplete();
