@@ -45,6 +45,7 @@ import org.elasticsearch.rest.RestRequest;
 import com.amazon.opendistroforelasticsearch.security.auth.HTTPAuthenticator;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
+import com.google.common.base.Predicates;
 
 public class HTTPProxyAuthenticator implements HTTPAuthenticator {
 
@@ -79,9 +80,8 @@ public class HTTPProxyAuthenticator implements HTTPAuthenticator {
             String[] backendRoles = null;
 
             if (!Strings.isNullOrEmpty(rolesHeader) && !Strings.isNullOrEmpty((String) request.header(rolesHeader))) {
-                String roles = (String) request.header(rolesHeader);
                 backendRoles = rolesSeparator
-                        .splitAsStream(roles)
+                        .splitAsStream((String) request.header(rolesHeader))
                         .map(String::trim)
                         .filter(Predicates.not(String::isEmpty))
                         .toArray(String[]::new);
