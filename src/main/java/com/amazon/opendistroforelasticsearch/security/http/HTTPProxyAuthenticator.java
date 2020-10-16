@@ -83,7 +83,7 @@ public class HTTPProxyAuthenticator implements HTTPAuthenticator {
                 backendRoles = rolesSeparator
                         .splitAsStream(roles)
                         .map(String::trim)
-                        .filter(role -> !"".equals(role))
+                        .filter(Predicates.not(String::isEmpty))
                         .toArray(String[]::new);
             }
             return new AuthCredentials((String) request.header(userHeader), backendRoles).markComplete();
