@@ -24,8 +24,8 @@ import org.elasticsearch.common.settings.Settings;
 
 public class OpenDistroSSLConfig {
 
-    public static final Setting<Boolean> SSL_DUAL_MODE_SETTING = Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_SSL_DUAL_MODE_ENABLED,
-            true, Setting.Property.NodeScope, Setting.Property.Dynamic); // Not filtered
+    public static final Setting<Boolean> SSL_DUAL_MODE_SETTING = Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED,
+            false, Setting.Property.NodeScope, Setting.Property.Dynamic); // Not filtered
 
     private static final Logger logger = LogManager.getLogger(OpenDistroSSLConfig.class);
 
@@ -35,12 +35,16 @@ public class OpenDistroSSLConfig {
     public OpenDistroSSLConfig(final boolean sslOnly, final boolean dualModeEnabled) {
         this.sslOnly = sslOnly;
         this.dualModeEnabled = dualModeEnabled;
+        if (this.dualModeEnabled && !this.sslOnly) {
+            logger.warn("opendistro_security_config.ssl_dual_mode_enabled is enabled but opendistro_security.ssl_only mode is disabled. "
+                + "SSL Dual mode is supported only when security plugin is in ssl_only mode");
+        }
         logger.info("SSL dual mode is {}", isDualModeEnabled() ? "enabled" : "disabled");
     }
 
     public OpenDistroSSLConfig(final Settings settings) {
         this(settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_SSL_ONLY, false),
-            settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_SSL_DUAL_MODE_ENABLED, false));
+            settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED, false));
     }
 
     public void registerClusterSettingsChangeListener(final ClusterSettings clusterSettings) {

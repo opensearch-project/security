@@ -109,6 +109,7 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin,
 //    }
 
     protected OpenDistroSecuritySSLPlugin(final Settings settings, final Path configPath, boolean disabled) {
+     
         if(disabled) {
             this.settings = null;
             this.sharedGroupFactory = null;
@@ -284,11 +285,11 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin,
             IndexNameExpressionResolver indexNameExpressionResolver, Supplier<RepositoriesService> repositoriesServiceSupplier) {
 
         final List<Object> components = new ArrayList<>(1);
-
+        
         if(client) {
             return components;
         }
-
+        
         final String principalExtractorClass = settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, null);
 
         if(principalExtractorClass == null) {
@@ -385,15 +386,11 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin,
         
         return builder.build();
     }
-
+    
     @Override
     public List<String> getSettingsFilter() {
         List<String> settingsFilter = new ArrayList<>();
-        settingsFilter.add(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLED_CIPHERS);
-        settingsFilter.add(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLED_PROTOCOLS);
-        settingsFilter.add(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS);
-        settingsFilter.add(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS);
-
+        settingsFilter.add("opendistro_security.*");
         return settingsFilter;
     }
 }

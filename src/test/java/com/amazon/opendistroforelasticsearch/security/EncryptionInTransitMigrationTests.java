@@ -38,7 +38,7 @@ public class EncryptionInTransitMigrationTests extends SingleClusterTest {
     private void testSslOnlyMode(boolean dualModeEnabled) throws Exception {
         final Settings settings = Settings.builder()
             .put(ConfigConstants.OPENDISTRO_SECURITY_SSL_ONLY, true)
-            .put(ConfigConstants.OPENDISTRO_SECURITY_SSL_DUAL_MODE_ENABLED, dualModeEnabled)
+            .put(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED, dualModeEnabled)
             .build();
         setupSslOnlyMode(settings);
         final RestHelper rh = nonSslRestHelper();
@@ -58,36 +58,36 @@ public class EncryptionInTransitMigrationTests extends SingleClusterTest {
         if (dualModeEnabled) {
             res = rh.executeGetRequest("_cluster/settings?flat_settings&include_defaults");
             Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
-            Assert.assertTrue(res.getBody().contains("\"opendistro_security.ssl_dual_mode_enabled\":\"true\""));
+            Assert.assertTrue(res.getBody().contains("\"opendistro_security_config.ssl_dual_mode_enabled\":\"true\""));
 
-            String disableDualModeClusterSetting = "{ \"persistent\": { \"" + ConfigConstants.OPENDISTRO_SECURITY_SSL_DUAL_MODE_ENABLED + "\": false } }";
+            String disableDualModeClusterSetting = "{ \"persistent\": { \"" + ConfigConstants.OPENDISTRO_SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED + "\": false } }";
             res = rh.executePutRequest("_cluster/settings", disableDualModeClusterSetting);
             Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
-            Assert.assertEquals("{\"acknowledged\":true,\"persistent\":{\"opendistro_security\":{\"ssl_dual_mode_enabled\":\"false\"}},\"transient\":{}}", res.getBody());
+            Assert.assertEquals("{\"acknowledged\":true,\"persistent\":{\"opendistro_security_config\":{\"ssl_dual_mode_enabled\":\"false\"}},\"transient\":{}}", res.getBody());
 
 
             res = rh.executeGetRequest("_cluster/settings?flat_settings&include_defaults");
             Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
-            Assert.assertTrue(res.getBody().contains("\"opendistro_security.ssl_dual_mode_enabled\":\"false\""));
+            Assert.assertTrue(res.getBody().contains("\"opendistro_security_config.ssl_dual_mode_enabled\":\"false\""));
 
-            String enableDualModeClusterSetting = "{ \"persistent\": { \"" + ConfigConstants.OPENDISTRO_SECURITY_SSL_DUAL_MODE_ENABLED + "\": true } }";
+            String enableDualModeClusterSetting = "{ \"persistent\": { \"" + ConfigConstants.OPENDISTRO_SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED + "\": true } }";
             res = rh.executePutRequest("_cluster/settings", enableDualModeClusterSetting);
             Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
-            Assert.assertEquals("{\"acknowledged\":true,\"persistent\":{\"opendistro_security\":{\"ssl_dual_mode_enabled\":\"true\"}},\"transient\":{}}", res.getBody());
+            Assert.assertEquals("{\"acknowledged\":true,\"persistent\":{\"opendistro_security_config\":{\"ssl_dual_mode_enabled\":\"true\"}},\"transient\":{}}", res.getBody());
 
 
             res = rh.executeGetRequest("_cluster/settings?flat_settings&include_defaults");
             Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
-            Assert.assertTrue(res.getBody().contains("\"opendistro_security.ssl_dual_mode_enabled\":\"true\""));
+            Assert.assertTrue(res.getBody().contains("\"opendistro_security_config.ssl_dual_mode_enabled\":\"true\""));
 
             res = rh.executePutRequest("_cluster/settings", disableDualModeClusterSetting);
             Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
-            Assert.assertEquals("{\"acknowledged\":true,\"persistent\":{\"opendistro_security\":{\"ssl_dual_mode_enabled\":\"false\"}},\"transient\":{}}", res.getBody());
+            Assert.assertEquals("{\"acknowledged\":true,\"persistent\":{\"opendistro_security_config\":{\"ssl_dual_mode_enabled\":\"false\"}},\"transient\":{}}", res.getBody());
 
 
             res = rh.executeGetRequest("_cluster/settings?flat_settings&include_defaults");
             Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
-            Assert.assertTrue(res.getBody().contains("\"opendistro_security.ssl_dual_mode_enabled\":\"false\""));
+            Assert.assertTrue(res.getBody().contains("\"opendistro_security_config.ssl_dual_mode_enabled\":\"false\""));
         }
     }
 
@@ -95,7 +95,7 @@ public class EncryptionInTransitMigrationTests extends SingleClusterTest {
     public void testSslOnlyModeDualModeWithNonSSLMasterNode() throws Exception {
         final Settings settings = Settings.builder()
             .put(ConfigConstants.OPENDISTRO_SECURITY_SSL_ONLY, true)
-            .put(ConfigConstants.OPENDISTRO_SECURITY_SSL_DUAL_MODE_ENABLED, true)
+            .put(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED, true)
             .build();
         setupSslOnlyModeWithMasterNodeWithoutSSL(settings);
         final RestHelper rh = nonSslRestHelper();
@@ -108,7 +108,7 @@ public class EncryptionInTransitMigrationTests extends SingleClusterTest {
     public void testSslOnlyModeDualModeWithNonSSLDataNode() throws Exception {
         final Settings settings = Settings.builder()
             .put(ConfigConstants.OPENDISTRO_SECURITY_SSL_ONLY, true)
-            .put(ConfigConstants.OPENDISTRO_SECURITY_SSL_DUAL_MODE_ENABLED, true)
+            .put(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED, true)
             .build();
         setupSslOnlyModeWithDataNodeWithoutSSL(settings);
         final RestHelper rh = nonSslRestHelper();
