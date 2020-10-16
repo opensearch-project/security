@@ -15,7 +15,7 @@ categories:
     labels: "enhancement"
 
   - title: "Bug fixes"
-    labels: "bug fix"
+    labels: "bug"
 
   - title: "Maintenance"
     labels: "maintenance"
