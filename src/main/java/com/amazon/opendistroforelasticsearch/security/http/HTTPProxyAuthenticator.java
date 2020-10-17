@@ -31,6 +31,7 @@
 package com.amazon.opendistroforelasticsearch.security.http;
 
 import java.nio.file.Path;
+import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -44,15 +45,18 @@ import org.elasticsearch.rest.RestRequest;
 import com.amazon.opendistroforelasticsearch.security.auth.HTTPAuthenticator;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
+import com.google.common.base.Predicates;
 
 public class HTTPProxyAuthenticator implements HTTPAuthenticator {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
     private volatile Settings settings;
+    private final Pattern rolesSeparator;
 
     public HTTPProxyAuthenticator(Settings settings, final Path configPath) {
         super();
         this.settings = settings;
+        this.rolesSeparator =  Pattern.compile(settings.get("roles_separator", ","));
     }
 
     @Override
@@ -64,7 +68,6 @@ public class HTTPProxyAuthenticator implements HTTPAuthenticator {
         
         final String userHeader = settings.get("user_header");
         final String rolesHeader = settings.get("roles_header");
-        final String rolesSeparator = settings.get("roles_separator", ",");
         
         if(log.isDebugEnabled()) {
             log.debug("headers {}", request.getHeaders());
@@ -77,7 +80,11 @@ public class HTTPProxyAuthenticator implements HTTPAuthenticator {
             String[] backendRoles = null;
 
             if (!Strings.isNullOrEmpty(rolesHeader) && !Strings.isNullOrEmpty((String) request.header(rolesHeader))) {
-                backendRoles = ((String) request.header(rolesHeader)).split(rolesSeparator);
+                backendRoles = rolesSeparator
+                        .splitAsStream((String) request.header(rolesHeader))
+                        .map(String::trim)
+                        .filter(Predicates.not(String::isEmpty))
+                        .toArray(String[]::new);
             }
             return new AuthCredentials((String) request.header(userHeader), backendRoles).markComplete();
         } else {
