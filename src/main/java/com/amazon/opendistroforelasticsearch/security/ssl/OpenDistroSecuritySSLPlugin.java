@@ -19,6 +19,7 @@ package com.amazon.opendistroforelasticsearch.security.ssl;
 
 import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
 import com.amazon.opendistroforelasticsearch.security.NonValidatingObjectMapper;
+import com.amazon.opendistroforelasticsearch.security.ssl.transport.OpenDistroSSLConfig;
 import com.fasterxml.jackson.databind.InjectableValues;
 import io.netty.handler.ssl.OpenSsl;
 import io.netty.util.internal.PlatformDependent;
@@ -95,7 +96,8 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin,
     protected PrincipalExtractor principalExtractor;
     protected final Path configPath;
     private final static SslExceptionHandler NOOP_SSL_EXCEPTION_HANDLER = new SslExceptionHandler() {};
-    
+    protected final OpenDistroSSLConfig openDistroSSLConfig;
+
 //    public OpenDistroSecuritySSLPlugin(final Settings settings, final Path configPath) {
 //        this(settings, configPath, false);
 //    }
@@ -109,6 +111,7 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin,
             this.transportSSLEnabled = false;
             this.odsks = null;
             this.configPath = null;
+            openDistroSSLConfig = new OpenDistroSSLConfig(false, false);
             
             AccessController.doPrivileged(new PrivilegedAction<Object>() {
                 @Override
@@ -121,7 +124,7 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin,
             
             return;
         }
-        
+        openDistroSSLConfig = new OpenDistroSSLConfig(settings);
         this.configPath = configPath;
         
         if(this.configPath != null) {
@@ -260,7 +263,8 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin,
         Map<String, Supplier<Transport>> transports = new HashMap<String, Supplier<Transport>>();
         if (transportSSLEnabled) {
             transports.put("com.amazon.opendistroforelasticsearch.security.ssl.http.netty.OpenDistroSecuritySSLNettyTransport",
-                    () -> new OpenDistroSecuritySSLNettyTransport(settings, Version.CURRENT, threadPool, networkService, pageCacheRecycler, namedWriteableRegistry, circuitBreakerService, odsks, NOOP_SSL_EXCEPTION_HANDLER));
+                    () -> new OpenDistroSecuritySSLNettyTransport(settings, Version.CURRENT, threadPool, networkService, pageCacheRecycler, namedWriteableRegistry, circuitBreakerService, odsks, NOOP_SSL_EXCEPTION_HANDLER,
+                        openDistroSSLConfig));
 
         }
         return transports;
