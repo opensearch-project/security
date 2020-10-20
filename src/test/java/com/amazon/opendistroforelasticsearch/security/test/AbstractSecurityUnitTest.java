@@ -263,6 +263,19 @@ public abstract class AbstractSecurityUnitTest {
         };
     }
 
+    protected NodeSettingsSupplier minimumSecuritySettingsSslOnlyWithOneNodeNonSSL(Settings other, int nonSSLNodeNum) {
+
+        return new NodeSettingsSupplier() {
+            @Override
+            public Settings get(int i) {
+                if (i == nonSSLNodeNum) {
+                    return Settings.builder().build();
+                }
+                return minimumSecuritySettingsBuilder(i, true, false).put(other).build();
+            }
+        };
+    }
+
     protected void initialize(ClusterInfo info) {
         initialize(info, Settings.EMPTY, new DynamicSecurityConfig());
     }
