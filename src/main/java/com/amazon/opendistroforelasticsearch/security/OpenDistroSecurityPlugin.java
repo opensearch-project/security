@@ -52,7 +52,6 @@ import com.amazon.opendistroforelasticsearch.security.configuration.OpenDistroSe
 import com.amazon.opendistroforelasticsearch.security.configuration.Salt;
 import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenDistroSecuritySSLReloadCertsAction;
 import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenDistroSecuritySSLCertsInfoAction;
-
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.OpenDistroSSLConfig;
 import org.apache.lucene.search.QueryCachingPolicy;
 import org.apache.lucene.search.Weight;
