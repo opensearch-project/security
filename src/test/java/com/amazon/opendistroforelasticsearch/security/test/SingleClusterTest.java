@@ -42,8 +42,8 @@ import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelpe
 
 public abstract class SingleClusterTest extends AbstractSecurityUnitTest {
 
-    private static final int DEFAULT_MASTER_NODE_NUM = 3;
-    private static final int DEFAULT_FIRST_DATA_NODE_NUM = 2;
+    private static final int DEFAULT_MASTER_NODE_NUM = 0;
+    private static final int DEFAULT_FIRST_DATA_NODE_NUM = 1;
 
     protected ClusterHelper clusterHelper = new ClusterHelper("utest_n"+num.incrementAndGet()+"_f"+System.getProperty("forkno")+"_t"+System.nanoTime());
     protected ClusterInfo clusterInfo;
