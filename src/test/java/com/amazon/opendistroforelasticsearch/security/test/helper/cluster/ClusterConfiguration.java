@@ -54,6 +54,15 @@ public enum ClusterConfiguration {
     //3 nodes (1m, 2d)
     DEFAULT(new NodeSettings(true, false, false), new NodeSettings(false, true, false), new NodeSettings(false, true, false)),
 	
+	DEFAULT_MASTER_WITHOUT_SECURITY_PLUGIN(new NodeSettings(true, false, false)
+			.removePluginIfPresent(OpenDistroSecurityPlugin.class)
+			, new NodeSettings(false, true, false)
+			, new NodeSettings(false, true, false)),
+
+	DEFAULT_ONE_DATA_NODE_WITHOUT_SECURITY_PLUGIN(new NodeSettings(true, false, false)
+			, new NodeSettings(false, true, false).removePluginIfPresent(OpenDistroSecurityPlugin.class)
+			, new NodeSettings(false, true, false)),
+
     //1 node (1md)
 	SINGLENODE(new NodeSettings(true, true, false)),
     
@@ -106,6 +115,11 @@ public enum ClusterConfiguration {
             this(masterNode, dataNode, tribeNode);
             this.plugins.addAll(additionalPlugins);
         }
+
+        public NodeSettings removePluginIfPresent(Class<? extends Plugin> pluginToRemove){
+			this.plugins.remove(pluginToRemove);
+			return this;
+		}
 		
 		public Class<? extends Plugin>[] getPlugins() {
 		    return plugins.toArray(new Class[0] );
