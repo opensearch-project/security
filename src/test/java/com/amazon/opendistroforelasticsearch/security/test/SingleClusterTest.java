@@ -42,6 +42,9 @@ import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelpe
 
 public abstract class SingleClusterTest extends AbstractSecurityUnitTest {
 
+    private static final int DEFAULT_MASTER_NODE_NUM = 3;
+    private static final int DEFAULT_FIRST_DATA_NODE_NUM = 2;
+
     protected ClusterHelper clusterHelper = new ClusterHelper("utest_n"+num.incrementAndGet()+"_f"+System.getProperty("forkno")+"_t"+System.nanoTime());
     protected ClusterInfo clusterInfo;
     private ClusterHelper remoteClusterHelper = withRemoteCluster ?
@@ -102,6 +105,18 @@ public abstract class SingleClusterTest extends AbstractSecurityUnitTest {
     protected void setupSslOnlyMode(Settings nodeOverride) throws Exception {
         Assert.assertNull("No cluster", clusterInfo);
         clusterInfo = clusterHelper.startCluster(minimumSecuritySettingsSslOnly(nodeOverride), ClusterConfiguration.DEFAULT);
+    }
+
+    protected void setupSslOnlyModeWithMasterNodeWithoutSSL(Settings nodeOverride) throws Exception {
+        Assert.assertNull("No cluster", clusterInfo);
+        clusterInfo = clusterHelper.startCluster(minimumSecuritySettingsSslOnlyWithOneNodeNonSSL(nodeOverride,
+                DEFAULT_MASTER_NODE_NUM), ClusterConfiguration.DEFAULT_MASTER_WITHOUT_SECURITY_PLUGIN);
+    }
+
+    protected void setupSslOnlyModeWithDataNodeWithoutSSL(Settings nodeOverride) throws Exception {
+        Assert.assertNull("No cluster", clusterInfo);
+        clusterInfo = clusterHelper.startCluster(minimumSecuritySettingsSslOnlyWithOneNodeNonSSL(nodeOverride,
+                DEFAULT_FIRST_DATA_NODE_NUM), ClusterConfiguration.DEFAULT_ONE_DATA_NODE_WITHOUT_SECURITY_PLUGIN);
     }
 
     protected RestHelper restHelper() {
