@@ -31,7 +31,7 @@ jobs:
 
     - name: Build
       run: |
-        mvn -B clean package -DskipTests -Dassembly.skipAssembly=false
+        mvn -B clean package -DskipTests -DskipBuild.zip=false
         artifact_zip=`ls $(pwd)/target/releases/opendistro_security-*.zip | grep -v admin-standalone`
         ./gradlew build buildDeb buildRpm --no-daemon -ParchivePath=$artifact_zip -Dbuild.snapshot=false
         mkdir artifacts
