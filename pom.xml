@@ -89,7 +89,8 @@
         <cryptacular.version>1.1.4</cryptacular.version>
 
         <!-- assembly descriptors -->
-        <assembly.skipAssembly>true</assembly.skipAssembly>
+        <assembly.skipAssembly>${skipBuild.zip}</assembly.skipAssembly>
+        <skipBuild.zip>true</skipBuild.zip>
         <elasticsearch.assembly.descriptor>${basedir}/src/main/assemblies/plugin.xml</elasticsearch.assembly.descriptor>
         <securitystandalone.descriptor>${basedir}/src/main/assemblies/securityadmin-standalone.xml
         </securitystandalone.descriptor>
