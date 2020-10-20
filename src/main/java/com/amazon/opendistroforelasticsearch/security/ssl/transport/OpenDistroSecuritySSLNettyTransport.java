@@ -15,10 +15,29 @@
  * 
  */
 
+/*
+ * Portions Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License").
+ * You may not use this file except in compliance with the License.
+ * A copy of the License is located at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * or in the "license" file accompanying this file. This file is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ * express or implied. See the License for the specific language governing
+ * permissions and limitations under the License.
+ */
+
 package com.amazon.opendistroforelasticsearch.security.ssl.transport;
 
+import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConnectionTestResult;
+import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConnectionTestUtil;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
@@ -55,14 +74,17 @@ public class OpenDistroSecuritySSLNettyTransport extends Netty4Transport {
     private static final Logger logger = LogManager.getLogger(OpenDistroSecuritySSLNettyTransport.class);
     private final OpenDistroSecurityKeyStore odsks;
     private final SslExceptionHandler errorHandler;
+    private final OpenDistroSSLConfig openDistroSSLConfig;
 
     public OpenDistroSecuritySSLNettyTransport(final Settings settings, final Version version, final ThreadPool threadPool, final NetworkService networkService,
             final PageCacheRecycler pageCacheRecycler, final NamedWriteableRegistry namedWriteableRegistry,
-            final CircuitBreakerService circuitBreakerService, final OpenDistroSecurityKeyStore odsks, final SslExceptionHandler errorHandler, SharedGroupFactory sharedGroupFactory) {
+            final CircuitBreakerService circuitBreakerService, final OpenDistroSecurityKeyStore odsks, final SslExceptionHandler errorHandler, SharedGroupFactory sharedGroupFactory,
+            final OpenDistroSSLConfig openDistroSSLConfig) {
         super(settings, version, threadPool, networkService, pageCacheRecycler, namedWriteableRegistry, circuitBreakerService, sharedGroupFactory);
 
         this.odsks = odsks;
         this.errorHandler = errorHandler;
+        this.openDistroSSLConfig = openDistroSSLConfig;
     }
 
     @Override
@@ -99,8 +121,16 @@ public class OpenDistroSecuritySSLNettyTransport extends Netty4Transport {
         @Override
         protected void initChannel(Channel ch) throws Exception {
             super.initChannel(ch);
-            final SslHandler sslHandler = new SslHandler(odsks.createServerTransportSSLEngine());
-            ch.pipeline().addFirst("ssl_server", sslHandler);
+
+            boolean dualModeEnabled = openDistroSSLConfig.isDualModeEnabled();
+            if (dualModeEnabled) {
+                logger.info("SSL Dual mode enabled, using port unification handler");
+                final ChannelHandler portUnificationHandler = new DualModeSSLHandler(odsks);
+                ch.pipeline().addFirst("port_unification_handler", portUnificationHandler);
+            } else {
+                final SslHandler sslHandler = new SslHandler(odsks.createServerTransportSSLEngine());
+                ch.pipeline().addFirst("ssl_server", sslHandler);
+            }
         }
         
         @Override
@@ -178,19 +208,40 @@ public class OpenDistroSecuritySSLNettyTransport extends Netty4Transport {
     protected class SSLClientChannelInitializer extends Netty4Transport.ClientChannelInitializer {
         private final boolean hostnameVerificationEnabled;
         private final boolean hostnameVerificationResovleHostName;
+        private final DiscoveryNode node;
+        private SSLConnectionTestResult connectionTestResult;
 
         public SSLClientChannelInitializer(DiscoveryNode node) {
+            this.node = node;
             hostnameVerificationEnabled = settings.getAsBoolean(
                     SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, true);
             hostnameVerificationResovleHostName = settings.getAsBoolean(
                     SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, true);
+
+            connectionTestResult = SSLConnectionTestResult.SSL_AVAILABLE;
+            if (openDistroSSLConfig.isDualModeEnabled()) {
+                SSLConnectionTestUtil sslConnectionTestUtil = new SSLConnectionTestUtil(node.getAddress().getAddress(), node.getAddress().getPort());
+                connectionTestResult = AccessController.doPrivileged((PrivilegedAction<SSLConnectionTestResult>) sslConnectionTestUtil::testConnection);
+            }
         }
 
         @Override
         protected void initChannel(Channel ch) throws Exception {
             super.initChannel(ch);
-            ch.pipeline().addFirst("client_ssl_handler", new ClientSSLHandler(odsks, hostnameVerificationEnabled,
-                    hostnameVerificationResovleHostName, errorHandler));
+
+            if(connectionTestResult == SSLConnectionTestResult.ES_PING_FAILED) {
+                logger.error("SSL dual mode is enabled but dual mode handshake and ES ping has failed during client connection setup, closing channel");
+                ch.close();
+                return;
+            }
+
+            if (connectionTestResult == SSLConnectionTestResult.SSL_AVAILABLE) {
+                logger.debug("Connection to {} needs to be ssl, adding ssl handler to the client channel ", node.getHostName());
+                ch.pipeline().addFirst("client_ssl_handler", new ClientSSLHandler(odsks, hostnameVerificationEnabled,
+                        hostnameVerificationResovleHostName, errorHandler));
+            } else {
+                logger.debug("Connection to {} needs to be non ssl", node.getHostName());
+            }
         }
         
         @Override

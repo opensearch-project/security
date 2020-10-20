@@ -55,6 +55,7 @@ import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenDistroSecurit
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import com.amazon.opendistroforelasticsearch.security.ssl.transport.OpenDistroSSLConfig;
 import org.apache.lucene.search.QueryCachingPolicy;
 import org.apache.lucene.search.Weight;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -108,7 +109,6 @@ import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusterService;
-import org.elasticsearch.transport.SharedGroupFactory;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.Transport.Connection;
 import org.elasticsearch.transport.TransportChannel;
@@ -129,7 +129,6 @@ import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLogSslExceptionHandler;
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog.Origin;
 import com.amazon.opendistroforelasticsearch.security.auth.BackendRegistry;
-import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
 import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceIndexingOperationListener;
 import com.amazon.opendistroforelasticsearch.security.configuration.AdminDNs;
 import com.amazon.opendistroforelasticsearch.security.configuration.ClusterInfoHolder;
@@ -187,7 +186,6 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     private volatile Client localClient;
     private final boolean disabled;
     private final boolean advancedModulesEnabled;
-    private final boolean sslOnly;
     private final List<String> demoCertHashes = new ArrayList<String>(3);
     private volatile OpenDistroSecurityFilter odsf;
     private volatile IndexResolverReplacer irr;
@@ -216,7 +214,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     }
 
     private final SslExceptionHandler evaluateSslExceptionHandler() {
-        if (client || disabled || sslOnly) {
+        if (client || disabled || openDistroSSLConfig.isSslOnlyMode()) {
             return new SslExceptionHandler(){};
         }
 
@@ -227,10 +225,6 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         return settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_DISABLED, false);
     }
     
-    private static boolean isSslOnlyMode(final Settings settings) {
-        return settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_SSL_ONLY, false);
-    }
-
     /**
      * SSL Cert Reload will be enabled only if security is not disabled and not in we are not using sslOnly mode.
      * @param settings Elastic configuration settings
@@ -249,15 +243,12 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         if (disabled) {
             this.dlsFlsAvailable = false;
             this.advancedModulesEnabled = false;
-            this.sslOnly = false;
             this.sslCertReloadEnabled = false;
             log.warn("Open Distro Security plugin installed but disabled. This can expose your configuration (including passwords) to the public.");
             return;
         }
         
-        sslOnly = isSslOnlyMode(settings);
-
-        if (sslOnly) {
+        if (openDistroSSLConfig.isSslOnlyMode()) {
             this.dlsFlsAvailable = false;
             this.advancedModulesEnabled = false;
             this.sslCertReloadEnabled = false;
@@ -305,7 +296,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
 
         log.info("Clustername: {}", settings.get("cluster.name","elasticsearch"));
 
-        if (!transportSSLEnabled && !sslOnly) {
+        if (!transportSSLEnabled && !openDistroSSLConfig.isSslOnlyMode()) {
             throw new IllegalStateException(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLED+" must be set to 'true'");
         }
 
@@ -451,7 +442,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
 
             handlers.addAll(super.getRestHandlers(settings, restController, clusterSettings, indexScopedSettings, settingsFilter, indexNameExpressionResolver, nodesInCluster));
 
-            if(!sslOnly) {
+            if(!openDistroSSLConfig.isSslOnlyMode()) {
                 handlers.add(new OpenDistroSecurityInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool)));
                 handlers.add(new KibanaInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool)));
                 handlers.add(new OpenDistroSecurityHealthAction(settings, restController, Objects.requireNonNull(backendRegistry)));
@@ -475,7 +466,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     @Override
     public UnaryOperator<RestHandler> getRestHandlerWrapper(final ThreadContext threadContext) {
 
-        if(client || disabled || sslOnly) {
+        if(client || disabled || openDistroSSLConfig.isSslOnlyMode()) {
             return (rh) -> rh;
         }
 
@@ -485,7 +476,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     @Override
     public List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
         List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> actions = new ArrayList<>(1);
-        if(!disabled && !sslOnly) {
+        if(!disabled && !openDistroSSLConfig.isSslOnlyMode()) {
             actions.add(new ActionHandler<>(ConfigUpdateAction.INSTANCE, TransportConfigUpdateAction.class));
             actions.add(new ActionHandler<>(WhoAmIAction.INSTANCE, TransportWhoAmIAction.class));
         }
@@ -496,7 +487,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     public void onIndexModule(IndexModule indexModule) {
         //called for every index!
 
-        if (!disabled && !client && !sslOnly) {
+        if (!disabled && !client && !openDistroSSLConfig.isSslOnlyMode()) {
             log.debug("Handle dlsFlsAvailable: "+dlsFlsAvailable+"/auditLog="+auditLog.getClass()+" for onIndexModule() of index "+indexModule.getIndex().getName());
             if (dlsFlsAvailable) {
 
@@ -607,7 +598,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     @Override
     public List<ActionFilter> getActionFilters() {
         List<ActionFilter> filters = new ArrayList<>(1);
-        if (!client && !disabled && !sslOnly) {
+        if (!client && !disabled && !openDistroSSLConfig.isSslOnlyMode()) {
             filters.add(Objects.requireNonNull(odsf));
         }
         return filters;
@@ -617,7 +608,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     public List<TransportInterceptor> getTransportInterceptors(NamedWriteableRegistry namedWriteableRegistry, ThreadContext threadContext) {
         List<TransportInterceptor> interceptors = new ArrayList<TransportInterceptor>(1);
 
-        if (!client && !disabled && !sslOnly) {
+        if (!client && !disabled && !openDistroSSLConfig.isSslOnlyMode()) {
             interceptors.add(new TransportInterceptor() {
 
                 @Override
@@ -657,14 +648,14 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             CircuitBreakerService circuitBreakerService, NamedWriteableRegistry namedWriteableRegistry, NetworkService networkService) {
         Map<String, Supplier<Transport>> transports = new HashMap<String, Supplier<Transport>>();
         
-        if(sslOnly) {
+        if(openDistroSSLConfig.isSslOnlyMode()) {
             return super.getTransports(settings, threadPool, pageCacheRecycler, circuitBreakerService, namedWriteableRegistry, networkService);
         }
         
         if (transportSSLEnabled) {
             transports.put("com.amazon.opendistroforelasticsearch.security.ssl.http.netty.OpenDistroSecuritySSLNettyTransport",
                     () -> new OpenDistroSecuritySSLNettyTransport(settings, Version.CURRENT, threadPool, networkService, pageCacheRecycler,
-                            namedWriteableRegistry, circuitBreakerService, odsks, evaluateSslExceptionHandler(), sharedGroupFactory));
+                            namedWriteableRegistry, circuitBreakerService, odsks, evaluateSslExceptionHandler(), sharedGroupFactory, openDistroSSLConfig));
         }
         return transports;
     }
@@ -674,7 +665,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             PageCacheRecycler pageCacheRecycler, CircuitBreakerService circuitBreakerService, NamedXContentRegistry xContentRegistry,
             NetworkService networkService, Dispatcher dispatcher, ClusterSettings clusterSettings) {
 
-        if(sslOnly) {
+        if(openDistroSSLConfig.isSslOnlyMode()) {
             return super.getHttpTransports(settings, threadPool, bigArrays, pageCacheRecycler, circuitBreakerService, xContentRegistry,
              networkService, dispatcher, clusterSettings);
         }
@@ -706,7 +697,8 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             Environment environment, NodeEnvironment nodeEnvironment, NamedWriteableRegistry namedWriteableRegistry,
             IndexNameExpressionResolver indexNameExpressionResolver, Supplier<RepositoriesService> repositoriesServiceSupplier) {
 
-        if(sslOnly) {
+        openDistroSSLConfig.registerClusterSettingsChangeListener(clusterService.getClusterSettings());
+        if(openDistroSSLConfig.isSslOnlyMode()) {
             return super.createComponents(
                     localClient,
                     clusterService,
@@ -830,7 +822,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
 
         builder.put(super.additionalSettings());
 
-        if(!sslOnly){
+        if(!openDistroSSLConfig.isSslOnlyMode()){
           builder.put(NetworkModule.TRANSPORT_TYPE_KEY, "com.amazon.opendistroforelasticsearch.security.ssl.http.netty.OpenDistroSecuritySSLNettyTransport");
           builder.put(NetworkModule.HTTP_TYPE_KEY, "com.amazon.opendistroforelasticsearch.security.http.OpenDistroSecurityHttpServerTransport");
         }
@@ -843,6 +835,9 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         
         settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_SSL_ONLY, false, Property.NodeScope, Property.Filtered));
 
+        // currently dual mode is supported only when ssl_only is enabled, but this stance would change in future
+        settings.add(OpenDistroSSLConfig.SSL_DUAL_MODE_SETTING);
+
         // Protected index settings
         settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_DEFAULT, Property.NodeScope, Property.Filtered, Property.Final));
         settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_DEFAULT, Function.identity(), Property.NodeScope, Property.Filtered, Property.Final));
@@ -852,7 +847,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_SYSTEM_INDICES_ENABLED_KEY, ConfigConstants.OPENDISTRO_SECURITY_SYSTEM_INDICES_ENABLED_DEFAULT, Property.NodeScope, Property.Filtered, Property.Final));
         settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_SYSTEM_INDICES_KEY, ConfigConstants.OPENDISTRO_SECURITY_SYSTEM_INDICES_DEFAULT, Function.identity(), Property.NodeScope, Property.Filtered, Property.Final));
 
-        if(!sslOnly) {
+        if(!openDistroSSLConfig.isSslOnlyMode()) {
             settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_ADMIN_DN, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
     
             settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, Property.NodeScope, Property.Filtered));
@@ -1005,7 +1000,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     @Override
     public void onNodeStarted() {
         log.info("Node started");
-        if(!sslOnly && !client && !disabled) {
+        if(!openDistroSSLConfig.isSslOnlyMode() && !client && !disabled) {
             cr.initOnNodeStart();
         }
         final Set<ModuleInfo> securityModules = ReflectionHelper.getModulesLoaded();
@@ -1019,7 +1014,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     @Override
     public Collection<Class<? extends LifecycleComponent>> getGuiceServiceClasses() {
 
-        if (client || disabled || sslOnly) {
+        if (client || disabled || openDistroSSLConfig.isSslOnlyMode()) {
             return Collections.emptyList();
         }
 
