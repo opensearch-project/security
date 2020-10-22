@@ -61,7 +61,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
 
     private static final String USER_TENANT = "__user__";
     private static final String EMPTY_STRING = "";
-    private static final String SUFFIX = "_1";
+    private static final String KIBANA_INDEX_SUFFIX = "_1";
     private static final Map<String, Object> KIBANA_INDEX_SETTINGS = ImmutableMap.of(
             IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1,
             IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, "0-1"
@@ -188,7 +188,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
 
     private CreateIndexRequest newCreateIndexRequestIfAbsent(final String name) {
         final Map<String, IndexAbstraction> indicesLookup = clusterService.state().getMetadata().getIndicesLookup();
-        final String concreteName = name.concat(SUFFIX);
+        final String concreteName = name.concat(KIBANA_INDEX_SUFFIX);
         if (Arrays.stream(new String[]{name, concreteName})
                 .map(s -> indicesLookup.get(s))
                 .filter(Objects::nonNull)
@@ -220,7 +220,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         // CreateIndexRequest
         if (request instanceof CreateIndexRequest) {
             // use new name for alias and suffixed index name
-            ((CreateIndexRequest) request).index(newIndexName.concat(SUFFIX)).alias(new Alias(newIndexName));
+            ((CreateIndexRequest) request).index(newIndexName.concat(KIBANA_INDEX_SUFFIX)).alias(new Alias(newIndexName));
             kibOk = true;
         } else if (request instanceof BulkRequest) {
 
