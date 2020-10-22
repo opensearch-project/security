@@ -39,19 +39,22 @@ import com.amazon.opendistroforelasticsearch.security.auth.RolesInjector;
 import com.amazon.opendistroforelasticsearch.security.resolver.IndexResolverReplacer;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchSecurityException;
+import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.DocWriteRequest.OpType;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
+import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
-import org.elasticsearch.action.admin.indices.create.CreateIndexAction;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
@@ -97,8 +100,6 @@ import static com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityP
 import static com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin.traceAction;
 
 public class OpenDistroSecurityFilter implements ActionFilter {
-
-    private static final String CREATE_INDEX_ERROR_MSG = "Request to create new index {} with aliases {} was not acknowledged";
 
     protected final Logger log = LogManager.getLogger(this.getClass());
     private final PrivilegesEvaluator evalp;
@@ -147,6 +148,10 @@ public class OpenDistroSecurityFilter implements ActionFilter {
             org.apache.logging.log4j.ThreadContext.clearAll();
             apply0(task, action, request, listener, chain);
         }
+    }
+
+    private static Set<String> alias2Name(Set<Alias> aliases) {
+        return aliases.stream().map(a -> a.name()).collect(ImmutableSet.toImmutableSet());
     }
     
 
@@ -300,11 +305,13 @@ public class OpenDistroSecurityFilter implements ActionFilter {
                     client.admin().indices().create(createIndexRequest, new ActionListener<CreateIndexResponse>() {
                         @Override
                         public void onResponse(CreateIndexResponse createIndexResponse) {
-                            log.debug("CreateIndexRequest {}, CreateIndexResponse {}", createIndexRequest, createIndexResponse);
                             if (createIndexResponse.isAcknowledged()) {
+                                log.debug("Request to create index {} with aliases {} acknowledged, proceeding with {}",
+                                        createIndexRequest.index(), alias2Name(createIndexRequest.aliases()), request.getClass().getSimpleName());
                                 chain.proceed(task, action, request, listener);
                             } else {
-                                Exception e = new ElasticsearchException(CREATE_INDEX_ERROR_MSG, createIndexRequest.index(), createIndexRequest.aliases());
+                                Exception e = new ElasticsearchException("Request to create index {} with aliases {} was not acknowledged, failing {}",
+                                        createIndexRequest.index(), alias2Name(createIndexRequest.aliases()), request.getClass().getSimpleName());
                                 log.error(e.getMessage());
                                 listener.onFailure(e);
                             }
@@ -312,8 +319,15 @@ public class OpenDistroSecurityFilter implements ActionFilter {
 
                         @Override
                         public void onFailure(Exception e) {
-                            log.error(CREATE_INDEX_ERROR_MSG, createIndexRequest.index(), createIndexRequest.aliases());
-                            listener.onFailure(e);
+                            if (e instanceof ResourceAlreadyExistsException) {
+                                log.debug("Request to create index {} with aliases {} failed as resource already exist, proceeding with {}",
+                                        createIndexRequest.index(), alias2Name(createIndexRequest.aliases()), request.getClass().getSimpleName(), e);
+                                chain.proceed(task, action, request, listener);
+                            } else {
+                                log.error("Request to create index {} with aliases {} failed, failing {}",
+                                        createIndexRequest.index(), alias2Name(createIndexRequest.aliases()), request.getClass().getSimpleName(), e);
+                                listener.onFailure(e);
+                            }
                         }
                     });
                 }

@@ -15,7 +15,9 @@
 
 package com.amazon.opendistroforelasticsearch.security.configuration;
 
+import java.util.Arrays;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
@@ -59,8 +61,10 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
 
     private static final String USER_TENANT = "__user__";
     private static final String EMPTY_STRING = "";
+    private static final String SUFFIX = "_1";
     private static final Map<String, Object> KIBANA_INDEX_SETTINGS = ImmutableMap.of(
-            IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1
+            IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1,
+            IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, "0-1"
     );
 
     protected final Logger log = LogManager.getLogger(this.getClass());
@@ -182,15 +186,21 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         return CONTINUE_EVALUATION_REPLACE_RESULT;
     }
 
-    private CreateIndexRequest checkAndCreateRequestIfAbsent(final String name) {
-        final IndexAbstraction indexAbstraction = clusterService.state().getMetadata().getIndicesLookup().get(name);
-        if (indexAbstraction == null) {
-            return new CreateIndexRequest(name + "_1")
-                    .settings(KIBANA_INDEX_SETTINGS)
-                    .alias(new Alias(name));
+    private CreateIndexRequest newCreateIndexRequestIfAbsent(final String name) {
+        final Map<String, IndexAbstraction> indicesLookup = clusterService.state().getMetadata().getIndicesLookup();
+        final String concreteName = name.concat(SUFFIX);
+        if (Arrays.stream(new String[]{name, concreteName})
+                .map(s -> indicesLookup.get(s))
+                .filter(Objects::nonNull)
+                .peek(ia -> log.debug("{} {} already exists", ia.getType(), ia.getName()))
+                .findFirst()
+                .isPresent()) {
+            return null;
+        } else {
+            return new CreateIndexRequest(concreteName)
+                    .alias(new Alias(name))
+                    .settings(KIBANA_INDEX_SETTINGS);
         }
-        log.debug("{} {} already exists", indexAbstraction.getType(), indexAbstraction.getName());
-        return null;
     }
 
     private CreateIndexRequest replaceIndex(final ActionRequest request, final String oldIndexName, final String newIndexName, final String action) {
@@ -201,10 +211,6 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
             log.debug("{} index will be replaced with {} in this {} request", oldIndexName, newIndexName, request.getClass().getName());
         }
 
-        if (request instanceof GetFieldMappingsIndexRequest || request instanceof GetFieldMappingsRequest) {
-            return createIndexRequest;
-        }
-
         //handle msearch and mget
         //in case of GET change the .kibana index to the userskibanaindex
         //in case of Search add the userskibanaindex
@@ -213,7 +219,8 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
 
         // CreateIndexRequest
         if (request instanceof CreateIndexRequest) {
-            ((CreateIndexRequest) request).index(newIndexName + "_1").alias(new Alias(newIndexName));
+            // use new name for alias and suffixed index name
+            ((CreateIndexRequest) request).index(newIndexName.concat(SUFFIX)).alias(new Alias(newIndexName));
             kibOk = true;
         } else if (request instanceof BulkRequest) {
 
@@ -224,7 +231,9 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
                 }
 
                 if (ar instanceof IndexRequest) {
-                    createIndexRequest = checkAndCreateRequestIfAbsent(newIndexName);
+                    if (createIndexRequest == null) {
+                        createIndexRequest = newCreateIndexRequestIfAbsent(newIndexName);
+                    }
                     ((IndexRequest) ar).index(newIndexName);
                 }
 
@@ -262,7 +271,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
             ((UpdateRequest) request).index(newIndexName);
             kibOk = true;
         } else if (request instanceof IndexRequest) {
-            createIndexRequest = checkAndCreateRequestIfAbsent(newIndexName);
+            createIndexRequest = newCreateIndexRequestIfAbsent(newIndexName);
             ((IndexRequest) request).index(newIndexName);
             kibOk = true;
         } else if (request instanceof DeleteRequest) {
@@ -280,6 +289,8 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         } else if (request instanceof Replaceable) {
             Replaceable replaceableRequest = (Replaceable) request;
             replaceableRequest.indices(newIndexNames);
+            kibOk = true;
+        } else if (request instanceof GetFieldMappingsIndexRequest || request instanceof GetFieldMappingsRequest) {
             kibOk = true;
         } else {
             log.warn("Dont know what to do (1) with {}", request.getClass());
