@@ -30,6 +30,7 @@
 
 package com.amazon.opendistroforelasticsearch.security.auth;
 
+import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
@@ -37,10 +38,10 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.rest.RestRequest;
-import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
@@ -49,7 +50,6 @@ import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.OpenDistroSecurityUtils;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 import com.google.common.base.Strings;
-import org.elasticsearch.transport.TransportRequest;
 
 public class UserInjector {
 
@@ -68,10 +68,37 @@ public class UserInjector {
 
     }
 
-    private User getUser(String injectedUserString) {
+    public class InjectedUser {
+        private User user;
+        private TransportAddress transportAddress;
+
+        public InjectedUser(String name) {
+            user = new User(name);
+        }
+
+        public User getUser() {
+            return user;
+        }
+
+        public void setUser(User user) {
+            this.user = user;
+        }
+
+        public TransportAddress getTransportAddress() {
+            return transportAddress;
+        }
+
+        public void setTransportAddress(TransportAddress transportAddress) {
+            this.transportAddress = transportAddress;
+        }
+    }
+
+    InjectedUser getInjectedUser() {
         if (!injectUserEnabled) {
             return null;
         }
+
+        String injectedUserString = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER);
 
         if (log.isDebugEnabled()) {
             log.debug("Injected user string: {}", injectedUserString);
@@ -94,7 +121,8 @@ public class UserInjector {
             return null;
         }
 
-        final User user = new User(parts[0]);
+        final InjectedUser injectedUser = new InjectedUser(parts[0]);
+        final User user = injectedUser.user;
 
         // backend roles
         if (parts.length > 1 && !Strings.isNullOrEmpty(parts[1])) {
@@ -119,20 +147,6 @@ public class UserInjector {
             user.setRequestedTenant(parts[4]);
         }
 
-        // mark user injected for proper admin handling
-        user.setInjected(true);
-        return user;
-    }
-
-    boolean injectUser(RestRequest request) {
-        String injectedUserString = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER);
-
-        User user = getUser(injectedUserString);
-        if(user == null) {
-            return false;
-        }
-
-        String[] parts = injectedUserString.split("\\|");
         // remote IP - we can set it only once, so we do it last. If non is given,
         // BackendRegistry/XFFResolver will do the job
         if (parts.length > 2 && !Strings.isNullOrEmpty(parts[2])) {
@@ -140,41 +154,48 @@ public class UserInjector {
             String[] ipAndPort = parts[2].split(":");
             if (ipAndPort.length != 2) {
                 log.error("Remote address must have format ip:port, was: {}. User injection failed.", parts[2]);
-                return false;
-            } else {
-                try {
-                    InetAddress iAdress = InetAddress.getByName(ipAndPort[0]);
-                    int port = Integer.parseInt(ipAndPort[1]);
-                    threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, new TransportAddress(iAdress, port));
-                } catch (UnknownHostException | NumberFormatException e) {
-                    log.error("Cannot parse remote IP or port: {}, user injection failed.", parts[2], e);
-                    return false;
-                }
+                return null;
             }
+            try {
+                InetAddress iAdress = InetAddress.getByName(ipAndPort[0]);
+                int port = Integer.parseInt(ipAndPort[1]);
+                injectedUser.setTransportAddress(new TransportAddress(iAdress, port));
+            } catch (UnknownHostException | NumberFormatException e) {
+                log.error("Cannot parse remote IP or port: {}, user injection failed.", parts[2], e);
+                return null;
+            }
+        }
+
+        // mark user injected for proper admin handling
+        user.setInjected(true);
+
+        if (log.isTraceEnabled()) {
+            log.trace("Injected user object:{} ", injectedUser.toString());
+        }
+
+        return injectedUser;
+    }
+
+
+    boolean injectUser(RestRequest request) {
+        InjectedUser injectedUser = getInjectedUser();
+        if(injectedUser == null) {
+            return false;
+        }
+
+        // Set remote address into the thread context
+        if (injectedUser.getTransportAddress() != null) {
+            threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, injectedUser.getTransportAddress());
         } else {
             threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, xffResolver.resolve(request));
         }
 
+        threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, injectedUser.getUser());
+        auditLog.logSucceededLogin(injectedUser.getUser().getName(), true, null, request);
 
-        threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
-        auditLog.logSucceededLogin(parts[0], true, null, request);
-        if (log.isTraceEnabled()) {
-            log.trace("Injected user object:{} ", user.toString());
-        }
         return true;
-
-    }
-
-    User injectUser(TransportRequest transportRequest, Task task, String action) {
-        String injectedUserString = threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER_HEADER);
-        User user = getUser(injectedUserString);
-        if(user == null) {
-            return null;
-        }
-        auditLog.logSucceededLogin(user.getName(), true, null, transportRequest, action, task);
-        if (log.isTraceEnabled()) {
-            log.trace("Injected user object:{} ", user.toString());
-        }
-        return user;
     }
 }
+
+
+

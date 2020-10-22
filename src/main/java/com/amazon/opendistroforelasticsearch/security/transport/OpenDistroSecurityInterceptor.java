@@ -213,11 +213,11 @@ public class OpenDistroSecurityInterceptor {
         String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
 
         if(userHeader == null) {
-            if(StringUtils.isNotEmpty(injectedUserString)) {
-                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER_HEADER, injectedUserString);
-            }
-            else if(origUser != null) {
+            if(origUser != null) {
                 getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER, Base64Helper.serializeObject(origUser));
+            }
+            else if(StringUtils.isNotEmpty(injectedUserString)) {
+                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER_HEADER, injectedUserString);
             }
         }
 

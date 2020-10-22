@@ -40,7 +40,7 @@ import com.amazon.opendistroforelasticsearch.security.resolver.IndexResolverRepl
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
-
+import com.amazon.opendistroforelasticsearch.security.auth.BackendRegistry;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -114,10 +114,11 @@ public class OpenDistroSecurityFilter implements ActionFilter {
     private final WildcardMatcher immutableIndicesMatcher;
     private final RolesInjector rolesInjector;
     private final Client client;
+    private final BackendRegistry backendRegistry;
 
     public OpenDistroSecurityFilter(final Client client, final Settings settings, final PrivilegesEvaluator evalp, final AdminDNs adminDns,
-                                    DlsFlsRequestValve dlsFlsValve, AuditLog auditLog, ThreadPool threadPool, ClusterService cs,
-                                    final CompatConfig compatConfig, final IndexResolverReplacer indexResolverReplacer) {
+            DlsFlsRequestValve dlsFlsValve, AuditLog auditLog, ThreadPool threadPool, ClusterService cs,
+            final CompatConfig compatConfig, final IndexResolverReplacer indexResolverReplacer, BackendRegistry backendRegistry) {
         this.client = client;
         this.evalp = evalp;
         this.adminDns = adminDns;
@@ -129,6 +130,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
         this.indexResolverReplacer = indexResolverReplacer;
         this.immutableIndicesMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList()));
         this.rolesInjector = new RolesInjector();
+        this.backendRegistry = backendRegistry;
         log.info("{} indices are made immutable.", immutableIndicesMatcher);
     }
 
@@ -169,7 +171,19 @@ public class OpenDistroSecurityFilter implements ActionFilter {
                 attachSourceFieldContext(request);
             }
             final Set<String> injectedRoles = rolesInjector.injectUserAndRoles(threadContext);
+            boolean isInjectedUser = false;
+            if(threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER) == null
+                    && threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER) != null) {
+                String principal = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PRINCIPAL);
+                User injectedUser = backendRegistry.authenticate(request, principal, task, action);
+                if(injectedUser != null) {
+                    threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, injectedUser);
+                    isInjectedUser = true;
+                }
+            }
+
             final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+
             final boolean userIsAdmin = isUserAdmin(user, adminDns);
             final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadContext);
             final boolean trustedClusterRequest = HeaderHelper.isTrustedClusterRequest(threadContext);
@@ -251,6 +265,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
             if(Origin.LOCAL.toString().equals(threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN))
                     && (interClusterRequest || HeaderHelper.isDirectRequest(threadContext))
                     && (injectedRoles == null)
+                    && !isInjectedUser
                     ) {
 
                 chain.proceed(task, action, request, listener);

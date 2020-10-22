@@ -229,24 +229,25 @@ public class BackendRegistry {
     }
 
     public User authenticate(final TransportRequest request, final String sslPrincipal, final Task task, final String action) {
-
-    	  if(log.isDebugEnabled() && request.remoteAddress() != null) {
-    		  log.debug("Transport authentication request from {}", request.remoteAddress());
-    	  }
-
-    	  if (request.remoteAddress() != null && isBlocked(request.remoteAddress().address().getAddress())) {
-    	      if (log.isDebugEnabled()) {
-    	          log.debug("Rejecting transport request because of blocked address: " + request.remoteAddress());
-    	      }
-    	      return null;
-    	  }
-
-        User injectedUser = userInjector.injectUser(request, task, action);
-
-        if(injectedUser != null) {
-            return injectedUser;
+        if(log.isDebugEnabled() && request.remoteAddress() != null) {
+            log.debug("Transport authentication request from {}", request.remoteAddress());
         }
 
+        if (request.remoteAddress() != null && isBlocked(request.remoteAddress().address().getAddress())) {
+            if (log.isDebugEnabled()) {
+                log.debug("Rejecting transport request because of blocked address: " + request.remoteAddress());
+            }
+            return null;
+        }
+
+        UserInjector.InjectedUser injectedUser = userInjector.getInjectedUser();
+
+        if(injectedUser.getUser() != null) {
+            auditLog.logSucceededLogin(injectedUser.getUser().getName(), true, null, request, action, task);
+            return injectedUser.getUser();
+        }
+
+        
         User origPKIUser = new User(sslPrincipal);
         
         if(adminDns.isAdmin(origPKIUser)) {
@@ -500,9 +501,7 @@ public class BackendRegistry {
 
         if(authenticated) {
             final User impersonatedUser = impersonate(request, authenticatedUser);
-            final User loggedInUser = impersonatedUser==null?authenticatedUser:impersonatedUser;
-            threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, loggedInUser);
-            threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER_STRING, loggedInUser.getUserString());
+            threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, impersonatedUser==null?authenticatedUser:impersonatedUser);
             auditLog.logSucceededLogin((impersonatedUser == null ? authenticatedUser : impersonatedUser).getName(), false,
                     authenticatedUser.getName(), request);
         } else {

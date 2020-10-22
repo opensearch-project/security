@@ -32,6 +32,7 @@ package com.amazon.opendistroforelasticsearch.security.user;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -267,4 +268,5 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
     public final String getUserRolesString() {
         return name + "|" + String.join(",", getRoles()) + "|" + String.join(",", getOpenDistroSecurityRoles());
     }
+
 }

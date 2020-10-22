@@ -150,12 +150,8 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
                 if(Strings.isNullOrEmpty(userHeader)) {
                     //user can be null when a node client wants connect
                     //getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, User.OPENDISTRO_SECURITY_INTERNAL);
-                    User user = null;
                     if(!Strings.isNullOrEmpty(injectedUserHeader)) {
-                        final String principal = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PRINCIPAL);
-                        if((user = backendRegistry.authenticate(request, principal, task, task.getAction())) != null) {
-                            getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
-                        }
+                        getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, injectedUserHeader);
                     }
                 } else {
                     getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, Objects.requireNonNull((User) Base64Helper.deserializeObject(userHeader)));
@@ -218,11 +214,8 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
                     if(Strings.isNullOrEmpty(userHeader)) {
                         //user can be null when a node client wants connect
                         //getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, User.OPENDISTRO_SECURITY_INTERNAL);
-                        User user = null;
                         if(!Strings.isNullOrEmpty(injectedUserHeader)) {
-                            if((user = backendRegistry.authenticate(request, principal, task, task.getAction())) != null) {
-                                getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
-                            }
+                            getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, injectedUserHeader);
                         }
                     } else {
                         getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, Objects.requireNonNull((User) Base64Helper.deserializeObject(userHeader)));

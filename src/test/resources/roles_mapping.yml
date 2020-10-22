@@ -279,7 +279,7 @@ opendistro_security_kibana_server:
 opendistro_security_all_access:
   reserved: false
   hidden: false
-  backend_roles: []
+  backend_roles: ["injecttest"]
   hosts: []
   users:
   - "nagilum"
