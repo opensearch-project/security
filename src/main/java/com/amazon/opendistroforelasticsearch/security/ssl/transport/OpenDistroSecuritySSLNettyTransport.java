@@ -30,8 +30,12 @@
 
 package com.amazon.opendistroforelasticsearch.security.ssl.transport;
 
+import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConnectionTestResult;
+import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConnectionTestUtil;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
@@ -70,13 +74,16 @@ public class OpenDistroSecuritySSLNettyTransport extends Netty4Transport {
     private static final Logger logger = LogManager.getLogger(OpenDistroSecuritySSLNettyTransport.class);
     private final OpenDistroSecurityKeyStore odks;
     private final SslExceptionHandler errorHandler;
+    private final OpenDistroSSLConfig openDistroSSLConfig;
 
     public OpenDistroSecuritySSLNettyTransport(final Settings settings, final Version version, final ThreadPool threadPool, final NetworkService networkService,
         final PageCacheRecycler pageCacheRecycler, final NamedWriteableRegistry namedWriteableRegistry,
-        final CircuitBreakerService circuitBreakerService, final OpenDistroSecurityKeyStore odks, final SslExceptionHandler errorHandler) {
+        final CircuitBreakerService circuitBreakerService, final OpenDistroSecurityKeyStore odks, final SslExceptionHandler errorHandler,
+        final OpenDistroSSLConfig openDistroSSLConfig) {
         super(settings, version, threadPool, networkService, pageCacheRecycler, namedWriteableRegistry, circuitBreakerService);
         this.odks = odks;
         this.errorHandler = errorHandler;
+        this.openDistroSSLConfig = openDistroSSLConfig;
     }
 
     @Override
@@ -129,8 +136,16 @@ public class OpenDistroSecuritySSLNettyTransport extends Netty4Transport {
         @Override
         protected void initChannel(Channel ch) throws Exception {
             super.initChannel(ch);
-            final SslHandler sslHandler = new SslHandler(odks.createServerTransportSSLEngine());
-            ch.pipeline().addFirst("ssl_server", sslHandler);
+
+            boolean dualModeEnabled = openDistroSSLConfig.isDualModeEnabled();
+            if (dualModeEnabled) {
+                logger.info("SSL Dual mode enabled, using port unification handler");
+                final ChannelHandler portUnificationHandler = new DualModeSSLHandler(odks);
+                ch.pipeline().addFirst("port_unification_handler", portUnificationHandler);
+            } else {
+                final SslHandler sslHandler = new SslHandler(odks.createServerTransportSSLEngine());
+                ch.pipeline().addFirst("ssl_server", sslHandler);
+            }
         }
         
         @Override
@@ -239,19 +254,40 @@ public class OpenDistroSecuritySSLNettyTransport extends Netty4Transport {
     protected class SSLClientChannelInitializer extends Netty4Transport.ClientChannelInitializer {
         private final boolean hostnameVerificationEnabled;
         private final boolean hostnameVerificationResovleHostName;
+        private final DiscoveryNode node;
+        private SSLConnectionTestResult connectionTestResult;
 
         public SSLClientChannelInitializer(DiscoveryNode node) {
+            this.node = node;
             hostnameVerificationEnabled = settings.getAsBoolean(
                     SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, true);
             hostnameVerificationResovleHostName = settings.getAsBoolean(
                     SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, true);
+
+            connectionTestResult = SSLConnectionTestResult.SSL_AVAILABLE;
+            if (openDistroSSLConfig.isDualModeEnabled()) {
+                SSLConnectionTestUtil sslConnectionTestUtil = new SSLConnectionTestUtil(node.getAddress().getAddress(), node.getAddress().getPort());
+                connectionTestResult = AccessController.doPrivileged((PrivilegedAction<SSLConnectionTestResult>) sslConnectionTestUtil::testConnection);
+            }
         }
 
         @Override
         protected void initChannel(Channel ch) throws Exception {
             super.initChannel(ch);
-            ch.pipeline().addFirst("client_ssl_handler", new ClientSSLHandler(odks, hostnameVerificationEnabled,
-                    hostnameVerificationResovleHostName, errorHandler));
+
+            if(connectionTestResult == SSLConnectionTestResult.ES_PING_FAILED) {
+                logger.error("SSL dual mode is enabled but dual mode handshake and ES ping has failed during client connection setup, closing channel");
+                ch.close();
+                return;
+            }
+
+            if (connectionTestResult == SSLConnectionTestResult.SSL_AVAILABLE) {
+                logger.debug("Connection to {} needs to be ssl, adding ssl handler to the client channel ", node.getHostName());
+                ch.pipeline().addFirst("client_ssl_handler", new ClientSSLHandler(odks, hostnameVerificationEnabled,
+                        hostnameVerificationResovleHostName, errorHandler));
+            } else {
+                logger.debug("Connection to {} needs to be non ssl", node.getHostName());
+            }
         }
         
         @Override
