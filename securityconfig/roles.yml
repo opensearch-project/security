@@ -40,15 +40,16 @@ alerting_full_access:
         - 'indices:admin/mappings/get'
 
 # Allow users to read Anomaly Detection detectors and results
-ad_read_access:
+anomaly_read_access:
   reserved: true
   cluster_permissions:
+    - 'cluster:admin/opendistro/ad/detector/info'
     - 'cluster:admin/opendistro/ad/detector/search'
     - 'cluster:admin/opendistro/ad/detectors/get'
     - 'cluster:admin/opendistro/ad/result/search'
 
 # Allows users to use all Anomaly Detection functionality
-ad_full_access:
+anomaly_full_access:
   reserved: true
   cluster_permissions:
     - 'cluster_monitor'
