@@ -32,6 +32,7 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.amazon.opendistroforelasticsearch.security.test.DynamicSecurityConfig;
@@ -218,11 +219,15 @@ public class MultitenancyTests extends SingleClusterTest {
         body = "{\"buildNum\": 15460, \"defaultIndex\": \"humanresources\", \"tenant\": \"human_resources\"}";
         Assert.assertEquals(HttpStatus.SC_CREATED, (res = rh.executePutRequest(".kibana/config/5.6.0?pretty",body, new BasicHeader("securitytenant", "human_resources"), encodeBasicHeader("hr_employee", "hr_employee"))).getStatusCode());
         System.out.println(res.getBody());
-        Assert.assertTrue(WildcardMatcher.from("*.kibana_*_humanresources*").test(res.getBody()));
+        Assert.assertEquals(".kibana_1592542611_humanresources_1", DefaultObjectMapper.readTree(res.getBody()).get("_index").asText());
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest(".kibana/config/5.6.0?pretty",new BasicHeader("securitytenant", "human_resources"), encodeBasicHeader("hr_employee", "hr_employee"))).getStatusCode());
         System.out.println(res.getBody());
         Assert.assertTrue(WildcardMatcher.from("*human_resources*").test(res.getBody()));
+
+        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest(".kibana_1592542611_humanresources_1/_alias", encodeBasicHeader("admin", "admin"))).getStatusCode());
+        System.out.println(res.getBody());
+        Assert.assertNotNull(DefaultObjectMapper.readTree(res.getBody()).get(".kibana_1592542611_humanresources_1").get("aliases").get(".kibana_1592542611_humanresources"));
 
     }
 
@@ -233,6 +238,7 @@ public class MultitenancyTests extends SingleClusterTest {
                 .build();
         setup(settings);
 
+        final String kibanaIndex = ".kibana_92668751_admin_1";
         try (TransportClient tc = getInternalTransportClient()) {
             String body = "{"+
                     "\"type\" : \"index-pattern\","+
@@ -243,11 +249,12 @@ public class MultitenancyTests extends SingleClusterTest {
             Map indexSettings = new HashMap();
             indexSettings.put("number_of_shards", 1);
             indexSettings.put("number_of_replicas", 0);
-            tc.admin().indices().create(new CreateIndexRequest(".kibana_92668751_admin")
-                .settings(indexSettings))
+            tc.admin().indices().create(new CreateIndexRequest(kibanaIndex)
+                .settings(indexSettings)
+                .alias(new Alias(".kibana_92668751_admin")))
                 .actionGet();
 
-            tc.index(new IndexRequest(".kibana_92668751_admin").type("doc")
+            tc.index(new IndexRequest(kibanaIndex).type("doc")
                     .id("index-pattern:9fbbd1a0-c3c5-11e8-a13f-71b8ea5a4f7b")
                     .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                     .source(body, XContentType.JSON)).actionGet();
@@ -263,7 +270,7 @@ public class MultitenancyTests extends SingleClusterTest {
         Assert.assertFalse(res.getBody().contains("exception"));
         Assert.assertTrue(res.getBody().contains("humanresources"));
         Assert.assertTrue(res.getBody().contains("\"value\" : 1"));
-        Assert.assertTrue(res.getBody().contains(".kibana_92668751_admin"));
+        Assert.assertTrue(res.getBody().contains(kibanaIndex));
 
         System.out.println("#### msearch");
         body =
@@ -275,7 +282,7 @@ public class MultitenancyTests extends SingleClusterTest {
         Assert.assertFalse(res.getBody().contains("exception"));
         Assert.assertTrue(res.getBody().contains("humanresources"));
         Assert.assertTrue(res.getBody().contains("\"value\" : 1"));
-        Assert.assertTrue(res.getBody().contains(".kibana_92668751_admin"));
+        Assert.assertTrue(res.getBody().contains(kibanaIndex));
 
         System.out.println("#### get");
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest(".kibana/doc/index-pattern:9fbbd1a0-c3c5-11e8-a13f-71b8ea5a4f7b?pretty", new BasicHeader("securitytenant", "__user__"), encodeBasicHeader("admin", "admin"))).getStatusCode());
@@ -283,7 +290,7 @@ public class MultitenancyTests extends SingleClusterTest {
         Assert.assertFalse(res.getBody().contains("exception"));
         Assert.assertTrue(res.getBody().contains("humanresources"));
         Assert.assertTrue(res.getBody().contains("\"found\" : true"));
-        Assert.assertTrue(res.getBody().contains(".kibana_92668751_admin"));
+        Assert.assertTrue(res.getBody().contains(kibanaIndex));
 
         System.out.println("#### mget");
         body = "{\"docs\" : [{\"_index\" : \".kibana\",\"_type\" : \"doc\",\"_id\" : \"index-pattern:9fbbd1a0-c3c5-11e8-a13f-71b8ea5a4f7b\"}]}";
@@ -291,7 +298,7 @@ public class MultitenancyTests extends SingleClusterTest {
         //System.out.println(res.getBody());
         Assert.assertFalse(res.getBody().contains("exception"));
         Assert.assertTrue(res.getBody().contains("humanresources"));
-        Assert.assertTrue(res.getBody().contains(".kibana_92668751_admin"));
+        Assert.assertTrue(res.getBody().contains(kibanaIndex));
 
         System.out.println("#### index");
         body = "{"+
@@ -304,7 +311,7 @@ public class MultitenancyTests extends SingleClusterTest {
         //System.out.println(res.getBody());
         Assert.assertFalse(res.getBody().contains("exception"));
         Assert.assertTrue(res.getBody().contains("\"result\" : \"created\""));
-        Assert.assertTrue(res.getBody().contains(".kibana_92668751_admin"));
+        Assert.assertTrue(res.getBody().contains(kibanaIndex));
 
         System.out.println("#### bulk");
         body =
@@ -316,13 +323,13 @@ public class MultitenancyTests extends SingleClusterTest {
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePutRequest("_bulk?pretty",body, new BasicHeader("securitytenant", "__user__"), encodeBasicHeader("admin", "admin"))).getStatusCode());
         //System.out.println(res.getBody());
         Assert.assertFalse(res.getBody().contains("exception"));
-        Assert.assertTrue(res.getBody().contains(".kibana_92668751_admin"));
+        Assert.assertTrue(res.getBody().contains(kibanaIndex));
         Assert.assertTrue(res.getBody().contains("\"errors\" : false"));
         Assert.assertTrue(res.getBody().contains("\"result\" : \"created\""));
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_cat/indices", encodeBasicHeader("admin", "admin"))).getStatusCode());
         Assert.assertEquals(2, res.getBody().split(".kibana").length);
-        Assert.assertTrue(res.getBody().contains(".kibana_92668751_admin"));
+        Assert.assertTrue(res.getBody().contains(kibanaIndex));
 
     }
 
