@@ -33,6 +33,7 @@ package com.amazon.opendistroforelasticsearch.security.privileges;
 import java.util.Map;
 
 import org.elasticsearch.action.ActionRequest;
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -44,6 +45,25 @@ import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfig
 import com.amazon.opendistroforelasticsearch.security.user.User;
 
 public class PrivilegesInterceptor {
+
+    public static class ReplaceResult {
+        final boolean continueEvaluation;
+        final boolean accessDenied;
+        final CreateIndexRequest createIndexRequest;
+
+        private ReplaceResult(boolean continueEvaluation, boolean accessDenied, CreateIndexRequest createIndexRequest) {
+            this.continueEvaluation = continueEvaluation;
+            this.accessDenied = accessDenied;
+            this.createIndexRequest = createIndexRequest;
+        }
+    }
+
+    public static final ReplaceResult CONTINUE_EVALUATION_REPLACE_RESULT = new ReplaceResult(true, false, null);
+    public static final ReplaceResult ACCESS_DENIED_REPLACE_RESULT = new ReplaceResult(false, true, null);
+    public static final ReplaceResult ACCESS_GRANTED_REPLACE_RESULT = new ReplaceResult(false, false, null);
+    protected static ReplaceResult newAccessGrantedReplaceResult(CreateIndexRequest createIndexRequest) {
+        return new ReplaceResult(false, false, createIndexRequest);
+    }
 
     protected final IndexNameExpressionResolver resolver;
     protected final ClusterService clusterService;
@@ -58,7 +78,7 @@ public class PrivilegesInterceptor {
         this.threadPool = threadPool;
     }
 
-    public Boolean replaceKibanaIndex(final ActionRequest request, final String action, final User user, final DynamicConfigModel config,
+    public ReplaceResult replaceKibanaIndex(final ActionRequest request, final String action, final User user, final DynamicConfigModel config,
                                       final Resolved requestedResolved, final Map<String, Boolean> tenants) {
         throw new RuntimeException("not implemented");
     }
