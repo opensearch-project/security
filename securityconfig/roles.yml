@@ -38,3 +38,26 @@ alerting_full_access:
         - 'indices_monitor'
         - 'indices:admin/aliases/get'
         - 'indices:admin/mappings/get'
+
+# Allow users to read Anomaly Detection detectors and results
+anomaly_read_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/opendistro/ad/detector/info'
+    - 'cluster:admin/opendistro/ad/detector/search'
+    - 'cluster:admin/opendistro/ad/detectors/get'
+    - 'cluster:admin/opendistro/ad/result/search'
+
+# Allows users to use all Anomaly Detection functionality
+anomaly_full_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster_monitor'
+    - 'cluster:admin/opendistro/ad/*'
+  index_permissions:
+    - index_patterns:
+        - '*'
+      allowed_actions:
+        - 'indices_monitor'
+        - 'indices:admin/aliases/get'
+        - 'indices:admin/mappings/get'
