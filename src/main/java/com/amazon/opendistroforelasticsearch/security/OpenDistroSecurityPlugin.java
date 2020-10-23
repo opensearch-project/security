@@ -508,7 +508,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                 final ComplianceIndexingOperationListener ciol;
 
                 assert complianceConfig!=null:"compliance config must not be null here";
-                
+
                 if(complianceConfig.writeHistoryEnabledForIndex(indexModule.getIndex().getName())) {
                     ciol = ReflectionHelper.instantiateComplianceListener(Objects.requireNonNull(auditLog));
                     indexModule.addIndexOperationListener(ciol);
@@ -556,9 +556,9 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                     }
                 });
             } else {
-                
+
                 assert complianceConfig==null:"compliance config must be null here";
-                
+
                 indexModule.setReaderWrapper(
                         indexService -> new OpenDistroSecurityIndexSearcherWrapper(indexService, settings, Objects.requireNonNull(adminDns), Objects.requireNonNull(evaluator)));
             }
@@ -694,7 +694,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             return super.getHttpTransports(settings, threadPool, bigArrays, pageCacheRecycler, circuitBreakerService, xContentRegistry,
              networkService, dispatcher);
         }
-        
+
         Map<String, Supplier<HttpServerTransport>> httpTransports = new HashMap<String, Supplier<HttpServerTransport>>(1);
 
         if(!disabled) {
@@ -786,7 +786,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         
         cr.setDynamicConfigFactory(dcf);
         
-        odsf = new OpenDistroSecurityFilter(evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs, compatConfig, irr);
+        odsf = new OpenDistroSecurityFilter(localClient, evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs, compatConfig, irr);
 
 
         final String principalExtractorClass = settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, null);
