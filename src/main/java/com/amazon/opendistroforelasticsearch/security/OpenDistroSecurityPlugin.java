@@ -759,7 +759,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         evaluator = new PrivilegesEvaluator(clusterService, threadPool, cr, resolver, auditLog,
                 settings, privilegesInterceptor, cih, irr, advancedModulesEnabled);
 
-        odsf = new OpenDistroSecurityFilter(settings, evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs, compatConfig, irr);
+        odsf = new OpenDistroSecurityFilter(localClient, settings, evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs, compatConfig, irr);
 
         final String principalExtractorClass = settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, null);
 
