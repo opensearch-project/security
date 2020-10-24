@@ -106,7 +106,7 @@ public class OpenDistroSecurityInfoAction extends BaseRestHandler {
                     final Set<String> securityRoles = evaluator.mapRoles(user, remoteAddress);
 
                     builder.startObject();
-                    builder.field("user", user==null?null:user.toString());
+                    builder.field("user", user==null?null:user.toStringWithoutRoles());
                     builder.field("user_name", user==null?null:user.getName());
                     builder.field("user_requested_tenant", user==null?null:user.getRequestedTenant());
                     builder.field("remote_address", remoteAddress);

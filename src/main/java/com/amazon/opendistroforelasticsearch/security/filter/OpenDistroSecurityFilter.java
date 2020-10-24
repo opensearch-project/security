@@ -288,7 +288,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
             } else {
                 auditLog.logMissingPrivileges(action, request, task);
                 String err = (injectedRoles == null) ?
-                        String.format("no permissions for %s and %s", pres.getMissingPrivileges(), user) :
+                        String.format("no permissions for %s and %s", pres.getMissingPrivileges(), user.toStringWithoutRoles()) :
                         String.format("no permissions for %s and associated roles %s", pres.getMissingPrivileges(), injectedRoles);
                 log.debug(err);
                 listener.onFailure(new ElasticsearchSecurityException(err, RestStatus.FORBIDDEN));
