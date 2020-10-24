@@ -36,7 +36,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
@@ -255,20 +254,20 @@ public class PrivilegesEvaluator {
 
                     if(privilegesInterceptor.getClass() != PrivilegesInterceptor.class) {
 
-                        final Boolean replaceResult = privilegesInterceptor.replaceKibanaIndex(request, action0, user, dcm, requestedResolved,
+                        final PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceKibanaIndex(request, action0, user, dcm, requestedResolved,
                                 mapTenants(user, mappedRoles));
 
                         if(log.isDebugEnabled()) {
                             log.debug("Result from privileges interceptor for cluster perm: {}", replaceResult);
                         }
 
-                        if (replaceResult == Boolean.TRUE) {
-                            auditLog.logMissingPrivileges(action0, request, task);
-                            return presponse;
-                        }
-
-                        if (replaceResult == Boolean.FALSE) {
-                            presponse.allowed = true;
+                        if (!replaceResult.continueEvaluation) {
+                            if (replaceResult.accessDenied) {
+                                auditLog.logMissingPrivileges(action0, request, task);
+                            } else {
+                                presponse.allowed = true;
+                                presponse.request = replaceResult.createIndexRequest;
+                            }
                             return presponse;
                         }
                     }
@@ -338,19 +337,19 @@ public class PrivilegesEvaluator {
 
         if(privilegesInterceptor.getClass() != PrivilegesInterceptor.class) {
 
-            final Boolean replaceResult = privilegesInterceptor.replaceKibanaIndex(request, action0, user, dcm, requestedResolved, mapTenants(user, mappedRoles));
+            final PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceKibanaIndex(request, action0, user, dcm, requestedResolved, mapTenants(user, mappedRoles));
 
             if(log.isDebugEnabled()) {
                 log.debug("Result from privileges interceptor: {}", replaceResult);
             }
 
-            if (replaceResult == Boolean.TRUE) {
-                auditLog.logMissingPrivileges(action0, request, task);
-                return presponse;
-            }
-
-            if (replaceResult == Boolean.FALSE) {
-                presponse.allowed = true;
+            if (!replaceResult.continueEvaluation) {
+                if (replaceResult.accessDenied) {
+                    auditLog.logMissingPrivileges(action0, request, task);
+                } else {
+                    presponse.allowed = true;
+                    presponse.request = replaceResult.createIndexRequest;
+                }
                 return presponse;
             }
         }
