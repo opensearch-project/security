@@ -111,7 +111,7 @@ public class PermissionsInfoAction extends BaseRestHandler {
             		}
 
                     builder.startObject();
-                    builder.field("user", user==null?null:user.toStringWithoutRoles());
+                    builder.field("user", user==null?null:user.toString());
                     builder.field("user_name", user==null?null:user.getName()); //NOSONAR
                     builder.field("has_api_access", hasApiAccess);
                     builder.startObject("disabled_endpoints");

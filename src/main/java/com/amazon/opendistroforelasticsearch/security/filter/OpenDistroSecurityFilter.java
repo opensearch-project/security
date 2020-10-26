@@ -98,6 +98,7 @@ import com.amazon.opendistroforelasticsearch.security.user.User;
 
 import static com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin.isActionTraceEnabled;
 import static com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin.traceAction;
+import static com.amazon.opendistroforelasticsearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_USER_ROLES_STRING;
 
 public class OpenDistroSecurityFilter implements ActionFilter {
 
@@ -291,7 +292,11 @@ public class OpenDistroSecurityFilter implements ActionFilter {
             if (log.isDebugEnabled()) {
                 log.debug(pres);
             }
-            
+
+            if(threadContext.getTransient(OPENDISTRO_SECURITY_USER_ROLES_STRING) == null) {
+                threadContext.putTransient(OPENDISTRO_SECURITY_USER_ROLES_STRING, user.getUserRolesString());
+            }
+
             if (pres.isAllowed()) {
                 auditLog.logGrantedPrivileges(action, request, task);
                 auditLog.logIndexEvent(action, request, task);
@@ -335,7 +340,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
             } else {
                 auditLog.logMissingPrivileges(action, request, task);
                 String err = (injectedRoles == null) ?
-                        String.format("no permissions for %s and %s", pres.getMissingPrivileges(), user.toStringWithoutRoles()) :
+                        String.format("no permissions for %s and %s", pres.getMissingPrivileges(), user) :
                         String.format("no permissions for %s and associated roles %s", pres.getMissingPrivileges(), injectedRoles);
                 log.debug(err);
                 listener.onFailure(new ElasticsearchSecurityException(err, RestStatus.FORBIDDEN));

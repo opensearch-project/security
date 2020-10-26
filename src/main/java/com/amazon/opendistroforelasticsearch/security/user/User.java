@@ -187,13 +187,9 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
         return "User [name=" + name + ", backend_roles=" + roles + ", requestedTenant=" + requestedTenant + ", attributes=" + attributes + "]";
     }
 
-    public final String toStringWithoutRoles() {
-        return "User [name=" + name + ", backend_roles=" + roles + ", requestedTenant=" + requestedTenant + "]";
-    }
-
     @Override
     public final String toString() {
-        return "User [name=" + name + ", backend_roles=" + roles + ", roles=" + openDistroSecurityRoles + ", requestedTenant=" + requestedTenant + "]";
+        return "User [name=" + name + ", backend_roles=" + roles + ", requestedTenant=" + requestedTenant + "]";
     }
 
     @Override
@@ -266,5 +262,9 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
     
     public final Set<String> getOpenDistroSecurityRoles() {
         return this.openDistroSecurityRoles == null ? Collections.emptySet() : Collections.unmodifiableSet(this.openDistroSecurityRoles);
+    }
+
+    public final String getUserRolesString() {
+        return name + "|" + String.join(",", getRoles()) + "|" + String.join(",", getOpenDistroSecurityRoles());
     }
 }
