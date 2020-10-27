@@ -263,4 +263,8 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
     public final Set<String> getOpenDistroSecurityRoles() {
         return this.openDistroSecurityRoles == null ? Collections.emptySet() : Collections.unmodifiableSet(this.openDistroSecurityRoles);
     }
+
+    public final String getUserRolesString() {
+        return name + "|" + String.join(",", getRoles()) + "|" + String.join(",", getOpenDistroSecurityRoles());
+    }
 }

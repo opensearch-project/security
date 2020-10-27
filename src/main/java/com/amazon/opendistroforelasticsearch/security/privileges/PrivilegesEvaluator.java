@@ -190,6 +190,11 @@ public class PrivilegesEvaluator {
         final Set<String> mappedRoles = (injectedRoles == null) ? mapRoles(user, caller) : injectedRoles;
         final SecurityRoles securityRoles = getSecurityRoles(mappedRoles);
 
+        // Mapped roles are added to the User. These roles can be read in transport layer only.
+        if(mappedRoles != null) {
+            user.addOpenDistroSecurityRoles(mappedRoles);
+        }
+
         final PrivilegesEvaluatorResponse presponse = new PrivilegesEvaluatorResponse();
 
 
