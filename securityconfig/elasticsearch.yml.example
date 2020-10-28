@@ -199,17 +199,14 @@ opendistro_security.audit.type: internal_elasticsearch
 # constructor that takes an org.elasticsearch.common.settings.Settings
 #opendistro_security.cert.intercluster_request_evaluator_class: com.amazon.opendistroforelasticsearch.security.transport.DefaultInterClusterRequestEvaluator
 
-# Allow snapshot restore for normal users
-# By default only requests signed by an admin TLS certificate can do this
-# To enable snapshot restore for normal users set 'opendistro_security.enable_snapshot_restore_privilege: true'
-# The user who wants to restore a snapshot must have the 'cluster:admin/snapshot/restore' privilege and must also have
-# "indices:admin/create" and "indices:data/write/index" for the indices to be restores.
+# By default, normal users can restore snapshots if they have the priviliges 'cluster:admin/snapshot/restore', 
+# 'indices:admin/create', and 'indices:data/write/index' for the indices to be restored.
+# To disable snapshot restore for normal users set 'opendistro_security.enable_snapshot_restore_privilege: false'.
+# This makes it so that only snapshot restore requests signed by an admin TLS certificate are accepted.
 # A snapshot can only be restored when it does not contain global state and does not restore the '.opendistro_security' index
 # If 'opendistro_security.check_snapshot_restore_write_privileges: false' is set then the additional indices checks are omitted.
-
-# This makes it less secure.
 #opendistro_security.enable_snapshot_restore_privilege: true
-#opendistro_security.check_snapshot_restore_write_privileges: false
+#opendistro_security.check_snapshot_restore_write_privileges: true
 
 # Authentication cache timeout in minutes (A value of 0 disables caching, default is 60)
 #opendistro_security.cache.ttl_minutes: 60
