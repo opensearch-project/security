@@ -55,9 +55,9 @@ import org.elasticsearch.rest.RestStatus;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.amazon.opendistroforelasticsearch.security.http.proxy.HTTPExtendedProxyAuthenticator;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
+import com.google.common.collect.ImmutableSet;
 
 public class HTTPExtendedProxyAuthenticatorTest {
 
@@ -115,6 +115,25 @@ public class HTTPExtendedProxyAuthenticatorTest {
         assertEquals("aValidUser", creds.getUsername());
         assertEquals("123,456", creds.getAttributes().get("attr.proxy.uid"));
         assertEquals("someothervalue", creds.getAttributes().get("attr.proxy.other"));
+        assertTrue(creds.isComplete());
+    }
+    
+    @Test
+    public void testTrimOnRoles() {
+    	headers.put("user", new ArrayList<>());
+        headers.put("roles", new ArrayList<>());
+        headers.get("user").add("aValidUser");
+        headers.get("roles").add("role1, role2,\t");
+        
+        settings = Settings.builder().put(settings)
+             .put("roles_header","roles")
+             .put("roles_separator", ",")
+             .build();
+        authenticator = new HTTPExtendedProxyAuthenticator(settings,null);
+        AuthCredentials creds = authenticator.extractCredentials(new TestRestRequest(headers), context);
+        assertNotNull(creds);
+        assertEquals("aValidUser", creds.getUsername());
+        assertEquals(ImmutableSet.of("role1", "role2"), creds.getBackendRoles());
         assertTrue(creds.isComplete());
     }
 

@@ -79,20 +79,9 @@ public final class AuditLogImpl extends AbstractAuditLog {
 
 		log.info("Message routing enabled: {}", this.messageRouterEnabled);
 
-		final SecurityManager sm = System.getSecurityManager();
-
-		if (sm != null) {
-			log.debug("Security Manager present");
-			sm.checkPermission(new SpecialPermission());
-		}
-
-		shutdownHook = new Thread(() -> messageRouter.close());
-		AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
-			Runtime.getRuntime().addShutdownHook(shutdownHook);
-			log.debug("Shutdown Hook registered");
-			return null;
-		});
-
+		SpecialPermission.check();
+		shutdownHook = AccessController.doPrivileged((PrivilegedAction<Thread>) this::addShutdownHook);
+		log.debug("Shutdown hook {} registered", shutdownHook);
 	}
 
 	@Subscribe
@@ -111,26 +100,34 @@ public final class AuditLogImpl extends AbstractAuditLog {
 		}
 	}
 
-	@Override
-	public void close() throws IOException {
-		messageRouter.close();
+    private Thread addShutdownHook() {
+        Thread shutdownHook = new Thread(() -> messageRouter.close());
+        Runtime.getRuntime().addShutdownHook(shutdownHook);
+        return shutdownHook;
+    }
 
-		final SecurityManager sm = System.getSecurityManager();
+    private Boolean removeShutdownHook() {
+        return Runtime.getRuntime().removeShutdownHook(shutdownHook);
+    }
 
-		if (sm != null) {
-			log.debug("Security Manager present");
-			sm.checkPermission(new SpecialPermission());
-		}
+    @Override
+    public void close() throws IOException {
 
-		AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
-			if (Runtime.getRuntime().removeShutdownHook(shutdownHook)) {
-				log.debug("Shutdown Hook unregistered");
-			} else {
-				log.warn("Shutdown Hook {} was not registered", shutdownHook);
-			}
-			return null;
-		});
-	}
+        log.info("Closing {}", getClass().getSimpleName());
+
+        SpecialPermission.check();
+        try {
+            final boolean removed = AccessController.doPrivileged((PrivilegedAction<Boolean>) this::removeShutdownHook);
+            if (removed) {
+                log.debug("Shutdown hook {} unregistered", shutdownHook);
+                shutdownHook.run();
+            } else {
+                log.warn("Shutdown hook {} is not registered", shutdownHook);
+            }
+        } catch (IllegalStateException e) {
+            log.debug("Fail to unregister shutdown hook {}. Shutdown is in progress.", shutdownHook, e);
+        }
+    }
 
 	@Override
 	protected void save(final AuditMessage msg) {

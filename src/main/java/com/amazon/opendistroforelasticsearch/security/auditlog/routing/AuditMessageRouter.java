@@ -91,6 +91,7 @@ public class AuditMessageRouter {
     }
 
     public final void close() {
+        log.info("Closing {}", getClass().getSimpleName());
         // shutdown storage pool
         storagePool.close();
         // close default

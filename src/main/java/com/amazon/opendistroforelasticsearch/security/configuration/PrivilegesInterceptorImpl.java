@@ -15,7 +15,10 @@
 
 package com.amazon.opendistroforelasticsearch.security.configuration;
 
+import java.util.Arrays;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -23,6 +26,7 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.DocWriteRequest;
 import org.elasticsearch.action.IndicesRequest.Replaceable;
+import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.mapping.get.GetFieldMappingsIndexRequest;
 import org.elasticsearch.action.admin.indices.mapping.get.GetFieldMappingsRequest;
@@ -40,6 +44,8 @@ import org.elasticsearch.action.termvectors.MultiTermVectorsRequest;
 import org.elasticsearch.action.termvectors.TermVectorsRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.cluster.metadata.IndexAbstraction;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -49,10 +55,17 @@ import com.amazon.opendistroforelasticsearch.security.resolver.IndexResolverRepl
 import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigModel;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 
+import com.google.common.collect.ImmutableMap;
+
 public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
 
     private static final String USER_TENANT = "__user__";
     private static final String EMPTY_STRING = "";
+    private static final String KIBANA_INDEX_SUFFIX = "_1";
+    private static final Map<String, Object> KIBANA_INDEX_SETTINGS = ImmutableMap.of(
+            IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1,
+            IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, "0-1"
+    );
 
     protected final Logger log = LogManager.getLogger(this.getClass());
 
@@ -88,13 +101,13 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
      *
      */
     @Override
-    public Boolean replaceKibanaIndex(final ActionRequest request, final String action, final User user, final DynamicConfigModel config,
+    public ReplaceResult replaceKibanaIndex(final ActionRequest request, final String action, final User user, final DynamicConfigModel config,
                                       final Resolved requestedResolved, final Map<String, Boolean> tenants) {
 
         final boolean enabled = config.isKibanaMultitenancyEnabled();//config.dynamic.kibana.multitenancy_enabled;
 
         if (!enabled) {
-            return null;
+            return CONTINUE_EVALUATION_REPLACE_RESULT;
         }
 
         //next two lines needs to be retrieved from configuration
@@ -116,10 +129,10 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
             }
 
             if (kibanaIndexOnly && !isTenantAllowed(request, action, user, tenants, "global_tenant")) {
-                return Boolean.TRUE;
+                return ACCESS_DENIED_REPLACE_RESULT;
             }
 
-            return null;
+            return CONTINUE_EVALUATION_REPLACE_RESULT;
         }
 
         if (USER_TENANT.equals(requestedTenant)) {
@@ -132,13 +145,13 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         }
 
         //request not made by the kibana server and user index is the only index/alias involved
-        if (!user.getName().equals(kibanaserverUsername) && requestedResolved.getAllIndices().size() == 1
-                && requestedResolved.getAllIndices().contains(toUserIndexName(kibanaIndexName, requestedTenant))) {
-
-            if (isTenantAllowed(request, action, user, tenants, requestedTenant)) {
-                return Boolean.FALSE;
+        if (!user.getName().equals(kibanaserverUsername)) {
+            final Set<String> indices = requestedResolved.getAllIndices();
+            final String tenantIndexName = toUserIndexName(kibanaIndexName, requestedTenant);
+            if (indices.size() == 1 && indices.iterator().next().startsWith(tenantIndexName) &&
+                    isTenantAllowed(request, action, user, tenants, requestedTenant)) {
+                    return ACCESS_GRANTED_REPLACE_RESULT;
             }
-
         }
 
         //intercept when requests are not made by the kibana server and if the kibana index/alias (.kibana) is the only index/alias involved
@@ -150,15 +163,15 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
             }
 
             if (!isTenantAllowed(request, action, user, tenants, requestedTenant)) {
-                return Boolean.TRUE;
+                return ACCESS_DENIED_REPLACE_RESULT;
             }
 
             // TODO handle user tenant in that way that this tenant cannot be specified as
             // regular tenant
             // to avoid security issue
 
-            replaceIndex(request, kibanaIndexName, toUserIndexName(kibanaIndexName, requestedTenant), action);
-            return Boolean.FALSE;
+            final String tenantIndexName = toUserIndexName(kibanaIndexName, requestedTenant);
+            return newAccessGrantedReplaceResult(replaceIndex(request, kibanaIndexName, tenantIndexName, action));
 
         } else if (!user.getName().equals(kibanaserverUsername)) {
 
@@ -170,18 +183,32 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
 
         }
 
-        return null;
+        return CONTINUE_EVALUATION_REPLACE_RESULT;
     }
 
-    private void replaceIndex(final ActionRequest request, final String oldIndexName, final String newIndexName, final String action) {
+    private CreateIndexRequest newCreateIndexRequestIfAbsent(final String name) {
+        final Map<String, IndexAbstraction> indicesLookup = clusterService.state().getMetadata().getIndicesLookup();
+        final String concreteName = name.concat(KIBANA_INDEX_SUFFIX);
+        if (Arrays.stream(new String[]{name, concreteName})
+                .map(s -> indicesLookup.get(s))
+                .filter(Objects::nonNull)
+                .peek(ia -> log.debug("{} {} already exists", ia.getType(), ia.getName()))
+                .findFirst()
+                .isPresent()) {
+            return null;
+        } else {
+            return new CreateIndexRequest(concreteName)
+                    .alias(new Alias(name))
+                    .settings(KIBANA_INDEX_SETTINGS);
+        }
+    }
+
+    private CreateIndexRequest replaceIndex(final ActionRequest request, final String oldIndexName, final String newIndexName, final String action) {
         boolean kibOk = false;
+        CreateIndexRequest createIndexRequest = null;
 
         if (log.isDebugEnabled()) {
             log.debug("{} index will be replaced with {} in this {} request", oldIndexName, newIndexName, request.getClass().getName());
-        }
-
-        if (request instanceof GetFieldMappingsIndexRequest || request instanceof GetFieldMappingsRequest) {
-            return;
         }
 
         //handle msearch and mget
@@ -192,7 +219,8 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
 
         // CreateIndexRequest
         if (request instanceof CreateIndexRequest) {
-            ((CreateIndexRequest) request).index(newIndexName);
+            // use new name for alias and suffixed index name
+            ((CreateIndexRequest) request).index(newIndexName.concat(KIBANA_INDEX_SUFFIX)).alias(new Alias(newIndexName));
             kibOk = true;
         } else if (request instanceof BulkRequest) {
 
@@ -203,6 +231,9 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
                 }
 
                 if (ar instanceof IndexRequest) {
+                    if (createIndexRequest == null) {
+                        createIndexRequest = newCreateIndexRequestIfAbsent(newIndexName);
+                    }
                     ((IndexRequest) ar).index(newIndexName);
                 }
 
@@ -240,6 +271,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
             ((UpdateRequest) request).index(newIndexName);
             kibOk = true;
         } else if (request instanceof IndexRequest) {
+            createIndexRequest = newCreateIndexRequestIfAbsent(newIndexName);
             ((IndexRequest) request).index(newIndexName);
             kibOk = true;
         } else if (request instanceof DeleteRequest) {
@@ -258,6 +290,8 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
             Replaceable replaceableRequest = (Replaceable) request;
             replaceableRequest.indices(newIndexNames);
             kibOk = true;
+        } else if (request instanceof GetFieldMappingsIndexRequest || request instanceof GetFieldMappingsRequest) {
+            kibOk = true;
         } else {
             log.warn("Dont know what to do (1) with {}", request.getClass());
         }
@@ -265,6 +299,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         if (!kibOk) {
             log.warn("Dont know what to do (2) with {}", request.getClass());
         }
+        return createIndexRequest;
     }
 
     private String toUserIndexName(final String originalKibanaIndex, final String tenant) {
@@ -276,8 +311,12 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         return originalKibanaIndex + "_" + tenant.hashCode() + "_" + tenant.toLowerCase().replaceAll("[^a-z0-9]+", EMPTY_STRING);
     }
 
-    private boolean resolveToKibanaIndexOrAlias(final Resolved requestedResolved, final String kibanaIndexName) {
-        return (requestedResolved.getAllIndices().size() == 1 && requestedResolved.getAllIndices().contains(kibanaIndexName))
-                || (requestedResolved.getAliases().size() == 1 && requestedResolved.getAliases().contains(kibanaIndexName));
+    private static boolean resolveToKibanaIndexOrAlias(final Resolved requestedResolved, final String kibanaIndexName) {
+        final Set<String> allIndices = requestedResolved.getAllIndices();
+        if (allIndices.size() == 1 && allIndices.iterator().next().equals(kibanaIndexName)) {
+            return true;
+        }
+        final Set<String> aliases = requestedResolved.getAliases();
+        return (aliases.size() == 1 && aliases.iterator().next().equals(kibanaIndexName));
     }
 }

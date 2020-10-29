@@ -79,6 +79,12 @@ public class InternalUserV6 implements Hideable, Hashed {
         public void setHash(String hash) {
             this.hash = hash;
         }
+        /**
+         * Method that gets invoked when "password" field is present in serialized JSON.
+         * Serialized JSON is expected not to have "password" field or have an empty password.
+         * Hence, password field should not be set in InternalUserV6 object in deserialization.
+         */
+        public void setPassword(String password){}
         public boolean isReadonly() {
             return readonly;
         }

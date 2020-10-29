@@ -1,0 +1,21 @@
+# Configuration for Release Drafter: https://github.com/toolmantim/release-drafter
+template: |
+  Compatible with Elasticsearch (set version here).
+  $CHANGES
+
+# Setting the formatting and sorting for the release notes body
+name-template: Version (set version here)
+change-template: '* $TITLE [#$NUMBER](https://github.com/opendistro-for-elasticsearch/security/pull/$NUMBER)'
+sort-by: merged_at
+sort-direction: ascending
+
+# Organizing the tagged PRs into unified ODFE categories
+categories:
+  - title: "Enhancements"
+    labels: "enhancement"
+
+  - title: "Bug fixes"
+    labels: "bug"
+
+  - title: "Maintenance"
+    labels: "maintenance"

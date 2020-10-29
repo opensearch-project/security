@@ -30,6 +30,8 @@
 
 package com.amazon.opendistroforelasticsearch.security.privileges;
 
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
+
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -41,6 +43,7 @@ public class PrivilegesEvaluatorResponse {
     Map<String,Set<String>> maskedFields;
     Map<String,Set<String>> queries;
     PrivilegesEvaluatorResponseState state = PrivilegesEvaluatorResponseState.PENDING;
+    CreateIndexRequest request;
     
     public boolean isAllowed() {
         return allowed;
@@ -59,6 +62,10 @@ public class PrivilegesEvaluatorResponse {
 
     public Map<String,Set<String>> getQueries() {
         return queries;
+    }
+
+    public CreateIndexRequest getRequest() {
+        return request;
     }
     
     public PrivilegesEvaluatorResponse markComplete() {
