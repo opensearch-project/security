@@ -15,6 +15,7 @@
 
 package com.amazon.opendistroforelasticsearch.security.dlic.rest.api;
 
+import com.google.common.io.BaseEncoding;
 import org.apache.http.HttpStatus;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Assert;
@@ -88,7 +89,6 @@ public class MigrationTests extends SingleClusterTest {
         res = rh.executeGetRequest("_opendistro/_security/api/validate?pretty");
         assertContains(res, "*it was already migrated*");
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, res.getStatusCode());
-
     }
 
     @Test
@@ -135,6 +135,31 @@ public class MigrationTests extends SingleClusterTest {
         assertContains(res, "*Configuration is not valid*");
         Assert.assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, res.getStatusCode());
 
+    }
+
+    @Test
+    public void testSecurityMigrateWithEmptyPassword() throws Exception{
+        final Settings settings = Settings.builder().put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
+                .put("opendistro_security.ssl.http.enabled", true)
+                .put("opendistro_security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("migration/node-0-keystore.jks"))
+                .put("opendistro_security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("migration/truststore.jks"))
+                .put(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_ACCEPT_INVALID_CONFIG, true)
+                .build();
+        setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityInternalUsers("internal_users2.yml").setLegacy(), settings, true);
+        final RestHelper rh = restHelper(); //ssl resthelper
+
+        rh.enableHTTPClientSSL = true;
+        rh.trustHTTPServerCertificate = true;
+        rh.sendAdminCertificate = true;
+        rh.keystore = "kirk-keystore.jks";
+
+        String internalUsersWithEmptyPassword = "{\"logstash\":{\"hash\":\"\",\"roles\":[\"logstash\"]},\"Stephen_123\":{\"hash\":\"\", \"password\":\"\"},\"snapshotrestore\":{\"hash\":\"\",\"roles\":[\"snapshotrestore\"]},\"admin\":{\"attributes\":{\"attribute1\":\"value1\",\"attribute3\":\"value3\",\"attribute2\":\"value2\"},\"readonly\":\"true\",\"hash\":\"\",\"roles\":[\"admin\"]},\"kibanaserver\":{\"readonly\":\"true\",\"hash\":\"\"},\"kibanaro\":{\"hash\":\"\",\"roles\":[\"kibanauser\",\"readall\"]},\"readall\":{\"hash\":\"\",\"roles\":[\"readall\"]}}";
+        String encodedInternalUsersWithEmptyPassword = BaseEncoding.base64().encode(internalUsersWithEmptyPassword.getBytes());
+        String body = "{\"internalusers\":\"" + encodedInternalUsersWithEmptyPassword+ "\"}";
+        HttpResponse res = rh.executePutRequest(".opendistro_security/_doc/internalusers", body);
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        res = rh.executePostRequest("_opendistro/_security/api/migrate?pretty", "");
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
     }
 
     @Override
