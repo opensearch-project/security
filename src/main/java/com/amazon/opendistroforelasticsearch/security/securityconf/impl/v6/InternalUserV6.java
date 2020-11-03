@@ -79,6 +79,11 @@ public class InternalUserV6 implements Hideable, Hashed {
         public void setHash(String hash) {
             this.hash = hash;
         }
+
+        public void setPassword(String password){
+          // no-op setter. Due to a bug in 6.x, empty "password" may be saved to the internalusers doc. Ignore it.
+        }
+        
         public boolean isReadonly() {
             return readonly;
         }
