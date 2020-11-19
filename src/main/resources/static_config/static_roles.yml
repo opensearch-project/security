@@ -98,14 +98,6 @@ kibana_server:
     allowed_actions:
     - "indices_all"
   - index_patterns:
-    - ".reporting*"
-    allowed_actions:
-    - "indices_all"
-  - index_patterns:
-    - ".monitoring*"
-    allowed_actions:
-    - "indices_all"
-  - index_patterns:
     - ".tasks"
     allowed_actions:
     - "indices_all"
