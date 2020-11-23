@@ -101,7 +101,6 @@ opendistro_security_kibana_user:
     '*':
       '*':
         - indices:data/read/field_caps*
-        - indices:data/read/xpack/rollup*
         - indices:admin/mappings/get*
         - indices:admin/get
 
@@ -111,7 +110,6 @@ opendistro_security_kibana_server:
   cluster:
       - CLUSTER_MONITOR
       - CLUSTER_COMPOSITE_OPS
-      - cluster:admin/xpack/monitoring*
       - indices:admin/template*
       - indices:data/read/scroll*
   indices:
@@ -122,12 +120,6 @@ opendistro_security_kibana_server:
       '*':
         - INDICES_ALL
     '?kibana_*':
-      '*':
-        - INDICES_ALL
-    '?reporting*':
-      '*':
-        - INDICES_ALL
-    '?monitoring*':
       '*':
         - INDICES_ALL
     '?tasks':
@@ -176,56 +168,6 @@ opendistro_security_own_index:
       '*':
         - INDICES_ALL
 
-### X-Pack COMPATIBILITY
-opendistro_security_xp_monitoring:
-  readonly: true
-  cluster:
-    - cluster:monitor/xpack/info
-    - cluster:monitor/main
-    - cluster:admin/xpack/monitoring/bulk
-  indices:
-    '?monitor*':
-      '*':
-        - INDICES_ALL
-
-opendistro_security_xp_alerting:
-  readonly: true
-  cluster:
-    - indices:data/read/scroll
-    - cluster:admin/xpack/watcher*
-    - cluster:monitor/xpack/watcher*
-  indices:
-    '?watches*':
-      '*':
-        - INDICES_ALL
-    '?watcher-history-*':
-      '*':
-        - INDICES_ALL
-    '?triggered_watches':
-      '*':
-        - INDICES_ALL
-    '*':
-      '*':
-        - READ
-        - indices:admin/aliases/get
-
-opendistro_security_xp_machine_learning:
-  readonly: true
-  cluster:
-    - cluster:admin/persistent*
-    - cluster:internal/xpack/ml*
-    - indices:data/read/scroll*
-    - cluster:admin/xpack/ml*
-    - cluster:monitor/xpack/ml*
-  indices:
-    '*':
-      '*':
-        - READ
-        - indices:admin/get*
-    '?ml-*':
-      '*':
-        - "*"
-
 
 ### LEGACY ROLES, FOR COMPATIBILITY ONLY
 ### WILL BE REMOVED IN SG7, DO NOT USE ANYMORE
@@ -235,55 +177,6 @@ opendistro_security_readonly_and_monitor:
     - CLUSTER_MONITOR
     - CLUSTER_COMPOSITE_OPS_RO
   indices:
-    '*':
-      '*':
-        - READ
-
-# Make xpack monitoring work
-opendistro_security_monitor:
-  cluster:
-    - cluster:admin/xpack/monitoring/*
-    - cluster:admin/ingest/pipeline/put       
-    - cluster:admin/ingest/pipeline/get
-    - indices:admin/template/get
-    - indices:admin/template/put
-    - CLUSTER_MONITOR
-    - CLUSTER_COMPOSITE_OPS
-  indices:
-    '?monitor*':
-      '*':
-        - INDICES_ALL
-    '?marvel*':
-      '*':
-        - INDICES_ALL
-    '?kibana*':
-      '*':
-        - READ
-    '*':
-      '*':
-        - indices:data/read/field_caps
-
-# Make xpack alerting work
-opendistro_security_alerting:
-  cluster:
-    - indices:data/read/scroll
-    - cluster:admin/xpack/watcher/watch/put
-    - cluster:admin/xpack/watcher*
-    - CLUSTER_MONITOR
-    - CLUSTER_COMPOSITE_OPS
-  indices:
-    '?kibana*':
-      '*':
-        - READ
-    '?watches*':
-      '*':
-        - INDICES_ALL
-    '?watcher-history-*':
-      '*':
-        - INDICES_ALL
-    '?triggered_watches':
-      '*':
-        - INDICES_ALL
     '*':
       '*':
         - READ
