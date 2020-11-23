@@ -166,26 +166,6 @@ opendistro_security_kibana:
     allowed_actions:
     - "indices:data/read/field_caps*"
   tenant_permissions: []
-opendistro_security_monitor:
-  reserved: false
-  hidden: false
-  description: "Migrated from v6 (all types mapped)"
-  cluster_permissions:
-  - "cluster:admin/xpack/monitoring/*"
-  - "indices:admin/template/get"
-  - "indices:admin/template/put"
-  - "indices:admin/*get"
-  - "OPENDISTRO_SECURITY_CLUSTER_MONITOR"
-  - "OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS"
-  index_permissions:
-  - index_patterns:
-    - ".monitoring*"
-    dls: null
-    fls: null
-    masked_fields: null
-    allowed_actions:
-    - "OPENDISTRO_SECURITY_INDICES_ALL"
-  tenant_permissions: []
 opendistro_security_manage_snapshots:
   reserved: false
   hidden: false
