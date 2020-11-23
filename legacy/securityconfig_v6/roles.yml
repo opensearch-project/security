@@ -124,12 +124,6 @@ opendistro_security_kibana_server:
     '?kibana_*':
       '*':
         - INDICES_ALL
-    '?reporting*':
-      '*':
-        - INDICES_ALL
-    '?monitoring*':
-      '*':
-        - INDICES_ALL
     '?tasks':
       '*':
         - INDICES_ALL
@@ -176,49 +170,6 @@ opendistro_security_own_index:
       '*':
         - INDICES_ALL
 
-opendistro_security_xp_monitoring:
-  readonly: true
-  cluster:
-    - cluster:monitor/main
-  indices:
-    '?monitor*':
-      '*':
-        - INDICES_ALL
-
-opendistro_security_xp_alerting:
-  readonly: true
-  cluster:
-    - indices:data/read/scroll
-  indices:
-    '?watches*':
-      '*':
-        - INDICES_ALL
-    '?watcher-history-*':
-      '*':
-        - INDICES_ALL
-    '?triggered_watches':
-      '*':
-        - INDICES_ALL
-    '*':
-      '*':
-        - READ
-        - indices:admin/aliases/get
-
-opendistro_security_xp_machine_learning:
-  readonly: true
-  cluster:
-    - cluster:admin/persistent*
-    - indices:data/read/scroll*
-  indices:
-    '*':
-      '*':
-        - READ
-        - indices:admin/get*
-    '?ml-*':
-      '*':
-        - "*"
-
-
 ### LEGACY ROLES, FOR COMPATIBILITY ONLY
 ### WILL BE REMOVED IN SG7, DO NOT USE ANYMORE
 
@@ -227,50 +178,6 @@ opendistro_security_readonly_and_monitor:
     - CLUSTER_MONITOR
     - CLUSTER_COMPOSITE_OPS_RO
   indices:
-    '*':
-      '*':
-        - READ
-
-opendistro_security_monitor:
-  cluster:
-    - cluster:admin/ingest/pipeline/put       
-    - cluster:admin/ingest/pipeline/get
-    - indices:admin/template/get
-    - indices:admin/template/put
-    - CLUSTER_MONITOR
-    - CLUSTER_COMPOSITE_OPS
-  indices:
-    '?monitor*':
-      '*':
-        - INDICES_ALL
-    '?marvel*':
-      '*':
-        - INDICES_ALL
-    '?kibana*':
-      '*':
-        - READ
-    '*':
-      '*':
-        - indices:data/read/field_caps
-
-opendistro_security_alerting:
-  cluster:
-    - indices:data/read/scroll
-    - CLUSTER_MONITOR
-    - CLUSTER_COMPOSITE_OPS
-  indices:
-    '?kibana*':
-      '*':
-        - READ
-    '?watches*':
-      '*':
-        - INDICES_ALL
-    '?watcher-history-*':
-      '*':
-        - INDICES_ALL
-    '?triggered_watches':
-      '*':
-        - INDICES_ALL
     '*':
       '*':
         - READ
