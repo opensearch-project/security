@@ -825,7 +825,6 @@ opendistro_security_kibana_server:
   cluster_permissions:
   - "OPENDISTRO_SECURITY_CLUSTER_MONITOR"
   - "OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS"
-  - "cluster:admin/xpack/monitoring*"
   - "indices:admin/template*"
   - "indices:data/read/scroll*"
   index_permissions:
@@ -845,20 +844,6 @@ opendistro_security_kibana_server:
     - "OPENDISTRO_SECURITY_INDICES_ALL"
   - index_patterns:
     - "?kibana_*"
-    dls: null
-    fls: null
-    masked_fields: null
-    allowed_actions:
-    - "OPENDISTRO_SECURITY_INDICES_ALL"
-  - index_patterns:
-    - "?reporting*"
-    dls: null
-    fls: null
-    masked_fields: null
-    allowed_actions:
-    - "OPENDISTRO_SECURITY_INDICES_ALL"
-  - index_patterns:
-    - "?monitoring*"
     dls: null
     fls: null
     masked_fields: null
