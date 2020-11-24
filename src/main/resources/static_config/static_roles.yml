@@ -82,7 +82,6 @@ kibana_server:
   cluster_permissions:
   - "cluster_monitor"
   - "cluster_composite_ops"
-  - "cluster:admin/xpack/monitoring*"
   - "indices:admin/template*"
   - "indices:data/read/scroll*"
   index_permissions:
@@ -96,14 +95,6 @@ kibana_server:
     - "indices_all"
   - index_patterns:
     - ".kibana_*"
-    allowed_actions:
-    - "indices_all"
-  - index_patterns:
-    - ".reporting*"
-    allowed_actions:
-    - "indices_all"
-  - index_patterns:
-    - ".monitoring*"
     allowed_actions:
     - "indices_all"
   - index_patterns:
