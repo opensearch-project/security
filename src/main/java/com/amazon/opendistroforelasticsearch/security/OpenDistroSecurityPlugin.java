@@ -593,6 +593,11 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                         throw new ElasticsearchSecurityException("No user in scroll context", RestStatus.FORBIDDEN);
                     }
                 }
+
+                @Override
+                public void onQueryPhase(SearchContext searchContext, long tookInNanos) {
+                    dlsFlsValve.onQueryPhase(searchContext, tookInNanos);
+                }
             });
         }
     }

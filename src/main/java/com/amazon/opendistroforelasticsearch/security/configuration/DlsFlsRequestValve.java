@@ -50,6 +50,8 @@ public interface DlsFlsRequestValve {
     boolean invoke(ActionRequest request, ActionListener<?> listener, Map<String,Set<String>> allowedFlsFields, final Map<String,Set<String>> maskedFields, Map<String,Set<String>> queries);
 
     void handleSearchContext(SearchContext context, ThreadPool threadPool, NamedXContentRegistry namedXContentRegistry);
+
+    void onQueryPhase(SearchContext searchContext, long tookInNanos);
     
     public static class NoopDlsFlsRequestValve implements DlsFlsRequestValve {
 
@@ -60,6 +62,11 @@ public interface DlsFlsRequestValve {
 
         @Override
         public void handleSearchContext(SearchContext context, ThreadPool threadPool, NamedXContentRegistry namedXContentRegistry) {
+
+        }
+
+        @Override
+        public void onQueryPhase(SearchContext searchContext, long tookInNanos) {
 
         }
     }
