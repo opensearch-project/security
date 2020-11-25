@@ -104,6 +104,7 @@ import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestHandler;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.script.ScriptService;
+import org.elasticsearch.search.internal.InternalScrollSearchRequest;
 import org.elasticsearch.search.internal.ReaderContext;
 import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.tasks.Task;
@@ -577,20 +578,22 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
 
                 @Override
                 public void validateReaderContext(ReaderContext readerContext, TransportRequest transportRequest) {
-                    final Object _isLocal = readerContext.getFromContext("_opendistro_security_scroll_auth_local");
-                    final Object _user = readerContext.getFromContext("_opendistro_security_scroll_auth");
-                    if (_user != null && (_user instanceof User)) {
-                        final User scrollUser = (User) _user;
-                        final User currentUser = threadPool.getThreadContext()
-                                .getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-                        if (!scrollUser.equals(currentUser)) {
+                    if (transportRequest instanceof InternalScrollSearchRequest) {
+                        final Object _isLocal = readerContext.getFromContext("_opendistro_security_scroll_auth_local");
+                        final Object _user = readerContext.getFromContext("_opendistro_security_scroll_auth");
+                        if (_user != null && (_user instanceof User)) {
+                            final User scrollUser = (User) _user;
+                            final User currentUser = threadPool.getThreadContext()
+                                    .getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+                            if (!scrollUser.equals(currentUser)) {
+                                auditLog.logMissingPrivileges(SearchScrollAction.NAME, transportRequest, null);
+                                log.error("Wrong user {} in reader context, expected {}", scrollUser, currentUser);
+                                throw new ElasticsearchSecurityException("Wrong user in reader context", RestStatus.FORBIDDEN);
+                            }
+                        } else if (_isLocal != Boolean.TRUE) {
                             auditLog.logMissingPrivileges(SearchScrollAction.NAME, transportRequest, null);
-                            log.error("Wrong user {} in scroll context, expected {}", scrollUser, currentUser);
-                            throw new ElasticsearchSecurityException("Wrong user in scroll context", RestStatus.FORBIDDEN);
+                            throw new ElasticsearchSecurityException("No user in reader context", RestStatus.FORBIDDEN);
                         }
-                    } else if (_isLocal != Boolean.TRUE) {
-                        auditLog.logMissingPrivileges(SearchScrollAction.NAME, transportRequest, null);
-                        throw new ElasticsearchSecurityException("No user in scroll context", RestStatus.FORBIDDEN);
                     }
                 }
 
