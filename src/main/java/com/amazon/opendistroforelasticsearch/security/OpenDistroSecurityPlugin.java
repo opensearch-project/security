@@ -599,7 +599,15 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
 
                 @Override
                 public void onQueryPhase(SearchContext searchContext, long tookInNanos) {
-                    dlsFlsValve.onQueryPhase(searchContext, tookInNanos);
+                    final Map<String, Set<String>> maskedFieldsMap = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadPool.getThreadContext(),
+                            ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER);
+                    final String maskedEval = OpenDistroSecurityUtils.evalMap(maskedFieldsMap, indexModule.getIndex().getName());
+                    if (maskedEval != null) {
+                        final Set<String> mf = maskedFieldsMap.get(maskedEval);
+                        if (mf != null && !mf.isEmpty()) {
+                            dlsFlsValve.onQueryPhase(searchContext);
+                        }
+                    }
                 }
             });
         }

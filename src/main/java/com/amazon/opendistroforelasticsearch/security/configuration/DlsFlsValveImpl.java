@@ -17,13 +17,13 @@ package com.amazon.opendistroforelasticsearch.security.configuration;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.lucene.util.BytesRef;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
 import java.util.stream.StreamSupport;
 
 import org.elasticsearch.ElasticsearchSecurityException;
@@ -37,12 +37,12 @@ import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkShardRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.update.UpdateRequest;
-import org.elasticsearch.common.io.stream.DelayableWriteable;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.index.query.ParsedQuery;
-import org.elasticsearch.search.DocValueFormat;
 import org.elasticsearch.search.aggregations.InternalAggregation;
 import org.elasticsearch.search.aggregations.InternalAggregations;
+import org.elasticsearch.search.aggregations.bucket.MultiBucketsAggregation.Bucket;
+import org.elasticsearch.search.aggregations.bucket.terms.StringTermsGetter;
 import org.elasticsearch.search.aggregations.bucket.terms.StringTerms;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.internal.SearchContext;
@@ -158,79 +158,43 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
     }
 
     @Override
-    public void onQueryPhase(SearchContext searchContext, long tookInNanos) {
+    public void onQueryPhase(SearchContext searchContext) {
         QuerySearchResult queryResult = searchContext.queryResult();
-        if (queryResult == null) {
+        assert queryResult != null;
+        if (!queryResult.hasAggs()) {
             return;
         }
 
-        DelayableWriteable<InternalAggregations> aggregationsDelayedWritable = queryResult.aggregations();
-        if (aggregationsDelayedWritable == null) {
-            return;
-        }
+        InternalAggregations aggregations = queryResult.aggregations().expand();
+        assert aggregations != null;
 
-        InternalAggregations aggregations = aggregationsDelayedWritable.expand();
-        if (aggregations == null) {
-            return;
-        }
-
-        if (areBucketKeysDistinct(aggregations)) {
-            return;
-        }
-
-        log.debug("Found buckets with equal keys. Merging these buckets: {}", aggregations);
-
-        // TODO check order
-
-        queryResult.aggregations(InternalAggregations.from(StreamSupport.stream(aggregations.spliterator(), false)
-            .map(aggregation -> aggregateBuckets((InternalAggregation)aggregation))
-            .collect(ImmutableList.toImmutableList())));
-
-    }
-
-    private static boolean areBucketKeysDistinct(InternalAggregations aggregations) {
-        return !StreamSupport.stream(aggregations.spliterator(), false)
-                .filter(aggregation -> (aggregation instanceof StringTerms))
-                .map(aggregation -> ((StringTerms) aggregation).getBuckets())
-                .anyMatch(buckets -> !areBucketKeysDistinct(buckets));
-    }
-
-    private static boolean areBucketKeysDistinct(List<StringTerms.Bucket> buckets) {
-        int size = buckets.size();
-        if (size > 1) {
-            return !buckets.stream()
-                    .anyMatch(new Predicate<StringTerms.Bucket>() {
-                        private StringTerms.Bucket bucket = null;
-                        @Override
-                        public boolean test(StringTerms.Bucket bucket) {
-                            boolean equals = (this.bucket != null) && (this.bucket.compareKey(bucket) == 0);
-                            this.bucket = bucket;
-                            return equals;
-                        }
-                    });
-        }
-        return true;
+        queryResult.aggregations(
+                InternalAggregations.from(
+                        StreamSupport.stream(aggregations.spliterator(), false)
+                            .map(aggregation -> aggregateBuckets((InternalAggregation)aggregation))
+                            .collect(ImmutableList.toImmutableList())
+                )
+        );
     }
 
     private static InternalAggregation aggregateBuckets(InternalAggregation aggregation) {
-        if (!StringTerms.class.isInstance(aggregation)) {
-            return aggregation;
+        if (aggregation instanceof StringTerms) {
+            StringTerms stringTerms = (StringTerms) aggregation;
+            List<StringTerms.Bucket> buckets = stringTerms.getBuckets();
+            if (buckets.size() > 1) {
+                buckets = mergeBuckets(buckets, StringTermsGetter.getReduceOrder(stringTerms).comparator());
+                aggregation = stringTerms.create(buckets);
+            }
         }
-        StringTerms stringTerms = (StringTerms) aggregation;
-        final List<StringTerms.Bucket> buckets = stringTerms.getBuckets();
-        if (areBucketKeysDistinct(buckets)) {
-            return stringTerms;
-        }
-        List<StringTerms.Bucket> mergeBuckets = mergeBuckets(buckets);
-        return stringTerms.create(mergeBuckets);
+        return aggregation;
     }
 
-    private static List<StringTerms.Bucket> mergeBuckets(List<StringTerms.Bucket> buckets) {
+    private static List<StringTerms.Bucket> mergeBuckets(List<StringTerms.Bucket> buckets, Comparator<Bucket> comparator) {
         if (log.isDebugEnabled()) {
             log.debug("Merging buckets: {}", buckets.stream().map(b -> b.getKeyAsString()).collect(ImmutableList.toImmutableList()));
         }
-
-        BucketMerger merger = new BucketMerger(buckets.size());
+        buckets.sort(comparator);
+        BucketMerger merger = new BucketMerger(comparator, buckets.size());
         buckets.stream().forEach(merger);
         buckets = merger.getBuckets();
 
@@ -241,6 +205,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
     }
 
     private static class BucketMerger implements Consumer<StringTerms.Bucket> {
+        private Comparator<Bucket> comparator;
         private StringTerms.Bucket bucket = null;
         private int mergeCount;
         private long mergedDocCount;
@@ -248,19 +213,24 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         private boolean showDocCountError = true;
         private final ImmutableList.Builder<StringTerms.Bucket> builder;
 
-        BucketMerger(int size) {
+        BucketMerger(Comparator<Bucket> comparator, int size) {
+            this.comparator = Objects.requireNonNull(comparator);
             builder = ImmutableList.builderWithExpectedSize(size);
         }
 
+        private void finalizeBucket() {
+            if (mergeCount == 1) {
+                builder.add(this.bucket);
+            } else {
+                builder.add(new StringTerms.Bucket(StringTermsGetter.getTerm(bucket), mergedDocCount,
+                    (InternalAggregations) bucket.getAggregations(), showDocCountError, mergedDocCountError,
+                    StringTermsGetter.getDocValueFormat(bucket)));
+            }
+        }
+
         private void merge(StringTerms.Bucket bucket) {
-            if (this.bucket != null && (bucket == null || this.bucket.compareKey(bucket) != 0)) {
-                if (mergeCount == 1) {
-                    builder.add(this.bucket);
-                } else {
-                    builder.add(new StringTerms.Bucket(new BytesRef(this.bucket.getKeyAsString()), mergedDocCount,
-                            (InternalAggregations) this.bucket.getAggregations(), showDocCountError, mergedDocCountError,
-                            DocValueFormat.RAW));
-                }
+            if (this.bucket != null && (bucket == null || comparator.compare(this.bucket, bucket) != 0)) {
+                finalizeBucket();
                 this.bucket = null;
                 mergeCount = 0;
                 mergedDocCount = 0;

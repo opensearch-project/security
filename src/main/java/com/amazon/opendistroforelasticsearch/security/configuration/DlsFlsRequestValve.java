@@ -51,7 +51,7 @@ public interface DlsFlsRequestValve {
 
     void handleSearchContext(SearchContext context, ThreadPool threadPool, NamedXContentRegistry namedXContentRegistry);
 
-    void onQueryPhase(SearchContext searchContext, long tookInNanos);
+    void onQueryPhase(SearchContext searchContext);
     
     public static class NoopDlsFlsRequestValve implements DlsFlsRequestValve {
 
@@ -66,7 +66,7 @@ public interface DlsFlsRequestValve {
         }
 
         @Override
-        public void onQueryPhase(SearchContext searchContext, long tookInNanos) {
+        public void onQueryPhase(SearchContext searchContext) {
 
         }
     }
