@@ -104,8 +104,10 @@ import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestHandler;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.script.ScriptService;
-import org.elasticsearch.search.internal.ScrollContext;
+import org.elasticsearch.search.internal.InternalScrollSearchRequest;
+import org.elasticsearch.search.internal.ReaderContext;
 import org.elasticsearch.search.internal.SearchContext;
+import org.elasticsearch.search.query.QuerySearchResult;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusterService;
@@ -541,53 +543,76 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             indexModule.addSearchOperationListener(new SearchOperationListener() {
 
                 @Override
-                public void onNewContext(SearchContext context) {
-
+                public void onPreQueryPhase(SearchContext context) {
                     if(advancedModulesEnabled) {
                         dlsFlsValve.handleSearchContext(context, threadPool, namedXContentRegistry);
                     }
                 }
 
                 @Override
-                public void onNewScrollContext(SearchContext context) {
+                public void onNewReaderContext(ReaderContext readerContext) {
+                    final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadPool.getThreadContext());
+                    if (Origin.LOCAL.toString().equals(threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN))
+                            && (interClusterRequest || HeaderHelper.isDirectRequest(threadPool.getThreadContext()))
 
-                    final ScrollContext scrollContext = context.scrollContext();
+                    ) {
+                        readerContext.putInContext("_opendistro_security_scroll_auth_local", Boolean.TRUE);
+                    } else {
+                        readerContext.putInContext("_opendistro_security_scroll_auth", threadPool.getThreadContext()
+                                .getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER));
+                    }
+                }
 
-                    if(scrollContext != null) {
+                @Override
+                public void onNewScrollContext(ReaderContext readerContext) {
+                    final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadPool.getThreadContext());
+                    if (Origin.LOCAL.toString().equals(threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN))
+                            && (interClusterRequest || HeaderHelper.isDirectRequest(threadPool.getThreadContext()))
 
-                        final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadPool.getThreadContext());
-                        if(Origin.LOCAL.toString().equals(threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN))
-                                && (interClusterRequest || HeaderHelper.isDirectRequest(threadPool.getThreadContext()))
+                    ) {
+                        readerContext.putInContext("_opendistro_security_scroll_auth_local", Boolean.TRUE);
+                    } else {
+                        readerContext.putInContext("_opendistro_security_scroll_auth", threadPool.getThreadContext()
+                                .getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER));
+                    }
+                }
 
-                        ){
-                            scrollContext.putInContext("_opendistro_security_scroll_auth_local", Boolean.TRUE);
-
-                        } else {
-                            scrollContext.putInContext("_opendistro_security_scroll_auth", threadPool.getThreadContext()
-                                    .getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER));
+                @Override
+                public void validateReaderContext(ReaderContext readerContext, TransportRequest transportRequest) {
+                    if (transportRequest instanceof InternalScrollSearchRequest) {
+                        final Object _isLocal = readerContext.getFromContext("_opendistro_security_scroll_auth_local");
+                        final Object _user = readerContext.getFromContext("_opendistro_security_scroll_auth");
+                        if (_user != null && (_user instanceof User)) {
+                            final User scrollUser = (User) _user;
+                            final User currentUser = threadPool.getThreadContext()
+                                    .getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+                            if (!scrollUser.equals(currentUser)) {
+                                auditLog.logMissingPrivileges(SearchScrollAction.NAME, transportRequest, null);
+                                log.error("Wrong user {} in reader context, expected {}", scrollUser, currentUser);
+                                throw new ElasticsearchSecurityException("Wrong user in reader context", RestStatus.FORBIDDEN);
+                            }
+                        } else if (_isLocal != Boolean.TRUE) {
+                            auditLog.logMissingPrivileges(SearchScrollAction.NAME, transportRequest, null);
+                            throw new ElasticsearchSecurityException("No user in reader context", RestStatus.FORBIDDEN);
                         }
                     }
                 }
 
                 @Override
-                public void validateSearchContext(SearchContext context, TransportRequest transportRequest) {
+                public void onQueryPhase(SearchContext searchContext, long tookInNanos) {
+                    QuerySearchResult queryResult = searchContext.queryResult();
+                    assert queryResult != null;
+                    if (!queryResult.hasAggs()) {
+                        return;
+                    }
 
-                    final ScrollContext scrollContext = context.scrollContext();
-                    if(scrollContext != null) {
-                        final Object _isLocal = scrollContext.getFromContext("_opendistro_security_scroll_auth_local");
-                        final Object _user = scrollContext.getFromContext("_opendistro_security_scroll_auth");
-                        if(_user != null && (_user instanceof User)) {
-                            final User scrollUser = (User) _user;
-                            final User currentUser = threadPool.getThreadContext()
-                                    .getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-                            if(!scrollUser.equals(currentUser)) {
-                                auditLog.logMissingPrivileges(SearchScrollAction.NAME, transportRequest, context.getTask());
-                                log.error("Wrong user {} in scroll context, expected {}", scrollUser, currentUser);
-                                throw new ElasticsearchSecurityException("Wrong user in scroll context", RestStatus.FORBIDDEN);
-                            }
-                        } else if(_isLocal != Boolean.TRUE) {
-                            auditLog.logMissingPrivileges(SearchScrollAction.NAME, transportRequest, context.getTask());
-                            throw new ElasticsearchSecurityException("No user in scroll context", RestStatus.FORBIDDEN);
+                    final Map<String, Set<String>> maskedFieldsMap = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadPool.getThreadContext(),
+                            ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER);
+                    final String maskedEval = OpenDistroSecurityUtils.evalMap(maskedFieldsMap, indexModule.getIndex().getName());
+                    if (maskedEval != null) {
+                        final Set<String> mf = maskedFieldsMap.get(maskedEval);
+                        if (mf != null && !mf.isEmpty()) {
+                            dlsFlsValve.onQueryPhase(queryResult);
                         }
                     }
                 }
@@ -728,7 +753,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         this.salt = Salt.from(settings);
         dlsFlsValve = ReflectionHelper.instantiateDlsFlsValve();
 
-        final IndexNameExpressionResolver resolver = new IndexNameExpressionResolver();
+        final IndexNameExpressionResolver resolver = new IndexNameExpressionResolver(threadPool.getThreadContext());
         irr = new IndexResolverReplacer(resolver, clusterService, cih);
         auditLog = ReflectionHelper.instantiateAuditLog(settings, configPath, localClient, threadPool, resolver, clusterService, dlsFlsAvailable, environment);
         

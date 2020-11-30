@@ -15,8 +15,16 @@
 
 package com.amazon.opendistroforelasticsearch.security.configuration;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.function.Consumer;
+import java.util.stream.StreamSupport;
 
 import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.action.ActionListener;
@@ -31,15 +39,24 @@ import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.index.query.ParsedQuery;
+import org.elasticsearch.search.aggregations.InternalAggregation;
+import org.elasticsearch.search.aggregations.InternalAggregations;
+import org.elasticsearch.search.aggregations.bucket.MultiBucketsAggregation.Bucket;
+import org.elasticsearch.search.aggregations.bucket.terms.StringTermsGetter;
+import org.elasticsearch.search.aggregations.bucket.terms.StringTerms;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.internal.SearchContext;
+import org.elasticsearch.search.query.QuerySearchResult;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.HeaderHelper;
 import com.amazon.opendistroforelasticsearch.security.support.OpenDistroSecurityUtils;
 
+import com.google.common.collect.ImmutableList;
+
 public class DlsFlsValveImpl implements DlsFlsRequestValve {
+    private static final Logger log = LogManager.getLogger(DlsFlsValveImpl.class);
 
     /**
      *
@@ -140,4 +157,100 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
     }
 
+    @Override
+    public void onQueryPhase(QuerySearchResult queryResult) {
+        InternalAggregations aggregations = queryResult.aggregations().expand();
+        assert aggregations != null;
+
+        queryResult.aggregations(
+                InternalAggregations.from(
+                        StreamSupport.stream(aggregations.spliterator(), false)
+                            .map(aggregation -> aggregateBuckets((InternalAggregation)aggregation))
+                            .collect(ImmutableList.toImmutableList())
+                )
+        );
+    }
+
+    private static InternalAggregation aggregateBuckets(InternalAggregation aggregation) {
+        if (aggregation instanceof StringTerms) {
+            StringTerms stringTerms = (StringTerms) aggregation;
+            List<StringTerms.Bucket> buckets = stringTerms.getBuckets();
+            if (buckets.size() > 1) {
+                buckets = mergeBuckets(buckets, StringTermsGetter.getReduceOrder(stringTerms).comparator());
+                aggregation = stringTerms.create(buckets);
+            }
+        }
+        return aggregation;
+    }
+
+    private static List<StringTerms.Bucket> mergeBuckets(List<StringTerms.Bucket> buckets, Comparator<Bucket> comparator) {
+        if (log.isDebugEnabled()) {
+            log.debug("Merging buckets: {}", buckets.stream().map(b -> b.getKeyAsString()).collect(ImmutableList.toImmutableList()));
+        }
+        buckets.sort(comparator);
+        BucketMerger merger = new BucketMerger(comparator, buckets.size());
+        buckets.stream().forEach(merger);
+        buckets = merger.getBuckets();
+
+        if (log.isDebugEnabled()) {
+            log.debug("New buckets: {}", buckets.stream().map(b -> b.getKeyAsString()).collect(ImmutableList.toImmutableList()));
+        }
+        return buckets;
+    }
+
+    private static class BucketMerger implements Consumer<StringTerms.Bucket> {
+        private Comparator<Bucket> comparator;
+        private StringTerms.Bucket bucket = null;
+        private int mergeCount;
+        private long mergedDocCount;
+        private long mergedDocCountError;
+        private boolean showDocCountError = true;
+        private final ImmutableList.Builder<StringTerms.Bucket> builder;
+
+        BucketMerger(Comparator<Bucket> comparator, int size) {
+            this.comparator = Objects.requireNonNull(comparator);
+            builder = ImmutableList.builderWithExpectedSize(size);
+        }
+
+        private void finalizeBucket() {
+            if (mergeCount == 1) {
+                builder.add(this.bucket);
+            } else {
+                builder.add(new StringTerms.Bucket(StringTermsGetter.getTerm(bucket), mergedDocCount,
+                    (InternalAggregations) bucket.getAggregations(), showDocCountError, mergedDocCountError,
+                    StringTermsGetter.getDocValueFormat(bucket)));
+            }
+        }
+
+        private void merge(StringTerms.Bucket bucket) {
+            if (this.bucket != null && (bucket == null || comparator.compare(this.bucket, bucket) != 0)) {
+                finalizeBucket();
+                this.bucket = null;
+                mergeCount = 0;
+                mergedDocCount = 0;
+                mergedDocCountError = 0;
+                showDocCountError = true;
+            }
+        }
+
+        public List<StringTerms.Bucket> getBuckets() {
+            merge(null);
+            return builder.build();
+        }
+
+        @Override
+        public void accept(StringTerms.Bucket bucket) {
+            merge(bucket);
+            mergeCount++;
+            mergedDocCount += bucket.getDocCount();
+            if (showDocCountError) {
+                try {
+                    mergedDocCountError += bucket.getDocCountError();
+                } catch (IllegalStateException e) {
+                    showDocCountError = false;
+                }
+            }
+            this.bucket = bucket;
+        }
+    }
 }
