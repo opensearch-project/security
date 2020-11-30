@@ -158,13 +158,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
     }
 
     @Override
-    public void onQueryPhase(SearchContext searchContext) {
-        QuerySearchResult queryResult = searchContext.queryResult();
-        assert queryResult != null;
-        if (!queryResult.hasAggs()) {
-            return;
-        }
-
+    public void onQueryPhase(QuerySearchResult queryResult) {
         InternalAggregations aggregations = queryResult.aggregations().expand();
         assert aggregations != null;
 

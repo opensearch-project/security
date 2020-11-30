@@ -37,6 +37,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.search.internal.SearchContext;
+import org.elasticsearch.search.query.QuerySearchResult;
 import org.elasticsearch.threadpool.ThreadPool;
 
 public interface DlsFlsRequestValve {
@@ -51,7 +52,7 @@ public interface DlsFlsRequestValve {
 
     void handleSearchContext(SearchContext context, ThreadPool threadPool, NamedXContentRegistry namedXContentRegistry);
 
-    void onQueryPhase(SearchContext searchContext);
+    void onQueryPhase(QuerySearchResult queryResult);
     
     public static class NoopDlsFlsRequestValve implements DlsFlsRequestValve {
 
@@ -66,7 +67,7 @@ public interface DlsFlsRequestValve {
         }
 
         @Override
-        public void onQueryPhase(SearchContext searchContext) {
+        public void onQueryPhase(QuerySearchResult queryResult) {
 
         }
     }

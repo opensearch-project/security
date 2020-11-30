@@ -107,6 +107,7 @@ import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.search.internal.InternalScrollSearchRequest;
 import org.elasticsearch.search.internal.ReaderContext;
 import org.elasticsearch.search.internal.SearchContext;
+import org.elasticsearch.search.query.QuerySearchResult;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusterService;
@@ -599,13 +600,19 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
 
                 @Override
                 public void onQueryPhase(SearchContext searchContext, long tookInNanos) {
+                    QuerySearchResult queryResult = searchContext.queryResult();
+                    assert queryResult != null;
+                    if (!queryResult.hasAggs()) {
+                        return;
+                    }
+
                     final Map<String, Set<String>> maskedFieldsMap = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadPool.getThreadContext(),
                             ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER);
                     final String maskedEval = OpenDistroSecurityUtils.evalMap(maskedFieldsMap, indexModule.getIndex().getName());
                     if (maskedEval != null) {
                         final Set<String> mf = maskedFieldsMap.get(maskedEval);
                         if (mf != null && !mf.isEmpty()) {
-                            dlsFlsValve.onQueryPhase(searchContext);
+                            dlsFlsValve.onQueryPhase(queryResult);
                         }
                     }
                 }
