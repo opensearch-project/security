@@ -39,7 +39,7 @@ jobs:
         cp gradle-build/distributions/*.deb artifacts/
         cp gradle-build/distributions/*.rpm artifacts/
         zip -r artifacts.zip artifacts
-        echo ::set-env name=TAG_VERSION::${GITHUB_REF/refs\/tags\//}
+        echo "TAG_VERSION=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_ENV
 
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v1
