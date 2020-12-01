@@ -99,7 +99,7 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_USER = OPENDISTRO_SECURITY_CONFIG_PREFIX+"user";
     public static final String OPENDISTRO_SECURITY_USER_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX+"user_header";
 
-    public static final String OPENDISTRO_SECURITY_USER_AND_ROLES = OPENDISTRO_SECURITY_CONFIG_PREFIX + "user_and_roles";
+    public static final String OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT = OPENDISTRO_SECURITY_CONFIG_PREFIX + "user_info";
 
     public static final String OPENDISTRO_SECURITY_INJECTED_USER = "injected_user";
     public static final String OPENDISTRO_SECURITY_INJECTED_USER_HEADER = "injected_user_header";
