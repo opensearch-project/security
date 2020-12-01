@@ -40,8 +40,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import com.google.common.collect.ImmutableList;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -264,14 +262,5 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
     
     public final Set<String> getOpenDistroSecurityRoles() {
         return this.openDistroSecurityRoles == null ? Collections.emptySet() : Collections.unmodifiableSet(this.openDistroSecurityRoles);
-    }
-
-    public final String getUserInfoString() {
-        final ImmutableList.Builder<String> builder = ImmutableList.builder();
-        builder.add(name, String.join(",", getRoles()),  String.join(",", getOpenDistroSecurityRoles()));
-        if (!Strings.isNullOrEmpty(requestedTenant)) {
-            builder.add(requestedTenant);
-        }
-        return String.join("|", builder.build());
     }
 }

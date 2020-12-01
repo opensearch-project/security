@@ -39,6 +39,7 @@ import com.amazon.opendistroforelasticsearch.security.auth.RolesInjector;
 import com.amazon.opendistroforelasticsearch.security.resolver.IndexResolverReplacer;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.amazon.opendistroforelasticsearch.security.auth.BackendRegistry;
 import org.apache.logging.log4j.LogManager;
@@ -72,6 +73,7 @@ import org.elasticsearch.action.support.ActionFilterChain;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.util.concurrent.ThreadContext.StoredContext;
@@ -156,7 +158,18 @@ public class OpenDistroSecurityFilter implements ActionFilter {
     private static Set<String> alias2Name(Set<Alias> aliases) {
         return aliases.stream().map(a -> a.name()).collect(ImmutableSet.toImmutableSet());
     }
-    
+
+    private void setUserInfoThreadContext(User user) {
+        if (threadContext.getTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT) == null) {
+            final ImmutableList.Builder<String> builder = ImmutableList.builder();
+            builder.add(user.getName(), String.join(",", user.getRoles()),  String.join(",", user.getOpenDistroSecurityRoles()));
+            String requestedTenant = user.getRequestedTenant();
+            if (!Strings.isNullOrEmpty(requestedTenant)) {
+                builder.add(requestedTenant);
+            }
+            threadContext.putTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT, String.join("|", builder.build()));
+        }
+    }
 
     private <Request extends ActionRequest, Response extends ActionResponse> void apply0(Task task, final String action, Request request,
             ActionListener<Response> listener, ActionFilterChain<Request, Response> chain) {
@@ -302,9 +315,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
                 log.debug(pres);
             }
 
-            if(threadContext.getTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT) == null) {
-                threadContext.putTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT, user.getUserInfoString());
-            }
+            setUserInfoThreadContext(user);
 
             if (pres.isAllowed()) {
                 auditLog.logGrantedPrivileges(action, request, task);
