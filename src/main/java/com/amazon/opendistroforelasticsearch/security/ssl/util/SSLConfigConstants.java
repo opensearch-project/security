@@ -47,16 +47,39 @@ public final class SSLConfigConstants {
     public static final boolean OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLED_DEFAULT = true;
     public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION = "opendistro_security.ssl.transport.enforce_hostname_verification";
     public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME = "opendistro_security.ssl.transport.resolve_hostname";
+
     public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS = "opendistro_security.ssl.transport.keystore_alias";
+    public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_SERVER_KEYSTORE_ALIAS = "opendistro_security.ssl.transport.server.keystore_alias";
+    public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_CLIENT_KEYSTORE_ALIAS = "opendistro_security.ssl.transport.client.keystore_alias";
+
     public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH = "opendistro_security.ssl.transport.keystore_filepath";
     public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH = "opendistro_security.ssl.transport.pemkey_filepath";
     public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_PEMKEY_PASSWORD = "opendistro_security.ssl.transport.pemkey_password";
     public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH = "opendistro_security.ssl.transport.pemcert_filepath";
+
     public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH = "opendistro_security.ssl.transport.pemtrustedcas_filepath";
+    public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_EXTENDED_KEY_USAGE_ENABLED = "opendistro_security.ssl.transport.extended_key_usage_enabled";
+    public static final boolean OPENDISTRO_SECURITY_SSL_TRANSPORT_EXTENDED_KEY_USAGE_ENABLED_DEFAULT = false;
+    public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_SERVER_PEMKEY_FILEPATH = "opendistro_security.ssl.transport.server.pemkey_filepath";
+    public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_SERVER_PEMKEY_PASSWORD = "opendistro_security.ssl.transport.server.pemkey_password";
+    public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_SERVER_PEMCERT_FILEPATH = "opendistro_security.ssl.transport.server.pemcert_filepath";
+    public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_SERVER_PEMTRUSTEDCAS_FILEPATH = "opendistro_security.ssl.transport.server.pemtrustedcas_filepath";
+    public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_CLIENT_PEMKEY_FILEPATH = "opendistro_security.ssl.transport.client.pemkey_filepath";
+    public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_CLIENT_PEMKEY_PASSWORD = "opendistro_security.ssl.transport.client.pemkey_password";
+    public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_CLIENT_PEMCERT_FILEPATH = "opendistro_security.ssl.transport.client.pemcert_filepath";
+    public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_CLIENT_PEMTRUSTEDCAS_FILEPATH = "opendistro_security.ssl.transport.client.pemtrustedcas_filepath";
+
     public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD = "opendistro_security.ssl.transport.keystore_password";
     public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_KEYPASSWORD = "opendistro_security.ssl.transport.keystore_keypassword";
+    public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_SERVER_KEYSTORE_KEYPASSWORD = "opendistro_security.ssl.transport.server.keystore_keypassword";
+    public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_CLIENT_KEYSTORE_KEYPASSWORD = "opendistro_security.ssl.transport.client.keystore_keypassword";
+
     public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE = "opendistro_security.ssl.transport.keystore_type";
+
     public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_ALIAS = "opendistro_security.ssl.transport.truststore_alias";
+    public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_SERVER_TRUSTSTORE_ALIAS = "opendistro_security.ssl.transport.server.truststore_alias";
+    public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_CLIENT_TRUSTSTORE_ALIAS = "opendistro_security.ssl.transport.client.truststore_alias";
+
     public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH = "opendistro_security.ssl.transport.truststore_filepath";
     public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD = "opendistro_security.ssl.transport.truststore_password";
     public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE = "opendistro_security.ssl.transport.truststore_type";
