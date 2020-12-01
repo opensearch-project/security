@@ -76,6 +76,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.index.reindex.ReindexAction;
+import org.elasticsearch.indices.InvalidIndexNameException;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.greenrobot.eventbus.Subscribe;
@@ -168,283 +169,281 @@ public class PrivilegesEvaluator {
     }
 
     public PrivilegesEvaluatorResponse evaluate(final User user, String action0, final ActionRequest request,
-                                                Task task, final Set<String> injectedRoles) {
-
-        if (!isInitialized()) {
+                                                Task task, final Set<String> injectedRoles) throws InvalidIndexNameException{
+            if (!isInitialized()) {
             throw new ElasticsearchSecurityException("Open Distro Security is not initialized.");
         }
 
-        if(action0.startsWith("internal:indices/admin/upgrade")) {
-            action0 = "indices:admin/upgrade";
-        }
+            if(action0.startsWith("internal:indices/admin/upgrade")) {
+                action0 = "indices:admin/upgrade";
+            }
 
-        if (AutoCreateAction.NAME.equals(action0)) {
-            action0 = CreateIndexAction.NAME;
-        }
+            if (AutoCreateAction.NAME.equals(action0)) {
+                action0 = CreateIndexAction.NAME;
+            }
 
-        if (AutoPutMappingAction.NAME.equals(action0)) {
-            action0 = PutMappingAction.NAME;
-        }
+            if (AutoPutMappingAction.NAME.equals(action0)) {
+                action0 = PutMappingAction.NAME;
+            }
 
-        final TransportAddress caller = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
-        final Set<String> mappedRoles = (injectedRoles == null) ? mapRoles(user, caller) : injectedRoles;
-        final SecurityRoles securityRoles = getSecurityRoles(mappedRoles);
+            final TransportAddress caller = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
+            final Set<String> mappedRoles = (injectedRoles == null) ? mapRoles(user, caller) : injectedRoles;
+            final SecurityRoles securityRoles = getSecurityRoles(mappedRoles);
 
-        // Mapped roles are added to the User. These roles can be read in transport layer only.
-        if(mappedRoles != null) {
-            user.addOpenDistroSecurityRoles(mappedRoles);
-        }
+            // Mapped roles are added to the User. These roles can be read in transport layer only.
+            if(mappedRoles != null) {
+                user.addOpenDistroSecurityRoles(mappedRoles);
+            }
 
-        final PrivilegesEvaluatorResponse presponse = new PrivilegesEvaluatorResponse();
-
-
-        if (log.isDebugEnabled()) {
-            log.debug("### evaluate permissions for {} on {}", user, clusterService.localNode().getName());
-            log.debug("action: "+action0+" ("+request.getClass().getSimpleName()+")");
-            log.debug("mapped roles: {}",mappedRoles.toString());
-        }
-
-        final Resolved requestedResolved = irr.resolveRequest(request);
-
-        if (log.isDebugEnabled()) {
-            log.debug("requestedResolved : {}", requestedResolved );
-        }
+            final PrivilegesEvaluatorResponse presponse = new PrivilegesEvaluatorResponse();
 
 
-        // check dlsfls
-        if (advancedModulesEnabled
-                //&& (action0.startsWith("indices:data/read") || action0.equals(ClusterSearchShardsAction.NAME))
-                && dlsFlsEvaluator.evaluate(request, clusterService, resolver, requestedResolved, user, securityRoles, presponse).isComplete()) {
-            return presponse;
-        }
+            if (log.isDebugEnabled()) {
+                log.debug("### evaluate permissions for {} on {}", user, clusterService.localNode().getName());
+                log.debug("action: "+action0+" ("+request.getClass().getSimpleName()+")");
+                log.debug("mapped roles: {}",mappedRoles.toString());
+            }
 
-        // check snapshot/restore requests
-        if (snapshotRestoreEvaluator.evaluate(request, task, action0, clusterInfoHolder, presponse).isComplete()) {
-            return presponse;
-        }
+            final Resolved requestedResolved = irr.resolveRequest(request);
 
-        // Security index access
-        if (securityIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved, presponse).isComplete()) {
-            return presponse;
-        }
-
-        // Protected index access
-        if (protectedIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved, presponse, securityRoles).isComplete()) {
-            return presponse;
-        }
-
-        final boolean dnfofEnabled = dcm.isDnfofEnabled();
-
-        if(log.isTraceEnabled()) {
-            log.trace("dnfof enabled? {}", dnfofEnabled);
-        }
+            if (log.isDebugEnabled()) {
+                log.debug("requestedResolved : {}", requestedResolved );
+            }
 
 
-        if (isClusterPerm(action0)) {
-            if(!securityRoles.impliesClusterPermissionPermission(action0)) {
-                presponse.missingPrivileges.add(action0);
-                presponse.allowed = false;
-                log.info("No {}-level perm match for {} {} [Action [{}]] [RolesChecked {}]", "cluster" , user, requestedResolved, action0,
-                        securityRoles.getRoleNames());
-                log.info("No permissions for {}", presponse.missingPrivileges);
+            // check dlsfls
+            if (advancedModulesEnabled
+                    //&& (action0.startsWith("indices:data/read") || action0.equals(ClusterSearchShardsAction.NAME))
+                    && dlsFlsEvaluator.evaluate(request, clusterService, resolver, requestedResolved, user, securityRoles, presponse).isComplete()) {
                 return presponse;
-            } else {
+            }
 
-                if(request instanceof RestoreSnapshotRequest && checkSnapshotRestoreWritePrivileges) {
-                    if(log.isDebugEnabled()) {
-                        log.debug("Normally allowed but we need to apply some extra checks for a restore request.");
-                    }
+            // check snapshot/restore requests
+            if (snapshotRestoreEvaluator.evaluate(request, task, action0, clusterInfoHolder, presponse).isComplete()) {
+                return presponse;
+            }
+
+            // Security index access
+            if (securityIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved, presponse).isComplete()) {
+                return presponse;
+            }
+
+            // Protected index access
+            if (protectedIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved, presponse, securityRoles).isComplete()) {
+                return presponse;
+            }
+
+            final boolean dnfofEnabled = dcm.isDnfofEnabled();
+
+            if(log.isTraceEnabled()) {
+                log.trace("dnfof enabled? {}", dnfofEnabled);
+            }
+
+
+            if (isClusterPerm(action0)) {
+                if(!securityRoles.impliesClusterPermissionPermission(action0)) {
+                    presponse.missingPrivileges.add(action0);
+                    presponse.allowed = false;
+                    log.info("No {}-level perm match for {} {} [Action [{}]] [RolesChecked {}]", "cluster" , user, requestedResolved, action0,
+                            securityRoles.getRoleNames());
+                    log.info("No permissions for {}", presponse.missingPrivileges);
+                    return presponse;
                 } else {
 
+                    if(request instanceof RestoreSnapshotRequest && checkSnapshotRestoreWritePrivileges) {
+                        if(log.isDebugEnabled()) {
+                            log.debug("Normally allowed but we need to apply some extra checks for a restore request.");
+                        }
+                    } else {
 
-                    if(privilegesInterceptor.getClass() != PrivilegesInterceptor.class) {
 
-                        final PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceKibanaIndex(request, action0, user, dcm, requestedResolved,
-                                mapTenants(user, mappedRoles));
+                        if(privilegesInterceptor.getClass() != PrivilegesInterceptor.class) {
+
+                            final PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceKibanaIndex(request, action0, user, dcm, requestedResolved,
+                                    mapTenants(user, mappedRoles));
+
+                            if(log.isDebugEnabled()) {
+                                log.debug("Result from privileges interceptor for cluster perm: {}", replaceResult);
+                            }
+
+                            if (!replaceResult.continueEvaluation) {
+                                if (replaceResult.accessDenied) {
+                                    auditLog.logMissingPrivileges(action0, request, task);
+                                } else {
+                                    presponse.allowed = true;
+                                    presponse.request = replaceResult.createIndexRequest;
+                                }
+                                return presponse;
+                            }
+                        }
+
+                        if (dnfofEnabled
+                                && (action0.startsWith("indices:data/read/"))
+                                && !requestedResolved.getAllIndices().isEmpty()
+                        ) {
+
+                            if(requestedResolved.getAllIndices().isEmpty()) {
+                                presponse.missingPrivileges.clear();
+                                presponse.allowed = true;
+                                return presponse;
+                            }
+
+
+                            Set<String> reduced = securityRoles.reduce(requestedResolved, user, new String[]{action0}, resolver, clusterService);
+
+                            if(reduced.isEmpty()) {
+                                presponse.allowed = false;
+                                return presponse;
+                            }
+
+                            if(irr.replace(request, true, reduced.toArray(new String[0]))) {
+                                presponse.missingPrivileges.clear();
+                                presponse.allowed = true;
+                                return presponse;
+                            }
+                        }
 
                         if(log.isDebugEnabled()) {
-                            log.debug("Result from privileges interceptor for cluster perm: {}", replaceResult);
+                            log.debug("Allowed because we have cluster permissions for "+action0);
                         }
-
-                        if (!replaceResult.continueEvaluation) {
-                            if (replaceResult.accessDenied) {
-                                auditLog.logMissingPrivileges(action0, request, task);
-                            } else {
-                                presponse.allowed = true;
-                                presponse.request = replaceResult.createIndexRequest;
-                            }
-                            return presponse;
-                        }
+                        presponse.allowed = true;
+                        return presponse;
                     }
 
-                    if (dnfofEnabled
-                            && (action0.startsWith("indices:data/read/"))
-                            && !requestedResolved.getAllIndices().isEmpty()
-                            ) {
 
-                        if(requestedResolved.getAllIndices().isEmpty()) {
-                            presponse.missingPrivileges.clear();
-                            presponse.allowed = true;
-                            return presponse;
-                        }
+                }
+            }
+
+            // term aggregations
+            if (termsAggregationEvaluator.evaluate(requestedResolved, request, clusterService, user, securityRoles, resolver, presponse) .isComplete()) {
+                return presponse;
+            }
+
+            final Set<String> allIndexPermsRequired = evaluateAdditionalIndexPermissions(request, action0);
+            final String[] allIndexPermsRequiredA = allIndexPermsRequired.toArray(new String[0]);
+
+            if(log.isDebugEnabled()) {
+                log.debug("requested {} from {}", allIndexPermsRequired, caller);
+            }
+
+            presponse.missingPrivileges.clear();
+            presponse.missingPrivileges.addAll(allIndexPermsRequired);
+
+            if (log.isDebugEnabled()) {
+                log.debug("requested resolved indextypes: {}", requestedResolved);
+            }
+
+            if (log.isDebugEnabled()) {
+                log.debug("sr: {}", securityRoles.getRoleNames());
+            }
 
 
-                        Set<String> reduced = securityRoles.reduce(requestedResolved, user, new String[]{action0}, resolver, clusterService);
+            //TODO exclude Security index
 
-                        if(reduced.isEmpty()) {
-                            presponse.allowed = false;
-                            return presponse;
-                        }
+            if(privilegesInterceptor.getClass() != PrivilegesInterceptor.class) {
 
-                        if(irr.replace(request, true, reduced.toArray(new String[0]))) {
-                            presponse.missingPrivileges.clear();
-                            presponse.allowed = true;
-                            return presponse;
-                        }
+                final PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceKibanaIndex(request, action0, user, dcm, requestedResolved, mapTenants(user, mappedRoles));
+
+                if(log.isDebugEnabled()) {
+                    log.debug("Result from privileges interceptor: {}", replaceResult);
+                }
+
+                if (!replaceResult.continueEvaluation) {
+                    if (replaceResult.accessDenied) {
+                        auditLog.logMissingPrivileges(action0, request, task);
+                    } else {
+                        presponse.allowed = true;
+                        presponse.request = replaceResult.createIndexRequest;
                     }
+                    return presponse;
+                }
+            }
 
-                    if(log.isDebugEnabled()) {
-                        log.debug("Allowed because we have cluster permissions for "+action0);
-                    }
+            if (dnfofEnabled
+                    && (action0.startsWith("indices:data/read/")
+                    || action0.startsWith("indices:admin/mappings/fields/get")
+                    || action0.equals("indices:admin/shards/search_shards"))) {
+
+                if(requestedResolved.getAllIndices().isEmpty()) {
+                    presponse.missingPrivileges.clear();
                     presponse.allowed = true;
                     return presponse;
                 }
 
 
-            }
-        }
+                Set<String> reduced = securityRoles.reduce(requestedResolved, user, allIndexPermsRequiredA, resolver, clusterService);
 
-        // term aggregations
-        if (termsAggregationEvaluator.evaluate(requestedResolved, request, clusterService, user, securityRoles, resolver, presponse) .isComplete()) {
-            return presponse;
-        }
+                if(reduced.isEmpty()) {
+                    if(dcm.isDnfofForEmptyResultsEnabled()) {
+                        if(request instanceof SearchRequest) {
+                            ((SearchRequest) request).indices(new String[0]);
+                            ((SearchRequest) request).indicesOptions(IndicesOptions.fromOptions(true, true, false, false));
+                            presponse.missingPrivileges.clear();
+                            presponse.allowed = true;
+                            return presponse;
+                        }
 
-        final Set<String> allIndexPermsRequired = evaluateAdditionalIndexPermissions(request, action0);
-        final String[] allIndexPermsRequiredA = allIndexPermsRequired.toArray(new String[0]);
+                        if(request instanceof ClusterSearchShardsRequest) {
+                            ((ClusterSearchShardsRequest) request).indices(new String[0]);
+                            ((ClusterSearchShardsRequest) request).indicesOptions(IndicesOptions.fromOptions(true, true, false, false));
+                            presponse.missingPrivileges.clear();
+                            presponse.allowed = true;
+                            return presponse;
+                        }
 
-        if(log.isDebugEnabled()) {
-            log.debug("requested {} from {}", allIndexPermsRequired, caller);
-        }
-
-        presponse.missingPrivileges.clear();
-        presponse.missingPrivileges.addAll(allIndexPermsRequired);
-
-        if (log.isDebugEnabled()) {
-            log.debug("requested resolved indextypes: {}", requestedResolved);
-        }
-
-        if (log.isDebugEnabled()) {
-            log.debug("sr: {}", securityRoles.getRoleNames());
-        }
+                        if(request instanceof GetFieldMappingsRequest) {
+                            ((GetFieldMappingsRequest) request).indices(new String[0]);
+                            ((GetFieldMappingsRequest) request).indicesOptions(IndicesOptions.fromOptions(true, true, false, false));
+                            presponse.missingPrivileges.clear();
+                            presponse.allowed = true;
+                            return presponse;
+                        }
+                    }
+                    presponse.allowed = false;
+                    return presponse;
+                }
 
 
-        //TODO exclude Security index
-
-        if(privilegesInterceptor.getClass() != PrivilegesInterceptor.class) {
-
-            final PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceKibanaIndex(request, action0, user, dcm, requestedResolved, mapTenants(user, mappedRoles));
-
-            if(log.isDebugEnabled()) {
-                log.debug("Result from privileges interceptor: {}", replaceResult);
-            }
-
-            if (!replaceResult.continueEvaluation) {
-                if (replaceResult.accessDenied) {
-                    auditLog.logMissingPrivileges(action0, request, task);
-                } else {
+                if(irr.replace(request, true, reduced.toArray(new String[0]))) {
+                    presponse.missingPrivileges.clear();
                     presponse.allowed = true;
-                    presponse.request = replaceResult.createIndexRequest;
+                    return presponse;
                 }
-                return presponse;
-            }
-        }
-
-        if (dnfofEnabled
-                && (action0.startsWith("indices:data/read/")
-                || action0.startsWith("indices:admin/mappings/fields/get")
-                || action0.equals("indices:admin/shards/search_shards"))) {
-
-            if(requestedResolved.getAllIndices().isEmpty()) {
-                presponse.missingPrivileges.clear();
-                presponse.allowed = true;
-                return presponse;
             }
 
 
-            Set<String> reduced = securityRoles.reduce(requestedResolved, user, allIndexPermsRequiredA, resolver, clusterService);
+            //not bulk, mget, etc request here
+            boolean permGiven = false;
 
-            if(reduced.isEmpty()) {
-                if(dcm.isDnfofForEmptyResultsEnabled()) {
-                    if(request instanceof SearchRequest) {
-                        ((SearchRequest) request).indices(new String[0]);
-                        ((SearchRequest) request).indicesOptions(IndicesOptions.fromOptions(true, true, false, false));
-                        presponse.missingPrivileges.clear();
-                        presponse.allowed = true;
-                        return presponse;
-                    }
+            if (log.isDebugEnabled()) {
+                log.debug("sr2: {}", securityRoles.getRoleNames());
+            }
 
-                    if(request instanceof ClusterSearchShardsRequest) {
-                        ((ClusterSearchShardsRequest) request).indices(new String[0]);
-                        ((ClusterSearchShardsRequest) request).indicesOptions(IndicesOptions.fromOptions(true, true, false, false));
-                        presponse.missingPrivileges.clear();
-                        presponse.allowed = true;
-                        return presponse;
-                    }
+            if (dcm.isMultiRolespanEnabled()) {
+                permGiven = securityRoles.impliesTypePermGlobal(requestedResolved, user, allIndexPermsRequiredA, resolver, clusterService);
+            }  else {
+                permGiven = securityRoles.get(requestedResolved, user, allIndexPermsRequiredA, resolver, clusterService);
 
-                    if(request instanceof GetFieldMappingsRequest) {
-                        ((GetFieldMappingsRequest) request).indices(new String[0]);
-                        ((GetFieldMappingsRequest) request).indicesOptions(IndicesOptions.fromOptions(true, true, false, false));
-                        presponse.missingPrivileges.clear();
-                        presponse.allowed = true;
-                        return presponse;
-                    }
+            }
+
+            if (!permGiven) {
+                log.info("No {}-level perm match for {} {} [Action [{}]] [RolesChecked {}]", "index" , user, requestedResolved, action0,
+                        securityRoles.getRoleNames());
+                log.info("No permissions for {}", presponse.missingPrivileges);
+            } else {
+
+                if(checkFilteredAliases(requestedResolved.getAllIndices(), action0)) {
+                    presponse.allowed=false;
+                    return presponse;
                 }
-                presponse.allowed = false;
-                return presponse;
+
+                if(log.isDebugEnabled()) {
+                    log.debug("Allowed because we have all indices permissions for "+action0);
+                }
             }
 
-
-            if(irr.replace(request, true, reduced.toArray(new String[0]))) {
-                presponse.missingPrivileges.clear();
-                presponse.allowed = true;
-                return presponse;
-            }
-        }
-
-
-        //not bulk, mget, etc request here
-        boolean permGiven = false;
-
-        if (log.isDebugEnabled()) {
-            log.debug("sr2: {}", securityRoles.getRoleNames());
-        }
-
-        if (dcm.isMultiRolespanEnabled()) {
-            permGiven = securityRoles.impliesTypePermGlobal(requestedResolved, user, allIndexPermsRequiredA, resolver, clusterService);
-        }  else {
-            permGiven = securityRoles.get(requestedResolved, user, allIndexPermsRequiredA, resolver, clusterService);
-
-        }
-
-         if (!permGiven) {
-            log.info("No {}-level perm match for {} {} [Action [{}]] [RolesChecked {}]", "index" , user, requestedResolved, action0,
-                    securityRoles.getRoleNames());
-            log.info("No permissions for {}", presponse.missingPrivileges);
-        } else {
-
-            if(checkFilteredAliases(requestedResolved.getAllIndices(), action0)) {
-                presponse.allowed=false;
-                return presponse;
-            }
-
-            if(log.isDebugEnabled()) {
-                log.debug("Allowed because we have all indices permissions for "+action0);
-            }
-        }
-
-        presponse.allowed = permGiven;
-        return presponse;
-
+            presponse.allowed = permGiven;
+            return presponse;
     }
 
     public Set<String> mapRoles(final User user, final TransportAddress caller) {

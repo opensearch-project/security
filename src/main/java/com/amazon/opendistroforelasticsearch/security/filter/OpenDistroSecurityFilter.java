@@ -77,6 +77,7 @@ import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.util.concurrent.ThreadContext.StoredContext;
 import org.elasticsearch.index.reindex.DeleteByQueryRequest;
 import org.elasticsearch.index.reindex.UpdateByQueryRequest;
+import org.elasticsearch.indices.InvalidIndexNameException;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -296,65 +297,70 @@ public class OpenDistroSecurityFilter implements ActionFilter {
                 log.trace("Evaluate permissions for user: {}", user.getName());
             }
 
-            final PrivilegesEvaluatorResponse pres = eval.evaluate(user, action, request, task, injectedRoles);
-            
-            if (log.isDebugEnabled()) {
-                log.debug(pres);
-            }
+            try{
+                final PrivilegesEvaluatorResponse pres = eval.evaluate(user, action, request, task, injectedRoles);
 
-            if(threadContext.getTransient(OPENDISTRO_SECURITY_USER_AND_ROLES) == null) {
-                threadContext.putTransient(OPENDISTRO_SECURITY_USER_AND_ROLES, user.getUserRolesString());
-            }
+                if (log.isDebugEnabled()) {
+                    log.debug(pres);
+                }
 
-            if (pres.isAllowed()) {
-                auditLog.logGrantedPrivileges(action, request, task);
-                auditLog.logIndexEvent(action, request, task);
-                if(!dlsFlsValve.invoke(request, listener, pres.getAllowedFlsFields(), pres.getMaskedFields(), pres.getQueries())) {
+                if(threadContext.getTransient(OPENDISTRO_SECURITY_USER_AND_ROLES) == null) {
+                    threadContext.putTransient(OPENDISTRO_SECURITY_USER_AND_ROLES, user.getUserRolesString());
+                }
+
+                if (pres.isAllowed()) {
+                    auditLog.logGrantedPrivileges(action, request, task);
+                    auditLog.logIndexEvent(action, request, task);
+                    if(!dlsFlsValve.invoke(request, listener, pres.getAllowedFlsFields(), pres.getMaskedFields(), pres.getQueries())) {
+                        return;
+                    }
+                    final CreateIndexRequest createIndexRequest = pres.getRequest();
+                    if (createIndexRequest == null) {
+                        chain.proceed(task, action, request, listener);
+                    } else {
+                        client.admin().indices().create(createIndexRequest, new ActionListener<CreateIndexResponse>() {
+                            @Override
+                            public void onResponse(CreateIndexResponse createIndexResponse) {
+                                if (createIndexResponse.isAcknowledged()) {
+                                    log.debug("Request to create index {} with aliases {} acknowledged, proceeding with {}",
+                                            createIndexRequest.index(), alias2Name(createIndexRequest.aliases()), request.getClass().getSimpleName());
+                                    chain.proceed(task, action, request, listener);
+                                } else {
+                                    Exception e = new ElasticsearchException("Request to create index {} with aliases {} was not acknowledged, failing {}",
+                                            createIndexRequest.index(), alias2Name(createIndexRequest.aliases()), request.getClass().getSimpleName());
+                                    log.error(e.getMessage());
+                                    listener.onFailure(e);
+                                }
+                            }
+
+                            @Override
+                            public void onFailure(Exception e) {
+                                if (e instanceof ResourceAlreadyExistsException) {
+                                    log.debug("Request to create index {} with aliases {} failed as resource already exist, proceeding with {}",
+                                            createIndexRequest.index(), alias2Name(createIndexRequest.aliases()), request.getClass().getSimpleName(), e);
+                                    chain.proceed(task, action, request, listener);
+                                } else {
+                                    log.error("Request to create index {} with aliases {} failed, failing {}",
+                                            createIndexRequest.index(), alias2Name(createIndexRequest.aliases()), request.getClass().getSimpleName(), e);
+                                    listener.onFailure(e);
+                                }
+                            }
+                        });
+                    }
                     return;
-                }
-                final CreateIndexRequest createIndexRequest = pres.getRequest();
-                if (createIndexRequest == null) {
-                    chain.proceed(task, action, request, listener);
                 } else {
-                    client.admin().indices().create(createIndexRequest, new ActionListener<CreateIndexResponse>() {
-                        @Override
-                        public void onResponse(CreateIndexResponse createIndexResponse) {
-                            if (createIndexResponse.isAcknowledged()) {
-                                log.debug("Request to create index {} with aliases {} acknowledged, proceeding with {}",
-                                        createIndexRequest.index(), alias2Name(createIndexRequest.aliases()), request.getClass().getSimpleName());
-                                chain.proceed(task, action, request, listener);
-                            } else {
-                                Exception e = new ElasticsearchException("Request to create index {} with aliases {} was not acknowledged, failing {}",
-                                        createIndexRequest.index(), alias2Name(createIndexRequest.aliases()), request.getClass().getSimpleName());
-                                log.error(e.getMessage());
-                                listener.onFailure(e);
-                            }
-                        }
-
-                        @Override
-                        public void onFailure(Exception e) {
-                            if (e instanceof ResourceAlreadyExistsException) {
-                                log.debug("Request to create index {} with aliases {} failed as resource already exist, proceeding with {}",
-                                        createIndexRequest.index(), alias2Name(createIndexRequest.aliases()), request.getClass().getSimpleName(), e);
-                                chain.proceed(task, action, request, listener);
-                            } else {
-                                log.error("Request to create index {} with aliases {} failed, failing {}",
-                                        createIndexRequest.index(), alias2Name(createIndexRequest.aliases()), request.getClass().getSimpleName(), e);
-                                listener.onFailure(e);
-                            }
-                        }
-                    });
-                }
-                return;
-            } else {
-                auditLog.logMissingPrivileges(action, request, task);
-                String err = (injectedRoles == null) ?
-                        String.format("no permissions for %s and %s", pres.getMissingPrivileges(), user) :
-                        String.format("no permissions for %s and associated roles %s", pres.getMissingPrivileges(), injectedRoles);
-                log.debug(err);
-                listener.onFailure(new ElasticsearchSecurityException(err, RestStatus.FORBIDDEN));
-                return;
+                    auditLog.logMissingPrivileges(action, request, task);
+                    String err = (injectedRoles == null) ?
+                            String.format("no permissions for %s and %s", pres.getMissingPrivileges(), user) :
+                            String.format("no permissions for %s and associated roles %s", pres.getMissingPrivileges(), injectedRoles);
+                    log.debug(err);
+                    listener.onFailure(new ElasticsearchSecurityException(err, RestStatus.FORBIDDEN));
+                    return;
+                }}
+            catch (InvalidIndexNameException e) {
+                listener.onFailure(e);
             }
+
         } catch (Throwable e) {
             log.error("Unexpected exception "+e, e);
             listener.onFailure(new ElasticsearchSecurityException("Unexpected exception " + action, RestStatus.INTERNAL_SERVER_ERROR));

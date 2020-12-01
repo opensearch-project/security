@@ -88,6 +88,7 @@ import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.reindex.ReindexRequest;
+import org.elasticsearch.indices.InvalidIndexNameException;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotUtils;
 import org.elasticsearch.transport.RemoteClusterService;
@@ -158,7 +159,7 @@ public class IndexResolverReplacer {
         return false;
     }
 
-    private Resolved resolveIndexPatterns(final IndicesOptions indicesOptions, final boolean enableCrossClusterResolution, final String... requestedPatterns0) {
+    private Resolved resolveIndexPatterns(final IndicesOptions indicesOptions, final boolean enableCrossClusterResolution, final String... requestedPatterns0) throws InvalidIndexNameException {
 
         if(log.isTraceEnabled()) {
             log.trace("resolve requestedPatterns: "+ Arrays.toString(requestedPatterns0));
@@ -593,7 +594,7 @@ public class IndexResolverReplacer {
      * @return
      */
     @SuppressWarnings("rawtypes")
-    private boolean getOrReplaceAllIndices(final Object request, final IndicesProvider provider, boolean allowEmptyIndices) {
+    private boolean getOrReplaceAllIndices(final Object request, final IndicesProvider provider, boolean allowEmptyIndices) throws InvalidIndexNameException {
 
         if(log.isTraceEnabled()) {
             log.trace("getOrReplaceAllIndices() for "+request.getClass());
@@ -730,11 +731,11 @@ public class IndexResolverReplacer {
             }
             ((IndexRequest) request).index(newIndices.length!=1?null:newIndices[0]);
         } else if (request instanceof Replaceable) {
-            String[] newIndices = provider.provide(((Replaceable) request).indices(), request, true);
-            if(checkIndices(request, newIndices, false, allowEmptyIndices) == false) {
-                return false;
-            }
-            ((Replaceable) request).indices(newIndices);
+                String[] newIndices = provider.provide(((Replaceable) request).indices(), request, true);
+                if(checkIndices(request, newIndices, false, allowEmptyIndices) == false) {
+                    return false;
+                }
+                ((Replaceable) request).indices(newIndices);
         } else if (request instanceof BulkShardRequest) {
             provider.provide(((ReplicationRequest) request).indices(), request, false);
             //replace not supported?
