@@ -17,7 +17,11 @@ package com.amazon.opendistroforelasticsearch.security.configuration;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.util.BytesRef;
 
+import java.lang.reflect.Field;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +31,7 @@ import java.util.function.Consumer;
 import java.util.stream.StreamSupport;
 
 import org.elasticsearch.ElasticsearchSecurityException;
+import org.elasticsearch.SpecialPermission;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.DocWriteRequest;
@@ -39,10 +44,12 @@ import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.index.query.ParsedQuery;
+import org.elasticsearch.search.DocValueFormat;
+import org.elasticsearch.search.aggregations.BucketOrder;
 import org.elasticsearch.search.aggregations.InternalAggregation;
 import org.elasticsearch.search.aggregations.InternalAggregations;
 import org.elasticsearch.search.aggregations.bucket.MultiBucketsAggregation.Bucket;
-import org.elasticsearch.search.aggregations.bucket.terms.StringTermsGetter;
+import org.elasticsearch.search.aggregations.bucket.terms.InternalTerms;
 import org.elasticsearch.search.aggregations.bucket.terms.StringTerms;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.internal.SearchContext;
@@ -251,6 +258,60 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                 }
             }
             this.bucket = bucket;
+        }
+    }
+
+    private static class StringTermsGetter {
+        private static final Field REDUCE_ORDER = getField(InternalTerms.class, "reduceOrder");
+        private static final Field TERM_BYTES = getField(StringTerms.Bucket.class, "termBytes");
+        private static final Field FORMAT = getField(InternalTerms.Bucket.class, "format");
+
+        private StringTermsGetter() {
+        }
+
+        private static <T> Field getFieldPrivileged(Class<T> cls, String name) {
+            try {
+                final Field field = cls.getDeclaredField(name);
+                field.setAccessible(true);
+                return field;
+            } catch (NoSuchFieldException | SecurityException e) {
+                log.error("Failed to get class {} declared field {}", cls.getSimpleName(), name, e);
+                if (e instanceof RuntimeException) {
+                    throw (RuntimeException) e;
+                } else {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+
+        private static <T> Field getField(Class<T> cls, String name) {
+            SpecialPermission.check();
+            return AccessController.doPrivileged((PrivilegedAction<Field>) () -> getFieldPrivileged(cls, name));
+        }
+
+        private static <T, C> T getFieldValue(Field field, C c) {
+            try {
+                return (T)field.get(c);
+            } catch (IllegalArgumentException | IllegalAccessException e) {
+                log.error("Exception while getting value {} of class {}", field.getName(), c.getClass().getSimpleName(), e);
+                if (e instanceof RuntimeException) {
+                    throw (RuntimeException) e;
+                } else {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+
+        public static BucketOrder getReduceOrder(StringTerms stringTerms) {
+            return getFieldValue(REDUCE_ORDER, stringTerms);
+        }
+
+        public static BytesRef getTerm(StringTerms.Bucket bucket) {
+            return getFieldValue(TERM_BYTES, bucket);
+        }
+
+        public static DocValueFormat getDocValueFormat(StringTerms.Bucket bucket) {
+            return getFieldValue(FORMAT, bucket);
         }
     }
 }
