@@ -98,7 +98,6 @@ import com.amazon.opendistroforelasticsearch.security.user.User;
 
 import static com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin.isActionTraceEnabled;
 import static com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin.traceAction;
-import static com.amazon.opendistroforelasticsearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT;
 
 public class OpenDistroSecurityFilter implements ActionFilter {
 
@@ -156,8 +155,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
     private static Set<String> alias2Name(Set<Alias> aliases) {
         return aliases.stream().map(a -> a.name()).collect(ImmutableSet.toImmutableSet());
     }
-    
-
+     
     private <Request extends ActionRequest, Response extends ActionResponse> void apply0(Task task, final String action, Request request,
             ActionListener<Response> listener, ActionFilterChain<Request, Response> chain) {
         try {
@@ -300,10 +298,6 @@ public class OpenDistroSecurityFilter implements ActionFilter {
             
             if (log.isDebugEnabled()) {
                 log.debug(pres);
-            }
-
-            if(threadContext.getTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT) == null) {
-                threadContext.putTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT, user.getUserInfoString());
             }
 
             if (pres.isAllowed()) {
