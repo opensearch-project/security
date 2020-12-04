@@ -31,12 +31,14 @@
 package com.amazon.opendistroforelasticsearch.security.privileges;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -71,6 +73,7 @@ import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
@@ -92,7 +95,11 @@ import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+
 import static com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin.traceAction;
+import static com.amazon.opendistroforelasticsearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT;
 
 public class PrivilegesEvaluator {
 
@@ -167,6 +174,21 @@ public class PrivilegesEvaluator {
         return configModel !=null && configModel.getSecurityRoles() != null && dcm != null;
     }
 
+    private void setUserInfoInThreadContext(User user, Collection<String> mappedRoles) {
+        if (threadContext.getTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT) == null) {
+            final ImmutableList.Builder<String> builder = ImmutableList.builder();
+            builder.add(user.getName(),
+                    String.join(",", user.getRoles()),
+                    String.join(",", Stream.concat(user.getOpenDistroSecurityRoles().stream(), mappedRoles.stream())
+                            .collect(ImmutableSet.toImmutableSet())));
+            String requestedTenant = user.getRequestedTenant();
+            if (!Strings.isNullOrEmpty(requestedTenant)) {
+                builder.add(requestedTenant);
+            }
+            threadContext.putTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT, String.join("|", builder.build()));
+        }
+    }
+
     public PrivilegesEvaluatorResponse evaluate(final User user, String action0, final ActionRequest request,
                                                 Task task, final Set<String> injectedRoles) {
 
@@ -190,10 +212,7 @@ public class PrivilegesEvaluator {
         final Set<String> mappedRoles = (injectedRoles == null) ? mapRoles(user, caller) : injectedRoles;
         final SecurityRoles securityRoles = getSecurityRoles(mappedRoles);
 
-        // Mapped roles are added to the User. These roles can be read in transport layer only.
-        if(mappedRoles != null) {
-            user.addOpenDistroSecurityRoles(mappedRoles);
-        }
+        setUserInfoInThreadContext(user, mappedRoles);
 
         final PrivilegesEvaluatorResponse presponse = new PrivilegesEvaluatorResponse();
 
