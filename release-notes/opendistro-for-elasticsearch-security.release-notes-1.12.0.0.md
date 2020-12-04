@@ -20,6 +20,7 @@ Compatible with Elasticsearch 7.10.0
 * Fix empty password issue in upgrade from 6x to 7x [#816](https://github.com/opendistro-for-elasticsearch/security/pull/816)
 * Reject empty password in internal user creation [#818](https://github.com/opendistro-for-elasticsearch/security/pull/818)
 * Use reflection to get reduceOrder, termBytes and format due to java.lang.IllegalAccessError [#866](https://github.com/opendistro-for-elasticsearch/security/pull/866)
+* Fix for java.io.OptionalDataException that is caused by changes to User object after it is put on thread context. [#869](https://github.com/opendistro-for-elasticsearch/security/pull/869)
 
 ## Maintenance
 
