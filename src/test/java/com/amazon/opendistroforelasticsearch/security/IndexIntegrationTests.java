@@ -30,6 +30,7 @@
 
 package com.amazon.opendistroforelasticsearch.security;
 
+import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.TimeZone;
@@ -455,6 +456,17 @@ public class IndexIntegrationTests extends SingleClusterTest {
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("*kibana/_search?pretty", encodeBasicHeader("aliastest", "nagilum")).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest(".ki*ana/_search?pretty", encodeBasicHeader("aliastest", "nagilum")).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest(".kibana/_search?pretty", encodeBasicHeader("aliastest", "nagilum")).getStatusCode());
+    }
+
+    @Test
+    public void testIndexResolveInvalidIndexName() throws Exception {
+        setup();
+        final RestHelper rh = nonSslRestHelper();
+
+        // invalid_index_name_exception should be thrown and responded when invalid index name is mentioned in requests.
+        HttpResponse res = rh.executeGetRequest(URLEncoder.encode("_##pdt_data/_search", "UTF-8"), encodeBasicHeader("ccsresolv", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, res.getStatusCode());
+        Assert.assertTrue(res.getBody().contains("invalid_index_name_exception"));
     }
     
     @Test
