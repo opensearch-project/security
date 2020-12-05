@@ -98,7 +98,6 @@ import com.amazon.opendistroforelasticsearch.security.user.User;
 
 import static com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin.isActionTraceEnabled;
 import static com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin.traceAction;
-import static com.amazon.opendistroforelasticsearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_USER_AND_ROLES;
 
 public class OpenDistroSecurityFilter implements ActionFilter {
 
@@ -291,10 +290,6 @@ public class OpenDistroSecurityFilter implements ActionFilter {
             
             if (log.isDebugEnabled()) {
                 log.debug(pres);
-            }
-
-            if(threadContext.getTransient(OPENDISTRO_SECURITY_USER_AND_ROLES) == null) {
-                threadContext.putTransient(OPENDISTRO_SECURITY_USER_AND_ROLES, user.getUserRolesString());
             }
 
             if (pres.isAllowed()) {

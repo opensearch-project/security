@@ -37,6 +37,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.StringJoiner;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -92,7 +93,10 @@ import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 
+import com.google.common.collect.Sets;
+
 import static com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin.traceAction;
+import static com.amazon.opendistroforelasticsearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_USER_AND_ROLES;
 
 public class PrivilegesEvaluator {
 
@@ -167,6 +171,16 @@ public class PrivilegesEvaluator {
         return configModel !=null && configModel.getSecurityRoles() != null && dcm != null;
     }
 
+    private void setUserAndRolesInThreadContext(User user, Set<String> mappedRoles) {
+        if (threadContext.getTransient(OPENDISTRO_SECURITY_USER_AND_ROLES) == null) {
+            StringJoiner joiner = new StringJoiner("|");
+            joiner.add(user.getName());
+            joiner.add(String.join(",", user.getRoles()));
+            joiner.add(String.join(",", Sets.union(user.getOpenDistroSecurityRoles(), mappedRoles)));
+            threadContext.putTransient(OPENDISTRO_SECURITY_USER_AND_ROLES, joiner.toString());
+        }
+    }
+
     public PrivilegesEvaluatorResponse evaluate(final User user, String action0, final ActionRequest request,
                                                 Task task, final Set<String> injectedRoles) {
 
@@ -190,10 +204,7 @@ public class PrivilegesEvaluator {
         final Set<String> mappedRoles = (injectedRoles == null) ? mapRoles(user, caller) : injectedRoles;
         final SecurityRoles securityRoles = getSecurityRoles(mappedRoles);
 
-        // Mapped roles are added to the User. These roles can be read in transport layer only.
-        if(mappedRoles != null) {
-            user.addOpenDistroSecurityRoles(mappedRoles);
-        }
+        setUserAndRolesInThreadContext(user, mappedRoles);
 
         final PrivilegesEvaluatorResponse presponse = new PrivilegesEvaluatorResponse();
 
