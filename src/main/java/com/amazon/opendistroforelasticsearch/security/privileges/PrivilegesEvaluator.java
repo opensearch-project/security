@@ -31,14 +31,13 @@
 package com.amazon.opendistroforelasticsearch.security.privileges;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Stream;
+import java.util.StringJoiner;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -95,8 +94,7 @@ import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 import static com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin.traceAction;
 import static com.amazon.opendistroforelasticsearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT;
@@ -174,18 +172,17 @@ public class PrivilegesEvaluator {
         return configModel !=null && configModel.getSecurityRoles() != null && dcm != null;
     }
 
-    private void setUserInfoInThreadContext(User user, Collection<String> mappedRoles) {
+    private void setUserInfoInThreadContext(User user, Set<String> mappedRoles) {
         if (threadContext.getTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT) == null) {
-            final ImmutableList.Builder<String> builder = ImmutableList.builder();
-            builder.add(user.getName(),
-                    String.join(",", user.getRoles()),
-                    String.join(",", Stream.concat(user.getOpenDistroSecurityRoles().stream(), mappedRoles.stream())
-                            .collect(ImmutableSet.toImmutableSet())));
+            StringJoiner joiner = new StringJoiner("|");
+            joiner.add(user.getName());
+            joiner.add(String.join(",", user.getRoles()));
+            joiner.add(String.join(",", Sets.union(user.getOpenDistroSecurityRoles(), mappedRoles)));
             String requestedTenant = user.getRequestedTenant();
             if (!Strings.isNullOrEmpty(requestedTenant)) {
-                builder.add(requestedTenant);
+                joiner.add(requestedTenant);
             }
-            threadContext.putTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT, String.join("|", builder.build()));
+            threadContext.putTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT, joiner.toString());
         }
     }
 
