@@ -5,9 +5,12 @@ template: |
 
 # Setting the formatting and sorting for the release notes body
 name-template: Version (set version here)
-change-template: '* $TITLE [#$NUMBER](https://github.com/opendistro-for-elasticsearch/security/pull/$NUMBER)'
+change-template: '* $TITLE ([#$NUMBER](https://github.com/opendistro-for-elasticsearch/security/pull/$NUMBER))'
 sort-by: merged_at
 sort-direction: ascending
+replacers:
+  - search: "##"
+    replace: "###"
 
 # Organizing the tagged PRs into unified ODFE categories
 categories:
