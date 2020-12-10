@@ -10,6 +10,7 @@ Compatible with Elasticsearch 7.10.0
 * Add user & roles to the thread context  ([#798](https://github.com/opendistro-for-elasticsearch/security/pull/798))
 * Security configuration for reporting and notification plugins ([#836](https://github.com/opendistro-for-elasticsearch/security/pull/836))
 * Support user injection for transport requests ([#763](https://github.com/opendistro-for-elasticsearch/security/pull/763))
+* Support ES 7.10.0 ([#840](https://github.com/opendistro-for-elasticsearch/security/pull/840))
 * Support certs with separate Extended Key Usage ([#493](https://github.com/opendistro-for-elasticsearch/security/pull/493))
 * Adding requested tenant to the thread context transient info for consumption ([#850](https://github.com/opendistro-for-elasticsearch/security/pull/850))
 
@@ -31,7 +32,6 @@ Compatible with Elasticsearch 7.10.0
 * Change version to 1.12.0.0 ([#860](https://github.com/opendistro-for-elasticsearch/security/pull/860))
 * Upgrade github CD action to using Environment Files ([#862](https://github.com/opendistro-for-elasticsearch/security/pull/862))
 * Refactor getUserInfoString ([#864](https://github.com/opendistro-for-elasticsearch/security/pull/864))
-* Support ES 7.10.0 ([#840](https://github.com/opendistro-for-elasticsearch/security/pull/840))
 * Update 1.12 release notes ([#867](https://github.com/opendistro-for-elasticsearch/security/pull/867))
 * Update 1.12 release notes ([#872](https://github.com/opendistro-for-elasticsearch/security/pull/872))
 * Use StringJoiner instead of (Immutable)List builder ([#877](https://github.com/opendistro-for-elasticsearch/security/pull/877))
