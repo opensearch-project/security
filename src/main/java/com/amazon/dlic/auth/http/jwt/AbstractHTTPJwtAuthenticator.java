@@ -120,7 +120,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
 
         if (subject == null) {
             log.error("No subject found in JWT token");
-            return null;
+            throw new ElasticsearchSecurityException("No subject found in JWT token", RestStatus.FORBIDDEN);
         }
 
         final String[] roles = extractRoles(claims);

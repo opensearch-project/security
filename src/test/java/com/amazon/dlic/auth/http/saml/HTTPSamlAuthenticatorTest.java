@@ -37,10 +37,12 @@ import javax.net.ssl.KeyManagerFactory;
 import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
 import org.apache.cxf.rs.security.jose.jws.JwsJwtCompactConsumer;
 import org.apache.cxf.rs.security.jose.jwt.JwtToken;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.rest.RestChannel;
@@ -145,14 +147,51 @@ public class HTTPSamlAuthenticatorTest {
         HashMap<String, Object> response = DefaultObjectMapper.objectMapper.readValue(responseJson,
                 new TypeReference<HashMap<String, Object>>() {
                 });
+        String authorizationHeader = (String) response.get("authorization");
+
+        Assert.assertNotNull("Expected authorization attribute in JSON: " + responseJson, authorizationHeader);
+
+        JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(authorizationHeader.replaceAll("\\s*bearer\\s*", ""));
+        JwtToken jwt = jwtConsumer.getJwtToken();
+
+        Assert.assertEquals("horst", jwt.getClaim("sub"));
+    }
+
+    @Test(expected = ElasticsearchException.class)
+    public void wrongSubjectKeyTest() throws Exception {
+        mockSamlIdpServer.setSignResponses(true);
+        mockSamlIdpServer.loadSigningKeys("saml/kirk-keystore.jks", "kirk");
+        mockSamlIdpServer.setAuthenticateUser("horst");
+        mockSamlIdpServer.setEndpointQueryString(null);
+
+        Settings settings = Settings.builder().put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
+            .put("kibana_url", "http://wherever").put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
+            .put("exchange_key", "abc").put("roles_key", "roles").put("subject_key", "wrong").put("path.home", ".").build();
+
+        HTTPSamlAuthenticator samlAuthenticator = new HTTPSamlAuthenticator(settings, null);
+
+        AuthenticateHeaders authenticateHeaders = getAutenticateHeaders(samlAuthenticator);
+
+        String encodedSamlResponse = mockSamlIdpServer.handleSsoGetRequestURI(authenticateHeaders.location);
+
+        RestRequest tokenRestRequest = buildTokenExchangeRestRequest(encodedSamlResponse, authenticateHeaders);
+
+        TestRestChannel tokenRestChannel = new TestRestChannel(tokenRestRequest);
+
+        samlAuthenticator.reRequestAuthentication(tokenRestChannel, null);
+
+
+        String responseJson = new String(BytesReference.toBytes(tokenRestChannel.response.content()));
+        HashMap<String, Object> response = DefaultObjectMapper.objectMapper.readValue(responseJson,
+            new TypeReference<HashMap<String, Object>>() {
+            });
         String authorization = (String) response.get("authorization");
 
         Assert.assertNotNull("Expected authorization attribute in JSON: " + responseJson, authorization);
 
-        JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(authorization.replaceAll("\\s*bearer\\s*", ""));
-        JwtToken jwt = jwtConsumer.getJwtToken();
+        RestRequest authInfoRestRequest = buildAuthInfoRestRequest(encodedSamlResponse, authorization);
 
-        Assert.assertEquals("horst", jwt.getClaim("sub"));
+        samlAuthenticator.extractCredentials(authInfoRestRequest, new ThreadContext(Settings.EMPTY));
     }
 
     @Test
@@ -638,6 +677,15 @@ public class HTTPSamlAuthenticatorTest {
                 .withHeaders(ImmutableMap.of("Content-Type", "application/json")).build();
     }
 
+    private RestRequest buildAuthInfoRestRequest(String encodedSamlResponse, String authorization) {
+        String authtokenPostJson;
+
+        authtokenPostJson = "{\"SAMLResponse\": \"" + encodedSamlResponse + ", \"acsEndpoint\": \"" + "/opendistrosecurity/saml/acs" + "\" }";
+
+        return new FakeRestRequest.Builder().withPath("/_opendistro/_security/authinfo").withMethod(Method.GET)
+            .withContent(new BytesArray(authtokenPostJson))
+            .withHeaders(ImmutableMap.of("Authorization", authorization)).build();
+    }
     @BeforeClass
     public static void initSpSigningKeys() {
         try {
@@ -721,4 +769,5 @@ public class HTTPSamlAuthenticatorTest {
             this.requestId = requestId;
         }
     }
+
 }
