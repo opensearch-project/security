@@ -118,13 +118,13 @@ public class IndexResolverReplacer {
         this.clusterInfoHolder = clusterInfoHolder;
     }
 
-    private static boolean isAllWithNoRemote(final String... requestedPatterns) {
+    private static boolean isAllWithNoRemote(final String[] requestedPatterns) {
         final List<String> patterns = requestedPatterns == null ? null : Arrays.asList(requestedPatterns);
         if (IndexNameExpressionResolver.isAllIndices(patterns)) {
             return true;
         }
         if (patterns.size() == 1) {
-            final String pattern = patterns.iterator().next();
+            final String pattern = requestedPatterns[0];
             return pattern == null || pattern.equals("*");
         }
         return false;
