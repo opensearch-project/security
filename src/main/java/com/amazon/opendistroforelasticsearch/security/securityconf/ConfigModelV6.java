@@ -1100,14 +1100,14 @@ public class ConfigModelV6 extends ConfigModel {
     private class RoleMappingHolder {
 
         private ListMultimap<String, String> users;
-        private ListMultimap<Collection<WildcardMatcher>, String> abars;
+        private ListMultimap<List<WildcardMatcher>, String> abars;
         private ListMultimap<String, String> bars;
         private ListMultimap<String, String> hosts;
         private final String hostResolverMode;
 
-        private Collection<WildcardMatcher> userMatchers;
-        private Collection<WildcardMatcher> barMatchers;
-        private Collection<WildcardMatcher> hostMatchers;
+        private List<WildcardMatcher> userMatchers;
+        private List<WildcardMatcher> barMatchers;
+        private List<WildcardMatcher> hostMatchers;
 
         private RoleMappingHolder(final SecurityDynamicConfiguration<RoleMappingsV6> rolesMapping, final String hostResolverMode) {
 
@@ -1176,7 +1176,7 @@ public class ConfigModelV6 extends ConfigModel {
                     securityRoles.addAll(bars.get(p));
                 }
 
-                for (Collection<WildcardMatcher> patterns : abars.keySet()) {
+                for (List<WildcardMatcher> patterns : abars.keySet()) {
                     if (patterns.stream().allMatch(p -> p.matchAny(user.getRoles()))) {
                         securityRoles.addAll(abars.get(patterns));
                     }
