@@ -1155,7 +1155,7 @@ public class ConfigModelV6 extends ConfigModel {
                 return Collections.emptySet();
             }
 
-            final Set<String> securityRoles = new TreeSet<String>();
+            final Set<String> securityRoles = new HashSet<>();
 
             if (rolesMappingResolution == ConfigConstants.RolesMappingResolution.BOTH
                     || rolesMappingResolution == ConfigConstants.RolesMappingResolution.BACKENDROLES_ONLY) {
