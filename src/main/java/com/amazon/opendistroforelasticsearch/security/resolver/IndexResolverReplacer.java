@@ -692,7 +692,8 @@ public class IndexResolverReplacer {
             ((UpdateRequest) request).index(newIndices.length!=1?null:newIndices[0]);
         } else if (request instanceof SingleShardRequest) {
             final SingleShardRequest<?> gr = (SingleShardRequest<?>) request;
-            String[] newIndices = provider.provide(gr.indices(), request, true);
+            final String index = gr.index();
+            String[] newIndices = provider.provide(index == null ? null : new String[]{index}, request, true);
             if (!checkIndices(request, newIndices, true, allowEmptyIndices)) {
                 return false;
             }
