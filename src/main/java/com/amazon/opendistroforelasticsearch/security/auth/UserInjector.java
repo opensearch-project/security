@@ -30,6 +30,7 @@
 
 package com.amazon.opendistroforelasticsearch.security.auth;
 
+import java.io.ObjectStreamException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
@@ -66,11 +67,21 @@ public class UserInjector {
 
     }
 
-    public static class InjectedUser extends User {
+    static class InjectedUser extends User {
         private transient TransportAddress transportAddress;
 
         public InjectedUser(String name) {
             super(name);
+        }
+
+        private Object writeReplace() throws ObjectStreamException {
+            User user = new User(getName());
+            user.addRoles(getRoles());
+            user.addOpenDistroSecurityRoles(getOpenDistroSecurityRoles());
+            user.setRequestedTenant(getRequestedTenant());
+            user.addAttributes(getCustomAttributesMap());
+            user.setInjected(true);
+            return user;
         }
 
         public TransportAddress getTransportAddress() {
