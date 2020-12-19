@@ -46,7 +46,7 @@ public class UserInjectorTest {
         HashSet<String> roles = new HashSet<>();
         roles.addAll(Arrays.asList("role1", "role2"));
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "user|role1,role2");
-        UserInjector.InjectedUser injectedUser = userInjector.getInjectedUser();
+        User injectedUser = userInjector.getInjectedUser();
         assertEquals(injectedUser.getName(), "user");
         assertEquals(injectedUser.getRoles(), roles);
     }
@@ -56,13 +56,13 @@ public class UserInjectorTest {
         HashSet<String> roles = new HashSet<>();
         roles.addAll(Arrays.asList("role1", "role2"));
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "|role1,role2");
-        UserInjector.InjectedUser injectedUser = userInjector.getInjectedUser();
+        User injectedUser = userInjector.getInjectedUser();
         assertNull(injectedUser);
     }
 
     @Test
     public void testEmptyInjectUserHeader() {
-        UserInjector.InjectedUser injectedUser = userInjector.getInjectedUser();
+        User injectedUser = userInjector.getInjectedUser();
         assertNull(injectedUser);
     }
 }
