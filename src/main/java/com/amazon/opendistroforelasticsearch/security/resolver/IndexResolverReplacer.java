@@ -205,8 +205,8 @@ public class IndexResolverReplacer {
             remoteIndices = Collections.emptySet();
         }
 
-        final Set<String> matchingAliases;
-        Set<String> matchingAllIndices;
+        final Collection<String> matchingAliases;
+        Collection<String> matchingAllIndices;
 
         if (isLocalAll(requestedPatterns0)) {
             if (log.isTraceEnabled()) {
@@ -240,9 +240,7 @@ public class IndexResolverReplacer {
                     .collect(Collectors.toSet());
 
             try {
-                matchingAllIndices = new HashSet<>(Arrays.asList(
-                        resolver.concreteIndexNames(state, indicesOptions, localRequestedPatterns.toArray(new String[0]))
-                ));
+                matchingAllIndices = Arrays.asList(resolver.concreteIndexNames(state, indicesOptions, localRequestedPatterns.toArray(new String[0])));
                 if (log.isDebugEnabled()) {
                     log.debug("Resolved pattern {} to {}", localRequestedPatterns, matchingAllIndices);
                 }
@@ -255,7 +253,7 @@ public class IndexResolverReplacer {
             }
         }
 
-        return new Resolved(matchingAliases, matchingAllIndices, new HashSet<>(Arrays.asList(requestedPatterns0)), remoteIndices);
+        return new Resolved(matchingAliases, matchingAllIndices, Arrays.asList(requestedPatterns0), remoteIndices);
 
     }
 
@@ -351,53 +349,61 @@ public class IndexResolverReplacer {
 
     public final static class Resolved implements Serializable, Writeable {
 
-        /**
-         *
-         */
-        private static final Set<String> All_SET = Collections.singleton("*");
+        private static final Set<String> All_SET = ImmutableSet.of("*");
+        private static final Set<String> types = All_SET;
         private static final long serialVersionUID = 1L;
-        public final static Resolved _LOCAL_ALL = new Resolved(All_SET, All_SET, All_SET, Collections.emptySet());
+        public static final Resolved _LOCAL_ALL = new Resolved(All_SET, All_SET, All_SET, Collections.emptySet());
+
         private final Set<String> aliases;
         private final Set<String> allIndices;
-        private static final Set<String> types = ImmutableSet.of("*");
-
         private final Set<String> originalRequested;
         private final Set<String> remoteIndices;
+        private final boolean isLocalAll;
 
-        private Resolved(final Set<String> aliases, final Set<String> allIndices,
-                         final Set<String> originalRequested, final Set<String> remoteIndices) {
-            this.aliases = aliases;
-            this.allIndices = allIndices;
-            this.originalRequested = originalRequested;
-            this.remoteIndices = remoteIndices;
+        private Resolved(final Collection<String> aliases,
+                         final Collection<String> allIndices,
+                         final Collection<String> originalRequested,
+                         final Collection<String> remoteIndices) {
+            this.aliases = ImmutableSet.copyOf(aliases);
+            this.allIndices = ImmutableSet.copyOf(allIndices);
+            this.originalRequested = ImmutableSet.copyOf(originalRequested);
+            this.remoteIndices = ImmutableSet.copyOf(remoteIndices);
+            this.isLocalAll = IndexResolverReplacer.isLocalAll(originalRequested.toArray(new String[0])) || (aliases.contains("*") && allIndices.contains("*"));
+        }
+
+        public Resolved(final StreamInput in) throws IOException {
+            this(in.readList(StreamInput::readString),
+                    in.readList(StreamInput::readString),
+                    in.readList(StreamInput::readString),
+                    in.readList(StreamInput::readString));
+        }
+
+        @Override
+        public void writeTo(StreamOutput out) throws IOException {
+            out.writeStringCollection(aliases);
+            out.writeStringCollection(allIndices);
+            out.writeStringCollection(originalRequested);
+            out.writeStringCollection(remoteIndices);
         }
 
         public boolean isLocalAll() {
-            if(IndexResolverReplacer.isLocalAll(originalRequested==null?null:originalRequested.toArray(new String[0]))) {
-                return true;
-            }
-
-            return aliases.contains("*") && allIndices.contains("*") && types.contains("*");
+            return isLocalAll;
         }
 
         public Set<String> getAliases() {
-            return Collections.unmodifiableSet(aliases);
+            return aliases;
         }
 
         public Set<String> getAllIndices() {
-            return Collections.unmodifiableSet(allIndices);
+            return allIndices;
         }
 
         public Set<String> getTypes() {
             return types;
         }
 
-        public Set<String> getOriginalRequested() {
-            return Collections.unmodifiableSet(originalRequested);
-        }
-
         public Set<String> getRemoteIndices() {
-            return Collections.unmodifiableSet(remoteIndices);
+            return remoteIndices;
         }
 
         @Override
@@ -449,37 +455,17 @@ public class IndexResolverReplacer {
             return true;
         }
 
-
         private static class Builder {
+            private final Set<String> aliases;
+            private final Set<String> allIndices;
+            private final Set<String> originalRequested;
+            private final Set<String> remoteIndices;
 
-            private final Set<String> aliases = new HashSet<String>();
-            private final Set<String> allIndices = new HashSet<String>();
-            private final Set<String> originalRequested = new HashSet<String>();
-            private final Set<String> remoteIndices = new HashSet<String>();
-
-            public Builder() {
-                this(null, null, null, null);
-            }
-
-            public Builder(Collection<String> aliases, Collection<String> allIndices,
-                           String[] originalRequested, Collection<String> remoteIndices) {
-
-                if(aliases != null) {
-                    this.aliases.addAll(aliases);
-                }
-
-
-                if(allIndices != null) {
-                    this.allIndices.addAll(allIndices);
-                }
-
-                if(originalRequested != null) {
-                    this.originalRequested.addAll(Arrays.asList(originalRequested));
-                }
-
-                if(remoteIndices != null) {
-                    this.remoteIndices.addAll(remoteIndices);
-                }
+            Builder() {
+                this.aliases = new HashSet<>();
+                this.allIndices = new HashSet<>();
+                this.originalRequested = new HashSet<>();
+                this.remoteIndices = new HashSet<>();
             }
 
             public Builder add(Resolved r) {
@@ -489,40 +475,10 @@ public class IndexResolverReplacer {
                 this.remoteIndices.addAll(r.remoteIndices);
                 return this;
             }
-            
-            public Builder addOriginalRequested(List<String> originalRequested) {
-                if(originalRequested != null) {
-                    this.originalRequested.addAll(originalRequested);
-                }
-                return this;
-            }
-            
-            public Builder addRemoteIndices(Set<String> remoteIndices) {
-                if(remoteIndices != null) {
-                    this.remoteIndices.addAll(remoteIndices);
-                }
-                return this;
-            }
 
             public Resolved build() {
                 return new Resolved(aliases, allIndices, originalRequested, remoteIndices);
             }
-        }
-
-        public Resolved(final StreamInput in) throws IOException {
-            aliases = new HashSet<String>(in.readList(StreamInput::readString));
-            allIndices = new HashSet<String>(in.readList(StreamInput::readString));
-            originalRequested = new HashSet<String>(in.readList(StreamInput::readString));
-            remoteIndices = new HashSet<String>(in.readList(StreamInput::readString));
-        }
-
-
-        @Override
-        public void writeTo(StreamOutput out) throws IOException {
-            out.writeStringCollection(new ArrayList<>(aliases));
-            out.writeStringCollection(new ArrayList<>(allIndices));
-            out.writeStringCollection(new ArrayList<>(originalRequested));
-            out.writeStringCollection(new ArrayList<>(remoteIndices));
         }
     }
 
