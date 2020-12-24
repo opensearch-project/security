@@ -30,8 +30,6 @@
 
 package com.amazon.opendistroforelasticsearch.security.resolver;
 
-import java.io.IOException;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -82,9 +80,6 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexAbstraction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.reindex.ReindexRequest;
@@ -347,11 +342,10 @@ public class IndexResolverReplacer {
         return resolvedBuilder.build();
     }
 
-    public final static class Resolved implements Serializable, Writeable {
+    public final static class Resolved {
 
         private static final Set<String> All_SET = ImmutableSet.of("*");
         private static final Set<String> types = All_SET;
-        private static final long serialVersionUID = 1L;
         public static final Resolved _LOCAL_ALL = new Resolved(All_SET, All_SET, All_SET, Collections.emptySet());
 
         private final Set<String> aliases;
@@ -369,21 +363,6 @@ public class IndexResolverReplacer {
             this.originalRequested = ImmutableSet.copyOf(originalRequested);
             this.remoteIndices = ImmutableSet.copyOf(remoteIndices);
             this.isLocalAll = IndexResolverReplacer.isLocalAll(originalRequested.toArray(new String[0])) || (aliases.contains("*") && allIndices.contains("*"));
-        }
-
-        public Resolved(final StreamInput in) throws IOException {
-            this(in.readList(StreamInput::readString),
-                    in.readList(StreamInput::readString),
-                    in.readList(StreamInput::readString),
-                    in.readList(StreamInput::readString));
-        }
-
-        @Override
-        public void writeTo(StreamOutput out) throws IOException {
-            out.writeStringCollection(aliases);
-            out.writeStringCollection(allIndices);
-            out.writeStringCollection(originalRequested);
-            out.writeStringCollection(remoteIndices);
         }
 
         public boolean isLocalAll() {
