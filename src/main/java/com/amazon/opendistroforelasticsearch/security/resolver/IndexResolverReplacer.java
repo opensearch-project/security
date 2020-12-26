@@ -40,10 +40,10 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
+import org.apache.commons.collections.keyvalue.MultiKey;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionRequest;
@@ -95,7 +95,6 @@ import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfig
 import com.amazon.opendistroforelasticsearch.security.support.SnapshotRestoreHelper;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 import static org.elasticsearch.cluster.metadata.IndexAbstraction.Type.ALIAS;
@@ -153,106 +152,165 @@ public class IndexResolverReplacer {
         return false;
     }
 
-    private Resolved resolveIndexPatterns(final IndicesOptions indicesOptions, final boolean enableCrossClusterResolution, final String... requestedPatterns0) {
+    private class ResolvedIndicesProvider implements IndicesProvider {
+        private final ImmutableSet.Builder<String> aliases;
+        private final ImmutableSet.Builder<String> allIndices;
+        private final ImmutableSet.Builder<String> originalRequested;
+        private final ImmutableSet.Builder<String> remoteIndices;
+        // set of previously resolved index requests to avoid resolving
+        // the same index more than once while processing bulk requests
+        private final Set<MultiKey> alreadyResolved;
+        private final String name;
 
-        if(log.isTraceEnabled()) {
-            log.trace("resolve requestedPatterns: "+ Arrays.toString(requestedPatterns0));
+        ResolvedIndicesProvider(Object request) {
+            aliases = ImmutableSet.builder();
+            allIndices = ImmutableSet.builder();
+            originalRequested = ImmutableSet.builder();
+            remoteIndices = ImmutableSet.builder();
+            alreadyResolved = new HashSet<>();
+            name = request.getClass().getSimpleName();
         }
 
-        if (isAllWithNoRemote(requestedPatterns0)) {
-            if (log.isTraceEnabled()) {
-                log.trace(Arrays.toString(requestedPatterns0) + " is an ALL pattern without any remote indices");
+        private void resolveIndexPatterns(final String name, final IndicesOptions indicesOptions, final boolean enableCrossClusterResolution, final String[] original) {
+
+            if(log.isTraceEnabled()) {
+                log.trace("resolve requestedPatterns: "+ Arrays.toString(original));
             }
-            return Resolved._LOCAL_ALL;
-        }
 
-        Set<String> remoteIndices;
-        final List<String> localRequestedPatterns = new ArrayList<>(Arrays.asList(requestedPatterns0));
+            if (isAllWithNoRemote(original)) {
+                if (log.isTraceEnabled()) {
+                    log.trace(Arrays.toString(original) + " is an ALL pattern without any remote indices");
+                }
+                resolveToLocalAll();
+                return;
+            }
 
-        final RemoteClusterService remoteClusterService = OpenDistroSecurityPlugin.GuiceHolder.getRemoteClusterService();
+            Set<String> remoteIndices;
+            final List<String> localRequestedPatterns = new ArrayList<>(Arrays.asList(original));
 
-        if(remoteClusterService.isCrossClusterSearchEnabled() && enableCrossClusterResolution) {
-            remoteIndices = new HashSet<>();
-            final Map<String, OriginalIndices> remoteClusterIndices = OpenDistroSecurityPlugin.GuiceHolder.getRemoteClusterService()
-                    .groupIndices(indicesOptions, requestedPatterns0, idx -> resolver.hasIndexAbstraction(idx, clusterService.state()));
-            final Set<String> remoteClusters = remoteClusterIndices.keySet().stream()
-                    .filter(k->!RemoteClusterService.LOCAL_CLUSTER_GROUP_KEY.equals(k)).collect(Collectors.toSet());
-            for(String remoteCluster : remoteClusters) {
-                for(String remoteIndex : remoteClusterIndices.get(remoteCluster).indices()) {
-                    remoteIndices.add(RemoteClusterService.buildRemoteIndexName(remoteCluster, remoteIndex));
+            final RemoteClusterService remoteClusterService = OpenDistroSecurityPlugin.GuiceHolder.getRemoteClusterService();
+
+            if(remoteClusterService.isCrossClusterSearchEnabled() && enableCrossClusterResolution) {
+                remoteIndices = new HashSet<>();
+                final Map<String, OriginalIndices> remoteClusterIndices = OpenDistroSecurityPlugin.GuiceHolder.getRemoteClusterService()
+                        .groupIndices(indicesOptions, original, idx -> resolver.hasIndexAbstraction(idx, clusterService.state()));
+                final Set<String> remoteClusters = remoteClusterIndices.keySet().stream()
+                        .filter(k->!RemoteClusterService.LOCAL_CLUSTER_GROUP_KEY.equals(k)).collect(Collectors.toSet());
+                for(String remoteCluster : remoteClusters) {
+                    for(String remoteIndex : remoteClusterIndices.get(remoteCluster).indices()) {
+                        remoteIndices.add(RemoteClusterService.buildRemoteIndexName(remoteCluster, remoteIndex));
+                    }
+                }
+
+                final Iterator<String> iterator = localRequestedPatterns.iterator();
+                while (iterator.hasNext()) {
+                    final String[] split = iterator.next().split(String.valueOf(RemoteClusterService.REMOTE_CLUSTER_INDEX_SEPARATOR), 2);
+                    final WildcardMatcher matcher = WildcardMatcher.from(split[0]);
+                    if (split.length > 1 && matcher.matchAny(remoteClusters)) {
+                        iterator.remove();
+                    }
+                }
+
+                if (log.isTraceEnabled()) {
+                    log.trace("CCS is enabled, we found this local patterns " + localRequestedPatterns + " and this remote patterns: " + remoteIndices);
+                }
+
+            } else {
+                remoteIndices = Collections.emptySet();
+            }
+
+            final Collection<String> matchingAliases;
+            Collection<String> matchingAllIndices;
+
+            if (isLocalAll(original)) {
+                if (log.isTraceEnabled()) {
+                    log.trace(Arrays.toString(original) + " is an LOCAL ALL pattern");
+                }
+                matchingAliases = Resolved.All_SET;
+                matchingAllIndices = Resolved.All_SET;
+
+            } else if (!remoteIndices.isEmpty() && localRequestedPatterns.isEmpty()) {
+                if (log.isTraceEnabled()) {
+                    log.trace(Arrays.toString(original) + " is an LOCAL EMPTY request");
+                }
+                matchingAllIndices = Collections.emptySet();
+                matchingAliases = Collections.emptySet();
+            }
+
+            else {
+                final ClusterState state = clusterService.state();
+                final Set<String> dateResolvedLocalRequestedPatterns = localRequestedPatterns
+                                .stream()
+                                .map(resolver::resolveDateMathExpression)
+                                .collect(Collectors.toSet());
+                final WildcardMatcher dateResolvedMatcher = WildcardMatcher.from(dateResolvedLocalRequestedPatterns);
+                //fill matchingAliases
+                final Map<String, IndexAbstraction> lookup = state.metadata().getIndicesLookup();
+                matchingAliases = lookup.entrySet()
+                        .stream()
+                        .filter(e -> e.getValue().getType() == ALIAS)
+                        .map(Map.Entry::getKey)
+                        .filter(dateResolvedMatcher)
+                        .collect(Collectors.toSet());
+
+                try {
+                    matchingAllIndices = Arrays.asList(resolver.concreteIndexNames(state, indicesOptions, localRequestedPatterns.toArray(new String[0])));
+                    if (log.isDebugEnabled()) {
+                        log.debug("Resolved pattern {} to {}", localRequestedPatterns, matchingAllIndices);
+                    }
+                } catch (IndexNotFoundException e1) {
+                    if (log.isDebugEnabled()) {
+                        log.debug("No such indices for pattern {}, use raw value", localRequestedPatterns);
+                    }
+
+                    matchingAllIndices = dateResolvedLocalRequestedPatterns;
                 }
             }
 
-            final Iterator<String> iterator = localRequestedPatterns.iterator();
-            while (iterator.hasNext()) {
-                final String[] split = iterator.next().split(String.valueOf(RemoteClusterService.REMOTE_CLUSTER_INDEX_SEPARATOR), 2);
-                final WildcardMatcher matcher = WildcardMatcher.from(split[0]);
-                if (split.length > 1 && matcher.matchAny(remoteClusters)) {
-                    iterator.remove();
-                }
-            }
-
             if (log.isTraceEnabled()) {
-                log.trace("CCS is enabled, we found this local patterns " + localRequestedPatterns + " and this remote patterns: " + remoteIndices);
+                log.trace("Resolved patterns {} for {} ({}) to [aliases {}, allIndices {}, originalRequested{}, remote indices {}]",
+                        original, name, this.name, matchingAliases, matchingAllIndices, Arrays.toString(original), remoteIndices);
             }
 
-        } else {
-            remoteIndices = Collections.emptySet();
+            resolveTo(matchingAliases, matchingAllIndices, original, remoteIndices);
+
         }
 
-        final Collection<String> matchingAliases;
-        Collection<String> matchingAllIndices;
-
-        if (isLocalAll(requestedPatterns0)) {
-            if (log.isTraceEnabled()) {
-                log.trace(Arrays.toString(requestedPatterns0) + " is an LOCAL ALL pattern");
-            }
-            matchingAliases = Resolved.All_SET;
-            matchingAllIndices = Resolved.All_SET;
-
-        } else if (!remoteIndices.isEmpty() && localRequestedPatterns.isEmpty()) {
-            if (log.isTraceEnabled()) {
-                log.trace(Arrays.toString(requestedPatterns0) + " is an LOCAL EMPTY request");
-            }
-            matchingAllIndices = Collections.emptySet();
-            matchingAliases = Collections.emptySet();
+        private void resolveToLocalAll() {
+            aliases.add(Resolved.ANY);
+            allIndices.add(Resolved.ANY);
+            originalRequested.add(Resolved.ANY);
         }
 
-        else {
-            final ClusterState state = clusterService.state();
-            final Set<String> dateResolvedLocalRequestedPatterns = localRequestedPatterns
-                            .stream()
-                            .map(resolver::resolveDateMathExpression)
-                            .collect(Collectors.toSet());
-            final WildcardMatcher dateResolvedMatcher = WildcardMatcher.from(dateResolvedLocalRequestedPatterns);
-            //fill matchingAliases
-            final Map<String, IndexAbstraction> lookup = state.metadata().getIndicesLookup();
-            matchingAliases = lookup.entrySet()
-                    .stream()
-                    .filter(e -> e.getValue().getType() == ALIAS)
-                    .map(Map.Entry::getKey)
-                    .filter(dateResolvedMatcher)
-                    .collect(Collectors.toSet());
-
-            try {
-                matchingAllIndices = Arrays.asList(resolver.concreteIndexNames(state, indicesOptions, localRequestedPatterns.toArray(new String[0])));
-                if (log.isDebugEnabled()) {
-                    log.debug("Resolved pattern {} to {}", localRequestedPatterns, matchingAllIndices);
-                }
-            } catch (IndexNotFoundException e1) {
-                if (log.isDebugEnabled()) {
-                    log.debug("No such indices for pattern {}, use raw value", localRequestedPatterns);
-                }
-
-                matchingAllIndices = dateResolvedLocalRequestedPatterns;
-            }
+        private void resolveTo(Iterable<String> matchingAliases, Iterable<String> matchingAllIndices, String[] original, Iterable<String> remoteIndices) {
+            aliases.addAll(matchingAliases);
+            allIndices.addAll(matchingAllIndices);
+            originalRequested.add(original);
+            this.remoteIndices.addAll(remoteIndices);
         }
 
-        return new Resolved(matchingAliases, matchingAllIndices, Arrays.asList(requestedPatterns0), remoteIndices);
+        @Override
+        public String[] provide(String[] original, Object localRequest, boolean supportsReplace) {
+            final IndicesOptions indicesOptions = indicesOptionsFrom(localRequest);
+            final boolean enableCrossClusterResolution = localRequest instanceof FieldCapabilitiesRequest || localRequest instanceof SearchRequest;
+            // skip the whole thing if we have seen this exact resolveIndexPatterns request
+            if (alreadyResolved.add(new MultiKey(indicesOptions, enableCrossClusterResolution, new MultiKey(original, false)))) {
+                resolveIndexPatterns(localRequest.getClass().getSimpleName(), indicesOptions, enableCrossClusterResolution, original);
+            }
+            return IndicesProvider.NOOP;
+        }
 
+        Resolved resolved() {
+            final Resolved resolved = alreadyResolved.isEmpty() ? Resolved._LOCAL_ALL :
+                    new Resolved(aliases.build(), allIndices.build(), originalRequested.build(), remoteIndices.build());
+
+            if(log.isTraceEnabled()) {
+                log.trace("Finally resolved for {}: {}", name, resolved);
+            }
+
+            return resolved;
+        }
     }
-
-
 
     //dnfof
     public boolean replace(final TransportRequest request, boolean retainMode, String... replacements) {
@@ -275,78 +333,23 @@ public class IndexResolverReplacer {
         }, false);
     }
 
-    private static final class IndexResolveKey {
-        private final IndicesOptions opts;
-        private final boolean enableCrossClusterResolution;
-        private final String[] original;
-        public IndexResolveKey(IndicesOptions opts, boolean enableCrossClusterResolution, String[] original) {
-            this.opts = opts;
-            this.enableCrossClusterResolution = enableCrossClusterResolution;
-            this.original = original;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            IndexResolveKey that = (IndexResolveKey) o;
-            return enableCrossClusterResolution == that.enableCrossClusterResolution &&
-                    opts.equals(that.opts) &&
-                    Arrays.equals(original, that.original);
-        }
-
-        @Override
-        public int hashCode() {
-            return Boolean.hashCode(enableCrossClusterResolution) + 31 * opts.hashCode() + 127*Arrays.hashCode(original);
-        }
-    }
-
     public Resolved resolveRequest(final Object request) {
         if(log.isDebugEnabled()) {
             log.debug("Resolve aliases, indices and types from {}", request.getClass().getSimpleName());
         }
 
-        final Resolved.Builder resolvedBuilder = new Resolved.Builder();
-        final AtomicBoolean isIndicesRequest = new AtomicBoolean();
-        // set of previously resolved index requests to avoid resolving
-        // the same index more than once while processing bulk requests
-        final Set<IndexResolveKey> alreadyResolved = new HashSet<>();
+        final ResolvedIndicesProvider resolvedIndicesProvider = new ResolvedIndicesProvider(request);
 
-        getOrReplaceAllIndices(request, (original, localRequest, supportsReplace) -> {
-            final IndicesOptions indicesOptions = indicesOptionsFrom(localRequest);
-            final boolean enableCrossClusterResolution = localRequest instanceof FieldCapabilitiesRequest || localRequest instanceof SearchRequest;
-            final IndexResolveKey key = new IndexResolveKey(indicesOptions, enableCrossClusterResolution, original);
-            // skip the whole thing if we have seen this exact resolveIndexPatterns request
-            if (!alreadyResolved.contains(key)) {
-                final Resolved iResolved = resolveIndexPatterns(key.opts, key.enableCrossClusterResolution, key.original);
-                alreadyResolved.add(key);
-                resolvedBuilder.add(iResolved);
-                isIndicesRequest.set(true);
+        getOrReplaceAllIndices(request, resolvedIndicesProvider, false);
 
-                if (log.isTraceEnabled()) {
-                    log.trace("Resolved patterns {} for {} ({}) to {}", original, localRequest.getClass().getSimpleName(), request.getClass().getSimpleName(), iResolved);
-                }
-            }
-            return IndicesProvider.NOOP;
-        }, false);
-
-        if(!isIndicesRequest.get()) {
-            //not an indices request
-            return Resolved._LOCAL_ALL;
-        }
-
-        if(log.isTraceEnabled()) {
-            log.trace("Finally resolved for {}: {}", request.getClass().getSimpleName(), resolvedBuilder.build());
-        }
-
-        return resolvedBuilder.build();
+        return resolvedIndicesProvider.resolved();
     }
 
     public final static class Resolved {
-
-        private static final Set<String> All_SET = ImmutableSet.of("*");
+        private static final String ANY = "*";
+        private static final ImmutableSet<String> All_SET = ImmutableSet.of(ANY);
         private static final Set<String> types = All_SET;
-        public static final Resolved _LOCAL_ALL = new Resolved(All_SET, All_SET, All_SET, Collections.emptySet());
+        public static final Resolved _LOCAL_ALL = new Resolved(All_SET, All_SET, All_SET, ImmutableSet.of());
 
         private final Set<String> aliases;
         private final Set<String> allIndices;
@@ -354,14 +357,14 @@ public class IndexResolverReplacer {
         private final Set<String> remoteIndices;
         private final boolean isLocalAll;
 
-        private Resolved(final Collection<String> aliases,
-                         final Collection<String> allIndices,
-                         final Collection<String> originalRequested,
-                         final Collection<String> remoteIndices) {
-            this.aliases = ImmutableSet.copyOf(aliases);
-            this.allIndices = ImmutableSet.copyOf(allIndices);
-            this.originalRequested = ImmutableSet.copyOf(originalRequested);
-            this.remoteIndices = ImmutableSet.copyOf(remoteIndices);
+        private Resolved(final ImmutableSet<String> aliases,
+                         final ImmutableSet<String> allIndices,
+                         final ImmutableSet<String> originalRequested,
+                         final ImmutableSet<String> remoteIndices) {
+            this.aliases = aliases;
+            this.allIndices = allIndices;
+            this.originalRequested = originalRequested;
+            this.remoteIndices = remoteIndices;
             this.isLocalAll = IndexResolverReplacer.isLocalAll(originalRequested.toArray(new String[0])) || (aliases.contains("*") && allIndices.contains("*"));
         }
 
@@ -432,32 +435,6 @@ public class IndexResolverReplacer {
             } else if (!remoteIndices.equals(other.remoteIndices))
                 return false;
             return true;
-        }
-
-        private static class Builder {
-            private final Set<String> aliases;
-            private final Set<String> allIndices;
-            private final Set<String> originalRequested;
-            private final Set<String> remoteIndices;
-
-            Builder() {
-                this.aliases = new HashSet<>();
-                this.allIndices = new HashSet<>();
-                this.originalRequested = new HashSet<>();
-                this.remoteIndices = new HashSet<>();
-            }
-
-            public Builder add(Resolved r) {
-                this.aliases.addAll(r.aliases);
-                this.allIndices.addAll(r.allIndices);
-                this.originalRequested.addAll(r.originalRequested);
-                this.remoteIndices.addAll(r.remoteIndices);
-                return this;
-            }
-
-            public Resolved build() {
-                return new Resolved(aliases, allIndices, originalRequested, remoteIndices);
-            }
         }
     }
 
