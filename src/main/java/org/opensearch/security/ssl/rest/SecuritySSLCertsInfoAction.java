@@ -168,12 +168,7 @@ public class SecuritySSLCertsInfoAction extends BaseRestHandler {
                         final String issuerDn = cert != null && cert.getIssuerX500Principal() != null ? cert.getIssuerX500Principal().getName(): "";
                         final String subjectDn = cert != null && cert.getSubjectX500Principal() != null ? cert.getSubjectX500Principal().getName(): "";
 
-                        String san = "";
-                        try {
-                            san = cert !=null && cert.getSubjectAlternativeNames() != null ? cert.getSubjectAlternativeNames().toString() : "";
-                        } catch (CertificateParsingException e) {
-                            log.error("Issue parsing SubjectAlternativeName:", e);
-                        }
+                        final String san = odsks.getSubjectAlternativeNames(cert);
 
                         final String notBefore = cert != null && cert.getNotBefore() != null ? cert.getNotBefore().toInstant().toString(): "";
                         final String notAfter = cert != null && cert.getNotAfter() != null ? cert.getNotAfter().toInstant().toString(): "";
