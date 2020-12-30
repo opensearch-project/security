@@ -72,7 +72,7 @@ public class TLSUtilTests {
             buffer.writeByte(TLS_MAJOR_VERSION);
             buffer.writeByte(TLS_MINOR_VERSION);
             //setting content length as 0
-            buffer.writeByte(0);
+            buffer.writeShort(0);
             Assert.assertFalse(TLSUtil.isTLS(buffer));
         }
 
