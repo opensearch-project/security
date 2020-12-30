@@ -32,6 +32,7 @@ public interface OpenDistroSecurityKeyStore {
     public String getHTTPProviderName();
     public String getTransportServerProviderName();
     public String getTransportClientProviderName();
+    public String getSubjectAlternativeNames(X509Certificate cert); 
 
     public void initHttpSSLConfig();
     public void initTransportSSLConfig();
