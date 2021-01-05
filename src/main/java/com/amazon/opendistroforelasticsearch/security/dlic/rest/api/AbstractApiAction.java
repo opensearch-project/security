@@ -330,7 +330,31 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		@Override
 		public void onResponse(Response response) {
 
-			final ConfigUpdateRequest cur = new ConfigUpdateRequest(CType.lcStringValues().toArray(new String[0]));
+			ConfigUpdateRequest cur;
+			if (response instanceof IndexResponse) {
+				String requestedConfig = ((IndexResponse) response).getId();
+				if (requestedConfig.equals("actiongroups") || requestedConfig.equals("tenants") || requestedConfig.equals("whitelist") || requestedConfig.equals("audit")) {
+					String[] requestedConfigs = new String[]{requestedConfig};
+					cur = new ConfigUpdateRequest(requestedConfigs);
+				} else if (requestedConfig.equals("config")) {
+					String[] requestedConfigs = new String[]{requestedConfig, "roles", "rolesmapping", "actiongroups"};
+					cur = new ConfigUpdateRequest(requestedConfigs);
+				} else if (requestedConfig.equals("internalusers")) {
+					String[] requestedConfigs = new String[]{requestedConfig, "roles", "rolesmapping"};
+					cur = new ConfigUpdateRequest(requestedConfigs);
+				} else if (requestedConfig.equals("roles")) {
+					String[] requestedConfigs = new String[]{requestedConfig, "internalusers", "rolesmapping"};
+					cur = new ConfigUpdateRequest(requestedConfigs);
+				} else if (requestedConfig.equals("rolesmapping")) {
+					String[] requestedConfigs = new String[]{requestedConfig, "internalusers", "roles"};
+					cur = new ConfigUpdateRequest(requestedConfigs);
+				} else {
+					//NODESDN
+					cur = new ConfigUpdateRequest(CType.lcStringValues().toArray(new String[0]));
+				}
+			} else {
+				cur = new ConfigUpdateRequest(CType.lcStringValues().toArray(new String[0]));
+			}
 
 			client.execute(ConfigUpdateAction.INSTANCE, cur, new ActionListener<ConfigUpdateResponse>() {
 				@Override
