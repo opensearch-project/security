@@ -46,6 +46,7 @@ import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 
+import com.amazon.opendistroforelasticsearch.security.securityconf.SecurityRoles.TenantPermissions;
 import com.amazon.opendistroforelasticsearch.security.resolver.IndexResolverReplacer.Resolved;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.ActionGroupsV7;
@@ -109,10 +110,6 @@ public class ConfigModelV7 extends ConfigModel {
     
     public SecurityRoles getSecurityRoles() {
         return securityRoles;
-    }
-    
-    private static interface ActionGroupResolver {
-        Set<String> resolvedActions(final List<String> actions);
     }
     
     private ActionGroupResolver reloadActionGroups(SecurityDynamicConfiguration<ActionGroupsV7> actionGroups) {
@@ -186,6 +183,11 @@ public class ConfigModelV7 extends ConfigModel {
                 return Collections.unmodifiableSet(resolvedActions);
             }
         };
+    }
+
+    @Override
+    public ActionGroupResolver getActionGroupResolver() {
+        return agr;
     }
 
     private SecurityRoles reload(SecurityDynamicConfiguration<RoleV7> settings) {
@@ -337,6 +339,94 @@ public class ConfigModelV7 extends ConfigModel {
         
         public Set<String> getRoleNames() {
             return getRoles().stream().map(r -> r.getName()).collect(Collectors.toSet());
+        }
+
+        public static SecurityRoles create(SecurityDynamicConfiguration<RoleV7> settings, ActionGroupResolver actionGroupResolver) {
+
+            SecurityRoles result = new SecurityRoles(settings.getCEntries().size());
+            // Implement this for Auth Token
+            return result;
+        }
+
+
+
+        @Override
+        public TenantPermissions getTenantPermissions(User user, String requestedTenant) {
+            if (user == null) {
+                return TenantPermissionsGetter.EMPTY_TENANT_PERMISSIONS;
+            }
+
+            if (USER_TENANT.equals(requestedTenant)) {
+                return TenantPermissionsGetter.FULL_TENANT_PERMISSIONS;
+            }
+
+            Set<String> permissions = new HashSet<>();
+
+            for (SecurityRole role : roles) {
+                for (Tenant tenant : role.getTenants()) {
+                    if (WildcardMatcher.from(tenant.getTenantPattern(), true).test(requestedTenant)) {
+                        permissions.addAll(tenant.getPermissions());
+                    }
+                }
+            }
+
+            for (SecurityRole role : roles) {
+                if ("GLOBAL_TENANT".equalsIgnoreCase(requestedTenant) && permissions.isEmpty() &&
+                        (role.name.equalsIgnoreCase("kibana_user") || role.name.equalsIgnoreCase("all_access"))) {
+                    return TenantPermissionsGetter.RW_TENANT_PERMISSIONS;
+                }
+            }
+
+            return new TenantPermissionsGetter.TenantPermissionsImpl(permissions);
+        }
+
+        @Override
+        public boolean hasTenantPermission(User user, String requestedTenant, String action) {
+            TenantPermissions permissions = getTenantPermissions(user, requestedTenant);
+
+            if (permissions == null || permissions.getPermissions().isEmpty()) {
+                return false;
+            }
+
+            return WildcardMatcher.from(action).matchAny(permissions.getPermissions());
+        }
+
+        public Map<String, Boolean> mapTenants(User user, Set<String> allTenantNames) {
+            if (user == null) {
+                return Collections.emptyMap();
+            }
+
+            Map<String, Boolean> result = new HashMap<>(roles.size());
+            result.put(user.getName(), true);
+
+            for (SecurityRole role : roles) {
+                for (Tenant tenant : role.getTenants()) {
+                    String tenantPattern = tenant.getTenantPattern();
+                    boolean rw = tenant.isReadWrite();
+
+                    for (String tenantName : allTenantNames) {
+
+                        if (WildcardMatcher.from(tenantPattern, true).test(tenantName)) {
+
+                            if (rw || !result.containsKey(tenantName)) { //RW outperforms RO
+                                result.put(tenantName, rw);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // TODO SG8: Remove this
+
+
+            for (SecurityRole role : roles)  {
+                if (!result.containsKey("global_tenant") &&
+                        (role.name.equalsIgnoreCase("kibana_user") || role.name.equalsIgnoreCase("all_access"))) {
+                    result.put("global_tenant", true);
+                }
+            }
+
+            return Collections.unmodifiableMap(result);
         }
 
         public SecurityRoles filter(Set<String> keep) {
@@ -493,6 +583,7 @@ public class ConfigModelV7 extends ConfigModel {
         private final String name;
         private final Set<IndexPattern> ipatterns;
         private final WildcardMatcher clusterPerms;
+        private final Set<Tenant> tenants = new HashSet<>();
 
         public static final class Builder {
             private final String name;
@@ -569,12 +660,16 @@ public class ConfigModelV7 extends ConfigModel {
             return Collections.unmodifiableSet(retVal);
         }
 
-        /*private SecurityRole addTenant(Tenant tenant) {
+        private SecurityRole addTenant(Tenant tenant) {
             if (tenant != null) {
                 this.tenants.add(tenant);
             }
             return this;
-        }*/
+        }
+
+        public Set<Tenant> getTenants() {
+            return tenants;
+        }
 
         @Override
         public int hashCode() {
@@ -855,12 +950,35 @@ public class ConfigModelV7 extends ConfigModel {
     public static class Tenant {
         private final String tenant;
         private final boolean readWrite;
+        private final Set<String> permissions;
 
-        private Tenant(String tenant, boolean readWrite) {
+        private Tenant(String tenant, Set<String> permissions) {
             super();
             this.tenant = tenant;
-            this.readWrite = readWrite;
+            this.permissions = Collections.unmodifiableSet(permissions);
+            this.readWrite = containsKibanaWritePermission(permissions);
         }
+
+        public String getTenantPattern() {
+            return tenant;
+        }
+
+
+        public Set<String> getPermissions() {
+            return permissions;
+        }
+
+        private boolean containsKibanaWritePermission(Set<String> permissionsToBeSearched) {
+            if (permissionsToBeSearched.contains(TenantPermissionsGetter.KIBANA_ALL_SAVED_OBJECTS_WRITE)) {
+                return true;
+            }
+
+            if (permissionsToBeSearched.contains("*")) {
+                return true;
+            }
+            return WildcardMatcher.from(TenantPermissionsGetter.KIBANA_ALL_SAVED_OBJECTS_WRITE).matchAny(permissionsToBeSearched);
+        }
+
 
         public String getTenant() {
             return tenant;
@@ -1198,5 +1316,15 @@ public class ConfigModelV7 extends ConfigModel {
 
     public Set<String> mapSecurityRoles(User user, TransportAddress caller) {
         return roleMappingHolder.map(user, caller);
+    }
+
+    @Override
+    public boolean isTenantValid(String requestedTenant) {
+
+        if ("global_tenant".equals(requestedTenant) || ConfigModel.USER_TENANT.equals(requestedTenant)) {
+            return true;
+        }
+
+        return getAllConfiguredTenantNames().contains(requestedTenant);
     }
 }

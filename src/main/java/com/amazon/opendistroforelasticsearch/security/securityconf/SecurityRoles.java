@@ -61,4 +61,19 @@ public interface SecurityRoles {
 
     SecurityRoles filter(Set<String> roles);
 
+    public abstract TenantPermissions getTenantPermissions(User user, String requestedTenant);
+
+    public abstract boolean hasTenantPermission(User user, String requestedTenant, String action);
+
+    /**
+     * Only used for authinfo REST API
+     */
+    public abstract Map<String, Boolean> mapTenants(User user, Set<String> allTenantNames);
+
+    public interface TenantPermissions {
+        public boolean isReadPermitted();
+        public boolean isWritePermitted();
+        public Set<String> getPermissions();
+    }
+
 }

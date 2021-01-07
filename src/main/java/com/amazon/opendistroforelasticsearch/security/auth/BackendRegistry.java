@@ -296,7 +296,7 @@ public class BackendRegistry {
             } else {
                  //auth credentials submitted
                 //impersonation not possible, if requested it will be ignored
-                authenticatedUser = authcz(authenticatedUserCacheTransport, transportRoleCache, creds, authDomain.getBackend(), transportAuthorizers);
+                authenticatedUser = authcz(authenticatedUserCacheTransport, transportRoleCache, creds, (SyncAuthenticationBackend) authDomain.getBackend(), transportAuthorizers);
             }
 
             if (authenticatedUser == null) {
@@ -467,7 +467,7 @@ public class BackendRegistry {
             }
 
             //http completed       
-            authenticatedUser = authcz(userCache, restRoleCache, ac, authDomain.getBackend(), restAuthorizers);
+            authenticatedUser = authcz(userCache, restRoleCache, ac, (SyncAuthenticationBackend) authDomain.getBackend(), restAuthorizers);
 
             if(authenticatedUser == null) {
                 if(log.isDebugEnabled()) {
@@ -648,7 +648,7 @@ public class BackendRegistry {
      * @return null if user cannot b authenticated
      */
     private User authcz(final Cache<AuthCredentials, User> cache, Cache<User, Set<String>> roleCache, final AuthCredentials ac,
-                        final AuthenticationBackend authBackend, final Set<AuthorizationBackend> authorizers) {
+                        final SyncAuthenticationBackend authBackend, final Set<AuthorizationBackend> authorizers) {
         if(ac == null) {
             return null;
         }

@@ -21,6 +21,7 @@ import java.nio.file.Path;
 import java.util.Iterator;
 
 import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
+import com.amazon.opendistroforelasticsearch.security.privileges.SpecialPrivilegesEvaluationContextProviderRegistry;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.index.IndexResponse;
@@ -56,10 +57,10 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
     protected final Logger log = LogManager.getLogger(this.getClass());
 
     public PatchableResourceApiAction(Settings settings, Path configPath, RestController controller, Client client,
-            AdminDNs adminDNs, ConfigurationRepository cl, ClusterService cs,
-                                      PrincipalExtractor principalExtractor, PrivilegesEvaluator evaluator, ThreadPool threadPool,
+                                      AdminDNs adminDNs, ConfigurationRepository cl, ClusterService cs,
+                                      PrincipalExtractor principalExtractor, PrivilegesEvaluator evaluator, SpecialPrivilegesEvaluationContextProviderRegistry specialPrivilegesEvaluationContextProviderRegistry, ThreadPool threadPool,
                                       AuditLog auditLog) {
-        super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool,
+        super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, specialPrivilegesEvaluationContextProviderRegistry, threadPool,
                 auditLog);
     }
 
@@ -154,7 +155,7 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
         JsonNode updatedAsJsonNode = existingAsObjectNode.deepCopy().set(name, patchedResourceAsJsonNode);
 
         SecurityDynamicConfiguration<?> mdc = SecurityDynamicConfiguration.fromNode(updatedAsJsonNode, existingConfiguration.getCType()
-                                   , existingConfiguration.getVersion(), existingConfiguration.getSeqNo(), existingConfiguration.getPrimaryTerm());
+                                   , existingConfiguration.getVersion(), existingConfiguration.getDocVersion(), existingConfiguration.getSeqNo(), existingConfiguration.getPrimaryTerm());
 
         saveAnUpdateConfigs(client, request, getConfigName(), mdc, new OnSucessActionListener<IndexResponse>(channel){
 
@@ -222,7 +223,7 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
             }
         }
         SecurityDynamicConfiguration<?> mdc = SecurityDynamicConfiguration.fromNode(patchedAsJsonNode, existingConfiguration.getCType()
-                                    , existingConfiguration.getVersion(), existingConfiguration.getSeqNo(), existingConfiguration.getPrimaryTerm());
+                                    , existingConfiguration.getVersion(), existingConfiguration.getDocVersion(), existingConfiguration.getSeqNo(), existingConfiguration.getPrimaryTerm());
 
         saveAnUpdateConfigs(client, request, getConfigName(), mdc, new OnSucessActionListener<IndexResponse>(channel) {
 

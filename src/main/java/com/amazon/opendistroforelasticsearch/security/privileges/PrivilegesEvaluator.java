@@ -276,7 +276,7 @@ public class PrivilegesEvaluator {
                     if(privilegesInterceptor.getClass() != PrivilegesInterceptor.class) {
 
                         final PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceKibanaIndex(request, action0, user, dcm, requestedResolved,
-                                mapTenants(user, mappedRoles));
+                                securityRoles, configModel);
 
                         if(log.isDebugEnabled()) {
                             log.debug("Result from privileges interceptor for cluster perm: {}", replaceResult);
@@ -358,7 +358,7 @@ public class PrivilegesEvaluator {
 
         if(privilegesInterceptor.getClass() != PrivilegesInterceptor.class) {
 
-            final PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceKibanaIndex(request, action0, user, dcm, requestedResolved, mapTenants(user, mappedRoles));
+            final PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceKibanaIndex(request, action0, user, dcm, requestedResolved, securityRoles, configModel);
 
             if(log.isDebugEnabled()) {
                 log.debug("Result from privileges interceptor: {}", replaceResult);

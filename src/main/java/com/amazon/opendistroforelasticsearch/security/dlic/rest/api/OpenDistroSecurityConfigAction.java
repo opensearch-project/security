@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.List;
 
 import com.amazon.opendistroforelasticsearch.security.dlic.rest.validation.SecurityConfigValidator;
+import com.amazon.opendistroforelasticsearch.security.privileges.SpecialPrivilegesEvaluationContextProviderRegistry;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import com.google.common.collect.ImmutableList;
@@ -60,10 +61,11 @@ public class OpenDistroSecurityConfigAction extends PatchableResourceApiAction {
 
     @Inject
     public OpenDistroSecurityConfigAction(final Settings settings, final Path configPath, final RestController controller, final Client client,
-                          final AdminDNs adminDNs, final ConfigurationRepository cl, final ClusterService cs,
-                          final PrincipalExtractor principalExtractor, final PrivilegesEvaluator evaluator, ThreadPool threadPool, AuditLog auditLog) {
+                                          final AdminDNs adminDNs, final ConfigurationRepository cl, final ClusterService cs,
+                                          final PrincipalExtractor principalExtractor, final PrivilegesEvaluator evaluator,
+                                          SpecialPrivilegesEvaluationContextProviderRegistry specialPrivilegesEvaluationContextProviderRegistry, ThreadPool threadPool, AuditLog auditLog) {
 
-        super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
+        super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, specialPrivilegesEvaluationContextProviderRegistry, threadPool, auditLog);
         allowPutOrPatch = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, false);
     }
 

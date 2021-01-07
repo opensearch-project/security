@@ -66,6 +66,8 @@ public enum CType {
     WHITELIST(toMap(1, WhitelistingSettings.class, 2, WhitelistingSettings.class)),
     AUDIT(toMap(1, AuditConfig.class, 2, AuditConfig.class));
 
+    private static Map<Class<?>, CType> classToEnumMap = createClassToEnumMap();
+
     private Map<Integer, Class<?>> implementations;
 
     private CType(Map<Integer, Class<?>> implementations) {
@@ -92,11 +94,33 @@ public enum CType {
         return Arrays.stream(strings).map(c -> CType.fromString(c)).collect(Collectors.toSet());
     }
 
+    public static CType getByClass(Class<?> clazz) {
+        CType configType = classToEnumMap.get(clazz);
+
+        if (configType != null) {
+            return configType;
+        } else {
+            throw new IllegalArgumentException("Invalid config class " + clazz);
+        }
+    }
+
     private static Map<Integer, Class<?>> toMap(Object... objects) {
         final Map<Integer, Class<?>> map = new HashMap<Integer, Class<?>>();
         for (int i = 0; i < objects.length; i = i + 2) {
             map.put((Integer) objects[i], (Class<?>) objects[i + 1]);
         }
         return Collections.unmodifiableMap(map);
+    }
+
+    private static Map<Class<?>, CType> createClassToEnumMap() {
+        Map<Class<?>, CType> result = new HashMap<>();
+
+        for (CType ctype : values()) {
+            for (Class<?> clazz : ctype.implementations.values()) {
+                result.put(clazz, ctype);
+            }
+        }
+
+        return result;
     }
 }

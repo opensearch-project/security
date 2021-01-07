@@ -21,6 +21,7 @@ import com.amazon.opendistroforelasticsearch.security.configuration.Configuratio
 import com.amazon.opendistroforelasticsearch.security.dlic.rest.validation.AbstractConfigurationValidator;
 import com.amazon.opendistroforelasticsearch.security.dlic.rest.validation.NodesDnValidator;
 import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvaluator;
+import com.amazon.opendistroforelasticsearch.security.privileges.SpecialPrivilegesEvaluationContextProviderRegistry;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.NodesDn;
@@ -72,9 +73,9 @@ public class NodesDnApiAction extends PatchableResourceApiAction {
 
     @Inject
     public NodesDnApiAction(final Settings settings, final Path configPath, final RestController controller, final Client client,
-        final AdminDNs adminDNs, final ConfigurationRepository cl, final ClusterService cs,
-        final PrincipalExtractor principalExtractor, final PrivilegesEvaluator evaluator, ThreadPool threadPool, AuditLog auditLog) {
-        super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
+                            final AdminDNs adminDNs, final ConfigurationRepository cl, final ClusterService cs,
+                            final PrincipalExtractor principalExtractor, final PrivilegesEvaluator evaluator, SpecialPrivilegesEvaluationContextProviderRegistry specialPrivilegesEvaluationContextProviderRegistry, ThreadPool threadPool, AuditLog auditLog) {
+        super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, specialPrivilegesEvaluationContextProviderRegistry, threadPool, auditLog);
         this.staticNodesDnFromEsYml = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_NODES_DN, Collections.emptyList());
     }
 

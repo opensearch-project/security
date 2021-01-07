@@ -118,10 +118,6 @@ public class ConfigModelV6 extends ConfigModel {
         return securityRoles;
     }
     
-    private static interface ActionGroupResolver {
-        Set<String> resolvedActions(final List<String> actions);
-    }
-    
     private ActionGroupResolver reloadActionGroups(SecurityDynamicConfiguration<ActionGroupsV6> actionGroups) {
         return new ActionGroupResolver() {
             
@@ -193,6 +189,17 @@ public class ConfigModelV6 extends ConfigModel {
                 return Collections.unmodifiableSet(resolvedActions);
             }
         };
+    }
+
+    @Override
+    public boolean isTenantValid(String requestedTenant) {
+        // We don't have a list of all tenants in V6
+        return true;
+    }
+
+    @Override
+    public ConfigModel.ActionGroupResolver getActionGroupResolver() {
+        return agr;
     }
 
     private SecurityRoles reload(SecurityDynamicConfiguration<RoleV6> settings) {
@@ -360,6 +367,76 @@ public class ConfigModelV6 extends ConfigModel {
                 }
             }
             return retVal;
+        }
+
+        @Override
+        public TenantPermissions getTenantPermissions(User user, String requestedTenant) {
+            if (user == null) {
+                return TenantPermissionsGetter.EMPTY_TENANT_PERMISSIONS;
+            }
+
+            if (USER_TENANT.equals(requestedTenant)) {
+                return TenantPermissionsGetter.FULL_TENANT_PERMISSIONS;
+            }
+
+            boolean read = false;
+            boolean write = false;
+
+
+            for (SecurityRole role : roles) {
+                for (Tenant tenant : role.getTenants()) {
+                    if (WildcardMatcher.from(tenant.getTenant(), true).test(requestedTenant)) {
+                        read = true;
+
+                        if (tenant.isReadWrite()) {
+                            write = true;
+                        }
+
+                    }
+                }
+            }
+
+            for (SecurityRole role : roles) {
+                if ("SGS_GLOBAL_TENANT".equals(requestedTenant) && !read && !write
+                        && (role.name.equalsIgnoreCase("kibana_user") || role.name.equalsIgnoreCase("all_access"))) {
+                    return TenantPermissionsGetter.FULL_TENANT_PERMISSIONS;
+                }
+            }
+
+            return new TenantPermissionsImpl(read, write);
+        }
+
+        @Override
+        public boolean hasTenantPermission(User user, String requestedTenant, String action) {
+            // Not supported for V6 config
+            return false;
+        }
+
+        public Map<String, Boolean> mapTenants(User user, Set<String> allTenantNames) {
+            if (user == null) {
+                return Collections.emptyMap();
+            }
+
+            Map<String, Boolean> result = new HashMap<>(roles.size());
+            result.put(user.getName(), true);
+
+            for (SecurityRole role : roles) {
+                for (Tenant tenant : role.getTenants()) {
+                    String tenantPattern = tenant.getTenant();
+                    boolean rw = tenant.isReadWrite();
+
+                    if (rw || !result.containsKey(tenantPattern)) { //RW outperforms RO
+                        result.put(tenantPattern, rw);
+                    }
+                }
+            }
+
+            for (SecurityRole role : roles) {
+                if (!result.containsKey("global_tenant") && (role.name.equalsIgnoreCase("kibana_user") || role.name.equalsIgnoreCase("all_access"))) {
+                    result.put("global_tenant", true);
+                }
+            }
+            return Collections.unmodifiableMap(result);
         }
 
         @Override
@@ -560,6 +637,10 @@ public class ConfigModelV6 extends ConfigModel {
                 this.tenants.add(tenant);
             }
             return this;
+        }
+
+        public Set<Tenant> getTenants() {
+            return Collections.unmodifiableSet(tenants);
         }
 
         private SecurityRole addIndexPattern(IndexPattern indexPattern) {
@@ -1227,4 +1308,28 @@ public class ConfigModelV6 extends ConfigModel {
     public Set<String> mapSecurityRoles(User user, TransportAddress caller) {
         return roleMappingHolder.map(user, caller);
     }
+
+    public static class TenantPermissionsImpl implements com.amazon.opendistroforelasticsearch.security.securityconf.SecurityRoles.TenantPermissions {
+
+        private final boolean read;
+        private final boolean write;
+
+        public TenantPermissionsImpl(boolean read, boolean write) {
+            this.read = read;
+            this.write = write;
+        }
+
+        public boolean isReadPermitted() {
+            return read;
+        }
+
+        public boolean isWritePermitted() {
+            return write;
+        }
+
+        public Set<String> getPermissions() {
+            return Collections.emptySet();
+        }
+    }
+
 }

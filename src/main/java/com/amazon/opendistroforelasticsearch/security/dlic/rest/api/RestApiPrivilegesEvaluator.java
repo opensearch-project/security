@@ -29,6 +29,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.amazon.opendistroforelasticsearch.security.privileges.SpecialPrivilegesEvaluationContext;
+import com.amazon.opendistroforelasticsearch.security.privileges.SpecialPrivilegesEvaluationContextProviderRegistry;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.Settings;
@@ -53,6 +55,7 @@ public class RestApiPrivilegesEvaluator {
 
 	private final AdminDNs adminDNs;
 	private final PrivilegesEvaluator privilegesEvaluator;
+	private final SpecialPrivilegesEvaluationContextProviderRegistry specialPrivilegesEvaluationContextProviderRegistry;
 	private final PrincipalExtractor principalExtractor;
 	private final Path configPath;
 	private final ThreadPool threadPool;
@@ -76,8 +79,9 @@ public class RestApiPrivilegesEvaluator {
 
 	private final Boolean roleBasedAccessEnabled;
 
-	public RestApiPrivilegesEvaluator(Settings settings, AdminDNs adminDNs, PrivilegesEvaluator privilegesEvaluator, PrincipalExtractor principalExtractor, Path configPath,
-			ThreadPool threadPool) {
+	public RestApiPrivilegesEvaluator(Settings settings, AdminDNs adminDNs, PrivilegesEvaluator privilegesEvaluator,
+									  SpecialPrivilegesEvaluationContextProviderRegistry specialPrivilegesEvaluationContextProviderRegistry,
+									  PrincipalExtractor principalExtractor, Path configPath, ThreadPool threadPool) {
 
 		this.adminDNs = adminDNs;
 		this.privilegesEvaluator = privilegesEvaluator;
@@ -85,6 +89,7 @@ public class RestApiPrivilegesEvaluator {
 		this.configPath = configPath;
 		this.threadPool = threadPool;
 		this.settings = settings;
+		this.specialPrivilegesEvaluationContextProviderRegistry = specialPrivilegesEvaluationContextProviderRegistry;
 
 		// set up
 
@@ -245,7 +250,9 @@ public class RestApiPrivilegesEvaluator {
 
 	}
 
-	public Map<Endpoint, List<Method>> getDisabledEndpointsForCurrentUser(String userPrincipal, Set<String> userRoles) {
+	public Map<Endpoint, List<Method>> getDisabledEndpointsForCurrentUser(User user, Set<String> userRoles) {
+
+		String userPrincipal = user.getName();
 
 		// cache
 		if (disabledEndpointsForUsers.containsKey(userPrincipal)) {
@@ -344,11 +351,31 @@ public class RestApiPrivilegesEvaluator {
 		if (this.roleBasedAccessEnabled) {
 
 			// get current user and roles
-			final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-			final TransportAddress remoteAddress = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
+			User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+			SpecialPrivilegesEvaluationContext specialPrivilegesEvaluationContext = null;
 
-			// map the users Security roles
-			Set<String> userRoles = privilegesEvaluator.mapRoles(user, remoteAddress);
+			if (specialPrivilegesEvaluationContextProviderRegistry != null) {
+				specialPrivilegesEvaluationContext = specialPrivilegesEvaluationContextProviderRegistry.provide(user, threadPool.getThreadContext());
+			}
+
+			TransportAddress remoteAddress;
+			Set<String> userRoles;
+
+			if (specialPrivilegesEvaluationContext == null) {
+				remoteAddress = (TransportAddress) threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
+				userRoles = privilegesEvaluator.mapRoles(user, remoteAddress);
+			} else {
+				user = specialPrivilegesEvaluationContext.getUser();
+				remoteAddress = specialPrivilegesEvaluationContext.getCaller() != null ? specialPrivilegesEvaluationContext.getCaller()
+						: (TransportAddress) threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
+				userRoles = specialPrivilegesEvaluationContext.getMappedRoles();
+
+
+				if (!specialPrivilegesEvaluationContext.isSgConfigRestApiAllowed()) {
+					logger.info("User {} is authenticated with auth token which does not allow REST API access.", user, userRoles);
+					return "User " + user.getName() + " is authenticated with auth token which does not allow REST API access.";
+				}
+			}
 
 			// check if user has any role that grants access
 			if (currentUserHasRestApiAccess(userRoles)) {
@@ -356,7 +383,7 @@ public class RestApiPrivilegesEvaluator {
 				// multiple roles, the endpoint
 				// needs to be disabled in all roles.
 
-				Map<Endpoint, List<Method>> disabledEndpointsForUser = getDisabledEndpointsForCurrentUser(user.getName(), userRoles);
+				Map<Endpoint, List<Method>> disabledEndpointsForUser = getDisabledEndpointsForCurrentUser(user, userRoles);
 
 				if (logger.isDebugEnabled()) {
 					logger.debug("Disabled endpoints for user {} : {} ", user, disabledEndpointsForUser);

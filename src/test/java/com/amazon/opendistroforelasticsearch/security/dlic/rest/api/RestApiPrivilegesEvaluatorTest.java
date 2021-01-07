@@ -17,6 +17,7 @@ package com.amazon.opendistroforelasticsearch.security.dlic.rest.api;
 
 import com.amazon.opendistroforelasticsearch.security.configuration.AdminDNs;
 import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvaluator;
+import com.amazon.opendistroforelasticsearch.security.privileges.SpecialPrivilegesEvaluationContextProviderRegistry;
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.PrincipalExtractor;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.rest.RestRequest;
@@ -40,6 +41,7 @@ public class RestApiPrivilegesEvaluatorTest {
         this.privilegesEvaluator = new RestApiPrivilegesEvaluator(Settings.EMPTY,
                 mock(AdminDNs.class),
                 mock(PrivilegesEvaluator.class),
+                mock(SpecialPrivilegesEvaluationContextProviderRegistry.class),
                 mock(PrincipalExtractor.class),
                 mock(Path.class),
                 mock(ThreadPool.class));

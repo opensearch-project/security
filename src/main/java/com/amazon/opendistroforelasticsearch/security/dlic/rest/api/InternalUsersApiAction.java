@@ -22,6 +22,7 @@ import com.amazon.opendistroforelasticsearch.security.configuration.Configuratio
 import com.amazon.opendistroforelasticsearch.security.dlic.rest.validation.AbstractConfigurationValidator;
 import com.amazon.opendistroforelasticsearch.security.dlic.rest.validation.InternalUsersValidator;
 import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvaluator;
+import com.amazon.opendistroforelasticsearch.security.privileges.SpecialPrivilegesEvaluationContextProviderRegistry;
 import com.amazon.opendistroforelasticsearch.security.securityconf.Hashed;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -71,8 +72,9 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
     public InternalUsersApiAction(final Settings settings, final Path configPath, final RestController controller,
                                   final Client client, final AdminDNs adminDNs, final ConfigurationRepository cl,
                                   final ClusterService cs, final PrincipalExtractor principalExtractor, final PrivilegesEvaluator evaluator,
+                                  SpecialPrivilegesEvaluationContextProviderRegistry specialPrivilegesEvaluationContextProviderRegistry,
                                   ThreadPool threadPool, AuditLog auditLog) {
-        super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool,
+        super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, specialPrivilegesEvaluationContextProviderRegistry, threadPool,
                 auditLog);
     }
 

@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.Collections;
 
 import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
+import com.amazon.opendistroforelasticsearch.security.privileges.SpecialPrivilegesEvaluationContextProviderRegistry;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ExceptionsHelper;
@@ -84,7 +85,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 	protected AbstractApiAction(final Settings settings, final Path configPath, final RestController controller,
 								final Client client, final AdminDNs adminDNs, final ConfigurationRepository cl,
 								final ClusterService cs, final PrincipalExtractor principalExtractor, final PrivilegesEvaluator evaluator,
-								ThreadPool threadPool, AuditLog auditLog) {
+								SpecialPrivilegesEvaluationContextProviderRegistry specialPrivilegesEvaluationContextProviderRegistry, ThreadPool threadPool, AuditLog auditLog) {
 		super();
 		this.settings = settings;
 		this.opendistroIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME,
@@ -94,7 +95,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		this.cl = cl;
 		this.cs = cs;
 		this.threadPool = threadPool;
-		this.restApiPrivilegesEvaluator = new RestApiPrivilegesEvaluator(settings, adminDNs, evaluator,
+		this.restApiPrivilegesEvaluator = new RestApiPrivilegesEvaluator(settings, adminDNs, evaluator, specialPrivilegesEvaluationContextProviderRegistry,
 				principalExtractor, configPath, threadPool);
 		this.auditLog = auditLog;
 	}

@@ -18,6 +18,7 @@ package com.amazon.opendistroforelasticsearch.security.dlic.rest.api;
 import java.nio.file.Path;
 import java.util.List;
 
+import com.amazon.opendistroforelasticsearch.security.privileges.SpecialPrivilegesEvaluationContextProviderRegistry;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -66,8 +67,9 @@ public class ActionGroupsApiAction extends PatchableResourceApiAction {
 	@Inject
 	public ActionGroupsApiAction(final Settings settings, final Path configPath, final RestController controller, final Client client,
 								 final AdminDNs adminDNs, final ConfigurationRepository cl, final ClusterService cs,
-								 final PrincipalExtractor principalExtractor, final PrivilegesEvaluator evaluator, ThreadPool threadPool, AuditLog auditLog) {
-		super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
+								 final PrincipalExtractor principalExtractor, final PrivilegesEvaluator evaluator,
+								 SpecialPrivilegesEvaluationContextProviderRegistry specialPrivilegesEvaluationContextProviderRegistry, ThreadPool threadPool, AuditLog auditLog) {
+		super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, specialPrivilegesEvaluationContextProviderRegistry, threadPool, auditLog);
 	}
 
 	@Override

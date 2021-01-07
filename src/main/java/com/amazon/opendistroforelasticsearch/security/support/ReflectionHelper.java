@@ -42,6 +42,7 @@ import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditLogImpl;
+import com.amazon.opendistroforelasticsearch.security.privileges.SpecialPrivilegesEvaluationContextProviderRegistry;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
@@ -107,7 +108,7 @@ public class ReflectionHelper {
     @SuppressWarnings("unchecked")
     public static Collection<RestHandler> instantiateMngtRestApiHandler(final Settings settings, final Path configPath, final RestController restController,
             final Client localClient, final AdminDNs adminDns, final ConfigurationRepository cr, final ClusterService cs, final PrincipalExtractor principalExtractor,
-            final PrivilegesEvaluator evaluator, final ThreadPool threadPool, final AuditLog auditlog) {
+            final PrivilegesEvaluator evaluator, SpecialPrivilegesEvaluationContextProviderRegistry specialPrivilegesEvaluationContextProviderRegistry, final ThreadPool threadPool, final AuditLog auditlog) {
 
         if (advancedModulesDisabled()) {
             return Collections.emptyList();
@@ -117,8 +118,9 @@ public class ReflectionHelper {
             final Class<?> clazz = Class.forName("com.amazon.opendistroforelasticsearch.security.dlic.rest.api.OpenDistroSecurityRestApiActions");
             final Collection<RestHandler> ret = (Collection<RestHandler>) clazz
                     .getDeclaredMethod("getHandler", Settings.class, Path.class, RestController.class, Client.class, AdminDNs.class, ConfigurationRepository.class,
-                            ClusterService.class, PrincipalExtractor.class, PrivilegesEvaluator.class, ThreadPool.class, AuditLog.class)
-                    .invoke(null, settings, configPath, restController, localClient, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditlog);
+                            ClusterService.class, PrincipalExtractor.class, PrivilegesEvaluator.class,
+                            SpecialPrivilegesEvaluationContextProviderRegistry.class, ThreadPool.class, AuditLog.class)
+                    .invoke(null, settings, configPath, restController, localClient, adminDns, cr, cs, principalExtractor, evaluator, specialPrivilegesEvaluationContextProviderRegistry, threadPool, auditlog);
             addLoadedModule(clazz);
             return ret;
         } catch (final Throwable e) {

@@ -32,6 +32,8 @@ package com.amazon.opendistroforelasticsearch.security.privileges;
 
 import java.util.Map;
 
+import com.amazon.opendistroforelasticsearch.security.securityconf.ConfigModel;
+import com.amazon.opendistroforelasticsearch.security.securityconf.SecurityRoles;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.client.Client;
@@ -79,7 +81,7 @@ public class PrivilegesInterceptor {
     }
 
     public ReplaceResult replaceKibanaIndex(final ActionRequest request, final String action, final User user, final DynamicConfigModel config,
-                                      final Resolved requestedResolved, final Map<String, Boolean> tenants) {
+                                            final Resolved requestedResolved, SecurityRoles securityRoles, ConfigModel configModel) {
         throw new RuntimeException("not implemented");
     }
     

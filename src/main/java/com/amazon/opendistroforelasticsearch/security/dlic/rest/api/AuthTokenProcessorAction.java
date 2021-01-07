@@ -52,7 +52,7 @@ public class AuthTokenProcessorAction extends AbstractApiAction {
 			final Client client, final AdminDNs adminDNs, final ConfigurationRepository cl,
 			final ClusterService cs, final PrincipalExtractor principalExtractor, final PrivilegesEvaluator evaluator,
 			ThreadPool threadPool, AuditLog auditLog) {
-		super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool,
+		super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, null, threadPool,
 				auditLog);
 	}
 

@@ -32,13 +32,14 @@ package com.amazon.opendistroforelasticsearch.security.auth.internal;
 
 import java.nio.file.Path;
 
+import com.amazon.opendistroforelasticsearch.security.auth.SyncAuthenticationBackend;
 import org.elasticsearch.common.settings.Settings;
 
 import com.amazon.opendistroforelasticsearch.security.auth.AuthenticationBackend;
 import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 
-public class NoOpAuthenticationBackend implements AuthenticationBackend {
+public class NoOpAuthenticationBackend implements SyncAuthenticationBackend {
 
     public NoOpAuthenticationBackend(final Settings settings, final Path configPath) {
         super();
