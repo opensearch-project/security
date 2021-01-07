@@ -158,7 +158,7 @@ public class IndexResolverReplacer {
         return false;
     }
 
-    private Resolved resolveIndexPatterns(final IndicesOptions indicesOptions, final boolean enableCrossClusterResolution, final String... requestedPatterns0) {
+    public Resolved resolveIndexPatterns(final IndicesOptions indicesOptions, final boolean enableCrossClusterResolution, final String... requestedPatterns0) {
 
         if(log.isTraceEnabled()) {
             log.trace("resolve requestedPatterns: "+ Arrays.toString(requestedPatterns0));
@@ -280,7 +280,7 @@ public class IndexResolverReplacer {
         }, false);
     }
 
-    private static final class IndexResolveKey {
+    public static final class IndexResolveKey {
         private final IndicesOptions opts;
         private final boolean enableCrossClusterResolution;
         private final String[] original;
@@ -733,7 +733,7 @@ public class IndexResolverReplacer {
         return result;
     }
 
-    private IndicesOptions indicesOptionsFrom(Object localRequest) {
+    public IndicesOptions indicesOptionsFrom(Object localRequest) {
         
         if(!respectRequestIndicesOptions) {
             return IndicesOptions.fromOptions(false, true, true, false);

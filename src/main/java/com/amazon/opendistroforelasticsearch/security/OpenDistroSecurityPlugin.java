@@ -53,6 +53,7 @@ import com.amazon.opendistroforelasticsearch.security.configuration.Salt;
 import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenDistroSecuritySSLReloadCertsAction;
 import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenDistroSecuritySSLCertsInfoAction;
 
+import com.google.common.base.Joiner;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.OpenDistroSSLConfig;
@@ -65,8 +66,11 @@ import org.elasticsearch.SpecialPermission;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionResponse;
+import org.elasticsearch.action.fieldcaps.FieldCapabilitiesRequest;
+import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchScrollAction;
 import org.elasticsearch.action.support.ActionFilter;
+import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -1095,6 +1099,65 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         }
         return field;
     }
+
+    public static final class ProtectedIndices {
+        final Set<String> protectedPatterns;
+
+        private ProtectedIndices() {
+            protectedPatterns = null;
+        }
+
+        private ProtectedIndices(Settings settings, String... patterns) {
+            protectedPatterns = new HashSet<>();
+            protectedPatterns.add(settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX));
+            if (patterns != null && patterns.length > 0) {
+                protectedPatterns.addAll(Arrays.asList(patterns));
+            }
+        }
+
+        public void add(String pattern) {
+            protectedPatterns.add(pattern);
+        }
+
+        public boolean isProtected(String index) {
+            WildcardMatcher.from(index).matchAny(protectedPatterns);
+            return protectedPatterns == null ? false : WildcardMatcher.from(index).matchAny(protectedPatterns);
+        }
+
+        public boolean containsProtected(Collection<String> indices) {
+            return protectedPatterns == null ? false : WildcardMatcher.from(indices).matchAny(protectedPatterns);
+        }
+
+        public String printProtectedIndices() {
+            return protectedPatterns == null ? "" : Joiner.on(',').join(protectedPatterns);
+        }
+
+        public String[] getProtectedIndicesAsMinusPattern(IndexResolverReplacer irr, Object request) {
+            if (protectedPatterns == null) {
+                return new String[0];
+            }
+
+            final boolean enableCrossClusterResolution = request instanceof FieldCapabilitiesRequest || request instanceof SearchRequest;
+            final IndexResolverReplacer.Resolved resolved = irr.resolveIndexPatterns(IndicesOptions.lenientExpandOpen(), enableCrossClusterResolution,
+                    protectedPatterns.toArray(new String[0]));
+
+            String[] res = new String[resolved.getAllIndices().size()];
+            int i = 0;
+            for (String p : resolved.getAllIndices()) {
+                res[i++] = "-" + p;
+            }
+
+            return res.clone();
+        }
+
+      /*  public void filterIndices(Set<String> indices) {
+            for (String p : protectedPatterns) {
+                WildcardMatcher.wildcardRemoveFromSet(indices, p);
+            }
+
+        }*/
+    }
+
 
     public static class GuiceHolder implements LifecycleComponent {
 

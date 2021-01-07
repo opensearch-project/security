@@ -25,6 +25,7 @@ import com.amazon.opendistroforelasticsearch.security.dlic.rest.support.Utils;
 import com.amazon.opendistroforelasticsearch.security.dlic.rest.validation.AbstractConfigurationValidator;
 import com.amazon.opendistroforelasticsearch.security.dlic.rest.validation.AuditValidator;
 import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvaluator;
+import com.amazon.opendistroforelasticsearch.security.privileges.SpecialPrivilegesEvaluationContextProviderRegistry;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.PrincipalExtractor;
@@ -149,9 +150,10 @@ public class AuditApiAction extends PatchableResourceApiAction {
                           final ClusterService cs,
                           final PrincipalExtractor principalExtractor,
                           final PrivilegesEvaluator privilegesEvaluator,
+                          final SpecialPrivilegesEvaluationContextProviderRegistry specialPrivilegesEvaluationContextProviderRegistry,
                           final ThreadPool threadPool,
                           final AuditLog auditLog) {
-        super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, privilegesEvaluator, threadPool, auditLog);
+        super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, privilegesEvaluator, specialPrivilegesEvaluationContextProviderRegistry, threadPool, auditLog);
         this.privilegesEvaluator = privilegesEvaluator;
         this.threadContext = threadPool.getThreadContext();
         try {

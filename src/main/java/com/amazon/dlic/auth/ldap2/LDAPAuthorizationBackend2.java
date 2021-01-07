@@ -51,14 +51,14 @@ import com.amazon.dlic.auth.ldap.util.ConfigConstants;
 import com.amazon.dlic.auth.ldap.util.LdapHelper;
 import com.amazon.dlic.auth.ldap.util.Utils;
 import com.amazon.dlic.util.SettingsBasedSSLConfigurator.SSLConfigException;
-import com.amazon.opendistroforelasticsearch.security.auth.AuthorizationBackend;
+import com.amazon.opendistroforelasticsearch.security.auth.SyncAuthorizationBackend;
 import com.amazon.opendistroforelasticsearch.security.auth.Destroyable;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 import com.google.common.collect.HashMultimap;
 
-public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroyable {
+public class LDAPAuthorizationBackend2 implements SyncAuthorizationBackend, Destroyable {
 
     static final int ZERO_PLACEHOLDER = 0;
     static final int ONE_PLACEHOLDER = 1;

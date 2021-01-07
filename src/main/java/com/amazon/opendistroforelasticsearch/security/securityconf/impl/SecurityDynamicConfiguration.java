@@ -37,9 +37,13 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
+import com.amazon.opendistroforelasticsearch.security.support.OpenDistroSecurityUtils;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentHelper;
@@ -55,10 +59,11 @@ import com.amazon.opendistroforelasticsearch.security.NonValidatingObjectMapper;
 import com.amazon.opendistroforelasticsearch.security.securityconf.Hashed;
 import com.amazon.opendistroforelasticsearch.security.securityconf.Hideable;
 import com.amazon.opendistroforelasticsearch.security.securityconf.StaticDefinable;
-import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.RoleV7;
 
 public class SecurityDynamicConfiguration<T> implements ToXContent {
-    
+
+    private static final Logger log = LogManager.getLogger(SecurityDynamicConfiguration.class);
+
     private static final TypeReference<HashMap<String,Object>> typeRefMSO = new TypeReference<HashMap<String,Object>>() {};
 
     @JsonIgnore
@@ -67,12 +72,14 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     private long primaryTerm= -1;
     private CType ctype;
     private int version = -1;
-    
+    private long docVersion = -1;
+    private String uninterpolatedJson;
+
     public static <T> SecurityDynamicConfiguration<T> empty() {
         return new SecurityDynamicConfiguration<T>();
     }
 
-    public static <T> SecurityDynamicConfiguration<T> fromJson(String json, CType ctype, int version, long seqNo, long primaryTerm) throws IOException {
+    public static <T> SecurityDynamicConfiguration<T> fromJson(String json, CType ctype, int version, long docVersion, long seqNo, long primaryTerm) throws IOException {
         return fromJson(json, ctype, version, seqNo, primaryTerm, false);
     }
 
@@ -101,7 +108,58 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
 
         return sdc;
     }
-    
+
+    public static <T> SecurityDynamicConfiguration<T> fromJson(String uninterpolatedJson, CType ctype, long docVersion, long seqNo, long primaryTerm, Settings settings) throws IOException {
+
+        String jsonString = OpenDistroSecurityUtils.replaceEnvVars(uninterpolatedJson, settings);
+        JsonNode jsonNode = DefaultObjectMapper.readTree(jsonString);
+        int configVersion = 1;
+
+        if (jsonNode.get("_sg_meta") != null) {
+            assert jsonNode.get("_sg_meta").get("type").asText().equals(ctype.toLCString());
+            configVersion = jsonNode.get("_sg_meta").get("config_version").asInt();
+        }
+
+        if (log.isDebugEnabled()) {
+            log.debug("Load " + ctype + " with version " + configVersion);
+        }
+
+
+        try {
+            return SecurityDynamicConfiguration.fromJson(jsonString, ctype, configVersion, docVersion, seqNo, primaryTerm);
+        } catch (Exception e) {
+            if (log.isDebugEnabled()) {
+                log.debug("Unable to load " + ctype + " with version " + configVersion + " - Try loading legacy format ...");
+            }
+            return SecurityDynamicConfiguration.fromJson(jsonString, ctype, 0, docVersion, seqNo, primaryTerm);
+        }
+    }
+
+    public static <T> SecurityDynamicConfiguration<T> fromJson(String json, String uninterpolatedJson, CType ctype, int version, long docVersion, long seqNo, long primaryTerm) throws IOException {
+        SecurityDynamicConfiguration<T> sdc;
+        if(ctype != null) {
+            final Class<?> implementationClass = ctype.getImplementationClass().get(version);
+            if(implementationClass == null) {
+                throw new IllegalArgumentException("No implementation class found for "+ctype+" and config version "+version);
+            }
+            sdc = DefaultObjectMapper.readValue(json, DefaultObjectMapper.getTypeFactory().constructParametricType(SecurityDynamicConfiguration.class, implementationClass));
+
+            validate(sdc, version, ctype);
+
+        } else {
+            sdc = new SecurityDynamicConfiguration<T>();
+        }
+
+        sdc.ctype = ctype;
+        sdc.seqNo = seqNo;
+        sdc.primaryTerm = primaryTerm;
+        sdc.docVersion = docVersion;
+        sdc.version = version;
+        sdc.uninterpolatedJson = uninterpolatedJson;
+
+        return sdc;
+    }
+
     public static void validate(SecurityDynamicConfiguration sdc, int version, CType ctype) throws IOException {
         if(version < 2 && sdc.get_meta() != null) {
             throw new IOException("A version of "+version+" can not have a _meta key for "+ctype);
@@ -122,9 +180,14 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     }
 
     public static <T> SecurityDynamicConfiguration<T> fromNode(JsonNode json, CType ctype, int version, long seqNo, long primaryTerm) throws IOException {
-        return fromJson(DefaultObjectMapper.writeValueAsString(json, false), ctype, version, seqNo, primaryTerm);
+        return fromJson(DefaultObjectMapper.writeValueAsString(json, false), ctype, version, 0, seqNo, primaryTerm);
     }
-    
+
+    public static <T> SecurityDynamicConfiguration<T> fromNode(JsonNode json, CType ctype, int version, long docVersion, long seqNo, long primaryTerm) throws IOException {
+        return fromJson(DefaultObjectMapper.writeValueAsString(json, false), null, ctype, version, docVersion, seqNo, primaryTerm);
+    }
+
+
     //for Jackson
     private SecurityDynamicConfiguration() {
         super();
@@ -262,7 +325,7 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     @JsonIgnore
     public SecurityDynamicConfiguration<T> deepClone() {
         try {
-            return fromJson(DefaultObjectMapper.writeValueAsString(this, false), ctype, version, seqNo, primaryTerm);
+            return fromJson(DefaultObjectMapper.writeValueAsString(this, false), ctype, version, 0, seqNo, primaryTerm);
         } catch (Exception e) {
             throw ExceptionsHelper.convertToElastic(e);
         }
@@ -298,9 +361,19 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
         return !Collections.disjoint(this.centries.keySet(), other.centries.keySet());
     }
 
+    @JsonIgnore
+    public long getDocVersion() {
+        return docVersion;
+    }
+
     public boolean isHidden(String resourceName){
         final Object o = centries.get(resourceName);
         return o != null && o instanceof Hideable && ((Hideable) o).isHidden();
+    }
+
+    @JsonIgnore
+    public String getUninterpolatedJson() {
+        return uninterpolatedJson;
     }
 
 }

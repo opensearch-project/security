@@ -106,13 +106,20 @@ public class ConfigModelV7 extends ConfigModel {
     public Set<String> getAllConfiguredTenantNames() {
         return Collections.unmodifiableSet(tenants.getCEntries().keySet());
     }
-    
+
+    @Override
+    public boolean isTenantValid(String requestedTenant) {
+
+        if ("SGS_GLOBAL_TENANT".equals(requestedTenant) || ConfigModel.USER_TENANT.equals(requestedTenant)) {
+            return true;
+        }
+
+        return getAllConfiguredTenantNames().contains(requestedTenant);
+    }
+
+
     public SecurityRoles getSecurityRoles() {
         return securityRoles;
-    }
-    
-    private static interface ActionGroupResolver {
-        Set<String> resolvedActions(final List<String> actions);
     }
     
     private ActionGroupResolver reloadActionGroups(SecurityDynamicConfiguration<ActionGroupsV7> actionGroups) {
@@ -186,6 +193,11 @@ public class ConfigModelV7 extends ConfigModel {
                 return Collections.unmodifiableSet(resolvedActions);
             }
         };
+    }
+
+    public ConfigModel.ActionGroupResolver getActionGroupResolver() {
+
+        return null;
     }
 
     private SecurityRoles reload(SecurityDynamicConfiguration<RoleV7> settings) {
@@ -299,6 +311,39 @@ public class ConfigModelV7 extends ConfigModel {
                 this.roles.add(securityRole);
             }
             return this;
+        }
+
+        public static SecurityRoles create(SecurityDynamicConfiguration<RoleV7> settings, ActionGroupResolver actionGroupResolver) {
+
+            SecurityRoles result = new SecurityRoles(settings.getCEntries().size());
+
+            for (Entry<String, RoleV7> entry : settings.getCEntries().entrySet()) {
+
+                if (entry.getValue() == null) {
+                    continue;
+                }
+
+                // Missing code - Palash
+                //result.addSecurityRole(SecurityRole.create(entry.getKey(), entry.getValue(), actionGroupResolver));
+            }
+
+            return result;
+        }
+
+
+
+        @Override
+        public TenantPermissions getTenantPermissions(User user, String requestedTenant) {
+            return null;
+        }
+
+        @Override
+        public boolean hasTenantPermission(User user, String requestedTenant, String action) {
+            return false;
+        }
+
+        public Map<String, Boolean> mapTenants(User user, Set<String> allTenantNames) {
+            return null;
         }
 
         @Override

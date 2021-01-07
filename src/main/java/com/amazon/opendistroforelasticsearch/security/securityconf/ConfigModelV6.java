@@ -195,6 +195,12 @@ public class ConfigModelV6 extends ConfigModel {
         };
     }
 
+    @Override
+    public boolean isTenantValid(String requestedTenant) {
+        // We don't have a list of all tenants in V6
+        return true;
+    }
+
     private SecurityRoles reload(SecurityDynamicConfiguration<RoleV6> settings) {
 
         final Set<Future<SecurityRole>> futures = new HashSet<>(5000);
@@ -296,6 +302,11 @@ public class ConfigModelV6 extends ConfigModel {
     }
 
 
+    public ConfigModel.ActionGroupResolver getActionGroupResolver() {
+
+        return null;
+    }
+
     //beans
 
     public static class SecurityRoles implements com.amazon.opendistroforelasticsearch.security.securityconf.SecurityRoles {
@@ -313,6 +324,20 @@ public class ConfigModelV6 extends ConfigModel {
                 this.roles.add(securityRole);
             }
             return this;
+        }
+
+        @Override
+        public TenantPermissions getTenantPermissions(User user, String requestedTenant) {
+            return null;
+        }
+
+        @Override
+        public boolean hasTenantPermission(User user, String requestedTenant, String action) {
+            return false;
+        }
+
+        public Map<String, Boolean> mapTenants(User user, Set<String> allTenantNames) {
+            return null;
         }
 
         @Override

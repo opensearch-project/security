@@ -20,6 +20,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import com.amazon.opendistroforelasticsearch.security.securityconf.ConfigModel;
+import com.amazon.opendistroforelasticsearch.security.securityconf.SecurityRoles;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
@@ -73,10 +75,18 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         super(resolver, clusterService, client, threadPool);
     }
 
-    private boolean isTenantAllowed(final ActionRequest request, final String action, final User user, final Map<String, Boolean> tenants,
+    private boolean isTenantAllowed(final ActionRequest request, final String action, final User user,
+                                    SecurityRoles sgRoles, ConfigModel configModel,
                                     final String requestedTenant) {
 
-        if (!tenants.keySet().contains(requestedTenant)) {
+        if (!configModel.isTenantValid(requestedTenant)) {
+            log.warn("Tenant {} is not allowed for user {}", requestedTenant, user.getName());
+            return false;
+        }
+
+        SecurityRoles.TenantPermissions tenantPermissions = sgRoles.getTenantPermissions(user, requestedTenant);
+
+        if (!tenantPermissions.isReadPermitted()) {
             log.warn("Tenant {} is not allowed for user {}", requestedTenant, user.getName());
             return false;
         } else {
@@ -85,7 +95,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
                 log.debug("request " + request.getClass());
             }
 
-            if (tenants.get(requestedTenant) == Boolean.FALSE && action.startsWith("indices:data/write")) {
+            if (!tenantPermissions.isWritePermitted() && action.startsWith("indices:data/write")) {
                 log.warn("Tenant {} is not allowed to write (user: {})", requestedTenant, user.getName());
                 return false;
             }
@@ -102,7 +112,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
      */
     @Override
     public ReplaceResult replaceKibanaIndex(final ActionRequest request, final String action, final User user, final DynamicConfigModel config,
-                                      final Resolved requestedResolved, final Map<String, Boolean> tenants) {
+                                      final Resolved requestedResolved, SecurityRoles securityRoles, ConfigModel configModel) {
 
         final boolean enabled = config.isKibanaMultitenancyEnabled();//config.dynamic.kibana.multitenancy_enabled;
 
@@ -128,7 +138,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
                 log.trace("No tenant, will resolve to " + kibanaIndexName);
             }
 
-            if (kibanaIndexOnly && !isTenantAllowed(request, action, user, tenants, "global_tenant")) {
+            if (kibanaIndexOnly && !isTenantAllowed(request, action, user, securityRoles, configModel,"global_tenant")) {
                 return ACCESS_DENIED_REPLACE_RESULT;
             }
 
@@ -149,7 +159,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
             final Set<String> indices = requestedResolved.getAllIndices();
             final String tenantIndexName = toUserIndexName(kibanaIndexName, requestedTenant);
             if (indices.size() == 1 && indices.iterator().next().startsWith(tenantIndexName) &&
-                    isTenantAllowed(request, action, user, tenants, requestedTenant)) {
+                    isTenantAllowed(request, action, user, securityRoles, configModel, requestedTenant)) {
                     return ACCESS_GRANTED_REPLACE_RESULT;
             }
         }
@@ -162,7 +172,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
                 log.debug("is user tenant: " + requestedTenant.equals(user.getName()));
             }
 
-            if (!isTenantAllowed(request, action, user, tenants, requestedTenant)) {
+            if (!isTenantAllowed(request, action, user, securityRoles, configModel, requestedTenant)) {
                 return ACCESS_DENIED_REPLACE_RESULT;
             }
 

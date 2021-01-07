@@ -111,8 +111,8 @@ public class ConfigTests {
         Assert.assertNotNull(dc);
         //Assert.assertTrue(dc.getCEntries().size() > 0);
         String jsonSerialize = DefaultObjectMapper.objectMapper.writeValueAsString(dc);
-        SecurityDynamicConfiguration<?> conf = SecurityDynamicConfiguration.fromJson(jsonSerialize, cType, configVersion, 0, 0);
-        SecurityDynamicConfiguration.fromJson(Strings.toString(conf), cType, configVersion, 0, 0);
+        SecurityDynamicConfiguration<?> conf = SecurityDynamicConfiguration.fromJson(jsonSerialize, cType, configVersion, 0, 0, 0);
+        SecurityDynamicConfiguration.fromJson(Strings.toString(conf), cType, configVersion, 0, 0, 0);
         
     }
     

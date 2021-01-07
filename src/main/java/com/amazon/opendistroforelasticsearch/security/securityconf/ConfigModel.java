@@ -30,6 +30,7 @@
 
 package com.amazon.opendistroforelasticsearch.security.securityconf;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import com.amazon.opendistroforelasticsearch.security.securityconf.SecurityRoles;
@@ -40,9 +41,20 @@ import com.amazon.opendistroforelasticsearch.security.user.User;
 
 public abstract class ConfigModel {
 
+    public static final String USER_TENANT = "__user__";
+
     public abstract Map<String, Boolean> mapTenants(User user, Set<String> roles);
     public abstract Set<String> mapSecurityRoles(User user, TransportAddress caller);
     public abstract SecurityRoles getSecurityRoles();
 
     public abstract Set<String> getAllConfiguredTenantNames();
+
+    public abstract boolean isTenantValid(String requestedTenant);
+
+    public abstract ActionGroupResolver getActionGroupResolver();
+
+    public interface ActionGroupResolver {
+        Set<String> resolvedActions(final List<String> actions);
+    }
+
 }

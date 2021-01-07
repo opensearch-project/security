@@ -112,7 +112,7 @@ public class ConfigHelper {
             empty.get_meta().setType(cType.toLCString());
         }
         String string = DefaultObjectMapper.writeValueAsString(empty, false);
-        SecurityDynamicConfiguration<?> c = SecurityDynamicConfiguration.fromJson(string, cType, configVersion, -1, -1);
+        SecurityDynamicConfiguration<?> c = SecurityDynamicConfiguration.fromJson(string, cType, configVersion, -1, -1, -1);
         return c;
     }
 

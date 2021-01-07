@@ -21,6 +21,7 @@ import com.amazon.opendistroforelasticsearch.security.configuration.Configuratio
 import com.amazon.opendistroforelasticsearch.security.dlic.rest.validation.AbstractConfigurationValidator;
 import com.amazon.opendistroforelasticsearch.security.dlic.rest.validation.NoOpValidator;
 import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvaluator;
+import com.amazon.opendistroforelasticsearch.security.privileges.SpecialPrivilegesEvaluationContextProviderRegistry;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.PrincipalExtractor;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -49,10 +50,10 @@ public class AuthTokenProcessorAction extends AbstractApiAction {
 
 	@Inject
 	public AuthTokenProcessorAction(final Settings settings, final Path configPath, final RestController controller,
-			final Client client, final AdminDNs adminDNs, final ConfigurationRepository cl,
-			final ClusterService cs, final PrincipalExtractor principalExtractor, final PrivilegesEvaluator evaluator,
-			ThreadPool threadPool, AuditLog auditLog) {
-		super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool,
+									final Client client, final AdminDNs adminDNs, final ConfigurationRepository cl,
+									final ClusterService cs, final PrincipalExtractor principalExtractor, final PrivilegesEvaluator evaluator,
+									SpecialPrivilegesEvaluationContextProviderRegistry specialPrivilegesEvaluationContextProviderRegistry, ThreadPool threadPool, AuditLog auditLog) {
+		super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, specialPrivilegesEvaluationContextProviderRegistry, threadPool,
 				auditLog);
 	}
 
