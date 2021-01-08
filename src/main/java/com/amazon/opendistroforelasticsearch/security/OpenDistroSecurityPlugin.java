@@ -96,6 +96,7 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.index.cache.query.QueryCache;
 import org.elasticsearch.index.shard.SearchOperationListener;
+import org.elasticsearch.indices.SystemIndexDescriptor;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.plugins.ClusterPlugin;
 import org.elasticsearch.plugins.MapperPlugin;
@@ -1088,7 +1089,14 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             }
         };
     }
-    
+
+    @Override
+    public Collection<SystemIndexDescriptor> getSystemIndexDescriptors(Settings settings) {
+        final String indexPattern = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
+        final SystemIndexDescriptor systemIndexDescriptor = new SystemIndexDescriptor(indexPattern, "OpenDistro Security Index");
+        return Collections.singletonList(systemIndexDescriptor);
+    }
+
     private static String handleKeyword(final String field) {
         if(field != null && field.endsWith(KEYWORD)) {
             return field.substring(0, field.length()-KEYWORD.length());

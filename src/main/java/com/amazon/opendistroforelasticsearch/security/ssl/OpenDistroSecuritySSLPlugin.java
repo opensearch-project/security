@@ -65,9 +65,9 @@ import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.http.HttpServerTransport.Dispatcher;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.NetworkPlugin;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.plugins.SystemIndexPlugin;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestHandler;
@@ -87,7 +87,7 @@ import com.amazon.opendistroforelasticsearch.security.ssl.transport.OpenDistroSe
 import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConfigConstants;
 
 //For ES5 this class has only effect when SSL only plugin is installed
-public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin, NetworkPlugin {
+public class OpenDistroSecuritySSLPlugin extends Plugin implements SystemIndexPlugin, NetworkPlugin {
 
     private static boolean USE_NETTY_DEFAULT_ALLOCATOR = Booleans.parseBoolean(System.getProperty("es.unsafe.use_netty_default_allocator"), false);
     public static final boolean OPENSSL_SUPPORTED = (PlatformDependent.javaVersion() < 12) && USE_NETTY_DEFAULT_ALLOCATOR;
