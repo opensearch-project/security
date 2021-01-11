@@ -1,9 +1,12 @@
 name: CD
 
 on:
+  # push:
+  #   tags:
+  #     - 'v*'
   push:
-    tags:
-      - 'v*'
+    branches:
+      - "release-workflow-patch"
 
 jobs:
   build:
@@ -44,50 +47,64 @@ jobs:
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-access-key-id: ${{ secrets.AWS_STAGING_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_STAGING_SECRET_ACCESS_KEY }}
         aws-region: us-west-2
 
     - name: Upload Artifacts to S3
       run: |
-        s3_path=s3://artifacts.opendistroforelasticsearch.amazon.com/downloads
-        aws s3 cp artifacts/*.zip $s3_path/elasticsearch-plugins/opendistro-security/
-        aws s3 cp artifacts/*.deb $s3_path/debs/opendistro-security/
-        aws s3 cp artifacts/*.rpm $s3_path/rpms/opendistro-security/
-        aws cloudfront create-invalidation --distribution-id ${{ secrets.DISTRIBUTION_ID }} --paths '/downloads/*'
+        zip=`ls artifacts/*.zip`
+        rpm=`ls artifacts/*.rpm`
+        deb=`ls artifacts/*.deb`
 
-    - name: Upload Artifacts to Maven Central
-      env:
-        SONATYPE_USER: ${{ secrets.SONATYPE_USER }}
-        SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
-      run: |
-        gpg --batch --import --no-tty <(echo -e "${{ secrets.PGP_PRIVATE_KEY }}")
-        mvn -B deploy -Padvanced -Prelease -DskipTests -Dgpg.passphrase=${{ secrets.PGP_PASSPHRASE }}
+        # Inject the build number before the suffix
+        zip_outfile=`basename ${zip%.zip}-build-${GITHUB_RUN_NUMBER}.zip`
+        rpm_outfile=`basename ${rpm%.rpm}-build-${GITHUB_RUN_NUMBER}.rpm`
+        deb_outfile=`basename ${deb%.deb}-build-${GITHUB_RUN_NUMBER}.deb`
 
-    - name: Create Github Draft Release
-      id: create_release
-      uses: actions/create-release@v1.0.0
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ env.TAG_VERSION }}
-        draft: true
-        prerelease: false
+        s3_prefix="s3://staging.artifacts.opendistroforelasticsearch.amazon.com/snapshots/elasticsearch-plugins/security/"
 
-    - name: Upload Release Asset
-      id: upload-release-asset
-      uses: actions/upload-release-asset@v1.0.1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_name: artifacts.zip
-        asset_path: artifacts.zip
-        asset_content_type: application/zip
+        echo "Copying ${zip} to ${s3_prefix}${zip_outfile}"
+        aws s3 cp --quiet $zip ${s3_prefix}${zip_outfile}
 
-    - name: Upload Workflow Artifacts
-      uses: actions/upload-artifact@v1
-      with:
-        name: artifacts
-        path: artifacts/
+        echo "Copying ${rpm} to ${s3_prefix}${rpm_outfile}"
+        aws s3 cp --quiet $rpm ${s3_prefix}${rpm_outfile}
+
+        echo "Copying ${deb} to ${s3_prefix}${deb_outfile}"
+        aws s3 cp --quiet $deb ${s3_prefix}${deb_outfile}
+
+    # - name: Upload Artifacts to Maven Central
+    #   env:
+    #     SONATYPE_USER: ${{ secrets.SONATYPE_USER }}
+    #     SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+    #   run: |
+    #     gpg --batch --import --no-tty <(echo -e "${{ secrets.PGP_PRIVATE_KEY }}")
+    #     mvn -B deploy -Padvanced -Prelease -DskipTests -Dgpg.passphrase=${{ secrets.PGP_PASSPHRASE }}
+
+    # - name: Create Github Draft Release
+    #   id: create_release
+    #   uses: actions/create-release@v1.0.0
+    #   env:
+    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #   with:
+    #     tag_name: ${{ github.ref }}
+    #     release_name: Release ${{ env.TAG_VERSION }}
+    #     draft: true
+    #     prerelease: false
+
+    # - name: Upload Release Asset
+    #   id: upload-release-asset
+    #   uses: actions/upload-release-asset@v1.0.1
+    #   env:
+    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #   with:
+    #     upload_url: ${{ steps.create_release.outputs.upload_url }}
+    #     asset_name: artifacts.zip
+    #     asset_path: artifacts.zip
+    #     asset_content_type: application/zip
+
+    # - name: Upload Workflow Artifacts
+    #   uses: actions/upload-artifact@v1
+    #   with:
+    #     name: artifacts
+    #     path: artifacts/
