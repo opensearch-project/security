@@ -1,12 +1,9 @@
 name: CD
 
 on:
-  # push:
-  #   tags:
-  #     - 'v*'
   push:
-    branches:
-      - "release-workflow-patch"
+    tags:
+      - 'v*'
 
 jobs:
   build:
@@ -73,38 +70,38 @@ jobs:
         echo "Copying ${deb} to ${s3_prefix}${deb_outfile}"
         aws s3 cp --quiet $deb ${s3_prefix}${deb_outfile}
 
-    # - name: Upload Artifacts to Maven Central
-    #   env:
-    #     SONATYPE_USER: ${{ secrets.SONATYPE_USER }}
-    #     SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
-    #   run: |
-    #     gpg --batch --import --no-tty <(echo -e "${{ secrets.PGP_PRIVATE_KEY }}")
-    #     mvn -B deploy -Padvanced -Prelease -DskipTests -Dgpg.passphrase=${{ secrets.PGP_PASSPHRASE }}
+    - name: Upload Artifacts to Maven Central
+      env:
+        SONATYPE_USER: ${{ secrets.SONATYPE_USER }}
+        SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+      run: |
+        gpg --batch --import --no-tty <(echo -e "${{ secrets.PGP_PRIVATE_KEY }}")
+        mvn -B deploy -Padvanced -Prelease -DskipTests -Dgpg.passphrase=${{ secrets.PGP_PASSPHRASE }}
 
-    # - name: Create Github Draft Release
-    #   id: create_release
-    #   uses: actions/create-release@v1.0.0
-    #   env:
-    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    #   with:
-    #     tag_name: ${{ github.ref }}
-    #     release_name: Release ${{ env.TAG_VERSION }}
-    #     draft: true
-    #     prerelease: false
+    - name: Create Github Draft Release
+      id: create_release
+      uses: actions/create-release@v1.0.0
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ env.TAG_VERSION }}
+        draft: true
+        prerelease: false
 
-    # - name: Upload Release Asset
-    #   id: upload-release-asset
-    #   uses: actions/upload-release-asset@v1.0.1
-    #   env:
-    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    #   with:
-    #     upload_url: ${{ steps.create_release.outputs.upload_url }}
-    #     asset_name: artifacts.zip
-    #     asset_path: artifacts.zip
-    #     asset_content_type: application/zip
+    - name: Upload Release Asset
+      id: upload-release-asset
+      uses: actions/upload-release-asset@v1.0.1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_name: artifacts.zip
+        asset_path: artifacts.zip
+        asset_content_type: application/zip
 
-    # - name: Upload Workflow Artifacts
-    #   uses: actions/upload-artifact@v1
-    #   with:
-    #     name: artifacts
-    #     path: artifacts/
+    - name: Upload Workflow Artifacts
+      uses: actions/upload-artifact@v1
+      with:
+        name: artifacts
+        path: artifacts/
