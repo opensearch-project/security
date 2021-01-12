@@ -32,13 +32,7 @@ package com.amazon.opendistroforelasticsearch.security.user;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -66,14 +60,22 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
     private String requestedTenant;
     private Map<String, String> attributes = new HashMap<>();
     private boolean isInjected = false;
+    private String type;
+    private Map<String, Object> structuredAttributes;
+    private final Object specialAuthzConfig;
+    private boolean authzComplete;
+
 
     public User(final StreamInput in) throws IOException {
         super();
         name = in.readString();
+        type = in.readOptionalString();
         roles.addAll(in.readList(StreamInput::readString));
         requestedTenant = in.readString();
         attributes = in.readMap(StreamInput::readString, StreamInput::readString);
         openDistroSecurityRoles.addAll(in.readList(StreamInput::readString));
+        type = in.readOptionalString();
+        specialAuthzConfig = null;
     }
     
     /**
@@ -92,15 +94,36 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
         }
 
         this.name = name;
+        this.type = null;
+        this.specialAuthzConfig = null;
+        configureUser(name, roles, customAttributes);
+    }
+
+    public User(final String name, String type, final Collection<String> roles, final Set<String> openDistroSecurityRoles, final AuthCredentials customAttributes, Object specialAuthzConfig) {
+        super();
+        if (name == null || name.isEmpty()) {
+            throw new IllegalArgumentException("name must not be null or empty");
+        }
+        this.name = name;
+        this.type = type;
+        this.openDistroSecurityRoles.addAll(openDistroSecurityRoles);
+        this.specialAuthzConfig = specialAuthzConfig;
+        configureUser(name, roles, customAttributes);
+    }
+
+    private void configureUser(final String name, final Collection<String> roles, final AuthCredentials customAttributes) {
 
         if (roles != null) {
             this.addRoles(roles);
         }
+        this.structuredAttributes = new HashMap<>();
         
         if(customAttributes != null) {
             this.attributes.putAll(customAttributes.getAttributes());
+            this.structuredAttributes.putAll(customAttributes.getStructuredAttributes());
         }
 
+        this.type = null;
     }
 
     /**
@@ -262,5 +285,126 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
     
     public final Set<String> getOpenDistroSecurityRoles() {
         return this.openDistroSecurityRoles == null ? Collections.emptySet() : Collections.unmodifiableSet(this.openDistroSecurityRoles);
+    }
+
+    public String getType() {
+        return "opendistro_security_auth_token";
+    }
+
+    public Object getSpecialAuthzConfig() {
+        return specialAuthzConfig;
+    }
+
+    public Map<String, Object> getStructuredAttributes() {
+        return structuredAttributes;
+    }
+
+
+    public Builder copy() {
+        Builder builder = new Builder();
+        builder.name = name;
+        builder.type = type;
+        builder.backendRoles.addAll(roles);
+        builder.openDistroSecurityRoles.addAll(openDistroSecurityRoles);
+        builder.requestedTenant = requestedTenant;
+        builder.attributes.putAll(attributes);
+        builder.structuredAttributes.putAll(structuredAttributes);
+        builder.isInjected = isInjected;
+        builder.specialAuthzConfig = specialAuthzConfig;
+        builder.authzComplete = authzComplete;
+
+        return builder;
+    }
+
+
+    public static class Builder {
+        private String name;
+        private String type;
+        private final Set<String> backendRoles = new HashSet<String>();
+        private final Set<String> openDistroSecurityRoles = new HashSet<String>();
+        private String requestedTenant;
+        private Map<String, String> attributes = new HashMap<>();
+        private Map<String, Object> structuredAttributes = new HashMap<>();
+        private boolean isInjected;
+        private Object specialAuthzConfig;
+        private boolean authzComplete;
+
+        public Builder name(String name) {
+            this.name = name;
+            return this;
+        }
+
+        public Builder type(String type) {
+            this.type = type;
+            return this;
+        }
+
+        public Builder requestedTenant(String requestedTenant) {
+            this.requestedTenant = requestedTenant;
+            return this;
+        }
+
+        public Builder backendRoles(String... backendRoles) {
+            return this.backendRoles(Arrays.asList(backendRoles));
+        }
+
+        public Builder backendRoles(Collection<String> backendRoles) {
+            if (backendRoles != null) {
+                this.backendRoles.addAll(backendRoles);
+            }
+            return this;
+        }
+
+        public Builder openDistroSecurityRoles(String... searchGuardRoles) {
+            return this.openDistroSecurityRoles(Arrays.asList(searchGuardRoles));
+        }
+
+        public Builder openDistroSecurityRoles(Collection<String> searchGuardRoles) {
+            if (searchGuardRoles != null) {
+                this.openDistroSecurityRoles.addAll(searchGuardRoles);
+            }
+            return this;
+        }
+
+        @Deprecated
+        public Builder oldAttributes(Map<String, String> attributes) {
+            this.attributes.putAll(attributes);
+            return this;
+        }
+
+        @Deprecated
+        public Builder oldAttribute(String key, String value) {
+            this.attributes.put(key, value);
+            return this;
+        }
+
+        public Builder injected() {
+            this.isInjected = true;
+            return this;
+        }
+
+        public Builder attributes(Map<String, Object> attributes) {
+            //UserAttributes.validate(attributes);
+            this.structuredAttributes.putAll(attributes);
+            return this;
+        }
+
+        public Builder specialAuthzConfig(Object specialAuthzConfig) {
+            this.specialAuthzConfig = specialAuthzConfig;
+            return this;
+        }
+
+        public Builder authzComplete() {
+            this.authzComplete = true;
+            return this;
+        }
+
+        public User build() {
+            return new User(name, type, openDistroSecurityRoles, backendRoles, null, specialAuthzConfig);
+        }
+    }
+
+    public static Builder forUser(String username) {
+        return new Builder().name(username);
     }
 }

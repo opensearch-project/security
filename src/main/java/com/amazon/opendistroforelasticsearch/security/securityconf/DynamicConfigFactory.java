@@ -31,18 +31,26 @@
 
 package com.amazon.opendistroforelasticsearch.security.securityconf;
 
+import java.beans.XMLEncoder;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
+import com.amazon.opendistroforelasticsearch.security.authtoken.AuthTokenService;
+import com.amazon.opendistroforelasticsearch.security.authtoken.config.AuthTokenServiceConfig;
+import com.amazon.opendistroforelasticsearch.security.authtoken.parser.ValidatingJsonParser;
+import com.amazon.opendistroforelasticsearch.security.authtoken.validation.ConfigValidationException;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.NodesDn;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.WhitelistingSettings;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
+import com.fasterxml.jackson.core.JsonPointer;
 import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -127,15 +135,17 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     private final Settings esSettings;
     private final Path configPath;
     private final InternalAuthenticationBackend iab = new InternalAuthenticationBackend();
+    private final AuthTokenService authTokenService;
 
     SecurityDynamicConfiguration<?> config;
     
     public DynamicConfigFactory(ConfigurationRepository cr, final Settings esSettings,
-            final Path configPath, Client client, ThreadPool threadPool, ClusterInfoHolder cih) {
+            final Path configPath, Client client, ThreadPool threadPool, ClusterInfoHolder cih, AuthTokenService authTokenService) {
         super();
         this.cr = cr;
         this.esSettings = esSettings;
         this.configPath = configPath;
+        this.authTokenService = authTokenService;
 
         if(esSettings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES, true)) {
             try {
@@ -235,11 +245,47 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
             
 
             //rebuild v7 Models
-            dcm = new DynamicConfigModelV7(getConfigV7(config), esSettings, configPath, iab);
+            ConfigV7 configV7 = getConfigV7(config);
+            dcm = new DynamicConfigModelV7(configV7, esSettings, configPath, iab);
             ium = new InternalUsersModelV7((SecurityDynamicConfiguration<InternalUserV7>) internalusers,
                 (SecurityDynamicConfiguration<RoleV7>) roles,
                 (SecurityDynamicConfiguration<RoleMappingsV7>) rolesmapping);
             cm = new ConfigModelV7((SecurityDynamicConfiguration<RoleV7>) roles,(SecurityDynamicConfiguration<RoleMappingsV7>)rolesmapping, (SecurityDynamicConfiguration<ActionGroupsV7>)actionGroups, (SecurityDynamicConfiguration<TenantV7>) tenants,dcm, esSettings);
+            Map<String, Object> authTokenConfiguration = ((DynamicConfigModelV7) dcm).getAuthTokenProviderConfig();
+
+
+
+            log.info("Palash printing configv7");
+            SecurityDynamicConfiguration<ConfigV7> c = (SecurityDynamicConfiguration<ConfigV7>) config;
+
+            Object entry = c.getCEntry("config");
+
+            if (entry == null) {
+                if (log.isDebugEnabled()) {
+                    log.debug("No config entry 'config'" + " in " + config);
+                }
+            }
+
+            JsonNode subNode = DefaultObjectMapper.objectMapper.valueToTree(entry).at(JsonPointer.compile("/dynamic/auth_token_provider"));
+
+            if (subNode == null || subNode.isMissingNode()) {
+                if (log.isDebugEnabled()) {
+                    log.debug("JsonPointer /dynamic/auth_token_provider "  + " in " + c + " not found");
+                }
+               // do nothing
+            }
+
+            try{
+                AuthTokenServiceConfig config = AuthTokenServiceConfig.parse(subNode);
+                authTokenService.setConfig(config);
+            } catch (ConfigValidationException exception) {
+                log.error("Error occured while parsing the auth_token_provider configuration");
+                exception.printStackTrace();
+            }
+
+
+
+
 
         } else {
 

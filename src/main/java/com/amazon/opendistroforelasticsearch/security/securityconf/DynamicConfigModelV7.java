@@ -33,15 +33,8 @@ package com.amazon.opendistroforelasticsearch.security.securityconf;
 
 import java.net.InetAddress;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
 
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentType;
@@ -218,11 +211,12 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
             final boolean httpEnabled = ad.getValue().http_enabled;
             final boolean transportEnabled = ad.getValue().transport_enabled;
 
-
+            log.info("Palash here checking authzBackendClazz 2 => " + ad.getValue().authorization_backend.type);
             if (httpEnabled || transportEnabled) {
                 try {
 
                     final String authzBackendClazz = ad.getValue().authorization_backend.type;
+                    log.info("Palash here checking authzBackendClazz 1 => " + authzBackendClazz);
                     final AuthorizationBackend authorizationBackend;
                     
                     if(authzBackendClazz.equals(InternalAuthenticationBackend.class.getName()) //NOSONAR
@@ -263,10 +257,12 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
             final boolean httpEnabled = ad.getValue().http_enabled;
             final boolean transportEnabled = ad.getValue().transport_enabled;
 
+            log.info("Palash here checking authzBackendClazz 2 => " + ad.getValue().http_authenticator.type);
             if (httpEnabled || transportEnabled) {
                 try {
                     AuthenticationBackend authenticationBackend;
                     final String authBackendClazz = ad.getValue().authentication_backend.type;
+
                     if(authBackendClazz.equals(InternalAuthenticationBackend.class.getName()) //NOSONAR
                             || authBackendClazz.equals("internal")
                             || authBackendClazz.equals("intern")) {
@@ -310,7 +306,9 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
                     }
                     
                 } catch (final Exception e) {
+                    log.info("Palash Unable to initialize auth domain");
                     log.error("Unable to initialize auth domain {} due to {}", ad, e.toString(), e);
+                    //log.info("Unable to initialize auth domain {} due to {}", ad, e.toString(), e);
                 }
 
             }
@@ -361,6 +359,8 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
         } else {
             isEnterprise = true;
         }
+
+        log.info("Palash printing HAHAH " + (clazz+"_"+type));
 
         if(ReflectionHelper.isAdvancedModuleAAAModule(clazz)) {
             isEnterprise = true;
@@ -433,4 +433,9 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
         }
 
     }
+
+    public Map<String, Object> getAuthTokenProviderConfig() {
+        return config.dynamic.auth_token_provider;
+    }
+
 }

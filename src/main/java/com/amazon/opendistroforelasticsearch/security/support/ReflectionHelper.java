@@ -42,6 +42,8 @@ import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditLogImpl;
+import com.amazon.opendistroforelasticsearch.security.authtoken.authenticator.AuthTokenAuthenticationBackend;
+import com.amazon.opendistroforelasticsearch.security.authtoken.authenticator.AuthTokenHttpJwtAuthenticator;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
@@ -229,6 +231,7 @@ public class ReflectionHelper {
         }
 
         try {
+            log.info("Palash printing class name " + clazz);
             final Class<?> clazz0 = Class.forName(clazz);
             final T ret = (T) clazz0.getConstructor(Settings.class, Path.class).newInstance(settings, configPath);
 
@@ -301,6 +304,14 @@ public class ReflectionHelper {
         }
         
         if (clazz.equalsIgnoreCase("com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator")) {
+            advancedModuleInstalled = true;
+        }
+
+        if (clazz.equalsIgnoreCase(AuthTokenHttpJwtAuthenticator.class.getName())) {
+            advancedModuleInstalled = true;
+        }
+
+        if (clazz.equalsIgnoreCase(AuthTokenAuthenticationBackend.class.getName())) {
             advancedModuleInstalled = true;
         }
 

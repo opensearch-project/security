@@ -39,6 +39,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 
+import com.amazon.opendistroforelasticsearch.security.authtoken.authenticator.AuthTokenAuthenticationBackend;
+import com.amazon.opendistroforelasticsearch.security.authtoken.authenticator.AuthTokenHttpJwtAuthenticator;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -107,6 +109,9 @@ public abstract class DynamicConfigModel {
         
         authImplMap.put("ldap2_c", "com.amazon.dlic.auth.ldap2.LDAPAuthenticationBackend2");
         authImplMap.put("ldap2_z", "com.amazon.dlic.auth.ldap2.LDAPAuthorizationBackend2");
+
+        authImplMap.put("auth_token_h", AuthTokenHttpJwtAuthenticator.class.getName());
+        authImplMap.put("auth_token_c", AuthTokenAuthenticationBackend.class.getName());
 
         authImplMap.put("basic_h", HTTPBasicAuthenticator.class.getName());
         authImplMap.put("proxy_h", HTTPProxyAuthenticator.class.getName());

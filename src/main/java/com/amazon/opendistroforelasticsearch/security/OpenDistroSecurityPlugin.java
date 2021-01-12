@@ -48,11 +48,19 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.NullAuditLog;
-import com.amazon.opendistroforelasticsearch.security.configuration.OpenDistroSecurityFlsDlsIndexSearcherWrapper;
-import com.amazon.opendistroforelasticsearch.security.configuration.Salt;
+import com.amazon.opendistroforelasticsearch.security.authtoken.AuthInfoService;
+import com.amazon.opendistroforelasticsearch.security.authtoken.AuthTokenService;
+import com.amazon.opendistroforelasticsearch.security.authtoken.api.AuthTokenRestAction;
+import com.amazon.opendistroforelasticsearch.security.authtoken.api.transport.TransportCreateAuthTokenAction;
+import com.amazon.opendistroforelasticsearch.security.authtoken.api.transport.TransportPushAuthTokenUpdateAction;
+import com.amazon.opendistroforelasticsearch.security.authtoken.config.AuthTokenServiceConfig;
+import com.amazon.opendistroforelasticsearch.security.authtoken.modules.create.CreateAuthTokenAction;
+import com.amazon.opendistroforelasticsearch.security.authtoken.modules.update.PushAuthTokenUpdateAction;
+import com.amazon.opendistroforelasticsearch.security.configuration.*;
 import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenDistroSecuritySSLReloadCertsAction;
 import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenDistroSecuritySSLCertsInfoAction;
 
+import com.google.common.base.Joiner;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.OpenDistroSSLConfig;
@@ -133,12 +141,6 @@ import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLogSslExcept
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog.Origin;
 import com.amazon.opendistroforelasticsearch.security.auth.BackendRegistry;
 import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceIndexingOperationListener;
-import com.amazon.opendistroforelasticsearch.security.configuration.AdminDNs;
-import com.amazon.opendistroforelasticsearch.security.configuration.ClusterInfoHolder;
-import com.amazon.opendistroforelasticsearch.security.configuration.CompatConfig;
-import com.amazon.opendistroforelasticsearch.security.configuration.ConfigurationRepository;
-import com.amazon.opendistroforelasticsearch.security.configuration.DlsFlsRequestValve;
-import com.amazon.opendistroforelasticsearch.security.configuration.OpenDistroSecurityIndexSearcherWrapper;
 import com.amazon.opendistroforelasticsearch.security.filter.OpenDistroSecurityFilter;
 import com.amazon.opendistroforelasticsearch.security.filter.OpenDistroSecurityRestFilter;
 import com.amazon.opendistroforelasticsearch.security.http.OpenDistroSecurityHttpServerTransport;
@@ -196,6 +198,10 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     private volatile DlsFlsRequestValve dlsFlsValve = null;
     private volatile Salt salt;
 
+    private ProtectedConfigIndexService protectedConfigIndexService;
+    private static ProtectedIndices protectedIndices;
+    private AuthInfoService authInfoService;
+
     public static boolean isActionTraceEnabled() {
         return actionTrace.isTraceEnabled();
     }
@@ -247,6 +253,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             this.dlsFlsAvailable = false;
             this.advancedModulesEnabled = false;
             this.sslCertReloadEnabled = false;
+            this.protectedIndices = new ProtectedIndices();
             log.warn("Open Distro Security plugin installed but disabled. This can expose your configuration (including passwords) to the public.");
             return;
         }
@@ -255,10 +262,12 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             this.dlsFlsAvailable = false;
             this.advancedModulesEnabled = false;
             this.sslCertReloadEnabled = false;
+            this.protectedIndices = new ProtectedIndices();
             log.warn("Open Distro Security plugin run in ssl only mode. No authentication or authorization is performed");
             return;
         }
-        
+
+        this.protectedIndices = new ProtectedIndices(settings);
 
         demoCertHashes.add("54a92508de7a39d06242a0ffbf59414d7eb478633c719e6af03938daf6de8a1a");
         demoCertHashes.add("742e4659c79d7cad89ea86aab70aea490f23bbfc7e72abd5f0a5d3fb4c84d212");
@@ -450,6 +459,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                 handlers.add(new KibanaInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool)));
                 handlers.add(new OpenDistroSecurityHealthAction(settings, restController, Objects.requireNonNull(backendRegistry)));
                 handlers.add(new OpenDistroSecuritySSLCertsInfoAction(settings, restController, odsks, Objects.requireNonNull(threadPool), Objects.requireNonNull(adminDns)));
+                handlers.add(new AuthTokenRestAction());
                 handlers.add(new TenantInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool),
 				Objects.requireNonNull(cs), Objects.requireNonNull(adminDns), Objects.requireNonNull(cr)));
 
@@ -482,6 +492,8 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         if(!disabled && !openDistroSSLConfig.isSslOnlyMode()) {
             actions.add(new ActionHandler<>(ConfigUpdateAction.INSTANCE, TransportConfigUpdateAction.class));
             actions.add(new ActionHandler<>(WhoAmIAction.INSTANCE, TransportWhoAmIAction.class));
+            actions.add(new ActionHandler<>(CreateAuthTokenAction.INSTANCE, TransportCreateAuthTokenAction.class));
+            actions.add(new ActionHandler<>(PushAuthTokenUpdateAction.INSTANCE, TransportPushAuthTokenUpdateAction.class));
         }
         return actions;
     }
@@ -798,7 +810,11 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         securityRestHandler = new OpenDistroSecurityRestFilter(backendRegistry, auditLog, threadPool,
                 principalExtractor, settings, configPath, compatConfig);
 
-        final DynamicConfigFactory dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih);
+        protectedConfigIndexService = new ProtectedConfigIndexService(localClient, clusterService, threadPool, protectedIndices);
+        authInfoService = new AuthInfoService(threadPool);
+        AuthTokenService authTokenService = new AuthTokenService(localClient, settings, threadPool, protectedConfigIndexService, new AuthTokenServiceConfig());
+
+        final DynamicConfigFactory dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih, authTokenService);
         dcf.registerDCFListener(backendRegistry);
         dcf.registerDCFListener(compatConfig);
         dcf.registerDCFListener(irr);
@@ -831,7 +847,9 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         components.add(evaluator);
         components.add(odsi);
         components.add(dcf);
-
+        components.add(authInfoService);
+        components.add(authTokenService);
+        components.add(protectedConfigIndexService);
 
         return components;
 
@@ -1028,7 +1046,9 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         log.info("Node started");
         if(!openDistroSSLConfig.isSslOnlyMode() && !client && !disabled) {
             cr.initOnNodeStart();
+            protectedConfigIndexService.onNodeStart();
         }
+
         final Set<ModuleInfo> securityModules = ReflectionHelper.getModulesLoaded();
         log.info("{} Open Distro Security modules loaded so far: {}", securityModules.size(), securityModules);
     }
@@ -1150,4 +1170,62 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         }
 
     }
+
+    public static final class ProtectedIndices {
+        final Set<String> protectedPatterns;
+
+        private ProtectedIndices() {
+            protectedPatterns = null;
+        }
+
+        private ProtectedIndices(Settings settings, String... patterns) {
+            protectedPatterns = new HashSet<>();
+            protectedPatterns.add(settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX));
+            if (patterns != null && patterns.length > 0) {
+                protectedPatterns.addAll(Arrays.asList(patterns));
+            }
+        }
+
+        public void add(String pattern) {
+            protectedPatterns.add(pattern);
+        }
+
+        public boolean isProtected(String index) {
+            WildcardMatcher.from(index).matchAny(protectedPatterns);
+            return protectedPatterns == null ? false : WildcardMatcher.from(index).matchAny(protectedPatterns);
+        }
+
+        public boolean containsProtected(Collection<String> indices) {
+            return protectedPatterns == null ? false : WildcardMatcher.from(indices).matchAny(protectedPatterns);
+        }
+
+        public String printProtectedIndices() {
+            return protectedPatterns == null ? "" : Joiner.on(',').join(protectedPatterns);
+        }
+
+        /*public String[] getProtectedIndicesAsMinusPattern(IndexResolverReplacer irr, Object request) {
+            if (protectedPatterns == null) {
+                return new String[0];
+            }
+
+            final boolean enableCrossClusterResolution = request instanceof FieldCapabilitiesRequest || request instanceof SearchRequest;
+            final IndexResolverReplacer.Resolved resolved = irr.resolveIndexPatterns(IndicesOptions.lenientExpandOpen(), enableCrossClusterResolution,
+                    protectedPatterns.toArray(new String[0]));
+
+            String[] res = new String[resolved.getAllIndices().size()];
+            int i = 0;
+            for (String p : resolved.getAllIndices()) {
+                res[i++] = "-" + p;
+            }
+
+            return res.clone();
+        }*/
+
+      /*  public void filterIndices(Set<String> indices) {
+            for (String p : protectedPatterns) {
+                WildcardMatcher.wildcardRemoveFromSet(indices, p);
+            }
+        }*/
+    }
+
 }

@@ -40,6 +40,8 @@ import com.amazon.opendistroforelasticsearch.security.auth.HTTPAuthenticator;
 import com.amazon.opendistroforelasticsearch.security.auth.internal.InternalAuthenticationBackend;
 import com.amazon.opendistroforelasticsearch.security.auth.internal.NoOpAuthenticationBackend;
 import com.amazon.opendistroforelasticsearch.security.auth.internal.NoOpAuthorizationBackend;
+import com.amazon.opendistroforelasticsearch.security.authtoken.authenticator.AuthTokenAuthenticationBackend;
+import com.amazon.opendistroforelasticsearch.security.authtoken.authenticator.AuthTokenHttpJwtAuthenticator;
 import com.amazon.opendistroforelasticsearch.security.http.HTTPBasicAuthenticator;
 import com.amazon.opendistroforelasticsearch.security.http.HTTPClientCertAuthenticator;
 import com.amazon.opendistroforelasticsearch.security.http.HTTPProxyAuthenticator;
@@ -60,9 +62,11 @@ public enum ModuleType implements Serializable {
 	OPENID_AUTHENTICATION_BACKEND("OpenID authentication backend", "com.amazon.dlic.auth.http.jwt.keybyoidc.HTTPJwtKeyByOpenIdConnectAuthenticator", Boolean.TRUE),
 	SAML_AUTHENTICATION_BACKEND("SAML authentication backend", "com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator", Boolean.TRUE),
 	INTERNAL_USERS_AUTHENTICATION_BACKEND("Internal users authentication backend", InternalAuthenticationBackend.class.getName(), Boolean.FALSE),
+	AUTHTOKEN_AUTHENTICATION_BACKEND("Internal users authentication backend", AuthTokenAuthenticationBackend.class.getName(), Boolean.FALSE),
 	NOOP_AUTHENTICATION_BACKEND("Noop authentication backend", NoOpAuthenticationBackend.class.getName(), Boolean.FALSE),
 	NOOP_AUTHORIZATION_BACKEND("Noop authorization backend", NoOpAuthorizationBackend.class.getName(), Boolean.FALSE),
 	HTTP_BASIC_AUTHENTICATOR("HTTP Basic Authenticator", HTTPBasicAuthenticator.class.getName(), Boolean.FALSE),
+	HTTP_AUTHTOKEN_AUTHENTICATOR("HTTP Auth Token Authenticator" , AuthTokenHttpJwtAuthenticator.class.getName(), Boolean.TRUE),
 	HTTP_PROXY_AUTHENTICATOR("HTTP Proxy Authenticator", HTTPProxyAuthenticator.class.getName(), Boolean.FALSE),
     HTTP_EXT_PROXY_AUTHENTICATOR("HTTP Extended Proxy Authenticator", HTTPExtendedProxyAuthenticator.class.getName(), Boolean.FALSE),
 	HTTP_CLIENTCERT_AUTHENTICATOR("HTTP Client Certificate Authenticator", HTTPClientCertAuthenticator.class.getName(), Boolean.FALSE),

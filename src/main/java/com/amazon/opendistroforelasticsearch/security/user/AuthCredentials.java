@@ -30,6 +30,7 @@
 
 package com.amazon.opendistroforelasticsearch.security.user;
 
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
@@ -39,6 +40,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import com.jayway.jsonpath.JsonPath;
 import org.elasticsearch.ElasticsearchSecurityException;
 
 /**
@@ -47,7 +49,6 @@ import org.elasticsearch.ElasticsearchSecurityException;
  *
  */
 public final class AuthCredentials {
-
     private static final String DIGEST_ALGORITHM = "SHA-256";
     private final String username;
     private byte[] password;
@@ -56,16 +57,18 @@ public final class AuthCredentials {
     private boolean complete;
     private final byte[] internalPasswordHash;
     private final Map<String, String> attributes = new HashMap<>();
+    private final Map<String, Object> structuredAttributes;
+    private Map<String, Object> claims = new HashMap<>();
 
     /**
      * Create new credentials with a username and native credentials
      *
-     * @param username The username, must not be null or empty
+     * @param username          The username, must not be null or empty
      * @param nativeCredentials Arbitrary credentials (like GSS tokens), must not be null
      * @throws IllegalArgumentException if username or nativeCredentials are null or empty
      */
     public AuthCredentials(final String username, final Object nativeCredentials) {
-        this(username, null, nativeCredentials);
+        this(username, null, nativeCredentials, null, null);
 
         if (nativeCredentials == null) {
             throw new IllegalArgumentException("nativeCredentials must not be null or empty");
@@ -80,7 +83,7 @@ public final class AuthCredentials {
      * @throws IllegalArgumentException if username or password is null or empty
      */
     public AuthCredentials(final String username, final byte[] password) {
-        this(username, password, null);
+        this(username, password, null, null, null);
 
         if (password == null || password.length == 0) {
             throw new IllegalArgumentException("password must not be null or empty");
@@ -89,27 +92,27 @@ public final class AuthCredentials {
 
     /**
      * Create new credentials with a username, a initial optional set of roles and empty password/native credentials
-
-     * @param username The username, must not be null or empty
+     *
+     * @param username     The username, must not be null or empty
      * @param backendRoles set of roles this user is a member of
      * @throws IllegalArgumentException if username is null or empty
      */
     public AuthCredentials(final String username, String... backendRoles) {
-        this(username, null, null, backendRoles);
+        this(username, null, null, null, null, backendRoles);
     }
 
-    private AuthCredentials(final String username, byte[] password, Object nativeCredentials, String... backendRoles) {
+    private AuthCredentials(final String username, byte[] password, Object nativeCredentials,
+                            Map<String, Object> structuredAttributes, Map<String, Object> claims,
+                            String... backendRoles) {
         super();
 
         if (username == null || username.isEmpty()) {
             throw new IllegalArgumentException("username must not be null or empty");
         }
-
         this.username = username;
         // make defensive copy
         this.password = password == null ? null : Arrays.copyOf(password, password.length);
-
-        if(this.password != null) {
+        if (this.password != null) {
             try {
                 MessageDigest digester = MessageDigest.getInstance(DIGEST_ALGORITHM);
                 internalPasswordHash = digester.digest(this.password);
@@ -119,17 +122,21 @@ public final class AuthCredentials {
         } else {
             internalPasswordHash = null;
         }
-
-        if(password != null) {
+        if (password != null) {
             Arrays.fill(password, (byte) '\0');
             password = null;
         }
-
         this.nativeCredentials = nativeCredentials;
         nativeCredentials = null;
-
-        if(backendRoles != null && backendRoles.length > 0) {
+        if (backendRoles != null && backendRoles.length > 0) {
             this.backendRoles.addAll(Arrays.asList(backendRoles));
+        }
+        this.structuredAttributes = structuredAttributes;
+
+        if (claims != null) {
+            this.claims = Collections.unmodifiableMap(claims);
+        } else {
+            this.claims = new HashMap<>();
         }
     }
 
@@ -141,7 +148,6 @@ public final class AuthCredentials {
             Arrays.fill(password, (byte) '\0');
             password = null;
         }
-
         nativeCredentials = null;
     }
 
@@ -149,8 +155,15 @@ public final class AuthCredentials {
         return username;
     }
 
+    public Map<String, Object> getStructuredAttributes() {
+        return structuredAttributes;
+    }
+
+    public Map<String, Object> getClaims() {
+        return claims;
+    }
+
     /**
-     *
      * @return Defensive copy of the password
      */
     public byte[] getPassword() {
@@ -192,12 +205,12 @@ public final class AuthCredentials {
 
     @Override
     public String toString() {
-        return "AuthCredentials [username=" + username + ", password empty=" + (password == null) + ", nativeCredentials empty="
-                + (nativeCredentials == null) + ",backendRoles="+backendRoles+"]";
+        return "AuthCredentials [username=" + username + ", password empty=" + (password == null) + ", " +
+                "nativeCredentials empty="
+                + (nativeCredentials == null) + ",backendRoles=" + backendRoles + "]";
     }
 
     /**
-     *
      * @return Defensive copy of the roles this user is member of.
      */
     public Set<String> getBackendRoles() {
@@ -222,7 +235,7 @@ public final class AuthCredentials {
     }
 
     public void addAttribute(String name, String value) {
-        if(name != null && !name.isEmpty()) {
+        if (name != null && !name.isEmpty()) {
             this.attributes.put(name, value);
         }
     }
@@ -230,4 +243,152 @@ public final class AuthCredentials {
     public Map<String, String> getAttributes() {
         return Collections.unmodifiableMap(this.attributes);
     }
+
+    public static class Builder {
+        private static final String DIGEST_ALGORITHM = "SHA-256";
+        private String username;
+        private byte[] password;
+        private Object nativeCredentials;
+        private Set<String> backendRoles = new HashSet<String>();
+        private boolean complete;
+        private byte[] internalPasswordHash;
+        private Map<String, String> attributes = new HashMap<>();
+        private Map<String, Object> structuredAttributes;
+        private Map<String, Object> claims = new HashMap<>();
+
+        public Builder() {
+
+        }
+
+        public Builder username(String username) {
+            this.username = username;
+            return this;
+        }
+
+        public Builder password(byte[] password) {
+            if (password == null || password.length == 0) {
+                throw new IllegalArgumentException("password must not be null or empty");
+            }
+
+            this.password = Arrays.copyOf(password, password.length);
+
+            try {
+                MessageDigest digester = MessageDigest.getInstance(DIGEST_ALGORITHM);
+                internalPasswordHash = digester.digest(this.password);
+            } catch (NoSuchAlgorithmException e) {
+                throw new ElasticsearchSecurityException("Unable to digest password", e);
+            }
+
+            Arrays.fill(password, (byte) '\0');
+
+            return this;
+        }
+
+        public Builder password(String password) {
+            return this.password(password.getBytes(StandardCharsets.UTF_8));
+        }
+
+        public Builder nativeCredentials(Object nativeCredentials) {
+            if (nativeCredentials == null) {
+                throw new IllegalArgumentException("nativeCredentials must not be null or empty");
+            }
+            this.nativeCredentials = nativeCredentials;
+            return this;
+        }
+
+        public Builder backendRoles(String... backendRoles) {
+            if (backendRoles == null) {
+                return this;
+            }
+
+            this.backendRoles.addAll(Arrays.asList(backendRoles));
+            return this;
+        }
+
+        /**
+         * If the credentials are complete and no further roundtrips with the originator are due
+         * then this method <b>must</b> be called so that the authentication flow can proceed.
+         * <p/>
+         * If this credentials are already marked a complete then a call to this method does nothing.
+         */
+        public Builder complete() {
+            this.complete = true;
+            return this;
+        }
+
+        public Builder oldAttribute(String name, String value) {
+            if (name != null && !name.isEmpty()) {
+                this.attributes.put(name, value);
+            }
+            return this;
+        }
+
+        public Builder oldAttributes(Map<String, String> map) {
+            this.attributes.putAll(map);
+            return this;
+        }
+
+        public Builder prefixOldAttributes(String keyPrefix, Map<String, ?> map) {
+            for (Map.Entry<String, ?> entry : map.entrySet()) {
+                this.attributes.put(keyPrefix + entry.getKey(), entry.getValue() != null ?
+                        entry.getValue().toString() : null);
+            }
+            return this;
+        }
+
+        /*
+        public Builder attribute(String name, Object value) {
+            UserAttributes.validate(value);
+
+            if (name != null && !name.isEmpty()) {
+                this.structuredAttributes.put(name, value);
+            }
+            return this;
+        }
+
+        public Builder attributes(Map<String, Object> map) {
+            UserAttributes.validate(map);
+            this.structuredAttributes.putAll(map);
+            return this;
+        }
+
+        public Builder attributesByJsonPath(Map<String, JsonPath> jsonPathMap, Object source) {
+            UserAttributes.addAttributesByJsonPath(jsonPathMap, source, this.structuredAttributes);
+            return this;
+        }*/
+
+        public Builder claims(Map<String, Object> map) {
+            this.claims.putAll(map);
+            return this;
+        }
+
+
+        public String getUsername() {
+            return username;
+        }
+
+        public Map<String, Object> getStructuredAttributes() {
+            return structuredAttributes;
+        }
+
+        public AuthCredentials build() {
+            int n = backendRoles.size();
+            String roles[] = new String[n];
+            System.arraycopy(backendRoles.toArray(), 0, roles, 0, n);
+
+            AuthCredentials result = new AuthCredentials(username, password, nativeCredentials, structuredAttributes,
+                    claims,
+                    roles);
+            this.password = null;
+            this.nativeCredentials = null;
+            this.internalPasswordHash = null;
+            return result;
+        }
+    }
+
+
+    public static Builder forUser(String username) {
+        return new Builder().username(username);
+    }
+
 }
