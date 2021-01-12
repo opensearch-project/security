@@ -32,7 +32,14 @@ package com.amazon.opendistroforelasticsearch.security.user;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.Arrays;
 
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -120,7 +127,9 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
         
         if(customAttributes != null) {
             this.attributes.putAll(customAttributes.getAttributes());
-            this.structuredAttributes.putAll(customAttributes.getStructuredAttributes());
+            if (customAttributes.getStructuredAttributes() != null) {
+                this.structuredAttributes.putAll(customAttributes.getStructuredAttributes());
+            }
         }
 
         this.type = null;
@@ -299,6 +308,9 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
         return structuredAttributes;
     }
 
+    public boolean isAuthzComplete() {
+        return authzComplete;
+    }
 
     public Builder copy() {
         Builder builder = new Builder();
@@ -355,13 +367,13 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
             return this;
         }
 
-        public Builder openDistroSecurityRoles(String... searchGuardRoles) {
-            return this.openDistroSecurityRoles(Arrays.asList(searchGuardRoles));
+        public Builder openDistroSecurityRoles(String... openDistroSecurityRoles) {
+            return this.openDistroSecurityRoles(Arrays.asList(openDistroSecurityRoles));
         }
 
-        public Builder openDistroSecurityRoles(Collection<String> searchGuardRoles) {
-            if (searchGuardRoles != null) {
-                this.openDistroSecurityRoles.addAll(searchGuardRoles);
+        public Builder openDistroSecurityRoles(Collection<String> openDistroSecurityRoles) {
+            if (openDistroSecurityRoles != null) {
+                this.openDistroSecurityRoles.addAll(openDistroSecurityRoles);
             }
             return this;
         }
@@ -400,7 +412,9 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
         }
 
         public User build() {
-            return new User(name, type, openDistroSecurityRoles, backendRoles, null, specialAuthzConfig);
+            User user =  new User(name, type, openDistroSecurityRoles, backendRoles, null, specialAuthzConfig);
+            user.authzComplete = this.authzComplete;
+            return user;
         }
     }
 

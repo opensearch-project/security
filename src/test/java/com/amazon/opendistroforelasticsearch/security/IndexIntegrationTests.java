@@ -602,7 +602,12 @@ public class IndexIntegrationTests extends SingleClusterTest {
     @Test
     public void testIndexResolveMinus() throws Exception {
 
-        setup(Settings.EMPTY, new DynamicSecurityConfig(), Settings.EMPTY, true);
+
+        final Settings settings = Settings.builder()
+                .put(ConfigConstants.OPENDISTRO_SECURITY_INITIALIZE_PROTECTED_CONFID_INDEX_SERVICE, false)
+                .build();
+
+        setup(Settings.EMPTY, new DynamicSecurityConfig(), settings, true);
         final RestHelper rh = nonSslRestHelper();
 
         try (TransportClient tc = getInternalTransportClient()) {

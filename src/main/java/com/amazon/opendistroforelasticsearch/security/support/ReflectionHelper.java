@@ -231,7 +231,6 @@ public class ReflectionHelper {
         }
 
         try {
-            log.info("Palash printing class name " + clazz);
             final Class<?> clazz0 = Class.forName(clazz);
             final T ret = (T) clazz0.getConstructor(Settings.class, Path.class).newInstance(settings, configPath);
 

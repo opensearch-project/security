@@ -126,6 +126,7 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = "opendistro_security.cert.intercluster_request_evaluator_class";
     public static final String OPENDISTRO_SECURITY_ACTION_NAME = OPENDISTRO_SECURITY_CONFIG_PREFIX+"action_name";
 
+    public static final String OPENDISTRO_SECURITY_INITIALIZE_PROTECTED_CONFID_INDEX_SERVICE = "opendistro_security.protected_config_index_service";
 
     public static final String OPENDISTRO_SECURITY_AUTHCZ_ADMIN_DN = "opendistro_security.authcz.admin_dn";
     public static final String OPENDISTRO_SECURITY_CONFIG_INDEX_NAME = "opendistro_security.config_index_name";

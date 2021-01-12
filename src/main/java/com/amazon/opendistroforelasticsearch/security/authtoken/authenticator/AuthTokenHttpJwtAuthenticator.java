@@ -27,20 +27,23 @@ public class AuthTokenHttpJwtAuthenticator implements HTTPAuthenticator {
 
     private final static Logger log = LogManager.getLogger(AuthTokenHttpJwtAuthenticator.class);
 
-    private final AuthTokenService authTokenService;
-    private final String jwtHeaderName;
-    private final String subjectKey;
+    private AuthTokenService authTokenService;
+    private String jwtHeaderName;
+    private String subjectKey;
 
     public AuthTokenHttpJwtAuthenticator(final Settings settings, final Path configPath) {
-        authTokenService = null;
-        jwtHeaderName = null;
-        subjectKey = null;
+        this.jwtHeaderName = "Authorization";
+        this.subjectKey = JwtConstants.CLAIM_SUBJECT;
     }
-    public AuthTokenHttpJwtAuthenticator(AuthTokenService authTokenService
-    ) {
+    public AuthTokenHttpJwtAuthenticator(AuthTokenService authTokenService) {
         this.authTokenService = authTokenService;
         this.jwtHeaderName = "Authorization";
         this.subjectKey = JwtConstants.CLAIM_SUBJECT;
+    }
+
+    @Override
+    public String getType() {
+        return "opendistro_security_auth_token";
     }
 
     @Override
@@ -50,21 +53,23 @@ public class AuthTokenHttpJwtAuthenticator implements HTTPAuthenticator {
         if (sm != null) {
             sm.checkPermission(new SpecialPermission());
         }
-
         return AccessController.doPrivileged((PrivilegedAction<AuthCredentials>) () -> extractCredentials0(request));
+    }
 
+    public void setAuthTokenService(AuthTokenService authTokenService) {
+        this.authTokenService = authTokenService;
     }
 
     private AuthCredentials extractCredentials0(RestRequest request) throws ElasticsearchSecurityException {
-
         String encodedJwt = getJwtTokenString(request);
-
         if (Strings.isNullOrEmpty(encodedJwt)) {
             return null;
         }
 
         try {
+            log.info("is authTokenService null ? " + (authTokenService == null) );
             JwtToken jwt = authTokenService.getVerifiedJwtToken(encodedJwt);
+
             JwtClaims claims = jwt.getClaims();
 
             String subject = extractSubject(claims);
@@ -73,11 +78,13 @@ public class AuthTokenHttpJwtAuthenticator implements HTTPAuthenticator {
                 log.error("No subject found in JWT token: " + claims);
                 return null;
             }
-
             return AuthCredentials.forUser(subject).claims(claims.asMap()).complete().build();
 
         } catch (JwtException e) {
             log.info("JWT is invalid", e);
+            return null;
+        } catch (Exception e) {
+            e.printStackTrace();
             return null;
         }
 
@@ -132,24 +139,16 @@ public class AuthTokenHttpJwtAuthenticator implements HTTPAuthenticator {
                 subject = (String) subjectObject;
             }
         }
+
         return subject;
     }
-
-
-
 
     @Override
     public boolean reRequestAuthentication(RestChannel channel, AuthCredentials authCredentials) {
         final BytesRestResponse wwwAuthenticateResponse = new BytesRestResponse(RestStatus.UNAUTHORIZED, "");
-        wwwAuthenticateResponse.addHeader("WWW-Authenticate", "Bearer realm=\"Search Guard\"");
+        wwwAuthenticateResponse.addHeader("WWW-Authenticate", "Bearer realm=\"Opendistro Security\"");
         channel.sendResponse(wwwAuthenticateResponse);
         return true;
-    }
-
-
-    @Override
-    public String getType() {
-        return "opendistro_security_auth_token";
     }
 
 }

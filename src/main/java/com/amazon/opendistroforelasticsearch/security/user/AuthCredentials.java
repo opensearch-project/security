@@ -59,11 +59,12 @@ public final class AuthCredentials {
     private final Map<String, String> attributes = new HashMap<>();
     private final Map<String, Object> structuredAttributes;
     private Map<String, Object> claims = new HashMap<>();
+    private boolean authzComplete;
 
     /**
      * Create new credentials with a username and native credentials
      *
-     * @param username          The username, must not be null or empty
+     * @param username The username, must not be null or empty
      * @param nativeCredentials Arbitrary credentials (like GSS tokens), must not be null
      * @throws IllegalArgumentException if username or nativeCredentials are null or empty
      */
@@ -221,6 +222,11 @@ public final class AuthCredentials {
         return complete;
     }
 
+    public boolean isAuthzComplete() {
+        return authzComplete;
+    }
+
+
     /**
      * If the credentials are complete and no further roundtrips with the originator are due
      * then this method <b>must</b> be called so that the authentication flow can proceed.
@@ -255,6 +261,7 @@ public final class AuthCredentials {
         private Map<String, String> attributes = new HashMap<>();
         private Map<String, Object> structuredAttributes;
         private Map<String, Object> claims = new HashMap<>();
+        private boolean authzComplete;
 
         public Builder() {
 
@@ -313,6 +320,11 @@ public final class AuthCredentials {
          */
         public Builder complete() {
             this.complete = true;
+            return this;
+        }
+
+        public Builder authzComplete() {
+            this.authzComplete = true;
             return this;
         }
 
@@ -379,6 +391,8 @@ public final class AuthCredentials {
             AuthCredentials result = new AuthCredentials(username, password, nativeCredentials, structuredAttributes,
                     claims,
                     roles);
+            result.complete = this.complete;
+            result.authzComplete = this.authzComplete;
             this.password = null;
             this.nativeCredentials = null;
             this.internalPasswordHash = null;

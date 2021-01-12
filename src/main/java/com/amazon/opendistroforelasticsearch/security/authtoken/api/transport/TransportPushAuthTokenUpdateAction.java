@@ -64,7 +64,6 @@ public class TransportPushAuthTokenUpdateAction extends
     @Override
     protected PushAuthTokenUpdateResponse newResponse(PushAuthTokenUpdateRequest request, List<PushAuthTokenUpdateNodeResponse> responses,
                                                       List<FailedNodeException> failures) {
-        logger.info("Kaka here 2");
         return new PushAuthTokenUpdateResponse(this.clusterService.getClusterName(), responses, failures);
 
     }

@@ -44,7 +44,7 @@ import java.util.List;
 
 public class AuthTokenProcessorAction extends AbstractApiAction {
 	private static final List<Route> routes = Collections.singletonList(
-			new Route(Method.POST, "/_opendistro/_security/api/auth_token_")
+			new Route(Method.POST, "/_opendistro/_security/api/authtoken")
 	);
 
 	@Inject

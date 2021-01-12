@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import com.amazon.opendistroforelasticsearch.security.auth.SyncAuthenticationBackend;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -47,7 +48,7 @@ import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 
-public class LDAPAuthenticationBackend implements AuthenticationBackend {
+public class LDAPAuthenticationBackend implements SyncAuthenticationBackend {
 
     static final int ZERO_PLACEHOLDER = 0;
     static final String DEFAULT_USERBASE = "";

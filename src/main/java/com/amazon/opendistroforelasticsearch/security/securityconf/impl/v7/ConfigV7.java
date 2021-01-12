@@ -129,7 +129,7 @@ public class ConfigV7 {
         @Override
         public String toString() {
             return "Dynamic [filtered_alias_mode=" + filtered_alias_mode + ", kibana=" + kibana + ", http=" + http + ", authc=" + authc + ", authz="
-                    + authz + "]";
+                    + authz + ", auth_token_provider=" + auth_token_provider + "]";
         }
     }
 

@@ -131,31 +131,30 @@ public class AuthToken implements ToXContentObject, Writeable, Serializable {
     public static AuthToken parse(String id, JsonNode jsonNode) throws ConfigValidationException {
         ValidationErrors validationErrors = new ValidationErrors();
         ValidatingJsonNode vJsonNode = new ValidatingJsonNode(jsonNode, validationErrors);
-
         String userName = vJsonNode.requiredString("user_name");
         String tokenName = vJsonNode.string("token_name");
         //AuthTokenPrivilegeBase base = null;
         //RequestedPrivileges requestedPrivilges = null;
 
-        if (vJsonNode.hasNonNull("base")) {
-            /*try {
+        /*if (vJsonNode.hasNonNull("base")) {
+            try {
                 base = AuthTokenPrivilegeBase.parse(vJsonNode.get("base"));
             } catch (ConfigValidationException e) {
                 validationErrors.add("base", e);
-            }*/
+            }
         } else {
             validationErrors.add(new MissingAttribute("base", jsonNode));
         }
 
         if (vJsonNode.hasNonNull("requested")) {
-           /* try {
+            try {
                 requestedPrivilges = RequestedPrivileges.parse(vJsonNode.get("requested"));
             } catch (ConfigValidationException e) {
                 validationErrors.add("requested", e);
-            }*/
+            }
         } else {
             validationErrors.add(new MissingAttribute("requested", jsonNode));
-        }
+        }*/
 
         Instant createdAt = vJsonNode.requiredValue("created_at", (v) -> Instant.ofEpochMilli(v.longValue()));
         Instant expiry = vJsonNode.value("expires_at", (v) -> Instant.ofEpochMilli(v.longValue()), null);

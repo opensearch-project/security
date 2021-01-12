@@ -91,6 +91,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     private static SecurityDynamicConfiguration<ActionGroupsV7> staticActionGroups = SecurityDynamicConfiguration.empty();
     private static SecurityDynamicConfiguration<TenantV7> staticTenants = SecurityDynamicConfiguration.empty();
     private static final WhitelistingSettings defaultWhitelistingSettings = new WhitelistingSettings();
+    private final String auth_token_provider_path = "/dynamic/auth_token_provider";
 
     static void resetStatics() {
         staticRoles = SecurityDynamicConfiguration.empty();
@@ -246,46 +247,19 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
 
             //rebuild v7 Models
             ConfigV7 configV7 = getConfigV7(config);
-            dcm = new DynamicConfigModelV7(configV7, esSettings, configPath, iab);
+            dcm = new DynamicConfigModelV7(configV7, esSettings, configPath, iab, authTokenService);
             ium = new InternalUsersModelV7((SecurityDynamicConfiguration<InternalUserV7>) internalusers,
                 (SecurityDynamicConfiguration<RoleV7>) roles,
                 (SecurityDynamicConfiguration<RoleMappingsV7>) rolesmapping);
             cm = new ConfigModelV7((SecurityDynamicConfiguration<RoleV7>) roles,(SecurityDynamicConfiguration<RoleMappingsV7>)rolesmapping, (SecurityDynamicConfiguration<ActionGroupsV7>)actionGroups, (SecurityDynamicConfiguration<TenantV7>) tenants,dcm, esSettings);
-            Map<String, Object> authTokenConfiguration = ((DynamicConfigModelV7) dcm).getAuthTokenProviderConfig();
-
-
-
-            log.info("Palash printing configv7");
-            SecurityDynamicConfiguration<ConfigV7> c = (SecurityDynamicConfiguration<ConfigV7>) config;
-
-            Object entry = c.getCEntry("config");
-
-            if (entry == null) {
-                if (log.isDebugEnabled()) {
-                    log.debug("No config entry 'config'" + " in " + config);
-                }
-            }
-
-            JsonNode subNode = DefaultObjectMapper.objectMapper.valueToTree(entry).at(JsonPointer.compile("/dynamic/auth_token_provider"));
-
-            if (subNode == null || subNode.isMissingNode()) {
-                if (log.isDebugEnabled()) {
-                    log.debug("JsonPointer /dynamic/auth_token_provider "  + " in " + c + " not found");
-                }
-               // do nothing
-            }
 
             try{
-                AuthTokenServiceConfig config = AuthTokenServiceConfig.parse(subNode);
+                AuthTokenServiceConfig config = AuthTokenServiceConfig.parse(getAuthTokenConfig(configV7));
                 authTokenService.setConfig(config);
             } catch (ConfigValidationException exception) {
                 log.error("Error occured while parsing the auth_token_provider configuration");
                 exception.printStackTrace();
             }
-
-
-
-
 
         } else {
 
@@ -308,6 +282,25 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
 
         initialized.set(true);
         
+    }
+
+    private JsonNode getAuthTokenConfig(Object entry) {
+
+
+        if (entry == null) {
+            if (log.isDebugEnabled()) {
+                log.debug("No config entry 'config'" + " in " + config);
+            }
+        }
+
+        JsonNode subNode = DefaultObjectMapper.objectMapper.valueToTree(entry).at(JsonPointer.compile(auth_token_provider_path));
+
+        if (subNode == null || subNode.isMissingNode()) {
+            if (log.isDebugEnabled()) {
+                log.debug("JsonPointer " + auth_token_provider_path + " not found");
+            }
+        }
+        return subNode;
     }
     
     private static ConfigV6 getConfigV6(SecurityDynamicConfiguration<?> sdc) {

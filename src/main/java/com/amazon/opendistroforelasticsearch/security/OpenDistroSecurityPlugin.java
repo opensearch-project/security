@@ -1024,6 +1024,8 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES, true, Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_SSL_CERT_RELOAD_ENABLED, false, Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_ACCEPT_INVALID_CONFIG, false, Property.NodeScope, Property.Filtered));
+
+            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_INITIALIZE_PROTECTED_CONFID_INDEX_SERVICE, true, Property.NodeScope, Property.Filtered));
         }
         
         return settings;
@@ -1046,7 +1048,9 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         log.info("Node started");
         if(!openDistroSSLConfig.isSslOnlyMode() && !client && !disabled) {
             cr.initOnNodeStart();
-            protectedConfigIndexService.onNodeStart();
+            if (settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_INITIALIZE_PROTECTED_CONFID_INDEX_SERVICE, true)) {
+                protectedConfigIndexService.onNodeStart();
+            }
         }
 
         final Set<ModuleInfo> securityModules = ReflectionHelper.getModulesLoaded();

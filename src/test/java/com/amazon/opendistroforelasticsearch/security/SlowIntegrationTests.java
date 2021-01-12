@@ -55,6 +55,7 @@ public class SlowIntegrationTests extends SingleClusterTest {
         final Settings settings = Settings.builder()
                 .put(ConfigConstants.OPENDISTRO_SECURITY_INTERCLUSTER_REQUEST_EVALUATOR_CLASS, "com.amazon.opendistroforelasticsearch.security.AlwaysFalseInterClusterRequestEvaluator")
                 .put("discovery.initial_state_timeout","8s")
+                .put(ConfigConstants.OPENDISTRO_SECURITY_INITIALIZE_PROTECTED_CONFID_INDEX_SERVICE, false)
                 .build();
         setup(Settings.EMPTY, null, settings, false,ClusterConfiguration.DEFAULT ,5,1);
         Assert.assertEquals(1, clusterHelper.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getNumberOfNodes());

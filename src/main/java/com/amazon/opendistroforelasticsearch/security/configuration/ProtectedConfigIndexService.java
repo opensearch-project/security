@@ -109,8 +109,6 @@ public class ProtectedConfigIndexService {
             return;
         }
 
-
-        //CreateIndexRequest request = new CreateIndexRequest(configIndex.getName());
         CreateIndexRequest request = new CreateIndexRequest(configIndex.getName());
 
         if (configIndex.getMapping() != null) {

@@ -46,6 +46,5 @@ public class TransportCreateAuthTokenAction extends HandledTransportAction<Creat
                 listener.onFailure(e);
             }
         });
-
     }
 }

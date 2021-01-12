@@ -87,17 +87,17 @@ config:
         max_validity: "1y"
         max_tokens_per_user: 100
     authc:
-      #opendistro_issued_jwt_auth_domain:
-      #    description: "Authenticate via Json Web Tokens issued by Search Guard"
-      #    http_enabled: true
-      #    # This auth domain is only available for HTTP
-      #    order: 1
-      #    http_authenticator:
-      #      type: auth_token
-      #      challenge: false
-      #      # This auth domain automatically pulls configuration from the auth_token_provider config above
-      #    authentication_backend:
-      #      type: auth_token
+      opendistro_issued_jwt_auth_domain:
+          description: "Authenticate via Json Web Tokens issued by Search Guard"
+          http_enabled: true
+          # This auth domain is only available for HTTP
+          order: 1
+          http_authenticator:
+            type: auth_token
+            challenge: false
+            # This auth domain automatically pulls configuration from the auth_token_provider config above
+          authentication_backend:
+            type: auth_token
       kerberos_auth_domain:
         http_enabled: false
         transport_enabled: false

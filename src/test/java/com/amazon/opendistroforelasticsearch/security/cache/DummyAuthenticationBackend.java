@@ -17,6 +17,7 @@ package com.amazon.opendistroforelasticsearch.security.cache;
 
 import java.nio.file.Path;
 
+import com.amazon.opendistroforelasticsearch.security.auth.SyncAuthenticationBackend;
 import org.elasticsearch.ElasticsearchSecurityException;
 import org.elasticsearch.common.settings.Settings;
 
@@ -26,7 +27,7 @@ import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 
 
-public class DummyAuthenticationBackend implements AuthenticationBackend {
+public class DummyAuthenticationBackend implements SyncAuthenticationBackend {
 
     private static volatile long authCount;
     private static volatile long existsCount;

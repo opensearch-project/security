@@ -17,10 +17,6 @@ public class AuthInfoService {
         //this.specialPrivilegesEvaluationContextProviderRegistry = specialPrivilegesEvaluationContextProviderRegistry;
     }
 
-    public AuthInfoService() {
-        this.threadPool = null;
-    }
-
     public User getCurrentUser() {
         User user = peekCurrentUser();
 

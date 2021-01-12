@@ -70,7 +70,6 @@ public class CreateAuthTokenRequest extends ActionRequest implements ToXContentO
     }
 
     public static CreateAuthTokenRequest parse(BytesReference document, XContentType contentType) throws ConfigValidationException {
-        logger.info("Palash in parse");
         ValidationErrors validationErrors = new ValidationErrors();
         ValidatingJsonNode vJsonNode = new ValidatingJsonNode(ValidatingJsonParser.readTree(document, contentType), validationErrors);
         CreateAuthTokenRequest result = new CreateAuthTokenRequest();

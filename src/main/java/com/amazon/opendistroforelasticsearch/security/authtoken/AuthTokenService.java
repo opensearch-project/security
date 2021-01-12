@@ -87,39 +87,26 @@ public class AuthTokenService { //implements SpecialPrivilegesEvaluationContextP
     //private IndexCleanupAgent indexCleanupAgent;
     private long maxTokensPerUser = 100;
 
-    public AuthTokenService() {
-        indexName = "";
-        privilegedConfigClient = null;
-    }
-
     public AuthTokenService(
-                            //ConfigHistoryService configHistoryService,
                             Client client,
                             Settings settings,
                             ThreadPool threadPool,
                             //ClusterService clusterService,
+                            //ConfigHistoryService configHistoryService,
                             ProtectedConfigIndexService protectedConfigIndexService,
                             AuthTokenServiceConfig config) {
         this.indexName = INDEX_NAME.get(settings);
         //this.configHistoryService = configHistoryService;
 
-
-        log.info("Palash printing index name " + indexName);
         this.setConfig(config);
-
-
-
         privilegedConfigClient = new PrivilegedConfigClient(client);
-
-
-
         protectedConfigIndexService.createIndex(new ProtectedConfigIndexService.ConfigIndex(indexName).mapping(AuthToken.INDEX_MAPPING)
                 //.dependsOnIndices(configHistoryService.getIndexName())
                 .onIndexReady(this::init)
         );
 
-        //this.indexCleanupAgent = new IndexCleanupAgent(indexName, "expires_at", CLEANUP_INTERVAL.get(settings), privilegedConfigClient,
-        //         clusterService, threadPool);
+        /*this.indexCleanupAgent = new IndexCleanupAgent(indexName, "expires_at", CLEANUP_INTERVAL.get(settings), privilegedConfigClient,
+                 clusterService, threadPool);*/
     }
 
 
@@ -132,7 +119,6 @@ public class AuthTokenService { //implements SpecialPrivilegesEvaluationContextP
         } else {
             return getTokenByIdFromIndex(id);
         }
-
     }
 
     public void getTokenById(String id, Consumer<AuthToken> onResult, Consumer<NoSuchAuthTokenException> onNoSuchAuthToken,
@@ -146,7 +132,6 @@ public class AuthTokenService { //implements SpecialPrivilegesEvaluationContextP
         }
 
     }
-
 
     public AuthToken getTokenByIdFromIndex(String id) throws NoSuchAuthTokenException {
         CompletableFuture<AuthToken> completableFuture = new CompletableFuture<>();
@@ -167,7 +152,6 @@ public class AuthTokenService { //implements SpecialPrivilegesEvaluationContextP
 
     }
 
-
     public void getTokenByIdFromIndex(String id, Consumer<AuthToken> onResult, Consumer<NoSuchAuthTokenException> onNoSuchAuthToken,
                                       Consumer<Exception> onFailure) {
 
@@ -179,9 +163,7 @@ public class AuthTokenService { //implements SpecialPrivilegesEvaluationContextP
 
                     try {
                         AuthToken authToken = AuthToken.parse(id, ValidatingJsonParser.readTree(getResponse.getSourceAsString()));
-
                         idToAuthTokenMap.put(id, authToken);
-
                         onResult.accept(authToken);
                     } catch (ConfigValidationException e) {
                         onFailure.accept(new RuntimeException("Token " + id + " is not stored in a valid format", e));
@@ -207,7 +189,6 @@ public class AuthTokenService { //implements SpecialPrivilegesEvaluationContextP
 
     }
 
-
     public AuthToken getTokenByClaims(Map<String, Object> claims) throws NoSuchAuthTokenException, InvalidTokenException {
         CompletableFuture<AuthToken> completableFuture = new CompletableFuture<>();
 
@@ -230,7 +211,6 @@ public class AuthTokenService { //implements SpecialPrivilegesEvaluationContextP
                                  Consumer<Exception> onFailure) throws InvalidTokenException {
         String id = Objects.toString(claims.get(JwtConstants.CLAIM_JWT_ID), null);
         Set<String> audience = getClaimAsSet(claims, JwtConstants.CLAIM_AUDIENCE);
-
         if (!audience.contains(this.jwtAudience)) {
             throw new InvalidTokenException("Invalid JWT audience claim. Supplied: " + audience + "; Expected: " + this.jwtAudience);
         }
@@ -240,42 +220,7 @@ public class AuthTokenService { //implements SpecialPrivilegesEvaluationContextP
         }
 
         getTokenById(id, onResult, onNoSuchAuthToken, onFailure);
-
     }
-
-
-    /*public void getTokenByIdWithConfigSnapshot(String id, Consumer<AuthToken> onResult, Consumer<NoSuchAuthTokenException> onNoSuchAuthToken,
-                                               Consumer<Exception> onFailure) {
-        getTokenById(id, (authToken) -> {
-            if (authToken.getBase().getConfigVersions() == null || authToken.getBase().peekConfigSnapshot() != null) {
-                onResult.accept(authToken);
-            } else {
-                configHistoryService.getConfigSnapshot(authToken.getBase().getConfigVersions(), (configSnapshot) -> {
-                    authToken.getBase().setConfigSnapshot(configSnapshot);
-                    onResult.accept(authToken);
-                }, onFailure);
-            }
-        }, onNoSuchAuthToken, onFailure);
-    }
-
-    public AuthToken getByIdWithConfigSnapshot(String id) throws NoSuchAuthTokenException {
-        CompletableFuture<AuthToken> completableFuture = new CompletableFuture<>();
-
-        getTokenByIdWithConfigSnapshot(id, completableFuture::complete, completableFuture::completeExceptionally,
-                completableFuture::completeExceptionally);
-
-        try {
-            return completableFuture.get();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        } catch (ExecutionException e) {
-            if (e.getCause() instanceof NoSuchAuthTokenException) {
-                throw (NoSuchAuthTokenException) e.getCause();
-            } else {
-                throw new RuntimeException(e.getCause());
-            }
-        }
-    }*/
 
     public AuthToken createToken(User user, CreateAuthTokenRequest request) throws TokenCreationException {
         if (config == null || !config.isEnabled()) {
@@ -296,8 +241,6 @@ public class AuthTokenService { //implements SpecialPrivilegesEvaluationContextP
         } else if (maxTokensPerUser > 0) {
             long existingTokenCount = countAuthTokensOfUser(user);
 
-            log.info("Current Token count " + existingTokenCount);
-
             if (existingTokenCount + 1 > maxTokensPerUser) {
                 throw new TokenCreationException(
                         "Cannot create token. Token limit per user exceeded. Max number of allowed tokens is " + maxTokensPerUser,
@@ -316,8 +259,6 @@ public class AuthTokenService { //implements SpecialPrivilegesEvaluationContextP
         } catch (Exception e) {
             throw new TokenCreationException("Error while creating token", RestStatus.INTERNAL_SERVER_ERROR, e);
         }
-
-
         return authToken;
     }
 
@@ -343,7 +284,6 @@ public class AuthTokenService { //implements SpecialPrivilegesEvaluationContextP
         //jwtClaims.setProperty("requested", ObjectTreeXContent.toObjectTree(authToken.getRequestedPrivileges()));
         //jwtClaims.setProperty("base", ObjectTreeXContent.toObjectTree(authToken.getBase(), AuthTokenPrivilegeBase.COMPACT));
 
-
         String encodedJwt;
 
         try {
@@ -354,10 +294,7 @@ public class AuthTokenService { //implements SpecialPrivilegesEvaluationContextP
                     RestStatus.INTERNAL_SERVER_ERROR, e);
         }
 
-        log.info("encodedJwt " + encodedJwt);
-        log.info("authToken" + authToken.getId());
         return new CreateAuthTokenResponse(authToken, encodedJwt);
-
     }
 
 
@@ -386,22 +323,17 @@ public class AuthTokenService { //implements SpecialPrivilegesEvaluationContextP
     public void setConfig(AuthTokenServiceConfig config) {
         if (config == null) {
             // Expected when Opendistro is not initialized yet
-            log.info("Palash in setconfig null");
             return;
         }
 
-        log.info("Palash in setconfig not null");
         this.config = config;
         this.jwtAudience = config.getJwtAud();
         this.maxTokensPerUser = config.getMaxTokensPerUser();
-
-        log.info(this.jwtAudience + " == " + this.maxTokensPerUser + " == " + config.getJwtSigningKey() + " == " +  config.getJwtEncryptionKey());
 
         setKeys(config.getJwtSigningKey(), config.getJwtEncryptionKey());
     }
 
     private void init(ProtectedConfigIndexService.FailureListener failureListener) {
-        log.info("Palash here in init");
         initComplete();
     }
 
@@ -480,8 +412,6 @@ public class AuthTokenService { //implements SpecialPrivilegesEvaluationContextP
         return expiresAfter;
     }
 
-
-
     private String getRandomId() {
         UUID uuid = UUID.randomUUID();
         ByteBuffer byteBuffer = ByteBuffer.wrap(new byte[16]);
@@ -495,32 +425,25 @@ public class AuthTokenService { //implements SpecialPrivilegesEvaluationContextP
         try {
             this.jwtProducer = new JoseJwtProducer();
 
-            log.info("Palash in initJwtProducer 2");
             if (signingKey != null) {
-                log.info("Palash in initJwtProducer 3");
                 this.jwtProducer.setSignatureProvider(JwsUtils.getSignatureProvider(signingKey));
                 this.jwsSignatureVerifier = JwsUtils.getSignatureVerifier(signingKey);
             } else {
-                log.info("Palash in initJwtProducer 4");
                 this.jwsSignatureVerifier = null;
             }
 
             if (this.encryptionKey != null) {
-                log.info("Palash in initJwtProducer 5");
                 this.jwtProducer.setEncryptionProvider(JweUtils.createJweEncryptionProvider(encryptionKey, ContentAlgorithm.A256CBC_HS512));
                 this.jwtProducer.setJweRequired(true);
                 this.jweDecryptionProvider = JweUtils.createJweDecryptionProvider(encryptionKey, ContentAlgorithm.A256CBC_HS512);
             } else {
-                log.info("Palash in initJwtProducer 6");
                 this.jweDecryptionProvider = null;
             }
 
         } catch (Exception e) {
-            log.info("Palash in initJwtProducer 7");
             this.jwtProducer = null;
             log.error("Error while initializing JWT producer in AuthTokenProvider", e);
         }
-
     }
 
     public JsonWebKey getSigningKey() {
@@ -556,8 +479,6 @@ public class AuthTokenService { //implements SpecialPrivilegesEvaluationContextP
 
     public void setKeys(JsonWebKey signingKey, JsonWebKey encryptionKey) {
         if (Objects.equals(this.signingKey, signingKey) && Objects.equals(this.encryptionKey, encryptionKey)) {
-            log.info("Printing signingKey " + signingKey);
-            log.info("Printing encryptionKey " + encryptionKey);
             return;
         }
 
@@ -580,88 +501,6 @@ public class AuthTokenService { //implements SpecialPrivilegesEvaluationContextP
         }
     }
 
-    /*private Set<String> restrictRoles(CreateAuthTokenRequest request, Set<String> roles) {
-        if (request.getRequestedPrivileges().getRoles() != null) {
-            return Sets.intersection(new HashSet<>(request.getRequestedPrivileges().getRoles()), roles);
-        } else {
-            return roles;
-        }
-    }*/
-
-    /*@Override
-    public void provide(User user, ThreadContext threadContext, Consumer<SpecialPrivilegesEvaluationContext> onResult,
-                        Consumer<Exception> onFailure) {
-        if (config == null || !config.isEnabled()) {
-            onResult.accept(null);
-            return;
-        }
-
-        if (user == null || !(USER_TYPE.equals(user.getType()))) {
-            onResult.accept(null);
-            return;
-        }
-
-        String authTokenId = (String) user.getSpecialAuthzConfig();
-
-        if (log.isDebugEnabled()) {
-            log.debug("AuthTokenService.provide(" + user.getName() + ") on " + authTokenId);
-        }
-
-
-        getTokenByIdWithConfigSnapshot(authTokenId, (authToken) -> {
-
-            try {
-                if (log.isTraceEnabled()) {
-                    log.trace("Got token: " + authToken);
-                }
-
-                if (authToken.isRevoked()) {
-                    log.info("Using revoked auth token: " + authToken);
-                    onResult.accept(null);
-                    return;
-                }
-
-                ConfigModel configModelSnapshot;
-
-                if (authToken.getBase().getConfigSnapshot() == null) {
-                    configModelSnapshot = configHistoryService.getCurrentConfigModel();
-                } else {
-                    if (authToken.getBase().getConfigSnapshot().hasMissingConfigVersions()) {
-                        throw new RuntimeException("Stored config snapshot is not complete: " + authToken);
-                    }
-
-                    configModelSnapshot = configHistoryService.getConfigModelForSnapshot(authToken.getBase().getConfigSnapshot());
-                }
-
-                User userWithRoles = user.copy().backendRoles(authToken.getBase().getBackendRoles())
-                        .openDistroSecurityRoles(authToken.getBase().getSearchGuardRoles()).build();
-
-                TransportAddress callerTransportAddress = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
-                Set<String> mappedBaseRoles = configModelSnapshot.mapSecurityRoles(userWithRoles, callerTransportAddress);
-                SecurityRoles filteredBaseSgRoles = configModelSnapshot.getSecurityRoles().filter(mappedBaseRoles);
-
-                if (log.isDebugEnabled()) {
-                    log.debug("AuthTokenService.provide returns SpecialPrivilegesEvaluationContext for " + user + "\nuserWithRoles: " + userWithRoles
-                            + "\nmappedBaseRoles: " + mappedBaseRoles + "\nfilteredBaseSgRoles: " + filteredBaseSgRoles);
-                }
-
-                RestrictedSgRoles restrictedSgRoles = new RestrictedSgRoles(filteredBaseSgRoles, authToken.getRequestedPrivileges(),
-                        configModelSnapshot.getActionGroupResolver());
-
-                onResult.accept(new SpecialPrivilegesEvaluationContextImpl(userWithRoles, mappedBaseRoles, restrictedSgRoles,
-                        authToken.getRequestedPrivileges()));
-            } catch (Exception e) {
-                log.error("Error in provide(" + user + "); authTokenId: " + authTokenId, e);
-                onFailure.accept(e);
-            }
-        }, (noSuchAuthTokenException) -> {
-            onFailure.accept(new ElasticsearchSecurityException("Cannot authenticate user due to invalid auth token " + authTokenId,
-                    noSuchAuthTokenException));
-        }, onFailure);
-
-
-    }*/
-
     public void shutdown() {
         //this.indexCleanupAgent.shutdown();
     }
@@ -677,8 +516,6 @@ public class AuthTokenService { //implements SpecialPrivilegesEvaluationContextP
     void setSendTokenUpdates(boolean sendTokenUpdates) {
         this.sendTokenUpdates = sendTokenUpdates;
     }
-
-
 
     private String updateAuthToken(AuthToken authToken, UpdateType updateType) throws TokenUpdateException {
         AuthToken oldToken = null;
@@ -719,7 +556,7 @@ public class AuthTokenService { //implements SpecialPrivilegesEvaluationContextP
 
 
         // Palash - Need to check what is this
-        // Probably in case if it is not saved in Index, it is kept in memory 
+        // Probably in case if it is not saved in Index, it is kept in memory via cache
         if (!sendTokenUpdates) {
             return "Update disabled";
         }
@@ -766,8 +603,4 @@ public class AuthTokenService { //implements SpecialPrivilegesEvaluationContextP
             return "Auth token updated";
         }
     }
-
-
-
-
 }
