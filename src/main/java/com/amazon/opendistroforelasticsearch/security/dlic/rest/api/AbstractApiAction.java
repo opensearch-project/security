@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Objects;
 
 import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
 import org.apache.logging.log4j.LogManager;
@@ -310,27 +311,27 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 							.setIfSeqNo(configuration.getSeqNo())
 							.setIfPrimaryTerm(configuration.getPrimaryTerm())
 							.source(id, XContentHelper.toXContent(configuration, XContentType.JSON, false)),
-					new ConfigUpdatingActionListener<IndexResponse>(client, actionListener));
+					new ConfigUpdatingActionListener<>(new String[]{id}, client, actionListener));
 		} catch (IOException e) {
 			throw ExceptionsHelper.convertToElastic(e);
 		}
 	}
 
-	protected static class ConfigUpdatingActionListener<Response> implements ActionListener<Response>{
-
+	protected static class ConfigUpdatingActionListener<Response> implements ActionListener<Response> {
+		private final String[] cTypes;
 		private final Client client;
 		private final ActionListener<Response> delegate;
 
-		public ConfigUpdatingActionListener(Client client, ActionListener<Response> delegate) {
-			super();
-			this.client = client;
-			this.delegate = delegate;
+		public ConfigUpdatingActionListener(String[] cTypes, Client client, ActionListener<Response> delegate) {
+			this.cTypes = Objects.requireNonNull(cTypes, "cTypes must not be null");
+			this.client = Objects.requireNonNull(client, "client must not be null");
+			this.delegate = Objects.requireNonNull(delegate, "delegate must not be null");
 		}
 
 		@Override
 		public void onResponse(Response response) {
 
-			final ConfigUpdateRequest cur = new ConfigUpdateRequest(CType.lcStringValues().toArray(new String[0]));
+			final ConfigUpdateRequest cur = new ConfigUpdateRequest(cTypes);
 
 			client.execute(ConfigUpdateAction.INSTANCE, cur, new ActionListener<ConfigUpdateResponse>() {
 				@Override
