@@ -17,6 +17,7 @@ package com.amazon.opendistroforelasticsearch.security.dlic.rest.api;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import org.elasticsearch.Version;
@@ -67,6 +68,8 @@ import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.RoleV
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.TenantV7;
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.PrincipalExtractor;
 
+import com.google.common.collect.ImmutableList;
+
 public class MigrateApiAction extends AbstractApiAction {
 
     @Inject
@@ -112,14 +115,24 @@ public class MigrateApiAction extends AbstractApiAction {
         final SecurityDynamicConfiguration<NodesDn> nodesDnV6 = (SecurityDynamicConfiguration<NodesDn>) load(CType.NODESDN, true);
         final SecurityDynamicConfiguration<AuditConfig> auditConfigV6 = (SecurityDynamicConfiguration<AuditConfig>) load(CType.AUDIT, true);
 
+        final ImmutableList.Builder<SecurityDynamicConfiguration<?>> builder = ImmutableList.builder();
+
         final SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsV7 = Migration.migrateActionGroups(actionGroupsV6);
+        builder.add(actionGroupsV7);
         final SecurityDynamicConfiguration<ConfigV7> configV7 = Migration.migrateConfig(configV6);
+        builder.add(configV7);
         final SecurityDynamicConfiguration<InternalUserV7> internalUsersV7 = Migration.migrateInternalUsers(internalUsersV6);
+        builder.add(internalUsersV7);
         final Tuple<SecurityDynamicConfiguration<RoleV7>, SecurityDynamicConfiguration<TenantV7>> rolesTenantsV7 = Migration.migrateRoles(rolesV6,
                 rolesmappingV6);
+        builder.add(rolesTenantsV7.v1());
+        builder.add(rolesTenantsV7.v2());
         final SecurityDynamicConfiguration<RoleMappingsV7> rolesmappingV7 = Migration.migrateRoleMappings(rolesmappingV6);
+        builder.add(rolesmappingV7);
         final SecurityDynamicConfiguration<NodesDn> nodesDnV7 = Migration.migrateNodesDn(nodesDnV6);
+        builder.add(nodesDnV7);
         final SecurityDynamicConfiguration<AuditConfig> auditConfigV7 = Migration.migrateAudit(auditConfigV6);
+        builder.add(auditConfigV7);
 
         final int replicas = cs.state().metaData().index(opendistroIndex).getNumberOfReplicas();
         final String autoExpandReplicas = cs.state().metaData().index(opendistroIndex).getSettings().get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS);
@@ -147,33 +160,24 @@ public class MigrateApiAction extends AbstractApiAction {
 
                                 @Override
                                 public void onResponse(CreateIndexResponse response) {
-
+                                    final List<SecurityDynamicConfiguration<?>> dynamicConfigurations = builder.build();
+                                    final ImmutableList.Builder<String> cTypes = ImmutableList.builderWithExpectedSize(dynamicConfigurations.size());
                                     final BulkRequestBuilder br = client.prepareBulk(opendistroIndex, "_doc");
                                     br.setRefreshPolicy(RefreshPolicy.IMMEDIATE);
                                     try {
-                                        br.add(new IndexRequest().id(CType.CONFIG.toLCString()).source(CType.CONFIG.toLCString(),
-                                                XContentHelper.toXContent(configV7, XContentType.JSON, false)));
-                                        br.add(new IndexRequest().id(CType.ACTIONGROUPS.toLCString()).source(CType.ACTIONGROUPS.toLCString(),
-                                                XContentHelper.toXContent(actionGroupsV7, XContentType.JSON, false)));
-                                        br.add(new IndexRequest().id(CType.INTERNALUSERS.toLCString()).source(CType.INTERNALUSERS.toLCString(),
-                                                XContentHelper.toXContent(internalUsersV7, XContentType.JSON, false)));
-                                        br.add(new IndexRequest().id(CType.ROLES.toLCString()).source(CType.ROLES.toLCString(),
-                                                XContentHelper.toXContent(rolesTenantsV7.v1(), XContentType.JSON, false)));
-                                        br.add(new IndexRequest().id(CType.TENANTS.toLCString()).source(CType.TENANTS.toLCString(),
-                                                XContentHelper.toXContent(rolesTenantsV7.v2(), XContentType.JSON, false)));
-                                        br.add(new IndexRequest().id(CType.ROLESMAPPING.toLCString()).source(CType.ROLESMAPPING.toLCString(),
-                                                XContentHelper.toXContent(rolesmappingV7, XContentType.JSON, false)));
-                                        br.add(new IndexRequest().id(CType.NODESDN.toLCString()).source(CType.NODESDN.toLCString(),
-                                                XContentHelper.toXContent(nodesDnV7, XContentType.JSON, false)));
-                                        br.add(new IndexRequest().id(CType.AUDIT.toLCString()).source(CType.AUDIT.toLCString(),
-                                                XContentHelper.toXContent(auditConfigV7, XContentType.JSON, false)));
+                                        for (SecurityDynamicConfiguration dynamicConfiguration : dynamicConfigurations) {
+                                            final String id = dynamicConfiguration.getCType().toLCString();
+                                            final BytesReference xContent = XContentHelper.toXContent(dynamicConfiguration, XContentType.JSON, false);
+                                            br.add(new IndexRequest().id(id).source(id, xContent));
+                                            cTypes.add(id);
+                                        }
                                     } catch (final IOException e1) {
                                         log.error("Unable to create bulk request " + e1, e1);
                                         internalErrorResponse(channel, "Unable to create bulk request.");
                                         return;
                                     }
 
-                                    br.execute(new ConfigUpdatingActionListener(client, new ActionListener<BulkResponse>() {
+                                    br.execute(new ConfigUpdatingActionListener(cTypes.build().toArray(new String[0]), client, new ActionListener<BulkResponse>() {
 
                                         @Override
                                         public void onResponse(BulkResponse response) {
