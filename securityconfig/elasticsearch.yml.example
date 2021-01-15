@@ -222,4 +222,4 @@ opendistro_security.audit.type: internal_elasticsearch
 # Enable system indices
 # opendistro_security.system_indices.enabled: true
 # Specify a list of indices to mark as system. These indices will only be visible / mutable by members of the above setting, in addition to needing permission to the index via a normal role.
-# opendistro_security.system_indices.indices: ['.opendistro-alerting-config', '.opendistro-ism-*', '.opendistro-reports-*', '.opendistro-notifications-*']
+# opendistro_security.system_indices.indices: ['.opendistro-alerting-config', '.opendistro-ism-*', '.opendistro-reports-*', '.opendistro-notifications-*', '.opendistro-notebooks']
