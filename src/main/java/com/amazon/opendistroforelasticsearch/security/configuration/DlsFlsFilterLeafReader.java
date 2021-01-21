@@ -32,13 +32,13 @@ import java.util.Set;
 import java.util.function.Function;
 
 import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
+import org.apache.lucene.codecs.StoredFieldsReader;
 import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.Fields;
 import org.apache.lucene.index.FilterDirectoryReader;
-import org.apache.lucene.index.FilterLeafReader;
 import org.apache.lucene.index.ImpactsEnum;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.NumericDocValues;
@@ -68,6 +68,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.Tuple;
+import org.elasticsearch.common.lucene.index.SequentialStoredFieldsLeafReader;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentHelper;
@@ -88,7 +89,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
 
-class DlsFlsFilterLeafReader extends FilterLeafReader {
+class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader  {
 
     private static final String KEYWORD = ".keyword";
     private static final String[] EMPTY_STRING_ARRAY = new String[0];
@@ -389,27 +390,83 @@ class DlsFlsFilterLeafReader extends FilterLeafReader {
         }
     }
 
-    @Override
-    public void document(final int docID, final StoredFieldVisitor visitor) throws IOException {
-        final ComplianceConfig complianceConfig = auditlog.getComplianceConfig();
-        if(complianceConfig != null && complianceConfig.readHistoryEnabledForIndex(indexService.index().getName())) {
-            final ComplianceAwareStoredFieldVisitor cv = new ComplianceAwareStoredFieldVisitor(visitor);
+    private class DlsFlsStoredFieldsReader extends StoredFieldsReader {
+        private final StoredFieldsReader in;
 
-            if(flsEnabled) {
-                in.document(docID, new FlsStoredFieldVisitor(maskFields?new HashingStoredFieldVisitor(cv):cv));
-            } else {
-                in.document(docID, maskFields?new HashingStoredFieldVisitor(cv):cv);
-            }
+        public DlsFlsStoredFieldsReader(StoredFieldsReader storedFieldsReader) {
+            this.in = storedFieldsReader;
+        }
 
-            cv.finished();
-        } else {
-            if(flsEnabled) {
-                in.document(docID, new FlsStoredFieldVisitor(maskFields?new HashingStoredFieldVisitor(visitor):visitor));
-            } else {
-                in.document(docID, maskFields?new HashingStoredFieldVisitor(visitor):visitor);
+        @Override
+        public void visitDocument(final int docID, StoredFieldVisitor visitor) throws IOException {
+            visitor = getDlsFlsVisitor(visitor);
+            try {
+                in.visitDocument(docID, visitor);
+            } finally {
+                finishVisitor(visitor);
             }
         }
 
+        @Override
+        public StoredFieldsReader clone() {
+            return new DlsFlsStoredFieldsReader(in.clone());
+        }
+
+        @Override
+        public void checkIntegrity() throws IOException {
+            in.checkIntegrity();
+        }
+
+        @Override
+        public void close() throws IOException {
+            in.close();
+        }
+
+        @Override
+        public long ramBytesUsed() {
+            return in.ramBytesUsed();
+        }
+    }
+
+    @Override
+    protected StoredFieldsReader doGetSequentialStoredFieldsReader(final StoredFieldsReader reader) {
+        return new DlsFlsStoredFieldsReader(reader);
+    }
+
+    private StoredFieldVisitor getDlsFlsVisitor(StoredFieldVisitor visitor) {
+        final ComplianceConfig complianceConfig = auditlog.getComplianceConfig();
+        if (complianceConfig != null && complianceConfig.readHistoryEnabledForIndex(indexService.index().getName())) {
+            visitor = new ComplianceAwareStoredFieldVisitor(visitor);
+        }
+        if (maskFields) {
+            visitor = new HashingStoredFieldVisitor(visitor);
+        }
+        if (flsEnabled) {
+            visitor = new FlsStoredFieldVisitor(visitor);
+        }
+        return visitor;
+    }
+
+    private void finishVisitor(StoredFieldVisitor visitor) {
+        if (visitor instanceof FlsStoredFieldVisitor) {
+            visitor = ((FlsStoredFieldVisitor) visitor).delegate;
+        }
+        if (visitor instanceof HashingStoredFieldVisitor) {
+            visitor = ((HashingStoredFieldVisitor) visitor).delegate;
+        }
+        if (visitor instanceof ComplianceAwareStoredFieldVisitor) {
+            ((ComplianceAwareStoredFieldVisitor) visitor).finished();
+        }
+    }
+
+    @Override
+    public void document(final int docID, StoredFieldVisitor visitor) throws IOException {
+        visitor = getDlsFlsVisitor(visitor);
+        try {
+            in.document(docID, visitor);
+        } finally {
+            finishVisitor(visitor);
+        }
     }
 
     private boolean isFls(final BytesRef termAsFiledName) {

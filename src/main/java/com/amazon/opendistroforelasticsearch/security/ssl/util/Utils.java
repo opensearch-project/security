@@ -37,4 +37,8 @@ public class Utils {
         
         return null;
       }
+
+    public static char[] toCharArray(String str) {
+        return (str == null || str.length() == 0) ? null : str.toCharArray();
+    }
 }

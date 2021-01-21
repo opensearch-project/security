@@ -181,6 +181,15 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 		rh.sendAdminCertificate = sendAdminCertificate;
 	}
 
+	protected void addUserWithPasswordAndHash(String username, String password, String hash, int status) throws Exception {
+		boolean sendAdminCertificate = rh.sendAdminCertificate;
+		rh.sendAdminCertificate = true;
+		HttpResponse response = rh.executePutRequest("/_opendistro/_security/api/internalusers/" + username, "{\"hash\": \"" + hash + "\", \"password\": \"" + password + "\"}",
+				new Header[0]);
+		Assert.assertEquals(status, response.getStatusCode());
+		rh.sendAdminCertificate = sendAdminCertificate;
+	}
+
 	protected void checkGeneralAccess(int status, String username, String password) throws Exception {
 		boolean sendAdminCertificate = rh.sendAdminCertificate;
 		rh.sendAdminCertificate = false;

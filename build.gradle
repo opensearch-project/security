@@ -7,7 +7,7 @@ plugins {
 buildDir = 'gradle-build'
 
 ext {
-    opendistroVersion = '1.11.0'
+    opendistroVersion = '1.12.0'
     isSnapshot = "true" == System.getProperty("build.snapshot", "true")
 }
 
@@ -38,7 +38,7 @@ ospackage {
     user 'root'
     permissionGroup 'root'
 
-    requires('elasticsearch-oss', "7.9.1", EQUAL)
+    requires('elasticsearch-oss', "7.10.0", EQUAL)
     packager = 'Amazon'
     vendor = 'Amazon'
     os = 'LINUX'

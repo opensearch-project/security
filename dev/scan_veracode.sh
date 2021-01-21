@@ -21,7 +21,7 @@ echo "Sandbox Id: $SANDBOXID"
 
 echo "Build Security ..."
 mvn clean package -Pveracode -DskipTests > /dev/null 2>&1
-PLUGIN_FILE=($DIR/../target/veracode/opendistro_security*.zip)
+PLUGIN_FILE=($DIR/../target/veracode/opendistro-security*.zip)
 
 FILESIZE=$(wc -c <"$PLUGIN_FILE")
 echo ""

@@ -25,8 +25,7 @@ import org.junit.Test;
 
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper.HttpResponse;
 
-public class CustomFieldMaskedTest extends AbstractDlsFlsTest{
-
+public class CustomFieldMaskedTest extends AbstractDlsFlsTest {
 
     protected void populateData(TransportClient tc) {
 
@@ -48,25 +47,82 @@ public class CustomFieldMaskedTest extends AbstractDlsFlsTest{
 
         setup();
 
-
-        String query = "{"+
-            "\"query\" : {"+
-                 "\"match_all\": {}"+
-            "},"+
-            "\"aggs\" : {"+
-                "\"ips\" : { \"terms\" : { \"field\" : \"ip_source.keyword\" } }"+
-            "}"+
-        "}";
-
+        String query;
         HttpResponse res;
         //Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("/deals/_search?pretty&size=0", query, encodeBasicHeader("admin", "admin"))).getStatusCode());
         //Assert.assertTrue(res.getBody().contains("100.100"));
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("/deals/_search?pretty&size=0", query, encodeBasicHeader("user_masked_custom", "password"))).getStatusCode());
+        query =
+            "{" +
+                "\"query\" : {" +
+                    "\"match_all\": {" +
+                    "}" +
+                "}," +
+                "\"aggs\" : {" +
+                    "\"ips\" : {" +
+                        "\"terms\" : {" +
+                            "\"field\" : \"ip_source.keyword\"" +
+                        "}" +
+                    "}" +
+                "}"+
+            "}";
+        res = rh.executePostRequest("/deals/_search?pretty&size=0", query, encodeBasicHeader("user_masked_custom", "password"));
         System.out.println(res.getBody());
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         Assert.assertFalse(res.getBody().contains("100.100"));
         Assert.assertTrue(res.getBody().contains("***"));
         Assert.assertTrue(res.getBody().contains("XXX"));
+
+        query =
+            "{" +
+                "\"query\" : {" +
+                    "\"match_all\": {" +
+                    "}" +
+                "}," +
+                "\"aggs\": {" +
+                    "\"ips\" : {" +
+                        "\"terms\" : {" +
+                            "\"field\" : \"ip_source.keyword\"," +
+                            "\"order\": {" +
+                                "\"_term\" : \"asc\"" +
+                            "}" +
+                        "}" +
+                    "}" +
+                "}" +
+            "}";
+
+        res = rh.executePostRequest("/deals/_search?pretty&size=0", query, encodeBasicHeader("user_masked_custom", "password"));
+        System.out.println(res.getBody());
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        Assert.assertFalse(res.getBody().contains("100.100"));
+        Assert.assertTrue(res.getBody().contains("***"));
+        Assert.assertTrue(res.getBody().contains("XXX"));
+
+        query =
+            "{" +
+                "\"query\" : {" +
+                    "\"match_all\": {" +
+                    "}" +
+                "}," +
+                "\"aggs\": {" +
+                    "\"ips\" : {" +
+                        "\"terms\" : {" +
+                            "\"field\" : \"ip_source.keyword\"," +
+                            "\"order\": {" +
+                                "\"_term\" : \"desc\"" +
+                            "}" +
+                        "}" +
+                    "}" +
+                "}" +
+            "}";
+
+        res = rh.executePostRequest("/deals/_search?pretty&size=0", query, encodeBasicHeader("user_masked_custom", "password"));
+        System.out.println(res.getBody());
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        Assert.assertFalse(res.getBody().contains("100.100"));
+        Assert.assertTrue(res.getBody().contains("***"));
+        Assert.assertTrue(res.getBody().contains("XXX"));
+
     }
 
     @Test

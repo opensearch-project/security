@@ -32,14 +32,14 @@ jobs:
     - name: Build
       run: |
         mvn -B clean package -Padvanced -DskipTests
-        artifact_zip=`ls $(pwd)/target/releases/opendistro_security-*.zip | grep -v admin-standalone`
+        artifact_zip=`ls $(pwd)/target/releases/opendistro-security-*.zip | grep -v admin-standalone`
         ./gradlew build buildDeb buildRpm --no-daemon -ParchivePath=$artifact_zip -Dbuild.snapshot=false
         mkdir artifacts
         cp $artifact_zip artifacts/
         cp gradle-build/distributions/*.deb artifacts/
         cp gradle-build/distributions/*.rpm artifacts/
         zip -r artifacts.zip artifacts
-        echo ::set-env name=TAG_VERSION::${GITHUB_REF/refs\/tags\//}
+        echo "TAG_VERSION=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_ENV
 
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v1

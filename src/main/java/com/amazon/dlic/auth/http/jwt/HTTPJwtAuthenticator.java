@@ -102,6 +102,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
             }
         } catch (Throwable e) {
             log.error("Error creating JWT authenticator: "+e+". JWT authentication will not work", e);
+            throw new RuntimeException(e);
         }
 
         jwtUrlParameter = settings.get("jwt_url_parameter");

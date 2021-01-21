@@ -336,7 +336,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			} catch (Exception e) {
 				Throwable root = ExceptionUtils.getRootCause(e);
 				e.printStackTrace();
-				Assert.assertTrue(root.getMessage().contains("Wrong user in scroll context"));
+				Assert.assertTrue(root.getMessage().contains("Wrong user in reader context"));
 			}
 			finally {
 				ctx.close();
@@ -694,7 +694,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			} catch (Exception e) {
 				Throwable root = ExceptionUtils.getRootCause(e);
 				e.printStackTrace();
-				Assert.assertTrue(root.getMessage().contains("Wrong user in scroll context"));
+				Assert.assertTrue(root.getMessage().contains("Wrong user in reader context"));
 			}
 			finally {
 				ctx.close();

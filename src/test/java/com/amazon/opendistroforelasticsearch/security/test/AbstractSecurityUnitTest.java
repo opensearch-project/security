@@ -253,12 +253,12 @@ public abstract class AbstractSecurityUnitTest {
         };
     }
 
-    protected NodeSettingsSupplier minimumSecuritySettingsSslOnly(Settings other) {
+    protected NodeSettingsSupplier minimumSecuritySettingsSslOnly(Settings other, boolean hasCustomTransportSettings) {
 
         return new NodeSettingsSupplier() {
             @Override
             public Settings get(int i) {
-                return minimumSecuritySettingsBuilder(i, true, false).put(other).build();
+                return minimumSecuritySettingsBuilder(i, true, hasCustomTransportSettings).put(other).build();
             }
         };
     }

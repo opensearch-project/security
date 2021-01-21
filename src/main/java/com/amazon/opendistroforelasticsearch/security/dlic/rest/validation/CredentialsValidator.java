@@ -17,6 +17,7 @@ package com.amazon.opendistroforelasticsearch.security.dlic.rest.validation;
 
 import com.amazon.opendistroforelasticsearch.security.ssl.util.Utils;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.NotXContentException;
 import org.elasticsearch.common.settings.Settings;
@@ -53,39 +54,44 @@ public class CredentialsValidator extends AbstractConfigurationValidator {
         final String regex = this.esSettings.get(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX, null);
 
         if ((request.method() == RestRequest.Method.PUT || request.method() == RestRequest.Method.PATCH)
-                && regex != null
-                && !regex.isEmpty()
                 && this.content != null
                 && this.content.length() > 1) {
             try {
                 final Map<String, Object> contentAsMap = XContentHelper.convertToMap(this.content, false, XContentType.JSON).v2();
-                if (contentAsMap != null && contentAsMap.containsKey("password")) {
-                    final String password = (String) contentAsMap.get("password");
-
-                    // Password can be null/empty for an existing user. Regex will validate password if present
-                    if (password != null && !password.isEmpty() && !regex.isEmpty() && !Pattern.compile("^"+regex+"$").matcher(password).matches()) {
-                        if(log.isDebugEnabled()) {
-                            log.debug("Regex does not match password");
-                        }
+                String password = (String) contentAsMap.get("password");
+                if (password != null) {
+                    // Password is not allowed to be empty if present.
+                    if (password.isEmpty()) {
                         this.errorType = ErrorType.INVALID_PASSWORD;
                         return false;
                     }
 
-                    final String username = Utils.coalesce(request.param("name"), hasParams() ? (String) param[0] : null);
-
-                    if (username == null || username.isEmpty()) {
-                        if (log.isDebugEnabled()) {
-                            log.debug("Unable to validate username because no user is given");
+                    if (!Strings.isNullOrEmpty(regex)) {
+                        // Password can be null for an existing user. Regex will validate password if present
+                        if (!Pattern.compile("^"+regex+"$").matcher(password).matches()) {
+                            if(log.isDebugEnabled()) {
+                                log.debug("Regex does not match password");
+                            }
+                            this.errorType = ErrorType.INVALID_PASSWORD;
+                            return false;
                         }
-                        return false;
-                    }
 
-                    if (username.toLowerCase().equals(password.toLowerCase())) {
-                        if (log.isDebugEnabled()) {
-                            log.debug("Username must not match password");
+                        final String username = Utils.coalesce(request.param("name"), hasParams() ? (String) param[0] : null);
+
+                        if (username == null || username.isEmpty()) {
+                            if (log.isDebugEnabled()) {
+                                log.debug("Unable to validate username because no user is given");
+                            }
+                            return false;
                         }
-                        this.errorType = ErrorType.INVALID_PASSWORD;
-                        return false;
+
+                        if (username.toLowerCase().equals(password.toLowerCase())) {
+                            if (log.isDebugEnabled()) {
+                                log.debug("Username must not match password");
+                            }
+                            this.errorType = ErrorType.INVALID_PASSWORD;
+                            return false;
+                        }
                     }
                 }
             } catch (NotXContentException e) {

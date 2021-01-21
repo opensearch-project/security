@@ -98,7 +98,6 @@ import com.amazon.opendistroforelasticsearch.security.user.User;
 
 import static com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin.isActionTraceEnabled;
 import static com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin.traceAction;
-import static com.amazon.opendistroforelasticsearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_USER_AND_ROLES;
 
 public class OpenDistroSecurityFilter implements ActionFilter {
 
@@ -156,7 +155,6 @@ public class OpenDistroSecurityFilter implements ActionFilter {
     private static Set<String> alias2Name(Set<Alias> aliases) {
         return aliases.stream().map(a -> a.name()).collect(ImmutableSet.toImmutableSet());
     }
-    
 
     private <Request extends ActionRequest, Response extends ActionResponse> void apply0(Task task, final String action, Request request,
             ActionListener<Response> listener, ActionFilterChain<Request, Response> chain) {
@@ -302,10 +300,6 @@ public class OpenDistroSecurityFilter implements ActionFilter {
                 log.debug(pres);
             }
 
-            if(threadContext.getTransient(OPENDISTRO_SECURITY_USER_AND_ROLES) == null) {
-                threadContext.putTransient(OPENDISTRO_SECURITY_USER_AND_ROLES, user.getUserRolesString());
-            }
-
             if (pres.isAllowed()) {
                 auditLog.logGrantedPrivileges(action, request, task);
                 auditLog.logIndexEvent(action, request, task);
@@ -355,6 +349,13 @@ public class OpenDistroSecurityFilter implements ActionFilter {
                 listener.onFailure(new ElasticsearchSecurityException(err, RestStatus.FORBIDDEN));
                 return;
             }
+        } catch (ElasticsearchException e) {
+            if (task != null) {
+                log.debug("Failed to apply filter. Task id: {} ({}). Action: {}", task.getId(), task.getDescription(), action, e);
+            } else {
+                log.debug("Failed to apply filter. Action: {}", action, e);
+            }
+            listener.onFailure(e);
         } catch (Throwable e) {
             log.error("Unexpected exception "+e, e);
             listener.onFailure(new ElasticsearchSecurityException("Unexpected exception " + action, RestStatus.INTERNAL_SERVER_ERROR));
