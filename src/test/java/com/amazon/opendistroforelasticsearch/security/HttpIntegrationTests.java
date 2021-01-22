@@ -33,6 +33,7 @@ package com.amazon.opendistroforelasticsearch.security;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpStatus;
 import org.apache.http.NoHttpResponseException;
@@ -59,6 +60,9 @@ import com.amazon.opendistroforelasticsearch.security.test.SingleClusterTest;
 import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper.HttpResponse;
+
+
+import static com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper.readTree;
 
 public class HttpIntegrationTests extends SingleClusterTest {
 
@@ -543,9 +547,32 @@ public class HttpIntegrationTests extends SingleClusterTest {
         System.out.println(res.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());  
         Assert.assertTrue(res.getBody().contains("\"errors\":false"));
-        Assert.assertTrue(res.getBody().contains("\"status\":201"));  
+        Assert.assertTrue(res.getBody().contains("\"status\":201"));
     }
-    
+
+    @Test
+    public void testBulkWithOneIndexFailure() throws Exception {
+        final Settings settings = Settings.builder()
+                .put(ConfigConstants.OPENDISTRO_SECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
+                .build();
+        setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityRoles("roles_bulk.yml"), settings);
+        final RestHelper rh = nonSslRestHelper();
+
+        String bulkBody =
+                "{ \"index\" : { \"_index\" : \"test\", \"_id\" : \"1\" } }"+System.lineSeparator()+
+                        "{ \"a\" : \"b\" }" +System.lineSeparator()+
+                        "{ \"index\" : { \"_index\" : \"myindex\", \"_id\" : \"1\" } }"+System.lineSeparator()+
+                        "{ \"a\" : \"b\" }"+System.lineSeparator();
+
+        HttpResponse res = rh.executePostRequest("_bulk?refresh=true", bulkBody, encodeBasicHeader("bulk_test_user", "nagilum"));
+        System.out.println(res.getBody());
+        JsonNode jsonNode = readTree(res.getBody());
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        Assert.assertTrue(jsonNode.get("errors").booleanValue());
+        Assert.assertEquals(201, jsonNode.get("items").get(0).get("index").get("status").intValue());
+        Assert.assertEquals(403, jsonNode.get("items").get(1).get("index").get("status").intValue());
+    }
+
     @Test
     public void test557() throws Exception {
         final Settings settings = Settings.builder()

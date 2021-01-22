@@ -20,3 +20,15 @@ bulk:
     - "indices:admin/create"
     - "indices:data/write/bulk[s]"
   tenant_permissions: []
+
+bulk_test_user_role:
+  reserved: false
+  hidden: false
+  cluster_permissions:
+    - "*"
+  index_permissions:
+    - index_patterns:
+        - "test"
+      allowed_actions:
+        - "*"
+  tenant_permissions: []
