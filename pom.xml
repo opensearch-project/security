@@ -92,7 +92,6 @@
         <elasticsearch.assembly.descriptor>${basedir}/src/main/assemblies/plugin.xml</elasticsearch.assembly.descriptor>
         <securitystandalone.descriptor>${basedir}/src/main/assemblies/securityadmin-standalone.xml
         </securitystandalone.descriptor>
-        <veracode.descriptor>${basedir}/src/main/assemblies/veracode.xml</veracode.descriptor>
 
         <!-- Test only -->
         <mockito.version>2.23.0</mockito.version>
@@ -917,49 +916,6 @@
                     <groupId>org.elasticsearch.plugin</groupId>
                     <artifactId>aggs-matrix-stats-client</artifactId>
                     <version>${elasticsearch.version}</version>
-                </dependency>
-            </dependencies>
-        </profile>
-        <profile>
-            <id>veracode</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-assembly-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>veracode</id>
-                                <phase>package</phase>
-                                <configuration>
-                                    <appendAssemblyId>true</appendAssemblyId>
-                                    <tarLongFileMode>posix</tarLongFileMode>
-                                    <outputDirectory>${project.build.directory}/veracode/</outputDirectory>
-                                    <descriptors>
-                                        <descriptor>${veracode.descriptor}</descriptor>
-                                    </descriptors>
-                                </configuration>
-                                <goals>
-                                    <goal>single</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-            <dependencies>
-                <!-- omit  netty-tcnative and conscrypt-openjdk-uber if scan
-                     should be done without natives -->
-                <dependency>
-                    <groupId>io.netty</groupId>
-                    <artifactId>netty-tcnative</artifactId>
-                    <version>${netty-native.version}</version>
-                    <classifier>linux-x86_64</classifier>
-                </dependency>
-                <dependency>
-                    <groupId>org.conscrypt</groupId>
-                    <artifactId>conscrypt-openjdk-uber</artifactId>
-                    <version>1.0.0.RC9</version>
                 </dependency>
             </dependencies>
         </profile>
