@@ -30,6 +30,7 @@
 
 package com.amazon.opendistroforelasticsearch.security;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.netty.handler.ssl.OpenSsl;
 
 import java.lang.Thread.UncaughtExceptionHandler;
@@ -67,6 +68,8 @@ import com.amazon.opendistroforelasticsearch.security.test.SingleClusterTest;
 import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper.HttpResponse;
+
+import static com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper.readTree;
 
 public class IntegrationTests extends SingleClusterTest {
 
@@ -868,5 +871,20 @@ public class IntegrationTests extends SingleClusterTest {
 //                encodeBasicHeader("nagilum", "nagilum"));
 //        Assert.assertTrue(res.getStatusCode() >= 400);
 
+        String bulkBody = "{ \"index\" : { \"_index\" : \".opendistro_security\", \"_id\" : \"1\" } }\n"
+                + "{ \"field1\" : \"value1\" }\n"
+                + "{ \"index\" : { \"_index\" : \".opendistro_security\", \"_id\" : \"2\" } }\n"
+                + "{ \"field2\" : \"value2\" }\n"
+                + "{ \"index\" : { \"_index\" : \"myindex\", \"_id\" : \"2\" } }\n"
+                + "{ \"field2\" : \"value2\" }\n"
+                + "{ \"delete\" : { \"_index\" : \".opendistro_security\", \"_id\" : \"config\" } }\n";
+        res = rh.executePostRequest("_bulk?refresh=true&pretty", bulkBody, encodeBasicHeader("nagilum", "nagilum"));
+        JsonNode jsonNode = readTree(res.getBody());
+        System.out.println(res.getBody());
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        Assert.assertEquals(403, jsonNode.get("items").get(0).get("index").get("status").intValue());
+        Assert.assertEquals(403, jsonNode.get("items").get(1).get("index").get("status").intValue());
+        Assert.assertEquals(201, jsonNode.get("items").get(2).get("index").get("status").intValue());
+        Assert.assertEquals(403, jsonNode.get("items").get(3).get("delete").get("status").intValue());
     }
 }
