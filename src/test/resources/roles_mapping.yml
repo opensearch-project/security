@@ -385,3 +385,6 @@ xyz_sr_hidden:
     - "test_user"
   and_backend_roles: []
   description: "Migrated from v6"
+bulk_test_user_role:
+  users:
+    - "bulk_test_user"
