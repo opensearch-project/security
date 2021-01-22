@@ -229,14 +229,12 @@ public class PrivilegesEvaluator {
             if (!securityRoles.impliesClusterPermissionPermission(action0)) {
                 presponse.missingPrivileges.add(action0);
                 presponse.allowed = false;
-                log.info("No {}-level perm match for {} [Action [{}]] [RolesChecked {}]", "cluster", user, action0,
-                        securityRoles.getRoleNames());
-                log.info("No permissions for {}", presponse.missingPrivileges);
-                return presponse;
+                log.info("No {}-level perm match for {} [Action [{}]] [RolesChecked {}]. No permissions for {}", "cluster", user, action0,
+                        securityRoles.getRoleNames(), presponse.missingPrivileges);
             } else {
                 presponse.allowed = true;
-                return presponse;
             }
+            return presponse;
         }
 
         final Resolved requestedResolved = irr.resolveRequest(request);
