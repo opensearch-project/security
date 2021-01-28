@@ -110,3 +110,20 @@ reports_full_access:
     - 'cluster:admin/opendistro/reports/instance/list'
     - 'cluster:admin/opendistro/reports/instance/get'
     - 'cluster:admin/opendistro/reports/menu/download'
+
+# Allows users to use all asynchronous-search functionality
+asynchronous_search_full_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/opendistro/asynchronous-search/*'
+  index_permissions:
+    - index_patterns:
+        - '*'
+      allowed_actions:
+        - 'indices:data/read/search*'
+
+# Allows users to read stored asynchronous-search results
+asynchronous_search_read_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/opendistro/asynchronous-search/get'
