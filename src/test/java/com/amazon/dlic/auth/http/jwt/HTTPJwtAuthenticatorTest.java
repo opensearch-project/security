@@ -230,7 +230,7 @@ public class HTTPJwtAuthenticatorTest {
 
     @Test
     public void testNestedRoles() throws Exception {
-        class NextedRoles implements Serializable {
+        class NestedRoles implements Serializable {
             private String[] roles = {"role1", "role2"};
 
             public String[] getRoles() {
@@ -250,7 +250,7 @@ public class HTTPJwtAuthenticatorTest {
         String jwsToken = Jwts.builder()
                 .setSubject("Leonard McCoy")
 
-                .claim("realm_access", new NextedRoles())
+                .claim("realm_access", new NestedRoles())
                 .signWith(SignatureAlgorithm.HS512, secretKey).compact();
 
         HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
