@@ -647,25 +647,13 @@ public class IndexResolverReplacer {
             }
             ((UpdateRequest) request).index(newIndices.length!=1?null:newIndices[0]);
         } else if (request instanceof SingleShardRequest) {
-            final SingleShardRequest<?> gr = (SingleShardRequest<?>) request;
-            final String[] indices = gr.indices();
-            final String index = gr.index();
-
-            final List<String> indicesL = new ArrayList<String>();
-
-            if (index != null) {
-                indicesL.add(index);
-            }
-
-            if (indices != null && indices.length > 0) {
-                indicesL.addAll(Arrays.asList(indices));
-            }
-
-            String[] newIndices = provider.provide(indicesL.toArray(new String[0]), request, true);
-            if (!checkIndices(request, newIndices, true, allowEmptyIndices)) {
+            final SingleShardRequest<?> singleShardRequest = (SingleShardRequest<?>) request;
+            final String index = singleShardRequest.index();
+            String[] indices = provider.provide(index == null ? null : new String[]{index}, request, true);
+            if (!checkIndices(request, indices, true, allowEmptyIndices)) {
                 return false;
             }
-            ((SingleShardRequest) request).index(newIndices.length!=1?null:newIndices[0]);
+            singleShardRequest.index(indices.length != 1? null : indices[0]);
         } else if (request instanceof FieldCapabilitiesIndexRequest) {
             // FieldCapabilitiesIndexRequest does not support replacing the indexes.
             // However, the indexes are always determined by FieldCapabilitiesRequest which will be reduced below
