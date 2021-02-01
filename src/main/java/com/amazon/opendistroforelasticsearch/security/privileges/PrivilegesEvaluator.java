@@ -277,9 +277,8 @@ public class PrivilegesEvaluator {
             if(!securityRoles.impliesClusterPermissionPermission(action0)) {
                 presponse.missingPrivileges.add(action0);
                 presponse.allowed = false;
-                log.info("No {}-level perm match for {} {} [Action [{}]] [RolesChecked {}]", "cluster" , user, requestedResolved, action0,
-                        securityRoles.getRoleNames());
-                log.info("No permissions for {}", presponse.missingPrivileges);
+                log.info("No cluster-level perm match for {} {} [Action [{}]] [RolesChecked {}]. No permissions for {}",  user, requestedResolved, action0,
+                        securityRoles.getRoleNames(), presponse.missingPrivileges);
                 return presponse;
             } else {
 
@@ -288,8 +287,6 @@ public class PrivilegesEvaluator {
                         log.debug("Normally allowed but we need to apply some extra checks for a restore request.");
                     }
                 } else {
-
-
                     if(privilegesInterceptor.getClass() != PrivilegesInterceptor.class) {
 
                         final PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceKibanaIndex(request, action0, user, dcm, requestedResolved,
