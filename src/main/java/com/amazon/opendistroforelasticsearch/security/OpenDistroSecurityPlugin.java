@@ -144,7 +144,6 @@ import com.amazon.opendistroforelasticsearch.security.configuration.ClusterInfoH
 import com.amazon.opendistroforelasticsearch.security.configuration.CompatConfig;
 import com.amazon.opendistroforelasticsearch.security.configuration.ConfigurationRepository;
 import com.amazon.opendistroforelasticsearch.security.configuration.DlsFlsRequestValve;
-import com.amazon.opendistroforelasticsearch.security.configuration.OpenDistroSecurityIndexSearcherWrapper;
 import com.amazon.opendistroforelasticsearch.security.filter.OpenDistroSecurityFilter;
 import com.amazon.opendistroforelasticsearch.security.filter.OpenDistroSecurityRestFilter;
 import com.amazon.opendistroforelasticsearch.security.http.OpenDistroSecurityHttpServerTransport;
@@ -193,7 +192,6 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     private volatile SslExceptionHandler sslExceptionHandler;
     private volatile Client localClient;
     private final boolean disabled;
-    private final boolean advancedModulesEnabled;
     private final List<String> demoCertHashes = new ArrayList<String>(3);
     private volatile OpenDistroSecurityFilter odsf;
     private volatile IndexResolverReplacer irr;
@@ -249,14 +247,12 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         sslCertReloadEnabled = isSslCertReloadEnabled(settings);
 
         if (disabled) {
-            this.advancedModulesEnabled = false;
             this.sslCertReloadEnabled = false;
             log.warn("Open Distro Security plugin installed but disabled. This can expose your configuration (including passwords) to the public.");
             return;
         }
 
         if (openDistroSSLConfig.isSslOnlyMode()) {
-            this.advancedModulesEnabled = false;
             this.sslCertReloadEnabled = false;
             log.warn("Open Distro Security plugin run in ssl only mode. No authentication or authorization is performed");
             return;
@@ -297,9 +293,8 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
 
         final String advancedModulesEnabledKey = ConfigConstants.OPENDISTRO_SECURITY_ADVANCED_MODULES_ENABLED;
         if (settings.hasValue(advancedModulesEnabledKey)) {
-            log.info("Setting {} is deprecated and will be enabled by default in next major version if plugin is not running in SSL only or disabled mode.", advancedModulesEnabledKey);
+            log.warn("Setting {} is ignored and is enabled by default if plugin is not running in SSL only or disabled mode.", advancedModulesEnabledKey);
         }
-        advancedModulesEnabled = settings.getAsBoolean(advancedModulesEnabledKey, true);
 
         log.info("Clustername: {}", settings.get("cluster.name","elasticsearch"));
 
@@ -458,9 +453,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                 if (sslCertReloadEnabled) {
                     handlers.add(new OpenDistroSecuritySSLReloadCertsAction(settings, restController, odsks, Objects.requireNonNull(threadPool), Objects.requireNonNull(adminDns)));
                 }
-                final Collection<RestHandler> apiHandlers = advancedModulesEnabled
-                        ? OpenDistroSecurityRestApiActions.getHandler(settings, configPath, restController, localClient, adminDns, cr, cs, principalExtractor, evaluator, threadPool, Objects.requireNonNull(auditLog))
-                        : Collections.emptyList();
+                final Collection<RestHandler> apiHandlers = OpenDistroSecurityRestApiActions.getHandler(settings, configPath, restController, localClient, adminDns, cr, cs, principalExtractor, evaluator, threadPool, Objects.requireNonNull(auditLog));
                 handlers.addAll(apiHandlers);
                 log.debug("Added {} management rest handler(s)", apiHandlers.size());
             }
@@ -495,62 +488,55 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
 
         if (!disabled && !client && !openDistroSSLConfig.isSslOnlyMode()) {
             log.debug("Handle auditLog {} for onIndexModule() of index {}", auditLog.getClass(), indexModule.getIndex().getName());
-            if (advancedModulesEnabled) {
 
-                final ComplianceIndexingOperationListener ciol = new ComplianceIndexingOperationListenerImpl(auditLog);
-                indexModule.addIndexOperationListener(ciol);
+            final ComplianceIndexingOperationListener ciol = new ComplianceIndexingOperationListenerImpl(auditLog);
+            indexModule.addIndexOperationListener(ciol);
 
-                indexModule.setReaderWrapper(indexService -> new OpenDistroSecurityFlsDlsIndexSearcherWrapper(indexService, settings, adminDns, cs, auditLog, ciol, evaluator, salt));
-                indexModule.forceQueryCacheProvider((indexSettings,nodeCache)->new QueryCache() {
+            indexModule.setReaderWrapper(indexService -> new OpenDistroSecurityFlsDlsIndexSearcherWrapper(indexService, settings, adminDns, cs, auditLog, ciol, evaluator, salt));
+            indexModule.forceQueryCacheProvider((indexSettings,nodeCache)->new QueryCache() {
 
-                    @Override
-                    public Index index() {
-                        return indexSettings.getIndex();
-                    }
+                @Override
+                public Index index() {
+                    return indexSettings.getIndex();
+                }
 
-                    @Override
-                    public void close() throws ElasticsearchException {
-                        clear("close");
-                    }
+                @Override
+                public void close() throws ElasticsearchException {
+                    clear("close");
+                }
 
-                    @Override
-                    public void clear(String reason) {
-                        nodeCache.clearIndex(index().getName());
-                    }
+                @Override
+                public void clear(String reason) {
+                    nodeCache.clearIndex(index().getName());
+                }
 
-                    @Override
-                    public Weight doCache(Weight weight, QueryCachingPolicy policy) {
-                        final Map<String, Set<String>> allowedFlsFields = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadPool.getThreadContext(),
-                                ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER);
+                @Override
+                public Weight doCache(Weight weight, QueryCachingPolicy policy) {
+                    final Map<String, Set<String>> allowedFlsFields = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadPool.getThreadContext(),
+                            ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER);
 
-                        if(OpenDistroSecurityUtils.evalMap(allowedFlsFields, index().getName()) != null) {
+                    if(OpenDistroSecurityUtils.evalMap(allowedFlsFields, index().getName()) != null) {
+                        return weight;
+                    } else {
+
+                        final Map<String, Set<String>> maskedFieldsMap = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadPool.getThreadContext(),
+                                ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER);
+
+                        if(OpenDistroSecurityUtils.evalMap(maskedFieldsMap, index().getName()) != null) {
                             return weight;
                         } else {
-
-                            final Map<String, Set<String>> maskedFieldsMap = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadPool.getThreadContext(),
-                                    ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER);
-
-                            if(OpenDistroSecurityUtils.evalMap(maskedFieldsMap, index().getName()) != null) {
-                                return weight;
-                            } else {
-                                return nodeCache.doCache(weight, policy);
-                            }
+                            return nodeCache.doCache(weight, policy);
                         }
-
                     }
-                });
-            } else {
-                indexModule.setReaderWrapper(
-                        indexService -> new OpenDistroSecurityIndexSearcherWrapper(indexService, settings, Objects.requireNonNull(adminDns), Objects.requireNonNull(evaluator)));
-            }
+
+                }
+            });
 
             indexModule.addSearchOperationListener(new SearchOperationListener() {
 
                 @Override
                 public void onPreQueryPhase(SearchContext context) {
-                    if(advancedModulesEnabled) {
-                        dlsFlsValve.handleSearchContext(context, threadPool, namedXContentRegistry);
-                    }
+                    dlsFlsValve.handleSearchContext(context, threadPool, namedXContentRegistry);
                 }
 
                 @Override
@@ -771,14 +757,14 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
 
         final PrivilegesInterceptor privilegesInterceptor;
 
-        if (advancedModulesEnabled) {
+        if (openDistroSSLConfig.isSslOnlyMode()) {
+            dlsFlsValve = new DlsFlsRequestValve.NoopDlsFlsRequestValve();
+            auditLog = new NullAuditLog();
+            privilegesInterceptor = new PrivilegesInterceptor(resolver, clusterService, localClient, threadPool);
+        } else {
             dlsFlsValve = new DlsFlsValveImpl();
             auditLog = new AuditLogImpl(settings, configPath, localClient, threadPool, resolver, clusterService, environment);
             privilegesInterceptor = new PrivilegesInterceptorImpl(resolver, clusterService, localClient, threadPool);
-        } else {
-            dlsFlsValve = new DlsFlsRequestValve.NoopDlsFlsRequestValve();
-            auditLog = new NullAuditLog();;
-            privilegesInterceptor = new PrivilegesInterceptor(resolver, clusterService, localClient, threadPool);
         }
 
         sslExceptionHandler = new AuditLogSslExceptionHandler(auditLog);
@@ -792,8 +778,10 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
 
         final CompatConfig compatConfig = new CompatConfig(environment);
 
+        // DLS-FLS is enabled if not client and not disabled and not SSL only.
+        final boolean dlsFlsEnabled = !openDistroSSLConfig.isSslOnlyMode();
         evaluator = new PrivilegesEvaluator(clusterService, threadPool, cr, resolver, auditLog,
-                settings, privilegesInterceptor, cih, irr, advancedModulesEnabled);
+                settings, privilegesInterceptor, cih, irr, dlsFlsEnabled);
 
         odsf = new OpenDistroSecurityFilter(localClient, settings, evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs, compatConfig, irr, backendRegistry);
 
