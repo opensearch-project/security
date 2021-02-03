@@ -58,7 +58,7 @@ public class CachingTest extends SingleClusterTest{
 
         Assert.assertEquals(3, DummyHTTPAuthenticator.getCount());
         Assert.assertEquals(1, DummyAuthorizer.getCount());
-        Assert.assertEquals(3, DummyAuthenticationBackend.getAuthCount());
+        Assert.assertEquals(1, DummyAuthenticationBackend.getAuthCount());
         Assert.assertEquals(0, DummyAuthenticationBackend.getExistsCount());
     }
 
@@ -103,7 +103,7 @@ public class CachingTest extends SingleClusterTest{
 
         Assert.assertEquals(4, DummyHTTPAuthenticator.getCount());
         Assert.assertEquals(3, DummyAuthorizer.getCount());
-        Assert.assertEquals(4, DummyAuthenticationBackend.getAuthCount());
+        Assert.assertEquals(1, DummyAuthenticationBackend.getAuthCount());
         Assert.assertEquals(2, DummyAuthenticationBackend.getExistsCount());
 
     }
