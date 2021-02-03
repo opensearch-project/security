@@ -82,6 +82,7 @@ import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.component.LifecycleListener;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
+import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.ClusterSettings;
@@ -178,6 +179,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
 
     private static final String KEYWORD = ".keyword";
     private static final Logger actionTrace = LogManager.getLogger("opendistro_security_action_trace");
+    private static final DeprecationLogger deprecationLogger = DeprecationLogger.getLogger(OpenDistroSecurityPlugin.class);
 
     private boolean sslCertReloadEnabled;
     private volatile OpenDistroSecurityRestFilter securityRestHandler;
@@ -293,7 +295,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
 
         final String advancedModulesEnabledKey = ConfigConstants.OPENDISTRO_SECURITY_ADVANCED_MODULES_ENABLED;
         if (settings.hasValue(advancedModulesEnabledKey)) {
-            log.warn("Setting {} is ignored and is enabled by default if plugin is not running in SSL only or disabled mode.", advancedModulesEnabledKey);
+            deprecationLogger.deprecate("Setting {} is ignored.", advancedModulesEnabledKey);
         }
 
         log.info("Clustername: {}", settings.get("cluster.name","elasticsearch"));
