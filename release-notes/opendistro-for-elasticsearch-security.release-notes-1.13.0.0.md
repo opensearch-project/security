@@ -15,6 +15,7 @@ Compatible with Elasticsearch 7.10.2
 
 * Replace InjectedUser with User during serialization ([#891](https://github.com/opendistro-for-elasticsearch/security/pull/891))
 * ConfigUpdateRequest should include only updated CType ([#953](https://github.com/opendistro-for-elasticsearch/security/pull/953))
+* Fix AuthCredentials equality ([#876](https://github.com/opendistro-for-elasticsearch/security/pull/876))
 
 ### Maintenance
 
@@ -34,3 +35,5 @@ Compatible with Elasticsearch 7.10.2
 * Refactor Resolved ([#929](https://github.com/opendistro-for-elasticsearch/security/pull/929))
 * Combine log messages of no cluster-level permission ([#1002](https://github.com/opendistro-for-elasticsearch/security/pull/1002))
 * Support ES 7.10.2 ([#1005](https://github.com/opendistro-for-elasticsearch/security/pull/1005))
+* Bump version to 1.13 ([#1004](https://github.com/opendistro-for-elasticsearch/security/pull/1004))
+* Update release note 1.13 ([#1009](https://github.com/opendistro-for-elasticsearch/security/pull/1009))
