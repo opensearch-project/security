@@ -89,7 +89,7 @@ public class DisabledCategoriesTest {
 		Builder settingsBuilder  = Settings.builder();
 		settingsBuilder.put("opendistro_security.audit.type", "debug");
 		settingsBuilder.put("opendistro_security.audit.config.disabled_categories", "nonexistant, bad_headers");
-		AbstractAuditLog auditLog = AuditTestUtils.createAuditLog(settingsBuilder.build(), null, null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
+		AuditLogImpl auditLog = AuditTestUtils.createAuditLog(settingsBuilder.build(), null, null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
 		logAll(auditLog);
 		String result = TestAuditlogImpl.sb.toString();
 		Assert.assertFalse(categoriesPresentInLog(result, AuditCategory.BAD_HEADERS));
@@ -105,7 +105,7 @@ public class DisabledCategoriesTest {
 
 		// we use the debug output, no ES client is needed. Also, we
 		// do not need to close.
-		AbstractAuditLog auditLog = AuditTestUtils.createAuditLog(settingsBuilder.build(), null, null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
+		AuditLogImpl auditLog = AuditTestUtils.createAuditLog(settingsBuilder.build(), null, null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
 		logAll(auditLog);
 
 		// we're using the ExecutorService in AuditLogImpl, so we need to wait
@@ -166,7 +166,7 @@ public class DisabledCategoriesTest {
 
 		// we use the debug output, no ES client is needed. Also, we
 		// do not need to close.
-		AbstractAuditLog auditLog = AuditTestUtils.createAuditLog(settingsBuilder.build(), null, null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
+		AuditLogImpl auditLog = AuditTestUtils.createAuditLog(settingsBuilder.build(), null, null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
 		logAll(auditLog);
 
 		auditLog.close();

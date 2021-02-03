@@ -16,7 +16,6 @@
 package com.amazon.opendistroforelasticsearch.security.auditlog;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
-import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AbstractAuditLog;
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditLogImpl;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -59,7 +58,7 @@ public class AuditTestUtils {
         return objectMapper.writeValueAsString(audit);
     }
 
-    public static AbstractAuditLog createAuditLog(
+    public static AuditLogImpl createAuditLog(
         final Settings settings,
         final Path configPath,
         final Client clientProvider,
