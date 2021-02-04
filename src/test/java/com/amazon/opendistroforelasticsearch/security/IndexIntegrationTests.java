@@ -435,30 +435,6 @@ public class IndexIntegrationTests extends SingleClusterTest {
     }
 
     @Test
-    public void testAliasResolution() throws Exception {
-
-        final Settings settings = Settings.builder()
-                .put(OPENDISTRO_SECURITY_ADVANCED_MODULES_ENABLED, false)
-                .build();
-        setup(settings);
-        final RestHelper rh = nonSslRestHelper();
-
-        try (TransportClient tc = getInternalTransportClient()) {                    
-            tc.index(new IndexRequest("concreteindex-1").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();                
-            tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("concreteindex-1").alias("calias-1"))).actionGet();
-            tc.index(new IndexRequest(".kibana-6").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();                
-            tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices(".kibana-6").alias(".kibana"))).actionGet();
-
-        }
-
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("calias-1/_search?pretty", encodeBasicHeader("aliastest", "nagilum")).getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("calias-*/_search?pretty", encodeBasicHeader("aliastest", "nagilum")).getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("*kibana/_search?pretty", encodeBasicHeader("aliastest", "nagilum")).getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest(".ki*ana/_search?pretty", encodeBasicHeader("aliastest", "nagilum")).getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest(".kibana/_search?pretty", encodeBasicHeader("aliastest", "nagilum")).getStatusCode());
-    }
-
-    @Test
     public void testIndexResolveInvalidIndexName() throws Exception {
         setup();
         final RestHelper rh = nonSslRestHelper();

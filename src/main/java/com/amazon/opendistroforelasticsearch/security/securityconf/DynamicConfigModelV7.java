@@ -354,19 +354,12 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
     private <T> T newInstance(final String clazzOrShortcut, String type, final Settings settings, final Path configPath) {
 
         String clazz = clazzOrShortcut;
-        boolean isEnterprise = false;
 
         if(authImplMap.containsKey(clazz+"_"+type)) {
             clazz = authImplMap.get(clazz+"_"+type);
-        } else {
-            isEnterprise = true;
         }
 
-        if(ReflectionHelper.isAdvancedModuleAAAModule(clazz)) {
-            isEnterprise = true;
-        }
-
-        return ReflectionHelper.instantiateAAA(clazz, settings, configPath, isEnterprise);
+        return ReflectionHelper.instantiateAAA(clazz, settings, configPath);
     }
     
     private String translateShortcutToClassName(final String clazzOrShortcut, final String type) {

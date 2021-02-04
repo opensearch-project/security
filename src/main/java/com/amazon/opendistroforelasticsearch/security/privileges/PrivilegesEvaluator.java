@@ -125,13 +125,13 @@ public class PrivilegesEvaluator {
 
     private final DlsFlsEvaluator dlsFlsEvaluator;
 
-    private final boolean advancedModulesEnabled;
+    private final boolean dlsFlsEnabled;
     private DynamicConfigModel dcm;
 
     public PrivilegesEvaluator(final ClusterService clusterService, final ThreadPool threadPool,
                                final ConfigurationRepository configurationRepository, final IndexNameExpressionResolver resolver,
                                AuditLog auditLog, final Settings settings, final PrivilegesInterceptor privilegesInterceptor, final ClusterInfoHolder clusterInfoHolder,
-                               final IndexResolverReplacer irr, boolean advancedModulesEnabled) {
+                               final IndexResolverReplacer irr, boolean dlsFlsEnabled) {
 
         super();
         this.clusterService = clusterService;
@@ -152,7 +152,7 @@ public class PrivilegesEvaluator {
         protectedIndexAccessEvaluator = new OpenDistroProtectedIndexAccessEvaluator(settings, auditLog);
         dlsFlsEvaluator = new DlsFlsEvaluator(settings, threadPool);
         termsAggregationEvaluator = new TermsAggregationEvaluator();
-        this.advancedModulesEnabled = advancedModulesEnabled;
+        this.dlsFlsEnabled = dlsFlsEnabled;
     }
 
     @Subscribe
@@ -245,7 +245,7 @@ public class PrivilegesEvaluator {
 
 
         // check dlsfls
-        if (advancedModulesEnabled
+        if (dlsFlsEnabled
                 //&& (action0.startsWith("indices:data/read") || action0.equals(ClusterSearchShardsAction.NAME))
                 && dlsFlsEvaluator.evaluate(request, clusterService, resolver, requestedResolved, user, securityRoles, presponse).isComplete()) {
             return presponse;
