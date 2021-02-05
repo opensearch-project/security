@@ -444,11 +444,11 @@ public class WebhookAuditLogTest {
 
 	@Test
     public void httpsTestPemDefault() throws Exception {
-
+        final int port = 8088;
         TestHttpHandler handler = new TestHttpHandler();
 
         server = ServerBootstrap.bootstrap()
-                .setListenerPort(8084)
+                .setListenerPort(port)
                 .setServerInfo("Test/1.1")
                 .setSslContext(createSSLContext())
                 .registerHandler("*", handler)
@@ -458,7 +458,7 @@ public class WebhookAuditLogTest {
         AuditMessage msg = MockAuditMessageFactory.validAuditMessage();
         LoggingSink fallback =  new LoggingSink("test", Settings.EMPTY, null, null);
 
-        String url = "https://localhost:8084/endpoint";
+        String url = "https://localhost:" + port + "/endpoint";
 
         // test default with filepath
         handler.reset();
