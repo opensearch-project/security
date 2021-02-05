@@ -170,6 +170,16 @@ opendistro_security.audit.type: internal_elasticsearch
 #          Use only in a private network/environment.
 #opendistro_security.allow_unsafe_democertificates: false
 
+
+
+# Password policy for password complexity. 
+# If you want to setup password strength rules for internal users, you can use below settings for it. 
+# Password validation can be achieved through regex. With below regex example, user must need password with 
+# 8 characters length and must include minimum one upercase, one kower case, one digit, and one special character. 
+# opendistro_security.restapi.password_validation_regex: '(?=.*[A-Z])(?=.*[^a-zA-Z\d])(?=.*[0-9])(?=.*[a-z]).{8,}'
+# opendistro_security.restapi.password_validation_error_message: "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one digit, and one special character."
+
+
 ############## Expert settings ##############
 # WARNING: Expert settings, do only use if you know what you are doing
 # If you set wrong values here this this could be a security risk
