@@ -338,12 +338,12 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
 
         settingsBuilder.put(jwtSettings);
 
-        if (jwtSettings.get("roles_key") == null) {
-            settingsBuilder.put("roles_key", settings.get("roles_key", "roles"));
+        if (jwtSettings.get("roles_key") == null && settings.get("roles_key") != null) {
+            settingsBuilder.put("roles_key", "roles");
         }
 
         if (jwtSettings.get("subject_key") == null) {
-            settingsBuilder.put("subject_key", settings.get("subject_key", "sub"));
+            settingsBuilder.put("subject_key", "sub");
         }
 
         return settingsBuilder.build();
