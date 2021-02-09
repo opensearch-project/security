@@ -26,12 +26,12 @@ if (!project.file(archivePath).exists()) {
 
 ospackage {
     packageName = "opendistro-security"
-    release = isSnapshot ? "0.0" : '0'
+    release = isSnapshot ? "0.1" : '1'
     version = "${project.version}"
 
     into '/usr/share/elasticsearch/plugins'
     from(zipTree(project.file(archivePath).absolutePath)) {
-        into "opendistro-security"
+        into "opendistro_security"
         permissionGroup 'elasticsearch'
     }
 
