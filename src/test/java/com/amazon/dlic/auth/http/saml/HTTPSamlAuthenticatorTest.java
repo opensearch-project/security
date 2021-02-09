@@ -452,7 +452,7 @@ public class HTTPSamlAuthenticatorTest {
 
         Settings settings = Settings.builder().put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
                 .put("kibana_url", "http://wherever").put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
-                .put("exchange_key", "abc").put("roles_key", "roles").put("roles_seperator", ",").put("path.home", ".")
+                .put("exchange_key", "abc").put("roles_key", "roles").put("roles_separator", ",").put("path.home", ".")
                 .build();
 
         HTTPSamlAuthenticator samlAuthenticator = new HTTPSamlAuthenticator(settings, null);

@@ -95,7 +95,7 @@ class AuthTokenProcessorHandler {
 
         this.samlRolesKey = settings.get("roles_key");
         this.samlSubjectKey = settings.get("subject_key");
-        this.samlRolesSeparator = settings.get("roles_seperator");
+        this.samlRolesSeparator = settings.get("roles_separator");
         this.kibanaRootUrl = settings.get("kibana_url");
 
         if (samlRolesKey == null || samlRolesKey.length() == 0) {
