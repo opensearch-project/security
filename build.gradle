@@ -31,7 +31,7 @@ ospackage {
 
     into '/usr/share/elasticsearch/plugins'
     from(zipTree(project.file(archivePath).absolutePath)) {
-        into "opendistro_security"
+        into "opendistro-security"
         permissionGroup 'elasticsearch'
     }
 
@@ -63,6 +63,6 @@ buildRpm {
 }
 
 buildDeb {
-    arch = 'amd64'
+    arch = 'all'
     archiveName "${packageName}-${version}.deb"
 }
