@@ -15,6 +15,8 @@ Compatible with Elasticsearch 7.10.2
 
 * Replace InjectedUser with User during serialization ([#891](https://github.com/opendistro-for-elasticsearch/security/pull/891))
 * ConfigUpdateRequest should include only updated CType ([#953](https://github.com/opendistro-for-elasticsearch/security/pull/953))
+* Fix AuthCredentials equality ([#876](https://github.com/opendistro-for-elasticsearch/security/pull/876))
+* Revert "Using SAML subject_key and roles_key in the HTTPSamlAuthenticator ([#1019](https://github.com/opendistro-for-elasticsearch/security/pull/1019))
 
 ### Maintenance
 
@@ -34,3 +36,9 @@ Compatible with Elasticsearch 7.10.2
 * Refactor Resolved ([#929](https://github.com/opendistro-for-elasticsearch/security/pull/929))
 * Combine log messages of no cluster-level permission ([#1002](https://github.com/opendistro-for-elasticsearch/security/pull/1002))
 * Support ES 7.10.2 ([#1005](https://github.com/opendistro-for-elasticsearch/security/pull/1005))
+* Bump version to 1.13 ([#1004](https://github.com/opendistro-for-elasticsearch/security/pull/1004))
+* Cleanup reflection helper and advanced modules enabled / dls fls enabled properties ([#1001](https://github.com/opendistro-for-elasticsearch/security/pull/1001))
+* Sample configuration for password strength rules ([#1020](https://github.com/opendistro-for-elasticsearch/security/pull/1020))
+* Updating Github actions and files to use main branch. ([#1023](https://github.com/opendistro-for-elasticsearch/security/pull/1023))
+* Add the Linux Foundation's Developer Certificate of Origin in pull request template ([#1022](https://github.com/opendistro-for-elasticsearch/security/pull/1022))
+* Change the build configuration for deb package and rename the folder of artifacts. ([#1027](https://github.com/opendistro-for-elasticsearch/security/pull/1027))
