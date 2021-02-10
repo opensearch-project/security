@@ -180,6 +180,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     private static final String KEYWORD = ".keyword";
     private static final Logger actionTrace = LogManager.getLogger("opendistro_security_action_trace");
     private static final DeprecationLogger deprecationLogger = DeprecationLogger.getLogger(OpenDistroSecurityPlugin.class);
+    public static final String PLUGIN_NAME = "opendistro-security";
 
     private boolean sslCertReloadEnabled;
     private volatile OpenDistroSecurityRestFilter securityRestHandler;

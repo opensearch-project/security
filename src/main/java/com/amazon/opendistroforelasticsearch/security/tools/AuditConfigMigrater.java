@@ -16,6 +16,7 @@
 package com.amazon.opendistroforelasticsearch.security.tools;
 
 import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
+import com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin;
 import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.cli.CommandLine;
@@ -48,7 +49,7 @@ public class AuditConfigMigrater {
 
     public static void main(String[] args) {
         options.addOption(Option.builder("s").argName("source").hasArg().desc("Path to elasticsearch.yml file to migrate. If not specified, will try to lookup env " + ES_PATH_CONF_ENV + " followed by lookup in current directory.").build());
-        options.addOption(Option.builder("oad").argName("output-audit-dir").hasArg().desc("Output directory to store the generated " + AUDIT_YML + " file. To be uploaded in the index, the file must be present in plugins/opendistro_security/securityconfig/ or use securityadmin tool.").build());
+        options.addOption(Option.builder("oad").argName("output-audit-dir").hasArg().desc("Output directory to store the generated " + AUDIT_YML + " file. To be uploaded in the index, the file must be present in plugins/"+ OpenDistroSecurityPlugin.PLUGIN_NAME + "/securityconfig/ or use securityadmin tool.").build());
         options.addOption(Option.builder("oed").argName("output-elasticsearch-dir").hasArg().desc("Output directory to store the generated " + ES_AUDIT_FILTERED_YML + " file.").build());
 
         try {

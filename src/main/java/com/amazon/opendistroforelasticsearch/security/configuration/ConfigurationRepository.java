@@ -46,6 +46,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin;
 import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import com.google.common.collect.ImmutableMap;
 import org.apache.logging.log4j.LogManager;
@@ -124,7 +125,7 @@ public class ConfigurationRepository {
 
                         try {
                             String lookupDir = System.getProperty("security.default_init.dir");
-                            final String cd = lookupDir != null? (lookupDir+"/") : new Environment(settings, configPath).pluginsFile().toAbsolutePath().toString()+"/opendistro_security/securityconfig/";
+                            final String cd = lookupDir != null? (lookupDir+"/") : new Environment(settings, configPath).pluginsFile().toAbsolutePath().toString()+"/" + OpenDistroSecurityPlugin.PLUGIN_NAME + "/" + "securityconfig/";
                             File confFile = new File(cd+"config.yml");
                             if(confFile.exists()) {
                                 final ThreadContext threadContext = threadPool.getThreadContext();

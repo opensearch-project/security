@@ -31,7 +31,7 @@ ospackage {
 
     into '/usr/share/elasticsearch/plugins'
     from(zipTree(project.file(archivePath).absolutePath)) {
-        into "opendistro_security"
+        into "${packageName}"
         permissionGroup 'elasticsearch'
     }
 
@@ -53,7 +53,7 @@ ospackage {
      '''.stripIndent().replace('\n', ' ').trim()
 
     //TODO: Would be better if the install_demo_configuration.sh script is marked executable in the upstream plugin instead of running bash manually here
-    postInstall "exec /bin/bash /usr/share/elasticsearch/plugins/opendistro_security/tools/install_demo_configuration.sh -y -i -s"
+    postInstall "exec /bin/bash /usr/share/elasticsearch/plugins/${packageName}/tools/install_demo_configuration.sh -y -i -s"
 }
 
 buildRpm {
