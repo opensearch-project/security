@@ -46,3 +46,5 @@ Compatible with Elasticsearch 7.10.2
 * Fix release version ([#1029](https://github.com/opendistro-for-elasticsearch/security/pull/1029))
 * Revert back the renaming of jar file and update release notes 1.13 ([#1031](https://github.com/opendistro-for-elasticsearch/security/pull/1031))
 * Fixed async search action names and system index ([#1033](https://github.com/opendistro-for-elasticsearch/security/pull/1033))
+* Update release notes 1.13 ([#1036](https://github.com/opendistro-for-elasticsearch/security/pull/1036))
+* Update release notes 1.13 ([#1037](https://github.com/opendistro-for-elasticsearch/security/pull/1037))
