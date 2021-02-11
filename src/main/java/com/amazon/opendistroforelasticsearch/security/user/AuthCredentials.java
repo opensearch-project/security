@@ -30,6 +30,7 @@
 
 package com.amazon.opendistroforelasticsearch.security.user;
 
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
@@ -57,6 +58,10 @@ public final class AuthCredentials {
     private boolean complete;
     private final byte[] internalPasswordHash;
     private final Map<String, String> attributes = new HashMap<>();
+    // claims obtained from AuthToken
+    private Map<String, Object> claims = new HashMap<>();
+    // User roles wont be cached by BackendRegistry if set to true
+    private boolean authzComplete;
 
     /**
      * Create new credentials with a username and native credentials
@@ -66,7 +71,7 @@ public final class AuthCredentials {
      * @throws IllegalArgumentException if username or nativeCredentials are null or empty
      */
     public AuthCredentials(final String username, final Object nativeCredentials) {
-        this(username, null, nativeCredentials);
+        this(username, null, nativeCredentials, null, null);
 
         if (nativeCredentials == null) {
             throw new IllegalArgumentException("nativeCredentials must not be null or empty");
@@ -81,7 +86,7 @@ public final class AuthCredentials {
      * @throws IllegalArgumentException if username or password is null or empty
      */
     public AuthCredentials(final String username, final byte[] password) {
-        this(username, password, null);
+        this(username, password, null, null, null);
 
         if (password == null || password.length == 0) {
             throw new IllegalArgumentException("password must not be null or empty");
@@ -96,10 +101,11 @@ public final class AuthCredentials {
      * @throws IllegalArgumentException if username is null or empty
      */
     public AuthCredentials(final String username, String... backendRoles) {
-        this(username, null, null, backendRoles);
+        this(username, null, null, null, backendRoles);
     }
 
-    private AuthCredentials(final String username, byte[] password, Object nativeCredentials, String... backendRoles) {
+    private AuthCredentials(final String username, byte[] password, Object nativeCredentials, Map<String, Object> claims,
+                            String... backendRoles) {
         super();
 
         if (username == null || username.isEmpty()) {
@@ -131,6 +137,12 @@ public final class AuthCredentials {
 
         if(backendRoles != null && backendRoles.length > 0) {
             this.backendRoles.addAll(Arrays.asList(backendRoles));
+        }
+
+        if (claims != null) {
+            this.claims = Collections.unmodifiableMap(claims);
+        } else {
+            this.claims = new HashMap<>();
         }
     }
 
@@ -191,8 +203,9 @@ public final class AuthCredentials {
 
     @Override
     public String toString() {
-        return "AuthCredentials [username=" + username + ", password empty=" + (password == null) + ", nativeCredentials empty="
-                + (nativeCredentials == null) + ",backendRoles="+backendRoles+"]";
+        return "AuthCredentials [username=" + username + ", password empty=" + (password == null) + ", " +
+                "nativeCredentials empty="
+                + (nativeCredentials == null) + ",backendRoles=" + backendRoles + "]";
     }
 
     /**
@@ -228,5 +241,139 @@ public final class AuthCredentials {
 
     public Map<String, String> getAttributes() {
         return Collections.unmodifiableMap(this.attributes);
+    }
+
+    public Map<String, Object> getClaims() {
+        return claims;
+    }
+
+    public boolean isAuthzComplete() {
+        return authzComplete;
+    }
+
+    public static class Builder {
+        private static final String DIGEST_ALGORITHM = "SHA-256";
+        private String username;
+        private byte[] password;
+        private Object nativeCredentials;
+        private Set<String> backendRoles = new HashSet<>();
+        private boolean complete;
+        private byte[] internalPasswordHash;
+        private Map<String, String> attributes = new HashMap<>();
+        private Map<String, Object> claims = new HashMap<>();
+        private boolean authzComplete;
+
+        public Builder() {
+
+        }
+
+        public Builder username(String username) {
+            this.username = username;
+            return this;
+        }
+
+        public Builder password(byte[] password) {
+            if (password == null || password.length == 0) {
+                throw new IllegalArgumentException("password must not be null or empty");
+            }
+
+            this.password = Arrays.copyOf(password, password.length);
+
+            try {
+                MessageDigest digester = MessageDigest.getInstance(DIGEST_ALGORITHM);
+                internalPasswordHash = digester.digest(this.password);
+            } catch (NoSuchAlgorithmException e) {
+                throw new ElasticsearchSecurityException("Unable to digest password", e);
+            }
+
+            Arrays.fill(password, (byte) '\0');
+
+            return this;
+        }
+
+        public Builder password(String password) {
+            return this.password(password.getBytes(StandardCharsets.UTF_8));
+        }
+
+        public Builder nativeCredentials(Object nativeCredentials) {
+            if (nativeCredentials == null) {
+                throw new IllegalArgumentException("nativeCredentials must not be null or empty");
+            }
+            this.nativeCredentials = nativeCredentials;
+            return this;
+        }
+
+        public Builder backendRoles(String... backendRoles) {
+            if (backendRoles == null) {
+                return this;
+            }
+
+            this.backendRoles.addAll(Arrays.asList(backendRoles));
+            return this;
+        }
+
+        /**
+         * If the credentials are complete and no further roundtrips with the originator are due
+         * then this method <b>must</b> be called so that the authentication flow can proceed.
+         * <p/>
+         * If this credentials are already marked a complete then a call to this method does nothing.
+         */
+        public Builder complete() {
+            this.complete = true;
+            return this;
+        }
+
+        public Builder authzComplete() {
+            this.authzComplete = true;
+            return this;
+        }
+
+        public Builder oldAttribute(String name, String value) {
+            if (name != null && !name.isEmpty()) {
+                this.attributes.put(name, value);
+            }
+            return this;
+        }
+
+        public Builder oldAttributes(Map<String, String> map) {
+            this.attributes.putAll(map);
+            return this;
+        }
+
+        public Builder prefixOldAttributes(String keyPrefix, Map<String, ?> map) {
+            for (Map.Entry<String, ?> entry : map.entrySet()) {
+                this.attributes.put(keyPrefix + entry.getKey(), entry.getValue() != null ?
+                        entry.getValue().toString() : null);
+            }
+            return this;
+        }
+
+        public Builder claims(Map<String, Object> map) {
+            this.claims.putAll(map);
+            return this;
+        }
+
+
+        public String getUsername() {
+            return username;
+        }
+
+        public AuthCredentials build() {
+            int n = backendRoles.size();
+            String roles[] = new String[n];
+            System.arraycopy(backendRoles.toArray(), 0, roles, 0, n);
+
+            AuthCredentials result = new AuthCredentials(username, password, nativeCredentials, claims, roles);
+            result.complete = this.complete;
+            result.authzComplete = this.authzComplete;
+            this.password = null;
+            this.nativeCredentials = null;
+            this.internalPasswordHash = null;
+            return result;
+        }
+    }
+
+    public static Builder forUser(String username) {
+        return new Builder().username(username);
     }
 }

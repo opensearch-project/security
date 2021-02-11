@@ -35,6 +35,8 @@ import org.elasticsearch.ElasticsearchSecurityException;
 import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 
+import java.util.function.Consumer;
+
 /**
  * Open Distro Security custom authentication backends need to implement this interface.
  * <p/>
@@ -69,7 +71,7 @@ public interface AuthenticationBackend {
      * @throws ElasticsearchSecurityException in case an authentication failure 
      * (when credentials are incorrect, the user does not exist or the backend is not reachable)
      */
-    User authenticate(AuthCredentials credentials) throws ElasticsearchSecurityException;
+    void authenticate(AuthCredentials credentials, Consumer<User> onSuccess, Consumer<Exception> onFailure);
     
     /**
      * 
@@ -81,4 +83,13 @@ public interface AuthenticationBackend {
      */
     boolean exists(User user);
 
+    default UserCachingPolicy userCachingPolicy() {
+        return UserCachingPolicy.ALWAYS;
+    }
+
+    enum UserCachingPolicy {
+        ALWAYS,
+        ONLY_IF_AUTHZ_SEPARATE,
+        NEVER
+    }
 }

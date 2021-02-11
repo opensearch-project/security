@@ -51,6 +51,7 @@ import com.amazon.opendistroforelasticsearch.security.auditlog.NullAuditLog;
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditLogImpl;
 import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceIndexingOperationListenerImpl;
 import com.amazon.opendistroforelasticsearch.security.configuration.DlsFlsValveImpl;
+import com.amazon.opendistroforelasticsearch.security.authtoken.AuthTokenService;
 import com.amazon.opendistroforelasticsearch.security.configuration.OpenDistroSecurityFlsDlsIndexSearcherWrapper;
 import com.amazon.opendistroforelasticsearch.security.configuration.PrivilegesInterceptorImpl;
 import com.amazon.opendistroforelasticsearch.security.configuration.Salt;
@@ -798,7 +799,10 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         securityRestHandler = new OpenDistroSecurityRestFilter(backendRegistry, auditLog, threadPool,
                 principalExtractor, settings, configPath, compatConfig);
 
-        final DynamicConfigFactory dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih);
+
+        AuthTokenService authTokenService = new AuthTokenService();
+        final DynamicConfigFactory dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih, authTokenService);
+
         dcf.registerDCFListener(backendRegistry);
         dcf.registerDCFListener(compatConfig);
         dcf.registerDCFListener(irr);

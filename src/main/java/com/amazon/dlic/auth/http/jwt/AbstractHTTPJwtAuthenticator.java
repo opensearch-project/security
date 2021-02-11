@@ -52,10 +52,10 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
 
     private KeyProvider keyProvider;
     private JwtVerifier jwtVerifier;
-    private final String jwtHeaderName;
-    private final boolean isDefaultAuthHeader;
-    private final String jwtUrlParameter;
-    private final String subjectKey;
+    private String jwtHeaderName;
+    private boolean isDefaultAuthHeader;
+    private String jwtUrlParameter;
+    private String subjectKey;
     private final String rolesKey;
 
     public AbstractHTTPJwtAuthenticator(Settings settings, Path configPath) {
@@ -230,6 +230,13 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
         wwwAuthenticateResponse.addHeader("WWW-Authenticate", "Bearer realm=\"Open Distro Security\"");
         channel.sendResponse(wwwAuthenticateResponse);
         return true;
+    }
+
+    public void setAuthenticatorSettings(String jwtHeaderName, String subjectKey) {
+        this.jwtHeaderName = jwtHeaderName;
+        this.isDefaultAuthHeader = HttpHeaders.AUTHORIZATION.equalsIgnoreCase(this.jwtHeaderName);
+        this.jwtUrlParameter = null;
+        this.subjectKey = subjectKey;
     }
 
 }

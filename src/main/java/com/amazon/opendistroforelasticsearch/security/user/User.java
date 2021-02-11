@@ -39,6 +39,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.Arrays;
 
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -55,7 +56,7 @@ import com.google.common.collect.Lists;
 public class User implements Serializable, Writeable, CustomAttributesAware {
 
     public static final User ANONYMOUS = new User("opendistro_security_anonymous", Lists.newArrayList("opendistro_security_anonymous_backendrole"), null);
-    
+
     private static final long serialVersionUID = -5500938501822658596L;
     private final String name;
     /**
@@ -66,19 +67,27 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
     private String requestedTenant;
     private Map<String, String> attributes = new HashMap<>();
     private boolean isInjected = false;
+    // To check the user is of type AuthToken
+    private String type;
+    // Contains the id for authToken
+    private final Object specialAuthzConfig;
+    // User roles wont be cached by BackendRegistry if set to true
+    private boolean authzComplete;
 
     public User(final StreamInput in) throws IOException {
         super();
         name = in.readString();
+        type = in.readOptionalString();
         roles.addAll(in.readList(StreamInput::readString));
         requestedTenant = in.readString();
         attributes = in.readMap(StreamInput::readString, StreamInput::readString);
         openDistroSecurityRoles.addAll(in.readList(StreamInput::readString));
+        specialAuthzConfig = null;
     }
-    
+
     /**
      * Create a new authenticated user
-     * 
+     *
      * @param name The username (must not be null or empty)
      * @param roles Roles of which the user is a member off (maybe null)
      * @param customAttributes Custom attributes associated with this (maybe null)
@@ -92,20 +101,37 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
         }
 
         this.name = name;
+        this.type = null;
+        this.specialAuthzConfig = null;
+        configureUser(name, roles, customAttributes);
+    }
+
+    public User(final String name, String type, final Collection<String> roles, final Set<String> openDistroSecurityRoles, final AuthCredentials customAttributes, Object specialAuthzConfig) {
+        super();
+        if (name == null || name.isEmpty()) {
+            throw new IllegalArgumentException("name must not be null or empty");
+        }
+        this.name = name;
+        this.type = type;
+        this.openDistroSecurityRoles.addAll(openDistroSecurityRoles);
+        this.specialAuthzConfig = specialAuthzConfig;
+        configureUser(name, roles, customAttributes);
+    }
+
+    private void configureUser(final String name, final Collection<String> roles, final AuthCredentials customAttributes) {
 
         if (roles != null) {
             this.addRoles(roles);
         }
-        
-        if(customAttributes != null) {
+
+        if (customAttributes != null) {
             this.attributes.putAll(customAttributes.getAttributes());
         }
-
     }
 
     /**
      * Create a new authenticated user without roles and attributes
-     * 
+     *
      * @param name The username (must not be null or empty)
      * @throws IllegalArgumentException if name is null or empty
      */
@@ -118,7 +144,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
     }
 
     /**
-     * 
+     *
      * @return A unmodifiable set of the backend roles this user is a member of
      */
     public final Set<String> getRoles() {
@@ -127,7 +153,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
 
     /**
      * Associate this user with a backend role
-     * 
+     *
      * @param role The backend role
      */
     public final void addRole(final String role) {
@@ -136,7 +162,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
 
     /**
      * Associate this user with a set of backend roles
-     * 
+     *
      * @param roles The backend roles
      */
     public final void addRoles(final Collection<String> roles) {
@@ -147,7 +173,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
 
     /**
      * Check if this user is a member of a backend role
-     * 
+     *
      * @param role The backend role
      * @return true if this user is a member of the backend role, false otherwise
      */
@@ -157,7 +183,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
 
     /**
      * Associate this user with a set of backend roles
-     * 
+     *
      * @param roles The backend roles
      */
     public final void addAttributes(final Map<String,String> attributes) {
@@ -165,7 +191,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
             this.attributes.putAll(attributes);
         }
     }
-    
+
     public final String getRequestedTenant() {
         return requestedTenant;
     }
@@ -173,8 +199,8 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
     public final void setRequestedTenant(String requestedTenant) {
         this.requestedTenant = requestedTenant;
     }
-    
-    
+
+
     public boolean isInjected() {
         return isInjected;
     }
@@ -224,7 +250,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
 
     /**
      * Copy all backend roles from another user
-     * 
+     *
      * @param user The user from which the backend roles should be copied over
      */
     public final void copyRolesFrom(final User user) {
@@ -244,7 +270,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
 
     /**
      * Get the custom attributes associated with this user
-     * 
+     *
      * @return A modifiable map with all the current custom attributes associated with this user
      */
     public synchronized final Map<String, String> getCustomAttributesMap() {
@@ -253,14 +279,128 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
         }
         return attributes;
     }
-    
+
     public final void addOpenDistroSecurityRoles(final Collection<String> securityRoles) {
         if(securityRoles != null && this.openDistroSecurityRoles != null) {
             this.openDistroSecurityRoles.addAll(securityRoles);
         }
     }
-    
+
     public final Set<String> getOpenDistroSecurityRoles() {
         return this.openDistroSecurityRoles == null ? Collections.emptySet() : Collections.unmodifiableSet(this.openDistroSecurityRoles);
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public Object getSpecialAuthzConfig() {
+        return specialAuthzConfig;
+    }
+
+    public boolean isAuthzComplete() {
+        return authzComplete;
+    }
+
+    public Builder copy() {
+        Builder builder = new Builder();
+        builder.name = name;
+        builder.type = type;
+        builder.backendRoles.addAll(roles);
+        builder.openDistroSecurityRoles.addAll(openDistroSecurityRoles);
+        builder.requestedTenant = requestedTenant;
+        builder.attributes.putAll(attributes);
+        builder.isInjected = isInjected;
+        builder.specialAuthzConfig = specialAuthzConfig;
+        builder.authzComplete = authzComplete;
+
+        return builder;
+    }
+
+
+    public static class Builder {
+        private String name;
+        private String type;
+        private final Set<String> backendRoles = new HashSet<String>();
+        private final Set<String> openDistroSecurityRoles = new HashSet<String>();
+        private String requestedTenant;
+        private Map<String, String> attributes = new HashMap<>();
+        private boolean isInjected;
+        private Object specialAuthzConfig;
+        private boolean authzComplete;
+
+        public Builder name(String name) {
+            this.name = name;
+            return this;
+        }
+
+        public Builder type(String type) {
+            this.type = type;
+            return this;
+        }
+
+        public Builder requestedTenant(String requestedTenant) {
+            this.requestedTenant = requestedTenant;
+            return this;
+        }
+
+        public Builder backendRoles(String... backendRoles) {
+            return this.backendRoles(Arrays.asList(backendRoles));
+        }
+
+        public Builder backendRoles(Collection<String> backendRoles) {
+            if (backendRoles != null) {
+                this.backendRoles.addAll(backendRoles);
+            }
+            return this;
+        }
+
+        public Builder openDistroSecurityRoles(String... openDistroSecurityRoles) {
+            return this.openDistroSecurityRoles(Arrays.asList(openDistroSecurityRoles));
+        }
+
+        public Builder openDistroSecurityRoles(Collection<String> openDistroSecurityRoles) {
+            if (openDistroSecurityRoles != null) {
+                this.openDistroSecurityRoles.addAll(openDistroSecurityRoles);
+            }
+            return this;
+        }
+
+        @Deprecated
+        public Builder oldAttributes(Map<String, String> attributes) {
+            this.attributes.putAll(attributes);
+            return this;
+        }
+
+        @Deprecated
+        public Builder oldAttribute(String key, String value) {
+            this.attributes.put(key, value);
+            return this;
+        }
+
+        public Builder injected() {
+            this.isInjected = true;
+            return this;
+        }
+
+        public Builder specialAuthzConfig(Object specialAuthzConfig) {
+            this.specialAuthzConfig = specialAuthzConfig;
+            return this;
+        }
+
+        public Builder authzComplete() {
+            this.authzComplete = true;
+            return this;
+        }
+
+        public User build() {
+            User user =  new User(name, type, backendRoles, openDistroSecurityRoles, null, specialAuthzConfig);
+            user.authzComplete = this.authzComplete;
+            return user;
+        }
+    }
+
+    public static Builder forUser(String username) {
+        return new Builder().name(username);
     }
 }

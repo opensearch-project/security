@@ -39,17 +39,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+
 import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
 import org.elasticsearch.ElasticsearchSecurityException;
 
-import com.amazon.opendistroforelasticsearch.security.auth.AuthenticationBackend;
-import com.amazon.opendistroforelasticsearch.security.auth.AuthorizationBackend;
+import com.amazon.opendistroforelasticsearch.security.auth.SyncAuthenticationBackend;
+import com.amazon.opendistroforelasticsearch.security.auth.SyncAuthorizationBackend;
 import com.amazon.opendistroforelasticsearch.security.securityconf.InternalUsersModel;
 import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 import org.greenrobot.eventbus.Subscribe;
 
-public class InternalAuthenticationBackend implements AuthenticationBackend, AuthorizationBackend {
+public class InternalAuthenticationBackend implements SyncAuthenticationBackend, SyncAuthorizationBackend {
 
     private InternalUsersModel internalUsersModel;
 

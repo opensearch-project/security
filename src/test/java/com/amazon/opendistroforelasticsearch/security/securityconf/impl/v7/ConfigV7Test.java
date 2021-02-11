@@ -1,6 +1,12 @@
 package com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7;
 
+import com.amazon.opendistroforelasticsearch.security.dlic.rest.api.AbstractRestApiUnitTest;
+import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
+import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper;
 import com.fasterxml.jackson.databind.JsonNode;
+import org.apache.http.Header;
+import org.apache.http.HttpStatus;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -11,7 +17,7 @@ import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
 import com.google.common.collect.ImmutableList;
 
 @RunWith(Parameterized.class)
-public class ConfigV7Test {
+public class ConfigV7Test  extends AbstractRestApiUnitTest {
     private final boolean omitDefaults;
 
     @Parameterized.Parameters
@@ -96,5 +102,30 @@ public class ConfigV7Test {
         json = DefaultObjectMapper.writeValueAsString(kibana, omitDefaults);
         assertEquals(kibana, DefaultObjectMapper.readTree(json));
         assertEquals(kibana, DefaultObjectMapper.readValue(json, ConfigV7.Kibana.class));
+    }
+
+    @Test
+    public void testConfigAuthTokenProvider() throws Exception {
+        Settings settings = Settings.builder().put(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, true).build();
+        setup(settings);
+
+        rh.sendAdminCertificate = true;
+
+        RestHelper.HttpResponse response = rh.executeGetRequest("/_opendistro/_security/api/securityconfig");
+        Assert.assertTrue(!response.getBody().contains("auth_token_provider"));
+
+        String authTokenProviderPayload = "{\"max_tokens_per_user\" : 100," +
+                "                    \"max_validity\" : \"1y\"," +
+                "                    \"jwt_signing_key_hs512\" : \"abc\"," +
+                "                    \"enabled\" : true}";
+
+        response = rh.executePatchRequest("/_opendistro/_security/api/securityconfig",
+                "[{\"op\": \"add\",\"path\": \"/config/dynamic/auth_token_provider\"," +
+                        "\"value\": " + authTokenProviderPayload + "}]", new Header[0]);
+
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+
+        response = rh.executeGetRequest("/_opendistro/_security/api/securityconfig");
+        Assert.assertTrue(response.getBody().contains("auth_token_provider"));
     }
 }

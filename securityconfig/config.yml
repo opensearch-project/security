@@ -81,7 +81,24 @@ config:
         ###### more information about XFF https://en.wikipedia.org/wiki/X-Forwarded-For
         ###### and here https://tools.ietf.org/html/rfc7239
         ###### and https://tomcat.apache.org/tomcat-8.0-doc/config/valve.html#Remote_IP_Valve
+    #auth_token_provider:
+    #  enabled: true
+    #  jwt_signing_key_hs512: "test_abc"
+    #  max_validity: "1y"
+    #  max_tokens_per_user: 100
     authc:
+      opendistro_issued_jwt_auth_domain:
+        description: "Authenticate via Json Web Tokens issued by Opendistro Security"
+        http_enabled: false
+        transport_enabled: false
+        # This auth domain is only available for HTTP
+        order: 1
+        http_authenticator:
+          type: auth_token
+          challenge: false
+          # This auth domain automatically pulls configuration from the auth_token_provider config above
+        authentication_backend:
+          type: auth_token
       kerberos_auth_domain:
         http_enabled: false
         transport_enabled: false

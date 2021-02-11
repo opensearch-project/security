@@ -3,6 +3,9 @@ package com.amazon.opendistroforelasticsearch.security.user;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class AuthCredentialsTests {
   @Test
   public void testEquality() {
@@ -29,4 +32,24 @@ public class AuthCredentialsTests {
         new AuthCredentials("george", "secret".getBytes()),
         new AuthCredentials("george", "admin"));
   }
+
+    @Test
+    public void testAuthCredentialsBuilder() {
+        AuthCredentials.Builder builder = AuthCredentials.forUser("test_user");
+        builder.backendRoles("role1", "role2");
+
+
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("sub", "test_user");
+        claims.put("aud", "opendistro_security_authtoken");
+        claims.put("jti", "some_random_identifier");
+
+        builder.claims(claims);
+
+        AuthCredentials authCredentials = builder.authzComplete().build();
+
+        Assert.assertEquals(authCredentials.getBackendRoles().size(), 2);
+        Assert.assertEquals(authCredentials.getUsername(), "test_user");
+        Assert.assertEquals(authCredentials.getClaims(), claims);
+    }
 }

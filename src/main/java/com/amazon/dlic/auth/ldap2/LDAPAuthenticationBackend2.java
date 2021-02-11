@@ -43,13 +43,13 @@ import com.amazon.dlic.auth.ldap.LdapUser;
 import com.amazon.dlic.auth.ldap.util.ConfigConstants;
 import com.amazon.dlic.auth.ldap.util.Utils;
 import com.amazon.dlic.util.SettingsBasedSSLConfigurator.SSLConfigException;
-import com.amazon.opendistroforelasticsearch.security.auth.AuthenticationBackend;
+import com.amazon.opendistroforelasticsearch.security.auth.SyncAuthenticationBackend;
 import com.amazon.opendistroforelasticsearch.security.auth.Destroyable;
 import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 
-public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destroyable {
+public class LDAPAuthenticationBackend2 implements SyncAuthenticationBackend, Destroyable {
 
     protected static final Logger log = LogManager.getLogger(LDAPAuthenticationBackend2.class);
 

@@ -40,12 +40,14 @@ import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
 
+import com.amazon.opendistroforelasticsearch.security.authtoken.authenticator.AuthTokenHttpJwtAuthenticator;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchSecurityException;
@@ -296,7 +298,7 @@ public class BackendRegistry {
             } else {
                  //auth credentials submitted
                 //impersonation not possible, if requested it will be ignored
-                authenticatedUser = authcz(authenticatedUserCacheTransport, transportRoleCache, creds, authDomain.getBackend(), transportAuthorizers);
+                authenticatedUser = authcz(authenticatedUserCacheTransport, transportRoleCache, creds, (SyncAuthenticationBackend) authDomain.getBackend(), transportAuthorizers);
             }
 
             if (authenticatedUser == null) {
@@ -467,7 +469,11 @@ public class BackendRegistry {
             }
 
             //http completed       
-            authenticatedUser = authcz(userCache, restRoleCache, ac, authDomain.getBackend(), restAuthorizers);
+            if (httpAuthenticator instanceof AuthTokenHttpJwtAuthenticator) {
+                authenticatedUser = authcz(restRoleCache, ac, authDomain.getBackend(), restAuthorizers);
+            } else {
+                authenticatedUser = authcz(userCache, restRoleCache, ac, (SyncAuthenticationBackend) authDomain.getBackend(), restAuthorizers);
+            }
 
             if(authenticatedUser == null) {
                 if(log.isDebugEnabled()) {
@@ -648,7 +654,7 @@ public class BackendRegistry {
      * @return null if user cannot b authenticated
      */
     private User authcz(final Cache<AuthCredentials, User> cache, Cache<User, Set<String>> roleCache, final AuthCredentials ac,
-                        final AuthenticationBackend authBackend, final Set<AuthorizationBackend> authorizers) {
+                        final SyncAuthenticationBackend authBackend, final Set<AuthorizationBackend> authorizers) {
         if(ac == null) {
             return null;
         }
@@ -681,6 +687,44 @@ public class BackendRegistry {
         } finally {
             ac.clearSecrets();
         }
+    }
+
+    private User authcz(Cache<User, Set<String>> roleCache, final AuthCredentials ac,
+                        final AuthenticationBackend authBackend, final Set<AuthorizationBackend> authorizers) {
+
+        AuthenticationBackend.UserCachingPolicy cachingPolicy = authBackend.userCachingPolicy();
+
+        CompletableFuture<User> completableFuture = new CompletableFuture<>();
+        authBackend.authenticate(ac, completableFuture::complete, completableFuture::completeExceptionally);
+
+        User authenticatedUser;
+
+        if (cachingPolicy == AuthenticationBackend.UserCachingPolicy.NEVER) {
+            try {
+                authenticatedUser = completableFuture.get();
+
+                if (!ac.isAuthzComplete() && !authenticatedUser.isAuthzComplete()) {
+                    authz(authenticatedUser, roleCache, authorizers);
+                }
+                return authenticatedUser;
+
+            } catch (Exception e ) {
+                e.printStackTrace();
+            }
+
+        } else if (cachingPolicy == AuthenticationBackend.UserCachingPolicy.ONLY_IF_AUTHZ_SEPARATE && authorizers.isEmpty()) {
+            // noop backend
+            // that means authc and authz was completely done via HTTP (like JWT or PKI)
+
+            try{
+                return completableFuture.get();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+
+        }
+
+        return null;
     }
 
     private User impersonate(final TransportRequest tr, final User origPKIuser) throws ElasticsearchSecurityException {

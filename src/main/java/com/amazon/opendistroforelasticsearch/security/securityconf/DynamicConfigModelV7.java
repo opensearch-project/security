@@ -43,6 +43,9 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import com.amazon.opendistroforelasticsearch.security.authtoken.AuthTokenService;
+import com.amazon.opendistroforelasticsearch.security.authtoken.authenticator.AuthTokenAuthenticationBackend;
+import com.amazon.opendistroforelasticsearch.security.authtoken.authenticator.AuthTokenHttpJwtAuthenticator;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentType;
 
@@ -76,18 +79,20 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
     private Set<AuthorizationBackend> transportAuthorizers;
     private List<Destroyable> destroyableComponents;
     private final InternalAuthenticationBackend iab;
+    private final AuthTokenService authTokenService;
 
     private List<AuthFailureListener> ipAuthFailureListeners;
     private Multimap<String, AuthFailureListener> authBackendFailureListeners;
     private List<ClientBlockRegistry<InetAddress>> ipClientBlockRegistries;
     private Multimap<String, ClientBlockRegistry<String>> authBackendClientBlockRegistries;
     
-    public DynamicConfigModelV7(ConfigV7 config, Settings esSettings, Path configPath, InternalAuthenticationBackend iab) {
+    public DynamicConfigModelV7(ConfigV7 config, Settings esSettings, Path configPath, InternalAuthenticationBackend iab, AuthTokenService authTokenService) {
         super();
         this.config = config;
         this.esSettings =  esSettings;
         this.configPath = configPath;
         this.iab = iab;
+        this.authTokenService = authTokenService;
         buildAAA();
     }
     @Override
@@ -282,6 +287,10 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
                                 , configPath);
                     }
 
+                    if (authenticationBackend instanceof AuthTokenAuthenticationBackend) {
+                        ((AuthTokenAuthenticationBackend) authenticationBackend).setAuthTokenService(this.authTokenService);
+                    }
+
                     String httpAuthenticatorType = ad.getValue().http_authenticator.type; //no default
                     HTTPAuthenticator httpAuthenticator = httpAuthenticatorType==null?null:  (HTTPAuthenticator) newInstance(httpAuthenticatorType,"h",
                             Settings.builder().put(esSettings)
@@ -289,6 +298,10 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
                             .put(Settings.builder().loadFromSource(ad.getValue().http_authenticator.configAsJson(), XContentType.JSON).build()).build()
 
                             , configPath);
+
+                    if ( httpAuthenticator instanceof AuthTokenHttpJwtAuthenticator) {
+                        ((AuthTokenHttpJwtAuthenticator) httpAuthenticator).setAuthTokenService(this.authTokenService);
+                    }
 
                     final AuthDomain _ad = new AuthDomain(authenticationBackend, httpAuthenticator,
                             ad.getValue().http_authenticator.challenge, ad.getValue().order);
