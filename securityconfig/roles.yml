@@ -116,7 +116,7 @@ reports_full_access:
 asynchronous_search_full_access:
   reserved: true
   cluster_permissions:
-    - 'cluster:admin/opendistro/asynchronous-search/*'
+    - 'cluster:admin/opendistro/asynchronous_search/*'
   index_permissions:
     - index_patterns:
         - '*'
@@ -127,4 +127,4 @@ asynchronous_search_full_access:
 asynchronous_search_read_access:
   reserved: true
   cluster_permissions:
-    - 'cluster:admin/opendistro/asynchronous-search/get'
+    - 'cluster:admin/opendistro/asynchronous_search/get'
