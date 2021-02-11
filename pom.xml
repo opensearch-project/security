@@ -32,7 +32,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.amazon.opendistroforelasticsearch</groupId>
-    <artifactId>opendistro-security</artifactId>
+    <artifactId>opendistro_security</artifactId>
     <packaging>jar</packaging>
     <version>1.13.0.0</version>
     <name>Open Distro Security for Elasticsearch</name>
@@ -845,6 +845,7 @@
                                     <descriptors>
                                         <descriptor>${elasticsearch.assembly.descriptor}</descriptor>
                                     </descriptors>
+                                    <finalName>opendistro-security-${version}</finalName>
                                 </configuration>
                                 <goals>
                                     <goal>single</goal>
@@ -860,6 +861,7 @@
                                     <descriptors>
                                         <descriptor>${securitystandalone.descriptor}</descriptor>
                                     </descriptors>
+                                    <finalName>opendistro-security-${version}</finalName>
                                 </configuration>
                                 <goals>
                                     <goal>single</goal>

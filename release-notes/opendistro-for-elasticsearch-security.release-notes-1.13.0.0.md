@@ -42,3 +42,6 @@ Compatible with Elasticsearch 7.10.2
 * Updating Github actions and files to use main branch. ([#1023](https://github.com/opendistro-for-elasticsearch/security/pull/1023))
 * Add the Linux Foundation's Developer Certificate of Origin in pull request template ([#1022](https://github.com/opendistro-for-elasticsearch/security/pull/1022))
 * Change the build configuration for deb package and rename the folder of artifacts. ([#1027](https://github.com/opendistro-for-elasticsearch/security/pull/1027))
+* Update release notes 1.13 ([#1028](https://github.com/opendistro-for-elasticsearch/security/pull/1028))
+* Fix release version ([#1029](https://github.com/opendistro-for-elasticsearch/security/pull/1029))
+* Revert back the renaming of jar file and update release notes 1.13 ([#1031](https://github.com/opendistro-for-elasticsearch/security/pull/1031))
