@@ -367,3 +367,6 @@ twitter:
 env_test:
   users:
     - env.replace@example.comp.com
+bulk_test_user_role:
+  users:
+    - "bulk_test_user"
