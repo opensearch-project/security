@@ -1074,10 +1074,14 @@ public class ConfigModelV7 extends ConfigModel {
     private class RoleMappingHolder {
 
         private ListMultimap<String, String> users;
-        private ListMultimap<Set<String>, String> abars;
+        private ListMultimap<List<WildcardMatcher>, String> abars;
         private ListMultimap<String, String> bars;
         private ListMultimap<String, String> hosts;
         private final String hostResolverMode;
+
+        private List<WildcardMatcher> userMatchers;
+        private List<WildcardMatcher> barMatchers;
+        private List<WildcardMatcher> hostMatchers;
 
         private RoleMappingHolder(final SecurityDynamicConfiguration<RoleMappingsV7> rolemappings, final String hostResolverMode) {
 
@@ -1085,36 +1089,37 @@ public class ConfigModelV7 extends ConfigModel {
             
             if (roles != null) {
 
-                final ListMultimap<String, String> users_ = ArrayListMultimap.create();
-                final ListMultimap<Set<String>, String> abars_ = ArrayListMultimap.create();
-                final ListMultimap<String, String> bars_ = ArrayListMultimap.create();
-                final ListMultimap<String, String> hosts_ = ArrayListMultimap.create();
+                users = ArrayListMultimap.create();
+                abars = ArrayListMultimap.create();
+                bars = ArrayListMultimap.create();
+                hosts = ArrayListMultimap.create();
 
                 for (final Entry<String, RoleMappingsV7> roleMap : rolemappings.getCEntries().entrySet()) {
+                    final String roleMapKey = roleMap.getKey();
+                    final RoleMappingsV7 roleMapValue = roleMap.getValue();
 
-                    for (String u : roleMap.getValue().getUsers()) {
-                        users_.put(u, roleMap.getKey());
+                    for (String u : roleMapValue.getUsers()) {
+                        users.put(u, roleMapKey);
                     }
 
-                    final Set<String> abar = new HashSet<String>(roleMap.getValue().getAnd_backend_roles());
+                    final Set<String> abar = new HashSet<>(roleMapValue.getAnd_backend_roles());
 
                     if (!abar.isEmpty()) {
-                        abars_.put(abar, roleMap.getKey());
+                        abars.put(WildcardMatcher.matchers(abar), roleMapKey);
                     }
 
-                    for (String bar : roleMap.getValue().getBackend_roles()) {
-                        bars_.put(bar, roleMap.getKey());
+                    for (String bar : roleMapValue.getBackend_roles()) {
+                        bars.put(bar, roleMapKey);
                     }
 
-                    for (String host : roleMap.getValue().getHosts()) {
-                        hosts_.put(host, roleMap.getKey());
+                    for (String host : roleMapValue.getHosts()) {
+                        hosts.put(host, roleMapKey);
                     }
                 }
 
-                users = users_;
-                abars = abars_;
-                bars = bars_;
-                hosts = hosts_;
+                userMatchers = WildcardMatcher.matchers(users.keySet());
+                barMatchers = WildcardMatcher.matchers(bars.keySet());
+                hostMatchers = WildcardMatcher.matchers(hosts.keySet());
             }
         }
 
@@ -1124,7 +1129,7 @@ public class ConfigModelV7 extends ConfigModel {
                 return Collections.emptySet();
             }
 
-            final Set<String> securityRoles = new TreeSet<String>(user.getOpenDistroSecurityRoles());
+            final Set<String> securityRoles = new HashSet<>(user.getOpenDistroSecurityRoles());
 
             if (rolesMappingResolution == ConfigConstants.RolesMappingResolution.BOTH
                     || rolesMappingResolution == ConfigConstants.RolesMappingResolution.BACKENDROLES_ONLY) {
@@ -1137,15 +1142,15 @@ public class ConfigModelV7 extends ConfigModel {
             if (((rolesMappingResolution == ConfigConstants.RolesMappingResolution.BOTH
                     || rolesMappingResolution == ConfigConstants.RolesMappingResolution.MAPPING_ONLY))) {
 
-                for (String p : WildcardMatcher.getAllMatchingPatterns(WildcardMatcher.matchers(users.keySet()), user.getName())) {
+                for (String p : WildcardMatcher.getAllMatchingPatterns(userMatchers, user.getName())) {
                     securityRoles.addAll(users.get(p));
                 }
-                for (String p : WildcardMatcher.getAllMatchingPatterns(WildcardMatcher.matchers(bars.keySet()), user.getRoles())) {
+                for (String p : WildcardMatcher.getAllMatchingPatterns(barMatchers, user.getRoles())) {
                     securityRoles.addAll(bars.get(p));
                 }
 
-                for (Set<String> patterns : abars.keySet()) {
-                    if (patterns.stream().allMatch(p -> WildcardMatcher.from(p).matchAny(user.getRoles()))) {
+                for (List<WildcardMatcher> patterns : abars.keySet()) {
+                    if (patterns.stream().allMatch(p -> p.matchAny(user.getRoles()))) {
                         securityRoles.addAll(abars.get(patterns));
                     }
                 }
@@ -1154,7 +1159,6 @@ public class ConfigModelV7 extends ConfigModel {
                     //IPV4 or IPv6 (compressed and without scope identifiers)
                     final String ipAddress = caller.getAddress();
 
-                    List<WildcardMatcher> hostMatchers = WildcardMatcher.matchers(hosts.keySet());
                     for (String p : WildcardMatcher.getAllMatchingPatterns(hostMatchers, ipAddress)) {
                         securityRoles.addAll(hosts.get(p));
                     }
