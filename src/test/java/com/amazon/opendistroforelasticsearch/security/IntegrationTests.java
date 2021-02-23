@@ -887,4 +887,13 @@ public class IntegrationTests extends SingleClusterTest {
         Assert.assertEquals(201, jsonNode.get("items").get(2).get("index").get("status").intValue());
         Assert.assertEquals(403, jsonNode.get("items").get(3).get("delete").get("status").intValue());
     }
+
+    @Test
+    public void testMonitorHealth() throws Exception {
+
+        setup(Settings.EMPTY, new DynamicSecurityConfig(), Settings.EMPTY);
+
+        RestHelper rh = nonSslRestHelper();
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_cat/health",encodeBasicHeader("picard", "picard")).getStatusCode());
+    }
 }

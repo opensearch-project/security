@@ -294,7 +294,8 @@ public class IndexResolverReplacer {
             final IndicesOptions indicesOptions = indicesOptionsFrom(localRequest);
             final boolean enableCrossClusterResolution = localRequest instanceof FieldCapabilitiesRequest || localRequest instanceof SearchRequest;
             // skip the whole thing if we have seen this exact resolveIndexPatterns request
-            if (alreadyResolved.add(new MultiKey(indicesOptions, enableCrossClusterResolution, new MultiKey(original, false)))) {
+            if (alreadyResolved.add(new MultiKey(indicesOptions, enableCrossClusterResolution,
+                    (original != null) ? new MultiKey(original, false) : null))) {
                 resolveIndexPatterns(localRequest.getClass().getSimpleName(), indicesOptions, enableCrossClusterResolution, original);
             }
             return IndicesProvider.NOOP;
