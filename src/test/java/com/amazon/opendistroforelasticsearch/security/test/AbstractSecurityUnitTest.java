@@ -219,7 +219,7 @@ public abstract class AbstractSecurityUnitTest {
         }
     }
 
-    protected Settings.Builder minimumSecuritySettingsBuilder(int node, boolean sslOnly, boolean hasCustomTransportSettings) {
+    protected Settings.Builder minimumSecuritySettingsBuilder(int node, boolean sslOnly, Settings other) {
 
         final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
 
@@ -228,7 +228,7 @@ public abstract class AbstractSecurityUnitTest {
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL);
 
         // If custom transport settings are not defined use defaults
-        if (!hasCustomTransportSettings) {
+        if (!hasCustomTransportSettings(other)) {
             builder.put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
                     FileHelper.getAbsoluteFilePathFromClassPath(prefix+"node-0-keystore.jks"))
@@ -241,6 +241,8 @@ public abstract class AbstractSecurityUnitTest {
             builder.put(ConfigConstants.OPENDISTRO_SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, false);
         }
 
+        builder.put(other);
+
         return builder;
     }
 
@@ -248,17 +250,17 @@ public abstract class AbstractSecurityUnitTest {
         return new NodeSettingsSupplier() {
             @Override
             public Settings get(int i) {
-                return minimumSecuritySettingsBuilder(i, false, hasCustomTransportSettings(other)).put(other).build();
+                return minimumSecuritySettingsBuilder(i, false, other).build();
             }
         };
     }
 
-    protected NodeSettingsSupplier minimumSecuritySettingsSslOnly(Settings other, boolean hasCustomTransportSettings) {
+    protected NodeSettingsSupplier minimumSecuritySettingsSslOnly(Settings other) {
 
         return new NodeSettingsSupplier() {
             @Override
             public Settings get(int i) {
-                return minimumSecuritySettingsBuilder(i, true, hasCustomTransportSettings).put(other).build();
+                return minimumSecuritySettingsBuilder(i, true, other).build();
             }
         };
     }
@@ -271,7 +273,7 @@ public abstract class AbstractSecurityUnitTest {
                 if (i == nonSSLNodeNum) {
                     return Settings.builder().build();
                 }
-                return minimumSecuritySettingsBuilder(i, true, false).put(other).build();
+                return minimumSecuritySettingsBuilder(i, true, other).build();
             }
         };
     }
@@ -307,7 +309,8 @@ public abstract class AbstractSecurityUnitTest {
      * @return boolean flag indicating if transport settings are defined
      */
     protected boolean hasCustomTransportSettings(Settings customSettings) {
-        // Note: current only doing this for PEMCERT settings
-        return customSettings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH) != null;
+        // If Transport key extended usage is enabled this is true
+        return Boolean.parseBoolean(customSettings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_EXTENDED_KEY_USAGE_ENABLED))  ||
+                customSettings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH) != null;
     }
 }
