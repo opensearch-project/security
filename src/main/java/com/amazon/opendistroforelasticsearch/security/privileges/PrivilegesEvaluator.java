@@ -53,6 +53,7 @@ import org.elasticsearch.action.admin.indices.delete.DeleteIndexAction;
 import org.elasticsearch.action.admin.indices.mapping.get.GetFieldMappingsRequest;
 import org.elasticsearch.action.bulk.BulkAction;
 import org.elasticsearch.action.bulk.BulkItemRequest;
+import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkShardRequest;
 import org.elasticsearch.action.delete.DeleteAction;
 import org.elasticsearch.action.get.MultiGetAction;
@@ -68,6 +69,7 @@ import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
@@ -183,6 +185,22 @@ public class PrivilegesEvaluator {
         if (log.isDebugEnabled()) {
             log.debug("### evaluate permissions for {} on {}", user, clusterService.localNode().getName());
             log.debug("action: "+action0+" ("+request.getClass().getSimpleName()+")");
+        }
+
+        if (request instanceof BulkRequest && (Strings.isNullOrEmpty(user.getRequestedTenant()))) {
+            // Shortcut for bulk actions. The details are checked on the lower level of the BulkShardRequests (Action indices:data/write/bulk[s]).
+            // This shortcut is only possible if the default tenant is selected, as we might need to rewrite the request for non-default tenants.
+            // No further access check for the default tenant is necessary, as access will be also checked on the TransportShardBulkAction level.
+
+            if (!securityRoles.impliesClusterPermissionPermission(action0)) {
+                presponse.missingPrivileges.add(action0);
+                presponse.allowed = false;
+                log.info("No cluster-level perm match for {} [Action [{}]] [RolesChecked {}]. No permissions for {}", user, action0,
+                        securityRoles.getRoleNames(), presponse.missingPrivileges);
+            } else {
+                presponse.allowed = true;
+            }
+            return presponse;
         }
 
         final Resolved requestedResolved = irr.resolveRequest(request);
