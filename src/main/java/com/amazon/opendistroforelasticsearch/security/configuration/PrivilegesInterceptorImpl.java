@@ -15,9 +15,7 @@
 
 package com.amazon.opendistroforelasticsearch.security.configuration;
 
-import java.util.Arrays;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
@@ -28,6 +26,7 @@ import org.elasticsearch.action.DocWriteRequest;
 import org.elasticsearch.action.IndicesRequest.Replaceable;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.mapping.get.GetFieldMappingsIndexRequest;
 import org.elasticsearch.action.admin.indices.mapping.get.GetFieldMappingsRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
@@ -61,7 +60,6 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
 
     private static final String USER_TENANT = "__user__";
     private static final String EMPTY_STRING = "";
-    private static final String KIBANA_INDEX_SUFFIX = "_1";
     private static final Map<String, Object> KIBANA_INDEX_SETTINGS = ImmutableMap.of(
             IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1,
             IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, "0-1"
@@ -186,26 +184,43 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         return CONTINUE_EVALUATION_REPLACE_RESULT;
     }
 
-    private CreateIndexRequest newCreateIndexRequestIfAbsent(final String name) {
-        final Map<String, IndexAbstraction> indicesLookup = clusterService.state().getMetadata().getIndicesLookup();
-        final String concreteName = name.concat(KIBANA_INDEX_SUFFIX);
-        if (Arrays.stream(new String[]{name, concreteName})
-                .map(s -> indicesLookup.get(s))
-                .filter(Objects::nonNull)
-                .peek(ia -> log.debug("{} {} already exists", ia.getType(), ia.getName()))
-                .findFirst()
-                .isPresent()) {
-            return null;
-        } else {
-            return new CreateIndexRequest(concreteName)
-                    .alias(new Alias(name))
-                    .settings(KIBANA_INDEX_SETTINGS);
+    private String getConcreteIndexName(String name, Map<String, IndexAbstraction> indicesLookup) {
+        for (int i = 1; i < Integer.MAX_VALUE; i++) {
+            String concreteName = name.concat("_" + i);
+            if (indicesLookup.get(concreteName) == null) {
+                return concreteName;
+            }
         }
+        log.warn("Can not find a suitable name for kibana multi-tenant index {}", name);
+        return null;
+
     }
 
-    private CreateIndexRequest replaceIndex(final ActionRequest request, final String oldIndexName, final String newIndexName, final String action) {
+    private CreateIndexRequestBuilder newCreateIndexRequestBuilderIfAbsent(final String name) {
+        final Map<String, IndexAbstraction> indicesLookup = clusterService.state().getMetadata().getIndicesLookup();
+        IndexAbstraction indexAbstraction = indicesLookup.get(name);
+        if (indexAbstraction != null) {
+            if (indexAbstraction.getType() == IndexAbstraction.Type.ALIAS) {
+                log.debug("Alias {} already exists", name);
+            } else {
+                log.warn("Can not create kibana multi-tenant alias {} as an index with the same name already exists", name);
+            }
+            return null;
+        }
+        String concreteName = getConcreteIndexName(name, indicesLookup);
+        if (concreteName != null) {
+            return client.admin().indices()
+                .prepareCreate(concreteName)
+                .addAlias(new Alias(name))
+                .setSettings(KIBANA_INDEX_SETTINGS)
+                .setCause("auto(multi-tenant)");
+        }
+        return null;
+    }
+
+    private CreateIndexRequestBuilder replaceIndex(final ActionRequest request, final String oldIndexName, final String newIndexName, final String action) {
         boolean kibOk = false;
-        CreateIndexRequest createIndexRequest = null;
+        CreateIndexRequestBuilder createIndexRequestBuilder = null;
 
         if (log.isDebugEnabled()) {
             log.debug("{} index will be replaced with {} in this {} request", oldIndexName, newIndexName, request.getClass().getName());
@@ -219,27 +234,35 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
 
         // CreateIndexRequest
         if (request instanceof CreateIndexRequest) {
-            // use new name for alias and suffixed index name
-            ((CreateIndexRequest) request).index(newIndexName.concat(KIBANA_INDEX_SUFFIX)).alias(new Alias(newIndexName));
+            String concreteName = getConcreteIndexName(newIndexName, clusterService.state().getMetadata().getIndicesLookup());
+            if (concreteName != null) {
+                // use new name for alias and suffixed index name
+                ((CreateIndexRequest) request).index(concreteName).alias(new Alias(newIndexName));
+            } else {
+                ((CreateIndexRequest) request).index(newIndexName);
+            }
             kibOk = true;
         } else if (request instanceof BulkRequest) {
-
-            for (DocWriteRequest<?> ar : ((BulkRequest) request).requests()) {
+            BulkRequest bulkRequest = (BulkRequest) request;
+            for (DocWriteRequest<?> ar : bulkRequest.requests()) {
 
                 if (ar instanceof DeleteRequest) {
                     ((DeleteRequest) ar).index(newIndexName);
                 }
 
                 if (ar instanceof IndexRequest) {
-                    if (createIndexRequest == null) {
-                        createIndexRequest = newCreateIndexRequestIfAbsent(newIndexName);
-                    }
                     ((IndexRequest) ar).index(newIndexName);
                 }
 
                 if (ar instanceof UpdateRequest) {
                     ((UpdateRequest) ar).index(newIndexName);
                 }
+            }
+
+            // Please see comment for DeleteRequest below. Multi-tenant index may be auto created for any type of
+            // DocWriteRequest
+            if (!bulkRequest.requests().isEmpty()) {
+                createIndexRequestBuilder = newCreateIndexRequestBuilderIfAbsent(newIndexName);
             }
 
             kibOk = true;
@@ -269,13 +292,19 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
             kibOk = true;
         } else if (request instanceof UpdateRequest) {
             ((UpdateRequest) request).index(newIndexName);
+            createIndexRequestBuilder = newCreateIndexRequestBuilderIfAbsent(newIndexName);
             kibOk = true;
         } else if (request instanceof IndexRequest) {
-            createIndexRequest = newCreateIndexRequestIfAbsent(newIndexName);
+            createIndexRequestBuilder = newCreateIndexRequestBuilderIfAbsent(newIndexName);
             ((IndexRequest) request).index(newIndexName);
             kibOk = true;
         } else if (request instanceof DeleteRequest) {
             ((DeleteRequest) request).index(newIndexName);
+            // Usually only IndexRequest and UpdateRequest auto create index if it does not exist,
+            // but custom DeleteRequest can also auto create index (see TransportBulkAction.doInternalExecute()).
+            // It should be OK to create the index in a rare cases where it would not be created otherwise to minimize
+            // the risk of auto create that will create the tenant index without the alias.
+            createIndexRequestBuilder = newCreateIndexRequestBuilderIfAbsent(newIndexName);
             kibOk = true;
         } else if (request instanceof SingleShardRequest) {
             ((SingleShardRequest<?>) request).index(newIndexName);
@@ -299,7 +328,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         if (!kibOk) {
             log.warn("Dont know what to do (2) with {}", request.getClass());
         }
-        return createIndexRequest;
+        return createIndexRequestBuilder;
     }
 
     private String toUserIndexName(final String originalKibanaIndex, final String tenant) {
