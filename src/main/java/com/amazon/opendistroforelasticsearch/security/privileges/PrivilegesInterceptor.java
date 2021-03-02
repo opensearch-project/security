@@ -33,7 +33,7 @@ package com.amazon.opendistroforelasticsearch.security.privileges;
 import java.util.Map;
 
 import org.elasticsearch.action.ActionRequest;
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -49,20 +49,20 @@ public class PrivilegesInterceptor {
     public static class ReplaceResult {
         final boolean continueEvaluation;
         final boolean accessDenied;
-        final CreateIndexRequest createIndexRequest;
+        final CreateIndexRequestBuilder createIndexRequestBuilder;
 
-        private ReplaceResult(boolean continueEvaluation, boolean accessDenied, CreateIndexRequest createIndexRequest) {
+        private ReplaceResult(boolean continueEvaluation, boolean accessDenied, CreateIndexRequestBuilder createIndexRequestBuilder) {
             this.continueEvaluation = continueEvaluation;
             this.accessDenied = accessDenied;
-            this.createIndexRequest = createIndexRequest;
+            this.createIndexRequestBuilder = createIndexRequestBuilder;
         }
     }
 
     public static final ReplaceResult CONTINUE_EVALUATION_REPLACE_RESULT = new ReplaceResult(true, false, null);
     public static final ReplaceResult ACCESS_DENIED_REPLACE_RESULT = new ReplaceResult(false, true, null);
     public static final ReplaceResult ACCESS_GRANTED_REPLACE_RESULT = new ReplaceResult(false, false, null);
-    protected static ReplaceResult newAccessGrantedReplaceResult(CreateIndexRequest createIndexRequest) {
-        return new ReplaceResult(false, false, createIndexRequest);
+    protected static ReplaceResult newAccessGrantedReplaceResult(CreateIndexRequestBuilder createIndexRequestBuilder) {
+        return new ReplaceResult(false, false, createIndexRequestBuilder);
     }
 
     protected final IndexNameExpressionResolver resolver;
