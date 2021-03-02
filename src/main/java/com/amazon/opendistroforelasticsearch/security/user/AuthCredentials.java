@@ -37,7 +37,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 import org.elasticsearch.ElasticsearchSecurityException;
@@ -176,17 +175,19 @@ public final class AuthCredentials {
     public boolean equals(Object obj) {
         if (this == obj)
             return true;
-        if (obj == null || getClass() != obj.getClass()) {
+        if (obj == null)
             return false;
-        }
-
+        if (getClass() != obj.getClass())
+            return false;
         AuthCredentials other = (AuthCredentials) obj;
-        return Objects.equals(username, other.username)
-            && Arrays.equals(password, other.password)
-            && Objects.equals(nativeCredentials, other.nativeCredentials)
-            && Objects.equals(backendRoles, other.backendRoles)
-            && MessageDigest.isEqual(internalPasswordHash, other.internalPasswordHash)
-            && Objects.equals(attributes, other.attributes);
+        if (internalPasswordHash == null || other.internalPasswordHash == null || !MessageDigest.isEqual(internalPasswordHash, other.internalPasswordHash))
+            return false;
+        if (username == null) {
+            if (other.username != null)
+                return false;
+        } else if (!username.equals(other.username))
+            return false;
+        return true;
     }
 
     @Override
