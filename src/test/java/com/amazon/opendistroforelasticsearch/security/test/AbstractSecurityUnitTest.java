@@ -219,7 +219,7 @@ public abstract class AbstractSecurityUnitTest {
         }
     }
 
-    protected Settings.Builder minimumSecuritySettingsBuilder(int node, boolean sslOnly, boolean hasCustomTransportSettings) {
+    protected Settings.Builder minimumSecuritySettingsBuilder(int node, boolean sslOnly, Settings other) {
 
         final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
         Settings.Builder builder = Settings.builder()
@@ -227,7 +227,7 @@ public abstract class AbstractSecurityUnitTest {
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL);
 
         // If custom transport settings are not defined use defaults
-        if (!hasCustomTransportSettings) {
+        if (!hasCustomTransportSettings(other)) {
             builder.put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
                     FileHelper.getAbsoluteFilePathFromClassPath(prefix+"node-0-keystore.jks"))
@@ -240,6 +240,8 @@ public abstract class AbstractSecurityUnitTest {
                     builder.put(ConfigConstants.OPENDISTRO_SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, false);
         }
 
+        builder.put(other);
+
         return builder;
     }
 
@@ -247,7 +249,7 @@ public abstract class AbstractSecurityUnitTest {
         return new NodeSettingsSupplier() {
             @Override
             public Settings get(int i) {
-                return minimumSecuritySettingsBuilder(i, false, hasCustomTransportSettings(other)).put(other).build();
+                return minimumSecuritySettingsBuilder(i, false, other).build();
             }
         };
     }
@@ -256,7 +258,7 @@ public abstract class AbstractSecurityUnitTest {
         return new NodeSettingsSupplier() {
             @Override
             public Settings get(int i) {
-                return minimumSecuritySettingsBuilder(i, true, false).put(other).build();
+                return minimumSecuritySettingsBuilder(i, true, other).build();
             }
         };
     }
@@ -269,7 +271,7 @@ public abstract class AbstractSecurityUnitTest {
                 if (i == nonSSLNodeNum) {
                     return Settings.builder().build();
                 }
-                return minimumSecuritySettingsBuilder(i, true, false).put(other).build();
+                return minimumSecuritySettingsBuilder(i, true, other).build();
             }
         };
     }
