@@ -954,7 +954,7 @@ public class SSLTest extends SingleClusterTest {
 
             .build();
 
-        setupSslOnlyMode(settings, true);
+        setupSslOnlyMode(settings);
 
         RestHelper rh = restHelper();
         rh.enableHTTPClientSSL = true;
@@ -1031,7 +1031,7 @@ public class SSLTest extends SingleClusterTest {
             .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH, FileHelper. getAbsoluteFilePathFromClassPath("ssl/root-ca.pem"))
             .build();
 
-        setupSslOnlyMode(settings, true);
+        setupSslOnlyMode(settings);
 
         RestHelper rh = restHelper();
         rh.enableHTTPClientSSL = true;
