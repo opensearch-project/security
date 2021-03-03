@@ -375,13 +375,6 @@ echo 'opendistro_security.restapi.roles_enabled: ["all_access", "security_rest_a
 echo 'opendistro_security.system_indices.enabled: true' | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
 echo 'opendistro_security.system_indices.indices: [".opendistro-alerting-config", ".opendistro-alerting-alert*", ".opendistro-anomaly-results*", ".opendistro-anomaly-detector*", ".opendistro-anomaly-checkpoints", ".opendistro-anomaly-detection-state", ".opendistro-reports-*", ".opendistro-notifications-*", ".opendistro-notebooks", ".opendistro-asynchronous-search-response*"]' | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
 
-#cluster.routing.allocation.disk.threshold_enabled
-if $SUDO_CMD grep --quiet -i "^cluster.routing.allocation.disk.threshold_enabled" "$ES_CONF_FILE"; then
-	: #already present
-else
-    echo 'cluster.routing.allocation.disk.threshold_enabled: false' | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
-fi
-
 #network.host
 if $SUDO_CMD grep --quiet -i "^network.host" "$ES_CONF_FILE"; then
 	: #already present
