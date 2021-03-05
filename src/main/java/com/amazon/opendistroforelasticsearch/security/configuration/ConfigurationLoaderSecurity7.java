@@ -98,7 +98,7 @@ public class ConfigurationLoaderSecurity7 {
     Map<CType, SecurityDynamicConfiguration<?>> load(final CType[] events, long timeout, TimeUnit timeUnit, boolean acceptInvalid) throws InterruptedException, TimeoutException {
         final CountDownLatch latch = new CountDownLatch(events.length);
         final Map<CType, SecurityDynamicConfiguration<?>> rs = new HashMap<>(events.length);
-
+        final boolean isDebugEnabled = log.isDebugEnabled();
         loadAsync(events, new ConfigCallback() {
 
             @Override
@@ -115,7 +115,7 @@ public class ConfigurationLoaderSecurity7 {
 
                 rs.put(dConf.getCType(), dConf);
                 latch.countDown();
-                if(log.isDebugEnabled()) {
+                if (isDebugEnabled) {
                     log.debug("Received config for {} (of {}) with current latch value={}", dConf.getCType().toLCString(), Arrays.toString(events), latch.getCount());
                 }
             }
@@ -135,7 +135,7 @@ public class ConfigurationLoaderSecurity7 {
                     //created with SG 6
                     //skip tenants
 
-                    if(log.isDebugEnabled()) {
+                    if (isDebugEnabled) {
                         log.debug("Skip tenants because we not yet migrated to ES 7 (index was created with ES 6 and type is legacy [{}])", type);
                     }
 
@@ -180,7 +180,7 @@ public class ConfigurationLoaderSecurity7 {
 
             @Override
             public void failure(Throwable t) {
-                log.error("Exception {} while retrieving configuration for {}  (index={})",t,t.toString(), Arrays.toString(events), securityIndex);
+                log.error("Exception while retrieving configuration for {} (index={})", Arrays.toString(events), securityIndex, t);
             }
         }, acceptInvalid);
 

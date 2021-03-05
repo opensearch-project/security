@@ -101,7 +101,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
 
             }
         } catch (Throwable e) {
-            log.error("Error creating JWT authenticator: "+e+". JWT authentication will not work", e);
+            log.error("Error creating JWT authenticator. JWT authentication will not work", e);
             throw new RuntimeException(e);
         }
 
@@ -187,7 +187,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
             return ac;
 
         } catch (WeakKeyException e) {
-            log.error("Cannot authenticate user with JWT because of "+e, e);
+            log.error("Cannot authenticate user with JWT because of ", e);
             return null;
         } catch (Exception e) {
             if(log.isDebugEnabled()) {

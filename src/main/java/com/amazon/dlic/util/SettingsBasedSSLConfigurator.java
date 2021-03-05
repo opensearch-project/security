@@ -414,7 +414,7 @@ public class SettingsBasedSSLConfigurator {
             this.effectiveKeyAlias = effectiveKeyAlias;
 
             if (log.isDebugEnabled()) {
-                log.debug("Created SSLConfig: " + this);
+                log.debug("Created SSLConfig: {}", this);
             }
         }
 

@@ -70,7 +70,7 @@ public class SnapshotRestoreEvaluator {
         
         // snapshot restore for regular users not enabled
         if (!enableSnapshotRestorePrivilege) {
-            log.warn(action + " is not allowed for a regular user");
+            log.warn("{} is not allowed for a regular user", action);
             presponse.allowed = false;
             return presponse.markComplete();            
         }
@@ -93,7 +93,7 @@ public class SnapshotRestoreEvaluator {
         // Do not allow restore of global state
         if (restoreRequest.includeGlobalState()) {
             auditLog.logSecurityIndexAttempt(request, action, task);
-            log.warn(action + " with 'include_global_state' enabled is not allowed");
+            log.warn("{} with 'include_global_state' enabled is not allowed", action);
             presponse.allowed = false;
             return presponse.markComplete();            
         }
@@ -102,7 +102,7 @@ public class SnapshotRestoreEvaluator {
 
         if (rs != null && (rs.contains(opendistrosecurityIndex) || rs.contains("_all") || rs.contains("*"))) {
             auditLog.logSecurityIndexAttempt(request, action, task);
-            log.warn(action + " for '{}' as source index is not allowed", opendistrosecurityIndex);
+            log.warn("{} for '{}' as source index is not allowed", action, opendistrosecurityIndex);
             presponse.allowed = false;
             return presponse.markComplete();            
         }

@@ -635,8 +635,8 @@ public abstract class AbstractAuditLog implements AuditLog {
 
     @VisibleForTesting
     boolean checkTransportFilter(final AuditCategory category, final String action, final String effectiveUser, TransportRequest request) {
-
-        if(log.isTraceEnabled()) {
+        final boolean isTraceEnabled = log.isTraceEnabled();
+        if (isTraceEnabled) {
             log.trace("Check category:{}, action:{}, effectiveUser:{}, request:{}", category, action, effectiveUser, request==null?null:request.getClass().getSimpleName());
         }
 
@@ -652,7 +652,7 @@ public abstract class AbstractAuditLog implements AuditLog {
 
         if (auditConfigFilter.isAuditDisabled(effectiveUser)) {
 
-            if(log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("Skipped audit log message because of user {} is ignored", effectiveUser);
             }
 
@@ -661,7 +661,7 @@ public abstract class AbstractAuditLog implements AuditLog {
 
         if (request != null && (auditConfigFilter.isRequestAuditDisabled(action) || auditConfigFilter.isRequestAuditDisabled(request.getClass().getSimpleName()))) {
 
-            if(log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("Skipped audit log message because request {} is ignored", action+"#"+request.getClass().getSimpleName());
             }
 
@@ -671,7 +671,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         if (!auditConfigFilter.getDisabledTransportCategories().contains(category)) {
             return true;
         } else {
-            if(log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("Skipped audit log message because category {} not enabled", category);
             }
             return false;
@@ -687,12 +687,13 @@ public abstract class AbstractAuditLog implements AuditLog {
     }
 
     private boolean checkComplianceFilter(final AuditCategory category, final String effectiveUser, Origin origin, ComplianceConfig complianceConfig) {
-        if(log.isTraceEnabled()) {
+        final boolean isTraceEnabled = log.isTraceEnabled();
+        if (isTraceEnabled) {
             log.trace("Check for COMPLIANCE category:{}, effectiveUser:{}, origin: {}", category, effectiveUser, origin);
         }
 
         if(origin == Origin.LOCAL && effectiveUser == null && category != AuditCategory.COMPLIANCE_EXTERNAL_CONFIG) {
-            if(log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("Skipped compliance log message because of null user and local origin");
             }
             return false;
@@ -702,7 +703,7 @@ public abstract class AbstractAuditLog implements AuditLog {
 
             if (effectiveUser != null && complianceConfig.isComplianceReadAuditDisabled(effectiveUser)) {
 
-                if(log.isTraceEnabled()) {
+                if (isTraceEnabled) {
                     log.trace("Skipped compliance log message because of user {} is ignored", effectiveUser);
                 }
                 return false;
@@ -712,7 +713,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         if(category == AuditCategory.COMPLIANCE_DOC_WRITE || category == AuditCategory.COMPLIANCE_INTERNAL_CONFIG_WRITE) {
             if (effectiveUser != null && complianceConfig.isComplianceWriteAuditDisabled(effectiveUser)) {
 
-                if(log.isTraceEnabled()) {
+                if (isTraceEnabled) {
                     log.trace("Skipped compliance log message because of user {} is ignored", effectiveUser);
                 }
                 return false;
@@ -724,7 +725,8 @@ public abstract class AbstractAuditLog implements AuditLog {
 
     @VisibleForTesting
     boolean checkRestFilter(final AuditCategory category, final String effectiveUser, RestRequest request) {
-        if(log.isTraceEnabled()) {
+        final boolean isTraceEnabled = log.isTraceEnabled();
+        if (isTraceEnabled) {
             log.trace("Check for REST category:{}, effectiveUser:{}, request:{}", category, effectiveUser, request==null?null:request.path());
         }
 
@@ -734,7 +736,7 @@ public abstract class AbstractAuditLog implements AuditLog {
 
         if (auditConfigFilter.isAuditDisabled(effectiveUser)) {
 
-            if(log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("Skipped audit log message because of user {} is ignored", effectiveUser);
             }
 
@@ -743,7 +745,7 @@ public abstract class AbstractAuditLog implements AuditLog {
 
         if (request != null && auditConfigFilter.isRequestAuditDisabled(request.path())) {
 
-            if(log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("Skipped audit log message because request {} is ignored", request.path());
             }
 
@@ -753,7 +755,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         if (!auditConfigFilter.getDisabledRestCategories().contains(category)) {
             return true;
         } else {
-            if(log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("Skipped audit log message because category {} not enabled", category);
             }
             return false;

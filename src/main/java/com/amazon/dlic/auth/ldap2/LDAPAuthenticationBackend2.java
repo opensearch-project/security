@@ -222,10 +222,7 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
             
             return exists;
         } catch (final Exception e) {
-            log.warn("User {} does not exist due to " + e, userName);
-            if (log.isDebugEnabled()) {
-                log.debug("User does not exist due to ", e);
-            }
+            log.warn("User {} does not exist due to exception", userName, e);
             return false;
         } finally {
             Utils.unbindAndCloseSilently(ldapConnection);

@@ -172,11 +172,13 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
 
         final boolean rolesearchEnabled = settings.getAsBoolean(ConfigConstants.LDAP_AUTHZ_ROLESEARCH_ENABLED, true);
 
-        if (log.isDebugEnabled()) {
+        final boolean isDebugEnabled = log.isDebugEnabled();
+        if (isDebugEnabled) {
             log.debug("Try to get roles for {}", authenticatedUser);
         }
 
-        if (log.isTraceEnabled()) {
+        final boolean isTraceEnabled = log.isTraceEnabled();
+        if (isTraceEnabled) {
             log.trace("user class: {}", user.getClass());
             log.trace("authenticatedUser: {}", authenticatedUser);
             log.trace("originalUserName: {}", originalUserName);
@@ -185,7 +187,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
         }
 
         if (skipUsersMatcher.test(authenticatedUser)) {
-            if (log.isDebugEnabled()) {
+            if (isDebugEnabled) {
                 log.debug("Skipped search roles of user {}/{}", authenticatedUser, originalUserName);
             }
             return;
@@ -199,7 +201,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
 
                 if (isValidDn(authenticatedUser)) {
                     // assume dn
-                    if (log.isTraceEnabled()) {
+                    if (isTraceEnabled) {
                         log.trace("{} is a valid DN", authenticatedUser);
                     }
 
@@ -212,7 +214,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                 } else {
                     entry = this.userSearcher.exists(connection, user.getName());
 
-                    if (log.isTraceEnabled()) {
+                    if (isTraceEnabled) {
                         log.trace("{} is not a valid DN and was resolved to {}", authenticatedUser, entry);
                     }
 
@@ -223,7 +225,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
 
                 dn = entry.getDn();
 
-                if (log.isTraceEnabled()) {
+                if (isTraceEnabled) {
                     log.trace("User found with DN {}", dn);
                 }
             }
@@ -236,7 +238,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
             // default is userrolename: memberOf
             final String userRoleNames = settings.get(ConfigConstants.LDAP_AUTHZ_USERROLENAME, DEFAULT_USERROLENAME);
 
-            if (log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("raw userRoleName(s): {}", userRoleNames);
             }
 
@@ -257,7 +259,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                 }
             }
 
-            if (log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("User attr. ldap roles count: {}", ldapRoles.size());
                 log.trace("User attr. ldap roles {}", ldapRoles);
                 log.trace("User attr. non-ldap roles count: {}", nonLdapRoles.size());
@@ -271,7 +273,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
             // rolename: name
             final String roleName = settings.get(ConfigConstants.LDAP_AUTHZ_ROLENAME, DEFAULT_ROLENAME);
 
-            if (log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("roleName: {}", roleName);
             }
 
@@ -281,7 +283,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
             // userroleattribute: null
             final String userRoleAttributeName = settings.get(ConfigConstants.LDAP_AUTHZ_USERROLEATTRIBUTE, null);
 
-            if (log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("userRoleAttribute: {}", userRoleAttributeName);
                 log.trace("rolesearch: {}", settings.get(ConfigConstants.LDAP_AUTHZ_ROLESEARCH, DEFAULT_ROLESEARCH));
             }
@@ -311,9 +313,8 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                             f,
                             SearchScope.SUBTREE);
 
-                    if (log.isTraceEnabled()) {
-                        log.trace("Results for LDAP group search for " + escapedDn + " in base "
-                                + roleSearchSettingsEntry.getKey() + ":\n" + rolesResult);
+                    if (isTraceEnabled) {
+                        log.trace("Results for LDAP group search for {} in base {}:\n{}", escapedDn, roleSearchSettingsEntry.getKey(), rolesResult);
                     }
 
                     if (rolesResult != null && !rolesResult.isEmpty()) {
@@ -327,14 +328,14 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                 }
             }
 
-            if (log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("roles count total {}", ldapRoles.size());
             }
 
             // nested roles, makes only sense for DN style role names
             if (nestedRoleMatcher != null) {
 
-                if (log.isTraceEnabled()) {
+                if (isTraceEnabled) {
                     log.trace("Evaluate nested roles");
                 }
 
@@ -345,15 +346,15 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                             .get(roleLdapName);
 
                     if (nameRoleSearchBaseKeys == null) {
-                        log.error("Could not find roleSearchBaseKeys for " + roleLdapName + "; existing: "
-                                + resultRoleSearchBaseKeys);
+                        log.error("Could not find roleSearchBaseKeys for {}; existing: {}",
+                                roleLdapName, resultRoleSearchBaseKeys);
                         continue;
                     }
 
                     final Set<LdapName> nestedRoles = resolveNestedRoles(roleLdapName, connection, userRoleNames, 0,
                             rolesearchEnabled, nameRoleSearchBaseKeys);
 
-                    if (log.isTraceEnabled()) {
+                    if (isTraceEnabled) {
                         log.trace("{} nested roles for {}", nestedRoles.size(), roleLdapName);
                     }
 
@@ -389,16 +390,16 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                 user.addRole(nonLdapRoleName);
             }
 
-            if (log.isDebugEnabled()) {
+            if (isDebugEnabled) {
                 log.debug("Roles for {} -> {}", user.getName(), user.getRoles());
             }
 
-            if (log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("returned user: {}", user);
             }
 
         } catch (final Exception e) {
-            if (log.isDebugEnabled()) {
+            if (isDebugEnabled) {
                 log.debug("Unable to fill user roles due to ", e);
             }
             throw new ElasticsearchSecurityException(e.toString(), e);
@@ -411,9 +412,10 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                                                Set<Map.Entry<String, Settings>> roleSearchBaseSettingsSet)
             throws ElasticsearchSecurityException, LdapException {
 
+        final boolean isTraceEnabled = log.isTraceEnabled();
         if (nestedRoleMatcher.test(roleDn.toString())) {
 
-            if (log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("Filter nested role {}", roleDn);
             }
 
@@ -426,10 +428,10 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
         final HashMultimap<LdapName, Map.Entry<String, Settings>> resultRoleSearchBaseKeys = HashMultimap.create();
 
         final LdapEntry e0 = LdapHelper.lookup(ldapConnection, roleDn.toString());
+        final boolean isDebugEnabled = log.isDebugEnabled();
 
         if (e0.getAttribute(userRoleName) != null) {
             final Collection<String> userRoles = e0.getAttribute(userRoleName).getStringValues();
-
             for (final String possibleRoleDN : userRoles) {
                 if (isValidDn(possibleRoleDN)) {
                     try {
@@ -440,14 +442,14 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                         // ignore
                     }
                 } else {
-                    if (log.isDebugEnabled()) {
+                    if (isDebugEnabled) {
                         log.debug("Cannot add {} as a role because its not a valid dn", possibleRoleDN);
                     }
                 }
             }
         }
 
-        if (log.isTraceEnabled()) {
+        if (isTraceEnabled) {
             log.trace("result nested attr count for depth {} : {}", depth, result.size());
         }
 
@@ -468,9 +470,8 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                         f,
                         SearchScope.SUBTREE);
 
-                if (log.isTraceEnabled()) {
-                    log.trace("Results for LDAP group search for " + escapedDn + " in base "
-                            + roleSearchBaseSettingsEntry.getKey() + ":\n" + foundEntries);
+                if (isTraceEnabled) {
+                    log.trace("Results for LDAP group search for {} in base {}:\n{}", escapedDn, roleSearchBaseSettingsEntry.getKey(), foundEntries);
                 }
 
                 if (foundEntries != null) {
@@ -492,7 +493,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
             maxDepth = settings.getAsInt(ConfigConstants.LDAP_AUTHZ_MAX_NESTED_DEPTH,
                     ConfigConstants.LDAP_AUTHZ_MAX_NESTED_DEPTH_DEFAULT);
         } catch (Exception e) {
-            log.error(ConfigConstants.LDAP_AUTHZ_MAX_NESTED_DEPTH + " is not parseable: " + e, e);
+            log.error(ConfigConstants.LDAP_AUTHZ_MAX_NESTED_DEPTH + " is not parseable: ", e);
         }
 
         if (depth < maxDepth) {
@@ -501,7 +502,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
 
                 if (nameRoleSearchBaseKeys == null) {
                     log.error(
-                            "Could not find roleSearchBaseKeys for " + nm + "; existing: " + resultRoleSearchBaseKeys);
+                            "Could not find roleSearchBaseKeys for {}; existing: {}", nm, resultRoleSearchBaseKeys);
                     continue;
                 }
 
@@ -554,7 +555,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                 }
             }
         } catch (LdapException e) {
-            log.error("Unable to handle role {} because of ",ldapName, e.toString(), e);
+            log.error("Unable to handle role {} because of ",ldapName, e);
         }
 
         return null;

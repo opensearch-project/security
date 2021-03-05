@@ -49,7 +49,7 @@ public class HeapBasedRateTracker<ClientIdType> implements RateTracker<ClientIdT
                     @Override
                     public void onRemoval(RemovalNotification<ClientIdType, ClientRecord> notification) {
                         if (log.isDebugEnabled()) {
-                            log.debug("Removing " + notification.getKey());
+                            log.debug("Removing {}", notification.getKey());
                         }
                     }
                 }).build();
@@ -64,7 +64,7 @@ public class HeapBasedRateTracker<ClientIdType> implements RateTracker<ClientIdT
             boolean result = clientRecord.track();
 
             if (log.isDebugEnabled()) {
-                log.debug("track(" + clientId + "): " + clientRecord + " => " + result);
+                log.debug("track({}): {} => {}", clientId, clientRecord, result);
             }
 
             return result;

@@ -172,13 +172,13 @@ public class IndexResolverReplacer {
         }
 
         private void resolveIndexPatterns(final String name, final IndicesOptions indicesOptions, final boolean enableCrossClusterResolution, final String[] original) {
-
-            if(log.isTraceEnabled()) {
+            final boolean isTraceEnabled = log.isTraceEnabled();
+            if (isTraceEnabled) {
                 log.trace("resolve requestedPatterns: "+ Arrays.toString(original));
             }
 
             if (isAllWithNoRemote(original)) {
-                if (log.isTraceEnabled()) {
+                if (isTraceEnabled) {
                     log.trace(Arrays.toString(original) + " is an ALL pattern without any remote indices");
                 }
                 resolveToLocalAll();
@@ -211,7 +211,7 @@ public class IndexResolverReplacer {
                     }
                 }
 
-                if (log.isTraceEnabled()) {
+                if (isTraceEnabled) {
                     log.trace("CCS is enabled, we found this local patterns " + localRequestedPatterns + " and this remote patterns: " + remoteIndices);
                 }
 
@@ -223,14 +223,14 @@ public class IndexResolverReplacer {
             Collection<String> matchingAllIndices;
 
             if (isLocalAll(original)) {
-                if (log.isTraceEnabled()) {
+                if (isTraceEnabled) {
                     log.trace(Arrays.toString(original) + " is an LOCAL ALL pattern");
                 }
                 matchingAliases = Resolved.All_SET;
                 matchingAllIndices = Resolved.All_SET;
 
             } else if (!remoteIndices.isEmpty() && localRequestedPatterns.isEmpty()) {
-                if (log.isTraceEnabled()) {
+                if (isTraceEnabled) {
                     log.trace(Arrays.toString(original) + " is an LOCAL EMPTY request");
                 }
                 matchingAllIndices = Collections.emptySet();
@@ -253,13 +253,14 @@ public class IndexResolverReplacer {
                         .filter(dateResolvedMatcher)
                         .collect(Collectors.toSet());
 
+                final boolean isDebugEnabled = log.isDebugEnabled();
                 try {
                     matchingAllIndices = Arrays.asList(resolver.concreteIndexNames(state, indicesOptions, localRequestedPatterns.toArray(new String[0])));
-                    if (log.isDebugEnabled()) {
+                    if (isDebugEnabled) {
                         log.debug("Resolved pattern {} to {}", localRequestedPatterns, matchingAllIndices);
                     }
                 } catch (IndexNotFoundException e1) {
-                    if (log.isDebugEnabled()) {
+                    if (isDebugEnabled) {
                         log.debug("No such indices for pattern {}, use raw value", localRequestedPatterns);
                     }
 
@@ -267,7 +268,7 @@ public class IndexResolverReplacer {
                 }
             }
 
-            if (log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("Resolved patterns {} for {} ({}) to [aliases {}, allIndices {}, originalRequested{}, remote indices {}]",
                         original, name, this.name, matchingAliases, matchingAllIndices, Arrays.toString(original), remoteIndices);
             }
@@ -335,7 +336,7 @@ public class IndexResolverReplacer {
     }
 
     public Resolved resolveRequest(final Object request) {
-        if(log.isDebugEnabled()) {
+        if (log.isDebugEnabled()) {
             log.debug("Resolve aliases, indices and types from {}", request.getClass().getSimpleName());
         }
 
@@ -471,15 +472,16 @@ public class IndexResolverReplacer {
             return false;
         }
 
+        final boolean isTraceEnabled = log.isTraceEnabled();
         if(!allowEmpty && (indices == null || indices.length == 0)) {
-            if(log.isTraceEnabled() && request != null) {
+            if(isTraceEnabled && request != null) {
                 log.trace("Null or empty indices for "+request.getClass().getName());
             }
             return false;
         }
 
         if(!allowEmpty && needsToBeSizeOne && indices.length != 1) {
-            if(log.isTraceEnabled() && request != null) {
+            if(isTraceEnabled && request != null) {
                 log.trace("To much indices for "+request.getClass().getName());
             }
             return false;
@@ -489,7 +491,7 @@ public class IndexResolverReplacer {
             final String index = indices[i];
             if(index == null || index.isEmpty()) {
                 //not allowed
-                if(log.isTraceEnabled() && request != null) {
+                if(isTraceEnabled && request != null) {
                     log.trace("At least one null or empty index for "+request.getClass().getName());
                 }
                 return false;
@@ -507,8 +509,9 @@ public class IndexResolverReplacer {
      */
     @SuppressWarnings("rawtypes")
     private boolean getOrReplaceAllIndices(final Object request, final IndicesProvider provider, boolean allowEmptyIndices) {
-
-        if(log.isTraceEnabled()) {
+        final boolean isDebugEnabled = log.isDebugEnabled();
+        final boolean isTraceEnabled = log.isTraceEnabled();
+        if (isTraceEnabled) {
             log.trace("getOrReplaceAllIndices() for "+request.getClass());
         }
 
@@ -581,7 +584,7 @@ public class IndexResolverReplacer {
                     final List<String> renamedTargetIndices = renamedIndices(restoreRequest, requestedResolvedIndices);
                     //final Set<String> indices = new HashSet<>(requestedResolvedIndices);
                     //indices.addAll(renamedTargetIndices);
-                    if(log.isDebugEnabled()) {
+                    if (isDebugEnabled) {
                         log.debug("snapshot: {} contains this indices: {}", snapshotInfo.snapshotId().getName(), renamedTargetIndices);
                     }
                     provider.provide(renamedTargetIndices.toArray(new String[0]), request, false);
@@ -669,7 +672,7 @@ public class IndexResolverReplacer {
         } else if (request instanceof SearchScrollRequest) {
             //do nothing
         } else {
-            if(log.isDebugEnabled()) {
+            if (isDebugEnabled) {
                 log.debug(request.getClass() + " not supported (It is likely not a indices related request)");
             }
             result = false;

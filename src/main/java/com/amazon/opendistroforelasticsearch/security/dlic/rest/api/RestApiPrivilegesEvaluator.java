@@ -108,14 +108,15 @@ public class RestApiPrivilegesEvaluator {
 			globallyDisabledEndpoints = parseDisabledEndpoints(globalSettings);
 		}
 
-		if (logger.isDebugEnabled()) {
+		final boolean isDebugEnabled = logger.isDebugEnabled();
+		if (isDebugEnabled) {
 			logger.debug("Globally disabled endpoints: {}", globallyDisabledEndpoints);
 		}
 
 		for (String role : allowedRoles) {
 			Settings settingsForRole = settings.getAsSettings(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_ENDPOINTS_DISABLED + "." + role);
 			if (settingsForRole.isEmpty()) {
-				if (logger.isDebugEnabled()) {
+				if (isDebugEnabled) {
 					logger.debug("No disabled endpoints/methods for permitted role {} found, allowing all", role);
 				}
 				continue;
@@ -247,6 +248,8 @@ public class RestApiPrivilegesEvaluator {
 
 	public Map<Endpoint, List<Method>> getDisabledEndpointsForCurrentUser(String userPrincipal, Set<String> userRoles) {
 
+		final boolean isDebugEnabled = logger.isDebugEnabled();
+
 		// cache
 		if (disabledEndpointsForUsers.containsKey(userPrincipal)) {
 			return disabledEndpointsForUsers.get(userPrincipal);
@@ -279,14 +282,14 @@ public class RestApiPrivilegesEvaluator {
 			hasDisabledEndpoints = true;
 		}
 
-		if (logger.isDebugEnabled()) {
+		if (isDebugEnabled) {
 			logger.debug("Remaining endpoints for user {} after retaining all : {}", userPrincipal, remainingEndpoints);
 		}
 
 		// if user does not have any disabled endpoints, only globally disabled endpoints apply
 		if (!hasDisabledEndpoints) {
 
-			if (logger.isDebugEnabled()) {
+			if (isDebugEnabled) {
 				logger.debug("No disabled endpoints for user {} at all,  only globally disabledendpoints apply.", userPrincipal, remainingEndpoints);
 			}
 			disabledEndpointsForUsers.put(userPrincipal, addGloballyDisabledEndpoints(finalEndpoints));
@@ -309,7 +312,7 @@ public class RestApiPrivilegesEvaluator {
 			finalEndpoints.put(endpoint, remainingMethodsForEndpoint);
 		}
 
-		if (logger.isDebugEnabled()) {
+		if (isDebugEnabled) {
 			logger.debug("Disabled endpoints for user {} after retaining all : {}", userPrincipal, finalEndpoints);
 		}
 
@@ -317,8 +320,8 @@ public class RestApiPrivilegesEvaluator {
 		addGloballyDisabledEndpoints(finalEndpoints);
 		disabledEndpointsForUsers.put(userPrincipal, finalEndpoints);
 
-		if (logger.isDebugEnabled()) {
-			logger.debug("Disabled endpoints for user {} after retaining all : {}", disabledEndpointsForUsers.get(userPrincipal));
+		if (isDebugEnabled) {
+			logger.debug("Disabled endpoints for user {} after retaining all : {}", userPrincipal, disabledEndpointsForUsers.get(userPrincipal));
 		}
 
 		return disabledEndpointsForUsers.get(userPrincipal);
@@ -336,9 +339,11 @@ public class RestApiPrivilegesEvaluator {
 	}
 
 	private String checkRoleBasedAccessPermissions(RestRequest request, Endpoint endpoint) {
-		if (logger.isTraceEnabled()) {
+		final boolean isTraceEnabled = logger.isTraceEnabled();
+		if (isTraceEnabled) {
 			logger.trace("Checking role based admin access for endpoint {} and method {}", endpoint.name(), request.method().name());
 		}
+		final boolean isDebugEnabled = logger.isDebugEnabled();
 		// Role based access. Check that user has role suitable for admin access
 		// and that the role has also access to this endpoint.
 		if (this.roleBasedAccessEnabled) {
@@ -358,7 +363,7 @@ public class RestApiPrivilegesEvaluator {
 
 				Map<Endpoint, List<Method>> disabledEndpointsForUser = getDisabledEndpointsForCurrentUser(user.getName(), userRoles);
 
-				if (logger.isDebugEnabled()) {
+				if (isDebugEnabled) {
 					logger.debug("Disabled endpoints for user {} : {} ", user, disabledEndpointsForUser);
 				}
 
@@ -367,7 +372,7 @@ public class RestApiPrivilegesEvaluator {
 
 				// no settings, all methods for this endpoint allowed
 				if (disabledMethodsForEndpoint == null || disabledMethodsForEndpoint.isEmpty()) {
-					if (logger.isDebugEnabled()) {
+					if (isDebugEnabled) {
 						logger.debug("No disabled methods for user {} and endpoint {}, access allowed ", user, endpoint);
 					}
 					return null;
@@ -375,7 +380,7 @@ public class RestApiPrivilegesEvaluator {
 
 				// some methods disabled, check requested method
 				if (!disabledMethodsForEndpoint.contains(request.method())) {
-					if (logger.isDebugEnabled()) {
+					if (isDebugEnabled) {
 						logger.debug("Request method {} for user {} and endpoint {} not restricted, access allowed ", request.method(), user, endpoint);
 					}
 					return null;

@@ -177,14 +177,15 @@ public class AuditMessageRouter {
     }
 
     private final void store(AuditLogSink sink, AuditMessage msg) {
+        final boolean isTraceEnabled = log.isTraceEnabled();
         if (sink.isHandlingBackpressure()) {
             sink.store(msg);
-            if (log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("stored on sink {} synchronously", sink.getClass().getSimpleName());
             }
         } else {
             storagePool.submit(msg, sink);
-            if (log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("will store on sink {} asynchronously", sink.getClass().getSimpleName());
             }
         }

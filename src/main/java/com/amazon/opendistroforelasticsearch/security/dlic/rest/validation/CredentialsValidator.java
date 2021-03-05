@@ -77,16 +77,17 @@ public class CredentialsValidator extends AbstractConfigurationValidator {
                         }
 
                         final String username = Utils.coalesce(request.param("name"), hasParams() ? (String) param[0] : null);
+                        final boolean isDebugEnabled = log.isDebugEnabled();
 
                         if (username == null || username.isEmpty()) {
-                            if (log.isDebugEnabled()) {
+                            if (isDebugEnabled) {
                                 log.debug("Unable to validate username because no user is given");
                             }
                             return false;
                         }
 
                         if (username.toLowerCase().equals(password.toLowerCase())) {
-                            if (log.isDebugEnabled()) {
+                            if (isDebugEnabled) {
                                 log.debug("Username must not match password");
                             }
                             this.errorType = ErrorType.INVALID_PASSWORD;

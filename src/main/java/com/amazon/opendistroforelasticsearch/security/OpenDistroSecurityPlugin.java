@@ -325,9 +325,9 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             if(filesWithWrongPermissions != null && filesWithWrongPermissions.size() > 0) {
                 for(final Path p: filesWithWrongPermissions) {
                     if(Files.isDirectory(p, LinkOption.NOFOLLOW_LINKS)) {
-                        log.warn("Directory "+p+" has insecure file permissions (should be 0700)");
+                        log.warn("Directory {} has insecure file permissions (should be 0700)", p);
                     } else {
-                        log.warn("File "+p+" has insecure file permissions (should be 0600)");
+                        log.warn("File {} has insecure file permissions (should be 0600)", p);
                     }
                 }
             }

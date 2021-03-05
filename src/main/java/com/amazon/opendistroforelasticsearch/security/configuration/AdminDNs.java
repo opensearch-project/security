@@ -85,7 +85,7 @@ public class AdminDNs {
             }
         }
        
-        log.debug("Loaded {} admin DN's {}",adminDn.size(),  adminDn);
+        log.debug("Loaded {} admin DN's {}",adminDn.size(), adminDn);
 
         final Settings impersonationDns = settings.getByPrefix(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_IMPERSONATION_DN+".");
 
