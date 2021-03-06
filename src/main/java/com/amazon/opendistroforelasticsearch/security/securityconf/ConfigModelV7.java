@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -388,35 +389,39 @@ public class ConfigModelV7 extends ConfigModel {
             final Map<String, Set<String>> dlsQueries = new HashMap<String, Set<String>>();
             final Map<String, Set<String>> flsFields = new HashMap<String, Set<String>>();
 
+            // dls full access flag constant, incase there is no dls set in the role.
+            final String _dlsfullaccess = "__dlsfullaccess__" ;
+
             for (SecurityRole sr : roles) {
+
                 for (IndexPattern ip : sr.getIpatterns()) {
                     final Set<String> fls = ip.getFls();
-                    final String dls = ip.getDlsQuery(user);
+                    String _dls = ip.getDlsQuery(user) ;
+                    final String dls = ( _dls == null || _dls.isEmpty() ) ? _dlsfullaccess : _dls ;
                     final String indexPattern = ip.getUnresolvedIndexPattern(user);
                     Set<String> concreteIndices = new HashSet<>();
 
-                    if ((dls != null && dls.length() > 0) || (fls != null && fls.size() > 0)) {
-                        concreteIndices = ip.getResolvedIndexPattern(user, resolver, cs);
+                    // No need to test if null because dls as we have assigned it either
+                    // the given dls or the _dlsfullaccess flags in case it is null or empty
+                    // at the neginning of this function
+                    concreteIndices = ip.getResolvedIndexPattern(user, resolver, cs);
+
+                    // No need to test here for the same reason as above
+                    Set<String> dlsQuery = dlsQueries.get(indexPattern);
+                    if (dlsQuery != null) {
+                        dlsQuery.add(dls);
+                    } else {
+                        dlsQueries.put(indexPattern, new HashSet<>(Arrays.asList(dls)));
                     }
 
-                    if (dls != null && dls.length() > 0) {
+                    for (String concreteIndex : concreteIndices) {
 
-                        Set<String> dlsQuery = dlsQueries.get(indexPattern);
+                        dlsQuery = dlsQueries.get(concreteIndex);
                         if (dlsQuery != null) {
                             dlsQuery.add(dls);
                         } else {
-                            dlsQueries.put(indexPattern, new HashSet<>(Arrays.asList(dls)));
+                            dlsQueries.put(concreteIndex, new HashSet<>(Arrays.asList(dls)));
                         }
-
-                        for (String concreteIndex : concreteIndices) {
-                            dlsQuery = dlsQueries.get(concreteIndex);
-                            if (dlsQuery != null) {
-                                dlsQuery.add(dls);
-                            } else {
-                                dlsQueries.put(concreteIndex, new HashSet<>(Arrays.asList(dls)));
-                            }
-                        }
-
                     }
 
                     if (fls != null && fls.size() > 0) {
@@ -439,6 +444,19 @@ public class ConfigModelV7 extends ConfigModel {
                     }
                 }
             }
+
+                // In order to evaluate DLS, we now have to iterate through the dlsQueries map
+                // if we find the _dlsfullaccess string, we can remove the entire dls queries
+                // from the map for this particular index pattern or concreteIndex because it means
+                // there is a role that has no dls setup, meaning the user has to have access to all
+                // documents.
+                Iterator _dlsQueriesIterator = dlsQueries.entrySet().iterator();
+                while (_dlsQueriesIterator.hasNext()) {
+                    Map.Entry pair = (Map.Entry) _dlsQueriesIterator.next();
+                    Set<String> _dlsValue = (Set<String>) pair.getValue() ;
+                    if ( _dlsValue.contains(_dlsfullaccess) ) 
+                               _dlsQueriesIterator.remove() ;
+                }
 
             return new Tuple<>(dlsQueries, flsFields);
 
