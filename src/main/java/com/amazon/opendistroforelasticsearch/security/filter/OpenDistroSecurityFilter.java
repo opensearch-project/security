@@ -45,6 +45,7 @@ import org.apache.logging.log4j.Logger;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchSecurityException;
+import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
@@ -55,6 +56,7 @@ import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.bulk.BulkItemRequest;
@@ -71,6 +73,7 @@ import org.elasticsearch.action.support.ActionFilterChain;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.logging.LoggerMessageFormat;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.util.concurrent.ThreadContext.StoredContext;
@@ -149,10 +152,9 @@ public class OpenDistroSecurityFilter implements ActionFilter {
         return aliases.stream().map(a -> a.name()).collect(ImmutableSet.toImmutableSet());
     }
 
-
     private <Request extends ActionRequest, Response extends ActionResponse> void apply0(Task task, final String action, Request request,
             ActionListener<Response> listener, ActionFilterChain<Request, Response> chain) {
-        
+
         try {
 
 
@@ -179,7 +181,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
                     && !action.startsWith("internal:transport/proxy");
 
             if (user != null) {
-                org.apache.logging.log4j.ThreadContext.put("user", user.getName());    
+                org.apache.logging.log4j.ThreadContext.put("user", user.getName());
             }
                         
             if(actionTrace.isTraceEnabled()) {
@@ -287,57 +289,58 @@ public class OpenDistroSecurityFilter implements ActionFilter {
             if (log.isDebugEnabled()) {
                 log.debug(pres);
             }
-            
+
             if (pres.isAllowed()) {
                 auditLog.logGrantedPrivileges(action, request, task);
                 auditLog.logIndexEvent(action, request, task);
                 if(!dlsFlsValve.invoke(request, listener, pres.getAllowedFlsFields(), pres.getMaskedFields(), pres.getQueries())) {
                     return;
                 }
-                final CreateIndexRequest createIndexRequest = pres.getRequest();
-                if (createIndexRequest == null) {
+                final CreateIndexRequestBuilder createIndexRequestBuilder = pres.getCreateIndexRequestBuilder();
+                if (createIndexRequestBuilder == null) {
                     chain.proceed(task, action, request, listener);
                 } else {
-                    client.admin().indices().create(createIndexRequest, new ActionListener<CreateIndexResponse>() {
+                    CreateIndexRequest createIndexRequest = createIndexRequestBuilder.request();
+                    log.info("Request {} requires new tenant index {} with aliases {}",
+                        request.getClass().getSimpleName(), createIndexRequest.index(), alias2Name(createIndexRequest.aliases()));
+                    createIndexRequestBuilder.execute(new ActionListener<CreateIndexResponse>() {
                         @Override
                         public void onResponse(CreateIndexResponse createIndexResponse) {
                             if (createIndexResponse.isAcknowledged()) {
                                 log.debug("Request to create index {} with aliases {} acknowledged, proceeding with {}",
-                                        createIndexRequest.index(), alias2Name(createIndexRequest.aliases()), request.getClass().getSimpleName());
+                                    createIndexRequest.index(), alias2Name(createIndexRequest.aliases()), request.getClass().getSimpleName());
                                 chain.proceed(task, action, request, listener);
                             } else {
-                                Exception e = new ElasticsearchException("Request to create index {} with aliases {} was not acknowledged, failing {}",
-                                        createIndexRequest.index(), alias2Name(createIndexRequest.aliases()), request.getClass().getSimpleName());
-                                log.error(e.getMessage());
-                                listener.onFailure(e);
+                                String message = LoggerMessageFormat.format("Request to create index {} with aliases {} was not acknowledged, failing {}",
+                                    createIndexRequest.index(), alias2Name(createIndexRequest.aliases()), request.getClass().getSimpleName());
+                                log.error(message);
+                                listener.onFailure(new ElasticsearchException(message));
                             }
                         }
 
                         @Override
                         public void onFailure(Exception e) {
-                            if (e instanceof ResourceAlreadyExistsException) {
-                                log.debug("Request to create index {} with aliases {} failed as resource already exist, proceeding with {}",
-                                        createIndexRequest.index(), alias2Name(createIndexRequest.aliases()), request.getClass().getSimpleName(), e);
+                            Throwable cause = ExceptionsHelper.unwrapCause(e);
+                            if (cause instanceof ResourceAlreadyExistsException) {
+                                log.warn("Request to create index {} with aliases {} failed as the resource already exists, proceeding with {}",
+                                    createIndexRequest.index(), alias2Name(createIndexRequest.aliases()), request.getClass().getSimpleName(), e);
                                 chain.proceed(task, action, request, listener);
                             } else {
                                 log.error("Request to create index {} with aliases {} failed, failing {}",
-                                        createIndexRequest.index(), alias2Name(createIndexRequest.aliases()), request.getClass().getSimpleName(), e);
+                                    createIndexRequest.index(), alias2Name(createIndexRequest.aliases()), request.getClass().getSimpleName(), e);
                                 listener.onFailure(e);
                             }
                         }
                     });
                 }
-                return;
             } else {
                 auditLog.logMissingPrivileges(action, request, task);
                 log.debug("no permissions for {}", pres.getMissingPrivileges());
                 listener.onFailure(new ElasticsearchSecurityException("no permissions for " + pres.getMissingPrivileges()+" and "+user, RestStatus.FORBIDDEN));
-                return;
             }
         } catch (Throwable e) {
             log.error("Unexpected exception "+e, e);
             listener.onFailure(new ElasticsearchSecurityException("Unexpected exception " + action, RestStatus.INTERNAL_SERVER_ERROR));
-            return;
         }
     }
 
