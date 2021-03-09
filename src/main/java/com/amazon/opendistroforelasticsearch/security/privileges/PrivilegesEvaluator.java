@@ -270,7 +270,7 @@ public class PrivilegesEvaluator {
                                 auditLog.logMissingPrivileges(action0, request, task);
                             } else {
                                 presponse.allowed = true;
-                                presponse.request = replaceResult.createIndexRequest;
+                                presponse.createIndexRequestBuilder = replaceResult.createIndexRequestBuilder;
                             }
                             return presponse;
                         }
@@ -352,7 +352,7 @@ public class PrivilegesEvaluator {
                     auditLog.logMissingPrivileges(action0, request, task);
                 } else {
                     presponse.allowed = true;
-                    presponse.request = replaceResult.createIndexRequest;
+                    presponse.createIndexRequestBuilder = replaceResult.createIndexRequestBuilder;
                 }
                 return presponse;
             }
