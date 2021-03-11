@@ -48,7 +48,7 @@ import com.google.common.collect.Lists;
 
 /**
  * A authenticated user and attributes associated to them (like roles, tenant, custom attributes)
- * <p/>
+ * <p>
  * <b>Do not subclass from this class!</b>
  *
  */
@@ -158,7 +158,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
     /**
      * Associate this user with a set of backend roles
      * 
-     * @param roles The backend roles
+     * @param attributes The backend roles
      */
     public final void addAttributes(final Map<String,String> attributes) {
         if(attributes != null) {

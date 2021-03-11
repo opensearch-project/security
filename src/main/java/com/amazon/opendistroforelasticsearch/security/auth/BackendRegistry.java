@@ -569,8 +569,9 @@ public class BackendRegistry {
      * no auditlog, throw no exception, does also authz for all authorizers
      *
      * @param cache
-     * @param ac
-     * @param authDomain
+     * @param user
+     * @param authenticationBackend
+     * @param authorizers
      * @return null if user cannot b authenticated
      */
     private User checkExistsAndAuthz(final Cache<String, User> cache, final User user, final AuthenticationBackend authenticationBackend,
@@ -648,8 +649,10 @@ public class BackendRegistry {
      * no auditlog, throw no exception, does also authz for all authorizers
      *
      * @param cache
+     * @param roleCache
      * @param ac
-     * @param authDomain
+     * @param authBackend
+     * @param authorizers
      * @return null if user cannot b authenticated
      */
     private User authcz(final Cache<AuthCredentials, User> cache, Cache<User, Set<String>> roleCache, final AuthCredentials ac,

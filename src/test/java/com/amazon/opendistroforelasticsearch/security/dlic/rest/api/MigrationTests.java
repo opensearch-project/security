@@ -15,6 +15,8 @@
 
 package com.amazon.opendistroforelasticsearch.security.dlic.rest.api;
 
+import com.carrotsearch.randomizedtesting.RandomizedRunner;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import com.google.common.io.BaseEncoding;
 import org.apache.http.HttpStatus;
 import org.elasticsearch.common.settings.Settings;
@@ -28,7 +30,10 @@ import com.amazon.opendistroforelasticsearch.security.test.SingleClusterTest;
 import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper.HttpResponse;
+import org.junit.runner.RunWith;
 
+@RunWith(RandomizedRunner.class)
+@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class MigrationTests extends SingleClusterTest {
 
     @Test

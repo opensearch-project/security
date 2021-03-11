@@ -565,7 +565,6 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
      * @param currentX509Certs Array of current X509Certificates.
      * @param newX509Certs Array of new X509Certificates.
      * @return true if all Issuer DN and Subject DN pairs match; false otherwise.
-     * @throws Exception if certificate is invalid.
      */
     private boolean hasValidDNs(final X509Certificate[] currentX509Certs, final X509Certificate[] newX509Certs) {
 
@@ -599,7 +598,6 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
      * @param currentX509Certs Array of current X509Certificates.
      * @param newX509Certs Array of new X509Certificates.
      * @return true if all of the new certificates expire after the currentX509 certificates.
-     * @throws Exception if certificate is invalid.
      */
     private boolean hasValidExpiryDates(final X509Certificate[] currentX509Certs, final X509Certificate[] newX509Certs) {
 

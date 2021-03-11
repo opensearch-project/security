@@ -19,6 +19,8 @@ import java.lang.Thread.UncaughtExceptionHandler;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditTestUtils;
 
+import com.carrotsearch.randomizedtesting.RandomizedRunner;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import net.jcip.annotations.NotThreadSafe;
 import org.apache.http.HttpStatus;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
@@ -43,8 +45,11 @@ import com.amazon.opendistroforelasticsearch.security.test.helper.cluster.Cluste
 import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper.HttpResponse;
+import org.junit.runner.RunWith;
 
 @NotThreadSafe
+@RunWith(RandomizedRunner.class)
+@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class TracingTests extends SingleClusterTest {
 
     @Override
@@ -235,15 +240,6 @@ public class TracingTests extends SingleClusterTest {
     @Test
     public void testHTTPSingle() throws Exception {
 
-        Thread.setDefaultUncaughtExceptionHandler(new UncaughtExceptionHandler() {
-
-            @Override
-            public void uncaughtException(Thread t, Throwable e) {
-                e.printStackTrace();
-
-            }
-        });
-
     final Settings settings = Settings.builder()
             .putList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "knuddel","nonexists")
             .build();
@@ -300,15 +296,6 @@ public class TracingTests extends SingleClusterTest {
 
     @Test
     public void testSearchScroll() throws Exception {
-
-        Thread.setDefaultUncaughtExceptionHandler(new UncaughtExceptionHandler() {
-
-            @Override
-            public void uncaughtException(Thread t, Throwable e) {
-                e.printStackTrace();
-
-            }
-        });
 
     final Settings settings = Settings.builder()
             .putList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "knuddel","nonexists")

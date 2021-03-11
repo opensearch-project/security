@@ -30,6 +30,8 @@
 
 package com.amazon.opendistroforelasticsearch.security;
 
+import com.carrotsearch.randomizedtesting.RandomizedRunner;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.netty.handler.ssl.OpenSsl;
 
@@ -68,22 +70,16 @@ import com.amazon.opendistroforelasticsearch.security.test.SingleClusterTest;
 import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper.HttpResponse;
+import org.junit.runner.RunWith;
 
 import static com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper.readTree;
 
+@RunWith(RandomizedRunner.class)
+@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class IntegrationTests extends SingleClusterTest {
 
     @Test
     public void testSearchScroll() throws Exception {
-        
-        Thread.setDefaultUncaughtExceptionHandler(new UncaughtExceptionHandler() {
-            
-            @Override
-            public void uncaughtException(Thread t, Throwable e) {
-                e.printStackTrace();
-                
-            }
-        });
         
     final Settings settings = Settings.builder()
             .putList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "knuddel","nonexists")

@@ -38,6 +38,8 @@ import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.test.DynamicSecurityConfig;
 import com.amazon.opendistroforelasticsearch.security.test.SingleClusterTest;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper;
+import com.carrotsearch.randomizedtesting.RandomizedRunner;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.Header;
 import org.apache.http.HttpStatus;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
@@ -56,10 +58,13 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.rest.RestStatus;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
 
+@RunWith(RandomizedRunner.class)
+@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class ProtectedIndicesTests extends SingleClusterTest {
 
     private static final List<String> listOfIndexesToTest = Arrays.asList("logs1", "logs2", "logs3", "no_match");
@@ -159,7 +164,6 @@ public class ProtectedIndicesTests extends SingleClusterTest {
     /**
      * Creates a set of test indices and indexes one document into each index.
      *
-     * @throws Exception
      */
     public void createTestIndicesAndDocs() {
         try (TransportClient tc = getInternalTransportClient()) {

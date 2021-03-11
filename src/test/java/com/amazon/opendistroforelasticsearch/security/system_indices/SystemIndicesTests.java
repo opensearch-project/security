@@ -20,6 +20,8 @@ import com.amazon.opendistroforelasticsearch.security.test.DynamicSecurityConfig
 import com.amazon.opendistroforelasticsearch.security.test.SingleClusterTest;
 import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper;
+import com.carrotsearch.randomizedtesting.RandomizedRunner;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.Header;
 import org.apache.http.HttpStatus;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
@@ -37,6 +39,7 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.rest.RestStatus;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -50,6 +53,9 @@ import static org.junit.Assert.assertEquals;
  *  Refer:    "opendistro_security.system_indices.enabled"
  *            "opendistro_security.system_indices.indices";
  */
+
+@RunWith(RandomizedRunner.class)
+@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class SystemIndicesTests extends SingleClusterTest {
 
     private static final List<String> listOfIndexesToTest = Arrays.asList("config1", "config2");
@@ -101,7 +107,6 @@ public class SystemIndicesTests extends SingleClusterTest {
     /**
      * Creates a set of test indices and indexes one document into each index.
      *
-     * @throws Exception
      */
     private void createTestIndicesAndDocs() {
         try (TransportClient tc = getInternalTransportClient()) {

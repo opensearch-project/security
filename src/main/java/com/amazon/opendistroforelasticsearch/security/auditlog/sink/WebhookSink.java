@@ -179,7 +179,7 @@ public class WebhookSink extends AuditLogSink {
 	 * The default implementation returns
 	 * <p><blockquote><pre>
 	 * {
-	 *   "text": "<AuditMessage#toText>"
+ 	 *	 "text": "&lt;AuditMessage#toText&gt;"
 	 * }
 	 * </pre></blockquote>
 	 * <p>

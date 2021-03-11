@@ -18,6 +18,8 @@ package com.amazon.opendistroforelasticsearch.security.multitenancy.test;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.carrotsearch.randomizedtesting.RandomizedRunner;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.HttpStatus;
 import org.apache.http.message.BasicHeader;
 import org.elasticsearch.action.admin.indices.alias.Alias;
@@ -39,7 +41,10 @@ import com.amazon.opendistroforelasticsearch.security.test.DynamicSecurityConfig
 import com.amazon.opendistroforelasticsearch.security.test.SingleClusterTest;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper.HttpResponse;
+import org.junit.runner.RunWith;
 
+@RunWith(RandomizedRunner.class)
+@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class MultitenancyTests extends SingleClusterTest {
 
     @Override

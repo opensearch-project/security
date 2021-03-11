@@ -41,7 +41,7 @@ import com.amazon.opendistroforelasticsearch.security.securityconf.impl.Security
 public interface ConfigurationChangeListener {
 
     /**
-     * @param configuration not null updated configuration on that was subscribe current listener
+     * @param typeToConfig not null updated configuration on that was subscribe current listener
      */
     void onChange(Map<CType, SecurityDynamicConfiguration<?>> typeToConfig);
 }

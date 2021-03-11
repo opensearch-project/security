@@ -1,7 +1,269 @@
-// Uses Gradle to build RPMs since that's what we use for the other plugins. When all you have is a hammer...
-plugins {
-   id "nebula.ospackage" version "5.3.0"
+buildscript {
+    ext {
+        es_version = System.getProperty("es.version", "7.10.2")
+    }
+
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        maven {
+            url = uri('https://repo.maven.apache.org/maven2/')
+        }
+    }
+
+    dependencies {
+        classpath "org.elasticsearch.gradle:build-tools:${es_version}"
+    }
 }
+
+plugins {
+    id 'java'
+    id 'nebula.ospackage' version '8.5.6'
+    id "com.gorylenko.gradle-git-properties" version "2.2.4"
+}
+
+apply plugin: 'elasticsearch.esplugin'
+esplugin {
+    name 'opendistro_security'
+    description 'Open Distro Security for Elasticsearch'
+    classname 'com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin'
+}
+
+group = 'com.amazon.opendistroforelasticsearch'
+version = '1.13.1.0'
+java.sourceCompatibility = JavaVersion.VERSION_1_8
+
+bundlePlugin {
+    archiveName("opendistro-security-${version}.zip")
+
+    from("securityconfig") {
+        into "securityconfig"
+    }
+    from("tools") {
+        into "tools"
+    }
+    from("plugin-security.policy") {
+        into "."
+    }
+}
+
+group = 'com.amazon.opendistroforelasticsearch'
+version = '1.13.1.0'
+java.sourceCompatibility = JavaVersion.VERSION_1_8
+
+apply plugin: 'distribution'
+distributions {
+    custom {
+        distributionBaseName = "opendistro-security-${version}-securityadmin-standalone"
+        contents {
+            into('./tools/') {
+                from 'tools'
+            }
+            into('./deps/securityconfig') {
+                from 'securityconfig'
+            }
+        }
+    }
+    customDistZip.setArchiveName("opendistro-security-${version}-securityadmin-standalone.zip")
+    customDistTar.setArchiveName("opendistro-security-${version}-securityadmin-standalone.tar.gz")
+}
+
+customDistTar{
+    compression = Compression.GZIP
+    archiveExtension = "tar.gz"
+}
+
+ext {
+    projectSubstitutions = [:]
+    licenseFile = rootProject.file('LICENSE.txt')
+    noticeFile = rootProject.file('NOTICE.txt')
+}
+
+configurations.all {
+    if (it.state != Configuration.State.UNRESOLVED) return
+    resolutionStrategy {
+        force 'commons-codec:commons-codec:1.14'
+        force 'org.slf4j:slf4j-api:1.7.26'
+        force 'org.apache.httpcomponents:httpclient:4.5.10'
+        force 'com.google.code.findbugs:jsr305:3.0.2'
+        force 'com.fasterxml.jackson.core:jackson-databind:2.11.2'
+        force 'com.fasterxml.jackson.core:jackson-core:2.11.2'
+        force 'commons-cli:commons-cli:1.3.1'
+        force 'commons-logging:commons-logging:1.2'
+        force 'com.google.guava:guava:25.1-jre'
+        force 'org.bouncycastle:bcprov-jdk15on:1.67'
+        force 'org.apache.commons:commons-lang3:3.4'
+        force 'org.apache.santuario:xmlsec:2.2.0'
+        force 'com.fasterxml.woodstox:woodstox-core:6.2.1'
+        force 'io.netty:netty-buffer:4.1.49.Final'
+        force 'io.netty:netty-common:4.1.49.Final'
+        force 'io.netty:netty-handler:4.1.49.Final'
+        force 'io.netty:netty-transport:4.1.49.Final'
+        force 'com.fasterxml.jackson.core:jackson-annotations:2.11.2'
+        force 'net.sf.jopt-simple:jopt-simple:5.0.4'
+        force 'org.scala-lang:scala-library:2.12.10'
+        force 'org.scala-lang:scala-reflect:2.12.10'
+        force 'org.cryptacular:cryptacular:1.1.4'
+        force 'org.apache.httpcomponents:httpcore:4.4.12'
+        exclude group: "org.elasticsearch", module: "securemock"
+    }
+}
+
+configurations.testCompile {
+    if (it.state != Configuration.State.UNRESOLVED) return
+    resolutionStrategy {
+        force 'org.apache.kafka:kafka-clients:2.0.1:test'
+    }
+}
+
+dependencies {
+    compile('org.elasticsearch.plugin:transport-netty4-client:7.10.2') {
+        exclude group: 'org.elasticsearch', module: 'jna'
+        exclude group: 'com.vividsolutions', module: 'jts'
+        exclude group: 'org.apache.logging.log4j', module: 'log4j-api'
+    }
+    compile 'com.google.guava:guava:25.1-jre'
+    compile 'com.google.errorprone:error_prone_annotations:2.1.3'
+    compile 'org.greenrobot:eventbus:3.2.0'
+    compile 'commons-cli:commons-cli:1.3.1'
+    compile 'org.bouncycastle:bcprov-jdk15on:1.67'
+    compile('com.fasterxml.jackson.core:jackson-databind:2.11.2') {
+        exclude group: 'com.fasterxml.jackson.core', module: 'ackson-core'
+    }
+    compile('org.apache.logging.log4j:log4j-slf4j-impl:2.11.1') {
+        exclude group: 'org.apache.logging.log4j', module: 'log4j-api'
+    }
+    compile('org.ldaptive:ldaptive:1.2.3') {
+        exclude group: 'commons-cli', module: 'commons-cli'
+        exclude group: 'org.slf4j', module: 'slf4j-api'
+    }
+    compile('org.apache.httpcomponents:httpclient-cache:4.5.3') {
+        exclude group: 'org.apache.httpcomponents', module: 'httpcore'
+    }
+    compile('org.elasticsearch.client:elasticsearch-rest-high-level-client:7.10.2') {
+        exclude group: 'org.apache.httpcomponents', module: 'httpclient'
+    }
+    compile 'io.jsonwebtoken:jjwt-api:0.10.5'
+    compile('org.apache.cxf:cxf-rt-rs-security-jose:3.4.0') {
+        exclude group: 'jakarta.activation', module: 'jakarta.activation-api'
+    }
+    compile 'com.github.wnameless:json-flattener:0.5.0'
+    compile('com.flipkart.zjsonpatch:zjsonpatch:0.4.4') {
+        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
+        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
+    }
+    compile('org.apache.kafka:kafka-clients:2.5.0') {
+        exclude group: 'org.slf4j', module: 'slf4j-api'
+    }
+    compile('com.onelogin:java-saml:2.5.0') {
+        exclude group: 'org.codehaus.woodstox', module: 'woodstox-core-asl'
+        exclude group: 'joda-time', module: 'joda-time'
+        exclude group: 'org.apache.httpcomponents', module: 'httpclient'
+    }
+    compile('org.opensaml:opensaml-saml-impl:3.4.5') {
+        exclude group: 'joda-time', module: 'joda-time'
+        exclude group: 'commons-collections', module: 'commons-collections'
+    }
+    compile 'commons-collections:commons-collections:3.2.2'
+    compile 'com.jayway.jsonpath:json-path:2.4.0'
+    compile('org.apache.httpcomponents:httpclient:4.5.3') {
+        exclude group: 'org.apache.httpcomponents', module: 'httpcore'
+    }
+    compile('io.jsonwebtoken:jjwt-jackson:0.10.5') {
+        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
+    }
+    compile 'org.apache.geronimo.specs:geronimo-jta_1.1_spec:1.1.1'
+    compile 'jakarta.annotation:jakarta.annotation-api:1.3.5'
+    compile 'jakarta.jws:jakarta.jws-api:2.1.0'
+    compile('jakarta.xml.soap:jakarta.xml.soap-api:1.4.2') {
+        exclude group: 'jakarta.activation', module: 'jakarta.activation-api'
+    }
+    compile('jakarta.xml.ws:jakarta.xml.ws-api:2.3.3') {
+        exclude group: 'jakarta.activation', module: 'jakarta.activation-api'
+    }
+    compile 'org.jboss.spec.javax.rmi:jboss-rmi-api_1.0_spec:1.0.6.Final'
+    compileOnly 'org.apache.logging.log4j:log4j-core:2.11.1'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.10.5'
+    runtimeOnly('io.jsonwebtoken:jjwt-jackson:0.10.5') {
+        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
+    }
+    runtimeOnly 'com.sun.xml.messaging.saaj:saaj-impl:1.5.2'
+    runtimeOnly 'org.jvnet.staxex:stax-ex:1.8.3'
+    testImplementation 'commons-io:commons-io:2.6'
+    testCompileOnly 'org.hamcrest:hamcrest-all:1.3'
+    testImplementation 'junit:junit:4.12'
+    testImplementation 'org.apache.httpcomponents:fluent-hc:4.5.3'
+    testImplementation('org.elasticsearch.plugin:reindex-client:7.10.2') {
+        exclude group: 'org.elasticsearch', module: 'elasticsearch-ssl-config'
+        exclude group: 'org.apache.httpcomponents', module: 'httpclient'
+    }
+    testImplementation 'org.elasticsearch:elasticsearch-ssl-config:7.10.2'
+    testImplementation 'org.elasticsearch.plugin:percolator-client:7.10.2'
+    compile 'org.elasticsearch.plugin:lang-mustache-client:7.10.2'
+    compile 'org.elasticsearch.plugin:parent-join-client:7.10.2'
+    compile 'org.elasticsearch.plugin:aggs-matrix-stats-client:7.10.2'
+    testImplementation 'org.mockito:mockito-core:2.23.0'
+    testImplementation 'net.bytebuddy:byte-buddy:1.9.0'
+    testImplementation 'org.objenesis:objenesis:2.6'
+    testCompileOnly 'org.springframework.kafka:spring-kafka-test:2.5.4.RELEASE'
+    testImplementation 'javax.servlet:servlet-api:2.5'
+    testImplementation 'com.unboundid:unboundid-ldapsdk:4.0.9'
+    testImplementation 'com.github.stephenc.jcip:jcip-annotations:1.0-1'
+    compileOnly 'org.elasticsearch:elasticsearch:7.10.2'
+    compileOnly 'io.netty:netty-tcnative:2.0.25.Final'
+}
+
+tasks.register('testsJar', Jar) {
+    archiveClassifier = 'tests'
+    from(sourceSets.test.output)
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from(components.java)
+            artifact(testsJar)
+        }
+    }
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+
+gitProperties {
+    gitPropertiesName = "git.properties"
+    gitPropertiesResourceDir = "$buildDir/classes"
+    keys = ['git.branch', 'git.build.time', 'git.build.version', 'git.closest.tag.commit.count', 'git.closest.tag.name',
+            'git.commit.id', 'git.commit.id.abbrev', 'git.commit.id.describe', 'git.commit.id.describe-short',
+            'git.commit.message.full', 'git.commit.message.short', 'git.commit.time', 'git.dirty',
+            'git.remote.origin.url', 'git.tags', 'git.total.commit.count', 'gitPropertiesResourceDir']
+}
+
+allprojects {
+    gradle.projectsEvaluated {
+        tasks.withType(JavaCompile) {
+            options.compilerArgs.remove("-Werror")
+            options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
+            options.warnings(false)
+        }
+    }
+}
+
+checkstyleMain.enabled(false)
+checkstyleTest.enabled(false)
+filepermissions.enabled(false)
+forbiddenPatterns.enabled(false)
+validateMavenPom.enabled(false)
+validateNebulaPom.enabled(false)
+testingConventions.enabled(false)
+forbiddenApisMain.enabled(false)
+forbiddenApisTest.enabled(false)
+forbiddenApisTest.enabled(false)
+dependencyLicenses.enabled(false)
+thirdPartyAudit.enabled(false)
+loggerUsageCheck.enabled(false)
+licenseHeaders.enabled(false)
 
 // To prevent conflicts with maven build under build/
 buildDir = 'gradle-build'
@@ -11,18 +273,14 @@ ext {
     isSnapshot = "true" == System.getProperty("build.snapshot", "true")
 }
 
+test{
+    workingDir = '.'
+}
+
 group = "com.amazon.opendistroforelasticsearch"
 // Increment the final digit when there's a new plugin versions for the same opendistro version
 // Reset the final digit to 0 when upgrading to a new opendistro version
 version = "${opendistroVersion}.0" + (isSnapshot ? "-SNAPSHOT" : "")
-
-
-if (!project.hasProperty("archivePath")) {
-    throw new GradleException("Missing -ParchivePath command line switch pointing to built plugin ZIP")
-}
-if (!project.file(archivePath).exists()) {
-    throw new GradleException("Missing plugin zip file: $archivePath")
-}
 
 ospackage {
     packageName = "opendistro-security"
@@ -30,7 +288,7 @@ ospackage {
     version = "${project.version}"
 
     into '/usr/share/elasticsearch/plugins'
-    from(zipTree(project.file(archivePath).absolutePath)) {
+    from(zipTree(bundlePlugin.archivePath)) {
         into "opendistro_security"
         permissionGroup 'elasticsearch'
     }
@@ -48,7 +306,7 @@ ospackage {
     maintainer 'OpenDistro for Elasticsearch Team <opendistro@amazon.com>'
     url 'https://opendistro.github.io/for-elasticsearch/downloads.html'
     summary '''
-     Security plugin for OpenDistro for Elasticsearch. 
+     Security plugin for OpenDistro for Elasticsearch.
      Reference documentation can be found at https://opendistro.github.io/for-elasticsearch-docs/.
      '''.stripIndent().replace('\n', ' ').trim()
 

@@ -39,19 +39,19 @@ import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
 
 /**
  * Open Distro Security custom HTTP authenticators need to implement this interface.
- * <p/>
+ * <p>
  * A HTTP authenticator extracts {@link AuthCredentials} from a {@link RestRequest}
- * <p/>
+ * <p>
  * 
  * Implementation classes must provide a public constructor
- * <p/>
+ * <p>
  * {@code public MyHTTPAuthenticator(org.elasticsearch.common.settings.Settings settings, java.nio.file.Path configPath)}
- * <p/>
+ * <p>
  * The constructor should not throw any exception in case of an initialization problem.
  * Instead catch all exceptions and log a appropriate error message. A logger can be instantiated like:
- * <p/>
+ * <p>
  * {@code private final Logger log = LogManager.getLogger(this.getClass());}
- * <p/>
+ * <p>
  */
 public interface HTTPAuthenticator {
 

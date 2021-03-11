@@ -7,9 +7,14 @@ import java.security.cert.CertificateException;
 
 import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
 
+import com.carrotsearch.randomizedtesting.RandomizedRunner;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
+@RunWith(RandomizedRunner.class)
+@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class CertFromTruststoreTests {
 
     @Test
