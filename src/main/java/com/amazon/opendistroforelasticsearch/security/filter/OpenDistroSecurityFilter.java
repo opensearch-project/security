@@ -354,6 +354,13 @@ public class OpenDistroSecurityFilter implements ActionFilter {
                 log.debug(err);
                 listener.onFailure(new ElasticsearchSecurityException(err, RestStatus.FORBIDDEN));
             }
+        } catch (ElasticsearchException e) {
+            if (task != null) {
+                log.debug("Failed to apply filter. Task id: {} ({}). Action: {}", task.getId(), task.getDescription(), action, e);
+            } else {
+                log.debug("Failed to apply filter. Action: {}", action, e);
+            }
+            listener.onFailure(e);
         } catch (Throwable e) {
             log.error("Unexpected exception "+e, e);
             listener.onFailure(new ElasticsearchSecurityException("Unexpected exception " + action, RestStatus.INTERNAL_SERVER_ERROR));
