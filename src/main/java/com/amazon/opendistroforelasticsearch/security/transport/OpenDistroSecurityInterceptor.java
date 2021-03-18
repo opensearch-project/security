@@ -125,6 +125,7 @@ public class OpenDistroSecurityInterceptor {
         final String origCCSTransientFls = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_CCS);
         final String origCCSTransientMf = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_CCS);
 
+        final boolean isDebugEnabled = log.isDebugEnabled();
         try (ThreadContext.StoredContext stashedContext = getThreadContext().stashContext()) {
             final TransportResponseHandler<T> restoringHandler = new RestoringTransportResponseHandler<T>(handler, stashedContext);
             getThreadContext().putHeader("_opendistro_security_remotecn", cs.getClusterName().value());
@@ -148,7 +149,7 @@ public class OpenDistroSecurityInterceptor {
                     || action.equals(SearchAction.NAME)
             )
                     && !clusterInfoHolder.hasNode(connection.getNode())) {
-                if (log.isDebugEnabled()) {
+                if (isDebugEnabled) {
                     log.debug("remove dls/fls/mf because we sent a ccs request to a remote cluster");
                 }
                 headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER);
@@ -162,7 +163,7 @@ public class OpenDistroSecurityInterceptor {
                     && !action.equals(ClusterSearchShardsAction.NAME)
                     && !clusterInfoHolder.hasNode(connection.getNode())) {
 
-                if (log.isDebugEnabled()) {
+                if (isDebugEnabled) {
                     log.debug("add dls/fls/mf from transient");
                 }
 
@@ -253,15 +254,16 @@ public class OpenDistroSecurityInterceptor {
 
             contextToRestore.restore();
 
+            final boolean isDebugEnabled = log.isDebugEnabled();
             if (response instanceof ClusterSearchShardsResponse && flsResponseHeader != null && !flsResponseHeader.isEmpty()) {
-                if (log.isDebugEnabled()) {
+                if (isDebugEnabled) {
                     log.debug("add flsResponseHeader as transient");
                 }
                 getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_CCS, flsResponseHeader.get(0));
             }
 
             if (response instanceof ClusterSearchShardsResponse && dlsResponseHeader != null && !dlsResponseHeader.isEmpty()) {
-                if (log.isDebugEnabled()) {
+                if (isDebugEnabled) {
                     log.debug("add dlsResponseHeader as transient");
                 }
                 getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_CCS, dlsResponseHeader.get(0));
@@ -269,7 +271,7 @@ public class OpenDistroSecurityInterceptor {
             }
 
             if (response instanceof ClusterSearchShardsResponse && maskedFieldsResponseHeader != null && !maskedFieldsResponseHeader.isEmpty()) {
-                if (log.isDebugEnabled()) {
+                if (isDebugEnabled) {
                     log.debug("add maskedFieldsResponseHeader as transient");
                 }
                 getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_CCS, maskedFieldsResponseHeader.get(0));

@@ -76,9 +76,9 @@ public abstract class AuditLogSink {
             return true;
         }
 
-
+        final boolean isDebugEnabled = log.isDebugEnabled();
         for(int i=0; i<retryCount; i++) {
-            if(log.isDebugEnabled()) {
+            if (isDebugEnabled) {
                 log.debug("Retry attempt {}/{} for {} ({})", i+1, retryCount, this.getName(), this.getClass());
             }
             Uninterruptibles.sleepUninterruptibly(delayMs, TimeUnit.MILLISECONDS);

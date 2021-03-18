@@ -55,9 +55,10 @@ public class ClusterInfoHolder implements ClusterStateListener {
     
     @Override
     public void clusterChanged(ClusterChangedEvent event) {
+        final boolean isTraceEnabled = log.isTraceEnabled();
         if(has6xNodes == null || event.nodesChanged()) {
             has6xNodes = Boolean.valueOf(clusterHas6xNodes(event.state()));
-            if(log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("has6xNodes: {}", has6xNodes);
             }
         }
@@ -66,14 +67,14 @@ public class ClusterInfoHolder implements ClusterStateListener {
         final List<Index> indicesDeleted = event.indicesDeleted();
         if(has6xIndices == null || !indicesCreated.isEmpty() || !indicesDeleted.isEmpty()) {
             has6xIndices = Boolean.valueOf(clusterHas6xIndices(event.state()));
-            if(log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("has6xIndices: {}", has6xIndices);
             }
         }
         
         if(nodes == null || event.nodesChanged()) {
             nodes = event.state().nodes();
-            if(log.isDebugEnabled()) {
+            if (log.isDebugEnabled()) {
                 log.debug("Cluster Info Holder now initialized for 'nodes'");
             }
             initialized = true;

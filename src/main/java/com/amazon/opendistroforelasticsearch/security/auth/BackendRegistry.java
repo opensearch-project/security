@@ -229,13 +229,14 @@ public class BackendRegistry {
     }
 
     public User authenticate(final TransportRequest request, final String sslPrincipal, final Task task, final String action) {
-        if(log.isDebugEnabled() && request.remoteAddress() != null) {
+        final boolean isDebugEnabled = log.isDebugEnabled();
+        if(isDebugEnabled && request.remoteAddress() != null) {
             log.debug("Transport authentication request from {}", request.remoteAddress());
         }
 
         if (request.remoteAddress() != null && isBlocked(request.remoteAddress().address().getAddress())) {
-            if (log.isDebugEnabled()) {
-                log.debug("Rejecting transport request because of blocked address: " + request.remoteAddress());
+            if (isDebugEnabled) {
+                log.debug("Rejecting transport request because of blocked address: {}", request.remoteAddress());
             }
             return null;
         }
@@ -271,7 +272,7 @@ public class BackendRegistry {
         User impersonatedTransportUser = null;
 
         if(creds != null) {
-            if(log.isDebugEnabled())  {
+            if (isDebugEnabled)  {
                 log.debug("User {} submitted also basic credentials: {}", origPKIUser.getName(), creds);
             }
         }
@@ -279,8 +280,7 @@ public class BackendRegistry {
         //loop over all transport auth domains
         for (final AuthDomain authDomain: transportAuthDomains) {
 
-            
-            if(log.isDebugEnabled()) {
+            if (isDebugEnabled) {
                 log.debug("Check transport authdomain {}/{} or {} in total", authDomain.getBackend().getType(), authDomain.getOrder(), transportAuthDomains.size());
             }
             
@@ -305,7 +305,7 @@ public class BackendRegistry {
                             request);
                 }
 
-                if (log.isDebugEnabled()) {
+                if (isDebugEnabled) {
                     log.debug("Cannot authenticate transport user {} (or add roles) with authdomain {}/{} of {}, try next", creds==null?(impersonatedTransportUser==null?origPKIUser.getName():impersonatedTransportUser.getName()):creds.getUsername(), authDomain.getBackend().getType(), authDomain.getOrder(), transportAuthDomains.size());
                 }
                 continue;
@@ -317,7 +317,7 @@ public class BackendRegistry {
                 return null;
             }
 
-            if(log.isDebugEnabled()) {
+            if (isDebugEnabled) {
                 log.debug("Transport user '{}' is authenticated", authenticatedUser);
             }
 
@@ -353,10 +353,10 @@ public class BackendRegistry {
      * @throws ElasticsearchSecurityException
      */
     public boolean authenticate(final RestRequest request, final RestChannel channel, final ThreadContext threadContext) {
-
+        final boolean isDebugEnabled = log.isDebugEnabled();
         if (request.getHttpChannel().getRemoteAddress() instanceof InetSocketAddress && isBlocked(((InetSocketAddress) request.getHttpChannel().getRemoteAddress()).getAddress())) {
-            if (log.isDebugEnabled()) {
-                log.debug("Rejecting REST request because of blocked address: " + request.getHttpChannel().getRemoteAddress());
+            if (isDebugEnabled) {
+                log.debug("Rejecting REST request because of blocked address: {}", request.getHttpChannel().getRemoteAddress());
             }
             
             channel.sendResponse(new BytesRestResponse(RestStatus.UNAUTHORIZED, "Authentication finally failed"));
@@ -386,8 +386,8 @@ public class BackendRegistry {
         }
         
         final TransportAddress remoteAddress = xffResolver.resolve(request);
-        
-        if(log.isTraceEnabled()) {
+        final boolean isTraceEnabled = log.isTraceEnabled();
+        if (isTraceEnabled) {
             log.trace("Rest authentication request from {} [original: {}]", remoteAddress, request.getHttpChannel().getRemoteAddress());
     	}
 
@@ -403,7 +403,7 @@ public class BackendRegistry {
 
         //loop over all http/rest auth domains
         for (final AuthDomain authDomain: restAuthDomains) {
-            if(log.isDebugEnabled()) {
+            if (isDebugEnabled) {
                 log.debug("Check authdomain for rest {}/{} or {} in total", authDomain.getBackend().getType(), authDomain.getOrder(), restAuthDomains.size());
             }
 
@@ -413,22 +413,22 @@ public class BackendRegistry {
                 firstChallengingHttpAuthenticator = httpAuthenticator;
             }
 
-            if(log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("Try to extract auth creds from {} http authenticator", httpAuthenticator.getType());
             }
             final AuthCredentials ac;
             try {
                 ac = httpAuthenticator.extractCredentials(request, threadContext);
             } catch (Exception e1) {
-                if(log.isDebugEnabled()) {
+                if (isDebugEnabled) {
                     log.debug("'{}' extracting credentials from {} http authenticator", e1.toString(), httpAuthenticator.getType(), e1);
                 }
                 continue;
             }
 
             if (ac != null && isBlocked(authDomain.getBackend().getClass().getName(), ac.getUsername())) {
-                if (log.isDebugEnabled()) {
-                    log.debug("Rejecting REST request because of blocked user: " + ac.getUsername() + "; authDomain: " + authDomain);
+                if (isDebugEnabled) {
+                    log.debug("Rejecting REST request because of blocked user: {}, authDomain: {}", ac.getUsername(), authDomain);
                 }
 
                 continue;
@@ -448,7 +448,9 @@ public class BackendRegistry {
                     return false;
                 } else {
                     //no reRequest possible
-                	log.trace("No 'Authorization' header, send 403");
+                    if (isTraceEnabled) {
+                        log.trace("No 'Authorization' header, send 403");
+                    }
                     continue;
                 }
             } else {
@@ -470,7 +472,7 @@ public class BackendRegistry {
             authenticatedUser = authcz(userCache, restRoleCache, ac, authDomain.getBackend(), restAuthorizers);
 
             if(authenticatedUser == null) {
-                if(log.isDebugEnabled()) {
+                if (isDebugEnabled) {
                     log.debug("Cannot authenticate rest user {} (or add roles) with authdomain {}/{} of {}, try next", ac.getUsername(), authDomain.getBackend().getType(), authDomain.getOrder(), restAuthDomains);
                 }
                 for (AuthFailureListener authFailureListener : this.authBackendFailureListeners.get(authDomain.getBackend().getClass().getName())) {
@@ -492,7 +494,7 @@ public class BackendRegistry {
 
             final String tenant = Utils.coalesce(request.header("securitytenant"), request.header("security_tenant"));
 
-            if(log.isDebugEnabled()) {
+            if (isDebugEnabled) {
                 log.debug("Rest user '{}' is authenticated", authenticatedUser);
                 log.debug("securitytenant '{}'", tenant);
             }
@@ -508,14 +510,14 @@ public class BackendRegistry {
             auditLog.logSucceededLogin((impersonatedUser == null ? authenticatedUser : impersonatedUser).getName(), false,
                     authenticatedUser.getName(), request);
         } else {
-            if(log.isDebugEnabled()) {
+            if (isDebugEnabled) {
                 log.debug("User still not authenticated after checking {} auth domains", restAuthDomains.size());
             }
 
             if(authCredenetials == null && anonymousAuthEnabled) {
             	threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, User.ANONYMOUS);
             	auditLog.logSucceededLogin(User.ANONYMOUS.getName(), false, null, request);
-                if(log.isDebugEnabled()) {
+                if (isDebugEnabled) {
                     log.debug("Anonymous User is authenticated");
                 }
                 return true;
@@ -523,12 +525,12 @@ public class BackendRegistry {
 
             if(firstChallengingHttpAuthenticator != null) {
 
-                if(log.isDebugEnabled()) {
+                if (isDebugEnabled) {
                     log.debug("Rerequest with {}", firstChallengingHttpAuthenticator.getClass());
                 }
 
                 if(firstChallengingHttpAuthenticator.reRequestAuthentication(channel, null)) {
-                    if(log.isDebugEnabled()) {
+                    if (isDebugEnabled) {
                         log.debug("Rerequest {} failed", firstChallengingHttpAuthenticator.getClass());
                     }
 
@@ -577,28 +579,30 @@ public class BackendRegistry {
             return null;
         }
 
+        final boolean isDebugEnabled = log.isDebugEnabled();
+        final boolean isTraceEnabled = log.isTraceEnabled();
+
         try {
             return cache.get(user.getName(), new Callable<User>() { //no cache miss in case of noop
                 @Override
                 public User call() throws Exception {
-                    if(log.isTraceEnabled()) {
-                        log.trace("Credentials for user "+user.getName()+" not cached, return from "+authenticationBackend.getType()
-                                + " backend directly");
+                    if (isTraceEnabled) {
+                        log.trace("Credentials for user {} not cached, return from {} backend directly", user.getName(), authenticationBackend.getType());
                     }
                     if(authenticationBackend.exists(user)) {
                         authz(user, null, authorizers); //no role cache because no miss here in case of noop
                         return user;
                     }
 
-                    if(log.isDebugEnabled()) {
-                        log.debug("User "+user.getName()+" does not exist in "+authenticationBackend.getType());
+                    if (isDebugEnabled) {
+                        log.debug("User {} does not exist in {}", user.getName(), authenticationBackend.getType());
                     }
                     return null;
                 }
             });
         } catch (Exception e) {
-            if(log.isDebugEnabled()) {
-                log.debug("Can not check and authorize "+user.getName()+" due to "+e.toString(), e);
+            if (isDebugEnabled) {
+                log.debug("Can not check and authorize {} due to ", user.getName(), e);
             }
             return null;
         }
@@ -623,10 +627,11 @@ public class BackendRegistry {
             return;
         }
 
+        final boolean isTraceEnabled = log.isTraceEnabled();
         for (final AuthorizationBackend ab : authorizers) {
             try {
-                if(log.isTraceEnabled()) {
-                    log.trace("Backend roles for "+authenticatedUser.getName()+" not cached, return from "+ab.getType()+" backend directly");
+                if (isTraceEnabled) {
+                    log.trace("Backend roles for {} not cached, return from {} backend directly", authenticatedUser.getName(), ab.getType());
                 }
                 ab.fillRoles(authenticatedUser, new AuthCredentials(authenticatedUser.getName()));
             } catch (Exception e) {
@@ -664,9 +669,8 @@ public class BackendRegistry {
             return cache.get(ac, new Callable<User>() {
                 @Override
                 public User call() throws Exception {
-                    if(log.isTraceEnabled()) {
-                        log.trace("Credentials for user "+ac.getUsername()+" not cached, return from "+authBackend.getType()
-                                + " backend directly");
+                    if (log.isTraceEnabled()) {
+                        log.trace("Credentials for user {} not cached, return from {} backend directly", ac.getUsername(), authBackend.getType());
                     }
                     final User authenticatedUser = authBackend.authenticate(ac);
                     authz(authenticatedUser, roleCache, authorizers);
@@ -674,8 +678,8 @@ public class BackendRegistry {
                 }
             });
         } catch (Exception e) {
-            if(log.isDebugEnabled()) {
-                log.debug("Can not authenticate "+ac.getUsername()+" due to "+e.toString(), e);
+            if (log.isDebugEnabled()) {
+                log.debug("Can not authenticate {} due to exception", ac.getUsername(), e);
             }
             return null;
         } finally {
@@ -711,6 +715,7 @@ public class BackendRegistry {
                 throw new ElasticsearchSecurityException(
                         "'"+origPKIuser.getName() + "' is not allowed to impersonate as '" + impersonatedUser+"'");
             } else if (impersonatedUser != null) {
+                final boolean isDebugEnabled = log.isDebugEnabled();
                 //loop over all transport auth domains
                 for (final AuthDomain authDomain : transportAuthDomains) {
                     final AuthenticationBackend authenticationBackend = authDomain.getBackend();
@@ -724,7 +729,7 @@ public class BackendRegistry {
                         continue;
                     }
 
-                    if (log.isDebugEnabled()) {
+                    if (isDebugEnabled) {
                         log.debug("Impersonate transport user from '{}' to '{}'", origPKIuser.getName(), impersonatedUser);
                     }
                     return impersonatedUserObject;
@@ -762,6 +767,7 @@ public class BackendRegistry {
             throw new ElasticsearchSecurityException(
                     "'" + originalUser.getName() + "' is not allowed to impersonate as '" + impersonatedUserHeader + "'", RestStatus.FORBIDDEN);
         } else {
+            final boolean isDebugEnabled = log.isDebugEnabled();
             //loop over all http/rest auth domains
             for (final AuthDomain authDomain: restAuthDomains) {
                 final AuthenticationBackend authenticationBackend = authDomain.getBackend();
@@ -774,7 +780,7 @@ public class BackendRegistry {
                     continue;
                 }
 
-                if (log.isDebugEnabled()) {
+                if (isDebugEnabled) {
                     log.debug("Impersonate rest user from '{}' to '{}'", originalUser.toStringWithAttributes(), impersonatedUser.toStringWithAttributes());
                 }
                 

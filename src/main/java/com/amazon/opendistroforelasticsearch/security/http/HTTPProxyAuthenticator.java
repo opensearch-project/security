@@ -69,10 +69,10 @@ public class HTTPProxyAuthenticator implements HTTPAuthenticator {
         final String userHeader = settings.get("user_header");
         final String rolesHeader = settings.get("roles_header");
         
-        if(log.isDebugEnabled()) {
-            log.debug("headers {}", request.getHeaders());
-            log.debug("userHeader {}, value {}", userHeader, userHeader == null?null:request.header(userHeader));
-            log.debug("rolesHeader {}, value {}", rolesHeader, rolesHeader == null?null:request.header(rolesHeader));
+        if (log.isDebugEnabled()) {
+            log.debug("Headers {}", request.getHeaders());
+            log.debug("UserHeader {}, value {}", userHeader, userHeader == null ? null : request.header(userHeader));
+            log.debug("RolesHeader {}, value {}", rolesHeader, rolesHeader == null ? null : request.header(rolesHeader));
         }
 
         if (!Strings.isNullOrEmpty(userHeader) && !Strings.isNullOrEmpty((String) request.header(userHeader))) {
@@ -88,9 +88,7 @@ public class HTTPProxyAuthenticator implements HTTPAuthenticator {
             }
             return new AuthCredentials((String) request.header(userHeader), backendRoles).markComplete();
         } else {
-            if(log.isTraceEnabled()) {
-                log.trace("No '{}' header, send 401", userHeader);
-            }
+            log.trace("No '{}' header, send 401", userHeader);
             return null;
         }
     }

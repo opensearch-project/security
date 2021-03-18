@@ -78,7 +78,7 @@ public final class InternalESSink extends AuditLogSink {
 				irb.execute().actionGet();
 				return true;
 			} catch (final Exception e) {
-				log.error("Unable to index audit log {} due to {}", msg, e.toString(), e);
+				log.error("Unable to index audit log {} due to", msg, e);
 				return false;
 			}
 		}

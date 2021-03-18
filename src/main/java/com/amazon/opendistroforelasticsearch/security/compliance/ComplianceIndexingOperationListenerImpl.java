@@ -149,12 +149,12 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
             if(previousContent == null) {
                 //no previous content
                 if(!result.isCreated()) {
-                    log.warn("No previous content and not created (its an update but do not find orig source) for {}", index.startTime()+"/"+shardId+"/"+index.type()+"/"+index.id());
+                    log.warn("No previous content and not created (its an update but do not find orig source) for {}/{}/{}/{}", index.startTime(), shardId, index.type(), index.id());
                 }
                 assert result.isCreated():"No previous content and not created";
             } else {
                 if(result.isCreated()) {
-                    log.warn("Previous content and created for {}",index.startTime()+"/"+shardId+"/"+index.type()+"/"+index.id());
+                    log.warn("Previous content and created for {}/{}/{}/{}", index.startTime(), shardId, index.type(), index.id());
                 }
                 assert !result.isCreated():"Previous content and created";
             }

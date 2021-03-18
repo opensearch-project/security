@@ -214,11 +214,11 @@ public class PrivilegesEvaluator {
 
         final PrivilegesEvaluatorResponse presponse = new PrivilegesEvaluatorResponse();
 
-
-        if (log.isDebugEnabled()) {
-            log.debug("### evaluate permissions for {} on {}", user, clusterService.localNode().getName());
-            log.debug("action: "+action0+" ("+request.getClass().getSimpleName()+")");
-            log.debug("mapped roles: {}",mappedRoles.toString());
+        final boolean isDebugEnabled = log.isDebugEnabled();
+        if (isDebugEnabled) {
+            log.debug("Evaluate permissions for {} on {}", user, clusterService.localNode().getName());
+            log.debug("Action: {} ({})", action0, request.getClass().getSimpleName());
+            log.debug("Mapped roles: {}", mappedRoles.toString());
         }
 
         if (request instanceof BulkRequest && (Strings.isNullOrEmpty(user.getRequestedTenant()))) {
@@ -239,8 +239,8 @@ public class PrivilegesEvaluator {
 
         final Resolved requestedResolved = irr.resolveRequest(request);
 
-        if (log.isDebugEnabled()) {
-            log.debug("requestedResolved : {}", requestedResolved );
+        if (isDebugEnabled) {
+            log.debug("RequestedResolved : {}", requestedResolved);
         }
 
 
@@ -268,7 +268,8 @@ public class PrivilegesEvaluator {
 
         final boolean dnfofEnabled = dcm.isDnfofEnabled();
 
-        if(log.isTraceEnabled()) {
+        final boolean isTraceEnabled = log.isTraceEnabled();
+        if (isTraceEnabled) {
             log.trace("dnfof enabled? {}", dnfofEnabled);
         }
 
@@ -283,7 +284,7 @@ public class PrivilegesEvaluator {
             } else {
 
                 if(request instanceof RestoreSnapshotRequest && checkSnapshotRestoreWritePrivileges) {
-                    if(log.isDebugEnabled()) {
+                    if (isDebugEnabled) {
                         log.debug("Normally allowed but we need to apply some extra checks for a restore request.");
                     }
                 } else {
@@ -292,7 +293,7 @@ public class PrivilegesEvaluator {
                         final PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceKibanaIndex(request, action0, user, dcm, requestedResolved,
                                 mapTenants(user, mappedRoles));
 
-                        if(log.isDebugEnabled()) {
+                        if (isDebugEnabled) {
                             log.debug("Result from privileges interceptor for cluster perm: {}", replaceResult);
                         }
 
@@ -333,8 +334,8 @@ public class PrivilegesEvaluator {
                         }
                     }
 
-                    if(log.isDebugEnabled()) {
-                        log.debug("Allowed because we have cluster permissions for "+action0);
+                    if (isDebugEnabled) {
+                        log.debug("Allowed because we have cluster permissions for {}", action0);
                     }
                     presponse.allowed = true;
                     return presponse;
@@ -352,21 +353,17 @@ public class PrivilegesEvaluator {
         final Set<String> allIndexPermsRequired = evaluateAdditionalIndexPermissions(request, action0);
         final String[] allIndexPermsRequiredA = allIndexPermsRequired.toArray(new String[0]);
 
-        if(log.isDebugEnabled()) {
-            log.debug("requested {} from {}", allIndexPermsRequired, caller);
+        if (isDebugEnabled) {
+            log.debug("Requested {} from {}", allIndexPermsRequired, caller);
         }
 
         presponse.missingPrivileges.clear();
         presponse.missingPrivileges.addAll(allIndexPermsRequired);
 
-        if (log.isDebugEnabled()) {
-            log.debug("requested resolved indextypes: {}", requestedResolved);
+        if (isDebugEnabled) {
+            log.debug("Requested resolved index types: {}", requestedResolved);
+            log.debug("Security roles: {}", securityRoles.getRoleNames());
         }
-
-        if (log.isDebugEnabled()) {
-            log.debug("sr: {}", securityRoles.getRoleNames());
-        }
-
 
         //TODO exclude Security index
 
@@ -374,7 +371,7 @@ public class PrivilegesEvaluator {
 
             final PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceKibanaIndex(request, action0, user, dcm, requestedResolved, mapTenants(user, mappedRoles));
 
-            if(log.isDebugEnabled()) {
+            if (isDebugEnabled) {
                 log.debug("Result from privileges interceptor: {}", replaceResult);
             }
 
@@ -445,8 +442,8 @@ public class PrivilegesEvaluator {
         //not bulk, mget, etc request here
         boolean permGiven = false;
 
-        if (log.isDebugEnabled()) {
-            log.debug("sr2: {}", securityRoles.getRoleNames());
+        if (isDebugEnabled) {
+            log.debug("Security roles: {}", securityRoles.getRoleNames());
         }
 
         if (dcm.isMultiRolespanEnabled()) {
@@ -462,13 +459,13 @@ public class PrivilegesEvaluator {
             log.info("No permissions for {}", presponse.missingPrivileges);
         } else {
 
-            if(checkFilteredAliases(requestedResolved.getAllIndices(), action0)) {
+            if(checkFilteredAliases(requestedResolved.getAllIndices(), action0, isDebugEnabled)) {
                 presponse.allowed=false;
                 return presponse;
             }
 
-            if(log.isDebugEnabled()) {
-                log.debug("Allowed because we have all indices permissions for "+action0);
+            if (isDebugEnabled) {
+                log.debug("Allowed because we have all indices permissions for {}", action0);
             }
         }
 
@@ -575,8 +572,8 @@ public class PrivilegesEvaluator {
             traceAction("Additional permissions required: {}", additionalPermissionsRequired);
         }
 
-        if(log.isDebugEnabled() && additionalPermissionsRequired.size() > 1) {
-            log.debug("Additional permissions required: "+additionalPermissionsRequired);
+        if (log.isDebugEnabled() && additionalPermissionsRequired.size() > 1) {
+            log.debug("Additional permissions required: {}", additionalPermissionsRequired);
         }
 
         return Collections.unmodifiableSet(additionalPermissionsRequired);
@@ -596,7 +593,7 @@ public class PrivilegesEvaluator {
             ) ;
     }
 
-    private boolean checkFilteredAliases(Set<String> requestedResolvedIndices, String action) {
+    private boolean checkFilteredAliases(Set<String> requestedResolvedIndices, String action, boolean isDebugEnabled) {
         //check filtered aliases
         for (String requestAliasOrIndex: requestedResolvedIndices) {
 
@@ -605,15 +602,16 @@ public class PrivilegesEvaluator {
             final IndexMetadata indexMetadata = clusterService.state().metadata().getIndices().get(requestAliasOrIndex);
 
             if (indexMetadata == null) {
-                log.debug("{} does not exist in cluster metadata", requestAliasOrIndex);
+                if (isDebugEnabled) {
+                    log.debug("{} does not exist in cluster metadata", requestAliasOrIndex);
+                }
                 continue;
             }
 
             final ImmutableOpenMap<String, AliasMetadata> aliases = indexMetadata.getAliases();
 
             if(aliases != null && aliases.size() > 0) {
-
-                if(log.isDebugEnabled()) {
+                if (isDebugEnabled) {
                     log.debug("Aliases for {}: {}", requestAliasOrIndex, aliases);
                 }
 
@@ -624,12 +622,12 @@ public class PrivilegesEvaluator {
 
                     if (aliasMetadata != null && aliasMetadata.filteringRequired()) {
                         filteredAliases.add(aliasMetadata);
-                        if(log.isDebugEnabled()) {
-                            log.debug(alias+" is a filtered alias "+aliasMetadata.getFilter());
+                        if (isDebugEnabled) {
+                            log.debug("{} is a filtered alias {}", alias, aliasMetadata.getFilter());
                         }
                     } else {
-                        if(log.isDebugEnabled()) {
-                            log.debug(alias+" is not an alias or does not have a filter");
+                        if (isDebugEnabled) {
+                            log.debug("{} is not an alias or does not have a filter", alias);
                         }
                     }
                 }
@@ -644,7 +642,7 @@ public class PrivilegesEvaluator {
                     log.error("More than one ({}) filtered alias found for same index ({}). This is currently not supported. Aliases: {}", filteredAliases.size(), requestAliasOrIndex, toString(filteredAliases));
                     return true;
                 } else {
-                    if (log.isDebugEnabled()) {
+                    if (isDebugEnabled) {
                         log.debug("More than one ({}) filtered alias found for same index ({}). Aliases: {}", filteredAliases.size(), requestAliasOrIndex, toString(filteredAliases));
                     }
                 }

@@ -95,9 +95,10 @@ public final class DefaultInterClusterRequestEvaluator implements InterClusterRe
 
         WildcardMatcher nodesDn = this.getNodesDnToEvaluate();
 
+        final boolean isTraceEnabled = log.isTraceEnabled();
         if (principals[0] != null && nodesDn.matchAny(principals)) {
             
-            if (log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("Treat certificate with principal {} as other node because of it matches one of {}", Arrays.toString(principals),
                         nodesDn);
             }
@@ -105,7 +106,7 @@ public final class DefaultInterClusterRequestEvaluator implements InterClusterRe
             return true;
             
         } else {
-            if (log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("Treat certificate with principal {} NOT as other node because we it does not matches one of {}", Arrays.toString(principals),
                         nodesDn);
             }
@@ -152,13 +153,13 @@ public final class DefaultInterClusterRequestEvaluator implements InterClusterRe
                 }
 
             } else {
-                if (log.isTraceEnabled()) {
+                if (isTraceEnabled) {
                     log.trace("No subject alternative names (san) found");
                 }
             }
         } catch (CertificateParsingException e) {
             if (log.isDebugEnabled()) {
-                log.debug("Exception parsing certificate using {}", e, this.getClass());
+                log.debug("Exception parsing certificate using {}", this.getClass(), e);
             }
             throw new ElasticsearchException(e);
         }

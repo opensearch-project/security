@@ -92,7 +92,7 @@ public class FileHelper {
 			}
 
 		} else {
-			log.error("Failed to load " + fileNameFromClasspath);
+			log.error("Failed to load {}", fileNameFromClasspath);
 		}
 		return null;
 	}

@@ -85,6 +85,8 @@ public final class ExternalESSink extends AuditLogSink {
 		    char[] effectiveKeyPassword;
 		    String effectiveKeyAlias;
 
+		    final boolean isDebugEnabled = log.isDebugEnabled();
+
 		    if(pem) {
                 X509Certificate[] trustCertificates = PemKeyReader.loadCertificatesFromStream(PemKeyReader.resolveStream(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_PEMTRUSTEDCAS_CONTENT, sinkSettings));
 
@@ -113,7 +115,7 @@ public final class ExternalESSink extends AuditLogSink {
                 effectiveTruststore = PemKeyReader.toTruststore(effectiveKeyAlias, trustCertificates);
                 effectiveKeystore = PemKeyReader.toKeystore(effectiveKeyAlias, effectiveKeyPassword, authenticationCertificate, authenticationKey);
 
-                if(log.isDebugEnabled()) {
+                if (isDebugEnabled) {
                     log.debug("Use PEM to secure communication with auditlog server (client auth is {})", authenticationKey!=null);
                 }
 
@@ -137,7 +139,7 @@ public final class ExternalESSink extends AuditLogSink {
                 effectiveTruststore = trustStore;
                 effectiveKeystore = keyStore;
 
-                if(log.isDebugEnabled()) {
+                if (isDebugEnabled) {
                     log.debug("Use Trust-/Keystore to secure communication with LDAP server (client auth is {})", keyStore!=null);
                     log.debug("keyStoreAlias: {}",  effectiveKeyAlias);
                 }

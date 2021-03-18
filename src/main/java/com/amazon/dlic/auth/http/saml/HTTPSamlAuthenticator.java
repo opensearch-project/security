@@ -133,7 +133,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
             this.httpJwtAuthenticator = new HTTPJwtAuthenticator(this.jwtSettings, configPath);
 
         } catch (Exception e) {
-            log.error("Error creating HTTPSamlAuthenticator: " + e + ". SAML authentication will not work", e);
+            log.error("Error creating HTTPSamlAuthenticator. SAML authentication will not work", e);
             throw new RuntimeException(e);
         }
     }

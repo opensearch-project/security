@@ -953,19 +953,20 @@ public class ConfigModelV6 extends ConfigModel {
         }
 
         public boolean matches(String index, String type, String action) {
+            final boolean isDebugEnabled = log.isDebugEnabled();
             boolean matchIndex = matcher.test(index);
-            if (log.isDebugEnabled()) {
+            if (isDebugEnabled) {
                 log.debug("index {} {} index pattern {}", index, b2s(matchIndex), matcher);
             }
             if (matchIndex) {
                 return typePerms.stream().anyMatch(tp -> {
                     boolean matchType = tp.getTypeMatcher().test(type);
-                    if (log.isDebugEnabled()) {
+                    if (isDebugEnabled) {
                         log.debug("type {} {} type pattern {}", type, b2s(matchType), tp.getTypeMatcher());
                     }
                     if (matchType) {
                         boolean matchAction = tp.getPerms().test(action);
-                        if (log.isDebugEnabled()) {
+                        if (isDebugEnabled) {
                             log.debug("action {} {} action pattern {}", action, b2s(matchAction), tp.getPerms());
                         }
                         return matchAction;

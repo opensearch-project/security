@@ -92,27 +92,27 @@ public class OpenDistroSecurityIndexAccessEvaluator {
     
     public PrivilegesEvaluatorResponse evaluate(final ActionRequest request, final Task task, final String action, final Resolved requestedResolved,
             final PrivilegesEvaluatorResponse presponse)  {
-
+        final boolean isDebugEnabled = log.isDebugEnabled();
         if ((requestedResolved.getAllIndices().contains(opendistrosecurityIndex) || matchAnySystemIndices(requestedResolved))
                 && securityDeniedActionMatcher.test(action)) {
             if(filterSecurityIndex) {
                 Set<String> allWithoutSecurity = new HashSet<>(requestedResolved.getAllIndices());
                 allWithoutSecurity.remove(opendistrosecurityIndex);
                 if(allWithoutSecurity.isEmpty()) {
-                    if(log.isDebugEnabled()) {
+                    if (isDebugEnabled) {
                         log.debug("Filtered '{}' but resulting list is empty", opendistrosecurityIndex);
                     }
                     presponse.allowed = false;
                     return presponse.markComplete();
                 }
                 irr.replace(request, false, allWithoutSecurity.toArray(new String[0]));
-                if(log.isDebugEnabled()) {
+                if (isDebugEnabled) {
                     log.debug("Filtered '{}', resulting list is {}", opendistrosecurityIndex, allWithoutSecurity);
                 }
                 return presponse;
             } else {
                 auditLog.logSecurityIndexAttempt(request, action, task);
-                log.warn(action + " for '{}' index is not allowed for a regular user", opendistrosecurityIndex);
+                log.warn("{} for '{}' index is not allowed for a regular user", action, opendistrosecurityIndex);
                 presponse.allowed = false;
                 return presponse.markComplete();
             }
@@ -122,13 +122,13 @@ public class OpenDistroSecurityIndexAccessEvaluator {
                 && securityDeniedActionMatcher.test(action)) {
             if(filterSecurityIndex) {
                 irr.replace(request, false, "*","-"+opendistrosecurityIndex);
-                if(log.isDebugEnabled()) {
+                if (isDebugEnabled) {
                     log.debug("Filtered '{}'from {}, resulting list with *,-{} is {}", opendistrosecurityIndex, requestedResolved, opendistrosecurityIndex, irr.resolveRequest(request));
                 }
                 return presponse;
             } else {
                 auditLog.logSecurityIndexAttempt(request, action, task);
-                log.warn(action + " for '_all' indices is not allowed for a regular user");
+                log.warn( "{} for '_all' indices is not allowed for a regular user", action);
                 presponse.allowed = false;
                 return presponse.markComplete();
             }
@@ -139,14 +139,14 @@ public class OpenDistroSecurityIndexAccessEvaluator {
 
             if(request instanceof SearchRequest) {
                 ((SearchRequest)request).requestCache(Boolean.FALSE);
-                if(log.isDebugEnabled()) {
+                if (isDebugEnabled) {
                     log.debug("Disable search request cache for this request");
                 }
             }
 
             if(request instanceof RealtimeRequest) {
                 ((RealtimeRequest) request).realtime(Boolean.FALSE);
-                if(log.isDebugEnabled()) {
+                if (isDebugEnabled) {
                     log.debug("Disable realtime for this request");
                 }
             }

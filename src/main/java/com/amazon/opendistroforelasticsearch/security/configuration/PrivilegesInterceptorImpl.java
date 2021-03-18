@@ -113,16 +113,16 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         final String kibanaIndexName = config.getKibanaIndexname();//config.dynamic.kibana.index;
 
         String requestedTenant = user.getRequestedTenant();
-
-        if (log.isDebugEnabled()) {
+        final boolean isDebugEnabled = log.isDebugEnabled();
+        if (isDebugEnabled) {
             log.debug("raw requestedTenant: '" + requestedTenant + "'");
         }
 
         //intercept when requests are not made by the kibana server and if the kibana index/alias (.kibana) is the only index/alias involved
         final boolean kibanaIndexOnly = !user.getName().equals(kibanaserverUsername) && resolveToKibanaIndexOrAlias(requestedResolved, kibanaIndexName);
-
+        final boolean isTraceEnabled = log.isTraceEnabled();
         if (requestedTenant == null || requestedTenant.length() == 0) {
-            if (log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("No tenant, will resolve to " + kibanaIndexName);
             }
 
@@ -137,7 +137,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
             requestedTenant = user.getName();
         }
 
-        if (log.isDebugEnabled() && !user.getName().equals(kibanaserverUsername)) {
+        if (isDebugEnabled && !user.getName().equals(kibanaserverUsername)) {
             //log statements only here
             log.debug("requestedResolved: " + requestedResolved);
         }
@@ -155,7 +155,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         //intercept when requests are not made by the kibana server and if the kibana index/alias (.kibana) is the only index/alias involved
         if (kibanaIndexOnly) {
 
-            if (log.isDebugEnabled()) {
+            if (isDebugEnabled) {
                 log.debug("requestedTenant: " + requestedTenant);
                 log.debug("is user tenant: " + requestedTenant.equals(user.getName()));
             }
@@ -173,7 +173,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
 
         } else if (!user.getName().equals(kibanaserverUsername)) {
 
-            if (log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("not a request to only the .kibana index");
                 log.trace(user.getName() + "/" + kibanaserverUsername);
                 log.trace(requestedResolved + " does not contain only " + kibanaIndexName);

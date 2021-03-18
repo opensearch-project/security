@@ -239,7 +239,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                         }
                     });
                 } catch (PrivilegedActionException e) {
-                    log.warn("Unable to restore classloader because of " + e.getException(), e.getException());
+                    log.warn("Unable to restore classloader because of ", e);
                 }
             }
         }
@@ -257,9 +257,11 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
         Connection connection = null;
         Exception lastException = null;
 
+        final boolean isDebugEnabled = log.isDebugEnabled();
+        final boolean isTraceEnabled = log.isTraceEnabled();
         for (String ldapHost : ldapHosts) {
 
-            if (log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("Connect to {}", ldapHost);
             }
 
@@ -278,7 +280,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                 final ConnectionConfig config = new ConnectionConfig();
                 config.setLdapUrl("ldap" + (enableSSL ? "s" : "") + "://" + split[0] + ":" + port);
 
-                if (log.isTraceEnabled()) {
+                if (isTraceEnabled) {
                     log.trace("Connect to {}", config.getLdapUrl());
                 }
 
@@ -287,7 +289,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                 final String bindDn = settings.get(ConfigConstants.LDAP_BIND_DN, null);
                 final String password = settings.get(ConfigConstants.LDAP_PASSWORD, null);
 
-                if (log.isDebugEnabled()) {
+                if (isDebugEnabled) {
                     log.debug("bindDn {}, password {}", bindDn,
                             password != null && password.length() > 0 ? "****" : "<not set>");
                 }
@@ -299,7 +301,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                 final boolean enableClientAuth = settings.getAsBoolean(ConfigConstants.LDAPS_ENABLE_SSL_CLIENT_AUTH,
                         ConfigConstants.LDAPS_ENABLE_SSL_CLIENT_AUTH_DEFAULT);
 
-                if (log.isDebugEnabled()) {
+                if (isDebugEnabled) {
                     if (enableClientAuth && bindDn == null) {
                         log.debug("Will perform External SASL bind because client cert authentication is enabled");
                     } else if (bindDn == null) {
@@ -340,9 +342,6 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
             } catch (final Exception e) {
                 lastException = e;
                 log.warn("Unable to connect to ldapserver {} due to {}. Try next.", ldapHost, e.toString());
-                if (log.isDebugEnabled()) {
-                    log.debug("Unable to connect to ldapserver due to ", e);
-                }
                 Utils.unbindAndCloseSilently(connection);
                 if (needRestore) {
                     restoreClassLoader0(cl);
@@ -369,7 +368,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
 
         final Connection delegate = connection;
 
-        if(log.isDebugEnabled()) {
+        if (isDebugEnabled) {
             log.debug("Opened a connection, total count is now {}", CONNECTION_COUNTER.incrementAndGet());
         }
 
@@ -377,7 +376,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
 
             @Override
             public Response<Void> reopen(BindRequest request) throws LdapException {
-                if(log.isDebugEnabled()) {
+                if (isDebugEnabled) {
                     log.debug("Reopened a connection");
                 }
                 return delegate.reopen(request);
@@ -385,7 +384,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
 
             @Override
             public Response<Void> reopen() throws LdapException {
-                if(log.isDebugEnabled()) {
+                if (isDebugEnabled) {
                     log.debug("Reopened a connection");
                 }
                 return delegate.reopen();
@@ -395,7 +394,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
             public Response<Void> open(BindRequest request) throws LdapException {
                 
                 try {
-                    if(log.isDebugEnabled() && delegate != null && delegate.isOpen()) {
+                    if(isDebugEnabled && delegate != null && delegate.isOpen()) {
                         log.debug("Opened a connection, total count is now {}", CONNECTION_COUNTER.incrementAndGet());
                     }
                 } catch (Throwable e) {
@@ -409,7 +408,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
             public Response<Void> open() throws LdapException {
                 
                 try {
-                    if(log.isDebugEnabled() && delegate != null && delegate.isOpen()) {
+                    if(isDebugEnabled && delegate != null && delegate.isOpen()) {
                         log.debug("Opened a connection, total count is now {}", CONNECTION_COUNTER.incrementAndGet());
                     }
                 } catch (Throwable e) {
@@ -438,7 +437,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
             public void close(RequestControl[] controls) {
                 
                 try {
-                    if(log.isDebugEnabled() && delegate != null && delegate.isOpen()) {
+                    if(isDebugEnabled && delegate != null && delegate.isOpen()) {
                         log.debug("Closed a connection, total count is now {}", CONNECTION_COUNTER.decrementAndGet());
                     }
                 } catch (Throwable e) {
@@ -456,7 +455,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
             public void close() {
                 
                 try {
-                    if(log.isDebugEnabled() && delegate != null && delegate.isOpen()) {
+                    if(isDebugEnabled && delegate != null && delegate.isOpen()) {
                         log.debug("Closed a connection, total count is now {}", CONNECTION_COUNTER.decrementAndGet());
                     }
                 } catch (Throwable e) {
@@ -488,13 +487,14 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                 }
             });
         } catch (PrivilegedActionException e) {
-            log.warn("Unable to restore classloader because of " + e.getException(), e.getException());
+            log.warn("Unable to restore classloader because of", e);
         }
     }
 
     private static Map<String, Object> configureSSL(final ConnectionConfig config, final Settings settings,
             final Path configPath) throws Exception {
 
+        final boolean isDebugEnabled = log.isDebugEnabled();
         final Map<String, Object> props = new HashMap<String, Object>();
         final boolean enableSSL = settings.getAsBoolean(ConfigConstants.LDAPS_ENABLE_SSL, false);
         final boolean enableStartTLS = settings.getAsBoolean(ConfigConstants.LDAPS_ENABLE_START_TLS, false);
@@ -509,7 +509,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
             final boolean verifyHostnames = !trustAll && settings.getAsBoolean(ConfigConstants.LDAPS_VERIFY_HOSTNAMES,
                     ConfigConstants.LDAPS_VERIFY_HOSTNAMES_DEFAULT);
 
-            if (log.isDebugEnabled()) {
+            if (isDebugEnabled) {
                 log.debug("verifyHostname {}:", verifyHostnames);
                 log.debug("trustall {}:", trustAll);
             }
@@ -554,7 +554,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                 cc = CredentialConfigFactory.createX509CredentialConfig(trustCertificates, authenticationCertificate,
                         authenticationKey);
 
-                if (log.isDebugEnabled()) {
+                if (isDebugEnabled) {
                     log.debug("Use PEM to secure communication with LDAP server (client auth is {})",
                             authenticationKey != null);
                 }
@@ -587,7 +587,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                     throw new IllegalArgumentException(ConfigConstants.LDAPS_JKS_CERT_ALIAS + " not given");
                 }
 
-                if (log.isDebugEnabled()) {
+                if (isDebugEnabled) {
                     log.debug("Use Trust-/Keystore to secure communication with LDAP server (client auth is {})",
                             keyStore != null);
                     log.debug("trustStoreAliases: {}, keyStoreAlias: {}", trustStoreAliases, keyStoreAlias);
@@ -649,7 +649,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
         config.setConnectTimeout(Duration.ofMillis(connectTimeout < 0L ? 0L : connectTimeout)); // 5 sec by default
         config.setResponseTimeout(Duration.ofMillis(responseTimeout < 0L ? 0L : responseTimeout));
 
-        if (log.isDebugEnabled()) {
+        if (isDebugEnabled) {
             log.debug("Connect timeout: " + config.getConnectTimeout() + "/ResponseTimeout: "
                     + config.getResponseTimeout());
         }
@@ -670,8 +670,9 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
         LdapEntry entry = null;
         String dn = null;
 
-        if(log.isDebugEnabled()){
-            log.debug("DBGTRACE (2): username="+user.getName()+" -> "+Arrays.toString(user.getName().getBytes(StandardCharsets.UTF_8)));
+        final boolean isDebugEnabled = log.isDebugEnabled();
+        if (isDebugEnabled){
+            log.debug("DBGTRACE (2): username: {} -> {}", user.getName(), Arrays.toString(user.getName().getBytes(StandardCharsets.UTF_8)));
         }
 
         if (user instanceof LdapUser) {
@@ -683,18 +684,19 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
             originalUserName = user.getName();
         }
 
-        if(log.isDebugEnabled()){
-            log.debug("DBGTRACE (3): authenticatedUser="+authenticatedUser+" -> "+Arrays.toString(authenticatedUser.getBytes(StandardCharsets.UTF_8)));
+        if (isDebugEnabled){
+            log.debug("DBGTRACE (3): authenticatedUser: {} -> {}", authenticatedUser, Arrays.toString(authenticatedUser.getBytes(StandardCharsets.UTF_8)));
         }
 
 
         final boolean rolesearchEnabled = settings.getAsBoolean(ConfigConstants.LDAP_AUTHZ_ROLESEARCH_ENABLED, true);
 
-        if (log.isDebugEnabled()) {
+        if (isDebugEnabled) {
             log.debug("Try to get roles for {}", authenticatedUser);
         }
 
-        if (log.isTraceEnabled()) {
+        final boolean isTraceEnabled = log.isTraceEnabled();
+        if (isTraceEnabled) {
             log.trace("user class: {}", user.getClass());
             log.trace("authenticatedUser: {}", authenticatedUser);
             log.trace("originalUserName: {}", originalUserName);
@@ -703,7 +705,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
         }
 
         if (skipUsersMatcher.test(originalUserName) || skipUsersMatcher.test(authenticatedUser)) {
-            if (log.isDebugEnabled()) {
+            if (isDebugEnabled) {
                 log.debug("Skipped search roles of user {}/{}", authenticatedUser, originalUserName);
             }
             return;
@@ -719,11 +721,11 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
 
                 if (isValidDn(authenticatedUser)) {
                     // assume dn
-                    if (log.isTraceEnabled()) {
+                    if (isTraceEnabled) {
                         log.trace("{} is a valid DN", authenticatedUser);
                     }
 
-                    if(log.isDebugEnabled()){
+                    if (isDebugEnabled){
                         log.debug("DBGTRACE (4): authenticatedUser="+authenticatedUser+" -> "+Arrays.toString(authenticatedUser.getBytes(StandardCharsets.UTF_8)));
                     }
 
@@ -735,12 +737,12 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
 
                 } else {
 
-                    if(log.isDebugEnabled())
+                    if (isDebugEnabled)
                         log.debug("DBGTRACE (5): authenticatedUser="+user.getName()+" -> "+Arrays.toString(user.getName().getBytes(StandardCharsets.UTF_8)));
 
                     entry = LDAPAuthenticationBackend.exists(user.getName(), connection, settings, userBaseSettings);
 
-                    if (log.isTraceEnabled()) {
+                    if (isTraceEnabled) {
                         log.trace("{} is not a valid DN and was resolved to {}", authenticatedUser, entry);
                     }
 
@@ -751,11 +753,11 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
 
                 dn = entry.getDn();
 
-                if (log.isTraceEnabled()) {
+                if (isTraceEnabled) {
                     log.trace("User found with DN {}", dn);
                 }
 
-                if(log.isDebugEnabled()){
+                if (isDebugEnabled){
                     log.debug("DBGTRACE (6): dn"+dn+" -> "+Arrays.toString(dn.getBytes(StandardCharsets.UTF_8)));
                 }
 
@@ -769,7 +771,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
             // default is userrolename: memberOf
             final String userRoleNames = settings.get(ConfigConstants.LDAP_AUTHZ_USERROLENAME, DEFAULT_USERROLENAME);
 
-            if (log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("raw userRoleName(s): {}", userRoleNames);
             }
 
@@ -780,7 +782,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                     final Collection<String> userRoles = entry.getAttribute(roleName).getStringValues();
                     for (final String possibleRoleDN : userRoles) {
 
-                        if(log.isDebugEnabled()){
+                        if (isDebugEnabled){
                             log.debug("DBGTRACE (7): possibleRoleDN"+possibleRoleDN);
                         }
 
@@ -795,7 +797,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                 }
             }
 
-            if (log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("User attr. ldap roles count: {}", ldapRoles.size());
                 log.trace("User attr. ldap roles {}", ldapRoles);
                 log.trace("User attr. non-ldap roles count: {}", nonLdapRoles.size());
@@ -809,7 +811,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
             // rolename: name
             final String roleName = settings.get(ConfigConstants.LDAP_AUTHZ_ROLENAME, DEFAULT_ROLENAME);
 
-            if (log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("roleName: {}", roleName);
             }
 
@@ -819,7 +821,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
             // userroleattribute: null
             final String userRoleAttributeName = settings.get(ConfigConstants.LDAP_AUTHZ_USERROLEATTRIBUTE, null);
 
-            if (log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("userRoleAttribute: {}", userRoleAttributeName);
                 log.trace("rolesearch: {}", settings.get(ConfigConstants.LDAP_AUTHZ_ROLESEARCH, DEFAULT_ROLESEARCH));
             }
@@ -834,7 +836,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
             if (rolesearchEnabled) {
                 String escapedDn = dn;
 
-                if(log.isDebugEnabled()){
+                if (isDebugEnabled){
                     log.debug("DBGTRACE (8): escapedDn"+escapedDn);
                 }
 
@@ -853,9 +855,8 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                             f,
                             SearchScope.SUBTREE);
 
-                    if (log.isTraceEnabled()) {
-                        log.trace("Results for LDAP group search for " + escapedDn + " in base "
-                                + roleSearchSettingsEntry.getKey() + ":\n" + rolesResult);
+                    if (isTraceEnabled) {
+                        log.trace("Results for LDAP group search for {} in base {}:\n{}", escapedDn, roleSearchSettingsEntry.getKey(), rolesResult);
                     }
 
                     if (rolesResult != null && !rolesResult.isEmpty()) {
@@ -869,14 +870,14 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                 }
             }
 
-            if (log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("roles count total {}", ldapRoles.size());
             }
 
             // nested roles, makes only sense for DN style role names
             if (nestedRoleMatcher != null) {
 
-                if (log.isTraceEnabled()) {
+                if (isTraceEnabled) {
                     log.trace("Evaluate nested roles");
                 }
 
@@ -895,7 +896,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                     final Set<LdapName> nestedRoles = resolveNestedRoles(roleLdapName, connection, userRoleNames, 0,
                             rolesearchEnabled, nameRoleSearchBaseKeys);
 
-                    if (log.isTraceEnabled()) {
+                    if (isTraceEnabled) {
                         log.trace("{} nested roles for {}", nestedRoles.size(), roleLdapName);
                     }
 
@@ -931,16 +932,16 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                 user.addRole(nonLdapRoleName);
             }
 
-            if (log.isDebugEnabled()) {
+            if (isDebugEnabled) {
                 log.debug("Roles for {} -> {}", user.getName(), user.getRoles());
             }
 
-            if (log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("returned user: {}", user);
             }
 
         } catch (final Exception e) {
-            if (log.isDebugEnabled()) {
+            if (isDebugEnabled) {
                 log.debug("Unable to fill user roles due to ", e);
             }
             throw new ElasticsearchSecurityException(e.toString(), e);
@@ -966,6 +967,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
 
         depth++;
 
+        final boolean isDebugEnabled = log.isDebugEnabled();
         final Set<LdapName> result = new HashSet<>(20);
         final HashMultimap<LdapName, Map.Entry<String, Settings>> resultRoleSearchBaseKeys = HashMultimap.create();
 
@@ -976,7 +978,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
 
             for (final String possibleRoleDN : userRoles) {
 
-                if(log.isDebugEnabled()){
+                if (isDebugEnabled){
                     log.debug("DBGTRACE (10): possibleRoleDN"+possibleRoleDN);
                 }
 
@@ -989,22 +991,23 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                         // ignore
                     }
                 } else {
-                    if (log.isDebugEnabled()) {
+                    if (isDebugEnabled) {
                         log.debug("Cannot add {} as a role because its not a valid dn", possibleRoleDN);
                     }
                 }
             }
         }
 
-        if (log.isTraceEnabled()) {
+        final boolean isTraceEnabled = log.isTraceEnabled();
+        if (isTraceEnabled) {
             log.trace("result nested attr count for depth {} : {}", depth, result.size());
         }
 
         if (rolesearchEnabled) {
             String escapedDn = roleDn.toString();
 
-            if(log.isDebugEnabled()){
-                log.debug("DBGTRACE (10): escapedDn"+escapedDn);
+            if (isDebugEnabled){
+                log.debug("DBGTRACE (10): escapedDn {}", escapedDn);
             }
 
 
@@ -1022,9 +1025,8 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                         f,
                         SearchScope.SUBTREE);
 
-                if (log.isTraceEnabled()) {
-                    log.trace("Results for LDAP group search for " + escapedDn + " in base "
-                            + roleSearchBaseSettingsEntry.getKey() + ":\n" + foundEntries);
+                if (isTraceEnabled) {
+                    log.trace("Results for LDAP group search for {} in base {}:\n{}", escapedDn, roleSearchBaseSettingsEntry.getKey(), foundEntries);
                 }
 
                 if (foundEntries != null) {
@@ -1108,7 +1110,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                 }
             }
         } catch (LdapException e) {
-            log.error("Unable to handle role {} because of ",ldapName, e.toString(), e);
+            log.error("Unable to handle role {} because of ", ldapName, e);
         }
 
         return null;

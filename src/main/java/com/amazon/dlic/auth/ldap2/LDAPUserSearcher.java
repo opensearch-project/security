@@ -87,7 +87,7 @@ public class LDAPUserSearcher {
 
     private LdapEntry existsSearchingUntilFirstHit(Connection ldapConnection, String user) throws Exception {
         final String username = user;
-
+        final boolean isDebugEnabled = log.isDebugEnabled();
         for (Map.Entry<String, Settings> entry : userBaseSettings) {
             Settings baseSettings = entry.getValue();
 
@@ -100,8 +100,8 @@ public class LDAPUserSearcher {
                     f,
                     SearchScope.SUBTREE);
 
-            if (log.isDebugEnabled()) {
-                log.debug("Results for LDAP search for " + user + " in base " + entry.getKey() + ":\n" + result);
+            if (isDebugEnabled) {
+                log.debug("Results for LDAP search for {} in base {}:\n{}", user, entry.getKey(), result);
             }
 
             if (result != null && result.size() >= 1) {
@@ -115,7 +115,7 @@ public class LDAPUserSearcher {
     private LdapEntry existsSearchingAllBases(Connection ldapConnection, String user) throws Exception {
         final String username = user;
         Set<LdapEntry> result = new HashSet<>();
-
+        final boolean isDebugEnabled = log.isDebugEnabled();
         for (Map.Entry<String, Settings> entry : userBaseSettings) {
             Settings baseSettings = entry.getValue();
 
@@ -128,8 +128,8 @@ public class LDAPUserSearcher {
                     f,
                     SearchScope.SUBTREE);
 
-            if (log.isDebugEnabled()) {
-                log.debug("Results for LDAP search for " + user + " in base " + entry.getKey() + ":\n" + result);
+            if (isDebugEnabled) {
+                log.debug("Results for LDAP search for {} in base {}:\n{}", user, entry.getKey(), result);
             }
 
             if (foundEntries != null) {
@@ -138,12 +138,12 @@ public class LDAPUserSearcher {
         }
 
         if (result.isEmpty()) {
-            log.debug("No user " + username + " found");
+            log.debug("No user {} found", username);
             return null;
         }
 
         if (result.size() > 1) {
-            log.debug("More than one user for '" + username + "' found");
+            log.debug("More than one user for '{}' found", username);
             return null;
         }
 

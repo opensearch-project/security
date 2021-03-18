@@ -57,7 +57,7 @@ public class SnapshotRestoreHelper {
         final SnapshotInfo snapshotInfo = getSnapshotInfo(restoreRequest);
 
         if (snapshotInfo == null) {
-            log.warn("snapshot repository '" + restoreRequest.repository() + "', snapshot '" + restoreRequest.snapshot() + "' not found");
+            log.warn("snapshot repository '{}', snapshot '{}' not found", restoreRequest.repository(), restoreRequest.snapshot());
             return null;
         } else {
             return SnapshotUtils.filterIndices(snapshotInfo.indices(), restoreRequest.indices(), restoreRequest.indicesOptions());

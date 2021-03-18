@@ -151,12 +151,11 @@ class AuthTokenProcessorHandler {
             SettingsException {
         if (token_log.isDebugEnabled()) {
             try {
-                token_log.debug("SAMLResponse for " + samlRequestId + "\n"
-                        + new String(Util.base64decoder(samlResponseBase64), "UTF-8"));
+                token_log.debug("SAMLResponse for {}\n{}", samlRequestId, new String(Util.base64decoder(samlResponseBase64), "UTF-8"));
             } catch (Exception e) {
                 token_log.warn(
-                        "SAMLResponse for " + samlRequestId + " cannot be decoded from base64\n" + samlResponseBase64,
-                        e);
+                        "SAMLResponse for {} cannot be decoded from base64\n{}",
+                        samlRequestId, samlResponseBase64, e);
             }
         }
 
@@ -358,7 +357,7 @@ class AuthTokenProcessorHandler {
         Matcher matcher = EXPIRY_SETTINGS_PATTERN.matcher(expiry);
 
         if (!matcher.matches()) {
-            log.error("Invalid value for jwt.expiry: " + expiry + "; using defaults.");
+            log.error("Invalid value for jwt.expiry: {}; using defaults.", expiry);
             return;
         }
 
@@ -366,7 +365,7 @@ class AuthTokenProcessorHandler {
         String offset = matcher.group(2);
 
         if (offset != null && !StringUtils.isNumeric(offset)) {
-            log.error("Invalid offset value for jwt.expiry: " + expiry + "; using defaults.");
+            log.error("Invalid offset value for jwt.expiry: {}; using defaults.", expiry);
             return;
         }
 
@@ -374,7 +373,7 @@ class AuthTokenProcessorHandler {
             try {
                 this.expiryBaseValue = ExpiryBaseValue.valueOf(baseValue.toUpperCase());
             } catch (IllegalArgumentException e) {
-                log.error("Invalid base value for jwt.expiry: " + expiry + "; using defaults");
+                log.error("Invalid base value for jwt.expiry: {}; using defaults", expiry);
                 return;
             }
         }
@@ -454,7 +453,7 @@ class AuthTokenProcessorHandler {
                 return new URI(this.kibanaRootUrl).resolve(acsEndpointUri).toString();
             }
         } catch (URISyntaxException e) {
-            log.error("Could not parse URI for acsEndpoint: " + acsEndpoint);
+            log.error("Could not parse URI for acsEndpoint: {}", acsEndpoint);
             return acsEndpoint;
         }
     }

@@ -83,7 +83,7 @@ public class KafkaSink extends AuditLogSink {
                 }
             });
         } catch (PrivilegedActionException e) {
-            log.error("Failed to configure Kafka producer due to {}", e.getException(), e.getException());
+            log.error("Failed to configure Kafka producer due to ", e);
             this.valid = false;
         }
 

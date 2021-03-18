@@ -70,7 +70,7 @@ public class OpenDistroProtectedIndexAccessEvaluator {
                 && deniedActionMatcher.test(action)
                 && !allowedRolesMatcher.matchAny(securityRoles.getRoleNames())) {
             auditLog.logMissingPrivileges(action, request, task);
-            log.warn(action + " for '{}' index/indices is not allowed for a regular user", indexMatcher);
+            log.warn("{} for '{}' index/indices is not allowed for a regular user", action, indexMatcher);
             presponse.allowed = false;
             return presponse.markComplete();
         }
@@ -79,7 +79,7 @@ public class OpenDistroProtectedIndexAccessEvaluator {
                 && deniedActionMatcher.test(action)
                 && !allowedRolesMatcher.matchAny(securityRoles.getRoleNames())) {
             auditLog.logMissingPrivileges(action, request, task);
-            log.warn(action + " for '_all' indices is not allowed for a regular user");
+            log.warn("{} for '_all' indices is not allowed for a regular user", action);
             presponse.allowed = false;
             return presponse.markComplete();
         }
@@ -87,16 +87,17 @@ public class OpenDistroProtectedIndexAccessEvaluator {
                 || requestedResolved.isLocalAll())
                 && !allowedRolesMatcher.matchAny(securityRoles.getRoleNames())) {
 
+            final boolean isDebugEnabled = log.isDebugEnabled();
             if(request instanceof SearchRequest) {
                 ((SearchRequest)request).requestCache(Boolean.FALSE);
-                if(log.isDebugEnabled()) {
+                if (isDebugEnabled) {
                     log.debug("Disable search request cache for this request");
                 }
             }
 
             if(request instanceof RealtimeRequest) {
                 ((RealtimeRequest) request).realtime(Boolean.FALSE);
-                if(log.isDebugEnabled()) {
+                if (isDebugEnabled) {
                     log.debug("Disable realtime for this request");
                 }
             }

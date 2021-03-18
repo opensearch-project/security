@@ -239,7 +239,6 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
                     }
 
                     //TODO Open Distro Security exception handling, introduce authexception
-
                     User user;
                     //try {
                     if((user = backendRegistry.authenticate(request, principal, task, task.getAction())) == null) {
@@ -322,11 +321,11 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
             throws Exception {
 
         boolean isInterClusterRequest = requestEvalProvider.isInterClusterRequest(request, localCerts, peerCerts, principal);
-
+        final boolean isTraceEnabled = log.isTraceEnabled();
         if (isInterClusterRequest) {
             if(cs.getClusterName().value().equals(getThreadContext().getHeader("_opendistro_security_remotecn"))) {
 
-                if (log.isTraceEnabled() && !action.startsWith("internal:")) {
+                if (isTraceEnabled && !action.startsWith("internal:")) {
                     log.trace("Is inter cluster request ({}/{}/{})", action, request.getClass(), request.remoteAddress());
                 }
 
@@ -336,7 +335,7 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
             }
 
         } else {
-            if (log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("Is not an inter cluster request");
             }
         }

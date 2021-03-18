@@ -182,9 +182,10 @@ public class SSLRequestHelper {
     private static boolean validate(X509Certificate[] x509Certs, final Settings settings, final Path configPath) {
         
         final boolean validateCrl = settings.getAsBoolean(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_CRL_VALIDATE, false);
-        
-        if(log.isTraceEnabled()) {
-            log.trace("validateCrl: "+validateCrl);
+
+        final boolean isTraceEnabled = log.isTraceEnabled();
+        if (isTraceEnabled) {
+            log.trace("validateCrl: {}", validateCrl);
         }
         
         if(!validateCrl) {
@@ -204,11 +205,11 @@ public class SSLRequestHelper {
                     crls = CertificateFactory.getInstance("X.509").generateCRLs(crlin);
                 }
                 
-                if(log.isTraceEnabled()) {
-                    log.trace("crls from file: "+crls.size());
+                if (isTraceEnabled) {
+                    log.trace("crls from file: {}", crls.size());
                 }
             } else {
-                if(log.isTraceEnabled()) {
+                if (isTraceEnabled) {
                     log.trace("no crl file configured");
                 }
             }
@@ -248,10 +249,7 @@ public class SSLRequestHelper {
             return true;
             
         } catch (Exception e) {
-            if(log.isDebugEnabled()) {
-                log.debug("Unable to validate CRL: "+ExceptionsHelper.stackTrace(e));
-            }
-            log.warn("Unable to validate CRL: "+ExceptionUtils.getRootCause(e));
+            log.warn("Unable to validate CRL: ", ExceptionUtils.getRootCause(e));
         }
         
         return false;

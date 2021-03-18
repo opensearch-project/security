@@ -58,8 +58,8 @@ public class XFFResolver {
     }
 
     public TransportAddress resolve(final RestRequest request) throws ElasticsearchSecurityException {
-        
-        if(log.isTraceEnabled()) {
+        final boolean isTraceEnabled = log.isTraceEnabled();
+        if (isTraceEnabled) {
             log.trace("resolve {}", request.getHttpChannel().getRemoteAddress());
         }
         
@@ -72,7 +72,7 @@ public class XFFResolver {
             }
                 
              
-            if(log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 if(threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_XFF_DONE) == Boolean.TRUE) {
                     log.trace("xff resolved {} to {}", request.getHttpChannel().getRemoteAddress(), isa);
                 } else {
@@ -82,7 +82,7 @@ public class XFFResolver {
             return new TransportAddress(isa);
         } else if(request.getHttpChannel().getRemoteAddress() instanceof InetSocketAddress){
             
-            if(log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("no xff done (enabled or no netty request) {},{},{},{}",enabled, request.getClass());
 
             }

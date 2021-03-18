@@ -137,7 +137,7 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements SystemIndexPl
         this.configPath = configPath;
         
         if(this.configPath != null) {
-            log.info("ES Config path is "+this.configPath.toAbsolutePath());
+            log.info("ES Config path is {}", this.configPath.toAbsolutePath());
         } else {
             log.info("ES Config path is not set");
         }

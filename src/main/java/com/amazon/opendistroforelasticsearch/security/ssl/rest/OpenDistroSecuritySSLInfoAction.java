@@ -113,7 +113,7 @@ public class OpenDistroSecuritySSLInfoAction extends BaseRestHandler {
 
                     response = new BytesRestResponse(RestStatus.OK, builder);
                 } catch (final Exception e1) {
-                    log.error("Error handle request "+e1, e1);
+                    log.error("Error handle request ", e1);
                     builder = channel.newBuilder();
                     builder.startObject();
                     builder.field("error", e1.toString());

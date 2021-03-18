@@ -129,7 +129,7 @@ public class TenantInfoAction extends BaseRestHandler {
 	                    response = new BytesRestResponse(RestStatus.OK, builder);
                     }
                 } catch (final Exception e1) {
-                    log.error(e1.toString(),e1);
+                    log.error(e1);
                     builder = channel.newBuilder(); //NOSONAR
                     builder.startObject();
                     builder.field("error", e1.toString());
@@ -204,7 +204,7 @@ public class TenantInfoAction extends BaseRestHandler {
 
 			return "__private__";
 		} catch (NumberFormatException e) {
-			log.warn("Index "+index+" looks like a Security tenant index but we cannot parse the hashcode so we ignore it.");
+			log.warn("Index {} looks like a Security tenant index but we cannot parse the hashcode so we ignore it.", index);
 			return null;
 		}
     }

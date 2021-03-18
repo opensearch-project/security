@@ -73,8 +73,8 @@ public final class FieldReadCallback {
         try {
             sfc = (SourceFieldsContext) HeaderHelper.deserializeSafeFromHeader(threadContext, "_opendistro_security_source_field_context");
             if(sfc != null && sfc.hasIncludesOrExcludes()) {
-                if(log.isTraceEnabled()) {
-                    log.trace("_opendistro_security_source_field_context: "+sfc);
+                if (log.isTraceEnabled()) {
+                    log.trace("_opendistro_security_source_field_context: {}", sfc);
                 }
 
                 filterFunction = XContentMapValues.filter(sfc.getIncludes(), sfc.getExcludes());

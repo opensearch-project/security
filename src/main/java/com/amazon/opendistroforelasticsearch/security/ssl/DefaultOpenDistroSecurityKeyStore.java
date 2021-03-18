@@ -81,8 +81,8 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
             final int aesMaxKeyLength = Cipher.getMaxAllowedKeyLength("AES");
 
             if (aesMaxKeyLength < 256) {
-                log.info("AES-256 not supported, max key length for AES is " + aesMaxKeyLength + " bit."
-                    + " (This is not an issue, it just limits possible encryption strength. To enable AES 256, install 'Java Cryptography Extension (JCE) Unlimited Strength Jurisdiction Policy Files')");
+                log.info("AES-256 not supported, max key length for AES is {} bit."
+                    + " (This is not an issue, it just limits possible encryption strength. To enable AES 256, install 'Java Cryptography Extension (JCE) Unlimited Strength Jurisdiction Policy Files')", aesMaxKeyLength);
             }
         } catch (final NoSuchAlgorithmException e) {
             log.error("AES encryption not supported (SG 1). ", e);
@@ -689,20 +689,19 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
 
     private void logOpenSSLInfos() {
         if (OpenDistroSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable()) {
-            log.info("OpenSSL " + OpenSsl.versionString() + " (" + OpenSsl.version() + ") available");
+            log.info("OpenSSL {} ({}) available", OpenSsl.versionString(), OpenSsl.version());
 
             if (OpenSsl.version() < 0x10002000L) {
                 log.warn(
-                    "Outdated OpenSSL version detected. You should update to 1.0.2k or later. Currently installed: "
-                        + OpenSsl.versionString());
+                    "Outdated OpenSSL version detected. You should update to 1.0.2k or later. Currently installed: {}",
+                        OpenSsl.versionString());
             }
 
             if (!OpenSsl.supportsHostnameValidation()) {
-                log.warn("Your OpenSSL version " + OpenSsl.versionString()
-                    + " does not support hostname verification. You should update to 1.0.2k or later.");
+                log.warn("Your OpenSSL version {} does not support hostname verification. You should update to 1.0.2k or later.", OpenSsl.versionString());
             }
 
-            log.debug("OpenSSL available ciphers " + OpenSsl.availableOpenSslCipherSuites());
+            log.debug("OpenSSL available ciphers {}", OpenSsl.availableOpenSslCipherSuites());
         } else {
             log.info("OpenSSL not available (this is not an error, we simply fallback to built-in JDK SSL) because of "
                 + OpenSsl.unavailabilityCause());
@@ -753,8 +752,8 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
             }
 
 
-            log.debug("OPENSSL "+OpenSsl.versionString()+" supports the following ciphers (java-style) {}", OpenSsl.availableJavaCipherSuites());
-            log.debug("OPENSSL "+OpenSsl.versionString()+" supports the following ciphers (openssl-style) {}", OpenSsl.availableOpenSslCipherSuites());
+            log.debug("OPENSSL {} supports the following ciphers (java-style) {}", OpenSsl.versionString(), OpenSsl.availableJavaCipherSuites());
+            log.debug("OPENSSL {} supports the following ciphers (openssl-style) {}", OpenSsl.versionString(), OpenSsl.availableOpenSslCipherSuites());
 
             enabledHttpCiphersOpenSSLProvider = Collections
                 .unmodifiableList(new ArrayList<String>(openSSLSecureHttpCiphers));
@@ -813,7 +812,7 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
             }
 
         } catch (final Throwable e) {
-            log.error("Unable to determine supported ciphers due to " + e, e);
+            log.error("Unable to determine supported ciphers due to ", e);
         } finally {
             if (engine != null) {
                 try {

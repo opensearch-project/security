@@ -70,7 +70,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
             jwtVerifier = new JwtVerifier(keyProvider);
 
         } catch (Exception e) {
-            log.error("Error creating JWT authenticator: " + e + ". JWT authentication will not work", e);
+            log.error("Error creating JWT authenticator. JWT authentication will not work", e);
             throw new RuntimeException(e);
         }
     }
@@ -110,7 +110,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
             log.info(e);
             throw new ElasticsearchSecurityException(e.getMessage(), RestStatus.SERVICE_UNAVAILABLE);
         } catch (BadCredentialsException e) {
-            log.info("Extracting JWT token from " + jwtString + " failed", e);
+            log.info("Extracting JWT token from {} failed", jwtString, e);
             return null;
         }
 

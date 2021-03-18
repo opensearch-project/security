@@ -119,8 +119,9 @@ final class RemoteIpDetector {
 
     String detect(RestRequest request, ThreadContext threadContext){
         final String originalRemoteAddr = ((InetSocketAddress)request.getHttpChannel().getRemoteAddress()).getAddress().getHostAddress();
-        
-        if(log.isTraceEnabled()) {
+
+        final boolean isTraceEnabled = log.isTraceEnabled();
+        if (isTraceEnabled) {
             log.trace("originalRemoteAddr {}", originalRemoteAddr);
         }
         
@@ -148,7 +149,7 @@ final class RemoteIpDetector {
                 concatRemoteIpHeaderValue.append(rh);
             }
             
-            if(log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("concatRemoteIpHeaderValue {}", concatRemoteIpHeaderValue.toString());
             }
 
@@ -174,10 +175,9 @@ final class RemoteIpDetector {
             }
             
             if (remoteIp != null) {
-                if (log.isTraceEnabled()) {
+                if (isTraceEnabled) {
                     final String originalRemoteHost = ((InetSocketAddress)request.getHttpChannel().getRemoteAddress()).getAddress().getHostName();
-                    log.trace("Incoming request " + request.uri() + " with originalRemoteAddr '" + originalRemoteAddr
-                              + "', originalRemoteHost='" + originalRemoteHost + "', will be seen as newRemoteAddr='" + remoteIp);
+                    log.trace("Incoming request {} with originalRemoteAddr '{}', originalRemoteHost='{}', will be seen as newRemoteAddr='{}'", request.uri(), originalRemoteAddr, originalRemoteHost, remoteIp);
                 }
 
                 threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_XFF_DONE, Boolean.TRUE);
@@ -188,9 +188,8 @@ final class RemoteIpDetector {
             }
             
         } else {
-            if (log.isTraceEnabled()) {
-                log.trace("Skip RemoteIpDetector for request " + request.uri() + " with originalRemoteAddr '"
-                        + request.getHttpChannel().getRemoteAddress() + "' cause no internal proxy matches");
+            if (isTraceEnabled) {
+                log.trace("Skip RemoteIpDetector for request {} with originalRemoteAddr '{}' cause no internal proxy matches", request.uri(), request.getHttpChannel().getRemoteAddress());
             }
         }
         
