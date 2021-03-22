@@ -74,7 +74,7 @@ public class Hasher {
             }  
         } catch (final Exception exp) {
             System.err.println("Parsing failed.  Reason: " + exp.getMessage());
-            formatter.printHelp("hasher.sh", options, true);
+            formatter.printHelp("hash.sh", options, true);
             System.exit(-1);
         }
     }
