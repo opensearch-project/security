@@ -16,14 +16,19 @@
 package com.amazon.opendistroforelasticsearch.security.auditlog.impl;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.collect.Tuple;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -100,5 +105,38 @@ public class AuditMessageTest {
     public void testTransportHeadersAreNotFiltered() {
         message.addTransportHeaders(TEST_TRANSPORT_HEADERS, false);
         assertEquals(message.getAsMap().get(AuditMessage.TRANSPORT_REQUEST_HEADERS), TEST_TRANSPORT_HEADERS);
+    }
+
+    @Test
+    public void testBCryptHashIsRedacted() {
+        final String internalUsersDocId = CType.INTERNALUSERS.toLCString();
+        final String hash1 = "$2y$12$gpTlsqv8yYsbR7P.fFbZ5uYXxUmGY4oLYeJNOMiz23ByrRMNFgBGm";
+        final String hash2 = "$2y$12$tPnP6XpeRuBTPXBG1XVJCOsZ4xi6eRs4yFnrbynyoWnYJmfAxTNZ6";
+
+        // does not perform redaction for non-internal user doc
+        message.addSecurityConfigContentToRequestBody(hash1, "test-doc");
+        assertEquals(hash1, message.getAsMap().get(AuditMessage.REQUEST_BODY));
+
+        // test hash redaction
+        message.addSecurityConfigContentToRequestBody(hash1, internalUsersDocId);
+        assertEquals("__HASH__", message.getAsMap().get(AuditMessage.REQUEST_BODY));
+
+        // test hash redaction in string
+        message.addSecurityConfigContentToRequestBody("Hash " + hash2 + " is redacted", internalUsersDocId);
+        assertEquals("Hash __HASH__ is redacted", message.getAsMap().get(AuditMessage.REQUEST_BODY));
+
+        // test hash redaction inline without spaces
+        message.addSecurityConfigContentToRequestBody("Inline hash" + hash2 + "is redacted", internalUsersDocId);
+        assertEquals("Inline hash__HASH__is redacted", message.getAsMap().get(AuditMessage.REQUEST_BODY));
+
+        // test map redaction
+        message.addSecurityConfigWriteDiffSource("Diff is " + hash2, internalUsersDocId);
+        assertEquals("Diff is __HASH__", message.getAsMap().get(AuditMessage.COMPLIANCE_DIFF_CONTENT));
+
+        // test tuple redaction
+        final ByteBuffer[] byteBuffers = new ByteBuffer[]{ ByteBuffer.wrap(("Hash in tuple is " + hash1).getBytes()) };
+        BytesReference ref = BytesReference.fromByteBuffers(byteBuffers);
+        message.addSecurityConfigTupleToRequestBody(new Tuple<>(XContentType.JSON, ref), internalUsersDocId);
+        assertEquals("Hash in tuple is __HASH__", message.getAsMap().get(AuditMessage.REQUEST_BODY));
     }
 }
