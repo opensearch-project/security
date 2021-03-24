@@ -387,16 +387,16 @@ public class PrivilegesEvaluator {
         }
 
         if (dnfofEnabled
-                && (action0.startsWith("indices:data/read/")
-                || action0.startsWith("indices:admin/mappings/fields/get")
-                || action0.equals("indices:admin/shards/search_shards"))) {
+            && (action0.startsWith("indices:data/read/")
+            || action0.startsWith("indices:admin/mappings/fields/get")
+            || action0.equals("indices:admin/shards/search_shards")
+            || action0.equals("indices:admin/resolve/index"))) {
 
             if(requestedResolved.getAllIndices().isEmpty()) {
                 presponse.missingPrivileges.clear();
                 presponse.allowed = true;
                 return presponse;
             }
-
 
             Set<String> reduced = securityRoles.reduce(requestedResolved, user, allIndexPermsRequiredA, resolver, clusterService);
 
