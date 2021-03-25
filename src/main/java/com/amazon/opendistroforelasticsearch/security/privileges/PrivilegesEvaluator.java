@@ -372,8 +372,7 @@ public class PrivilegesEvaluator {
             final PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceKibanaIndex(request, action0, user, dcm, requestedResolved, mapTenants(user, mappedRoles));
 
             if (isDebugEnabled) {
-                log.debug("Result from privileges interceptor: continueEvaluation: {}, accessDenied: {}, createIndexRequestBuilder: {}",
-                        replaceResult.continueEvaluation, replaceResult.accessDenied, replaceResult.createIndexRequestBuilder);
+                log.debug("Result from privileges interceptor: {}", replaceResult);
             }
 
             if (!replaceResult.continueEvaluation) {
