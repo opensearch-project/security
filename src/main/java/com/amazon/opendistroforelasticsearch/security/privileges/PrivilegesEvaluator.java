@@ -372,7 +372,8 @@ public class PrivilegesEvaluator {
             final PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceKibanaIndex(request, action0, user, dcm, requestedResolved, mapTenants(user, mappedRoles));
 
             if (isDebugEnabled) {
-                log.debug("Result from privileges interceptor: {}", replaceResult);
+                log.debug("Result from privileges interceptor: continueEvaluation: {}, accessDenied: {}, createIndexRequestBuilder: {}",
+                        replaceResult.continueEvaluation, replaceResult.accessDenied, replaceResult.createIndexRequestBuilder);
             }
 
             if (!replaceResult.continueEvaluation) {
@@ -386,11 +387,11 @@ public class PrivilegesEvaluator {
             }
         }
 
-        if (dnfofEnabled
+        if (action0.equals("indices:admin/resolve/index") ||
+            (dnfofEnabled
             && (action0.startsWith("indices:data/read/")
             || action0.startsWith("indices:admin/mappings/fields/get")
-            || action0.equals("indices:admin/shards/search_shards")
-            || action0.equals("indices:admin/resolve/index"))) {
+            || action0.equals("indices:admin/shards/search_shards")))) {
 
             if(requestedResolved.getAllIndices().isEmpty()) {
                 presponse.missingPrivileges.clear();
@@ -430,14 +431,12 @@ public class PrivilegesEvaluator {
                 return presponse;
             }
 
-
             if(irr.replace(request, true, reduced.toArray(new String[0]))) {
                 presponse.missingPrivileges.clear();
                 presponse.allowed = true;
                 return presponse;
             }
         }
-
 
         //not bulk, mget, etc request here
         boolean permGiven = false;
