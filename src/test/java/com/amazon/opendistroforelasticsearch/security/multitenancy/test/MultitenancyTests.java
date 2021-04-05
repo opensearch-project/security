@@ -391,4 +391,57 @@ public class MultitenancyTests extends SingleClusterTest {
         Assert.assertTrue(res.getBody().contains(".kibana_-900636979_kibanaro"));
     }
 
+
+    @Test
+    public void testTenantParametersSubstitution() throws Exception {
+        final Settings settings = Settings.builder()
+                .build();
+        setup(settings);
+        final RestHelper rh = nonSslRestHelper();
+
+        HttpResponse res;
+
+        System.out.println("#### testTenantParametersSubstitution : user_tenant_parameters_substitution does not have access to tenant blafasel") ;
+        String body = "{\"buildNum\": 15460, \"defaultIndex\": \"plop\", \"tenant\": \"tenant_parameters_substitution\"}";
+        res = rh.executePutRequest(".kibana/config/5.6.0?pretty",body, new BasicHeader("securitytenant", "blafasel"), encodeBasicHeader("user_tenant_parameters_substitution","user_tenant_parameters_substitution")) ; 
+        System.out.println(res.getBody());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+
+        System.out.println("#### testTenantParametersSubstitution : hr_employee does not have access to tenant tenant_parameters_substitution") ;
+        body = "{\"buildNum\": 15460, \"defaultIndex\": \"plop\", \"tenant\": \"tenant_parameters_substitution\"}";
+        res = rh.executePutRequest(".kibana/config/5.6.0?pretty",body, new BasicHeader("securitytenant", "tenant_parameters_substitution"), encodeBasicHeader("hr_employee", "hr_employee")) ;
+        System.out.println(res.getBody());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+        
+        System.out.println("#### testTenantParametersSubstitution : hr_employee does not have access to tenant tenant_parameters_substitution_1") ;
+        body = "{\"buildNum\": 15460, \"defaultIndex\": \"plop\", \"tenant\": \"tenant_parameters_substitution_1\"}";
+        res = rh.executePutRequest(".kibana/config/5.6.0?pretty",body, new BasicHeader("securitytenant", "tenant_parameters_substitution"), encodeBasicHeader("hr_employee", "hr_employee")) ;
+        System.out.println(res.getBody());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+
+        System.out.println("#### testTenantParametersSubstitution : user user_tenant_parameters_substitution creates a doc in tenant tenant_parameters_substitution that is a match of the attribute 'attribute1' for this user") ;
+        body = "{\"buildNum\": 15460, \"defaultIndex\": \"plop\", \"tenant\": \"tenant_parameters_substitution\"}";
+        res = rh.executePutRequest(".kibana/config/5.6.0?pretty",body, new BasicHeader("securitytenant", "tenant_parameters_substitution"), encodeBasicHeader("user_tenant_parameters_substitution", "user_tenant_parameters_substitution")) ; 
+        System.out.println(res.getBody());
+        Assert.assertEquals(HttpStatus.SC_CREATED, res.getStatusCode());
+
+        System.out.println("#### testTenantParametersSubstitution : user user_tenant_parameters_substitution gets kibana index for tenant tenant_parameters_substitution that is a match of the attribute 'attribute1' for this user") ;
+        res = rh.executeGetRequest(".kibana/config/5.6.0?pretty",new BasicHeader("securitytenant", "tenant_parameters_substitution"), encodeBasicHeader("user_tenant_parameters_substitution", "user_tenant_parameters_substitution")) ; 
+        System.out.println(res.getBody());
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());;
+        Assert.assertTrue(WildcardMatcher.from("*tenant_parameters_substitution*").test(res.getBody()));
+        
+        System.out.println("#### testTenantParametersSubstitution : user user_tenant_parameters_substitution creates a doc in tenant tenant_parameters_substitution_1 that is a match of the attribute 'attribute1' for this use1r") ;
+        body = "{\"buildNum\": 15460, \"defaultIndex\": \"plop\", \"tenant\": \"tenant_parameters_substitution_1\"}";
+        res = rh.executePutRequest(".kibana/config/5.6.0?pretty",body, new BasicHeader("securitytenant", "tenant_parameters_substitution_1"), encodeBasicHeader("user_tenant_parameters_substitution", "user_tenant_parameters_substitution")) ; 
+        System.out.println(res.getBody());
+        Assert.assertEquals(HttpStatus.SC_CREATED, res.getStatusCode());
+        
+        System.out.println("#### testTenantParametersSubstitution : user user_tenant_parameters_substitution gets kibana index for tenant tenant_parameters_substitution_1 that is a value of the attribute 'attribute1' for this user") ;
+        res = rh.executeGetRequest(".kibana/config/5.6.0?pretty",new BasicHeader("securitytenant", "tenant_parameters_substitution_1"), encodeBasicHeader("user_tenant_parameters_substitution", "user_tenant_parameters_substitution")) ;
+        System.out.println(res.getBody());
+        System.out.println(res.getBody());
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        Assert.assertTrue(WildcardMatcher.from("*tenant_parameters_substitution_1*").test(res.getBody()));
+    }
 }
