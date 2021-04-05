@@ -1024,6 +1024,7 @@ public class ConfigModelV7 extends ConfigModel {
             final ExecutorService execs = Executors.newFixedThreadPool(10);
 
             for(Entry<String, RoleV7> securityRole: roles.getCEntries().entrySet()) {
+
                 if(securityRole.getValue() == null) {
                     continue;
                 }
@@ -1033,7 +1034,6 @@ public class ConfigModelV7 extends ConfigModel {
                     public Tuple<String, Set<Tuple<String, Boolean>>> call() throws Exception {
                         final Set<Tuple<String, Boolean>> tuples = new HashSet<>();
                         final List<RoleV7.Tenant> tenants = securityRole.getValue().getTenant_permissions();
-
                         if (tenants != null) {
                             
                             for (RoleV7.Tenant tenant : tenants) {
