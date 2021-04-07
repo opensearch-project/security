@@ -51,11 +51,13 @@ public class SnapshotRestoreEvaluator {
     private final String opendistrosecurityIndex;
     private final AuditLog auditLog;
     private final boolean restoreSecurityIndexEnabled;
+    private final boolean restoreGlobalStateEnabled;
     
     public SnapshotRestoreEvaluator(final Settings settings, AuditLog auditLog) {
         this.enableSnapshotRestorePrivilege = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE,
                 ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE);
         this.restoreSecurityIndexEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_RESTORE_SECURITYINDEX_ENABLED, false);
+        this.restoreGlobalStateEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_RESTORE_GLOBAL_STATE_ENABLED, false);
 
         this.opendistrosecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
         this.auditLog = auditLog;
@@ -91,7 +93,7 @@ public class SnapshotRestoreEvaluator {
         final RestoreSnapshotRequest restoreRequest = (RestoreSnapshotRequest) request;
 
         // Do not allow restore of global state
-        if (restoreRequest.includeGlobalState()) {
+        if (restoreRequest.includeGlobalState() && !restoreGlobalStateEnabled) {
             auditLog.logSecurityIndexAttempt(request, action, task);
             log.warn(action + " with 'include_global_state' enabled is not allowed");
             presponse.allowed = false;

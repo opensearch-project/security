@@ -245,6 +245,7 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_UNSUPPORTED_DISABLE_REST_AUTH_INITIALLY = "opendistro_security.unsupported.disable_rest_auth_initially";
     public static final String OPENDISTRO_SECURITY_UNSUPPORTED_DISABLE_INTERTRANSPORT_AUTH_INITIALLY = "opendistro_security.unsupported.disable_intertransport_auth_initially";
     public static final String OPENDISTRO_SECURITY_UNSUPPORTED_RESTORE_SECURITYINDEX_ENABLED = "opendistro_security.unsupported.restore.securityindex.enabled";
+    public static final String OPENDISTRO_SECURITY_UNSUPPORTED_RESTORE_GLOBAL_STATE_ENABLED = "opendistro_security.unsupported.restore.global.state.enabled";
     public static final String OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_USER_ENABLED = "opendistro_security.unsupported.inject_user.enabled";
     public static final String OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_ADMIN_USER_ENABLED = "opendistro_security.unsupported.inject_user.admin.enabled";
     public static final String OPENDISTRO_SECURITY_UNSUPPORTED_ALLOW_NOW_IN_DLS = "opendistro_security.unsupported.allow_now_in_dls";
