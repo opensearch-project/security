@@ -55,6 +55,7 @@ import org.elasticsearch.action.admin.indices.delete.DeleteIndexAction;
 import org.elasticsearch.action.admin.indices.mapping.get.GetFieldMappingsRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.AutoPutMappingAction;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingAction;
+import org.elasticsearch.action.admin.indices.resolve.ResolveIndexAction;
 import org.elasticsearch.action.bulk.BulkAction;
 import org.elasticsearch.action.bulk.BulkItemRequest;
 import org.elasticsearch.action.bulk.BulkRequest;
@@ -386,10 +387,11 @@ public class PrivilegesEvaluator {
             }
         }
 
-        if (dnfofEnabled
+        if (action0.equals("indices:admin/resolve/index")
+           ||   (dnfofEnabled
                 && (action0.startsWith("indices:data/read/")
                 || action0.startsWith("indices:admin/mappings/fields/get")
-                || action0.equals("indices:admin/shards/search_shards"))) {
+                || action0.equals("indices:admin/shards/search_shards")))) {
 
             if(requestedResolved.getAllIndices().isEmpty()) {
                 presponse.missingPrivileges.clear();
@@ -421,6 +423,13 @@ public class PrivilegesEvaluator {
                     if(request instanceof GetFieldMappingsRequest) {
                         ((GetFieldMappingsRequest) request).indices(new String[0]);
                         ((GetFieldMappingsRequest) request).indicesOptions(IndicesOptions.fromOptions(true, true, false, false));
+                        presponse.missingPrivileges.clear();
+                        presponse.allowed = true;
+                        return presponse;
+                    }
+
+                    if(request instanceof ResolveIndexAction.Request) {
+                        ((ResolveIndexAction.Request) request).indices(new String[0]);
                         presponse.missingPrivileges.clear();
                         presponse.allowed = true;
                         return presponse;
