@@ -87,6 +87,7 @@ read:
   allowed_actions:
   - "indices:data/read*"
   - "indices:admin/mappings/fields/get*"
+  - "indices:admin/resolve/index"
   type: "index"
   description: "Allow all read operations"
 indices_all:
