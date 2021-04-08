@@ -92,7 +92,7 @@ public class AggregationTests extends SingleClusterTest {
         assertContains(res, "*xyz*");
         assertContains(res, "*role01_role02*");
         assertContains(res, "*\"failed\" : 0*");
-        
+
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("*/_search?pretty", "{\"size\":0,\"aggs\":{\"indices\":{\"terms\":{\"field\":\"_index\",\"size\":40}}}}",encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
         System.out.println(res.getBody());
         assertNotContains(res, "*xception*");
@@ -105,7 +105,7 @@ public class AggregationTests extends SingleClusterTest {
         assertContains(res, "*xyz*");
         assertContains(res, "*role01_role02*");
         assertContains(res, "*\"failed\" : 0*");
-        
+
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("_search?pretty", "{\"size\":0,\"aggs\":{\"indices\":{\"terms\":{\"field\":\"_index\",\"size\":40}}}}",encodeBasicHeader("worf", "worf"))).getStatusCode());
         System.out.println(res.getBody());
         assertNotContains(res, "*xception*");
@@ -118,9 +118,46 @@ public class AggregationTests extends SingleClusterTest {
         assertContains(res, "*public*");
         assertContains(res, "*xyz*");
         assertContains(res, "*\"failed\" : 0*");
-        
+
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executePostRequest("_search?pretty", "{\"size\":0,\"aggs\":{\"myindices\":{\"terms\":{\"field\":\"_index\",\"size\":40}}}}",encodeBasicHeader("worf", "worf"))).getStatusCode());
-        
+
+        // _resolve api is for replacing same filtering functionality
+        // reuse previous tests for checking if it works properly
+        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_resolve/index/*?pretty", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
+        System.out.println(res.getBody());
+        assertNotContains(res, "*xception*");
+        assertNotContains(res, "*erial*");
+        assertNotContains(res, "*mpty*");
+        assertNotContains(res, "*pendistro_security*");
+        assertContains(res, "*vulcangov*");
+        assertContains(res, "*starfleet*");
+        assertContains(res, "*klingonempire*");
+        assertContains(res, "*xyz*");
+        assertContains(res, "*role01_role02*");
+
+        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_resolve/index/*?pretty",encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
+        System.out.println(res.getBody());
+        assertNotContains(res, "*xception*");
+        assertNotContains(res, "*erial*");
+        assertNotContains(res, "*mpty*");
+        assertNotContains(res, "*pendistro_security*");
+        assertContains(res, "*vulcangov*");
+        assertContains(res, "*starfleet*");
+        assertContains(res, "*klingonempire*");
+        assertContains(res, "*xyz*");
+        assertContains(res, "*role01_role02*");
+
+        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_resolve/index/*?pretty",encodeBasicHeader("worf", "worf"))).getStatusCode());
+        System.out.println(res.getBody());
+        assertNotContains(res, "*xception*");
+        assertNotContains(res, "*erial*");
+        assertNotContains(res, "*mpty*");
+        assertNotContains(res, "*pendistro_security*");
+        assertNotContains(res, "*vulcangov*");
+        assertNotContains(res, "*kirk*");
+        assertContains(res, "*starfleet*");
+        assertContains(res, "*public*");
+        assertContains(res, "*xyz*");
     }
     
 }

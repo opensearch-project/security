@@ -43,7 +43,9 @@ import java.util.Set;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
+import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import org.apache.commons.collections.keyvalue.MultiKey;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionRequest;
@@ -56,6 +58,7 @@ import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
+import org.elasticsearch.action.admin.indices.resolve.ResolveIndexAction;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkShardRequest;
 import org.elasticsearch.action.delete.DeleteRequest;
@@ -633,7 +636,16 @@ public class IndexResolverReplacer {
                 return false;
             }
             ((IndexRequest) request).index(newIndices.length!=1?null:newIndices[0]);
-        } else if (request instanceof Replaceable) {
+        } else if(request instanceof ResolveIndexAction.Request) {
+            String[] newIndices = provider.provide(((Replaceable) request).indices(), request, true);
+            // remove index ".opendistro_security" from result as it is not expected in original _search for kibana
+            newIndices = ArrayUtils.removeElement(newIndices, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
+            if(checkIndices(request, newIndices, false, allowEmptyIndices) == false) {
+                return false;
+            }
+            ((Replaceable) request).indices(newIndices);
+        }
+        else if (request instanceof Replaceable) {
             String[] newIndices = provider.provide(((Replaceable) request).indices(), request, true);
             if(checkIndices(request, newIndices, false, allowEmptyIndices) == false) {
                 return false;
