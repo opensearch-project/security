@@ -387,6 +387,7 @@ public class PrivilegesEvaluator {
             }
         }
 
+        // do_not_fail_on_forbidden should always work for resolve requests
         if (action0.equals("indices:admin/resolve/index")
            ||   (dnfofEnabled
                 && (action0.startsWith("indices:data/read/")
