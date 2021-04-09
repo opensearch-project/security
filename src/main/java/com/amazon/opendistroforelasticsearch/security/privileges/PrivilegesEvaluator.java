@@ -354,6 +354,36 @@ public class PrivilegesEvaluator {
         final Set<String> allIndexPermsRequired = evaluateAdditionalIndexPermissions(request, action0);
         final String[] allIndexPermsRequiredA = allIndexPermsRequired.toArray(new String[0]);
 
+        // handle resolve requests
+        if (action0.equals("indices:admin/resolve/index")) {
+
+            if(requestedResolved.getAllIndices().isEmpty()) {
+                presponse.missingPrivileges.clear();
+                presponse.allowed = true;
+                return presponse;
+            }
+
+            final Set<String> allPermittedIndices = securityRoles.getAllPermittedIndicesForKibana(
+                    requestedResolved, user, new String[]{"indices:admin/resolve/index"}, resolver, clusterService);
+
+            if(allPermittedIndices.isEmpty()) {
+                if(request instanceof ResolveIndexAction.Request) {
+                    ((ResolveIndexAction.Request) request).indices(new String[0]);
+                    presponse.missingPrivileges.clear();
+                    presponse.allowed = true;
+                    return presponse;
+                }
+                presponse.allowed = false;
+                return presponse;
+            }
+
+            if(irr.replace(request, true, allPermittedIndices.toArray(new String[0]))) {
+                presponse.missingPrivileges.clear();
+                presponse.allowed = true;
+                return presponse;
+            }
+        }
+
         if (isDebugEnabled) {
             log.debug("Requested {} from {}", allIndexPermsRequired, caller);
         }
@@ -388,18 +418,16 @@ public class PrivilegesEvaluator {
         }
 
         // do_not_fail_on_forbidden should always work for resolve requests
-        if (action0.equals("indices:admin/resolve/index")
-           ||   (dnfofEnabled
-                && (action0.startsWith("indices:data/read/")
-                || action0.startsWith("indices:admin/mappings/fields/get")
-                || action0.equals("indices:admin/shards/search_shards")))) {
+        if (dnfofEnabled
+            && (action0.startsWith("indices:data/read/")
+            || action0.startsWith("indices:admin/mappings/fields/get")
+            || action0.equals("indices:admin/shards/search_shards"))) {
 
             if(requestedResolved.getAllIndices().isEmpty()) {
                 presponse.missingPrivileges.clear();
                 presponse.allowed = true;
                 return presponse;
             }
-
 
             Set<String> reduced = securityRoles.reduce(requestedResolved, user, allIndexPermsRequiredA, resolver, clusterService);
 
@@ -428,18 +456,10 @@ public class PrivilegesEvaluator {
                         presponse.allowed = true;
                         return presponse;
                     }
-
-                    if(request instanceof ResolveIndexAction.Request) {
-                        ((ResolveIndexAction.Request) request).indices(new String[0]);
-                        presponse.missingPrivileges.clear();
-                        presponse.allowed = true;
-                        return presponse;
-                    }
                 }
                 presponse.allowed = false;
                 return presponse;
             }
-
 
             if(irr.replace(request, true, reduced.toArray(new String[0]))) {
                 presponse.missingPrivileges.clear();
@@ -447,7 +467,6 @@ public class PrivilegesEvaluator {
                 return presponse;
             }
         }
-
 
         //not bulk, mget, etc request here
         boolean permGiven = false;
