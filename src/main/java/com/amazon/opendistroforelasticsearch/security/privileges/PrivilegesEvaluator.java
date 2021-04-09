@@ -363,10 +363,9 @@ public class PrivilegesEvaluator {
                 return presponse;
             }
 
-            final Set<String> allPermittedIndices = securityRoles.getAllPermittedIndicesForKibana(
-                    requestedResolved, user, new String[]{"indices:admin/resolve/index"}, resolver, clusterService);
+            Set<String> reduced = securityRoles.reduce(requestedResolved, user, allIndexPermsRequiredA, resolver, clusterService);
 
-            if(allPermittedIndices.isEmpty()) {
+            if(reduced.isEmpty()) {
                 if(request instanceof ResolveIndexAction.Request) {
                     ((ResolveIndexAction.Request) request).indices(new String[0]);
                     presponse.missingPrivileges.clear();
@@ -377,7 +376,7 @@ public class PrivilegesEvaluator {
                 return presponse;
             }
 
-            if(irr.replace(request, true, allPermittedIndices.toArray(new String[0]))) {
+            if(irr.replace(request, true, reduced.toArray(new String[0]))) {
                 presponse.missingPrivileges.clear();
                 presponse.allowed = true;
                 return presponse;
