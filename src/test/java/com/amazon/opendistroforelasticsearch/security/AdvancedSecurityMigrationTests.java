@@ -13,6 +13,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 
 public class AdvancedSecurityMigrationTests extends SingleClusterTest {
@@ -161,6 +162,18 @@ public class AdvancedSecurityMigrationTests extends SingleClusterTest {
         Thread.sleep(10000);
 
         commonTestsForAdvancedSecurityMigration(nonSslRestHelper(), encodeBasicHeader("admin", "admin"));
+    }
+
+    @Test(expected = IOException.class)
+    public void testWithPassiveAuthDisabled() throws Exception {
+        final Settings advSecSettings = getAdvSecSettings()
+                .put(ConfigConstants.OPENDISTRO_SECURITY_PASSIVE_INTERTRANSPORT_AUTH_INITIALLY, false)
+                .build();
+        final Settings disabledSettings = getDisabledSettings().build();
+
+        setupGenericNodes(Arrays.asList(advSecSettings, disabledSettings, advSecSettings, advSecSettings),
+                Arrays.asList(false, false, false, false), ClusterConfiguration.ONE_MASTER_THREE_DATA);
+        Thread.sleep(10000);
     }
 
     private void commonTestsForAdvancedSecurityMigration(final RestHelper rh, final Header basicHeaders) throws Exception {
