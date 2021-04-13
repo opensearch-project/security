@@ -164,16 +164,38 @@ public class AdvancedSecurityMigrationTests extends SingleClusterTest {
         commonTestsForAdvancedSecurityMigration(nonSslRestHelper(), encodeBasicHeader("admin", "admin"));
     }
 
-    @Test(expected = IOException.class)
+    @Test
     public void testWithPassiveAuthDisabled() throws Exception {
         final Settings advSecSettings = getAdvSecSettings()
                 .put(ConfigConstants.OPENDISTRO_SECURITY_PASSIVE_INTERTRANSPORT_AUTH_INITIALLY, false)
                 .build();
+        final Settings sslOnlySettings = getSSLOnlyModeSettings().build();
+
+        setupGenericNodes(Arrays.asList(sslOnlySettings, sslOnlySettings, advSecSettings, advSecSettings),
+                Arrays.asList(true, true, false, false), ClusterConfiguration.ONE_MASTER_THREE_DATA);
+        Thread.sleep(10000);
+
+        RestHelper.HttpResponse res;
+        RestHelper rh = nonSslRestHelper();
+        res = rh.executeGetRequest("/_cluster/health", null);
+        Assert.assertEquals(res.getBody(), HttpStatus.SC_INTERNAL_SERVER_ERROR, res.getStatusCode());
+    }
+
+    @Test
+    public void testWithPassiveAuthDisabledDynamic() throws Exception {
+        System.setProperty("security.default_init.dir", new File("./securityconfig").getAbsolutePath());
+
+        final Settings advSecSettings = getAdvSecSettingsDualMode().build();
         final Settings disabledSettings = getDisabledSettings().build();
 
-        setupGenericNodes(Arrays.asList(advSecSettings, disabledSettings, advSecSettings, advSecSettings),
+        setupGenericNodes(Arrays.asList(disabledSettings, disabledSettings, advSecSettings, advSecSettings),
                 Arrays.asList(false, false, false, false), ClusterConfiguration.ONE_MASTER_THREE_DATA);
-        Thread.sleep(10000);
+
+        RestHelper.HttpResponse res;
+        RestHelper rh = nonSslRestHelper();
+        res = rh.executeGetRequest("/_cluster/health", null);
+        Assert.assertEquals(res.getBody(), HttpStatus.SC_INTERNAL_SERVER_ERROR, res.getStatusCode());
+
     }
 
     private void commonTestsForAdvancedSecurityMigration(final RestHelper rh, final Header basicHeaders) throws Exception {
