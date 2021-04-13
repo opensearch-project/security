@@ -234,3 +234,9 @@ opendistro_security_date_math:
 opendistro_security_fls_exists:
   users:
     - fls_exists
+opendistro_dls:
+  users:
+    - user_with_dls_and_no_dls_at_the_same_time
+opendistro_no_dls:
+  users:
+    - user_with_dls_and_no_dls_at_the_same_time

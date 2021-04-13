@@ -2466,3 +2466,61 @@ opendistro_security_combined:
     allowed_actions:
     - "OPENDISTRO_SECURITY_READ"
   tenant_permissions: []
+
+opendistro_no_dls:
+  reserved: true
+  hidden: false
+  description: "Issue #13, PR #1078 : DLS overrides broader permissions, This role has no DLS"
+  index_permissions:
+  - index_patterns:
+    - 'dls_no_dls_index_simple'
+    dls: null
+    allowed_actions:
+    - "OPENDISTRO_SECURITY_READ"
+  - index_patterns:
+    - 'dls_no_dls_index_*'
+    dls: null
+    allowed_actions:
+    - "OPENDISTRO_SECURITY_READ"
+  - index_patterns:
+    - "${attr.internal.attribute1}"
+    dls: null
+    allowed_actions:
+    - "OPENDISTRO_SECURITY_READ"
+  - index_patterns:
+    - "${attr.internal.attribute2}_*"
+    dls: null
+    allowed_actions:
+      - "OPENDISTRO_SECURITY_READ"
+
+
+opendistro_dls:
+  reserved: true
+  hidden: false
+  description: "Issue #13, PR #1078 : DLS overrides broader permissions, this role has DLS"
+  index_permissions:
+    - index_patterns:
+      - 'dls_no_dls_index_simple'
+      dls: '{"term": {"field1":"value1"}}'
+      allowed_actions:
+      - "OPENDISTRO_SECURITY_READ"
+    - index_patterns:
+      - 'dls_no_dls_index_wildcard'
+      dls: '{"term": {"field1":"value1"}}'
+      allowed_actions:
+      - "OPENDISTRO_SECURITY_READ"
+    - index_patterns:
+      - 'dls_no_dls_index_attribute'
+      dls: '{"term": {"field1":"value1"}}'
+      allowed_actions:
+      - "OPENDISTRO_SECURITY_READ"
+    - index_patterns:
+      - 'dls_no_dls_index_mixed'
+      dls: '{"term": {"field1":"value1"}}'
+      allowed_actions:
+      - "OPENDISTRO_SECURITY_READ"
+    - index_patterns:
+        - 'dls_no_dls_only_dls'
+      dls: '{"term": {"field1":"value1"}}'
+      allowed_actions:
+        - "OPENDISTRO_SECURITY_READ"

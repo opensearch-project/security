@@ -171,3 +171,9 @@ date_math:
 fls_exists:
   #password
   hash: $2a$12$YCBrpxYyFusK609FurY5Ee3BlmuzWw0qHwpwqEyNhM2.XnQY3Bxpe
+user_with_dls_and_no_dls_at_the_same_time:
+  hash: $2y$12$59388eoP6F/eIGJ6PIKvkuVDcSCe544T/YKGvL7jWuUzrJgC.URvm
+  description: "Issue #13, PR #1078 : DLS overrides broader permissions"
+  attributes:
+    attribute1: dls_no_dls_index_attribute
+    attribute2: dls_no_dls_index
