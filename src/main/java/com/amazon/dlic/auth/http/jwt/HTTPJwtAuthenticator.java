@@ -40,8 +40,14 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestStatus;
 
+import com.amazon.dlic.util.Roles;
 import com.amazon.opendistroforelasticsearch.security.auth.HTTPAuthenticator;
 import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
+import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.Option;
+import com.jayway.jsonpath.PathNotFoundException;
+
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtParser;
@@ -61,6 +67,8 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     private final boolean isDefaultAuthHeader;
     private final String jwtUrlParameter;
     private final String rolesKey;
+    private final String jsonRolesPath;
+    private Configuration jsonPathConfig;
     private final String subjectKey;
 
     public HTTPJwtAuthenticator(final Settings settings, final Path configPath) {
@@ -109,8 +117,16 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         jwtHeaderName = settings.get("jwt_header", HttpHeaders.AUTHORIZATION);
         isDefaultAuthHeader = HttpHeaders.AUTHORIZATION.equalsIgnoreCase(jwtHeaderName);
         rolesKey = settings.get("roles_key");
+        jsonRolesPath = settings.get("roles_path");
         subjectKey = settings.get("subject_key");
         jwtParser = _jwtParser;
+
+        // throw exception when settings provided both roles_key and roles_path
+        if (rolesKey != null && jsonRolesPath != null) {
+            throw new IllegalStateException("Both roles_key and roles_path have simultaneously provided." +
+                    " Please provide only one combination.");
+        }
+        jsonPathConfig = Configuration.defaultConfiguration().addOptions(Option.ALWAYS_RETURN_LIST);
     }
 
 
@@ -231,9 +247,20 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     @SuppressWarnings("unchecked")
     protected String[] extractRoles(final Claims claims, final RestRequest request) {
     	// no roles key specified
-    	if(rolesKey == null) {
+    	if(rolesKey == null && jsonRolesPath == null) {
     		return new String[0];
     	}
+
+    	// get roles from roles_path if roles_path is specified
+    	if (jsonRolesPath != null){
+    	    try {
+                return Roles.split(JsonPath.using(jsonPathConfig).parse(claims).read(jsonRolesPath));
+            } catch (PathNotFoundException e) {
+                log.error("The provided JSON path {} could not be found ", jsonRolesPath);
+                return new String[0];
+            }
+        }
+
 		// try to get roles from claims, first as Object to avoid having to catch the ExpectedTypeException
     	final Object rolesObject = claims.get(rolesKey, Object.class);
     	if(rolesObject == null) {
@@ -241,20 +268,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     		return new String[0];
     	}
 
-    	String[] roles = String.valueOf(rolesObject).split(",");
-
-    	// We expect a String or Collection. If we find something else, convert to String but issue a warning
-    	if (!(rolesObject instanceof String) && !(rolesObject instanceof Collection<?>)) {
-    		log.warn("Expected type String or Collection for roles in the JWT for roles_key {}, but value was '{}' ({}). Will convert this value to String.", rolesKey, rolesObject, rolesObject.getClass());
-		} else if (rolesObject instanceof Collection<?>) {
-		    roles = ((Collection<String>) rolesObject).toArray(new String[0]);
-		}
-
-    	for (int i = 0; i < roles.length; i++) {
-    	    roles[i] = roles[i].trim();
-    	}
-
-    	return roles;
+    	return Roles.split(rolesObject);
     }
 
     private static PublicKey getPublicKey(final byte[] keyBytes, final String algo) throws NoSuchAlgorithmException, InvalidKeySpecException {
