@@ -227,8 +227,9 @@ public class HTTPJwtAuthenticatorTest {
         Assert.assertEquals("Leonard McCoy", creds.getUsername());
         Assert.assertEquals(2, creds.getBackendRoles().size());
     }
+
     @Test
-    public void testRolesPath() throws Exception {
+    public void testRolesPathJSONArray() throws Exception {
 
 
 
@@ -258,6 +259,121 @@ public class HTTPJwtAuthenticatorTest {
         Assert.assertTrue(creds.getBackendRoles().contains("b"));
         Assert.assertTrue(creds.getBackendRoles().contains("c"));
         Assert.assertTrue(creds.getBackendRoles().contains("3rd"));
+    }
+
+    @Test
+    public void testRolesPathSingleString() throws Exception {
+
+
+
+        Settings settings = Settings.builder()
+                .put("signing_key", BaseEncoding.base64().encode(secretKey))
+                .put("roles_path", "$[\"access\"][\"roles\"][0]")
+                .build();
+
+        String jwsToken = Jwts.builder()
+                .setPayload("{"+
+                        "\"sub\": \"Leonard McCoy\","+
+                        "\"access\": {"+
+                        "\"roles\": [\"a, b\",\"c\",\"3rd\"]"+
+                        "}"+
+                        "}")
+                .signWith(SignatureAlgorithm.HS512, secretKey).compact();
+
+        HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
+        Map<String, String> headers = new HashMap<String, String>();
+        headers.put("Authorization", jwsToken);
+
+        AuthCredentials creds = jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<String, String>()), null);
+        Assert.assertNotNull(creds);
+        Assert.assertEquals("Leonard McCoy", creds.getUsername());
+        Assert.assertEquals(2, creds.getBackendRoles().size());
+        Assert.assertTrue(creds.getBackendRoles().contains("a"));
+        Assert.assertTrue(creds.getBackendRoles().contains("b"));
+    }
+
+    @Test
+    public void testRolesPathJSONObject() throws Exception {
+
+
+
+        Settings settings = Settings.builder()
+                .put("signing_key", BaseEncoding.base64().encode(secretKey))
+                .put("roles_path", "$[\"access\"]")
+                .build();
+
+        String jwsToken = Jwts.builder()
+                .setPayload("{"+
+                        "\"sub\": \"Leonard McCoy\","+
+                        "\"access\": {"+
+                        "\"roles\": [\"a, b\",\"c\",\"3rd\"]"+
+                        "}"+
+                        "}")
+                .signWith(SignatureAlgorithm.HS512, secretKey).compact();
+
+        HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
+        Map<String, String> headers = new HashMap<String, String>();
+        headers.put("Authorization", jwsToken);
+
+        AuthCredentials creds = jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<String, String>()), null);
+        Assert.assertNotNull(creds);
+        Assert.assertEquals("Leonard McCoy", creds.getUsername());
+        Assert.assertEquals(4, creds.getBackendRoles().size());
+        Assert.assertTrue(creds.getBackendRoles().contains("{roles=[a"));
+        Assert.assertTrue(creds.getBackendRoles().contains("b"));
+        Assert.assertTrue(creds.getBackendRoles().contains("c"));
+        Assert.assertTrue(creds.getBackendRoles().contains("3rd]}"));
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testRolesBothSpecified() throws Exception {
+
+
+
+        Settings settings = Settings.builder()
+                .put("signing_key", BaseEncoding.base64().encode(secretKey))
+                .put("roles_key", "roles")
+                .put("roles_path", "$[\"access\"][\"roles\"]")
+                .build();
+
+        String jwsToken = Jwts.builder()
+                .setPayload("{"+
+                        "\"sub\": \"Leonard McCoy\","+
+                        "\"roles\": \"role1, role2\","+
+                        "\"access\": {"+
+                        "\"roles\": [\"a, b\",\"c\",\"3rd\"]"+
+                        "}"+
+                        "}")
+                .signWith(SignatureAlgorithm.HS512, secretKey).compact();
+
+        HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
+        Map<String, String> headers = new HashMap<String, String>();
+        headers.put("Authorization", jwsToken);
+        AuthCredentials creds = jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<String, String>()), null);
+    }
+
+
+    @Test
+    public void testConfigRolesMissing() throws Exception {
+
+
+
+        Settings settings = Settings.builder()
+                .put("signing_key", BaseEncoding.base64().encode(secretKey))
+                .build();
+
+        String jwsToken = Jwts.builder()
+                .setSubject("Leonard McCoy")
+                .signWith(SignatureAlgorithm.HS512, secretKey).compact();
+
+        HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
+        Map<String, String> headers = new HashMap<String, String>();
+        headers.put("Authorization", jwsToken);
+
+        AuthCredentials creds = jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<String, String>()), null);
+        Assert.assertNotNull(creds);
+        Assert.assertEquals("Leonard McCoy", creds.getUsername());
+        Assert.assertEquals(0, creds.getBackendRoles().size());
     }
 
     @Test
