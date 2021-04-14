@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2021 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License").
  *  You may not use this file except in compliance with the License.
@@ -23,9 +23,34 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public class Roles {
-    private static final Logger log = LogManager.getLogger(Roles.class);
+public class RolesUtil {
+    private static final Logger log = LogManager.getLogger(RolesUtil.class);
 
+    /*
+     * Split the given rolesObject to one or several roles
+     * rolesObject should be a String if given by roles_key
+     * rolesObject should always be net.minidev.json.JSONArray if given by roles_path (jayway config set to ALWAYS_RETURN_LIST)
+     *
+     * Here are some examples:
+     *
+     *   JWT paylaoad contains:
+     *     "access": {
+     *       "roles": [
+     *         "readall, testrole",
+     *         "admin",
+     *         "kibanauser"
+     *       ]
+     *     }
+     *  if contains a Json array, it will convert all elements to String and split by comma to get roles.
+     *    roles_path = $["access"]["roles"]
+     *    the result should be ("readall", "testrole", "admin", "kibanauser")
+     *  if contains a String, it will split by comma to get roles.
+     *    roles_path = $["access"]["roles"][0]
+     *    the result should be ("readall", "testrole")
+     *  if contains neither Json array nor String, e.g. Json Object, it will convert the value to String and split by comma to get roles
+     *    roles_path = $["access"]
+     *    the result should be ("{roles=[readall", "testrole", "admin", "kinanauser]}")
+     */
     public static String[] split(Object rolesObject) {
         if (rolesObject == null) {
             return new String[0];

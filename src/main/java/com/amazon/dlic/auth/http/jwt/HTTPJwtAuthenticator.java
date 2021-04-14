@@ -40,7 +40,7 @@ import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.rest.RestStatus;
 
-import com.amazon.dlic.util.Roles;
+import com.amazon.dlic.util.RolesUtil;
 import com.amazon.opendistroforelasticsearch.security.auth.HTTPAuthenticator;
 import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
 import com.jayway.jsonpath.Configuration;
@@ -68,7 +68,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     private final String jwtUrlParameter;
     private final String rolesKey;
     private final String jsonRolesPath;
-    private Configuration jsonPathConfig;
+    private final Configuration jsonPathConfig;
     private final String subjectKey;
 
     public HTTPJwtAuthenticator(final Settings settings, final Path configPath) {
@@ -123,7 +123,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
 
         // throw exception when settings provided both roles_key and roles_path
         if (rolesKey != null && jsonRolesPath != null) {
-            throw new IllegalStateException("Both roles_key and roles_path have simultaneously provided." +
+            throw new IllegalStateException("Both roles_key and roles_path are simultaneously provided." +
                     " Please provide only one combination.");
         }
         jsonPathConfig = Configuration.defaultConfiguration().addOptions(Option.ALWAYS_RETURN_LIST);
@@ -254,7 +254,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     	// get roles from roles_path if roles_path is specified
     	if (jsonRolesPath != null){
     	    try {
-                return Roles.split(JsonPath.using(jsonPathConfig).parse(claims).read(jsonRolesPath));
+                return RolesUtil.split(JsonPath.using(jsonPathConfig).parse(claims).read(jsonRolesPath));
             } catch (PathNotFoundException e) {
                 log.error("The provided JSON path {} could not be found ", jsonRolesPath);
                 return new String[0];
@@ -268,7 +268,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     		return new String[0];
     	}
 
-    	return Roles.split(rolesObject);
+    	return RolesUtil.split(rolesObject);
     }
 
     private static PublicKey getPublicKey(final byte[] keyBytes, final String algo) throws NoSuchAlgorithmException, InvalidKeySpecException {
