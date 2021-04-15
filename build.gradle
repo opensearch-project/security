@@ -252,6 +252,7 @@ allprojects {
     }
 }
 
+javadoc.enabled(false)
 checkstyleMain.enabled(false)
 checkstyleTest.enabled(false)
 filepermissions.enabled(false)
