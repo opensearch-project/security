@@ -244,6 +244,8 @@ allprojects {
     gradle.projectsEvaluated {
         tasks.withType(JavaCompile) {
             options.compilerArgs.remove("-Werror")
+            options.compilerArgs.remove("-Xdoclint:all")
+            options.compilerArgs.remove("-Xdoclint:-missing")
             options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
             options.warnings(false)
         }
