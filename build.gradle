@@ -1,6 +1,6 @@
 // Uses Gradle to build RPMs since that's what we use for the other plugins. When all you have is a hammer...
 plugins {
-   id "nebula.ospackage" version "5.3.0"
+   id "nebula.ospackage" version "8.5.6"
 }
 
 // To prevent conflicts with maven build under build/
@@ -59,10 +59,24 @@ ospackage {
 buildRpm {
     arch = 'NOARCH'
     addParentDirs = false
-    archiveName "${packageName}-${version}.rpm"
+    finalizedBy 'renameRpm'
+    task renameRpm(type: Copy) {
+        from("$buildDir/distributions")
+        into("$buildDir/distributions")
+        include archiveName
+        rename archiveName, "${packageName}-${version}.rpm"
+        doLast { delete file("$buildDir/distributions/$archiveName") }
+    }
 }
 
 buildDeb {
     arch = 'all'
-    archiveName "${packageName}-${version}.deb"
+    finalizedBy 'renameDeb'
+    task renameDeb(type: Copy) {
+        from("$buildDir/distributions")
+        into("$buildDir/distributions")
+        include archiveName
+        rename archiveName, "${packageName}-${version}.deb"
+        doLast { delete file("$buildDir/distributions/$archiveName") }
+    }
 }
