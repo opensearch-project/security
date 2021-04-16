@@ -230,9 +230,6 @@ public class HTTPJwtAuthenticatorTest {
 
     @Test
     public void testRolesPathJSONArray() throws Exception {
-
-
-
         Settings settings = Settings.builder()
                 .put("signing_key", BaseEncoding.base64().encode(secretKey))
                 .put("roles_path", "$[\"access\"][\"roles\"]")
@@ -254,18 +251,14 @@ public class HTTPJwtAuthenticatorTest {
         AuthCredentials creds = jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<String, String>()), null);
         Assert.assertNotNull(creds);
         Assert.assertEquals("Leonard McCoy", creds.getUsername());
-        Assert.assertEquals(4, creds.getBackendRoles().size());
-        Assert.assertTrue(creds.getBackendRoles().contains("a"));
-        Assert.assertTrue(creds.getBackendRoles().contains("b"));
+        Assert.assertEquals(3, creds.getBackendRoles().size());
+        Assert.assertTrue(creds.getBackendRoles().contains("a, b"));
         Assert.assertTrue(creds.getBackendRoles().contains("c"));
         Assert.assertTrue(creds.getBackendRoles().contains("3rd"));
     }
 
     @Test
     public void testRolesPathSingleString() throws Exception {
-
-
-
         Settings settings = Settings.builder()
                 .put("signing_key", BaseEncoding.base64().encode(secretKey))
                 .put("roles_path", "$[\"access\"][\"roles\"][0]")
@@ -293,13 +286,65 @@ public class HTTPJwtAuthenticatorTest {
     }
 
     @Test
-    public void testRolesPathJSONObject() throws Exception {
-
-
-
+    public void testRolesPathJSONArrayWithNonString() throws Exception {
         Settings settings = Settings.builder()
                 .put("signing_key", BaseEncoding.base64().encode(secretKey))
-                .put("roles_path", "$[\"access\"]")
+                .put("roles_path", "$[\"access\"][\"roles\"]")
+                .build();
+
+        String jwsToken = Jwts.builder()
+                .setPayload("{"+
+                        "\"sub\": \"Leonard McCoy\","+
+                        "\"access\": {"+
+                        "\"roles\": [\"a, b\", 123,\"3rd\"]"+
+                        "}"+
+                        "}")
+                .signWith(SignatureAlgorithm.HS512, secretKey).compact();
+
+        HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
+        Map<String, String> headers = new HashMap<String, String>();
+        headers.put("Authorization", jwsToken);
+
+        AuthCredentials creds = jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<String, String>()), null);
+        Assert.assertNotNull(creds);
+        Assert.assertEquals("Leonard McCoy", creds.getUsername());
+        Assert.assertEquals(2, creds.getBackendRoles().size());
+        Assert.assertTrue(creds.getBackendRoles().contains("a, b"));
+        Assert.assertTrue(creds.getBackendRoles().contains("3rd"));
+    }
+
+    @Test
+    public void testRolesJSONArrayWithSingleString() throws Exception {
+        Settings settings = Settings.builder()
+                .put("signing_key", BaseEncoding.base64().encode(secretKey))
+                .put("roles_path", "$[\"access\"][\"roles\"]")
+                .build();
+
+        String jwsToken = Jwts.builder()
+                .setPayload("{"+
+                        "\"sub\": \"Leonard McCoy\","+
+                        "\"access\": {"+
+                        "\"roles\": [\"a, b, c\"]"+
+                        "}"+
+                        "}")
+                .signWith(SignatureAlgorithm.HS512, secretKey).compact();
+
+        HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
+        Map<String, String> headers = new HashMap<String, String>();
+        headers.put("Authorization", jwsToken);
+
+        AuthCredentials creds = jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<String, String>()), null);
+        Assert.assertNotNull(creds);
+        Assert.assertEquals("Leonard McCoy", creds.getUsername());
+        Assert.assertEquals(1, creds.getBackendRoles().size());
+        Assert.assertTrue(creds.getBackendRoles().contains("a, b, c"));
+    }
+
+    @Test
+    public void testRolesPathNotFound() throws Exception {
+        Settings settings = Settings.builder()
+                .put("signing_key", BaseEncoding.base64().encode(secretKey))
+                .put("roles_path", "$[\"wrong_path\"]")
                 .build();
 
         String jwsToken = Jwts.builder()
@@ -318,18 +363,11 @@ public class HTTPJwtAuthenticatorTest {
         AuthCredentials creds = jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<String, String>()), null);
         Assert.assertNotNull(creds);
         Assert.assertEquals("Leonard McCoy", creds.getUsername());
-        Assert.assertEquals(4, creds.getBackendRoles().size());
-        Assert.assertTrue(creds.getBackendRoles().contains("{roles=[a"));
-        Assert.assertTrue(creds.getBackendRoles().contains("b"));
-        Assert.assertTrue(creds.getBackendRoles().contains("c"));
-        Assert.assertTrue(creds.getBackendRoles().contains("3rd]}"));
+        Assert.assertEquals(0, creds.getBackendRoles().size());
     }
 
     @Test(expected = IllegalStateException.class)
     public void testRolesBothSpecified() throws Exception {
-
-
-
         Settings settings = Settings.builder()
                 .put("signing_key", BaseEncoding.base64().encode(secretKey))
                 .put("roles_key", "roles")
@@ -351,7 +389,6 @@ public class HTTPJwtAuthenticatorTest {
         headers.put("Authorization", jwsToken);
         AuthCredentials creds = jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<String, String>()), null);
     }
-
 
     @Test
     public void testConfigRolesMissing() throws Exception {
@@ -401,11 +438,8 @@ public class HTTPJwtAuthenticatorTest {
         Assert.assertEquals(0, creds.getBackendRoles().size());
     }
 
-    @Test
+    @Test(expected = ElasticsearchSecurityException.class)
     public void testNonStringClaim() throws Exception {
-
-
-
         Settings settings = Settings.builder()
                 .put("signing_key", BaseEncoding.base64().encode(secretKey))
                 .put("roles_key", "roles")
@@ -419,12 +453,7 @@ public class HTTPJwtAuthenticatorTest {
         HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
         Map<String, String> headers = new HashMap<String, String>();
         headers.put("Authorization", jwsToken);
-
         AuthCredentials creds = jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<String, String>()), null);
-        Assert.assertNotNull(creds);
-        Assert.assertEquals("Leonard McCoy", creds.getUsername());
-        Assert.assertEquals(1, creds.getBackendRoles().size());
-        Assert.assertTrue( creds.getBackendRoles().contains("123"));
     }
 
     @Test
