@@ -16,12 +16,7 @@
 package com.amazon.dlic.auth.http.jwt;
 
 import java.nio.file.Path;
-import java.security.AccessController;
-import java.security.Key;
-import java.security.KeyFactory;
-import java.security.NoSuchAlgorithmException;
-import java.security.PrivilegedAction;
-import java.security.PublicKey;
+import java.security.*;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Collection;
@@ -45,7 +40,6 @@ import com.amazon.opendistroforelasticsearch.security.auth.HTTPAuthenticator;
 import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.JsonPath;
-import com.jayway.jsonpath.Option;
 import com.jayway.jsonpath.PathNotFoundException;
 
 
@@ -126,7 +120,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
             throw new IllegalStateException("Both roles_key and roles_path are simultaneously provided." +
                     " Please provide only one combination.");
         }
-        jsonPathConfig = Configuration.defaultConfiguration().addOptions(Option.ALWAYS_RETURN_LIST);
+        jsonPathConfig = Configuration.defaultConfiguration();
     }
 
 
@@ -140,7 +134,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
 
         AuthCredentials creds = AccessController.doPrivileged(new PrivilegedAction<AuthCredentials>() {
             @Override
-            public AuthCredentials run() {
+            public AuthCredentials run() throws ElasticsearchSecurityException {
                 return extractCredentials0(request);
             }
         });
@@ -205,6 +199,8 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         } catch (WeakKeyException e) {
             log.error("Cannot authenticate user with JWT because of ", e);
             return null;
+        } catch (ElasticsearchSecurityException e){
+            throw e;
         } catch (Exception e) {
             if(log.isDebugEnabled()) {
                 log.debug("Invalid or expired JWT token.", e);
