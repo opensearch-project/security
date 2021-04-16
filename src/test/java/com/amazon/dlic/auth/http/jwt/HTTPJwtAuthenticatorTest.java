@@ -438,7 +438,7 @@ public class HTTPJwtAuthenticatorTest {
         Assert.assertEquals(0, creds.getBackendRoles().size());
     }
 
-    @Test(expected = ElasticsearchSecurityException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testNonStringClaim() throws Exception {
         Settings settings = Settings.builder()
                 .put("signing_key", BaseEncoding.base64().encode(secretKey))
