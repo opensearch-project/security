@@ -18,9 +18,9 @@ package com.amazon.opendistroforelasticsearch.security.dlic.rest.api;
 import com.amazon.opendistroforelasticsearch.security.configuration.AdminDNs;
 import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvaluator;
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.PrincipalExtractor;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.rest.RestRequest;
-import org.elasticsearch.threadpool.ThreadPool;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.rest.RestRequest;
+import org.opensearch.threadpool.ThreadPool;
 import org.junit.Before;
 import org.junit.Test;
 

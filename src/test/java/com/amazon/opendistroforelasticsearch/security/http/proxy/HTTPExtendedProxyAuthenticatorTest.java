@@ -40,18 +40,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.elasticsearch.ElasticsearchSecurityException;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.http.HttpChannel;
-import org.elasticsearch.http.HttpRequest;
-import org.elasticsearch.http.HttpResponse;
-import org.elasticsearch.rest.RestRequest;
-import org.elasticsearch.rest.RestRequest.Method;
-import org.elasticsearch.rest.RestStatus;
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.action.ActionListener;
+import org.opensearch.common.bytes.BytesReference;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.common.xcontent.NamedXContentRegistry;
+import org.opensearch.http.HttpChannel;
+import org.opensearch.http.HttpRequest;
+import org.opensearch.http.HttpResponse;
+import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.RestRequest.Method;
+import org.opensearch.rest.RestStatus;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -80,7 +80,7 @@ public class HTTPExtendedProxyAuthenticatorTest {
         assertEquals("extended-proxy", authenticator.getType());
     }
 
-    @Test(expected = ElasticsearchSecurityException.class)
+    @Test(expected = OpenSearchSecurityException.class)
     public void testThrowsExceptionWhenMissingXFFDone() {
         authenticator = new HTTPExtendedProxyAuthenticator(Settings.EMPTY, null);
         authenticator.extractCredentials(new TestRestRequest(),  new ThreadContext(Settings.EMPTY));

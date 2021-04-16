@@ -44,24 +44,24 @@ import java.util.stream.Collectors;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchTimeoutException;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
-import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
-import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest;
-import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
-import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.cluster.health.ClusterHealthStatus;
-import org.elasticsearch.cluster.node.DiscoveryNodeRole;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.http.HttpInfo;
-import org.elasticsearch.node.Node;
-import org.elasticsearch.node.PluginAwareNode;
-import org.elasticsearch.transport.TransportInfo;
+import org.opensearch.OpenSearchTimeoutException;
+import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
+import org.opensearch.action.admin.cluster.node.info.NodeInfo;
+import org.opensearch.action.admin.cluster.node.info.NodesInfoRequest;
+import org.opensearch.action.admin.cluster.node.info.NodesInfoResponse;
+import org.opensearch.action.admin.indices.template.put.PutIndexTemplateRequest;
+import org.opensearch.action.support.master.AcknowledgedResponse;
+import org.opensearch.client.Client;
+import org.opensearch.cluster.health.ClusterHealthStatus;
+import org.opensearch.cluster.node.DiscoveryNodeRole;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.transport.TransportAddress;
+import org.opensearch.common.unit.TimeValue;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.http.HttpInfo;
+import org.opensearch.node.Node;
+import org.opensearch.node.PluginAwareNode;
+import org.opensearch.transport.TransportInfo;
 
 import com.amazon.opendistroforelasticsearch.security.test.NodeSettingsSupplier;
 import com.amazon.opendistroforelasticsearch.security.test.helper.cluster.ClusterConfiguration.NodeSettings;
@@ -70,13 +70,13 @@ import com.amazon.opendistroforelasticsearch.security.test.helper.network.Socket
 public final class ClusterHelper {
 
     static {
-        System.setProperty("es.enforce.bootstrap.checks", "true");
+        System.setProperty("opensearch.enforce.bootstrap.checks", "true");
         System.setProperty("security.default_init.dir", new File("./securityconfig").getAbsolutePath());
     }
 
     protected final Logger log = LogManager.getLogger(ClusterHelper.class);
 
-    protected final List<PluginAwareNode> esNodes = new LinkedList<>();
+    protected final List<PluginAwareNode> opensearchNodes = new LinkedList<>();
 
     private final String clustername;
 
@@ -90,7 +90,7 @@ public final class ClusterHelper {
     }
 
     /**
-     * Start n Elasticsearch nodes with the provided settings
+     * Start n OpenSearch nodes with the provided settings
      *
      * @return
      * @throws Exception
@@ -104,8 +104,8 @@ public final class ClusterHelper {
     public final synchronized ClusterInfo startCluster(final NodeSettingsSupplier nodeSettingsSupplier, ClusterConfiguration clusterConfiguration, int timeout, Integer nodes)
             throws Exception {
 
-        if (!esNodes.isEmpty()) {
-            throw new RuntimeException("There are still " + esNodes.size() + " nodes instantiated, close them first.");
+        if (!opensearchNodes.isEmpty()) {
+            throw new RuntimeException("There are still " + opensearchNodes.size() + " nodes instantiated, close them first.");
         }
 
         FileUtils.deleteDirectory(new File("./target/data/"+clustername));
@@ -170,7 +170,7 @@ public final class ClusterHelper {
                     }
                 }
             }).start();
-            esNodes.add(node);
+            opensearchNodes.add(node);
         }
 
         for (int i = 0; i < internalNonMasterNodeSettings.size(); i++) {
@@ -196,7 +196,7 @@ public final class ClusterHelper {
                     }
                 }
             }).start();
-            esNodes.add(node);
+            opensearchNodes.add(node);
         }
 
         assert nodeNumCounter == 0;
@@ -207,7 +207,7 @@ public final class ClusterHelper {
             throw new RuntimeException("Could not start all nodes "+err.get(),err.get());
         }
 
-        ClusterInfo cInfo = waitForCluster(ClusterHealthStatus.GREEN, TimeValue.timeValueSeconds(timeout), nodes == null?esNodes.size():nodes.intValue());
+        ClusterInfo cInfo = waitForCluster(ClusterHealthStatus.GREEN, TimeValue.timeValueSeconds(timeout), nodes == null?opensearchNodes.size():nodes.intValue());
         cInfo.numNodes = internalNodeSettings.size();
         cInfo.clustername = clustername;
         cInfo.tcpMasterPortsOnly = tcpMasterPortsOnly.stream().map(s->"127.0.0.1:"+s).collect(Collectors.toList());
@@ -233,11 +233,11 @@ public final class ClusterHelper {
     public final void stopCluster() throws Exception {
 
         //close non master nodes
-        esNodes.stream().filter(n->!n.isMasterEligible()).forEach(node->closeNode(node));
+        opensearchNodes.stream().filter(n->!n.isMasterEligible()).forEach(node->closeNode(node));
 
         //close master nodes
-        esNodes.stream().filter(n->n.isMasterEligible()).forEach(node->closeNode(node));
-        esNodes.clear();
+        opensearchNodes.stream().filter(n->n.isMasterEligible()).forEach(node->closeNode(node));
+        opensearchNodes.clear();
 
         FileUtils.deleteDirectory(new File("./target/data/"+clustername));
     }
@@ -253,17 +253,17 @@ public final class ClusterHelper {
 
 
     public Client nodeClient() {
-        return esNodes.get(0).client();
+        return opensearchNodes.get(0).client();
     }
 
     public ClusterInfo waitForCluster(final ClusterHealthStatus status, final TimeValue timeout, final int expectedNodeCount) throws IOException {
-        if (esNodes.isEmpty()) {
+        if (opensearchNodes.isEmpty()) {
             throw new RuntimeException("List of nodes was empty.");
         }
 
         ClusterInfo clusterInfo = new ClusterInfo();
 
-        Node node = esNodes.get(0);
+        Node node = opensearchNodes.get(0);
         Client client = node.client();
         try {
             log.debug("waiting for cluster state {} and {} nodes", status.name(), expectedNodeCount);
@@ -331,7 +331,7 @@ public final class ClusterHelper {
                     }
                 }
             }
-        } catch (final ElasticsearchTimeoutException e) {
+        } catch (final OpenSearchTimeoutException e) {
             throw new IOException(
                     "timeout, cluster does not respond to health request, cowardly refusing to continue with operations");
         }

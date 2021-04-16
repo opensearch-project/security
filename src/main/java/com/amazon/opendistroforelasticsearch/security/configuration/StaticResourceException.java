@@ -19,10 +19,10 @@ package com.amazon.opendistroforelasticsearch.security.configuration;
 
 import java.io.IOException;
 
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.common.io.stream.StreamInput;
+import org.opensearch.OpenSearchException;
+import org.opensearch.common.io.stream.StreamInput;
 
-public class StaticResourceException extends ElasticsearchException {
+public class StaticResourceException extends OpenSearchException {
 
     public StaticResourceException(StreamInput in) throws IOException {
         super(in);

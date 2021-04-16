@@ -28,18 +28,18 @@ import org.apache.logging.log4j.Logger;
 
 /**
  * Utility class to test if the server supports SSL connections.
- * SSL Check will be done by sending an ES Ping to see if server is replying to pings.
+ * SSL Check will be done by sending an OpenSearch Ping to see if server is replying to pings.
  * Following that a custom client hello message will be sent to the server, if the server
  * side has OpenDistroPortUnificationHandler it will reply with server hello message.
  */
 public class SSLConnectionTestUtil {
 
     private static final Logger logger = LogManager.getLogger(SSLConnectionTestUtil.class);
-    public static final byte[] ES_PING_MSG = new byte[]{(byte) 'E', (byte) 'S', (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF};
+    public static final byte[] OPENSEARCH_PING_MSG = new byte[]{(byte) 'E', (byte) 'S', (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF};
     public static final String DUAL_MODE_CLIENT_HELLO_MSG = "DUALCM";
     public static final String DUAL_MODE_SERVER_HELLO_MSG = "DUALSM";
     private static final int SOCKET_TIMEOUT_MILLIS = 10 * 1000;
-    private boolean esPingReplyReceived;
+    private boolean opensearchPingReplyReceived;
     private boolean dualSSLProbeReplyReceived;
     private final String host;
     private final int port;
@@ -50,7 +50,7 @@ public class SSLConnectionTestUtil {
     public SSLConnectionTestUtil(final String host, final int port) {
         this.host = host;
         this.port = port;
-        esPingReplyReceived = false;
+        opensearchPingReplyReceived = false;
         dualSSLProbeReplyReceived = false;
     }
 
@@ -63,27 +63,27 @@ public class SSLConnectionTestUtil {
 
         this.host = host;
         this.port = port;
-        esPingReplyReceived = false;
+        opensearchPingReplyReceived = false;
         dualSSLProbeReplyReceived = false;
     }
 
     /**
      * Test connection to server by performing the below steps:
      * - Send Client Hello to check if the server replies with Server Hello which indicates that Server understands SSL
-     * - Send ES Ping to check if the server replies to the ES Ping message
+     * - Send OpenSearch Ping to check if the server replies to the OpenSearch Ping message
      *
-     * @return SSLConnectionTestResult i.e. ES_PING_FAILED or SSL_NOT_AVAILABLE or SSL_AVAILABLE
+     * @return SSLConnectionTestResult i.e. OPENSEARCH_PING_FAILED or SSL_NOT_AVAILABLE or SSL_AVAILABLE
      */
     public SSLConnectionTestResult testConnection() {
         if (sendDualSSLClientHello()) {
             return SSLConnectionTestResult.SSL_AVAILABLE;
         }
 
-        if (sendESPing()) {
+        if (sendOpenSearchPing()) {
             return SSLConnectionTestResult.SSL_NOT_AVAILABLE;
         }
 
-        return SSLConnectionTestResult.ES_PING_FAILED;
+        return SSLConnectionTestResult.OPENSEARCH_PING_FAILED;
     }
 
     private boolean sendDualSSLClientHello() {
@@ -133,7 +133,7 @@ public class SSLConnectionTestUtil {
         return dualSslSupported;
     }
 
-    private boolean sendESPing() {
+    private boolean sendOpenSearchPing() {
         boolean pingSucceeded = false;
         Socket socket = null;
         try {
@@ -147,8 +147,8 @@ public class SSLConnectionTestUtil {
             OutputStream outputStream = socket.getOutputStream();
             InputStream inputStream = socket.getInputStream();
 
-            logger.debug("Sending ES Ping to {}", host);
-            outputStream.write(ES_PING_MSG);
+            logger.debug("Sending OpenSearch Ping to {}", host);
+            outputStream.write(OPENSEARCH_PING_MSG);
             outputStream.flush();
 
             int currentByte;
@@ -159,21 +159,21 @@ public class SSLConnectionTestUtil {
                 byteBufIndex++;
             }
             if (byteBufIndex == 6) {
-                logger.debug("Received reply for ES Ping. from {}", host);
+                logger.debug("Received reply for OpenSearch Ping. from {}", host);
                 pingSucceeded = true;
                 for(int i = 0; i < 6; i++) {
-                    if (response[i] != ES_PING_MSG[i]) {
+                    if (response[i] != OPENSEARCH_PING_MSG[i]) {
                         // Unexpected byte in response
-                        logger.error("Received unexpected byte in ES Ping reply from {}", host);
+                        logger.error("Received unexpected byte in OpenSearch Ping reply from {}", host);
                         pingSucceeded = false;
                         break;
                     }
                 }
             }
         } catch (IOException ex) {
-            logger.error("ES Ping failed for {}, exception: {}", host, ex.getMessage());
+            logger.error("OpenSearch Ping failed for {}, exception: {}", host, ex.getMessage());
         } finally {
-            logger.debug("Closing ES Ping client socket for connection to {}", host);
+            logger.debug("Closing OpenSearch Ping client socket for connection to {}", host);
             if (socket != null) {
                 try {
                     socket.close();
@@ -183,7 +183,7 @@ public class SSLConnectionTestUtil {
             }
         }
 
-        logger.debug("ES Ping check to server {} result = {}", host, pingSucceeded);
+        logger.debug("OpenSearch Ping check to server {} result = {}", host, pingSucceeded);
         return pingSucceeded;
     }
 }

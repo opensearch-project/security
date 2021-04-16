@@ -26,18 +26,18 @@ import javax.net.ssl.SSLPeerUnverifiedException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
-import org.elasticsearch.tasks.Task;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TaskTransportChannel;
-import org.elasticsearch.transport.TcpChannel;
-import org.elasticsearch.transport.TcpTransportChannel;
-import org.elasticsearch.transport.TransportChannel;
-import org.elasticsearch.transport.TransportRequest;
-import org.elasticsearch.transport.TransportRequestHandler;
-import org.elasticsearch.transport.netty4.Netty4TcpChannel;
+import org.opensearch.OpenSearchException;
+import org.opensearch.ExceptionsHelper;
+import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.tasks.Task;
+import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.TaskTransportChannel;
+import org.opensearch.transport.TcpChannel;
+import org.opensearch.transport.TcpTransportChannel;
+import org.opensearch.transport.TransportChannel;
+import org.opensearch.transport.TransportRequest;
+import org.opensearch.transport.TransportRequestHandler;
+import org.opensearch.transport.netty4.Netty4TcpChannel;
 
 import com.amazon.opendistroforelasticsearch.security.ssl.SslExceptionHandler;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.ExceptionUtils;
@@ -113,7 +113,7 @@ implements TransportRequestHandler<T> {
             if (sslhandler == null) {
                 final String msg = "No ssl handler found (SG 11)";
                 //log.error(msg);
-                final Exception exception = new ElasticsearchException(msg);
+                final Exception exception = new OpenSearchException(msg);
                 channel.sendResponse(exception);
                 throw exception;
             }
@@ -143,7 +143,7 @@ implements TransportRequestHandler<T> {
             } else {
                 final String msg = "No X509 transport client certificates found (SG 12)";
                 //log.error(msg);
-                final Exception exception = new ElasticsearchException(msg);
+                final Exception exception = new OpenSearchException(msg);
                 errorHandler.logError(exception, request, action, task, 0);
                 channel.sendResponse(exception);
                 throw exception;

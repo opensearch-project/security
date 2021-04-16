@@ -29,8 +29,8 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.elasticsearch.SpecialPermission;
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.SpecialPermission;
+import org.opensearch.common.settings.Settings;
 import org.joda.time.DateTime;
 import org.opensaml.core.criterion.EntityIdCriterion;
 import org.opensaml.saml.metadata.resolver.MetadataResolver;
@@ -54,17 +54,17 @@ import net.shibboleth.utilities.java.support.resolver.ResolverException;
 public class Saml2SettingsProvider {
     protected final static Logger log = LogManager.getLogger(Saml2SettingsProvider.class);
 
-    private final Settings esSettings;
+    private final Settings opensearchSettings;
     private final MetadataResolver metadataResolver;
     private final String idpEntityId;
     private final PrivateKey spSignaturePrivateKey;
     private Saml2Settings cachedSaml2Settings;
     private DateTime metadataUpdateTime;
 
-    Saml2SettingsProvider(Settings esSettings, MetadataResolver metadataResolver, PrivateKey spSignaturePrivateKey) {
-        this.esSettings = esSettings;
+    Saml2SettingsProvider(Settings opensearchSettings, MetadataResolver metadataResolver, PrivateKey spSignaturePrivateKey) {
+        this.opensearchSettings = opensearchSettings;
         this.metadataResolver = metadataResolver;
-        this.idpEntityId = esSettings.get("idp.entity_id");
+        this.idpEntityId = opensearchSettings.get("idp.entity_id");
         this.spSignaturePrivateKey = spSignaturePrivateKey;
     }
 
@@ -98,7 +98,7 @@ public class Saml2SettingsProvider {
 
             // TODO allow overriding of IdP metadata?
             settingsBuilder.fromValues(configProperties);
-            settingsBuilder.fromValues(new SamlSettingsMap(this.esSettings));
+            settingsBuilder.fromValues(new SamlSettingsMap(this.opensearchSettings));
             SpecialPermission.check();
             return AccessController.doPrivileged((PrivilegedAction<Saml2Settings>) () -> settingsBuilder.build());
         } catch (ResolverException e) {
@@ -145,10 +145,10 @@ public class Saml2SettingsProvider {
 
     private void initSpEndpoints(HashMap<String, Object> configProperties) {
         configProperties.put(SettingsBuilder.SP_ASSERTION_CONSUMER_SERVICE_URL_PROPERTY_KEY,
-                this.buildKibanaAssertionConsumerEndpoint(this.esSettings.get("kibana_url")));
+                this.buildKibanaAssertionConsumerEndpoint(this.opensearchSettings.get("kibana_url")));
         configProperties.put(SettingsBuilder.SP_ASSERTION_CONSUMER_SERVICE_BINDING_PROPERTY_KEY,
                 "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST");
-        configProperties.put(SettingsBuilder.SP_ENTITYID_PROPERTY_KEY, this.esSettings.get("sp.entity_id"));
+        configProperties.put(SettingsBuilder.SP_ENTITYID_PROPERTY_KEY, this.opensearchSettings.get("sp.entity_id"));
     }
 
     private void initIdpEndpoints(IDPSSODescriptor idpSsoDescriptor, HashMap<String, Object> configProperties)
@@ -160,7 +160,7 @@ public class Saml2SettingsProvider {
                 singleSignOnService.getLocation());
         configProperties.put(SettingsBuilder.IDP_SINGLE_SIGN_ON_SERVICE_BINDING_PROPERTY_KEY,
                 singleSignOnService.getBinding());
-        configProperties.put(SettingsBuilder.IDP_ENTITYID_PROPERTY_KEY, this.esSettings.get("idp.entity_id"));
+        configProperties.put(SettingsBuilder.IDP_ENTITYID_PROPERTY_KEY, this.opensearchSettings.get("idp.entity_id"));
 
         SingleLogoutService singleLogoutService = this.findSingleLogoutService(idpSsoDescriptor,
                 "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect");

@@ -20,9 +20,9 @@ package com.amazon.opendistroforelasticsearch.security.ssl.util;
  */
 public enum SSLConnectionTestResult {
     /**
-     * ES Ping to the server failed.
+     * OpenSearch Ping to the server failed.
      */
-    ES_PING_FAILED,
+    OPENSEARCH_PING_FAILED,
     /**
      * Server does not support SSL.
      */

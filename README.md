@@ -1,9 +1,9 @@
 [![CI](https://github.com/opendistro-for-elasticsearch/security/workflows/CI/badge.svg?branch=main)](https://github.com/opendistro-for-elasticsearch/security/actions)
 [![codecov](https://codecov.io/gh/opendistro-for-elasticsearch/security/branch/main/graph/badge.svg)](https://codecov.io/gh/opendistro-for-elasticsearch/security)
 
-# Open Distro for Elasticsearch Security
+# OpenSearch Security
 
-Open Distro for Elasticsearch Security is an Elasticsearch plugin that offers encryption, authentication, and authorization. When combined with Open Distro for Elasticsearch Security-Advanced Modules, it supports authentication via Active Directory, LDAP, Kerberos, JSON web tokens, SAML, OpenID and more. It includes fine grained role-based access control to indices, documents and fields. It also provides multi-tenancy support in Kibana.
+OpenSearch Security is an OpenSearch plugin that offers encryption, authentication, and authorization. When combined with OpenSearch Security-Advanced Modules, it supports authentication via Active Directory, LDAP, Kerberos, JSON web tokens, SAML, OpenID and more. It includes fine grained role-based access control to indices, documents and fields. It also provides multi-tenancy support in Kibana.
 
 ## Features provided by Security
 
@@ -49,20 +49,20 @@ Please refer to the [technical documentation](https://opendistro.github.io/for-e
 
 ## Quick Start
 
-* Install Elasticsearch
+* Install OpenSearch
 
 * Install the opendistro-elasticsearch-security plugin for your Elasticsearch version 6.5.4, e.g.:
 
 ```
-<ES directory>/bin/elasticsearch-plugin install \
+<OpenSearch directory>/bin/opensearch-plugin install \
   -b com.amazon.opendistroforelasticsearch:opendistro_security:0.8.0.0
 ```
 
-* ``cd`` into ``<ES directory>/plugins/opendistro_security/tools``
+* ``cd`` into ``<OpenSearch directory>/plugins/opendistro_security/tools``
 
-* Execute ``./install_demo_configuration.sh``, ``chmod`` the script first if necessary. This will generate all required TLS certificates and add the Security Plugin Configuration to your ``elasticsearch.yml`` file. 
+* Execute ``./install_demo_configuration.sh``, ``chmod`` the script first if necessary. This will generate all required TLS certificates and add the Security Plugin Configuration to your ``opensearch.yml`` file. 
 
-* Start Elasticsearch
+* Start OpenSearch
 
 * Test the installation by visiting ``https://localhost:9200``. When prompted, use admin/admin as username and password. This user has full access to the cluster.
 
@@ -88,7 +88,7 @@ artifact_zip=`ls $(pwd)/target/releases/opendistro-security-*.zip | grep -v admi
 
 ## Config hot reloading
 
-The Security Plugin Configuration is stored in a dedicated index in Elasticsearch itself. Changes to the configuration are pushed to this index via the command line tool. This will trigger a reload of the configuration on all nodes automatically. This has several advantages over configuration via elasticsearch.yml:
+The Security Plugin Configuration is stored in a dedicated index in OpenSearch itself. Changes to the configuration are pushed to this index via the command line tool. This will trigger a reload of the configuration on all nodes automatically. This has several advantages over configuration via opensearch.yml:
 
 * Configuration is stored in a central place
 * No configuration files on the nodes necessary

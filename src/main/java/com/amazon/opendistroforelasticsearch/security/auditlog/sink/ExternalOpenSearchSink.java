@@ -24,7 +24,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.common.settings.Settings;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
@@ -35,10 +35,10 @@ import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConfigConstant
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.PemKeyReader;
 
-public final class ExternalESSink extends AuditLogSink {
+public final class ExternalOpenSearchSink extends AuditLogSink {
 
     private static final List<String> DEFAULT_TLS_PROTOCOLS = Arrays.asList(new String[] { "TLSv1.2", "TLSv1.1"});
-	// config in elasticsearch.yml
+	// config in opensearch.yml
 	private final String index;
 	private final String type;
 	private final HttpClient client;
@@ -47,17 +47,17 @@ public final class ExternalESSink extends AuditLogSink {
 
     static final String PKCS12 = "PKCS12";
 
-	public ExternalESSink(final String name, final Settings settings, final String settingPrefix, final Path configPath, AuditLogSink fallbackSink) throws Exception {
+	public ExternalOpenSearchSink(final String name, final Settings settings, final String settingPrefix, final Path configPath, AuditLogSink fallbackSink) throws Exception {
 
 		super(name, settings, settingPrefix, fallbackSink);
 		Settings sinkSettings = settings.getAsSettings(settingPrefix);
-		servers = sinkSettings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_HTTP_ENDPOINTS);
+		servers = sinkSettings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_HTTP_ENDPOINTS);
 		if (servers == null || servers.size() == 0) {
-			log.error("No http endpoints configured for external Elasticsearch endpoint '{}', falling back to localhost.", name);
+			log.error("No http endpoints configured for external OpenSearch endpoint '{}', falling back to localhost.", name);
 			servers = Collections.singletonList("localhost:9200");
 		}
 
-		this.index = sinkSettings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ES_INDEX, "'security-auditlog-'YYYY.MM.dd");
+		this.index = sinkSettings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_OPENSEARCH_INDEX, "'security-auditlog-'YYYY.MM.dd");
 
 		try {
             this.indexPattern = DateTimeFormat.forPattern(index);
@@ -66,19 +66,19 @@ public final class ExternalESSink extends AuditLogSink {
                     + "If you have no date pattern configured you can safely ignore this message", e.getMessage());
         }
 
-		this.type = sinkSettings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ES_TYPE, null);
-		final boolean verifyHostnames = sinkSettings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_VERIFY_HOSTNAMES, true);
-		final boolean enableSsl = sinkSettings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_ENABLE_SSL, false);
-		final boolean enableSslClientAuth = sinkSettings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_ENABLE_SSL_CLIENT_AUTH , ConfigConstants.OPENDISTRO_SECURITY_AUDIT_SSL_ENABLE_SSL_CLIENT_AUTH_DEFAULT);
-		final String user = sinkSettings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_USERNAME);
-		final String password = sinkSettings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_PASSWORD);
+		this.type = sinkSettings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_OPENSEARCH_TYPE, null);
+		final boolean verifyHostnames = sinkSettings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_VERIFY_HOSTNAMES, true);
+		final boolean enableSsl = sinkSettings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_ENABLE_SSL, false);
+		final boolean enableSslClientAuth = sinkSettings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_ENABLE_SSL_CLIENT_AUTH , ConfigConstants.OPENDISTRO_SECURITY_AUDIT_SSL_ENABLE_SSL_CLIENT_AUTH_DEFAULT);
+		final String user = sinkSettings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_USERNAME);
+		final String password = sinkSettings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PASSWORD);
 
 		final HttpClientBuilder builder = HttpClient.builder(servers.toArray(new String[0]));
 
 		if (enableSsl) {
 
-		    final boolean pem = sinkSettings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_PEMTRUSTEDCAS_FILEPATH, null) != null
-                    || sinkSettings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_PEMTRUSTEDCAS_CONTENT, null) != null;
+		    final boolean pem = sinkSettings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMTRUSTEDCAS_FILEPATH, null) != null
+                    || sinkSettings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMTRUSTEDCAS_CONTENT, null) != null;
 
 		    KeyStore effectiveTruststore;
 		    KeyStore effectiveKeystore;
@@ -88,26 +88,26 @@ public final class ExternalESSink extends AuditLogSink {
 		    final boolean isDebugEnabled = log.isDebugEnabled();
 
 		    if(pem) {
-                X509Certificate[] trustCertificates = PemKeyReader.loadCertificatesFromStream(PemKeyReader.resolveStream(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_PEMTRUSTEDCAS_CONTENT, sinkSettings));
+                X509Certificate[] trustCertificates = PemKeyReader.loadCertificatesFromStream(PemKeyReader.resolveStream(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMTRUSTEDCAS_CONTENT, sinkSettings));
 
                 if(trustCertificates == null) {
-                	String path = sinkSettings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_PEMTRUSTEDCAS_FILEPATH);
-                    trustCertificates = PemKeyReader.loadCertificatesFromFile(PemKeyReader.resolve(path, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_PEMTRUSTEDCAS_FILEPATH, settings, configPath, true));
+                	String path = sinkSettings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMTRUSTEDCAS_FILEPATH);
+                    trustCertificates = PemKeyReader.loadCertificatesFromFile(PemKeyReader.resolve(path, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMTRUSTEDCAS_FILEPATH, settings, configPath, true));
                 }
 
                 //for client authentication
-                X509Certificate[] authenticationCertificate = PemKeyReader.loadCertificatesFromStream(PemKeyReader.resolveStream(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_PEMCERT_CONTENT, sinkSettings));
+                X509Certificate[] authenticationCertificate = PemKeyReader.loadCertificatesFromStream(PemKeyReader.resolveStream(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMCERT_CONTENT, sinkSettings));
 
                 if(authenticationCertificate == null) {
-                	String path = sinkSettings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_PEMCERT_FILEPATH);
-                    authenticationCertificate = PemKeyReader.loadCertificatesFromFile(PemKeyReader.resolve(path, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_PEMCERT_FILEPATH, settings, configPath, enableSslClientAuth));
+                	String path = sinkSettings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMCERT_FILEPATH);
+                    authenticationCertificate = PemKeyReader.loadCertificatesFromFile(PemKeyReader.resolve(path, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMCERT_FILEPATH, settings, configPath, enableSslClientAuth));
                 }
 
-                PrivateKey authenticationKey = PemKeyReader.loadKeyFromStream(sinkSettings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_PEMKEY_PASSWORD), PemKeyReader.resolveStream(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_PEMKEY_CONTENT, sinkSettings));
+                PrivateKey authenticationKey = PemKeyReader.loadKeyFromStream(sinkSettings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMKEY_PASSWORD), PemKeyReader.resolveStream(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMKEY_CONTENT, sinkSettings));
 
                 if(authenticationKey == null) {
-                	String path = sinkSettings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_PEMKEY_FILEPATH);
-                    authenticationKey = PemKeyReader.loadKeyFromFile(sinkSettings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_PEMKEY_PASSWORD), PemKeyReader.resolve(path, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_PEMKEY_FILEPATH, settings, configPath, enableSslClientAuth));
+                	String path = sinkSettings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMKEY_FILEPATH);
+                    authenticationKey = PemKeyReader.loadKeyFromFile(sinkSettings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMKEY_PASSWORD), PemKeyReader.resolve(path, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMKEY_FILEPATH, settings, configPath, enableSslClientAuth));
                 }
 
                 effectiveKeyPassword = PemKeyReader.randomChars(12);
@@ -130,10 +130,10 @@ public final class ExternalESSink extends AuditLogSink {
                         , settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE));
                 final String keyStorePassword = settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD, SSLConfigConstants.DEFAULT_STORE_PASSWORD);
                 effectiveKeyPassword = keyStorePassword==null||keyStorePassword.isEmpty()?null:keyStorePassword.toCharArray();
-                effectiveKeyAlias = sinkSettings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_JKS_CERT_ALIAS, null);
+                effectiveKeyAlias = sinkSettings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_JKS_CERT_ALIAS, null);
 
                 if(enableSslClientAuth && effectiveKeyAlias == null) {
-                    throw new IllegalArgumentException(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_JKS_CERT_ALIAS+" not given");
+                    throw new IllegalArgumentException(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_JKS_CERT_ALIAS+" not given");
                 }
 
                 effectiveTruststore = trustStore;
@@ -146,8 +146,8 @@ public final class ExternalESSink extends AuditLogSink {
 
             }
 
-		    final List<String> enabledCipherSuites = sinkSettings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_ENABLED_SSL_CIPHERS, null);
-            final List<String> enabledProtocols = sinkSettings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_ENABLED_SSL_PROTOCOLS, DEFAULT_TLS_PROTOCOLS);
+		    final List<String> enabledCipherSuites = sinkSettings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_ENABLED_SSL_CIPHERS, null);
+            final List<String> enabledProtocols = sinkSettings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_ENABLED_SSL_PROTOCOLS, DEFAULT_TLS_PROTOCOLS);
 
             builder.setSupportedCipherSuites(enabledCipherSuites==null?null:enabledCipherSuites.toArray(new String[0]));
             builder.setSupportedProtocols(enabledProtocols.toArray(new String[0]));

@@ -17,13 +17,13 @@ package com.amazon.opendistroforelasticsearch.security.dlic.rest.validation;
 
 import com.amazon.opendistroforelasticsearch.security.ssl.util.Utils;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.compress.NotXContentException;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.rest.RestRequest;
+import org.opensearch.common.Strings;
+import org.opensearch.common.bytes.BytesReference;
+import org.opensearch.common.compress.NotXContentException;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.xcontent.XContentHelper;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.rest.RestRequest;
 
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -33,9 +33,9 @@ import java.util.regex.Pattern;
  */
 public class CredentialsValidator extends AbstractConfigurationValidator {
 
-    public CredentialsValidator(final RestRequest request, BytesReference ref, final Settings esSettings,
+    public CredentialsValidator(final RestRequest request, BytesReference ref, final Settings opensearchSettings,
                                 Object... param) {
-        super(request, ref, esSettings, param);
+        super(request, ref, opensearchSettings, param);
         this.payloadMandatory = true;
         allowedKeys.put("hash", DataType.STRING);
         allowedKeys.put("password", DataType.STRING);
@@ -51,7 +51,7 @@ public class CredentialsValidator extends AbstractConfigurationValidator {
             return false;
         }
 
-        final String regex = this.esSettings.get(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX, null);
+        final String regex = this.opensearchSettings.get(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX, null);
 
         if ((request.method() == RestRequest.Method.PUT || request.method() == RestRequest.Method.PATCH)
                 && this.content != null

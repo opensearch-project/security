@@ -4,4 +4,4 @@ opendistro_security:
     config:
       bootstrap_servers: _RPLC_BOOTSTRAP_SERVERS_
       topic_name: compliance
-      client_id: elasticsearch_cluster_1
+      client_id: opensearch_cluster_1

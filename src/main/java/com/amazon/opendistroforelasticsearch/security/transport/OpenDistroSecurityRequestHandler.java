@@ -39,19 +39,19 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.ElasticsearchSecurityException;
-import org.elasticsearch.action.bulk.BulkShardRequest;
-import org.elasticsearch.action.support.replication.TransportReplicationAction.ConcreteShardRequest;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
-import org.elasticsearch.search.internal.ShardSearchRequest;
-import org.elasticsearch.tasks.Task;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TransportChannel;
-import org.elasticsearch.transport.TransportRequest;
-import org.elasticsearch.transport.TransportRequestHandler;
+import org.opensearch.OpenSearchException;
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.action.bulk.BulkShardRequest;
+import org.opensearch.action.support.replication.TransportReplicationAction.ConcreteShardRequest;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.transport.TransportAddress;
+import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.search.internal.ShardSearchRequest;
+import org.opensearch.tasks.Task;
+import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.TransportChannel;
+import org.opensearch.transport.TransportRequest;
+import org.opensearch.transport.TransportRequestHandler;
 
 import com.amazon.opendistroforelasticsearch.security.action.whoami.WhoAmIAction;
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
@@ -181,7 +181,7 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
 
                 auditLog.logMissingPrivileges(task.getAction(), request, task);
                 log.error("Internal or shard requests ("+task.getAction()+") not allowed from a non-server node for transport type "+transportChannel.getChannelType());
-                transportChannel.sendResponse(new ElasticsearchSecurityException(
+                transportChannel.sendResponse(new OpenSearchSecurityException(
                             "Internal or shard requests not allowed from a non-server node for transport type "+transportChannel.getChannelType()));
                 return;
                     }
@@ -190,7 +190,7 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
             String principal = null;
 
             if ((principal = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PRINCIPAL)) == null) {
-                Exception ex = new ElasticsearchSecurityException(
+                Exception ex = new OpenSearchSecurityException(
                         "No SSL client certificates found for transport type "+transportChannel.getChannelType()+". Open Distro Security needs the Open Distro Security SSL plugin to be installed");
                 auditLog.logSSLException(request, ex, task.getAction(), task);
                 log.error("No SSL client certificates found for transport type "+transportChannel.getChannelType()+". Open Distro Security needs the Open Distro Security SSL plugin to be installed");
@@ -231,7 +231,7 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
                     //and therefore issued by a transport client
 
                     if(SSLRequestHelper.containsBadHeader(getThreadContext(), ConfigConstants.OPENDISTRO_SECURITY_CONFIG_PREFIX)) {
-                        final ElasticsearchException exception = ExceptionUtils.createBadHeaderException();
+                        final OpenSearchException exception = ExceptionUtils.createBadHeaderException();
                         auditLog.logBadHeaders(request, task.getAction(), task);
                         log.error(exception);
                         transportChannel.sendResponse(exception);
@@ -257,7 +257,7 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
 
 
                         log.error("Cannot authenticate {} for {}", getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER), task.getAction());
-                        transportChannel.sendResponse(new ElasticsearchSecurityException("Cannot authenticate "+getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER)));
+                        transportChannel.sendResponse(new OpenSearchSecurityException("Cannot authenticate "+getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER)));
                         return;
                     } else {
                         // make it possible to filter logs by username
@@ -277,7 +277,7 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
                         getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, originalRemoteAddress);
                     } else {
                         log.error("Request has no proper remote address {}", originalRemoteAddress);
-                        transportChannel.sendResponse(new ElasticsearchException("Request has no proper remote address"));
+                        transportChannel.sendResponse(new OpenSearchException("Request has no proper remote address"));
                         return;
                     }
                 }

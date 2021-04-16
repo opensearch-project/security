@@ -20,8 +20,8 @@ package com.amazon.opendistroforelasticsearch.security;
 import java.io.File;
 
 import org.apache.commons.io.FileUtils;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.collect.Tuple;
+import org.opensearch.common.Strings;
+import org.opensearch.common.collect.Tuple;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;

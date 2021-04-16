@@ -17,8 +17,8 @@ package com.amazon.opendistroforelasticsearch.security.cache;
 
 import java.nio.file.Path;
 
-import org.elasticsearch.ElasticsearchSecurityException;
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.common.settings.Settings;
 
 import com.amazon.opendistroforelasticsearch.security.auth.AuthorizationBackend;
 import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
@@ -38,7 +38,7 @@ public class DummyAuthorizer implements AuthorizationBackend {
     }
 
     @Override
-    public void fillRoles(User user, AuthCredentials credentials) throws ElasticsearchSecurityException {
+    public void fillRoles(User user, AuthCredentials credentials) throws OpenSearchSecurityException {
         count++;
         user.addRole("role_" + user.getName() + "_" + System.currentTimeMillis() + "_" + count);
 

@@ -28,16 +28,16 @@ import com.amazon.opendistroforelasticsearch.security.ssl.transport.PrincipalExt
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.rest.RestChannel;
-import org.elasticsearch.rest.RestController;
-import org.elasticsearch.rest.RestRequest;
-import org.elasticsearch.rest.RestRequest.Method;
-import org.elasticsearch.threadpool.ThreadPool;
+import org.opensearch.client.Client;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.bytes.BytesReference;
+import org.opensearch.common.inject.Inject;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.rest.RestChannel;
+import org.opensearch.rest.RestController;
+import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.RestRequest.Method;
+import org.opensearch.threadpool.ThreadPool;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -58,7 +58,7 @@ import java.util.List;
  * See {@link com.amazon.opendistroforelasticsearch.security.dlic.rest.api.NodesDnApiTest} for usage examples.
  */
 public class NodesDnApiAction extends PatchableResourceApiAction {
-    public static final String STATIC_ES_YML_NODES_DN = "STATIC_ES_YML_NODES_DN";
+    public static final String STATIC_OPENSEARCH_YML_NODES_DN = "STATIC_OPENSEARCH_YML_NODES_DN";
     private final List<String> staticNodesDnFromEsYml;
 
     private static final List<Route> routes = ImmutableList.of(
@@ -102,7 +102,7 @@ public class NodesDnApiAction extends PatchableResourceApiAction {
 
     @Override
     protected boolean isReadOnly(SecurityDynamicConfiguration<?> existingConfiguration, String name) {
-        if (STATIC_ES_YML_NODES_DN.equals(name)) {
+        if (STATIC_OPENSEARCH_YML_NODES_DN.equals(name)) {
             return true;
         }
         return super.isReadOnly(existingConfiguration, name);
@@ -138,7 +138,7 @@ public class NodesDnApiAction extends PatchableResourceApiAction {
         if (NodesDn.class.equals(configuration.getImplementingClass())) {
             NodesDn nodesDn = new NodesDn();
             nodesDn.setNodesDn(staticNodesDnFromEsYml);
-            ((SecurityDynamicConfiguration<NodesDn>)configuration).putCEntry(STATIC_ES_YML_NODES_DN, nodesDn);
+            ((SecurityDynamicConfiguration<NodesDn>)configuration).putCEntry(STATIC_OPENSEARCH_YML_NODES_DN, nodesDn);
         } else {
             throw new RuntimeException("Unknown class type - " + configuration.getImplementingClass());
         }

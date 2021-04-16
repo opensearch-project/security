@@ -17,9 +17,9 @@ package com.amazon.opendistroforelasticsearch.security.auditlog.helper;
 
 import java.util.Collections;
 
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.rest.RestRequest;
+import org.opensearch.common.bytes.BytesReference;
+import org.opensearch.common.xcontent.NamedXContentRegistry;
+import org.opensearch.rest.RestRequest;
 
 public class MockRestRequest extends RestRequest {
 

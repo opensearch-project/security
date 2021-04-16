@@ -17,7 +17,7 @@ package com.amazon.dlic.auth.http.jwt.keybyoidc;
 
 import java.util.HashMap;
 
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.common.settings.Settings;
 import org.junit.Assert;
 import org.junit.Test;
 

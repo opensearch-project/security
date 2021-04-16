@@ -59,52 +59,52 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.Version;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
-import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest;
-import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
-import org.elasticsearch.action.admin.cluster.node.info.PluginsAndModules;
-import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsRequest;
-import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsResponse;
-import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
-import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequest;
-import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksResponse;
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
-import org.elasticsearch.action.admin.indices.get.GetIndexRequest.Feature;
-import org.elasticsearch.action.admin.indices.get.GetIndexResponse;
-import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
-import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
-import org.elasticsearch.action.admin.indices.stats.IndicesStatsResponse;
-import org.elasticsearch.action.get.GetRequest;
-import org.elasticsearch.action.get.GetResponse;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.client.transport.NoNodeAvailableException;
-import org.elasticsearch.client.transport.TransportClient;
-import org.elasticsearch.cluster.health.ClusterHealthStatus;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.plugins.PluginInfo;
-import org.elasticsearch.transport.Netty4Plugin;
+import org.opensearch.OpenSearchException;
+import org.opensearch.ExceptionsHelper;
+import org.opensearch.Version;
+import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
+import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
+import org.opensearch.action.admin.cluster.node.info.NodesInfoRequest;
+import org.opensearch.action.admin.cluster.node.info.NodesInfoResponse;
+import org.opensearch.action.admin.cluster.node.info.PluginsAndModules;
+import org.opensearch.action.admin.cluster.node.stats.NodesStatsRequest;
+import org.opensearch.action.admin.cluster.node.stats.NodesStatsResponse;
+import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
+import org.opensearch.action.admin.cluster.tasks.PendingClusterTasksRequest;
+import org.opensearch.action.admin.cluster.tasks.PendingClusterTasksResponse;
+import org.opensearch.action.admin.indices.create.CreateIndexRequest;
+import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.opensearch.action.admin.indices.get.GetIndexRequest;
+import org.opensearch.action.admin.indices.get.GetIndexRequest.Feature;
+import org.opensearch.action.admin.indices.get.GetIndexResponse;
+import org.opensearch.action.admin.indices.settings.put.UpdateSettingsRequest;
+import org.opensearch.action.admin.indices.stats.IndicesStatsRequest;
+import org.opensearch.action.admin.indices.stats.IndicesStatsResponse;
+import org.opensearch.action.get.GetRequest;
+import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.support.WriteRequest.RefreshPolicy;
+import org.opensearch.action.support.master.AcknowledgedResponse;
+import org.opensearch.client.Client;
+import org.opensearch.client.transport.NoNodeAvailableException;
+import org.opensearch.client.transport.TransportClient;
+import org.opensearch.cluster.health.ClusterHealthStatus;
+import org.opensearch.common.Strings;
+import org.opensearch.common.bytes.BytesReference;
+import org.opensearch.common.collect.Tuple;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.transport.TransportAddress;
+import org.opensearch.common.unit.TimeValue;
+import org.opensearch.common.xcontent.NamedXContentRegistry;
+import org.opensearch.common.xcontent.XContentBuilder;
+import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.common.xcontent.XContentParser;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.common.xcontent.json.JsonXContent;
+import org.opensearch.index.IndexNotFoundException;
+import org.opensearch.plugins.Plugin;
+import org.opensearch.plugins.PluginInfo;
+import org.opensearch.transport.Netty4Plugin;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
@@ -136,7 +136,7 @@ import com.amazon.opendistroforelasticsearch.security.support.OpenDistroSecurity
 import com.google.common.io.CharStreams;
 import com.google.common.io.Files;
 
-import static org.elasticsearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
+import static org.opensearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
 
 @SuppressWarnings("deprecation")
 public class OpenDistroSecurityAdmin {
@@ -157,7 +157,7 @@ public class OpenDistroSecurityAdmin {
             final int returnCode = execute(args);
             System.exit(returnCode);
         } catch (NoNodeAvailableException e) {
-            System.out.println("ERR: Cannot connect to Elasticsearch. Please refer to elasticsearch logfile for more information");
+            System.out.println("ERR: Cannot connect to OpenSearch. Please refer to opensearch logfile for more information");
             System.out.println("Trace:");
             System.out.println(ExceptionsHelper.stackTrace(e));
             System.out.println();
@@ -171,7 +171,7 @@ public class OpenDistroSecurityAdmin {
         }
         catch (Throwable e) {
             
-            if (e instanceof ElasticsearchException 
+            if (e instanceof OpenSearchException
                     && e.getMessage() != null 
                     && e.getMessage().contains("no permissions")) {
 
@@ -205,8 +205,8 @@ public class OpenDistroSecurityAdmin {
         options.addOption(Option.builder("tspass").longOpt("truststore-password").hasArg().argName("password").desc("Truststore password").build());
         options.addOption(Option.builder("kspass").longOpt("keystore-password").hasArg().argName("password").desc("Keystore password").build());
         options.addOption(Option.builder("cd").longOpt("configdir").hasArg().argName("directory").desc("Directory for config files").build());
-        options.addOption(Option.builder("h").longOpt("hostname").hasArg().argName("host").desc("Elasticsearch host (default: localhost)").build());
-        options.addOption(Option.builder("p").longOpt("port").hasArg().argName("port").desc("Elasticsearch transport port (default: 9300)").build());
+        options.addOption(Option.builder("h").longOpt("hostname").hasArg().argName("host").desc("OpenSearch host (default: localhost)").build());
+        options.addOption(Option.builder("p").longOpt("port").hasArg().argName("port").desc("OpenSearch transport port (default: 9300)").build());
         options.addOption(Option.builder("cn").longOpt("clustername").hasArg().argName("clustername").desc("Clustername (do not use together with -icl)").build());
         options.addOption( "sniff", "enable-sniffing", false, "Enable client.transport.sniff" );
         options.addOption( "icl", "ignore-clustername", false, "Ignore clustername (do not use together with -cn)" );
@@ -270,7 +270,7 @@ public class OpenDistroSecurityAdmin {
         boolean nrhn = false;
         boolean sniff = false;
         boolean icl = false;
-        String clustername = "elasticsearch";
+        String clustername = "opensearch";
         String file = null;
         String type = null;
         boolean retrieve = false;
@@ -422,7 +422,7 @@ public class OpenDistroSecurityAdmin {
         
         
         if(port < 9300) {
-            System.out.println("WARNING: Seems you want connect to the Elasticsearch HTTP port."+System.lineSeparator()
+            System.out.println("WARNING: Seems you want connect to the OpenSearch HTTP port."+System.lineSeparator()
                              + "         securityadmin connects on the transport port which is normally 9300.");
         }
         
@@ -435,7 +435,7 @@ public class OpenDistroSecurityAdmin {
             
           } catch (java.net.ConnectException ex) {
             System.out.println();
-            System.out.println("ERR: Seems there is no Elasticsearch running on "+hostname+":"+port+" - Will exit");
+            System.out.println("ERR: Seems there is no OpenSearch running on "+hostname+":"+port+" - Will exit");
             return (-1);
           } finally {
               try {
@@ -530,11 +530,11 @@ public class OpenDistroSecurityAdmin {
                 
                 if(!whoAmIRes.isNodeCertificateRequest()) {
                 	System.out.println("Seems you use a client certificate but this one is not registered as admin_dn");
-                	System.out.println("Make sure elasticsearch.yml on all nodes contains:");
+                	System.out.println("Make sure opensearch.yml on all nodes contains:");
                     System.out.println("opendistro_security.authcz.admin_dn:"+System.lineSeparator()+
                                        "  - \""+whoAmIRes.getDn()+"\"");
                 } else {
-                	System.out.println("Seems you use a node certificate. This is not permitted, you have to use a client certificate and register it as admin_dn in elasticsearch.yml");
+                	System.out.println("Seems you use a node certificate. This is not permitted, you have to use a client certificate and register it as admin_dn in opensearch.yml");
                 }
                 return (-1);
             } else if(whoAmIRes.isNodeCertificateRequest()) {
@@ -627,7 +627,7 @@ public class OpenDistroSecurityAdmin {
                 generateDiagnoseTrace(tc);
             }
             
-            System.out.println("Contacting elasticsearch cluster '"+clustername+"'"+(acceptRedCluster?"":" and wait for YELLOW clusterstate")+" ...");
+            System.out.println("Contacting opensearch cluster '"+clustername+"'"+(acceptRedCluster?"":" and wait for YELLOW clusterstate")+" ...");
             
             ClusterHealthResponse chr = null;
             
@@ -646,7 +646,7 @@ public class OpenDistroSecurityAdmin {
                         System.out.println("Cannot retrieve cluster state due to: "+e.getMessage()+". This is not an error, will keep on trying ...");
                         System.out.println("  Root cause: "+rootCause+" ("+e.getClass().getName()+"/"+rootCause.getClass().getName()+")");
                         System.out.println("   * Try running securityadmin.sh with -icl (but no -cl) and -nhnv (If that works you need to check your clustername as well as hostnames in your TLS certificates)");   
-                        System.out.println("   * Make sure that your keystore or PEM certificate is a client certificate (not a node certificate) and configured properly in elasticsearch.yml"); 
+                        System.out.println("   * Make sure that your keystore or PEM certificate is a client certificate (not a node certificate) and configured properly in opensearch.yml");
                         System.out.println("   * If this is not working, try running securityadmin.sh with --diagnose and see diagnose trace log file)");
                         System.out.println("   * Add --accept-red-cluster to allow securityadmin to operate on a red cluster.");
 
@@ -654,7 +654,7 @@ public class OpenDistroSecurityAdmin {
                         System.out.println("ERR: Cannot retrieve cluster state due to: "+e.getMessage()+".");
                         System.out.println("  Root cause: "+rootCause+" ("+e.getClass().getName()+"/"+rootCause.getClass().getName()+")");
                         System.out.println("   * Try running securityadmin.sh with -icl (but no -cl) and -nhnv (If that works you need to check your clustername as well as hostnames in your TLS certificates)");
-                        System.out.println("   * Make also sure that your keystore or PEM certificate is a client certificate (not a node certificate) and configured properly in elasticsearch.yml"); 
+                        System.out.println("   * Make also sure that your keystore or PEM certificate is a client certificate (not a node certificate) and configured properly in opensearch.yml");
                         System.out.println("   * If this is not working, try running securityadmin.sh with --diagnose and see diagnose trace log file)"); 
                         System.out.println("   * Add --accept-red-cluster to allow securityadmin to operate on a red cluster.");
 
@@ -671,7 +671,7 @@ public class OpenDistroSecurityAdmin {
             if (!acceptRedCluster && timedOut) {
                 System.out.println("ERR: Timed out while waiting for a green or yellow cluster state.");
                 System.out.println("   * Try running securityadmin.sh with -icl (but no -cl) and -nhnv (If that works you need to check your clustername as well as hostnames in your TLS certificates)");
-                System.out.println("   * Make also sure that your keystore or PEM certificate is a client certificate (not a node certificate) and configured properly in elasticsearch.yml"); 
+                System.out.println("   * Make also sure that your keystore or PEM certificate is a client certificate (not a node certificate) and configured properly in opensearch.yml");
                 System.out.println("   * If this is not working, try running securityadmin.sh with --diagnose and see diagnose trace log file)"); 
                 System.out.println("   * Add --accept-red-cluster to allow securityadmin to operate on a red cluster.");
                 return (-1);
@@ -887,7 +887,7 @@ public class OpenDistroSecurityAdmin {
                 return true;
             } else {
                 System.out.println("   FAIL: Configuration for '" + _id
-                        + "' failed for unknown reasons. Please consult the Elasticsearch logfile.");
+                        + "' failed for unknown reasons. Please consult the OpenSearch logfile.");
             }
         } catch (Exception e) {
             System.out.println("   FAIL: Configuration for '" + _id + "' failed because of " + e.toString());
@@ -1023,7 +1023,7 @@ public class OpenDistroSecurityAdmin {
         
         final StringBuilder sb = new StringBuilder();
         sb.append("Diagnostic securityadmin trace"+System.lineSeparator());
-        sb.append("ES client version: "+Version.CURRENT+System.lineSeparator());
+        sb.append("OpenSearch client version: "+Version.CURRENT+System.lineSeparator());
         sb.append("Client properties: "+System.getProperties()+System.lineSeparator());
         sb.append(date+System.lineSeparator());
         sb.append(System.lineSeparator());
@@ -1149,7 +1149,7 @@ public class OpenDistroSecurityAdmin {
             }
            
         } else {
-            System.out.println("Elasticsearch Version: "+minVersion.toString());
+            System.out.println("OpenSearch Version: "+minVersion.toString());
         }
         
         if(nir.getNodes().size() > 0) {
@@ -1197,7 +1197,7 @@ public class OpenDistroSecurityAdmin {
             return 0;
         } else {
             System.out.println("failed!");
-            System.out.println("FAIL: Unable to create the "+index+" index. See elasticsearch logs for more details");
+            System.out.println("FAIL: Unable to create the "+index+" index. See opensearch logs for more details");
             return (-1);
         }
     }
@@ -1311,7 +1311,7 @@ public class OpenDistroSecurityAdmin {
         deleteConfigIndex(tc, index, true);
         System.out.println("  done");
         
-        System.out.println("-> Upload new configuration into Elasticsearch cluster");
+        System.out.println("-> Upload new configuration into OpenSearch cluster");
 
         int uploadResult = upload(tc, index, v7Dir.getAbsolutePath()+"/", false, nodesInfo, resolveEnvVars);
 

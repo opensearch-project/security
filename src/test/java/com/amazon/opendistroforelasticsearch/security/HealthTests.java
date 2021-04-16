@@ -31,7 +31,7 @@
 package com.amazon.opendistroforelasticsearch.security;
 
 import org.apache.http.HttpStatus;
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.common.settings.Settings;
 import org.junit.Assert;
 import org.junit.Test;
 

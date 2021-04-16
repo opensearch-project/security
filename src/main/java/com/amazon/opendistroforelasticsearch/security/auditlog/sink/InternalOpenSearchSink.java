@@ -18,13 +18,13 @@ package com.amazon.opendistroforelasticsearch.security.auditlog.sink;
 import java.io.IOException;
 import java.nio.file.Path;
 
-import org.elasticsearch.action.index.IndexRequestBuilder;
-import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.common.util.concurrent.ThreadContext.StoredContext;
-import org.elasticsearch.threadpool.ThreadPool;
+import org.opensearch.action.index.IndexRequestBuilder;
+import org.opensearch.action.support.WriteRequest.RefreshPolicy;
+import org.opensearch.client.Client;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.unit.TimeValue;
+import org.opensearch.common.util.concurrent.ThreadContext.StoredContext;
+import org.opensearch.threadpool.ThreadPool;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
@@ -32,7 +32,7 @@ import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.HeaderHelper;
 
-public final class InternalESSink extends AuditLogSink {
+public final class InternalOpenSearchSink extends AuditLogSink {
 
 	private final Client clientProvider;
 	final String index;
@@ -40,13 +40,13 @@ public final class InternalESSink extends AuditLogSink {
 	private DateTimeFormatter indexPattern;
 	private final ThreadPool threadPool;
 
-	public InternalESSink(final String name, final Settings settings, final String settingsPrefix, final Path configPath, final Client clientProvider, ThreadPool threadPool, AuditLogSink fallbackSink) {
+	public InternalOpenSearchSink(final String name, final Settings settings, final String settingsPrefix, final Path configPath, final Client clientProvider, ThreadPool threadPool, AuditLogSink fallbackSink) {
 		super(name, settings, settingsPrefix, fallbackSink);
 		this.clientProvider = clientProvider;
 		Settings sinkSettings = getSinkSettings(settingsPrefix);
 
-		this.index = sinkSettings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ES_INDEX, "'security-auditlog-'YYYY.MM.dd");
-		this.type = sinkSettings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ES_TYPE, null);
+		this.index = sinkSettings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_OPENSEARCH_INDEX, "'security-auditlog-'YYYY.MM.dd");
+		this.type = sinkSettings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_OPENSEARCH_TYPE, null);
 
 		this.threadPool = threadPool;
 		try {

@@ -33,7 +33,7 @@ package com.amazon.opendistroforelasticsearch.security.securityconf;
 import java.util.Map;
 import java.util.Set;
 import com.amazon.opendistroforelasticsearch.security.securityconf.SecurityRoles;
-import org.elasticsearch.common.transport.TransportAddress;
+import org.opensearch.common.transport.TransportAddress;
 
 import com.amazon.opendistroforelasticsearch.security.user.User;
 

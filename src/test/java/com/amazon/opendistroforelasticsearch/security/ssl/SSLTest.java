@@ -37,21 +37,21 @@ import javax.net.ssl.TrustManagerFactory;
 
 import org.apache.http.NoHttpResponseException;
 import org.apache.lucene.util.Constants;
-import org.elasticsearch.ElasticsearchSecurityException;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
-import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
-import org.elasticsearch.client.transport.TransportClient;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.node.Node;
-import org.elasticsearch.node.PluginAwareNode;
-import org.elasticsearch.transport.Netty4Plugin;
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
+import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
+import org.opensearch.action.admin.cluster.node.info.NodesInfoRequest;
+import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.support.WriteRequest.RefreshPolicy;
+import org.opensearch.client.transport.TransportClient;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.transport.TransportAddress;
+import org.opensearch.common.unit.TimeValue;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.node.Node;
+import org.opensearch.node.PluginAwareNode;
+import org.opensearch.transport.Netty4Plugin;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Rule;
@@ -194,7 +194,7 @@ public class SSLTest extends SingleClusterTest {
                 Assert.assertEquals(1, enabledCiphers.length);
                 Assert.assertEquals("SSL_RSA_EXPORT_WITH_RC4_40_MD5",enabledCiphers[0]);
             }
-        } catch (ElasticsearchSecurityException e) {
+        } catch (OpenSearchSecurityException e) {
             System.out.println("EXPECTED "+e.getClass().getSimpleName()+" for "+System.getProperty("java.specification.version")+": "+e.toString());
             e.printStackTrace();
             Assert.assertTrue("Check if error contains 'no valid cipher suites' -> "+e.toString(),e.toString().contains("no valid cipher suites")
@@ -500,7 +500,7 @@ public class SSLTest extends SingleClusterTest {
 
         setupSslOnlyMode(settings);
         
-        log.debug("Elasticsearch started");
+        log.debug("OpenSearch started");
 
         final Settings tcSettings = Settings.builder().put("cluster.name", clusterInfo.clustername).put(settings).build();
 
@@ -537,7 +537,7 @@ public class SSLTest extends SingleClusterTest {
 
         setupSslOnlyMode(settings);
         
-        log.debug("Elasticsearch started");
+        log.debug("OpenSearch started");
 
         final Settings tcSettings = Settings.builder()
                 .put("cluster.name", clusterInfo.clustername)
@@ -717,7 +717,7 @@ public class SSLTest extends SingleClusterTest {
         rh.trustHTTPServerCertificate = true;
         rh.sendAdminCertificate = true;
         
-        log.debug("Elasticsearch started");
+        log.debug("OpenSearch started");
 
         final Settings tcSettings = Settings.builder().put("cluster.name", clusterInfo.clustername).put("path.home", ".").put(settings).build();
 

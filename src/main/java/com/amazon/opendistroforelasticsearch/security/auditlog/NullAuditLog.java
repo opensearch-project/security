@@ -34,17 +34,17 @@ import java.io.IOException;
 import java.util.Map;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.env.Environment;
-import org.elasticsearch.index.engine.Engine.Delete;
-import org.elasticsearch.index.engine.Engine.DeleteResult;
-import org.elasticsearch.index.engine.Engine.Index;
-import org.elasticsearch.index.engine.Engine.IndexResult;
-import org.elasticsearch.index.get.GetResult;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.rest.RestRequest;
-import org.elasticsearch.tasks.Task;
-import org.elasticsearch.transport.TransportRequest;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.env.Environment;
+import org.opensearch.index.engine.Engine.Delete;
+import org.opensearch.index.engine.Engine.DeleteResult;
+import org.opensearch.index.engine.Engine.Index;
+import org.opensearch.index.engine.Engine.IndexResult;
+import org.opensearch.index.get.GetResult;
+import org.opensearch.index.shard.ShardId;
+import org.opensearch.rest.RestRequest;
+import org.opensearch.tasks.Task;
+import org.opensearch.transport.TransportRequest;
 
 import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
 

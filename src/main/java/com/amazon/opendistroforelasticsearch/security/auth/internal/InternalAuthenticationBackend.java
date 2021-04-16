@@ -40,7 +40,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
-import org.elasticsearch.ElasticsearchSecurityException;
+import org.opensearch.OpenSearchSecurityException;
 
 import com.amazon.opendistroforelasticsearch.security.auth.AuthenticationBackend;
 import com.amazon.opendistroforelasticsearch.security.auth.AuthorizationBackend;
@@ -91,17 +91,17 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Aut
     public User authenticate(final AuthCredentials credentials) {
 
         if (internalUsersModel == null) {
-            throw new ElasticsearchSecurityException("Internal authentication backend not configured. May be Open Distro is not initialized.");
+            throw new OpenSearchSecurityException("Internal authentication backend not configured. May be Open Distro is not initialized.");
         }
 
         if(!internalUsersModel.exists(credentials.getUsername())) {
-            throw new ElasticsearchSecurityException(credentials.getUsername() + " not found");
+            throw new OpenSearchSecurityException(credentials.getUsername() + " not found");
         }
 
         final byte[] password = credentials.getPassword();
 
         if(password == null || password.length == 0) {
-            throw new ElasticsearchSecurityException("empty passwords not supported");
+            throw new OpenSearchSecurityException("empty passwords not supported");
         }
 
         ByteBuffer wrap = ByteBuffer.wrap(password);
@@ -130,7 +130,7 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Aut
                 
                 return user;
             } else {
-                throw new ElasticsearchSecurityException("password does not match");
+                throw new OpenSearchSecurityException("password does not match");
             }
         } finally {
             Arrays.fill(wrap.array(), (byte)0);
@@ -145,10 +145,10 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Aut
     }
 
     @Override
-    public void fillRoles(User user, AuthCredentials credentials) throws ElasticsearchSecurityException {
+    public void fillRoles(User user, AuthCredentials credentials) throws OpenSearchSecurityException {
 
         if (internalUsersModel == null) {
-            throw new ElasticsearchSecurityException("Internal authentication backend not configured. May be Open Distro Security is not initialized.");
+            throw new OpenSearchSecurityException("Internal authentication backend not configured. May be Open Distro Security is not initialized.");
 
         }
 

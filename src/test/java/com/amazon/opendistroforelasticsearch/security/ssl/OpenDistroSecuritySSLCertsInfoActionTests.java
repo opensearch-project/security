@@ -23,7 +23,7 @@ import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelpe
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import net.minidev.json.JSONObject;
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.common.settings.Settings;
 import org.junit.Assert;
 import org.junit.Test;
 

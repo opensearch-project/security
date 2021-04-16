@@ -30,31 +30,31 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.StreamSupport;
 
-import org.elasticsearch.ElasticsearchSecurityException;
-import org.elasticsearch.SpecialPermission;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.ActionRequest;
-import org.elasticsearch.action.DocWriteRequest;
-import org.elasticsearch.action.RealtimeRequest;
-import org.elasticsearch.action.admin.indices.shrink.ResizeRequest;
-import org.elasticsearch.action.bulk.BulkItemRequest;
-import org.elasticsearch.action.bulk.BulkRequest;
-import org.elasticsearch.action.bulk.BulkShardRequest;
-import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.update.UpdateRequest;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.index.query.ParsedQuery;
-import org.elasticsearch.search.DocValueFormat;
-import org.elasticsearch.search.aggregations.BucketOrder;
-import org.elasticsearch.search.aggregations.InternalAggregation;
-import org.elasticsearch.search.aggregations.InternalAggregations;
-import org.elasticsearch.search.aggregations.bucket.MultiBucketsAggregation.Bucket;
-import org.elasticsearch.search.aggregations.bucket.terms.InternalTerms;
-import org.elasticsearch.search.aggregations.bucket.terms.StringTerms;
-import org.elasticsearch.search.builder.SearchSourceBuilder;
-import org.elasticsearch.search.internal.SearchContext;
-import org.elasticsearch.search.query.QuerySearchResult;
-import org.elasticsearch.threadpool.ThreadPool;
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.SpecialPermission;
+import org.opensearch.action.ActionListener;
+import org.opensearch.action.ActionRequest;
+import org.opensearch.action.DocWriteRequest;
+import org.opensearch.action.RealtimeRequest;
+import org.opensearch.action.admin.indices.shrink.ResizeRequest;
+import org.opensearch.action.bulk.BulkItemRequest;
+import org.opensearch.action.bulk.BulkRequest;
+import org.opensearch.action.bulk.BulkShardRequest;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.update.UpdateRequest;
+import org.opensearch.common.xcontent.NamedXContentRegistry;
+import org.opensearch.index.query.ParsedQuery;
+import org.opensearch.search.DocValueFormat;
+import org.opensearch.search.aggregations.BucketOrder;
+import org.opensearch.search.aggregations.InternalAggregation;
+import org.opensearch.search.aggregations.InternalAggregations;
+import org.opensearch.search.aggregations.bucket.MultiBucketsAggregation.Bucket;
+import org.opensearch.search.aggregations.bucket.terms.InternalTerms;
+import org.opensearch.search.aggregations.bucket.terms.StringTerms;
+import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.search.internal.SearchContext;
+import org.opensearch.search.query.QuerySearchResult;
+import org.opensearch.threadpool.ThreadPool;
 
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.HeaderHelper;
@@ -91,14 +91,14 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             }
 
             if(request instanceof UpdateRequest) {
-                listener.onFailure(new ElasticsearchSecurityException("Update is not supported when FLS or DLS or Fieldmasking is activated"));
+                listener.onFailure(new OpenSearchSecurityException("Update is not supported when FLS or DLS or Fieldmasking is activated"));
                 return false;
             }
 
             if(request instanceof BulkRequest) {
                 for(DocWriteRequest<?> inner:((BulkRequest) request).requests()) {
                     if(inner instanceof UpdateRequest) {
-                        listener.onFailure(new ElasticsearchSecurityException("Update is not supported when FLS or DLS or Fieldmasking is activated"));
+                        listener.onFailure(new OpenSearchSecurityException("Update is not supported when FLS or DLS or Fieldmasking is activated"));
                         return false;
                     }
                 }
@@ -107,14 +107,14 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             if(request instanceof BulkShardRequest) {
                 for(BulkItemRequest inner:((BulkShardRequest) request).items()) {
                     if(inner.request() instanceof UpdateRequest) {
-                        listener.onFailure(new ElasticsearchSecurityException("Update is not supported when FLS or DLS or Fieldmasking is activated"));
+                        listener.onFailure(new OpenSearchSecurityException("Update is not supported when FLS or DLS or Fieldmasking is activated"));
                         return false;
                     }
                 }
             }
 
             if(request instanceof ResizeRequest) {
-                listener.onFailure(new ElasticsearchSecurityException("Resize is not supported when FLS or DLS or Fieldmasking is activated"));
+                listener.onFailure(new OpenSearchSecurityException("Resize is not supported when FLS or DLS or Fieldmasking is activated"));
                 return false;
             }
         }
@@ -125,7 +125,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                 if(source != null) {
 
                     if(source.profile()) {
-                        listener.onFailure(new ElasticsearchSecurityException("Profiling is not supported when DLS is activated"));
+                        listener.onFailure(new OpenSearchSecurityException("Profiling is not supported when DLS is activated"));
                         return false;
                     }
                 }

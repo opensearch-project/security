@@ -30,7 +30,7 @@
 
 package com.amazon.opendistroforelasticsearch.security.configuration;
 
-import org.elasticsearch.action.get.MultiGetResponse.Failure;
+import org.opensearch.action.get.MultiGetResponse.Failure;
 
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SecurityDynamicConfiguration;
 

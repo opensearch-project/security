@@ -23,15 +23,15 @@ import javax.net.ssl.SSLPeerUnverifiedException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.ElasticsearchSecurityException;
-import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
-import org.elasticsearch.http.HttpServerTransport.Dispatcher;
-import org.elasticsearch.rest.RestChannel;
-import org.elasticsearch.rest.RestRequest;
-import org.elasticsearch.rest.RestStatus;
+import org.opensearch.OpenSearchException;
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.ExceptionsHelper;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.http.HttpServerTransport.Dispatcher;
+import org.opensearch.rest.RestChannel;
+import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.RestStatus;
 
 import com.amazon.opendistroforelasticsearch.security.ssl.SslExceptionHandler;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.ExceptionUtils;
@@ -72,7 +72,7 @@ public class ValidatingDispatcher implements Dispatcher {
     protected void checkRequest(final RestRequest request, final RestChannel channel) {
         
         if(SSLRequestHelper.containsBadHeader(threadContext, "_opendistro_security_ssl_")) {
-            final ElasticsearchException exception = ExceptionUtils.createBadHeaderException();
+            final OpenSearchException exception = ExceptionUtils.createBadHeaderException();
             errorHandler.logError(exception, request, 1);
             throw exception;
         }
@@ -80,7 +80,7 @@ public class ValidatingDispatcher implements Dispatcher {
         try {
             if(SSLRequestHelper.getSSLInfo(settings, configPath, request, null) == null) {
                 logger.error("Not an SSL request");
-                throw new ElasticsearchSecurityException("Not an SSL request", RestStatus.INTERNAL_SERVER_ERROR);
+                throw new OpenSearchSecurityException("Not an SSL request", RestStatus.INTERNAL_SERVER_ERROR);
             }
         } catch (SSLPeerUnverifiedException e) {
             logger.error("No client certificates found but such are needed (SG 8).");

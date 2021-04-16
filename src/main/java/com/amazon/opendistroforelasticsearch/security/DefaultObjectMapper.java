@@ -39,7 +39,7 @@ import java.util.Set;
 
 import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
 import com.google.common.collect.ImmutableSet;
-import org.elasticsearch.SpecialPermission;
+import org.opensearch.SpecialPermission;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.JsonParser;

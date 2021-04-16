@@ -25,10 +25,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
+import org.opensearch.common.Strings;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.xcontent.XContentBuilder;
+import org.opensearch.common.xcontent.XContentFactory;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -292,8 +292,8 @@ public class AuditConfigSerializeTest {
         // arrange
         final Settings settings = Settings.builder()
                 .put(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, "test-security-index")
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_TYPE_DEFAULT, "internal_elasticsearch")
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ES_INDEX,
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_TYPE_DEFAULT, "internal_opensearch")
+                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_OPENSEARCH_INDEX,
                         "test-auditlog-index")
                 .build();
         final ObjectMapper customObjectMapper = new ObjectMapper();

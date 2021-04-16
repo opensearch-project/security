@@ -39,44 +39,44 @@ import java.util.function.Supplier;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.SpecialPermission;
-import org.elasticsearch.Version;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.Booleans;
-import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
-import org.elasticsearch.common.network.NetworkModule;
-import org.elasticsearch.common.network.NetworkService;
-import org.elasticsearch.common.settings.ClusterSettings;
-import org.elasticsearch.common.settings.IndexScopedSettings;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Setting.Property;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.settings.SettingsFilter;
-import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.common.util.PageCacheRecycler;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.env.Environment;
-import org.elasticsearch.env.NodeEnvironment;
-import org.elasticsearch.http.HttpServerTransport;
-import org.elasticsearch.http.HttpServerTransport.Dispatcher;
-import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.plugins.NetworkPlugin;
-import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.plugins.SystemIndexPlugin;
-import org.elasticsearch.repositories.RepositoriesService;
-import org.elasticsearch.rest.RestController;
-import org.elasticsearch.rest.RestHandler;
-import org.elasticsearch.script.ScriptService;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.SharedGroupFactory;
-import org.elasticsearch.transport.Transport;
-import org.elasticsearch.transport.TransportInterceptor;
-import org.elasticsearch.watcher.ResourceWatcherService;
+import org.opensearch.OpenSearchException;
+import org.opensearch.SpecialPermission;
+import org.opensearch.Version;
+import org.opensearch.client.Client;
+import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.cluster.node.DiscoveryNodes;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.Booleans;
+import org.opensearch.common.io.stream.NamedWriteableRegistry;
+import org.opensearch.common.network.NetworkModule;
+import org.opensearch.common.network.NetworkService;
+import org.opensearch.common.settings.ClusterSettings;
+import org.opensearch.common.settings.IndexScopedSettings;
+import org.opensearch.common.settings.Setting;
+import org.opensearch.common.settings.Setting.Property;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.settings.SettingsFilter;
+import org.opensearch.common.util.BigArrays;
+import org.opensearch.common.util.PageCacheRecycler;
+import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.common.xcontent.NamedXContentRegistry;
+import org.opensearch.env.Environment;
+import org.opensearch.env.NodeEnvironment;
+import org.opensearch.http.HttpServerTransport;
+import org.opensearch.http.HttpServerTransport.Dispatcher;
+import org.opensearch.indices.breaker.CircuitBreakerService;
+import org.opensearch.plugins.NetworkPlugin;
+import org.opensearch.plugins.Plugin;
+import org.opensearch.plugins.SystemIndexPlugin;
+import org.opensearch.repositories.RepositoriesService;
+import org.opensearch.rest.RestController;
+import org.opensearch.rest.RestHandler;
+import org.opensearch.script.ScriptService;
+import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.SharedGroupFactory;
+import org.opensearch.transport.Transport;
+import org.opensearch.transport.TransportInterceptor;
+import org.opensearch.watcher.ResourceWatcherService;
 
 import com.amazon.opendistroforelasticsearch.security.ssl.http.netty.OpenDistroSecuritySSLNettyHttpServerTransport;
 import com.amazon.opendistroforelasticsearch.security.ssl.http.netty.ValidatingDispatcher;
@@ -89,7 +89,7 @@ import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConfigConstant
 //For ES5 this class has only effect when SSL only plugin is installed
 public class OpenDistroSecuritySSLPlugin extends Plugin implements SystemIndexPlugin, NetworkPlugin {
 
-    private static boolean USE_NETTY_DEFAULT_ALLOCATOR = Booleans.parseBoolean(System.getProperty("es.unsafe.use_netty_default_allocator"), false);
+    private static boolean USE_NETTY_DEFAULT_ALLOCATOR = Booleans.parseBoolean(System.getProperty("opensearch.unsafe.use_netty_default_allocator"), false);
     public static final boolean OPENSSL_SUPPORTED = (PlatformDependent.javaVersion() < 12) && USE_NETTY_DEFAULT_ALLOCATOR;
     protected final Logger log = LogManager.getLogger(this.getClass());
     protected static final String CLIENT_TYPE = "client.type";
@@ -125,7 +125,7 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements SystemIndexPl
             AccessController.doPrivileged(new PrivilegedAction<Object>() {
                 @Override
                 public Object run() {
-                    System.setProperty("es.set.netty.runtime.available.processors", "false");
+                    System.setProperty("opensearch.set.netty.runtime.available.processors", "false");
                     return null;
                 }
             });
@@ -137,9 +137,9 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements SystemIndexPl
         this.configPath = configPath;
         
         if(this.configPath != null) {
-            log.info("ES Config path is {}", this.configPath.toAbsolutePath());
+            log.info("OpenSearch Config path is {}", this.configPath.toAbsolutePath());
         } else {
-            log.info("ES Config path is not set");
+            log.info("OpenSearch Config path is not set");
         }
         
         final boolean allowClientInitiatedRenegotiation = settings.getAsBoolean(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_ALLOW_CLIENT_INITIATED_RENEGOTIATION, false);
@@ -182,7 +182,7 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements SystemIndexPl
         AccessController.doPrivileged(new PrivilegedAction<Object>() {
             @Override
             public Object run() {
-                System.setProperty("es.set.netty.runtime.available.processors", "false");
+                System.setProperty("opensearch.set.netty.runtime.available.processors", "false");
                 PlatformDependent.newFixedMpscQueue(1);
                 OpenSsl.isAvailable();
                 return null;
@@ -305,7 +305,7 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements SystemIndexPl
                 principalExtractor = (PrincipalExtractor) principalExtractorClazz.newInstance();
             } catch (Exception e) {
                 log.error("Unable to load '{}' due to", principalExtractorClass, e);
-                throw new ElasticsearchException(e);
+                throw new OpenSearchException(e);
             }
         }
         
@@ -400,7 +400,7 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements SystemIndexPl
            
            if(settings.get("http.compression") == null) {
                builder.put("http.compression", false);
-               log.info("Disabled https compression by default to mitigate BREACH attacks. You can enable it by setting 'http.compression: true' in elasticsearch.yml");
+               log.info("Disabled https compression by default to mitigate BREACH attacks. You can enable it by setting 'http.compression: true' in opensearch.yml");
            }
            
            builder.put(NetworkModule.HTTP_TYPE_KEY, "com.amazon.opendistroforelasticsearch.security.ssl.http.netty.OpenDistroSecuritySSLNettyHttpServerTransport");

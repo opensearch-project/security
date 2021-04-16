@@ -50,23 +50,23 @@ import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfi
 import com.google.common.collect.ImmutableMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.ResourceAlreadyExistsException;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.cluster.health.ClusterHealthStatus;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.MappingMetadata;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
-import org.elasticsearch.common.util.concurrent.ThreadContext.StoredContext;
-import org.elasticsearch.env.Environment;
-import org.elasticsearch.threadpool.ThreadPool;
+import org.opensearch.OpenSearchException;
+import org.opensearch.ExceptionsHelper;
+import org.opensearch.ResourceAlreadyExistsException;
+import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
+import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
+import org.opensearch.action.admin.indices.create.CreateIndexRequest;
+import org.opensearch.client.Client;
+import org.opensearch.cluster.health.ClusterHealthStatus;
+import org.opensearch.cluster.metadata.IndexMetadata;
+import org.opensearch.cluster.metadata.MappingMetadata;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.Strings;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.common.util.concurrent.ThreadContext.StoredContext;
+import org.opensearch.env.Environment;
+import org.opensearch.threadpool.ThreadPool;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
 import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigFactory;
@@ -206,16 +206,16 @@ public class ConfigurationRepository {
 
                     final Set<String> deprecatedAuditKeysInSettings = AuditConfig.getDeprecatedKeys(settings);
                     if (!deprecatedAuditKeysInSettings.isEmpty()) {
-                        LOGGER.warn("Following keys {} are deprecated in elasticsearch settings. They will be removed in plugin v2.0.0.0", deprecatedAuditKeysInSettings);
+                        LOGGER.warn("Following keys {} are deprecated in opensearch settings. They will be removed in plugin v2.0.0.0", deprecatedAuditKeysInSettings);
                     }
                     final boolean isAuditConfigDocPresentInIndex = cl.isAuditConfigDocPresentInIndex();
                     if (isAuditConfigDocPresentInIndex) {
                         if (!deprecatedAuditKeysInSettings.isEmpty()) {
-                            LOGGER.warn("Audit configuration settings found in both index and elasticsearch settings (deprecated)");
+                            LOGGER.warn("Audit configuration settings found in both index and opensearch settings (deprecated)");
                         }
                         LOGGER.info("Hot-reloading of audit configuration is enabled");
                     } else {
-                        LOGGER.info("Hot-reloading of audit configuration is disabled. Using configuration with defaults from elasticsearch settings.  Populate the configuration in index using audit.yml or securityadmin to enable it.");
+                        LOGGER.info("Hot-reloading of audit configuration is disabled. Using configuration with defaults from opensearch settings.  Populate the configuration in index using audit.yml or securityadmin to enable it.");
                         auditLog.setConfig(AuditConfig.from(settings));
                     }
 
@@ -376,7 +376,7 @@ public class ConfigurationRepository {
             }
 
         } catch (Exception e) {
-            throw new ElasticsearchException(e);
+            throw new OpenSearchException(e);
         }
 
         if (logComplianceEvent && auditLog.getComplianceConfig().isEnabled()) {

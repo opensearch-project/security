@@ -18,7 +18,7 @@ package com.amazon.opendistroforelasticsearch.security.auditlog.impl;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 
 import com.google.common.collect.ImmutableSet;
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.common.settings.Settings;
 
 import java.util.Collection;
 import java.util.Collections;

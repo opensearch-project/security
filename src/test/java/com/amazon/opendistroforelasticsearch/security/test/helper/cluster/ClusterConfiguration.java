@@ -36,13 +36,13 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.elasticsearch.index.reindex.ReindexPlugin;
-import org.elasticsearch.join.ParentJoinPlugin;
-import org.elasticsearch.percolator.PercolatorPlugin;
-import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.script.mustache.MustachePlugin;
-import org.elasticsearch.search.aggregations.matrix.MatrixAggregationPlugin;
-import org.elasticsearch.transport.Netty4Plugin;
+import org.opensearch.index.reindex.ReindexPlugin;
+import org.opensearch.join.ParentJoinPlugin;
+import org.opensearch.percolator.PercolatorPlugin;
+import org.opensearch.plugins.Plugin;
+import org.opensearch.script.mustache.MustachePlugin;
+import org.opensearch.search.aggregations.matrix.MatrixAggregationPlugin;
+import org.opensearch.transport.Netty4Plugin;
 
 import com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin;
 import com.amazon.opendistroforelasticsearch.security.test.plugin.UserInjectorPlugin;

@@ -15,7 +15,7 @@
 
 package com.amazon.opendistroforelasticsearch.security.auditlog.sink;
 
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.common.settings.Settings;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.sink.AuditLogSink;
 import com.amazon.opendistroforelasticsearch.security.auditlog.sink.WebhookSink;
