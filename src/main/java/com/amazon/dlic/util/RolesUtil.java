@@ -20,8 +20,6 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchSecurityException;
-import org.elasticsearch.rest.RestStatus;
 
 public class RolesUtil {
     private static final Logger log = LogManager.getLogger(RolesUtil.class);
@@ -65,10 +63,7 @@ public class RolesUtil {
         } else if (rolesObject instanceof String) {
             return splitString(String.valueOf(rolesObject));
         }
-        log.error("=================================");
-        throw new ElasticsearchSecurityException(
-                "Expected type String or JSON array in the JWT for roles_key/roles_path",
-                RestStatus.BAD_REQUEST);
+        throw new IllegalArgumentException("Expected type String or JSON array in the JWT for roles_key/roles_path");
     }
     public static String[] splitString(String string) {
         String[] result = string.split(",");
