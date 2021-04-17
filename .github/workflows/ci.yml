@@ -21,13 +21,12 @@ jobs:
       with:
         java-version: 11.0.x
 
+    - name: Env
+      run: env
+
     - name: Checkout security
       uses: actions/checkout@v2
 
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v1
-      with:
-        languages: java
 
     - name: Cache Maven packages
       uses: actions/cache@v1
