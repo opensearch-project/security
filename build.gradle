@@ -49,7 +49,7 @@ ospackage {
     user 'root'
     permissionGroup 'root'
 
-    requires('opensearch-oss', "7.10.2", EQUAL)
+    requires('opensearch-oss', "7.10.3-SNAPSHOT", EQUAL)
     packager = 'Amazon'
     vendor = 'Amazon'
     os = 'LINUX'

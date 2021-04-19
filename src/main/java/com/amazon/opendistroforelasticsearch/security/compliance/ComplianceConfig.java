@@ -298,7 +298,7 @@ public class ComplianceConfig {
     }
 
     /**
-     * Checks if config defined in opensearch config directory must be logged
+     * Checks if config defined in OpenSearch config directory must be logged
      * @return true/false
      */
     @JsonProperty("external_config")

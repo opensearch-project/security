@@ -576,7 +576,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         try (XContentBuilder builder = XContentBuilder.builder(XContentType.JSON.xContent())) {
             builder.startObject();
             builder.startObject("external_configuration");
-            builder.field("OPENSEARCH_YML", configAsMap);
+            builder.field("opensearch_yml", configAsMap);
             builder.field("os_environment", envAsMap);
             builder.field("java_properties", propsAsMap);
             builder.field("sha256_checksum", sha256);

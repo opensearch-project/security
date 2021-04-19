@@ -54,7 +54,7 @@ import java.util.List;
  * <p>
  * A SuperAdmin is identified by a certificate which represents a distinguished name(DN).
  * SuperAdmin DN's can be set in {@link ConfigConstants#OPENDISTRO_SECURITY_AUTHCZ_ADMIN_DN}
- * SuperAdmin certificate for the default superuser is stored as a kirk.pem file in config folder of opensearch
+ * SuperAdmin certificate for the default superuser is stored as a kirk.pem file in config folder of OpenSearch
  * <p>
  * Example calling the PUT API as SuperAdmin using curl (if http basic auth is on):
  * curl -v --cacert path_to_config/root-ca.pem --cert path_to_config/kirk.pem --key path_to_config/kirk-key.pem -XPUT https://localhost:9200/_opendistro/_security/api/whitelist -H "Content-Type: application/json" -d’
