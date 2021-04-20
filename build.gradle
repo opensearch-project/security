@@ -22,6 +22,21 @@ plugins {
     id 'java'
     id 'nebula.ospackage' version '8.5.6'
     id "com.gorylenko.gradle-git-properties" version "2.2.4"
+    id 'jacoco'
+}
+
+jacoco {
+    toolVersion = "0.8.5"
+    reportsDir = file("$buildDir/jacoco")
+}
+
+test{
+    workingDir = '.'
+    finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+    dependsOn test
 }
 
 apply plugin: 'elasticsearch.esplugin'
@@ -276,10 +291,6 @@ buildDir = 'gradle-build'
 ext {
     opendistroVersion = '1.13.1'
     isSnapshot = "true" == System.getProperty("build.snapshot", "true")
-}
-
-test{
-    workingDir = '.'
 }
 
 group = "com.amazon.opendistroforelasticsearch"
