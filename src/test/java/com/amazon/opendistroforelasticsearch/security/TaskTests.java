@@ -19,8 +19,8 @@ package com.amazon.opendistroforelasticsearch.security;
 
 import org.apache.http.HttpStatus;
 import org.apache.http.message.BasicHeader;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.tasks.Task;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.tasks.Task;
 import org.junit.Assert;
 import org.junit.Test;
 

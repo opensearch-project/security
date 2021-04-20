@@ -33,10 +33,10 @@ import javax.naming.ldap.LdapName;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchSecurityException;
-import org.elasticsearch.SpecialPermission;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.SpecialPermission;
+import org.opensearch.common.Strings;
+import org.opensearch.common.settings.Settings;
 import org.ldaptive.Connection;
 import org.ldaptive.ConnectionFactory;
 import org.ldaptive.LdapAttribute;
@@ -121,7 +121,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
 
     @Override
     public void fillRoles(final User user, final AuthCredentials optionalAuthCreds)
-            throws ElasticsearchSecurityException {
+            throws OpenSearchSecurityException {
 
         final SecurityManager sm = System.getSecurityManager();
 
@@ -138,8 +138,8 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                 }
             });
         } catch (PrivilegedActionException e) {
-            if (e.getException() instanceof ElasticsearchSecurityException) {
-                throw (ElasticsearchSecurityException) e.getException();
+            if (e.getException() instanceof OpenSearchSecurityException) {
+                throw (OpenSearchSecurityException) e.getException();
             } else if (e.getException() instanceof RuntimeException) {
                 throw (RuntimeException) e.getException();
             } else {
@@ -149,7 +149,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
     }
 
     private void fillRoles0(final User user, final AuthCredentials optionalAuthCreds)
-            throws ElasticsearchSecurityException {
+            throws OpenSearchSecurityException {
 
         if (user == null) {
             return;
@@ -208,7 +208,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                     entry = LdapHelper.lookup(connection, authenticatedUser);
 
                     if (entry == null) {
-                        throw new ElasticsearchSecurityException("No user '" + authenticatedUser + "' found");
+                        throw new OpenSearchSecurityException("No user '" + authenticatedUser + "' found");
                     }
 
                 } else {
@@ -219,7 +219,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                     }
 
                     if (entry == null || entry.getDn() == null) {
-                        throw new ElasticsearchSecurityException("No user " + authenticatedUser + " found");
+                        throw new OpenSearchSecurityException("No user " + authenticatedUser + " found");
                     }
                 }
 
@@ -402,7 +402,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
             if (isDebugEnabled) {
                 log.debug("Unable to fill user roles due to ", e);
             }
-            throw new ElasticsearchSecurityException(e.toString(), e);
+            throw new OpenSearchSecurityException(e.toString(), e);
         }
 
     }
@@ -410,7 +410,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
     protected Set<LdapName> resolveNestedRoles(final LdapName roleDn, final Connection ldapConnection,
                                                String userRoleName, int depth, final boolean rolesearchEnabled,
                                                Set<Map.Entry<String, Settings>> roleSearchBaseSettingsSet)
-            throws ElasticsearchSecurityException, LdapException {
+            throws OpenSearchSecurityException, LdapException {
 
         final boolean isTraceEnabled = log.isTraceEnabled();
         if (nestedRoleMatcher.test(roleDn.toString())) {

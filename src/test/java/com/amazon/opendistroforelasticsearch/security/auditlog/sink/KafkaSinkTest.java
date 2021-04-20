@@ -21,8 +21,8 @@ import java.util.Properties;
 
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.yaml.YamlXContent;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.xcontent.yaml.YamlXContent;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Test;

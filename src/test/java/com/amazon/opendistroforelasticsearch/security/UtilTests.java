@@ -38,7 +38,7 @@ import static org.junit.Assert.assertFalse;
 import java.util.Map;
 
 import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.common.settings.Settings;
 import org.junit.Test;
 
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;

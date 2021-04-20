@@ -19,9 +19,9 @@ import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
 import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
 import com.google.common.collect.ImmutableSet;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.rest.RestRequest;
+import org.opensearch.common.bytes.BytesReference;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.rest.RestRequest;
 
 import java.util.Set;
 
@@ -49,9 +49,9 @@ public class AuditValidator extends AbstractConfigurationValidator {
 
     public AuditValidator(final RestRequest request,
                           final BytesReference ref,
-                          final Settings esSettings,
+                          final Settings opensearchSettings,
                           final Object... param) {
-        super(request, ref, esSettings, param);
+        super(request, ref, opensearchSettings, param);
         this.payloadMandatory = true;
         this.allowedKeys.put("enabled", DataType.BOOLEAN);
         this.allowedKeys.put("audit", DataType.OBJECT);

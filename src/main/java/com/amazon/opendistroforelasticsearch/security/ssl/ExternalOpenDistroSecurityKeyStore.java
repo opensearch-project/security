@@ -30,8 +30,8 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
 
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.OpenSearchException;
+import org.opensearch.common.settings.Settings;
 
 import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConfigConstants;
 
@@ -48,13 +48,13 @@ public class ExternalOpenDistroSecurityKeyStore implements OpenDistroSecurityKey
                 .get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_CLIENT_EXTERNAL_CONTEXT_ID, null);
                 
         if(externalContextId == null || externalContextId.length() == 0) {
-            throw new ElasticsearchException("no external ssl context id was set");
+            throw new OpenSearchException("no external ssl context id was set");
         }
         
         externalSslContext = contextMap.get(externalContextId);
         
         if(externalSslContext == null) {
-            throw new ElasticsearchException("no external ssl context for id "+externalContextId);
+            throw new OpenSearchException("no external ssl context for id "+externalContextId);
         }
     }
 

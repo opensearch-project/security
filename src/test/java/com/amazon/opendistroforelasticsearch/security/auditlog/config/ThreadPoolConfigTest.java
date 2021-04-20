@@ -15,7 +15,7 @@
 
 package com.amazon.opendistroforelasticsearch.security.auditlog.config;
 
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.common.settings.Settings;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;

@@ -44,7 +44,7 @@ import java.util.regex.Pattern;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.common.settings.Settings;
 
 import com.amazon.opendistroforelasticsearch.security.tools.Hasher;
 

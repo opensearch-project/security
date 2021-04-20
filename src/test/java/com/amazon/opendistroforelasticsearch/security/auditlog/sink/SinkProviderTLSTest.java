@@ -25,8 +25,8 @@ import javax.net.ssl.TrustManagerFactory;
 
 import org.apache.http.impl.bootstrap.HttpServer;
 import org.apache.http.impl.bootstrap.ServerBootstrap;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.settings.Settings.Builder;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.settings.Settings.Builder;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;

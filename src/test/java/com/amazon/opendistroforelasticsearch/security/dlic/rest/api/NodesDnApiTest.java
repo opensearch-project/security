@@ -25,7 +25,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import org.apache.http.Header;
 import org.apache.http.HttpStatus;
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.common.settings.Settings;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -55,7 +55,7 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
         if (expectedStatus == HttpStatus.SC_OK) {
             JsonNode expected = asJsonNode(ImmutableMap.of(
                 "cluster1", nodesDnEntry("cn=popeye"),
-                NodesDnApiAction.STATIC_ES_YML_NODES_DN, nodesDnEntry("CN=example.com")));
+                NodesDnApiAction.STATIC_OPENSEARCH_YML_NODES_DN, nodesDnEntry("CN=example.com")));
 
             JsonNode node = OBJECT_MAPPER.readTree(response.getBody());
             assertThat(node, equalTo(asJsonNode(expected)));
@@ -145,14 +145,14 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
 
             final int expectedStatus = HttpStatus.SC_FORBIDDEN;
 
-            response = rh.executePutRequest("_opendistro/_security/api/nodesdn/" + NodesDnApiAction.STATIC_ES_YML_NODES_DN, "{\"nodes_dn\": [\"cn=popeye\"]}", nonAdminCredsHeader);
+            response = rh.executePutRequest("_opendistro/_security/api/nodesdn/" + NodesDnApiAction.STATIC_OPENSEARCH_YML_NODES_DN, "{\"nodes_dn\": [\"cn=popeye\"]}", nonAdminCredsHeader);
             assertThat(response.getBody(), response.getStatusCode(), equalTo(expectedStatus));
 
-            response = rh.executePatchRequest("/_opendistro/_security/api/nodesdn/" + NodesDnApiAction.STATIC_ES_YML_NODES_DN,
+            response = rh.executePatchRequest("/_opendistro/_security/api/nodesdn/" + NodesDnApiAction.STATIC_OPENSEARCH_YML_NODES_DN,
                 "[{ \"op\": \"add\", \"path\": \"/nodes_dn/-\", \"value\": \"bluto\" }]" , nonAdminCredsHeader);
             assertThat(response.getBody(), response.getStatusCode(), equalTo(expectedStatus));
 
-            response = rh.executeDeleteRequest("_opendistro/_security/api/nodesdn/" + NodesDnApiAction.STATIC_ES_YML_NODES_DN, nonAdminCredsHeader);
+            response = rh.executeDeleteRequest("_opendistro/_security/api/nodesdn/" + NodesDnApiAction.STATIC_OPENSEARCH_YML_NODES_DN, nonAdminCredsHeader);
             assertThat(response.getBody(), response.getStatusCode(), equalTo(expectedStatus));
         }
     }

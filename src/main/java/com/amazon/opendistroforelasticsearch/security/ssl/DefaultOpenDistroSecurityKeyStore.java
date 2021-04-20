@@ -66,11 +66,11 @@ import io.netty.util.internal.PlatformDependent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.ElasticsearchSecurityException;
-import org.elasticsearch.SpecialPermission;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.env.Environment;
+import org.opensearch.OpenSearchException;
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.SpecialPermission;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.env.Environment;
 
 public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyStore {
 
@@ -135,7 +135,7 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
 
         if(!OpenDistroSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable() && (settings.getAsBoolean(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, true) || settings.getAsBoolean(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, true) )) {
             if (PlatformDependent.javaVersion() < 12) {
-                log.warn("Support for OpenSSL with Java 11 or prior versions require using Netty allocator. Set 'es.unsafe.use_netty_default_allocator' system property to true");
+                log.warn("Support for OpenSSL with Java 11 or prior versions require using Netty allocator. Set 'opensearch.unsafe.use_netty_default_allocator' system property to true");
             } else {
                 log.warn("Support for OpenSSL with Java 12+ has been removed from Open Distro Security since Elasticsearch 7.4.0. Using JDK SSL instead.");
             }
@@ -192,23 +192,23 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
 
         if (transportSSLEnabled && (getEnabledSSLCiphers(sslTransportClientProvider, false).isEmpty()
             || getEnabledSSLCiphers(sslTransportServerProvider, false).isEmpty())) {
-            throw new ElasticsearchSecurityException("no valid cipher suites for transport protocol");
+            throw new OpenSearchSecurityException("no valid cipher suites for transport protocol");
         }
 
         if (httpSSLEnabled && getEnabledSSLCiphers(sslHTTPProvider, true).isEmpty()) {
-            throw new ElasticsearchSecurityException("no valid cipher suites for https");
+            throw new OpenSearchSecurityException("no valid cipher suites for https");
         }
 
         if (transportSSLEnabled && getEnabledSSLCiphers(sslTransportServerProvider, false).isEmpty()) {
-            throw new ElasticsearchSecurityException("no ssl protocols for transport protocol");
+            throw new OpenSearchSecurityException("no ssl protocols for transport protocol");
         }
 
         if (transportSSLEnabled && getEnabledSSLCiphers(sslTransportClientProvider, false).isEmpty()) {
-            throw new ElasticsearchSecurityException("no ssl protocols for transport protocol");
+            throw new OpenSearchSecurityException("no ssl protocols for transport protocol");
         }
 
         if (httpSSLEnabled && getEnabledSSLCiphers(sslHTTPProvider, true).isEmpty()) {
-            throw new ElasticsearchSecurityException("no ssl protocols for https");
+            throw new OpenSearchSecurityException("no ssl protocols for https");
         }
     }
 
@@ -285,7 +285,7 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
                 SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, true);
 
             if (settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, null) == null) {
-                throw new ElasticsearchException(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH
+                throw new OpenSearchException(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH
                     + " must be set if transport ssl is requested.");
             }
 
@@ -321,7 +321,7 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
                     // because they should be different for client and server
                     if (keystoreServerAlias == null || keystoreClientAlias == null || truststoreServerAlias == null || truststoreClientAlias == null)
                     {
-                        throw new ElasticsearchException(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_SERVER_KEYSTORE_ALIAS + ", "
+                        throw new OpenSearchException(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_SERVER_KEYSTORE_ALIAS + ", "
                                 + SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_CLIENT_KEYSTORE_ALIAS + ", "
                                 + SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_SERVER_TRUSTSTORE_ALIAS + ", "
                                 + SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_CLIENT_TRUSTSTORE_ALIAS
@@ -358,7 +358,7 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
                 setTransportSSLCerts(certFromKeystore.getCerts());
             } catch (final Exception e) {
                 logExplanation(e);
-                throw new ElasticsearchSecurityException(
+                throw new OpenSearchSecurityException(
                         "Error while initializing transport SSL layer: " + e.toString(), e);
             }
 
@@ -405,11 +405,11 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
 
             } catch (final Exception e) {
                 logExplanation(e);
-                throw new ElasticsearchSecurityException(
+                throw new OpenSearchSecurityException(
                         "Error while initializing transport SSL layer from PEM: " + e.toString(), e);
             }
         } else {
-            throw new ElasticsearchException(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH + " or "
+            throw new OpenSearchException(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH + " or "
                     + SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_SERVER_PEMCERT_FILEPATH + " and "
                     + SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_CLIENT_PEMCERT_FILEPATH
                     + " must be set if transport ssl is requested.");
@@ -444,14 +444,14 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
             log.info("HTTPS client auth mode {}", httpClientAuthMode);
 
             if (settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, null) == null) {
-                throw new ElasticsearchException(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_KEYSTORE_FILEPATH
+                throw new OpenSearchException(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_KEYSTORE_FILEPATH
                     + " must be set if https is requested.");
             }
 
             if (httpClientAuthMode == ClientAuth.REQUIRE) {
 
                 if (settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH, null) == null) {
-                    throw new ElasticsearchException(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH
+                    throw new OpenSearchException(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH
                         + " must be set if http ssl and client auth is requested.");
                 }
 
@@ -493,7 +493,7 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
 
             } catch (final Exception e) {
                 logExplanation(e);
-                throw new ElasticsearchSecurityException("Error while initializing HTTP SSL layer: " + e.toString(),
+                throw new OpenSearchSecurityException("Error while initializing HTTP SSL layer: " + e.toString(),
                     e);
             }
 
@@ -523,12 +523,12 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
 
             } catch (final Exception e) {
                 logExplanation(e);
-                throw new ElasticsearchSecurityException(
+                throw new OpenSearchSecurityException(
                     "Error while initializing http SSL layer from PEM: " + e.toString(), e);
             }
 
         } else {
-            throw new ElasticsearchException(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_KEYSTORE_FILEPATH + " or "
+            throw new OpenSearchException(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_KEYSTORE_FILEPATH + " or "
                 + SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_PEMKEY_FILEPATH
                 + " must be set if http ssl is requested.");
         }
@@ -825,7 +825,7 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
         }
 
         if(jdkSupportedCiphers == null || jdkSupportedCiphers.isEmpty() || jdkSupportedProtocols == null || jdkSupportedProtocols.isEmpty()) {
-            throw new ElasticsearchException("Unable to determine supported ciphers or protocols");
+            throw new OpenSearchException("Unable to determine supported ciphers or protocols");
         }
 
         enabledHttpCiphersJDKProvider = new ArrayList<String>(jdkSupportedCiphers);
@@ -935,16 +935,16 @@ public class DefaultOpenDistroSecurityKeyStore implements OpenDistroSecurityKeyS
     private static void checkPath(String keystoreFilePath, String fileNameLogOnly) {
 
         if (keystoreFilePath == null || keystoreFilePath.length() == 0) {
-            throw new ElasticsearchException("Empty file path for " + fileNameLogOnly);
+            throw new OpenSearchException("Empty file path for " + fileNameLogOnly);
         }
 
         if (Files.isDirectory(Paths.get(keystoreFilePath), LinkOption.NOFOLLOW_LINKS)) {
-            throw new ElasticsearchException(
+            throw new OpenSearchException(
                 "Is a directory: " + keystoreFilePath + " Expected a file for " + fileNameLogOnly);
         }
 
         if (!Files.isReadable(Paths.get(keystoreFilePath))) {
-            throw new ElasticsearchException("Unable to read " + keystoreFilePath + " (" + Paths.get(keystoreFilePath)
+            throw new OpenSearchException("Unable to read " + keystoreFilePath + " (" + Paths.get(keystoreFilePath)
                 + "). Please make sure this files exists and is readable regarding to permissions. Property: "
                 + fileNameLogOnly);
         }

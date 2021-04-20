@@ -22,10 +22,10 @@ import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfi
 import com.google.common.collect.ImmutableMap;
 import org.apache.http.Header;
 import org.apache.http.HttpStatus;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
-import org.elasticsearch.client.transport.TransportClient;
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.support.WriteRequest.RefreshPolicy;
+import org.opensearch.client.transport.TransportClient;
+import org.opensearch.common.settings.Settings;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -278,7 +278,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         System.out.println(TestAuditlogImpl.sb.toString());
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("external_configuration"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_EXTERNAL_CONFIG"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("elasticsearch_yml"));
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("OPENSEARCH_YML"));
         Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
     }
 

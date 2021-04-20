@@ -31,7 +31,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Streams;
 import org.apache.http.Header;
 import org.apache.http.HttpStatus;
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.common.settings.Settings;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;

@@ -25,7 +25,7 @@ import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelpe
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import net.minidev.json.JSONObject;
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.common.settings.Settings;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -207,7 +207,7 @@ public class OpenDistroSecuritySSLReloadCertsActionTests extends SingleClusterTe
         RestHelper.HttpResponse reloadCertsResponse = rh.executePutRequest(RELOAD_TRANSPORT_CERTS_ENDPOINT, null);
         Assert.assertEquals(500, reloadCertsResponse.getStatusCode());
         JSONObject expectedResponse = new JSONObject();
-        expectedResponse.appendField("error", "ElasticsearchSecurityException[Error while initializing transport SSL layer from PEM: java.lang.Exception: " +
+        expectedResponse.appendField("error", "OpenSearchSecurityException[Error while initializing transport SSL layer from PEM: java.lang.Exception: " +
             "New Certs do not have valid Issuer DN, Subject DN or SAN.]; nested: Exception[New Certs do not have valid Issuer DN, Subject DN or SAN.];");
         Assert.assertEquals(expectedResponse.toString(), reloadCertsResponse.getBody());
 
@@ -219,7 +219,7 @@ public class OpenDistroSecuritySSLReloadCertsActionTests extends SingleClusterTe
         reloadCertsResponse = rh.executePutRequest(RELOAD_TRANSPORT_CERTS_ENDPOINT, null);
         Assert.assertEquals(500, reloadCertsResponse.getStatusCode());
         expectedResponse = new JSONObject();
-        expectedResponse.appendField("error", "ElasticsearchSecurityException[Error while initializing transport SSL layer from PEM: java.lang.Exception: New certificates should not expire before the current ones.]; nested: Exception[New certificates should not expire before the current ones.];");
+        expectedResponse.appendField("error", "OpenSearchSecurityException[Error while initializing transport SSL layer from PEM: java.lang.Exception: New certificates should not expire before the current ones.]; nested: Exception[New certificates should not expire before the current ones.];");
         Assert.assertEquals(expectedResponse.toString(), reloadCertsResponse.getBody());
     }
 

@@ -38,13 +38,13 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.TransportAddress;
+import org.opensearch.ExceptionsHelper;
+import org.opensearch.action.support.IndicesOptions;
+import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.collect.Tuple;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.transport.TransportAddress;
 
 import com.amazon.opendistroforelasticsearch.security.resolver.IndexResolverReplacer.Resolved;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -64,7 +64,7 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.MultimapBuilder.SetMultimapBuilder;
 import com.google.common.collect.SetMultimap;
 
-import static org.elasticsearch.cluster.metadata.IndexAbstraction.Type.ALIAS;
+import static org.opensearch.cluster.metadata.IndexAbstraction.Type.ALIAS;
 
 public class ConfigModelV7 extends ConfigModel {
 
@@ -83,14 +83,14 @@ public class ConfigModelV7 extends ConfigModel {
             SecurityDynamicConfiguration<ActionGroupsV7> actiongroups,
             SecurityDynamicConfiguration<TenantV7> tenants,
             DynamicConfigModel dcm,
-            Settings esSettings) {
+            Settings opensearchSettings) {
 
         this.roles = roles;
         this.tenants = tenants;
         
         try {
             rolesMappingResolution = ConfigConstants.RolesMappingResolution.valueOf(
-                    esSettings.get(ConfigConstants.OPENDISTRO_SECURITY_ROLES_MAPPING_RESOLUTION, ConfigConstants.RolesMappingResolution.MAPPING_ONLY.toString())
+                    opensearchSettings.get(ConfigConstants.OPENDISTRO_SECURITY_ROLES_MAPPING_RESOLUTION, ConfigConstants.RolesMappingResolution.MAPPING_ONLY.toString())
                             .toUpperCase());
         } catch (Exception e) {
             log.error("Cannot apply roles mapping resolution", e);

@@ -46,9 +46,9 @@ import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.threadpool.ThreadPool;
+import org.opensearch.client.Client;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.threadpool.ThreadPool;
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.EventBusBuilder;
 
@@ -124,20 +124,20 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     private final ConfigurationRepository cr;
     private final AtomicBoolean initialized = new AtomicBoolean();
     private final EventBus eventBus = EVENT_BUS_BUILDER.build();
-    private final Settings esSettings;
+    private final Settings opensearchSettings;
     private final Path configPath;
     private final InternalAuthenticationBackend iab = new InternalAuthenticationBackend();
 
     SecurityDynamicConfiguration<?> config;
     
-    public DynamicConfigFactory(ConfigurationRepository cr, final Settings esSettings,
+    public DynamicConfigFactory(ConfigurationRepository cr, final Settings opensearchSettings,
             final Path configPath, Client client, ThreadPool threadPool, ClusterInfoHolder cih) {
         super();
         this.cr = cr;
-        this.esSettings = esSettings;
+        this.opensearchSettings = opensearchSettings;
         this.configPath = configPath;
 
-        if(esSettings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES, true)) {
+        if(opensearchSettings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES, true)) {
             try {
                 loadStaticConfig();
             } catch (IOException e) {
@@ -147,7 +147,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
             log.info("Static resources will not be loaded.");
         }
         
-        if(esSettings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES, true)) {
+        if(opensearchSettings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES, true)) {
             try {
                 loadStaticConfig();
             } catch (IOException e) {
@@ -235,18 +235,18 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
             
 
             //rebuild v7 Models
-            dcm = new DynamicConfigModelV7(getConfigV7(config), esSettings, configPath, iab);
+            dcm = new DynamicConfigModelV7(getConfigV7(config), opensearchSettings, configPath, iab);
             ium = new InternalUsersModelV7((SecurityDynamicConfiguration<InternalUserV7>) internalusers,
                 (SecurityDynamicConfiguration<RoleV7>) roles,
                 (SecurityDynamicConfiguration<RoleMappingsV7>) rolesmapping);
-            cm = new ConfigModelV7((SecurityDynamicConfiguration<RoleV7>) roles,(SecurityDynamicConfiguration<RoleMappingsV7>)rolesmapping, (SecurityDynamicConfiguration<ActionGroupsV7>)actionGroups, (SecurityDynamicConfiguration<TenantV7>) tenants,dcm, esSettings);
+            cm = new ConfigModelV7((SecurityDynamicConfiguration<RoleV7>) roles,(SecurityDynamicConfiguration<RoleMappingsV7>)rolesmapping, (SecurityDynamicConfiguration<ActionGroupsV7>)actionGroups, (SecurityDynamicConfiguration<TenantV7>) tenants,dcm, opensearchSettings);
 
         } else {
 
             //rebuild v6 Models
-            dcm = new DynamicConfigModelV6(getConfigV6(config), esSettings, configPath, iab);
+            dcm = new DynamicConfigModelV6(getConfigV6(config), opensearchSettings, configPath, iab);
             ium = new InternalUsersModelV6((SecurityDynamicConfiguration<InternalUserV6>) internalusers);
-            cm = new ConfigModelV6((SecurityDynamicConfiguration<RoleV6>) roles, (SecurityDynamicConfiguration<ActionGroupsV6>)actionGroups, (SecurityDynamicConfiguration<RoleMappingsV6>)rolesmapping, dcm, esSettings);
+            cm = new ConfigModelV6((SecurityDynamicConfiguration<RoleV6>) roles, (SecurityDynamicConfiguration<ActionGroupsV6>)actionGroups, (SecurityDynamicConfiguration<RoleMappingsV6>)rolesmapping, dcm, opensearchSettings);
 
         }
 

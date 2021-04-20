@@ -18,7 +18,7 @@ package com.amazon.opendistroforelasticsearch.security.auditlog.sink;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.common.settings.Settings;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage;
 

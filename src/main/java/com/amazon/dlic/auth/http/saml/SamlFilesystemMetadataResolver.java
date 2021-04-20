@@ -21,16 +21,16 @@ import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.env.Environment;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.env.Environment;
 import org.opensaml.saml.metadata.resolver.impl.FilesystemMetadataResolver;
 
 import net.shibboleth.utilities.java.support.resolver.ResolverException;
 
 public class SamlFilesystemMetadataResolver extends FilesystemMetadataResolver {
 
-    SamlFilesystemMetadataResolver(String filePath, Settings esSettings, Path configPath) throws Exception {
-        super(getMetadataFile(filePath, esSettings, configPath));
+    SamlFilesystemMetadataResolver(String filePath, Settings opensearchSettings, Path configPath) throws Exception {
+        super(getMetadataFile(filePath, opensearchSettings, configPath));
     }
 
     @Override

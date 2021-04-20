@@ -19,8 +19,8 @@ import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.OpenSearchException;
+import org.opensearch.common.settings.Settings;
 
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
@@ -41,7 +41,7 @@ public class Salt {
 
     public Salt(final byte[] salt) {
         if (salt.length != SALT_SIZE) {
-            throw new ElasticsearchException("Provided compliance salt must contain 16 bytes");
+            throw new OpenSearchException("Provided compliance salt must contain 16 bytes");
         }
         this.salt16 = salt;
     }
@@ -58,7 +58,7 @@ public class Salt {
                 log.warn("Provided compliance salt {} is greater than 16 bytes. Only the first 16 bytes are used for salting", saltAsString);
             }
         } catch (BufferUnderflowException e) {
-            throw new ElasticsearchException("Provided compliance salt " + saltAsString + " must at least contain 16 bytes", e);
+            throw new OpenSearchException("Provided compliance salt " + saltAsString + " must at least contain 16 bytes", e);
         }
     }
 
@@ -72,8 +72,8 @@ public class Salt {
     }
 
     /**
-     * Get salt configuration from Elasticsearch settings
-     * @param settings Elasticsearch settings
+     * Get salt configuration from OpenSearch settings
+     * @param settings OpenSearch settings
      * @return configuration
      */
     public static Salt from(final Settings settings) {

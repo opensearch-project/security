@@ -36,7 +36,7 @@ import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 
 import com.fasterxml.jackson.databind.InjectableValues;
-import org.elasticsearch.SpecialPermission;
+import org.opensearch.SpecialPermission;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.JsonParser;

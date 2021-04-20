@@ -16,8 +16,8 @@
 package com.amazon.opendistroforelasticsearch.security.configuration;
 
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.OpenSearchException;
+import org.opensearch.common.settings.Settings;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -77,7 +77,7 @@ public class SaltTest {
     @Test
     public void testSaltThrowsExceptionWhenInsufficientBytesProvided() {
         // assert
-        thrown.expect(ElasticsearchException.class);
+        thrown.expect(OpenSearchException.class);
         thrown.expectMessage("Provided compliance salt abcd must at least contain 16 bytes");
 
         // arrange
@@ -92,7 +92,7 @@ public class SaltTest {
     @Test
     public void testSaltThrowsExceptionWhenInsufficientBytesArrayProvided() {
         // assert
-        thrown.expect(ElasticsearchException.class);
+        thrown.expect(OpenSearchException.class);
         thrown.expectMessage("Provided compliance salt must contain 16 bytes");
 
         // act
@@ -102,7 +102,7 @@ public class SaltTest {
     @Test
     public void testSaltThrowsExceptionWhenExcessBytesArrayProvided() {
         // assert
-        thrown.expect(ElasticsearchException.class);
+        thrown.expect(OpenSearchException.class);
         thrown.expectMessage("Provided compliance salt must contain 16 bytes");
 
         // act

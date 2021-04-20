@@ -1,7 +1,7 @@
 package com.amazon.opendistroforelasticsearch.security.ssl.util;
 
 import org.apache.commons.lang3.ArrayUtils;
-import org.elasticsearch.ElasticsearchException;
+import org.opensearch.OpenSearchException;
 
 import java.io.IOException;
 import java.security.KeyStore;
@@ -73,22 +73,22 @@ public class CertFromKeystore {
 
     private void validate() {
         if (serverKey == null) {
-            throw new ElasticsearchException(
+            throw new OpenSearchException(
                     "No key found in " + keystoreProps.getFilePath() + " with alias " + serverKeystoreAlias);
         }
 
         if (serverCert == null || serverCert.length == 0) {
-            throw new ElasticsearchException(
+            throw new OpenSearchException(
                     "No certificates found in " + keystoreProps.getFilePath() + " with alias " + serverKeystoreAlias);
         }
 
         if (clientKey == null) {
-            throw new ElasticsearchException(
+            throw new OpenSearchException(
                     "No key found in " + keystoreProps.getFilePath() + " with alias " + clientKeystoreAlias);
         }
 
         if (clientCert == null || clientCert.length == 0) {
-            throw new ElasticsearchException(
+            throw new OpenSearchException(
                     "No certificates found in " + keystoreProps.getFilePath() + " with alias " + clientKeystoreAlias);
         }
     }

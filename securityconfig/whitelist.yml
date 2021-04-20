@@ -10,8 +10,8 @@ _meta:
 # This is equivalent to continuing with the usual access control checks, and removing all the code that implements whitelisting.
 # if enabled is true, then all users except SuperAdmin can access only the APIs in requests
 # SuperAdmin can access all APIs.
-# SuperAdmin is defined by the SuperAdmin certificate, which is configured in the elasticsearch.yml setting: opendistro_security.authcz.admin_dn:
-# Refer to the example setting in elasticsearch.yml.example, and the opendistro documentation to know more about configuring SuperAdmin.
+# SuperAdmin is defined by the SuperAdmin certificate, which is configured in the opensearch.yml setting: opendistro_security.authcz.admin_dn:
+# Refer to the example setting in opensearch.yml.example, and the opendistro documentation to know more about configuring SuperAdmin.
 #
 # requests - map of whitelisted endpoints, and the whitelisted HTTP requests for those endpoints
 

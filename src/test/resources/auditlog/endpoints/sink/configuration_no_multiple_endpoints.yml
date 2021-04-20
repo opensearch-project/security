@@ -1,4 +1,4 @@
-opendistro_security.audit.type: internal_elasticsearch
+opendistro_security.audit.type: internal_opensearch
 opendistro_security.audit.config.index: "myownindex"
 opendistro_security.audit.config.type: "auditevents"
 opendistro_security.audit.threadpool.size: 5

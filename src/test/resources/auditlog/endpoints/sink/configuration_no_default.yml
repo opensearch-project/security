@@ -2,18 +2,18 @@ opendistro_security:
   audit:
     endpoints:
       eNDpoint1:
-        type: iNternaL_elasticsearch
+        type: internal_opensearch
         config:
           key: value
           wedontneed: anyconfigforinternal
       endpoint2:
-        type: external_elasticsearch
+        type: external_opensearch
       endPOINT3:
         type: debug
       endpoint4:
         type: idonotexist
       endpoint5:
-        type: external_elasticsearch
+        type: external_opensearch
         something:
           key: value
       endpoint6:        
@@ -27,6 +27,6 @@ opendistro_security:
         config:
           key: value
       endpoint9:
-        type: external_elasticsearch
+        type: external_opensearch
         config:
           endpoints: stringhere

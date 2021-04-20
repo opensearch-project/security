@@ -17,7 +17,7 @@ package com.amazon.dlic.auth.http.jwt.keybyoidc;
 
 import java.nio.file.Path;
 
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.common.settings.Settings;
 
 import com.amazon.dlic.auth.http.jwt.AbstractHTTPJwtAuthenticator;
 import com.amazon.dlic.util.SettingsBasedSSLConfigurator;

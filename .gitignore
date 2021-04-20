@@ -26,7 +26,7 @@ eclipse-build
 !/.settings/org.eclipse.jdt.ui.prefs
 !/.settings/org.eclipse.jdt.groovy.core.prefs
 bin
-elasticsearch-*/
+opensearch-*/
 .DS_Store
 data/
 puppet/.vagrant

@@ -3,9 +3,9 @@ opendistro_security:
     type: debug
     endpoints:
       endpoint1:
-        type: interrrrnal_elasticsearch
+        type: interrrrnal_opensearch
       endpoint2:
-        type: external_elasticsearch
+        type: external_opensearch
         config:
           http_endpoints: ['localhost:9200','localhost:9201','localhost:9202']
           index: auditlog 

@@ -30,8 +30,8 @@
 
 package com.amazon.opendistroforelasticsearch.security.test;
 
-import org.elasticsearch.client.transport.TransportClient;
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.client.transport.TransportClient;
+import org.opensearch.common.settings.Settings;
 import org.junit.After;
 import org.junit.Assert;
 

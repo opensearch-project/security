@@ -24,12 +24,12 @@ import java.util.function.LongSupplier;
 import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvaluator;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.search.Query;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.mapper.IgnoredFieldMapper;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.index.shard.ShardUtils;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.index.IndexService;
+import org.opensearch.index.mapper.IgnoredFieldMapper;
+import org.opensearch.index.shard.ShardId;
+import org.opensearch.index.shard.ShardUtils;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
 import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceIndexingOperationListener;
@@ -45,7 +45,7 @@ public class OpenDistroSecurityFlsDlsIndexSearcherWrapper extends OpenDistroSecu
     // TODO: the list is outdated. It is necessary to change how meta fields are handled in the near future.
     //  We may consider using MapperService.isMetadataField() instead of relying on the static set or
     //  (if it is too costly or does not meet requirements) use IndicesModule.getBuiltInMetadataFields()
-    //  for ES version specific Set of meta fields
+    //  for OpenSearch version specific Set of meta fields
     private static final Set<String> metaFields = Sets.newHashSet("_source", "_version", "_field_names",
             "_seq_no", "_primary_term", "_id", IgnoredFieldMapper.NAME, "_index", "_routing", "_size", "_timestamp", "_ttl", "_type");
     private final ClusterService clusterService;

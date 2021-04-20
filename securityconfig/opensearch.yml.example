@@ -1,7 +1,7 @@
 ############## Open Distro Security configuration ###############
 
 ###########################################################
-# Add the following settings to your standard elasticsearch.yml 
+# Add the following settings to your standard opensearch.yml
 # alongside with the Open Distro Security TLS settings.
 # Settings must always be the same on all nodes in the cluster.
 
@@ -88,12 +88,12 @@ opendistro_security.roles_mapping_resolution: MAPPING_ONLY
 #opendistro_security.audit.ignore_users: ['kibanaserver','some*user','/also.*regex possible/']"
 
 # Destination of the auditlog events
-opendistro_security.audit.type: internal_elasticsearch
-#opendistro_security.audit.type: external_elasticsearch
+opendistro_security.audit.type: internal_opensearch
+#opendistro_security.audit.type: external_opensearch
 #opendistro_security.audit.type: debug
 #opendistro_security.audit.type: webhook
 
-# external_elasticsearch settings
+# external_opensearch settings
 #opendistro_security.audit.config.http_endpoints: ['localhost:9200','localhost:9201','localhost:9202']"
 # Auditlog index can be a static one or one with a date pattern (default is 'auditlog6')
 #opendistro_security.audit.config.index: auditlog6 # make sure you secure this index properly
@@ -129,11 +129,11 @@ opendistro_security.audit.type: internal_elasticsearch
 # If Kerberos authentication should be used you have to configure:
 
 # The Path to the krb5.conf file
-# Can be absolute or relative to the Elasticsearch config directory
+# Can be absolute or relative to the OpenSearch config directory
 #opendistro_security.kerberos.krb5_filepath: '/etc/krb5.conf'
             
 # The Path to the keytab where the acceptor_principal credentials are stored.           
-# Must be relative to the Elasticsearch config directory
+# Must be relative to the OpenSearch config directory
 #opendistro_security.kerberos.acceptor_keytab_filepath: 'eskeytab.tab'
 
 # Acceptor (Server) Principal name, must be present in acceptor_keytab_path file
@@ -196,7 +196,7 @@ opendistro_security.audit.type: internal_elasticsearch
 # This specifies the implementation of com.amazon.opendistroforelasticsearch.security.transport.InterClusterRequestEvaluator
 # that is used to determine inter-cluster request.
 # Instances of com.amazon.opendistroforelasticsearch.security.transport.InterClusterRequestEvaluator must implement a single argument
-# constructor that takes an org.elasticsearch.common.settings.Settings
+# constructor that takes an org.opensearch.common.settings.Settings
 #opendistro_security.cert.intercluster_request_evaluator_class: com.amazon.opendistroforelasticsearch.security.transport.DefaultInterClusterRequestEvaluator
 
 # By default, normal users can restore snapshots if they have the priviliges 'cluster:admin/snapshot/restore', 

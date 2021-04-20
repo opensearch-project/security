@@ -27,9 +27,9 @@ import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchSecurityException;
-import org.elasticsearch.SpecialPermission;
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.SpecialPermission;
+import org.opensearch.common.settings.Settings;
 import org.ldaptive.BindRequest;
 import org.ldaptive.Connection;
 import org.ldaptive.ConnectionFactory;
@@ -84,7 +84,7 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
     }
 
     @Override
-    public User authenticate(final AuthCredentials credentials) throws ElasticsearchSecurityException {
+    public User authenticate(final AuthCredentials credentials) throws OpenSearchSecurityException {
         final SecurityManager sm = System.getSecurityManager();
 
         if (sm != null) {
@@ -99,8 +99,8 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
                 }
             });
         } catch (PrivilegedActionException e) {
-            if (e.getException() instanceof ElasticsearchSecurityException) {
-                throw (ElasticsearchSecurityException) e.getException();
+            if (e.getException() instanceof OpenSearchSecurityException) {
+                throw (OpenSearchSecurityException) e.getException();
             } else if (e.getException() instanceof RuntimeException) {
                 throw (RuntimeException) e.getException();
             } else {
@@ -110,7 +110,7 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
     }
 
 
-    private User authenticate0(final AuthCredentials credentials) throws ElasticsearchSecurityException {
+    private User authenticate0(final AuthCredentials credentials) throws OpenSearchSecurityException {
 
         Connection ldapConnection = null;
         final String user = credentials.getUsername();
@@ -133,7 +133,7 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
                 password = settings.get(ConfigConstants.LDAP_FAKE_LOGIN_PASSWORD, "fakeLoginPwd123")
                         .getBytes(StandardCharsets.UTF_8);
             } else if (entry == null) {
-                throw new ElasticsearchSecurityException("No user " + user + " found");
+                throw new OpenSearchSecurityException("No user " + user + " found");
             }
 
             final String dn = entry.getDn();
@@ -169,7 +169,7 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
             if (log.isDebugEnabled()) {
                 log.debug("Unable to authenticate user due to ", e);
             }
-            throw new ElasticsearchSecurityException(e.toString(), e);
+            throw new OpenSearchSecurityException(e.toString(), e);
         } finally {
             Arrays.fill(password, (byte) '\0');
             password = null;

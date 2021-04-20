@@ -30,7 +30,7 @@
 
 package com.amazon.opendistroforelasticsearch.security.test;
 
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.common.settings.Settings;
 
 @FunctionalInterface
 public interface NodeSettingsSupplier {

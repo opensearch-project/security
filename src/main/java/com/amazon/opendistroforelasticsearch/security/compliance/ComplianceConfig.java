@@ -49,8 +49,8 @@ import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.common.Strings;
+import org.opensearch.common.settings.Settings;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
@@ -79,7 +79,7 @@ public class ComplianceConfig {
     private static final Logger log = LogManager.getLogger(ComplianceConfig.class);
     public static final ComplianceConfig DEFAULT = ComplianceConfig.from(Settings.EMPTY);
     private static final int CACHE_SIZE = 1000;
-    private static final String INTERNAL_ELASTICSEARCH = "internal_elasticsearch";
+    private static final String INTERNAL_OPENSEARCH = "internal_opensearch";
     public static Set<String> FIELDS = DefaultObjectMapper.getFields(ComplianceConfig.class);
 
     private final boolean logExternalConfig;
@@ -148,7 +148,7 @@ public class ComplianceConfig {
 
         DateTimeFormatter auditLogPattern = null;
         String auditLogIndex = null;
-        if (INTERNAL_ELASTICSEARCH.equalsIgnoreCase(destinationType)) {
+        if (INTERNAL_OPENSEARCH.equalsIgnoreCase(destinationType)) {
             try {
                 auditLogPattern = DateTimeFormat.forPattern(destinationIndex); //throws IllegalArgumentException if no pattern
             } catch (IllegalArgumentException e) {
@@ -197,7 +197,7 @@ public class ComplianceConfig {
                 ignoredComplianceUsersForWrite,
                 settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX),
                 settings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_TYPE_DEFAULT, null),
-                settings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ES_INDEX, "'security-auditlog-'YYYY.MM.dd")
+                settings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_OPENSEARCH_INDEX, "'security-auditlog-'YYYY.MM.dd")
         );
     }
 
@@ -249,7 +249,7 @@ public class ComplianceConfig {
     }
 
     /**
-     * Create compliance configuration from Settings defined in elasticsearch.yml
+     * Create compliance configuration from Settings defined in opensearch.yml
      * @param settings settings
      * @return compliance configuration
      */
@@ -298,7 +298,7 @@ public class ComplianceConfig {
     }
 
     /**
-     * Checks if config defined in elasticsearch config directory must be logged
+     * Checks if config defined in OpenSearch config directory must be logged
      * @return true/false
      */
     @JsonProperty("external_config")

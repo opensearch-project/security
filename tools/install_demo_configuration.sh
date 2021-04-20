@@ -31,7 +31,7 @@ function show_help() {
     echo "  -y confirm all installation dialogues automatically"
     echo "  -i initialize Security plugin with default configuration (default is to ask if -y is not given)"
     echo "  -c enable cluster mode by binding to all network interfaces (default is to ask if -y is not given)"
-    echo "  -s skip updates if config is already applied to elasticsearch.yml"
+    echo "  -s skip updates if config is already applied to opensearch.yml"
 }
 
 while getopts "h?yics" opt; do
@@ -104,20 +104,20 @@ if [ -d "$BASE_DIR" ]; then
 else
     echo "DEBUG: basedir does not exist"
 fi
-ES_CONF_FILE="$BASE_DIR/config/elasticsearch.yml"
-ES_BIN_DIR="$BASE_DIR/bin"
-ES_PLUGINS_DIR="$BASE_DIR/plugins"
-ES_MODULES_DIR="$BASE_DIR/modules"
-ES_LIB_PATH="$BASE_DIR/lib"
+OPENSEARCH_CONF_FILE="$BASE_DIR/config/opensearch.yml"
+OPENSEARCH_BIN_DIR="$BASE_DIR/bin"
+OPENSEARCH_PLUGINS_DIR="$BASE_DIR/plugins"
+OPENSEARCH_MODULES_DIR="$BASE_DIR/modules"
+OPENSEARCH_LIB_PATH="$BASE_DIR/lib"
 SUDO_CMD=""
-ES_INSTALL_TYPE=".tar.gz"
+OPENSEARCH_INSTALL_TYPE=".tar.gz"
 
 #Check if its a rpm/deb install
-if [ "/usr/share/elasticsearch" -ef "$BASE_DIR" ]; then
-    ES_CONF_FILE="/usr/share/elasticsearch/config/elasticsearch.yml"
+if [ "/usr/share/opensearch" -ef "$BASE_DIR" ]; then
+    OPENSEARCH_CONF_FILE="/usr/share/opensearch/config/opensearch.yml"
 
-    if [ ! -f "$ES_CONF_FILE" ]; then
-        ES_CONF_FILE="/etc/elasticsearch/elasticsearch.yml"
+    if [ ! -f "$OPENSEARCH_CONF_FILE" ]; then
+        OPENSEARCH_CONF_FILE="/etc/opensearch/opensearch.yml"
     fi
 
     if [ -x "$(command -v sudo)" ]; then
@@ -125,7 +125,7 @@ if [ "/usr/share/elasticsearch" -ef "$BASE_DIR" ]; then
         echo "This script maybe require your root password for 'sudo' privileges"
     fi
 
-    ES_INSTALL_TYPE="rpm/deb"
+    OPENSEARCH_INSTALL_TYPE="rpm/deb"
 fi
 
 if [ $SUDO_CMD ]; then
@@ -135,59 +135,59 @@ if [ $SUDO_CMD ]; then
     fi
 fi
 
-if $SUDO_CMD test -f "$ES_CONF_FILE"; then
+if $SUDO_CMD test -f "$OPENSEARCH_CONF_FILE"; then
     :
 else
-    echo "Unable to determine Elasticsearch config directory. Quit."
+    echo "Unable to determine OpenSearch config directory. Quit."
     exit -1
 fi
 
-if [ ! -d "$ES_BIN_DIR" ]; then
-	echo "Unable to determine Elasticsearch bin directory. Quit."
+if [ ! -d "$OPENSEARCH_BIN_DIR" ]; then
+	echo "Unable to determine OpenSearch bin directory. Quit."
 	exit -1
 fi
 
-if [ ! -d "$ES_PLUGINS_DIR" ]; then
-	echo "Unable to determine Elasticsearch plugins directory. Quit."
+if [ ! -d "$OPENSEARCH_PLUGINS_DIR" ]; then
+	echo "Unable to determine OpenSearch plugins directory. Quit."
 	exit -1
 fi
 
-if [ ! -d "$ES_MODULES_DIR" ]; then
-	echo "Unable to determine Elasticsearch modules directory. Quit."
+if [ ! -d "$OPENSEARCH_MODULES_DIR" ]; then
+	echo "Unable to determine OpenSearch modules directory. Quit."
 	#exit -1
 fi
 
-if [ ! -d "$ES_LIB_PATH" ]; then
-	echo "Unable to determine Elasticsearch lib directory. Quit."
+if [ ! -d "$OPENSEARCH_LIB_PATH" ]; then
+	echo "Unable to determine OpenSearch lib directory. Quit."
 	exit -1
 fi
 
-ES_CONF_DIR=$(dirname "${ES_CONF_FILE}")
-ES_CONF_DIR=`cd "$ES_CONF_DIR" ; pwd`
+OPENSEARCH_CONF_DIR=$(dirname "${OPENSEARCH_CONF_FILE}")
+OPENSEARCH_CONF_DIR=`cd "$OPENSEARCH_CONF_DIR" ; pwd`
 
-if [ ! -d "$ES_PLUGINS_DIR/opendistro_security" ]; then
+if [ ! -d "$OPENSEARCH_PLUGINS_DIR/opendistro_security" ]; then
   echo "Open Distro Security plugin not installed. Quit."
   exit -1
 fi
 
-ES_VERSION=("$ES_LIB_PATH/elasticsearch-*.jar")
-ES_VERSION=$(echo $ES_VERSION | sed 's/.*elasticsearch-\(.*\)\.jar/\1/')
+OPENSEARCH_VERSION=("$OPENSEARCH_LIB_PATH/opensearch-*.jar")
+OPENSEARCH_VERSION=$(echo $OPENSEARCH_VERSION | sed 's/.*opensearch-\(.*\)\.jar/\1/')
 
-SECURITY_VERSION=("$ES_PLUGINS_DIR/opendistro_security/opendistro_security-*.jar")
+SECURITY_VERSION=("$OPENSEARCH_PLUGINS_DIR/opendistro_security/opendistro_security-*.jar")
 SECURITY_VERSION=$(echo $SECURITY_VERSION | sed 's/.*opendistro_security-\(.*\)\.jar/\1/')
 
 OS=$(sb_release -ds 2>/dev/null || cat /etc/*release 2>/dev/null | head -n1 || uname -om)
-echo "Elasticsearch install type: $ES_INSTALL_TYPE on $OS"
-echo "Elasticsearch config dir: $ES_CONF_DIR"
-echo "Elasticsearch config file: $ES_CONF_FILE"
-echo "Elasticsearch bin dir: $ES_BIN_DIR"
-echo "Elasticsearch plugins dir: $ES_PLUGINS_DIR"
-echo "Elasticsearch lib dir: $ES_LIB_PATH"
-echo "Detected Elasticsearch Version: $ES_VERSION"
+echo "OpenSearch install type: $OPENSEARCH_INSTALL_TYPE on $OS"
+echo "OpenSearch config dir: $OPENSEARCH_CONF_DIR"
+echo "OpenSearch config file: $OPENSEARCH_CONF_FILE"
+echo "OpenSearch bin dir: $OPENSEARCH_BIN_DIR"
+echo "OpenSearch plugins dir: $OPENSEARCH_PLUGINS_DIR"
+echo "OpenSearch lib dir: $OPENSEARCH_LIB_PATH"
+echo "Detected OpenSearch Version: $OPENSEARCH_VERSION"
 echo "Detected Open Distro Security Version: $SECURITY_VERSION"
 
-if $SUDO_CMD grep --quiet -i opendistro_security "$ES_CONF_FILE"; then
-  echo "$ES_CONF_FILE seems to be already configured for Security. Quit."
+if $SUDO_CMD grep --quiet -i opendistro_security "$OPENSEARCH_CONF_FILE"; then
+  echo "$OPENSEARCH_CONF_FILE seems to be already configured for Security. Quit."
   exit $skip_updates
 fi
 
@@ -344,75 +344,75 @@ EOM
 
 set -e
 
-echo "$ADMIN_CERT" | $SUDO_CMD tee "$ES_CONF_DIR/kirk.pem" > /dev/null
-echo "$NODE_CERT" | $SUDO_CMD tee "$ES_CONF_DIR/esnode.pem" > /dev/null 
-echo "$ROOT_CA" | $SUDO_CMD tee "$ES_CONF_DIR/root-ca.pem" > /dev/null
-echo "$NODE_KEY" | $SUDO_CMD tee "$ES_CONF_DIR/esnode-key.pem" > /dev/null
-echo "$ADMIN_CERT_KEY" | $SUDO_CMD tee "$ES_CONF_DIR/kirk-key.pem" > /dev/null
+echo "$ADMIN_CERT" | $SUDO_CMD tee "$OPENSEARCH_CONF_DIR/kirk.pem" > /dev/null
+echo "$NODE_CERT" | $SUDO_CMD tee "$OPENSEARCH_CONF_DIR/esnode.pem" > /dev/null
+echo "$ROOT_CA" | $SUDO_CMD tee "$OPENSEARCH_CONF_DIR/root-ca.pem" > /dev/null
+echo "$NODE_KEY" | $SUDO_CMD tee "$OPENSEARCH_CONF_DIR/esnode-key.pem" > /dev/null
+echo "$ADMIN_CERT_KEY" | $SUDO_CMD tee "$OPENSEARCH_CONF_DIR/kirk-key.pem" > /dev/null
 
-echo "" | $SUDO_CMD tee -a  "$ES_CONF_FILE"
-echo "######## Start OpenDistro for Elasticsearch Security Demo Configuration ########" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null 
-echo "# WARNING: revise all the lines below before you go into production" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null 
-echo "opendistro_security.ssl.transport.pemcert_filepath: esnode.pem" | $SUDO_CMD tee -a  "$ES_CONF_FILE" > /dev/null
-echo "opendistro_security.ssl.transport.pemkey_filepath: esnode-key.pem" | $SUDO_CMD tee -a  "$ES_CONF_FILE" > /dev/null
-echo "opendistro_security.ssl.transport.pemtrustedcas_filepath: root-ca.pem" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
-echo "opendistro_security.ssl.transport.enforce_hostname_verification: false" | $SUDO_CMD tee -a  "$ES_CONF_FILE" > /dev/null
-echo "opendistro_security.ssl.http.enabled: true" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
-echo "opendistro_security.ssl.http.pemcert_filepath: esnode.pem" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
-echo "opendistro_security.ssl.http.pemkey_filepath: esnode-key.pem" | $SUDO_CMD tee -a  "$ES_CONF_FILE" > /dev/null
-echo "opendistro_security.ssl.http.pemtrustedcas_filepath: root-ca.pem" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
-echo "opendistro_security.allow_unsafe_democertificates: true" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
+echo "" | $SUDO_CMD tee -a  "$OPENSEARCH_CONF_FILE"
+echo "######## Start OpenDistro for Elasticsearch Security Demo Configuration ########" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "# WARNING: revise all the lines below before you go into production" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "opendistro_security.ssl.transport.pemcert_filepath: esnode.pem" | $SUDO_CMD tee -a  "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "opendistro_security.ssl.transport.pemkey_filepath: esnode-key.pem" | $SUDO_CMD tee -a  "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "opendistro_security.ssl.transport.pemtrustedcas_filepath: root-ca.pem" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "opendistro_security.ssl.transport.enforce_hostname_verification: false" | $SUDO_CMD tee -a  "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "opendistro_security.ssl.http.enabled: true" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "opendistro_security.ssl.http.pemcert_filepath: esnode.pem" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "opendistro_security.ssl.http.pemkey_filepath: esnode-key.pem" | $SUDO_CMD tee -a  "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "opendistro_security.ssl.http.pemtrustedcas_filepath: root-ca.pem" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "opendistro_security.allow_unsafe_democertificates: true" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 if [ "$initsecurity" == 1 ]; then
-    echo "opendistro_security.allow_default_init_securityindex: true" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
+    echo "opendistro_security.allow_default_init_securityindex: true" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 fi
-echo "opendistro_security.authcz.admin_dn:" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
-echo "  - CN=kirk,OU=client,O=client,L=test, C=de" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null 
-echo "" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null 
-echo "opendistro_security.audit.type: internal_elasticsearch" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
-echo "opendistro_security.enable_snapshot_restore_privilege: true" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
-echo "opendistro_security.check_snapshot_restore_write_privileges: true" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
-echo 'opendistro_security.restapi.roles_enabled: ["all_access", "security_rest_api_access"]' | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
-echo 'opendistro_security.system_indices.enabled: true' | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
-echo 'opendistro_security.system_indices.indices: [".opendistro-alerting-config", ".opendistro-alerting-alert*", ".opendistro-anomaly-results*", ".opendistro-anomaly-detector*", ".opendistro-anomaly-checkpoints", ".opendistro-anomaly-detection-state", ".opendistro-reports-*", ".opendistro-notifications-*", ".opendistro-notebooks", ".opendistro-asynchronous-search-response*"]' | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
+echo "opendistro_security.authcz.admin_dn:" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "  - CN=kirk,OU=client,O=client,L=test, C=de" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "opendistro_security.audit.type: internal_opensearch" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "opendistro_security.enable_snapshot_restore_privilege: true" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "opendistro_security.check_snapshot_restore_write_privileges: true" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+echo 'opendistro_security.restapi.roles_enabled: ["all_access", "security_rest_api_access"]' | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+echo 'opendistro_security.system_indices.enabled: true' | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+echo 'opendistro_security.system_indices.indices: [".opendistro-alerting-config", ".opendistro-alerting-alert*", ".opendistro-anomaly-results*", ".opendistro-anomaly-detector*", ".opendistro-anomaly-checkpoints", ".opendistro-anomaly-detection-state", ".opendistro-reports-*", ".opendistro-notifications-*", ".opendistro-notebooks", ".opendistro-asynchronous-search-response*"]' | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 
 #network.host
-if $SUDO_CMD grep --quiet -i "^network.host" "$ES_CONF_FILE"; then
+if $SUDO_CMD grep --quiet -i "^network.host" "$OPENSEARCH_CONF_FILE"; then
 	: #already present
 else
 	if [ "$cluster_mode" == 1 ]; then
-        echo "network.host: 0.0.0.0" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
-        echo "node.name: smoketestnode" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
-        echo "cluster.initial_master_nodes: smoketestnode" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
+        echo "network.host: 0.0.0.0" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+        echo "node.name: smoketestnode" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+        echo "cluster.initial_master_nodes: smoketestnode" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
     fi
 fi
 
 #discovery.zen.minimum_master_nodes
-#if $SUDO_CMD grep --quiet -i "^discovery.zen.minimum_master_nodes" "$ES_CONF_FILE"; then
+#if $SUDO_CMD grep --quiet -i "^discovery.zen.minimum_master_nodes" "$OPENSEARCH_CONF_FILE"; then
 #	: #already present
 #else
-#    echo "discovery.zen.minimum_master_nodes: 1" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
+#    echo "discovery.zen.minimum_master_nodes: 1" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 #fi
 
 #node.max_local_storage_nodes
-if $SUDO_CMD grep --quiet -i "^node.max_local_storage_nodes" "$ES_CONF_FILE"; then
+if $SUDO_CMD grep --quiet -i "^node.max_local_storage_nodes" "$OPENSEARCH_CONF_FILE"; then
 	: #already present
 else
-    echo 'node.max_local_storage_nodes: 3' | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null
+    echo 'node.max_local_storage_nodes: 3' | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 fi
 
 
 
-echo "######## End OpenDistro for Elasticsearch Security Demo Configuration ########" | $SUDO_CMD tee -a "$ES_CONF_FILE" > /dev/null 
+echo "######## End OpenDistro for Elasticsearch Security Demo Configuration ########" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 
-$SUDO_CMD chmod +x "$ES_PLUGINS_DIR/opendistro_security/tools/securityadmin.sh"
+$SUDO_CMD chmod +x "$OPENSEARCH_PLUGINS_DIR/opendistro_security/tools/securityadmin.sh"
 
-ES_PLUGINS_DIR=`cd "$ES_PLUGINS_DIR" ; pwd`
+OPENSEARCH_PLUGINS_DIR=`cd "$OPENSEARCH_PLUGINS_DIR" ; pwd`
 
 echo "### Success"
 echo "### Execute this script now on all your nodes and then start all nodes"
 #Generate securityadmin_demo.sh
 echo "#!/bin/bash" | $SUDO_CMD tee securityadmin_demo.sh > /dev/null 
-echo $SUDO_CMD \""$ES_PLUGINS_DIR/opendistro_security/tools/securityadmin.sh"\" -cd \""$ES_PLUGINS_DIR/opendistro_security/securityconfig"\" -icl -key \""$ES_CONF_DIR/kirk-key.pem"\" -cert \""$ES_CONF_DIR/kirk.pem"\" -cacert \""$ES_CONF_DIR/root-ca.pem"\" -nhnv | $SUDO_CMD tee -a securityadmin_demo.sh > /dev/null
+echo $SUDO_CMD \""$OPENSEARCH_PLUGINS_DIR/opendistro_security/tools/securityadmin.sh"\" -cd \""$OPENSEARCH_PLUGINS_DIR/opendistro_security/securityconfig"\" -icl -key \""$OPENSEARCH_CONF_DIR/kirk-key.pem"\" -cert \""$OPENSEARCH_CONF_DIR/kirk.pem"\" -cacert \""$OPENSEARCH_CONF_DIR/root-ca.pem"\" -nhnv | $SUDO_CMD tee -a securityadmin_demo.sh > /dev/null
 $SUDO_CMD chmod +x securityadmin_demo.sh
 
 if [ "$initsecurity" == 0 ]; then

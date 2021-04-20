@@ -1,3 +1,33 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The OpenSearch Contributors require contributions made to
+ * this file be licensed under the Apache-2.0 license or a
+ * compatible open source license.
+ *
+ * Modifications Copyright OpenSearch Contributors. See
+ * GitHub history for details.
+ */
+
+/*
+ * Licensed to Elasticsearch under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 // Uses Gradle to build RPMs since that's what we use for the other plugins. When all you have is a hammer...
 plugins {
    id "nebula.ospackage" version "5.3.0"
@@ -7,14 +37,14 @@ plugins {
 buildDir = 'gradle-build'
 
 ext {
-    opendistroVersion = '1.13.1'
+    opensearchVersion = '1.15.0'
     isSnapshot = "true" == System.getProperty("build.snapshot", "true")
 }
 
-group = "com.amazon.opendistroforelasticsearch"
-// Increment the final digit when there's a new plugin versions for the same opendistro version
-// Reset the final digit to 0 when upgrading to a new opendistro version
-version = "${opendistroVersion}.0" + (isSnapshot ? "-SNAPSHOT" : "")
+group = "org.opensearch"
+// Increment the final digit when there's a new plugin versions for the same opensearch version
+// Reset the final digit to 0 when upgrading to a new opensearch version
+version = "${opensearchVersion}.0" + (isSnapshot ? "-SNAPSHOT" : "")
 
 
 if (!project.hasProperty("archivePath")) {
@@ -29,16 +59,16 @@ ospackage {
     release = isSnapshot ? "0.1" : '1'
     version = "${project.version}"
 
-    into '/usr/share/elasticsearch/plugins'
+    into '/usr/share/opensearch/plugins'
     from(zipTree(project.file(archivePath).absolutePath)) {
         into "opendistro_security"
-        permissionGroup 'elasticsearch'
+        permissionGroup 'opensearch'
     }
 
     user 'root'
     permissionGroup 'root'
 
-    requires('elasticsearch-oss', "7.10.2", EQUAL)
+    requires('opensearch-oss', "7.10.3-SNAPSHOT", EQUAL)
     packager = 'Amazon'
     vendor = 'Amazon'
     os = 'LINUX'
@@ -53,7 +83,7 @@ ospackage {
      '''.stripIndent().replace('\n', ' ').trim()
 
     //TODO: Would be better if the install_demo_configuration.sh script is marked executable in the upstream plugin instead of running bash manually here
-    postInstall "exec /bin/bash /usr/share/elasticsearch/plugins/opendistro_security/tools/install_demo_configuration.sh -y -i -s"
+    postInstall "exec /bin/bash /usr/share/opensearch/plugins/opendistro_security/tools/install_demo_configuration.sh -y -i -s"
 }
 
 buildRpm {

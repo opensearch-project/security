@@ -18,9 +18,9 @@ package com.amazon.opendistroforelasticsearch.security.dlic.rest.validation;
 import java.util.List;
 
 import com.amazon.opendistroforelasticsearch.security.configuration.Salt;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.rest.RestRequest;
+import org.opensearch.common.bytes.BytesReference;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.rest.RestRequest;
 
 import com.amazon.opendistroforelasticsearch.security.configuration.MaskedField;
 import com.jayway.jsonpath.JsonPath;
@@ -30,8 +30,8 @@ public class RolesValidator extends AbstractConfigurationValidator {
 
     private static final Salt SALT = new Salt(new byte[] {1,2,3,4,5,1,2,3,4,5,1,2,3,4,5,6});
 
-	public RolesValidator(final RestRequest request, boolean isSuperAdmin, final BytesReference ref, final Settings esSettings, Object... param) {
-		super(request, ref, esSettings, param);
+	public RolesValidator(final RestRequest request, boolean isSuperAdmin, final BytesReference ref, final Settings opensearchSettings, Object... param) {
+		super(request, ref, opensearchSettings, param);
 		this.payloadMandatory = true;
         allowedKeys.put("cluster_permissions", DataType.ARRAY);
         allowedKeys.put("tenant_permissions", DataType.ARRAY);

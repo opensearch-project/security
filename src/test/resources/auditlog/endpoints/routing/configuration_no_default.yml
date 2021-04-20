@@ -2,9 +2,9 @@ opendistro_security:
   audit:
     endpoints:
       endpoint1:
-        type: internal_elasticsearch
+        type: internal_opensearch
       endpoint2:
-        type: external_elasticsearch
+        type: external_opensearch
       endpoint3:
         type: debug
     routes:

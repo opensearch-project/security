@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Objects;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.config.ThreadPoolConfig;
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.common.settings.Settings;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -28,8 +28,8 @@ import com.amazon.opendistroforelasticsearch.security.auditlog.helper.MockAuditM
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
 import com.amazon.opendistroforelasticsearch.security.auditlog.sink.AuditLogSink;
 import com.amazon.opendistroforelasticsearch.security.auditlog.sink.DebugSink;
-import com.amazon.opendistroforelasticsearch.security.auditlog.sink.ExternalESSink;
-import com.amazon.opendistroforelasticsearch.security.auditlog.sink.InternalESSink;
+import com.amazon.opendistroforelasticsearch.security.auditlog.sink.ExternalOpenSearchSink;
+import com.amazon.opendistroforelasticsearch.security.auditlog.sink.InternalOpenSearchSink;
 import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
 
 public class RoutingConfigurationTest extends AbstractAuditlogiUnitTest{
@@ -40,18 +40,18 @@ public class RoutingConfigurationTest extends AbstractAuditlogiUnitTest{
 		AuditMessageRouter router = createMessageRouterComplianceEnabled(settings);
 		// default
 		Assert.assertEquals("default", router.defaultSink.getName());
-		Assert.assertEquals(ExternalESSink.class, router.defaultSink.getClass());
+		Assert.assertEquals(ExternalOpenSearchSink.class, router.defaultSink.getClass());
 		// test category sinks
 		List<AuditLogSink> sinks = router.categorySinks.get(AuditCategory.MISSING_PRIVILEGES);
 		Assert.assertNotNull(sinks);
 		// 3, since we include default as well
 		Assert.assertEquals(3, sinks.size());
 		Assert.assertEquals("endpoint1", sinks.get(0).getName());
-		Assert.assertEquals(InternalESSink.class, sinks.get(0).getClass());
+		Assert.assertEquals(InternalOpenSearchSink.class, sinks.get(0).getClass());
 		Assert.assertEquals("endpoint2", sinks.get(1).getName());
-		Assert.assertEquals(ExternalESSink.class, sinks.get(1).getClass());
+		Assert.assertEquals(ExternalOpenSearchSink.class, sinks.get(1).getClass());
 		Assert.assertEquals("default", sinks.get(2).getName());
-		Assert.assertEquals(ExternalESSink.class, sinks.get(2).getClass());
+		Assert.assertEquals(ExternalOpenSearchSink.class, sinks.get(2).getClass());
 		sinks = router.categorySinks.get(AuditCategory.COMPLIANCE_DOC_READ);
 		// 1, since we do not include default
 		Assert.assertEquals(1, sinks.size());
@@ -76,20 +76,20 @@ public class RoutingConfigurationTest extends AbstractAuditlogiUnitTest{
 		Settings settings = Settings.builder().loadFromPath(FileHelper.getAbsoluteFilePathFromClassPath("auditlog/endpoints/routing/configuration_wrong_endpoint_names.yml")).build();
 		AuditMessageRouter router = createMessageRouterComplianceEnabled(settings);
 		// fallback to debug sink if no default is given
-		Assert.assertEquals(InternalESSink.class, router.defaultSink.getClass());
+		Assert.assertEquals(InternalOpenSearchSink.class, router.defaultSink.getClass());
 		// missing configuration for endpoint2 / External ES. Fallback to
 		// localhost
 		List<AuditLogSink> sinks = router.categorySinks.get(AuditCategory.MISSING_PRIVILEGES);
 		// 2 valid endpoints
 		Assert.assertEquals(2, sinks.size());
 		Assert.assertEquals("endpoint1", sinks.get(0).getName());
-		Assert.assertEquals(InternalESSink.class, sinks.get(0).getClass());
+		Assert.assertEquals(InternalOpenSearchSink.class, sinks.get(0).getClass());
 		Assert.assertEquals("endpoint3", sinks.get(1).getName());
 		Assert.assertEquals(DebugSink.class, sinks.get(1).getClass());
 		sinks = router.categorySinks.get(AuditCategory.COMPLIANCE_DOC_WRITE);
 		Assert.assertEquals(1, sinks.size());
 		Assert.assertEquals("default", sinks.get(0).getName());
-		Assert.assertEquals(InternalESSink.class, sinks.get(0).getClass());
+		Assert.assertEquals(InternalOpenSearchSink.class, sinks.get(0).getClass());
 		// no valid end points for category, must use default
 		Assert.assertNull(router.categorySinks.get(AuditCategory.COMPLIANCE_DOC_READ));
 	}
@@ -107,14 +107,14 @@ public class RoutingConfigurationTest extends AbstractAuditlogiUnitTest{
 		Assert.assertEquals("default", sinks.get(0).getName());
 		Assert.assertEquals(DebugSink.class, sinks.get(0).getClass());
 		Assert.assertEquals("endpoint1", sinks.get(1).getName());
-		Assert.assertEquals(InternalESSink.class, sinks.get(1).getClass());
+		Assert.assertEquals(InternalOpenSearchSink.class, sinks.get(1).getClass());
 		Assert.assertEquals("endpoint2", sinks.get(2).getName());
-		Assert.assertEquals(ExternalESSink.class, sinks.get(2).getClass());
+		Assert.assertEquals(ExternalOpenSearchSink.class, sinks.get(2).getClass());
 
 		sinks = router.categorySinks.get(AuditCategory.GRANTED_PRIVILEGES);
 		Assert.assertEquals(3, sinks.size());
 		Assert.assertEquals("endpoint1", sinks.get(0).getName());
-		Assert.assertEquals(InternalESSink.class, sinks.get(0).getClass());
+		Assert.assertEquals(InternalOpenSearchSink.class, sinks.get(0).getClass());
 		Assert.assertEquals("endpoint3", sinks.get(1).getName());
 		Assert.assertEquals(DebugSink.class, sinks.get(1).getClass());
 		Assert.assertEquals("default", sinks.get(2).getName());
@@ -123,7 +123,7 @@ public class RoutingConfigurationTest extends AbstractAuditlogiUnitTest{
 		sinks = router.categorySinks.get(AuditCategory.AUTHENTICATED);
 		Assert.assertEquals(1, sinks.size());
 		Assert.assertEquals("endpoint1", sinks.get(0).getName());
-		Assert.assertEquals(InternalESSink.class, sinks.get(0).getClass());
+		Assert.assertEquals(InternalOpenSearchSink.class, sinks.get(0).getClass());
 
 		// bad headers has no valid endpoint, so we use default
 		Assert.assertNull(router.categorySinks.get(AuditCategory.BAD_HEADERS));
@@ -144,7 +144,7 @@ public class RoutingConfigurationTest extends AbstractAuditlogiUnitTest{
 		// 2 valid endpoints in config, default falls back to debug
 		Assert.assertEquals(3, sinks.size());
 		Assert.assertEquals("endpoint2", sinks.get(0).getName());
-		Assert.assertEquals(ExternalESSink.class, sinks.get(0).getClass());
+		Assert.assertEquals(ExternalOpenSearchSink.class, sinks.get(0).getClass());
 		Assert.assertEquals("endpoint3", sinks.get(1).getName());
 		Assert.assertEquals(DebugSink.class, sinks.get(1).getClass());
 		Assert.assertEquals("default", sinks.get(2).getName());

@@ -15,14 +15,14 @@
 
 package com.amazon.opendistroforelasticsearch.security.dlic.rest.validation;
 
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.rest.RestRequest;
+import org.opensearch.common.bytes.BytesReference;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.rest.RestRequest;
 
 public class NodesDnValidator extends AbstractConfigurationValidator {
 
-    public NodesDnValidator(final RestRequest request, final BytesReference ref, final Settings esSettings, Object... param) {
-        super(request, ref, esSettings, param);
+    public NodesDnValidator(final RestRequest request, final BytesReference ref, final Settings opensearchSettings, Object... param) {
+        super(request, ref, opensearchSettings, param);
         this.payloadMandatory = true;
 
         allowedKeys.put("nodes_dn", DataType.ARRAY);

@@ -31,10 +31,10 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.amazon.opendistroforelasticsearch</groupId>
+    <groupId>org.opensearch</groupId>
     <artifactId>opendistro_security</artifactId>
     <packaging>jar</packaging>
-    <version>1.13.1.0</version>
+    <version>1.15.0.0</version>
     <name>Open Distro Security for Elasticsearch</name>
     <description>Open Distro For Elasticsearch Security</description>
     <url>https://github.com/opendistro-for-elasticsearch/security</url>
@@ -68,7 +68,7 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.compiler.release>8</maven.compiler.release>
 
-        <elasticsearch.version>7.10.2</elasticsearch.version>
+        <opensearch.version>7.10.3-SNAPSHOT</opensearch.version>
 
         <!-- deps -->
         <netty-native.version>2.0.25.Final</netty-native.version>
@@ -103,7 +103,7 @@
         <url>https://github.com/opendistro-for-elasticsearch/security</url>
         <connection>scm:git:git@github.com:opendistro-for-elasticsearch/security.git</connection>
         <developerConnection>scm:git:git@github.com:opendistro-for-elasticsearch/security.git</developerConnection>
-        <tag>1.13.1.0</tag>
+        <tag>1.15.0.0</tag>
     </scm>
 
     <issueManagement>
@@ -135,13 +135,13 @@
 
         <!-- Netty 4 transport -->
         <dependency>
-            <groupId>org.elasticsearch.plugin</groupId>
+            <groupId>org.opensearch.plugin</groupId>
             <artifactId>transport-netty4-client</artifactId>
-            <version>${elasticsearch.version}</version>
+            <version>${opensearch.version}</version>
             <exclusions>
                 <exclusion>
                     <artifactId>jna</artifactId>
-                    <groupId>org.elasticsearch</groupId>
+                    <groupId>org.opensearch</groupId>
                 </exclusion>
                 <exclusion>
                     <artifactId>jts</artifactId>
@@ -187,9 +187,9 @@
 
         <!-- provided scoped deps -->
         <dependency>
-            <groupId>org.elasticsearch</groupId>
-            <artifactId>elasticsearch</artifactId>
-            <version>${elasticsearch.version}</version>
+            <groupId>org.opensearch</groupId>
+            <artifactId>opensearch</artifactId>
+            <version>${opensearch.version}</version>
             <scope>provided</scope>
         </dependency>
 
@@ -253,9 +253,9 @@
         </dependency>
 
         <dependency>
-            <groupId>org.elasticsearch.client</groupId>
-            <artifactId>elasticsearch-rest-high-level-client</artifactId>
-            <version>${elasticsearch.version}</version>
+            <groupId>org.opensearch.client</groupId>
+            <artifactId>opensearch-rest-high-level-client</artifactId>
+            <version>${opensearch.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.apache.httpcomponents</groupId>
@@ -415,14 +415,14 @@
         </dependency>
 
         <dependency>
-            <groupId>org.elasticsearch.plugin</groupId>
+            <groupId>org.opensearch.plugin</groupId>
             <artifactId>reindex-client</artifactId>
-            <version>${elasticsearch.version}</version>
+            <version>${opensearch.version}</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>
-                    <groupId>org.elasticsearch</groupId>
-                    <artifactId>elasticsearch-ssl-config</artifactId>
+                    <groupId>org.opensearch</groupId>
+                    <artifactId>opensearch-ssl-config</artifactId>
                 </exclusion>
                 <exclusion>
                     <groupId>org.apache.httpcomponents</groupId>
@@ -445,37 +445,37 @@
         </dependency>
 
         <dependency>
-            <groupId>org.elasticsearch</groupId>
-            <artifactId>elasticsearch-ssl-config</artifactId>
-            <version>${elasticsearch.version}</version>
+            <groupId>org.opensearch</groupId>
+            <artifactId>opensearch-ssl-config</artifactId>
+            <version>${opensearch.version}</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
-            <groupId>org.elasticsearch.plugin</groupId>
+            <groupId>org.opensearch.plugin</groupId>
             <artifactId>percolator-client</artifactId>
-            <version>${elasticsearch.version}</version>
+            <version>${opensearch.version}</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
-            <groupId>org.elasticsearch.plugin</groupId>
+            <groupId>org.opensearch.plugin</groupId>
             <artifactId>lang-mustache-client</artifactId>
-            <version>${elasticsearch.version}</version>
+            <version>${opensearch.version}</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
-            <groupId>org.elasticsearch.plugin</groupId>
+            <groupId>org.opensearch.plugin</groupId>
             <artifactId>parent-join-client</artifactId>
-            <version>${elasticsearch.version}</version>
+            <version>${opensearch.version}</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
-            <groupId>org.elasticsearch.plugin</groupId>
+            <groupId>org.opensearch.plugin</groupId>
             <artifactId>aggs-matrix-stats-client</artifactId>
-            <version>${elasticsearch.version}</version>
+            <version>${opensearch.version}</version>
             <scope>test</scope>
         </dependency>
 
@@ -903,21 +903,21 @@
             </build>
             <dependencies>
                 <dependency>
-                    <groupId>org.elasticsearch.plugin</groupId>
+                    <groupId>org.opensearch.plugin</groupId>
                     <artifactId>lang-mustache-client</artifactId>
-                    <version>${elasticsearch.version}</version>
+                    <version>${opensearch.version}</version>
                 </dependency>
 
                 <dependency>
-                    <groupId>org.elasticsearch.plugin</groupId>
+                    <groupId>org.opensearch.plugin</groupId>
                     <artifactId>parent-join-client</artifactId>
-                    <version>${elasticsearch.version}</version>
+                    <version>${opensearch.version}</version>
                 </dependency>
 
                 <dependency>
-                    <groupId>org.elasticsearch.plugin</groupId>
+                    <groupId>org.opensearch.plugin</groupId>
                     <artifactId>aggs-matrix-stats-client</artifactId>
-                    <version>${elasticsearch.version}</version>
+                    <version>${opensearch.version}</version>
                 </dependency>
             </dependencies>
         </profile>

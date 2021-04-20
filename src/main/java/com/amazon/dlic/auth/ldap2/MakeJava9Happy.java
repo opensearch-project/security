@@ -19,7 +19,7 @@ import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 
-import org.elasticsearch.SpecialPermission;
+import org.opensearch.SpecialPermission;
 import org.ldaptive.ssl.ThreadLocalTLSSocketFactory;
 
 import io.netty.util.internal.PlatformDependent;

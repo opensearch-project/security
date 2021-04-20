@@ -19,11 +19,11 @@ package com.amazon.opendistroforelasticsearch.security.ssl.transport;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TransportInterceptor;
-import org.elasticsearch.transport.TransportRequest;
-import org.elasticsearch.transport.TransportRequestHandler;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.TransportInterceptor;
+import org.opensearch.transport.TransportRequest;
+import org.opensearch.transport.TransportRequestHandler;
 
 import com.amazon.opendistroforelasticsearch.security.ssl.SslExceptionHandler;
 

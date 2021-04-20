@@ -19,15 +19,15 @@ import java.util.Objects;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.engine.Engine.Delete;
-import org.elasticsearch.index.engine.Engine.DeleteResult;
-import org.elasticsearch.index.engine.Engine.Index;
-import org.elasticsearch.index.engine.Engine.IndexResult;
-import org.elasticsearch.index.get.GetResult;
-import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.ShardId;
+import org.opensearch.OpenSearchException;
+import org.opensearch.index.IndexService;
+import org.opensearch.index.engine.Engine.Delete;
+import org.opensearch.index.engine.Engine.DeleteResult;
+import org.opensearch.index.engine.Engine.Index;
+import org.opensearch.index.engine.Engine.IndexResult;
+import org.opensearch.index.get.GetResult;
+import org.opensearch.index.shard.IndexShard;
+import org.opensearch.index.shard.ShardId;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
 
@@ -45,7 +45,7 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
     @Override
     public void setIs(final IndexService is) {
         if(this.is != null) {
-            throw new ElasticsearchException("Index service already set");
+            throw new OpenSearchException("Index service already set");
         }
         this.is = is;
     }
@@ -70,7 +70,7 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
         final ComplianceConfig complianceConfig = auditlog.getComplianceConfig();
         if (isLoggingWriteEnabled(complianceConfig, shardId.getIndexName())) {
             Objects.requireNonNull(is);
-            if(result.getFailure() == null && result.isFound() && delete.origin() == org.elasticsearch.index.engine.Engine.Operation.Origin.PRIMARY) {
+            if(result.getFailure() == null && result.isFound() && delete.origin() == org.opensearch.index.engine.Engine.Operation.Origin.PRIMARY) {
                 auditlog.logDocumentDeleted(shardId, delete, result);
             }
         }
@@ -83,7 +83,7 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
 
             final IndexShard shard;
 
-            if (index.origin() != org.elasticsearch.index.engine.Engine.Operation.Origin.PRIMARY) {
+            if (index.origin() != org.opensearch.index.engine.Engine.Operation.Origin.PRIMARY) {
                 return index;
             }
 
@@ -138,7 +138,7 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
             threadContext.remove();
             Objects.requireNonNull(is);
 
-            if (result.getFailure() != null || index.origin() != org.elasticsearch.index.engine.Engine.Operation.Origin.PRIMARY) {
+            if (result.getFailure() != null || index.origin() != org.opensearch.index.engine.Engine.Operation.Origin.PRIMARY) {
                 return;
             }
 
@@ -162,7 +162,7 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
             auditlog.logDocumentWritten(shardId, previousContent, index, result);
         } else {
             //no diffs
-            if (result.getFailure() != null || index.origin() != org.elasticsearch.index.engine.Engine.Operation.Origin.PRIMARY) {
+            if (result.getFailure() != null || index.origin() != org.opensearch.index.engine.Engine.Operation.Origin.PRIMARY) {
                 return;
             }
 

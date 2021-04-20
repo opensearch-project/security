@@ -37,11 +37,11 @@ import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.ActionRequest;
-import org.elasticsearch.action.RealtimeRequest;
-import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.tasks.Task;
+import org.opensearch.action.ActionRequest;
+import org.opensearch.action.RealtimeRequest;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.tasks.Task;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
 import com.amazon.opendistroforelasticsearch.security.resolver.IndexResolverReplacer;

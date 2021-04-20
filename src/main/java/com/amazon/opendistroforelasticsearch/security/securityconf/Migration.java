@@ -44,8 +44,8 @@ import com.amazon.opendistroforelasticsearch.security.securityconf.impl.Security
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.WhitelistingSettings;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v6.*;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.*;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.collect.Tuple;
+import org.opensearch.common.Strings;
+import org.opensearch.common.collect.Tuple;
 
 
 

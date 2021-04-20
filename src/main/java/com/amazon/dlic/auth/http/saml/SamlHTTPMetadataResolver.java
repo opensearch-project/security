@@ -23,8 +23,8 @@ import java.security.PrivilegedExceptionAction;
 import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
-import org.elasticsearch.SpecialPermission;
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.SpecialPermission;
+import org.opensearch.common.settings.Settings;
 import org.opensaml.saml.metadata.resolver.impl.HTTPMetadataResolver;
 
 import com.amazon.dlic.util.SettingsBasedSSLConfigurator;
@@ -33,11 +33,11 @@ import net.shibboleth.utilities.java.support.resolver.ResolverException;
 
 public class SamlHTTPMetadataResolver extends HTTPMetadataResolver {
 
-    SamlHTTPMetadataResolver(String idpMetadataUrl, Settings esSettings, Path configPath) throws Exception {
-        super(createHttpClient(esSettings, configPath), idpMetadataUrl);
-        setMinRefreshDelay(esSettings.getAsLong("idp.min_refresh_delay", 60L * 1000L));
-        setMaxRefreshDelay(esSettings.getAsLong("idp.max_refresh_delay", 14400000L));
-        setRefreshDelayFactor(esSettings.getAsFloat("idp.refresh_delay_factor", 0.75f));
+    SamlHTTPMetadataResolver(String idpMetadataUrl, Settings opensearchSettings, Path configPath) throws Exception {
+        super(createHttpClient(opensearchSettings, configPath), idpMetadataUrl);
+        setMinRefreshDelay(opensearchSettings.getAsLong("idp.min_refresh_delay", 60L * 1000L));
+        setMaxRefreshDelay(opensearchSettings.getAsLong("idp.max_refresh_delay", 14400000L));
+        setRefreshDelayFactor(opensearchSettings.getAsFloat("idp.refresh_delay_factor", 0.75f));
     }
 
     @Override

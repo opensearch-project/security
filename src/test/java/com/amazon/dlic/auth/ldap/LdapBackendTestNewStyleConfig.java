@@ -20,8 +20,8 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.TreeSet;
 
-import org.elasticsearch.ElasticsearchSecurityException;
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.common.settings.Settings;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -72,7 +72,7 @@ public class LdapBackendTestNewStyleConfig {
         Assert.assertEquals("cn=Michael Jackson,ou=people,o=TEST", user.getName());
     }
 
-    @Test(expected = ElasticsearchSecurityException.class)
+    @Test(expected = OpenSearchSecurityException.class)
     public void testLdapAuthenticationFakeLogin() throws Exception {
 
         final Settings settings = Settings.builder()
@@ -83,7 +83,7 @@ public class LdapBackendTestNewStyleConfig {
                 .authenticate(new AuthCredentials("unknown", "unknown".getBytes(StandardCharsets.UTF_8)));
     }
 
-    @Test(expected = ElasticsearchSecurityException.class)
+    @Test(expected = OpenSearchSecurityException.class)
     public void testLdapInjection() throws Exception {
 
         final Settings settings = Settings.builder()
@@ -112,7 +112,7 @@ public class LdapBackendTestNewStyleConfig {
         Assert.assertEquals("cn=Michael Jackson,ou=people,o=TEST", user.getName());
     }
 
-    @Test(expected = ElasticsearchSecurityException.class)
+    @Test(expected = OpenSearchSecurityException.class)
     public void testLdapAuthenticationWrongBindDn() throws Exception {
 
         final Settings settings = Settings.builder()
@@ -125,7 +125,7 @@ public class LdapBackendTestNewStyleConfig {
                 .authenticate(new AuthCredentials("jacksonm", "secret".getBytes(StandardCharsets.UTF_8)));
     }
 
-    @Test(expected = ElasticsearchSecurityException.class)
+    @Test(expected = OpenSearchSecurityException.class)
     public void testLdapAuthenticationBindFail() throws Exception {
 
         final Settings settings = Settings.builder()
@@ -136,7 +136,7 @@ public class LdapBackendTestNewStyleConfig {
                 .authenticate(new AuthCredentials("jacksonm", "wrong".getBytes(StandardCharsets.UTF_8)));
     }
 
-    @Test(expected = ElasticsearchSecurityException.class)
+    @Test(expected = OpenSearchSecurityException.class)
     public void testLdapAuthenticationNoUser() throws Exception {
 
         final Settings settings = Settings.builder()
@@ -147,7 +147,7 @@ public class LdapBackendTestNewStyleConfig {
                 .authenticate(new AuthCredentials("UNKNOWN", "UNKNOWN".getBytes(StandardCharsets.UTF_8)));
     }
 
-    @Test(expected = ElasticsearchSecurityException.class)
+    @Test(expected = OpenSearchSecurityException.class)
     public void testLdapAuthenticationFail() throws Exception {
 
         final Settings settings = Settings.builder()
@@ -757,7 +757,7 @@ public class LdapBackendTestNewStyleConfig {
         Assert.assertEquals("cn=Elvis Presley,ou=people2,o=TEST", user.getName());
     }
 
-    @Test(expected = ElasticsearchSecurityException.class)
+    @Test(expected = OpenSearchSecurityException.class)
     public void testChainedLdapAuthenticationDuplicate() throws Exception {
 
         final Settings settings = Settings.builder()
@@ -769,7 +769,7 @@ public class LdapBackendTestNewStyleConfig {
         new LDAPAuthenticationBackend(settings, null)
                 .authenticate(new AuthCredentials("jacksonm", "secret".getBytes(StandardCharsets.UTF_8)));
 
-        // Fails with ElasticsearchSecurityException because two possible instances are
+        // Fails with OpenSearchSecurityException because two possible instances are
         // found
     }
 

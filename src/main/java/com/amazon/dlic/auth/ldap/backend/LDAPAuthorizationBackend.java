@@ -45,10 +45,10 @@ import javax.naming.ldap.LdapName;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchSecurityException;
-import org.elasticsearch.SpecialPermission;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.SpecialPermission;
+import org.opensearch.common.Strings;
+import org.opensearch.common.settings.Settings;
 import org.ldaptive.BindRequest;
 import org.ldaptive.Connection;
 import org.ldaptive.ConnectionConfig;
@@ -611,7 +611,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
 
                 if (deiProp == null || !Boolean.parseBoolean(deiProp)) {
                     log.warn("In order to disable host name verification for LDAP connections (verify_hostnames: true), "
-                            + "you also need to set set the system property "+COM_SUN_JNDI_LDAP_OBJECT_DISABLE_ENDPOINT_IDENTIFICATION+" to true when starting the JVM running ES. "
+                            + "you also need to set set the system property "+COM_SUN_JNDI_LDAP_OBJECT_DISABLE_ENDPOINT_IDENTIFICATION+" to true when starting the JVM running OpenSearch. "
                             + "This applies for all Java versions released since July 2018.");
                     // See:
                     // https://www.oracle.com/technetwork/java/javase/8u181-relnotes-4479407.html
@@ -659,7 +659,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
 
     @Override
     public void fillRoles(final User user, final AuthCredentials optionalAuthCreds)
-            throws ElasticsearchSecurityException {
+            throws OpenSearchSecurityException {
 
         if (user == null) {
             return;
@@ -732,7 +732,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                     entry = LdapHelper.lookup(connection, authenticatedUser);
 
                     if (entry == null) {
-                        throw new ElasticsearchSecurityException("No user '" + authenticatedUser + "' found");
+                        throw new OpenSearchSecurityException("No user '" + authenticatedUser + "' found");
                     }
 
                 } else {
@@ -747,7 +747,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                     }
 
                     if (entry == null || entry.getDn() == null) {
-                        throw new ElasticsearchSecurityException("No user " + authenticatedUser + " found");
+                        throw new OpenSearchSecurityException("No user " + authenticatedUser + " found");
                     }
                 }
 
@@ -944,7 +944,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
             if (isDebugEnabled) {
                 log.debug("Unable to fill user roles due to ", e);
             }
-            throw new ElasticsearchSecurityException(e.toString(), e);
+            throw new OpenSearchSecurityException(e.toString(), e);
         } finally {
             Utils.unbindAndCloseSilently(connection);
         }
@@ -954,7 +954,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
     protected Set<LdapName> resolveNestedRoles(final LdapName roleDn, final Connection ldapConnection,
             String userRoleName, int depth, final boolean rolesearchEnabled,
             Set<Map.Entry<String, Settings>> roleSearchBaseSettingsSet)
-            throws ElasticsearchSecurityException, LdapException {
+            throws OpenSearchSecurityException, LdapException {
 
         if (nestedRoleMatcher.test(roleDn.toString())) {
 

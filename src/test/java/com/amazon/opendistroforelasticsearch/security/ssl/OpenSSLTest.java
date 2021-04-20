@@ -22,14 +22,14 @@ import java.util.Random;
 import java.util.Set;
 
 import io.netty.util.internal.PlatformDependent;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
-import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.node.Node;
-import org.elasticsearch.node.PluginAwareNode;
-import org.elasticsearch.transport.Netty4Plugin;
+import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
+import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
+import org.opensearch.action.admin.cluster.node.info.NodesInfoRequest;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.unit.TimeValue;
+import org.opensearch.node.Node;
+import org.opensearch.node.PluginAwareNode;
+import org.opensearch.transport.Netty4Plugin;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Assume;
@@ -46,7 +46,7 @@ import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelpe
 import io.netty.handler.ssl.OpenSsl;
 
 public class OpenSSLTest extends SSLTest {
-    private static final String USE_NETTY_DEFAULT_ALLOCATOR_PROPERTY = "es.unsafe.use_netty_default_allocator";
+    private static final String USE_NETTY_DEFAULT_ALLOCATOR_PROPERTY = "opensearch.unsafe.use_netty_default_allocator";
     private static String USE_NETTY_DEFAULT_ALLOCATOR;
 
     @BeforeClass

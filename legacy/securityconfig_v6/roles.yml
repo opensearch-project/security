@@ -10,7 +10,7 @@
 #        - '<field>'
 #        - '<field>'
 
-# When a user make a request to Elasticsearch then the following roles will be evaluated to see if the user has
+# When a user make a request to OpenSearch then the following roles will be evaluated to see if the user has
 # permissions for the request. A request is always associated with an action and is executed against and index (or alias)
 # and a type. If a request is executed against all indices (or all types) then the asterix ('*') is needed.
 # Every role a user has will be examined if it allows the action against an index (or type). At least one role must match
@@ -29,7 +29,7 @@
 
 # Important: 
 # Index, alias or type names can not contain dots (.) in the <indexname or alias> or <type> expression.
-# Reason is that we currently parse the config file into a elasticsearch settings object which cannot cope with dots in keys.
+# Reason is that we currently parse the config file into a OpenSearch settings object which cannot cope with dots in keys.
 # Workaround: Just configure something like '?kibana' instead of '.kibana' or 'my?index' instead of 'my.index'
 # This limitation will likely removed with Open Distro Security 6
 

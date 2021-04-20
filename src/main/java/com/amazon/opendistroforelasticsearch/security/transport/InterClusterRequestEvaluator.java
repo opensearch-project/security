@@ -32,13 +32,13 @@ package com.amazon.opendistroforelasticsearch.security.transport;
 
 import java.security.cert.X509Certificate;
 
-import org.elasticsearch.transport.TransportRequest;
+import org.opensearch.transport.TransportRequest;
 
 /**
  * Evaluates a request to determine if it is
  * intercluster communication.  Implementations
  * should include a single arg constructor that
- * takes org.elasticsearch.common.settings.Settings
+ * takes org.opensearch.common.settings.Settings
  *
  */
 public interface InterClusterRequestEvaluator {

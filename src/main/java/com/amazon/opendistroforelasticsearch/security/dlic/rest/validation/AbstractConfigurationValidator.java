@@ -27,14 +27,14 @@ import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.rest.RestChannel;
-import org.elasticsearch.rest.RestRequest;
-import org.elasticsearch.rest.RestRequest.Method;
+import org.opensearch.common.bytes.BytesReference;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.xcontent.XContentBuilder;
+import org.opensearch.common.xcontent.XContentHelper;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.rest.RestChannel;
+import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.RestRequest.Method;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
@@ -87,7 +87,7 @@ public abstract class AbstractConfigurationValidator {
 
     protected final BytesReference content;
 
-    protected final Settings esSettings;
+    protected final Settings opensearchSettings;
 
     protected final RestRequest request;
 
@@ -95,10 +95,10 @@ public abstract class AbstractConfigurationValidator {
 
     private JsonNode contentAsNode;
 
-    public AbstractConfigurationValidator(final RestRequest request, final BytesReference ref, final Settings esSettings, Object... param) {
+    public AbstractConfigurationValidator(final RestRequest request, final BytesReference ref, final Settings opensearchSettings, Object... param) {
         this.content = ref;
         this.method = request.method();
-        this.esSettings = esSettings;
+        this.opensearchSettings = opensearchSettings;
         this.request = request;
         this.param = param;
     }
@@ -243,7 +243,7 @@ public abstract class AbstractConfigurationValidator {
                     break;
                 case INVALID_PASSWORD:
                     builder.field("status", "error");
-                    builder.field("reason", esSettings.get(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE,
+                    builder.field("reason", opensearchSettings.get(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE,
                             "Password does not match minimum criteria"));
                     break;
                 case WRONG_DATATYPE:

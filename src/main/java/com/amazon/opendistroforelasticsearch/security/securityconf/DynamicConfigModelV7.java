@@ -43,8 +43,8 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentType;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.xcontent.XContentType;
 
 import com.amazon.opendistroforelasticsearch.security.auth.AuthDomain;
 import com.amazon.opendistroforelasticsearch.security.auth.AuthFailureListener;
@@ -68,7 +68,7 @@ import com.google.common.collect.Multimaps;
 public class DynamicConfigModelV7 extends DynamicConfigModel {
     
     private final ConfigV7 config;
-    private final Settings esSettings;
+    private final Settings opensearchSettings;
     private final Path configPath;
     private SortedSet<AuthDomain> restAuthDomains;
     private Set<AuthorizationBackend> restAuthorizers;
@@ -82,10 +82,10 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
     private List<ClientBlockRegistry<InetAddress>> ipClientBlockRegistries;
     private Multimap<String, ClientBlockRegistry<String>> authBackendClientBlockRegistries;
     
-    public DynamicConfigModelV7(ConfigV7 config, Settings esSettings, Path configPath, InternalAuthenticationBackend iab) {
+    public DynamicConfigModelV7(ConfigV7 config, Settings opensearchSettings, Path configPath, InternalAuthenticationBackend iab) {
         super();
         this.config = config;
-        this.esSettings =  esSettings;
+        this.opensearchSettings =  opensearchSettings;
         this.configPath = configPath;
         this.iab = iab;
         buildAAA();
@@ -234,7 +234,7 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
                         authorizationBackend = newInstance(
                                 authzBackendClazz,"z",
                                 Settings.builder()
-                                .put(esSettings)
+                                .put(opensearchSettings)
                                 //.putProperties(ads.getAsStringMap(DotPath.of("authorization_backend.config")), DynamicConfiguration.checkKeyFunction()).build(), configPath);
                                 .put(Settings.builder().loadFromSource(ad.getValue().authorization_backend.configAsJson(), XContentType.JSON).build()).build()
                                 , configPath);
@@ -276,7 +276,7 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
                         authenticationBackend = newInstance(
                                 authBackendClazz,"c",
                                 Settings.builder()
-                                .put(esSettings)
+                                .put(opensearchSettings)
                                 //.putProperties(ads.getAsStringMap(DotPath.of("authentication_backend.config")), DynamicConfiguration.checkKeyFunction()).build()
                                 .put(Settings.builder().loadFromSource(ad.getValue().authentication_backend.configAsJson(), XContentType.JSON).build()).build()
                                 , configPath);
@@ -284,7 +284,7 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
 
                     String httpAuthenticatorType = ad.getValue().http_authenticator.type; //no default
                     HTTPAuthenticator httpAuthenticator = httpAuthenticatorType==null?null:  (HTTPAuthenticator) newInstance(httpAuthenticatorType,"h",
-                            Settings.builder().put(esSettings)
+                            Settings.builder().put(opensearchSettings)
                             //.putProperties(ads.getAsStringMap(DotPath.of("http_authenticator.config")), DynamicConfiguration.checkKeyFunction()).build(), 
                             .put(Settings.builder().loadFromSource(ad.getValue().http_authenticator.configAsJson(), XContentType.JSON).build()).build()
 
@@ -378,7 +378,7 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
         for (Entry<String, ConfigV7.AuthFailureListener> entry : config.dynamic.auth_failure_listeners.getListeners().entrySet()) {
             
             Settings entrySettings = Settings.builder()
-            .put(esSettings)
+            .put(opensearchSettings)
             .put(Settings.builder().loadFromSource(entry.getValue().asJson(), XContentType.JSON).build()).build();
             
             String type = entry.getValue().type;
