@@ -30,9 +30,9 @@
 
 package com.amazon.opendistroforelasticsearch.security.action.whoami;
 
-import org.elasticsearch.action.ActionRequestBuilder;
-import org.elasticsearch.client.ClusterAdminClient;
-import org.elasticsearch.client.ElasticsearchClient;
+import org.opensearch.action.ActionRequestBuilder;
+import org.opensearch.client.ClusterAdminClient;
+import org.opensearch.client.OpenSearchClient;
 
 import java.io.IOException;
 
@@ -42,7 +42,7 @@ ActionRequestBuilder<WhoAmIRequest, WhoAmIResponse> {
         this(client, WhoAmIAction.INSTANCE);
     }
 
-    public WhoAmIRequestBuilder(final ElasticsearchClient client, final WhoAmIAction action) throws IOException {
+    public WhoAmIRequestBuilder(final OpenSearchClient client, final WhoAmIAction action) throws IOException {
         super(client, action, new WhoAmIRequest());
     }
 }

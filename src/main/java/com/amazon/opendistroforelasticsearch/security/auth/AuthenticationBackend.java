@@ -30,7 +30,7 @@
 
 package com.amazon.opendistroforelasticsearch.security.auth;
 
-import org.elasticsearch.ElasticsearchSecurityException;
+import org.opensearch.OpenSearchSecurityException;
 
 import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
 import com.amazon.opendistroforelasticsearch.security.user.User;
@@ -60,16 +60,16 @@ public interface AuthenticationBackend {
     String getType();
 
     /**
-     * Validate credentials and return an authenticated user (or throw an ElasticsearchSecurityException)
+     * Validate credentials and return an authenticated user (or throw an OpenSearchSecurityException)
      * <p/>
      * Results of this method are normally cached so that we not need to query the backend for every authentication attempt.
      * <p/> 
      * @param The credentials to be validated, never null
      * @return the authenticated User, never null
-     * @throws ElasticsearchSecurityException in case an authentication failure 
+     * @throws OpenSearchSecurityException in case an authentication failure 
      * (when credentials are incorrect, the user does not exist or the backend is not reachable)
      */
-    User authenticate(AuthCredentials credentials) throws ElasticsearchSecurityException;
+    User authenticate(AuthCredentials credentials) throws OpenSearchSecurityException;
     
     /**
      * 

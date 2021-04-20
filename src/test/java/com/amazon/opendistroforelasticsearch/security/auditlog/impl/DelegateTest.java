@@ -15,8 +15,8 @@
 
 package com.amazon.opendistroforelasticsearch.security.auditlog.impl;
 
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.settings.Settings.Builder;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.settings.Settings.Builder;
 import org.junit.Assert;
 import org.junit.Test;
 

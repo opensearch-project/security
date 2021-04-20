@@ -15,11 +15,11 @@
 
 package com.amazon.opendistroforelasticsearch.security.securityconf.impl;
 
-import org.elasticsearch.client.node.NodeClient;
-import org.elasticsearch.rest.BytesRestResponse;
-import org.elasticsearch.rest.RestChannel;
-import org.elasticsearch.rest.RestRequest;
-import org.elasticsearch.rest.RestStatus;
+import org.opensearch.client.node.NodeClient;
+import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.rest.RestChannel;
+import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.RestStatus;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;

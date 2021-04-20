@@ -41,8 +41,8 @@ import java.util.jar.Manifest;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.OpenSearchException;
+import org.opensearch.common.settings.Settings;
 
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.DefaultPrincipalExtractor;
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.PrincipalExtractor;
@@ -74,7 +74,7 @@ public class ReflectionHelper {
             if(log.isDebugEnabled()) {
                 log.debug("Stacktrace: ",e);
             }
-            throw new ElasticsearchException(e);
+            throw new OpenSearchException(e);
         }
     }
 

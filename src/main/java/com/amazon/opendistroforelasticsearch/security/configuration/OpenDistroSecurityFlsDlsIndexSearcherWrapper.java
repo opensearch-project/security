@@ -24,12 +24,12 @@ import java.util.function.LongSupplier;
 import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvaluator;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.search.Query;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.mapper.IgnoredFieldMapper;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.index.shard.ShardUtils;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.index.IndexService;
+import org.opensearch.index.mapper.IgnoredFieldMapper;
+import org.opensearch.index.shard.ShardId;
+import org.opensearch.index.shard.ShardUtils;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
 import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceIndexingOperationListener;

@@ -22,7 +22,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.net.InetAddress;
 
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.common.settings.Settings;
 import org.junit.Test;
 
 public class UserNameBasedRateLimiterTest {

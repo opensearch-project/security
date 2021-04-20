@@ -32,7 +32,7 @@ package com.amazon.opendistroforelasticsearch.security.transport;
 
 import java.security.cert.X509Certificate;
 
-import org.elasticsearch.transport.TransportRequest;
+import org.opensearch.transport.TransportRequest;
 
 /**
  * Evaluates a request to determine if it is

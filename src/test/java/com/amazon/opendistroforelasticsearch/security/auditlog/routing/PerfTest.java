@@ -15,7 +15,7 @@
 
 package com.amazon.opendistroforelasticsearch.security.auditlog.routing;
 
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.common.settings.Settings;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;

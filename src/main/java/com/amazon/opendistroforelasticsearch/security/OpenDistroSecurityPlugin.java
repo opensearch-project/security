@@ -65,71 +65,71 @@ import com.amazon.opendistroforelasticsearch.security.ssl.transport.OpenDistroSS
 import org.apache.lucene.search.QueryCachingPolicy;
 import org.apache.lucene.search.Weight;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.ElasticsearchSecurityException;
-import org.elasticsearch.SpecialPermission;
-import org.elasticsearch.Version;
-import org.elasticsearch.action.ActionRequest;
-import org.elasticsearch.action.ActionResponse;
-import org.elasticsearch.action.search.SearchScrollAction;
-import org.elasticsearch.action.support.ActionFilter;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.component.Lifecycle.State;
-import org.elasticsearch.common.component.LifecycleComponent;
-import org.elasticsearch.common.component.LifecycleListener;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
-import org.elasticsearch.common.logging.DeprecationLogger;
-import org.elasticsearch.common.network.NetworkModule;
-import org.elasticsearch.common.network.NetworkService;
-import org.elasticsearch.common.settings.ClusterSettings;
-import org.elasticsearch.common.settings.IndexScopedSettings;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Setting.Property;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.settings.SettingsFilter;
-import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.common.util.PageCacheRecycler;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.env.Environment;
-import org.elasticsearch.env.NodeEnvironment;
-import org.elasticsearch.http.HttpServerTransport;
-import org.elasticsearch.http.HttpServerTransport.Dispatcher;
-import org.elasticsearch.index.Index;
-import org.elasticsearch.index.IndexModule;
-import org.elasticsearch.index.cache.query.QueryCache;
-import org.elasticsearch.index.shard.SearchOperationListener;
-import org.elasticsearch.indices.SystemIndexDescriptor;
-import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.plugins.ClusterPlugin;
-import org.elasticsearch.plugins.MapperPlugin;
-import org.elasticsearch.repositories.RepositoriesService;
-import org.elasticsearch.rest.RestController;
-import org.elasticsearch.rest.RestHandler;
-import org.elasticsearch.rest.RestStatus;
-import org.elasticsearch.script.ScriptService;
-import org.elasticsearch.search.internal.InternalScrollSearchRequest;
-import org.elasticsearch.search.internal.ReaderContext;
-import org.elasticsearch.search.internal.SearchContext;
-import org.elasticsearch.search.query.QuerySearchResult;
-import org.elasticsearch.tasks.Task;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.RemoteClusterService;
-import org.elasticsearch.transport.Transport;
-import org.elasticsearch.transport.Transport.Connection;
-import org.elasticsearch.transport.TransportChannel;
-import org.elasticsearch.transport.TransportInterceptor;
-import org.elasticsearch.transport.TransportRequest;
-import org.elasticsearch.transport.TransportRequestHandler;
-import org.elasticsearch.transport.TransportRequestOptions;
-import org.elasticsearch.transport.TransportResponse;
-import org.elasticsearch.transport.TransportResponseHandler;
-import org.elasticsearch.transport.TransportService;
-import org.elasticsearch.watcher.ResourceWatcherService;
+import org.opensearch.OpenSearchException;
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.SpecialPermission;
+import org.opensearch.Version;
+import org.opensearch.action.ActionRequest;
+import org.opensearch.action.ActionResponse;
+import org.opensearch.action.search.SearchScrollAction;
+import org.opensearch.action.support.ActionFilter;
+import org.opensearch.client.Client;
+import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.cluster.node.DiscoveryNodes;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.component.Lifecycle.State;
+import org.opensearch.common.component.LifecycleComponent;
+import org.opensearch.common.component.LifecycleListener;
+import org.opensearch.common.inject.Inject;
+import org.opensearch.common.io.stream.NamedWriteableRegistry;
+import org.opensearch.common.logging.DeprecationLogger;
+import org.opensearch.common.network.NetworkModule;
+import org.opensearch.common.network.NetworkService;
+import org.opensearch.common.settings.ClusterSettings;
+import org.opensearch.common.settings.IndexScopedSettings;
+import org.opensearch.common.settings.Setting;
+import org.opensearch.common.settings.Setting.Property;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.settings.SettingsFilter;
+import org.opensearch.common.util.BigArrays;
+import org.opensearch.common.util.PageCacheRecycler;
+import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.common.xcontent.NamedXContentRegistry;
+import org.opensearch.env.Environment;
+import org.opensearch.env.NodeEnvironment;
+import org.opensearch.http.HttpServerTransport;
+import org.opensearch.http.HttpServerTransport.Dispatcher;
+import org.opensearch.index.Index;
+import org.opensearch.index.IndexModule;
+import org.opensearch.index.cache.query.QueryCache;
+import org.opensearch.index.shard.SearchOperationListener;
+import org.opensearch.indices.SystemIndexDescriptor;
+import org.opensearch.indices.breaker.CircuitBreakerService;
+import org.opensearch.plugins.ClusterPlugin;
+import org.opensearch.plugins.MapperPlugin;
+import org.opensearch.repositories.RepositoriesService;
+import org.opensearch.rest.RestController;
+import org.opensearch.rest.RestHandler;
+import org.opensearch.rest.RestStatus;
+import org.opensearch.script.ScriptService;
+import org.opensearch.search.internal.InternalScrollSearchRequest;
+import org.opensearch.search.internal.ReaderContext;
+import org.opensearch.search.internal.SearchContext;
+import org.opensearch.search.query.QuerySearchResult;
+import org.opensearch.tasks.Task;
+import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.RemoteClusterService;
+import org.opensearch.transport.Transport;
+import org.opensearch.transport.Transport.Connection;
+import org.opensearch.transport.TransportChannel;
+import org.opensearch.transport.TransportInterceptor;
+import org.opensearch.transport.TransportRequest;
+import org.opensearch.transport.TransportRequestHandler;
+import org.opensearch.transport.TransportRequestOptions;
+import org.opensearch.transport.TransportResponse;
+import org.opensearch.transport.TransportResponseHandler;
+import org.opensearch.transport.TransportService;
+import org.opensearch.watcher.ResourceWatcherService;
 
 import com.amazon.opendistroforelasticsearch.security.action.configupdate.ConfigUpdateAction;
 import com.amazon.opendistroforelasticsearch.security.action.configupdate.TransportConfigUpdateAction;
@@ -382,7 +382,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             log.debug(hash +" :: "+p);
             return hash;
         } catch (Exception e) {
-            throw new ElasticsearchSecurityException("Unable to digest file "+p, e);
+            throw new OpenSearchSecurityException("Unable to digest file "+p, e);
         }
     }
 
@@ -503,7 +503,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                 }
 
                 @Override
-                public void close() throws ElasticsearchException {
+                public void close() throws OpenSearchException {
                     clear("close");
                 }
 
@@ -581,11 +581,11 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                             if (!scrollUser.equals(currentUser)) {
                                 auditLog.logMissingPrivileges(SearchScrollAction.NAME, transportRequest, null);
                                 log.error("Wrong user {} in reader context, expected {}", scrollUser, currentUser);
-                                throw new ElasticsearchSecurityException("Wrong user in reader context", RestStatus.FORBIDDEN);
+                                throw new OpenSearchSecurityException("Wrong user in reader context", RestStatus.FORBIDDEN);
                             }
                         } else if (_isLocal != Boolean.TRUE) {
                             auditLog.logMissingPrivileges(SearchScrollAction.NAME, transportRequest, null);
-                            throw new ElasticsearchSecurityException("No user in reader context", RestStatus.FORBIDDEN);
+                            throw new OpenSearchSecurityException("No user in reader context", RestStatus.FORBIDDEN);
                         }
                     }
                 }

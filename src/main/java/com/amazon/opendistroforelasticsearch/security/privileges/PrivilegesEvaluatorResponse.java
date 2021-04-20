@@ -30,7 +30,7 @@
 
 package com.amazon.opendistroforelasticsearch.security.privileges;
 
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
+import org.opensearch.action.admin.indices.create.CreateIndexRequestBuilder;
 
 import java.util.HashSet;
 import java.util.Map;

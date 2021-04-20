@@ -29,8 +29,8 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.elasticsearch.SpecialPermission;
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.SpecialPermission;
+import org.opensearch.common.settings.Settings;
 import org.joda.time.DateTime;
 import org.opensaml.core.criterion.EntityIdCriterion;
 import org.opensaml.saml.metadata.resolver.MetadataResolver;

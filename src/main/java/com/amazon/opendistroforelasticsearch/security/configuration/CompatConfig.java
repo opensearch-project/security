@@ -32,8 +32,8 @@ package com.amazon.opendistroforelasticsearch.security.configuration;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.env.Environment;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.env.Environment;
 import org.greenrobot.eventbus.Subscribe;
 
 import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigModel;

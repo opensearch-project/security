@@ -44,18 +44,18 @@ import javax.net.ssl.SSLException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
-import org.elasticsearch.common.network.NetworkService;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.PageCacheRecycler;
-import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.SharedGroupFactory;
-import org.elasticsearch.transport.TcpChannel;
-import org.elasticsearch.transport.netty4.Netty4Transport;
+import org.opensearch.ExceptionsHelper;
+import org.opensearch.Version;
+import org.opensearch.cluster.node.DiscoveryNode;
+import org.opensearch.common.io.stream.NamedWriteableRegistry;
+import org.opensearch.common.network.NetworkService;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.PageCacheRecycler;
+import org.opensearch.indices.breaker.CircuitBreakerService;
+import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.SharedGroupFactory;
+import org.opensearch.transport.TcpChannel;
+import org.opensearch.transport.netty4.Netty4Transport;
 
 import com.amazon.opendistroforelasticsearch.security.ssl.OpenDistroSecurityKeyStore;
 import com.amazon.opendistroforelasticsearch.security.ssl.SslExceptionHandler;
@@ -197,7 +197,7 @@ public class OpenDistroSecuritySSLNettyTransport extends Netty4Transport {
                     engine = odsks.createClientTransportSSLEngine(null, -1);
                 }
             } catch (final SSLException e) {
-                throw ExceptionsHelper.convertToElastic(e);
+                throw ExceptionsHelper.convertToOpenSearchException(e);
             }
             final SslHandler sslHandler = new SslHandler(engine);
             ctx.pipeline().replace(this, "ssl_client", sslHandler);

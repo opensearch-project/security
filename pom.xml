@@ -68,7 +68,8 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.compiler.release>8</maven.compiler.release>
 
-        <elasticsearch.version>7.10.2</elasticsearch.version>
+        <opensearch.groupId>com.github.vrozov.OpenSearch</opensearch.groupId>
+        <opensearch.version>beea913193</opensearch.version>
 
         <!-- deps -->
         <netty-native.version>2.0.25.Final</netty-native.version>
@@ -98,6 +99,13 @@
         <unboundid-ldapsdk.version>4.0.9</unboundid-ldapsdk.version>
         <jacoco.version>0.8.5</jacoco.version>
     </properties>
+
+    <repositories>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+    </repositories>
 
     <scm>
         <url>https://github.com/opendistro-for-elasticsearch/security</url>
@@ -132,16 +140,43 @@
     </dependencyManagement>
 
     <dependencies>
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-core</artifactId>
+            <version>8.0.0</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-join</artifactId>
+            <version>8.0.0</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>${opensearch.groupId}</groupId>
+            <artifactId>opensearch-x-content</artifactId>
+            <version>${opensearch.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>joda-time</groupId>
+            <artifactId>joda-time</artifactId>
+            <version>2.10.1</version>
+            <scope>provided</scope>
+        </dependency>
 
         <!-- Netty 4 transport -->
         <dependency>
-            <groupId>org.elasticsearch.plugin</groupId>
+            <groupId>${opensearch.groupId}</groupId>
             <artifactId>transport-netty4-client</artifactId>
-            <version>${elasticsearch.version}</version>
+            <version>${opensearch.version}</version>
             <exclusions>
                 <exclusion>
                     <artifactId>jna</artifactId>
-                    <groupId>org.elasticsearch</groupId>
+                    <groupId>${opensearch.groupId}</groupId>
                 </exclusion>
                 <exclusion>
                     <artifactId>jts</artifactId>
@@ -187,9 +222,9 @@
 
         <!-- provided scoped deps -->
         <dependency>
-            <groupId>org.elasticsearch</groupId>
-            <artifactId>elasticsearch</artifactId>
-            <version>${elasticsearch.version}</version>
+            <groupId>${opensearch.groupId}</groupId>
+            <artifactId>opensearch</artifactId>
+            <version>${opensearch.version}</version>
             <scope>provided</scope>
         </dependency>
 
@@ -253,9 +288,9 @@
         </dependency>
 
         <dependency>
-            <groupId>org.elasticsearch.client</groupId>
-            <artifactId>elasticsearch-rest-high-level-client</artifactId>
-            <version>${elasticsearch.version}</version>
+            <groupId>${opensearch.groupId}</groupId>
+            <artifactId>opensearch-rest-high-level-client</artifactId>
+            <version>${opensearch.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.apache.httpcomponents</groupId>
@@ -415,14 +450,14 @@
         </dependency>
 
         <dependency>
-            <groupId>org.elasticsearch.plugin</groupId>
+            <groupId>${opensearch.groupId}</groupId>
             <artifactId>reindex-client</artifactId>
-            <version>${elasticsearch.version}</version>
+            <version>${opensearch.version}</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>
-                    <groupId>org.elasticsearch</groupId>
-                    <artifactId>elasticsearch-ssl-config</artifactId>
+                    <groupId>${opensearch.groupId}</groupId>
+                    <artifactId>opensearch-ssl-config</artifactId>
                 </exclusion>
                 <exclusion>
                     <groupId>org.apache.httpcomponents</groupId>
@@ -445,37 +480,37 @@
         </dependency>
 
         <dependency>
-            <groupId>org.elasticsearch</groupId>
-            <artifactId>elasticsearch-ssl-config</artifactId>
-            <version>${elasticsearch.version}</version>
+            <groupId>${opensearch.groupId}</groupId>
+            <artifactId>opensearch-ssl-config</artifactId>
+            <version>${opensearch.version}</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
-            <groupId>org.elasticsearch.plugin</groupId>
+            <groupId>${opensearch.groupId}</groupId>
             <artifactId>percolator-client</artifactId>
-            <version>${elasticsearch.version}</version>
+            <version>${opensearch.version}</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
-            <groupId>org.elasticsearch.plugin</groupId>
+            <groupId>${opensearch.groupId}</groupId>
             <artifactId>lang-mustache-client</artifactId>
-            <version>${elasticsearch.version}</version>
+            <version>${opensearch.version}</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
-            <groupId>org.elasticsearch.plugin</groupId>
+            <groupId>${opensearch.groupId}</groupId>
             <artifactId>parent-join-client</artifactId>
-            <version>${elasticsearch.version}</version>
+            <version>${opensearch.version}</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
-            <groupId>org.elasticsearch.plugin</groupId>
+            <groupId>${opensearch.groupId}</groupId>
             <artifactId>aggs-matrix-stats-client</artifactId>
-            <version>${elasticsearch.version}</version>
+            <version>${opensearch.version}</version>
             <scope>test</scope>
         </dependency>
 
@@ -903,21 +938,21 @@
             </build>
             <dependencies>
                 <dependency>
-                    <groupId>org.elasticsearch.plugin</groupId>
+                    <groupId>${opensearch.groupId}</groupId>
                     <artifactId>lang-mustache-client</artifactId>
-                    <version>${elasticsearch.version}</version>
+                    <version>${opensearch.version}</version>
                 </dependency>
 
                 <dependency>
-                    <groupId>org.elasticsearch.plugin</groupId>
+                    <groupId>${opensearch.groupId}</groupId>
                     <artifactId>parent-join-client</artifactId>
-                    <version>${elasticsearch.version}</version>
+                    <version>${opensearch.version}</version>
                 </dependency>
 
                 <dependency>
-                    <groupId>org.elasticsearch.plugin</groupId>
+                    <groupId>${opensearch.groupId}</groupId>
                     <artifactId>aggs-matrix-stats-client</artifactId>
-                    <version>${elasticsearch.version}</version>
+                    <version>${opensearch.version}</version>
                 </dependency>
             </dependencies>
         </profile>

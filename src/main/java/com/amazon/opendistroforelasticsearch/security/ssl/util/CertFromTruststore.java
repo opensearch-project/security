@@ -1,6 +1,6 @@
 package com.amazon.opendistroforelasticsearch.security.ssl.util;
 
-import org.elasticsearch.ElasticsearchException;
+import org.opensearch.OpenSearchException;
 
 import java.io.IOException;
 import java.security.KeyStore;
@@ -58,11 +58,11 @@ public class CertFromTruststore {
 
     private void validate() {
         if (serverTrustedCerts == null || serverTrustedCerts.length == 0) {
-            throw new ElasticsearchException("No truststore configured for server certs");
+            throw new OpenSearchException("No truststore configured for server certs");
         }
 
         if (clientTrustedCerts == null || clientTrustedCerts.length == 0) {
-            throw new ElasticsearchException("No truststore configured for client certs");
+            throw new OpenSearchException("No truststore configured for client certs");
         }
     }
 

@@ -30,13 +30,13 @@
 
 package com.amazon.opendistroforelasticsearch.security;
 
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
-import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest;
-import org.elasticsearch.cluster.health.ClusterHealthStatus;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.node.Node;
-import org.elasticsearch.node.PluginAwareNode;
-import org.elasticsearch.transport.Netty4Plugin;
+import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
+import org.opensearch.action.admin.cluster.node.info.NodesInfoRequest;
+import org.opensearch.cluster.health.ClusterHealthStatus;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.node.Node;
+import org.opensearch.node.PluginAwareNode;
+import org.opensearch.transport.Netty4Plugin;
 import org.junit.Assert;
 import org.junit.Test;
 

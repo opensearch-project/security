@@ -17,8 +17,8 @@ package com.amazon.opendistroforelasticsearch.security.cache;
 
 import java.nio.file.Path;
 
-import org.elasticsearch.ElasticsearchSecurityException;
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.common.settings.Settings;
 
 import com.amazon.opendistroforelasticsearch.security.auth.AuthenticationBackend;
 import com.amazon.opendistroforelasticsearch.security.auth.AuthorizationBackend;
@@ -40,7 +40,7 @@ public class DummyAuthenticationBackend implements AuthenticationBackend {
     }
 
     @Override
-    public User authenticate(AuthCredentials credentials) throws ElasticsearchSecurityException {
+    public User authenticate(AuthCredentials credentials) throws OpenSearchSecurityException {
         authCount++;
         return new User(credentials.getUsername());
     }

@@ -17,9 +17,9 @@
 
 package com.amazon.opendistroforelasticsearch.security.ssl;
 
-import org.elasticsearch.rest.RestRequest;
-import org.elasticsearch.tasks.Task;
-import org.elasticsearch.transport.TransportRequest;
+import org.opensearch.rest.RestRequest;
+import org.opensearch.tasks.Task;
+import org.opensearch.transport.TransportRequest;
 
 public interface SslExceptionHandler {
     

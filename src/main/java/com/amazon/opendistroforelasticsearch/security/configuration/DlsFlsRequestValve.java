@@ -33,12 +33,12 @@ package com.amazon.opendistroforelasticsearch.security.configuration;
 import java.util.Map;
 import java.util.Set;
 
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.ActionRequest;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.search.internal.SearchContext;
-import org.elasticsearch.search.query.QuerySearchResult;
-import org.elasticsearch.threadpool.ThreadPool;
+import org.opensearch.action.ActionListener;
+import org.opensearch.action.ActionRequest;
+import org.opensearch.common.xcontent.NamedXContentRegistry;
+import org.opensearch.search.internal.SearchContext;
+import org.opensearch.search.query.QuerySearchResult;
+import org.opensearch.threadpool.ThreadPool;
 
 public interface DlsFlsRequestValve {
     

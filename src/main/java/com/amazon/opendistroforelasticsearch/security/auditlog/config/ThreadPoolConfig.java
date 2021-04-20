@@ -16,7 +16,7 @@
 package com.amazon.opendistroforelasticsearch.security.auditlog.config;
 
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.common.settings.Settings;
 
 public class ThreadPoolConfig {
     private static final int DEFAULT_THREAD_POOL_SIZE = 10;

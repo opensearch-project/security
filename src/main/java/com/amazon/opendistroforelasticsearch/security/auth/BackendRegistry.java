@@ -48,17 +48,17 @@ import javax.naming.ldap.Rdn;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchSecurityException;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
-import org.elasticsearch.rest.BytesRestResponse;
-import org.elasticsearch.rest.RestChannel;
-import org.elasticsearch.rest.RestRequest;
-import org.elasticsearch.rest.RestStatus;
-import org.elasticsearch.tasks.Task;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TransportRequest;
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.transport.TransportAddress;
+import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.rest.RestChannel;
+import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.RestStatus;
+import org.opensearch.tasks.Task;
+import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.TransportRequest;
 import org.greenrobot.eventbus.Subscribe;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
@@ -350,7 +350,7 @@ public class BackendRegistry {
      * @param request
      * @param channel
      * @return The authenticated user, null means another roundtrip
-     * @throws ElasticsearchSecurityException
+     * @throws OpenSearchSecurityException
      */
     public boolean authenticate(final RestRequest request, final RestChannel channel, final ThreadContext threadContext) {
         final boolean isDebugEnabled = log.isDebugEnabled();
@@ -687,7 +687,7 @@ public class BackendRegistry {
         }
     }
 
-    private User impersonate(final TransportRequest tr, final User origPKIuser) throws ElasticsearchSecurityException {
+    private User impersonate(final TransportRequest tr, final User origPKIuser) throws OpenSearchSecurityException {
 
         final String impersonatedUser = threadPool.getThreadContext().getHeader("opendistro_security_impersonate_as");
 
@@ -696,23 +696,23 @@ public class BackendRegistry {
         }
 
         if (!isInitialized()) {
-            throw new ElasticsearchSecurityException("Could not check for impersonation because Open Distro Security is not yet initialized");
+            throw new OpenSearchSecurityException("Could not check for impersonation because Open Distro Security is not yet initialized");
         }
 
         if (origPKIuser == null) {
-            throw new ElasticsearchSecurityException("no original PKI user found");
+            throw new OpenSearchSecurityException("no original PKI user found");
         }
 
         User aU = origPKIuser;
 
         if (adminDns.isAdminDN(impersonatedUser)) {
-            throw new ElasticsearchSecurityException(
+            throw new OpenSearchSecurityException(
                     "'" + origPKIuser.getName() + "' is not allowed to impersonate as an adminuser  '" + impersonatedUser + "'");
         }
 
         try {
             if (impersonatedUser != null && !adminDns.isTransportImpersonationAllowed(new LdapName(origPKIuser.getName()), impersonatedUser)) {
-                throw new ElasticsearchSecurityException(
+                throw new OpenSearchSecurityException(
                         "'"+origPKIuser.getName() + "' is not allowed to impersonate as '" + impersonatedUser+"'");
             } else if (impersonatedUser != null) {
                 final boolean isDebugEnabled = log.isDebugEnabled();
@@ -737,16 +737,16 @@ public class BackendRegistry {
 
                 log.debug("Unable to impersonate transport user from '{}' to '{}' because the impersonated user does not exists",
                         origPKIuser.getName(), impersonatedUser);
-                throw new ElasticsearchSecurityException("No such transport user: " + impersonatedUser, RestStatus.FORBIDDEN);
+                throw new OpenSearchSecurityException("No such transport user: " + impersonatedUser, RestStatus.FORBIDDEN);
             }
         } catch (final InvalidNameException e1) {
-            throw new ElasticsearchSecurityException("PKI does not have a valid name ('" + origPKIuser.getName() + "'), should never happen", e1);
+            throw new OpenSearchSecurityException("PKI does not have a valid name ('" + origPKIuser.getName() + "'), should never happen", e1);
         }
 
         return aU;
     }
 
-    private User impersonate(final RestRequest request, final User originalUser) throws ElasticsearchSecurityException {
+    private User impersonate(final RestRequest request, final User originalUser) throws OpenSearchSecurityException {
 
         final String impersonatedUserHeader = request.header("opendistro_security_impersonate_as");
 
@@ -755,16 +755,16 @@ public class BackendRegistry {
         }
 
         if (!isInitialized()) {
-            throw new ElasticsearchSecurityException("Could not check for impersonation because Open Distro Security is not yet initialized");
+            throw new OpenSearchSecurityException("Could not check for impersonation because Open Distro Security is not yet initialized");
         }
 
         if (adminDns.isAdminDN(impersonatedUserHeader)) {
-            throw new ElasticsearchSecurityException("It is not allowed to impersonate as an adminuser  '" + impersonatedUserHeader + "'",
+            throw new OpenSearchSecurityException("It is not allowed to impersonate as an adminuser  '" + impersonatedUserHeader + "'",
                     RestStatus.FORBIDDEN);
         }
 
         if (!adminDns.isRestImpersonationAllowed(originalUser.getName(), impersonatedUserHeader)) {
-            throw new ElasticsearchSecurityException(
+            throw new OpenSearchSecurityException(
                     "'" + originalUser.getName() + "' is not allowed to impersonate as '" + impersonatedUserHeader + "'", RestStatus.FORBIDDEN);
         } else {
             final boolean isDebugEnabled = log.isDebugEnabled();
@@ -790,7 +790,7 @@ public class BackendRegistry {
 
             log.debug("Unable to impersonate rest user from '{}' to '{}' because the impersonated user does not exists", originalUser.getName(),
                     impersonatedUserHeader);
-            throw new ElasticsearchSecurityException("No such user:" + impersonatedUserHeader, RestStatus.FORBIDDEN);
+            throw new OpenSearchSecurityException("No such user:" + impersonatedUserHeader, RestStatus.FORBIDDEN);
         }
 
     }

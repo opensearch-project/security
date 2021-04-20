@@ -43,9 +43,9 @@ import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfig
 import com.amazon.opendistroforelasticsearch.security.securityconf.NodesDnModel;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.transport.TransportRequest;
+import org.opensearch.OpenSearchException;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.transport.TransportRequest;
 
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
@@ -161,7 +161,7 @@ public final class DefaultInterClusterRequestEvaluator implements InterClusterRe
             if (log.isDebugEnabled()) {
                 log.debug("Exception parsing certificate using {}", this.getClass(), e);
             }
-            throw new ElasticsearchException(e);
+            throw new OpenSearchException(e);
         }
         return false;
     }

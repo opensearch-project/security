@@ -32,7 +32,7 @@ package com.amazon.opendistroforelasticsearch.security.auth.internal;
 
 import java.nio.file.Path;
 
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.common.settings.Settings;
 
 import com.amazon.opendistroforelasticsearch.security.auth.AuthenticationBackend;
 import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;

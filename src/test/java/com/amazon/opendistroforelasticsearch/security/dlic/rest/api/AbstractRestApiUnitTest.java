@@ -25,9 +25,9 @@ import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditTestUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpStatus;
-import org.elasticsearch.client.transport.TransportClient;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.plugins.Plugin;
+import org.opensearch.client.transport.TransportClient;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.plugins.Plugin;
 import org.junit.Assert;
 
 import com.amazon.opendistroforelasticsearch.security.test.DynamicSecurityConfig;

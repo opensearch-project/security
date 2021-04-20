@@ -32,7 +32,7 @@ package com.amazon.opendistroforelasticsearch.security.support;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
 
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.common.settings.Settings;
 
 import java.util.Arrays;
 import java.util.Collections;

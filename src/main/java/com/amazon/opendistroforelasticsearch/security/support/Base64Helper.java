@@ -58,9 +58,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.SpecialPermission;
-import org.elasticsearch.common.Strings;
+import org.opensearch.OpenSearchException;
+import org.opensearch.SpecialPermission;
+import org.opensearch.common.Strings;
 
 import com.amazon.opendistroforelasticsearch.security.user.User;
 
@@ -167,7 +167,7 @@ public class Base64Helper {
         try (final ObjectOutputStream out = SafeObjectOutputStream.create(bos)) {
             out.writeObject(object);
         } catch (final Exception e) {
-            throw new ElasticsearchException("Instance {} of class {} is not serializable", e, object, object.getClass());
+            throw new OpenSearchException("Instance {} of class {} is not serializable", e, object, object.getClass());
         }
         final byte[] bytes = bos.toByteArray();
         return BaseEncoding.base64().encode(bytes);
@@ -182,7 +182,7 @@ public class Base64Helper {
         try (SafeObjectInputStream in = new SafeObjectInputStream(bis)) {
             return (Serializable) in.readObject();
         } catch (final Exception e) {
-            throw new ElasticsearchException(e);
+            throw new OpenSearchException(e);
         }
     }
 

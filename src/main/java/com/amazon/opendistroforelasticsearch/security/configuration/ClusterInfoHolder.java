@@ -35,14 +35,14 @@ import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.ClusterStateListener;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.index.Index;
+import org.opensearch.Version;
+import org.opensearch.cluster.ClusterChangedEvent;
+import org.opensearch.cluster.ClusterState;
+import org.opensearch.cluster.ClusterStateListener;
+import org.opensearch.cluster.metadata.IndexMetadata;
+import org.opensearch.cluster.node.DiscoveryNode;
+import org.opensearch.cluster.node.DiscoveryNodes;
+import org.opensearch.index.Index;
 
 public class ClusterInfoHolder implements ClusterStateListener {
 
@@ -111,14 +111,16 @@ public class ClusterInfoHolder implements ClusterStateListener {
     }
 
     private static boolean clusterHas6xNodes(ClusterState state) {
-        return state.nodes().getMinNodeVersion().before(Version.V_7_0_0);
+        // TODO: just to make compiler happy
+        return state.nodes().getMinNodeVersion().before(Version.V_1_0_0);
     }
     
     private static boolean clusterHas6xIndices(ClusterState state) {
         final Iterator<IndexMetadata> indices = state.metadata().indices().valuesIt();
         while (indices.hasNext()) {
             final IndexMetadata indexMetadata = indices.next();
-            if (indexMetadata.getCreationVersion().before(Version.V_7_0_0)) {
+            // TODO: just to make compiler happy
+            if (indexMetadata.getCreationVersion().before(Version.V_1_0_0)) {
                 return true;
             }
         }

@@ -15,7 +15,7 @@
 
 package com.amazon.opendistroforelasticsearch.security.auditlog.helper;
 
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.common.settings.Settings;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage;
 import com.amazon.opendistroforelasticsearch.security.auditlog.sink.AuditLogSink;

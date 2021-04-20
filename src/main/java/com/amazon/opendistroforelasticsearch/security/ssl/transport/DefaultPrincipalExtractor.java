@@ -32,7 +32,7 @@ import javax.security.auth.x500.X500Principal;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.SpecialPermission;
+import org.opensearch.SpecialPermission;
 
 public class DefaultPrincipalExtractor implements PrincipalExtractor {
 
