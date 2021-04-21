@@ -43,7 +43,7 @@ import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfi
 import com.amazon.opendistroforelasticsearch.security.support.ConfigHelper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.Version;
+import org.opensearch.LegacyESVersion;
 import org.opensearch.action.ActionListener;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.get.MultiGetItemResponse;
@@ -131,7 +131,7 @@ public class ConfigurationLoaderSecurity7 {
 
                 //when index was created with ES 6 there are no separate tenants. So we load just empty ones.
                 //when index was created with ES 7 and type not "security" (ES 6 type) there are no rolemappings anymore.
-                if(cs.state().metadata().index(securityIndex).getCreationVersion().before(Version.V_7_0_0) || "security".equals(type)) {
+                if(cs.state().metadata().index(securityIndex).getCreationVersion().before(LegacyESVersion.V_7_0_0) || "security".equals(type)) {
                     //created with SG 6
                     //skip tenants
 

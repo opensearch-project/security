@@ -197,7 +197,7 @@ public class OpenDistroSecuritySSLNettyTransport extends Netty4Transport {
                     engine = odsks.createClientTransportSSLEngine(null, -1);
                 }
             } catch (final SSLException e) {
-                throw ExceptionsHelper.convertToElastic(e);
+                throw ExceptionsHelper.convertToOpenSearchException(e);
             }
             final SslHandler sslHandler = new SslHandler(engine);
             ctx.pipeline().replace(this, "ssl_client", sslHandler);
