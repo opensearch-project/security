@@ -30,10 +30,14 @@
 
 package com.amazon.opendistroforelasticsearch.security;
 
+import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper;
+import org.apache.http.HttpStatus;
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.opensearch.action.admin.cluster.node.info.NodesInfoRequest;
+import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.node.Node;
 import org.opensearch.node.PluginAwareNode;
 import org.opensearch.transport.Netty4Plugin;
@@ -46,6 +50,8 @@ import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.test.SingleClusterTest;
 import com.amazon.opendistroforelasticsearch.security.test.helper.cluster.ClusterConfiguration;
 import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
+
+import java.io.IOException;
 
 public class SlowIntegrationTests extends SingleClusterTest {
 
@@ -157,6 +163,26 @@ public class SlowIntegrationTests extends SingleClusterTest {
         } catch (Exception e) {
             Assert.fail(e.toString());
         }
+    }
+
+    @Test
+    public void testDelayInSecurityIndexInitialization() throws Exception {
+        final Settings settings = Settings.builder()
+                .put(ConfigConstants.OPENDISTRO_SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true)
+                .put("cluster.routing.allocation.exclude._ip", "127.0.0.1")
+                .build();
+        try {
+            setup(Settings.EMPTY, null, settings, false);
+        } catch (IOException e) {
+            // Index request has a default timeout of 1 minute, adding buffer between nodes initialization and cluster health check
+            Thread.sleep(1000*80);
+            clusterHelper.nodeClient().admin().cluster().updateSettings(
+                    new ClusterUpdateSettingsRequest().transientSettings(Settings.builder().put("cluster.routing.allocation.exclude._ip", "1.2.3.4").build()));
+            this.clusterInfo = clusterHelper.waitForCluster(ClusterHealthStatus.GREEN, TimeValue.timeValueSeconds(10),3);
+        }
+        RestHelper rh = nonSslRestHelper();
+        Thread.sleep(10000);
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode());
     }
 
 }
