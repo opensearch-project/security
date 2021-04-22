@@ -278,7 +278,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         System.out.println(TestAuditlogImpl.sb.toString());
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("external_configuration"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_EXTERNAL_CONFIG"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("OPENSEARCH_YML"));
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("opensearch_yml"));
         Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
     }
 

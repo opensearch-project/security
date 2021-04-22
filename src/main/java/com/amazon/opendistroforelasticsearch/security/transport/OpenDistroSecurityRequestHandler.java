@@ -266,7 +266,7 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
                     //} catch (Exception e) {
                     //    log.error("Error authentication transport user "+e, e);
                     //auditLog.logFailedLogin(principal, false, null, request);
-                    //transportChannel.sendResponse(ExceptionsHelper.convertToElastic(e));
+                    //transportChannel.sendResponse(ExceptionsHelper.convertToOpenSearchException(e));
                     //return;
                     //}
 

@@ -151,7 +151,7 @@ implements TransportRequestHandler<T> {
 
         } catch (final SSLPeerUnverifiedException e) {
             errorHandler.logError(e, request, action, task, 0);
-            final Exception exception = ExceptionsHelper.convertToElastic(e);
+            final Exception exception = ExceptionsHelper.convertToOpenSearchException(e);
             channel.sendResponse(exception);
             throw exception;
         } catch (final Exception e) {

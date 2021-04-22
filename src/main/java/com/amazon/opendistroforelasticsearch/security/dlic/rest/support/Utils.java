@@ -57,7 +57,7 @@ public class Utils {
             final BytesReference bytes = XContentHelper.toXContent(jsonContent, XContentType.JSON, false);
             map = XContentHelper.convertToMap(bytes, false, XContentType.JSON).v2();
         } catch (IOException e1) {
-            throw ExceptionsHelper.convertToElastic(e1);
+            throw ExceptionsHelper.convertToOpenSearchException(e1);
         }
 
         return map;
@@ -67,7 +67,7 @@ public class Utils {
         try (XContentParser parser = XContentType.JSON.xContent().createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, jsonContent)) {
             return parser.map();
         } catch (IOException e1) {
-            throw ExceptionsHelper.convertToElastic(e1);
+            throw ExceptionsHelper.convertToOpenSearchException(e1);
         }
     }
 
@@ -91,7 +91,7 @@ public class Utils {
         try {
             return DefaultObjectMapper.readTree(jsonContent.utf8ToString());
         } catch (IOException e1) {
-            throw ExceptionsHelper.convertToElastic(e1);
+            throw ExceptionsHelper.convertToOpenSearchException(e1);
         }
 
     }
@@ -105,7 +105,7 @@ public class Utils {
             final BytesReference bytes = XContentHelper.toXContent(jsonContent, XContentType.JSON, params, false);
             return DefaultObjectMapper.readTree(bytes.utf8ToString());
         } catch (IOException e1) {
-            throw ExceptionsHelper.convertToElastic(e1);
+            throw ExceptionsHelper.convertToOpenSearchException(e1);
         }
 
     }
@@ -120,7 +120,7 @@ public class Utils {
             final BytesReference bytes = XContentHelper.toXContent(jsonContent, XContentType.JSON, false);
             return DefaultObjectMapper.readValue(bytes.utf8ToString(), clazz);
         } catch (IOException e1) {
-            throw ExceptionsHelper.convertToElastic(e1);
+            throw ExceptionsHelper.convertToOpenSearchException(e1);
         }
 
     }
@@ -129,7 +129,7 @@ public class Utils {
         try {
             return DefaultObjectMapper.readValue(jsonContent, clazz);
         } catch (IOException e1) {
-            throw ExceptionsHelper.convertToElastic(e1);
+            throw ExceptionsHelper.convertToOpenSearchException(e1);
         }
 
     }

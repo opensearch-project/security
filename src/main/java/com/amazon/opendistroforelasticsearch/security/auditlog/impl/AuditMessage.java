@@ -436,7 +436,7 @@ public final class AuditMessage {
 		try {
 			return Strings.toString(JsonXContent.contentBuilder().map(getAsMap()));
 		} catch (final IOException e) {
-		    throw ExceptionsHelper.convertToElastic(e);
+		    throw ExceptionsHelper.convertToOpenSearchException(e);
 		}
 	}
 
@@ -444,7 +444,7 @@ public final class AuditMessage {
         try {
             return Strings.toString(JsonXContent.contentBuilder().prettyPrint().map(getAsMap()));
         } catch (final IOException e) {
-            throw ExceptionsHelper.convertToElastic(e);
+            throw ExceptionsHelper.convertToOpenSearchException(e);
         }
     }
 

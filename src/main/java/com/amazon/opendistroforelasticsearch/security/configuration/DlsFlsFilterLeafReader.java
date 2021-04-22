@@ -213,7 +213,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader  {
         try {
             dge = new DlsGetEvaluator(dlsQuery, in, applyDlsHere());
         } catch (IOException e) {
-            throw ExceptionsHelper.convertToElastic(e);
+            throw ExceptionsHelper.convertToOpenSearchException(e);
         }
     }
 

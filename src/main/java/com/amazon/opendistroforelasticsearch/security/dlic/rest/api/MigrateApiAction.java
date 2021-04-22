@@ -23,6 +23,7 @@ import java.util.List;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.WhitelistingSettings;
 import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import org.opensearch.Version;
+import org.opensearch.LegacyESVersion;
 import org.opensearch.action.ActionListener;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.bulk.BulkRequestBuilder;
@@ -100,7 +101,7 @@ public class MigrateApiAction extends AbstractApiAction {
 
         final Version oldestNodeVersion = cs.state().getNodes().getMinNodeVersion();
 
-        if(oldestNodeVersion.before(Version.V_7_0_0)) {
+        if(oldestNodeVersion.before(LegacyESVersion.V_7_0_0)) {
             badRequestResponse(channel, "Can not migrate configuration because cluster is not fully migrated.");
             return;
         }
