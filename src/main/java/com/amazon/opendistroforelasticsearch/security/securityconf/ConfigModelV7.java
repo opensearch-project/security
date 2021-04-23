@@ -277,7 +277,7 @@ public class ConfigModelV7 extends ConfigModel {
             return null;
         } catch (ExecutionException e) {
             log.error("Error while updating roles: {}", e.getCause(), e.getCause());
-            throw ExceptionsHelper.convertToElastic(e);
+            throw ExceptionsHelper.convertToOpenSearchException(e);
         }
     }
 
@@ -1035,7 +1035,7 @@ public class ConfigModelV7 extends ConfigModel {
                 return;
             } catch (ExecutionException e) {
                 log.error("Error while updating roles: {}", e.getCause(), e.getCause());
-                throw ExceptionsHelper.convertToElastic(e);
+                throw ExceptionsHelper.convertToOpenSearchException(e);
             }
 
         }

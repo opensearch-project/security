@@ -85,7 +85,7 @@ public class ValidatingDispatcher implements Dispatcher {
         } catch (SSLPeerUnverifiedException e) {
             logger.error("No client certificates found but such are needed (SG 8).");
             errorHandler.logError(e, request, 0);
-            throw ExceptionsHelper.convertToElastic(e);
+            throw ExceptionsHelper.convertToOpenSearchException(e);
         }
     }
 }

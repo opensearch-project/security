@@ -264,7 +264,7 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
         try {
             return fromJson(DefaultObjectMapper.writeValueAsString(this, false), ctype, version, seqNo, primaryTerm);
         } catch (Exception e) {
-            throw ExceptionsHelper.convertToElastic(e);
+            throw ExceptionsHelper.convertToOpenSearchException(e);
         }
     }
 

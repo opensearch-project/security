@@ -337,7 +337,7 @@ public class ConfigurationRepository {
                 listener.onChange(typeToConfig);
             } catch (Exception e) {
                 LOGGER.error("{} listener errored: "+e, listener, e);
-                throw ExceptionsHelper.convertToElastic(e);
+                throw ExceptionsHelper.convertToOpenSearchException(e);
             }
         }
     }

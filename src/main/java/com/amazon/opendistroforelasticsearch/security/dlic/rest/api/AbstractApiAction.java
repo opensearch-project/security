@@ -313,7 +313,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 							.source(id, XContentHelper.toXContent(configuration, XContentType.JSON, false)),
 					new ConfigUpdatingActionListener<>(new String[]{id}, client, actionListener));
 		} catch (IOException e) {
-			throw ExceptionsHelper.convertToElastic(e);
+			throw ExceptionsHelper.convertToOpenSearchException(e);
 		}
 	}
 
@@ -403,7 +403,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 				try {
 					channel.sendResponse(new BytesRestResponse(channel, e));
 				} catch (IOException ioe) {
-					throw ExceptionsHelper.convertToElastic(e);
+					throw ExceptionsHelper.convertToOpenSearchException(e);
 				}
 			}
 		});
@@ -442,7 +442,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 			toxContent.toXContent(builder, ToXContent.EMPTY_PARAMS);
 			return builder;
 		} catch (IOException e) {
-			throw ExceptionsHelper.convertToElastic(e);
+			throw ExceptionsHelper.convertToOpenSearchException(e);
 		}
 	}
 
@@ -456,7 +456,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 			builder.endObject();
 			channel.sendResponse(new BytesRestResponse(status, builder));
 		} catch (IOException e) {
-			throw ExceptionsHelper.convertToElastic(e);
+			throw ExceptionsHelper.convertToOpenSearchException(e);
 		}
 	}
 
