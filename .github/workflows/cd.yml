@@ -32,7 +32,7 @@ jobs:
     - name: Build
       run: |
         mvn -B clean package -Padvanced -DskipTests
-        artifact_zip=`ls $(pwd)/target/releases/opendistro-security-*.zip | grep -v admin-standalone`
+        artifact_zip=`ls $(pwd)/target/releases/opensearch-security-*.zip | grep -v admin-standalone`
         ./gradlew build buildDeb buildRpm --no-daemon -ParchivePath=$artifact_zip -Dbuild.snapshot=false
         mkdir artifacts
         cp $artifact_zip artifacts/
