@@ -51,14 +51,14 @@ Please refer to the [technical documentation](https://opendistro.github.io/for-e
 
 * Install OpenSearch
 
-* Install the opendistro-elasticsearch-security plugin for your Elasticsearch version 6.5.4, e.g.:
+* Install the opensearch-security plugin for your OpenSearch version 1.0.0-beta1, e.g.:
 
 ```
 <OpenSearch directory>/bin/opensearch-plugin install \
-  -b com.amazon.opendistroforelasticsearch:opendistro_security:0.8.0.0
+  -b org.opensearch:opensearch-security:1.0.0.0-beta1
 ```
 
-* ``cd`` into ``<OpenSearch directory>/plugins/opendistro_security/tools``
+* ``cd`` into ``<OpenSearch directory>/plugins/opensearch-security/tools``
 
 * Execute ``./install_demo_configuration.sh``, ``chmod`` the script first if necessary. This will generate all required TLS certificates and add the Security Plugin Configuration to your ``opensearch.yml`` file. 
 

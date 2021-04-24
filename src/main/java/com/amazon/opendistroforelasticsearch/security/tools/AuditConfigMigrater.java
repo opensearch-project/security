@@ -48,7 +48,7 @@ public class AuditConfigMigrater {
 
     public static void main(String[] args) {
         options.addOption(Option.builder("s").argName("source").hasArg().desc("Path to opensearch.yml file to migrate. If not specified, will try to lookup env " + OPENSEARCH_PATH_CONF_ENV + " followed by lookup in current directory.").build());
-        options.addOption(Option.builder("oad").argName("output-audit-dir").hasArg().desc("Output directory to store the generated " + AUDIT_YML + " file. To be uploaded in the index, the file must be present in plugins/opendistro_security/securityconfig/ or use securityadmin tool.").build());
+        options.addOption(Option.builder("oad").argName("output-audit-dir").hasArg().desc("Output directory to store the generated " + AUDIT_YML + " file. To be uploaded in the index, the file must be present in plugins/opensearch-security/securityconfig/ or use securityadmin tool.").build());
         options.addOption(Option.builder("oed").argName("output-opensearch-dir").hasArg().desc("Output directory to store the generated " + OPENSEARCH_AUDIT_FILTERED_YML + " file.").build());
 
         try {
