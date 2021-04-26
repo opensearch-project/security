@@ -55,6 +55,8 @@ import com.amazon.opendistroforelasticsearch.security.configuration.OpenDistroSe
 import com.amazon.opendistroforelasticsearch.security.configuration.PrivilegesInterceptorImpl;
 import com.amazon.opendistroforelasticsearch.security.configuration.Salt;
 import com.amazon.opendistroforelasticsearch.security.dlic.rest.api.OpenDistroSecurityRestApiActions;
+import com.amazon.opendistroforelasticsearch.security.setting.DisableAnonymousAuthComplianceSetting;
+import com.amazon.opendistroforelasticsearch.security.setting.ElasticsearchDynamicSetting;
 import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenDistroSecuritySSLReloadCertsAction;
 import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenDistroSecuritySSLCertsInfoAction;
 
@@ -200,6 +202,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     private volatile NamedXContentRegistry namedXContentRegistry = null;
     private volatile DlsFlsRequestValve dlsFlsValve = null;
     private volatile Salt salt;
+    private volatile ElasticsearchDynamicSetting<Boolean> anonymousAuthComplianceSetting;
 
     public static boolean isActionTraceEnabled() {
         return actionTrace.isTraceEnabled();
@@ -247,6 +250,9 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
 
         disabled = isDisabled(settings);
         sslCertReloadEnabled = isSslCertReloadEnabled(settings);
+
+        // Elasticsearch dynamic setting trackers
+        anonymousAuthComplianceSetting = new DisableAnonymousAuthComplianceSetting(settings);
 
         if (disabled) {
             this.sslCertReloadEnabled = false;
@@ -731,6 +737,9 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             );
         }
 
+        //Register elasticsearch dynamic settings
+        anonymousAuthComplianceSetting.registerClusterSettingsChangeListener(clusterService.getClusterSettings());
+
         this.threadPool = threadPool;
         this.cs = clusterService;
         this.localClient = localClient;
@@ -776,7 +785,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         cr = ConfigurationRepository.create(settings, this.configPath, threadPool, localClient, clusterService, auditLog);
 
         final XFFResolver xffResolver = new XFFResolver(threadPool);
-        backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool);
+        backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, anonymousAuthComplianceSetting, threadPool);
 
         final CompatConfig compatConfig = new CompatConfig(environment);
 
@@ -985,10 +994,10 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED, false, Property.NodeScope, Property.Filtered));
             settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
             settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
-            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_DISABLE_ANONYMOUS_AUTHENTICATION, false, Property.NodeScope, Property.Filtered));
             settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
             settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT, Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, false, Property.NodeScope, Property.Filtered));
+            settings.add(anonymousAuthComplianceSetting.getDynamicSetting());
 
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_FILTER_SECURITYINDEX_FROM_ALL_REQUESTS, false, Property.NodeScope,
                     Property.Filtered));

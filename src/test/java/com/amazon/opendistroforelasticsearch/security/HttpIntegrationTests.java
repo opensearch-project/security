@@ -38,6 +38,8 @@ import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpStatus;
 import org.apache.http.NoHttpResponseException;
 import org.apache.http.message.BasicHeader;
+import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
+import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
@@ -341,6 +343,51 @@ public class HttpIntegrationTests extends SingleClusterTest {
             Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest("_opendistro/_security/authinfo").getStatusCode());
             Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest("", encodeBasicHeader("worf", "wrong")).getStatusCode());
             Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
+    }
+
+    @Test
+    public void testHTTPAnonDynamic() throws Exception {
+        setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_anon.yml"), Settings.EMPTY, true);
+        RestHelper rh = nonSslRestHelper();
+
+        anonEnabledCommonTests(rh);
+
+        TransportClient tc = getInternalTransportClient();
+        ClusterUpdateSettingsResponse resp = tc.admin().cluster().updateSettings(new ClusterUpdateSettingsRequest()
+                .transientSettings(Settings.builder()
+                        .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_DISABLE_ANONYMOUS_AUTHENTICATION, true)
+                )).actionGet();
+        anonDisabledCommonTests(rh);
+
+        tc.index(new IndexRequest(".opendistro_security").type(getType()).id("config").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("config", FileHelper.readYamlContent("config.yml"))).actionGet();
+        tc.index(new IndexRequest(".opendistro_security").type(getType()).setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("internalusers").source("internalusers", FileHelper.readYamlContent("internal_users.yml"))).actionGet();
+        ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
+        Assert.assertFalse(cur.hasFailures());
+        anonDisabledCommonTests(rh);
+
+        tc.index(new IndexRequest(".opendistro_security").type(getType()).id("config").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("config", FileHelper.readYamlContent("config_anon.yml"))).actionGet();
+        tc.index(new IndexRequest(".opendistro_security").type(getType()).setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("internalusers").source("internalusers", FileHelper.readYamlContent("internal_users.yml"))).actionGet();
+        cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
+        Assert.assertFalse(cur.hasFailures());
+        anonDisabledCommonTests(rh);
+
+        resp = tc.admin().cluster().updateSettings(new ClusterUpdateSettingsRequest()
+                .transientSettings(Settings.builder()
+                        .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_DISABLE_ANONYMOUS_AUTHENTICATION, false)
+                )).actionGet();
+        anonEnabledCommonTests(rh);
+    }
+
+    private void anonDisabledCommonTests(final RestHelper rh) throws Exception {
+        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest("").getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest("", encodeBasicHeader("worf", "wrong")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
+    }
+
+    private void anonEnabledCommonTests(final RestHelper rh) throws Exception {
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("").getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest("", encodeBasicHeader("worf", "wrong")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
     }
 
     @Test

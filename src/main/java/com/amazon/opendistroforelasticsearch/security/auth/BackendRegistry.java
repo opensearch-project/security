@@ -72,6 +72,7 @@ import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.HTTPHelper;
 import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
 import com.amazon.opendistroforelasticsearch.security.user.User;
+import com.amazon.opendistroforelasticsearch.security.setting.ElasticsearchDynamicSetting;
 
 import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
@@ -92,6 +93,8 @@ public class BackendRegistry {
     private Multimap<String, AuthFailureListener> authBackendFailureListeners;
     private List<ClientBlockRegistry<InetAddress>> ipClientBlockRegistries;
     private Multimap<String, ClientBlockRegistry<String>> authBackendClientBlockRegistries;
+
+    private ElasticsearchDynamicSetting<Boolean> disableAnonymousAuthComplianceSetting;
 
     private volatile boolean initialized;
     private volatile boolean injectedUserEnabled = false;
@@ -175,11 +178,14 @@ public class BackendRegistry {
     }
 
     public BackendRegistry(final Settings settings, final AdminDNs adminDns,
-            final XFFResolver xffResolver, final AuditLog auditLog, final ThreadPool threadPool) {
+            final XFFResolver xffResolver, final AuditLog auditLog,
+                           final ElasticsearchDynamicSetting<Boolean> disableAnonymousAuthComplianceSetting,
+                           final ThreadPool threadPool) {
         this.adminDns = adminDns;
         this.opensearchSettings = settings;
         this.xffResolver = xffResolver;
         this.auditLog = auditLog;
+        this.disableAnonymousAuthComplianceSetting = disableAnonymousAuthComplianceSetting;
         this.threadPool = threadPool;
         this.userInjector = new UserInjector(settings, threadPool, auditLog, xffResolver);
 
@@ -211,8 +217,7 @@ public class BackendRegistry {
 
         invalidateCache();
         transportUsernameAttribute = dcm.getTransportUsernameAttribute();// config.dynamic.transport_userrname_attribute;
-        anonymousAuthEnabled = dcm.isAnonymousAuthenticationEnabled()//config.dynamic.http.anonymous_auth_enabled
-                && !opensearchSettings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_DISABLE_ANONYMOUS_AUTHENTICATION, false);
+        anonymousAuthEnabled = dcm.isAnonymousAuthenticationEnabled();//config.dynamic.http.anonymous_auth_enabled
 
         restAuthDomains = Collections.unmodifiableSortedSet(dcm.getRestAuthDomains());
         transportAuthDomains = Collections.unmodifiableSortedSet(dcm.getTransportAuthDomains());
@@ -225,7 +230,11 @@ public class BackendRegistry {
         authBackendClientBlockRegistries = dcm.getAuthBackendClientBlockRegistries();
 
         //Open Distro Security no default authc
-        initialized = !restAuthDomains.isEmpty() || anonymousAuthEnabled  || injectedUserEnabled;
+        initialized = !restAuthDomains.isEmpty() || isAnonymousAuthEnabled()  || injectedUserEnabled;
+    }
+
+    private boolean isAnonymousAuthEnabled() {
+        return anonymousAuthEnabled && disableAnonymousAuthComplianceSetting.getDynamicSettingValue() == Boolean.FALSE;
     }
 
     public User authenticate(final TransportRequest request, final String sslPrincipal, final Task task, final String action) {
@@ -438,7 +447,7 @@ public class BackendRegistry {
 
             if (ac == null) {
                 //no credentials found in request
-                if(anonymousAuthEnabled) {
+                if(isAnonymousAuthEnabled()) {
                     continue;
                 }
 
@@ -514,7 +523,7 @@ public class BackendRegistry {
                 log.debug("User still not authenticated after checking {} auth domains", restAuthDomains.size());
             }
 
-            if(authCredenetials == null && anonymousAuthEnabled) {
+            if(authCredenetials == null && isAnonymousAuthEnabled()) {
             	threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, User.ANONYMOUS);
             	auditLog.logSucceededLogin(User.ANONYMOUS.getName(), false, null, request);
                 if (isDebugEnabled) {
