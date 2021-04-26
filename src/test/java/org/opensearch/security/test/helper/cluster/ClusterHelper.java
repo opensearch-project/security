@@ -97,18 +97,24 @@ public final class ClusterHelper {
      */
 
     public final ClusterInfo startCluster(final NodeSettingsSupplier nodeSettingsSupplier, ClusterConfiguration clusterConfiguration) throws Exception {
-        return startCluster(nodeSettingsSupplier, clusterConfiguration, 10, null);
+        return startCluster(nodeSettingsSupplier, clusterConfiguration, 10, null, false);
     }
 
+    public final ClusterInfo restartCluster(final NodeSettingsSupplier nodeSettingsSupplier, ClusterConfiguration clusterConfiguration) throws Exception {
+        stopClusterWithoutDeletingData();
+        return startCluster(nodeSettingsSupplier, clusterConfiguration, 10, null, true);
+    }
 
-    public final synchronized ClusterInfo startCluster(final NodeSettingsSupplier nodeSettingsSupplier, ClusterConfiguration clusterConfiguration, int timeout, Integer nodes)
+    public final synchronized ClusterInfo startCluster(final NodeSettingsSupplier nodeSettingsSupplier, ClusterConfiguration clusterConfiguration, int timeout, Integer nodes, boolean isRestart)
             throws Exception {
 
         if (!opensearchNodes.isEmpty()) {
             throw new RuntimeException("There are still " + opensearchNodes.size() + " nodes instantiated, close them first.");
         }
 
-        FileUtils.deleteDirectory(new File("./target/data/"+clustername));
+        if(!isRestart) {
+            FileUtils.deleteDirectory(new File("./target/data/" + clustername));
+        }
 
         List<NodeSettings> internalNodeSettings = clusterConfiguration.getNodeSettings();
 
@@ -231,15 +237,21 @@ public final class ClusterHelper {
     }
 
     public final void stopCluster() throws Exception {
+        closeAllNodes();
+        FileUtils.deleteDirectory(new File("./target/data/"+clustername));
+    }
 
+    public final void stopClusterWithoutDeletingData() throws Exception {
+        closeAllNodes();
+    }
+
+    private void closeAllNodes() throws  Exception {
         //close non master nodes
         opensearchNodes.stream().filter(n->!n.isMasterEligible()).forEach(node->closeNode(node));
 
         //close master nodes
         opensearchNodes.stream().filter(n->n.isMasterEligible()).forEach(node->closeNode(node));
         opensearchNodes.clear();
-
-        FileUtils.deleteDirectory(new File("./target/data/"+clustername));
     }
 
     private static void closeNode(Node node) {
