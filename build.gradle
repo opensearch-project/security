@@ -37,15 +37,14 @@ plugins {
 buildDir = 'gradle-build'
 
 ext {
-    opensearchVersion = '1.15.0'
+    opensearchVersion = '1.0.0.0-beta1'
     isSnapshot = "true" == System.getProperty("build.snapshot", "true")
 }
 
-group = "org.opensearch"
+group = "com.amazon.opendistroforelasticsearch"
 // Increment the final digit when there's a new plugin versions for the same opensearch version
 // Reset the final digit to 0 when upgrading to a new opensearch version
-version = "${opensearchVersion}.0" + (isSnapshot ? "-SNAPSHOT" : "")
-
+version = "${opensearchVersion}" + (isSnapshot ? "-SNAPSHOT" : "")
 
 if (!project.hasProperty("archivePath")) {
     throw new GradleException("Missing -ParchivePath command line switch pointing to built plugin ZIP")
@@ -55,13 +54,13 @@ if (!project.file(archivePath).exists()) {
 }
 
 ospackage {
-    packageName = "opendistro-security"
+    packageName = "opensearch-security"
     release = isSnapshot ? "0.1" : '1'
     version = "${project.version}"
 
     into '/usr/share/opensearch/plugins'
     from(zipTree(project.file(archivePath).absolutePath)) {
-        into "opendistro_security"
+        into "opensearch-security"
         permissionGroup 'opensearch'
     }
 
@@ -83,7 +82,7 @@ ospackage {
      '''.stripIndent().replace('\n', ' ').trim()
 
     //TODO: Would be better if the install_demo_configuration.sh script is marked executable in the upstream plugin instead of running bash manually here
-    postInstall "exec /bin/bash /usr/share/opensearch/plugins/opendistro_security/tools/install_demo_configuration.sh -y -i -s"
+    postInstall "exec /bin/bash /usr/share/opensearch/plugins/opensearch-security/tools/install_demo_configuration.sh -y -i -s"
 }
 
 buildRpm {

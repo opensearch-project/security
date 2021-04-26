@@ -31,14 +31,14 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>org.opensearch</groupId>
-    <artifactId>opendistro_security</artifactId>
+    <groupId>com.amazon.opendistroforelasticsearch</groupId>
+    <artifactId>opensearch-security</artifactId>
     <packaging>jar</packaging>
-    <version>1.15.0.0</version>
-    <name>Open Distro Security for Elasticsearch</name>
-    <description>Open Distro For Elasticsearch Security</description>
-    <url>https://github.com/opendistro-for-elasticsearch/security</url>
-    <inceptionYear>2015</inceptionYear>
+    <version>1.0.0.0-beta1</version>
+    <name>OpenSearch Security</name>
+    <description>OpenSearch Security</description>
+    <url>https://github.com/opensearch-project/security</url>
+    <inceptionYear>2021</inceptionYear>
     <licenses>
         <license>
             <name>The Apache Software License, Version 2.0</name>
@@ -100,15 +100,15 @@
     </properties>
 
     <scm>
-        <url>https://github.com/opendistro-for-elasticsearch/security</url>
-        <connection>scm:git:git@github.com:opendistro-for-elasticsearch/security.git</connection>
-        <developerConnection>scm:git:git@github.com:opendistro-for-elasticsearch/security.git</developerConnection>
-        <tag>1.15.0.0</tag>
+        <url>https://github.com/opensearch-project/security</url>
+        <connection>scm:git:git@github.com:opensearch-project/security.git</connection>
+        <developerConnection>scm:git:git@github.com:opensearch-project/security.git</developerConnection>
+        <tag>1.0.0.0-beta1</tag>
     </scm>
 
     <issueManagement>
         <system>GitHub</system>
-        <url>https://github.com/opendistro-for-elasticsearch/security/issues</url>
+        <url>https://github.com/opensearch-project/security/issues</url>
     </issueManagement>
 
     <dependencyManagement>
@@ -845,7 +845,7 @@
                                     <descriptors>
                                         <descriptor>${elasticsearch.assembly.descriptor}</descriptor>
                                     </descriptors>
-                                    <finalName>opendistro-security-${version}</finalName>
+                                    <finalName>opensearch-security-${version}</finalName>
                                 </configuration>
                                 <goals>
                                     <goal>single</goal>
@@ -861,7 +861,7 @@
                                     <descriptors>
                                         <descriptor>${securitystandalone.descriptor}</descriptor>
                                     </descriptors>
-                                    <finalName>opendistro-security-${version}</finalName>
+                                    <finalName>opensearch-security-${version}</finalName>
                                 </configuration>
                                 <goals>
                                     <goal>single</goal>
@@ -886,7 +886,7 @@
                                 <fileSet>
                                     <directory>${project.build.directory}/releases/</directory>
                                     <includes>
-                                        <include>opendistro-security-${version}.zip</include>
+                                        <include>opensearch-security-${version}.zip</include>
                                     </includes>
                                 </fileSet>
                             </fileSets>

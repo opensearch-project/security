@@ -51,14 +51,14 @@ Please refer to the [technical documentation](https://opendistro.github.io/for-e
 
 * Install OpenSearch
 
-* Install the opendistro-elasticsearch-security plugin for your Elasticsearch version 6.5.4, e.g.:
+* Install the opensearch-security plugin for your OpenSearch version 1.0.0-beta1, e.g.:
 
 ```
 <OpenSearch directory>/bin/opensearch-plugin install \
-  -b com.amazon.opendistroforelasticsearch:opendistro_security:0.8.0.0
+  -b com.amazon.opendistroforelasticsearch:opensearch-security:1.0.0.0-beta1
 ```
 
-* ``cd`` into ``<OpenSearch directory>/plugins/opendistro_security/tools``
+* ``cd`` into ``<OpenSearch directory>/plugins/opensearch-security/tools``
 
 * Execute ``./install_demo_configuration.sh``, ``chmod`` the script first if necessary. This will generate all required TLS certificates and add the Security Plugin Configuration to your ``opensearch.yml`` file. 
 
@@ -81,7 +81,7 @@ mvn clean test
 
 ```
 mvn clean package -Padvanced -DskipTests
-artifact_zip=`ls $(pwd)/target/releases/opendistro-security-*.zip | grep -v admin-standalone`
+artifact_zip=`ls $(pwd)/target/releases/opensearch-security-*.zip | grep -v admin-standalone`
 ./gradlew build buildDeb buildRpm --no-daemon -ParchivePath=$artifact_zip -Dbuild.snapshot=false
 ```
 

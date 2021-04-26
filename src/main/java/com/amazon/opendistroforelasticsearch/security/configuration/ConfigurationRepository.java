@@ -124,7 +124,7 @@ public class ConfigurationRepository {
 
                         try {
                             String lookupDir = System.getProperty("security.default_init.dir");
-                            final String cd = lookupDir != null? (lookupDir+"/") : new Environment(settings, configPath).pluginsFile().toAbsolutePath().toString()+"/opendistro_security/securityconfig/";
+                            final String cd = lookupDir != null? (lookupDir+"/") : new Environment(settings, configPath).pluginsFile().toAbsolutePath().toString()+"/opensearch-security/securityconfig/";
                             File confFile = new File(cd+"config.yml");
                             if(confFile.exists()) {
                                 final ThreadContext threadContext = threadPool.getThreadContext();

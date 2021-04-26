@@ -165,7 +165,7 @@ fi
 OPENSEARCH_CONF_DIR=$(dirname "${OPENSEARCH_CONF_FILE}")
 OPENSEARCH_CONF_DIR=`cd "$OPENSEARCH_CONF_DIR" ; pwd`
 
-if [ ! -d "$OPENSEARCH_PLUGINS_DIR/opendistro_security" ]; then
+if [ ! -d "$OPENSEARCH_PLUGINS_DIR/opensearch-security" ]; then
   echo "Open Distro Security plugin not installed. Quit."
   exit -1
 fi
@@ -173,8 +173,8 @@ fi
 OPENSEARCH_VERSION=("$OPENSEARCH_LIB_PATH/opensearch-*.jar")
 OPENSEARCH_VERSION=$(echo $OPENSEARCH_VERSION | sed 's/.*opensearch-\(.*\)\.jar/\1/')
 
-SECURITY_VERSION=("$OPENSEARCH_PLUGINS_DIR/opendistro_security/opendistro_security-*.jar")
-SECURITY_VERSION=$(echo $SECURITY_VERSION | sed 's/.*opendistro_security-\(.*\)\.jar/\1/')
+SECURITY_VERSION=("$OPENSEARCH_PLUGINS_DIR/opensearch-security/opensearch-security-*.jar")
+SECURITY_VERSION=$(echo $SECURITY_VERSION | sed 's/.*opensearch-security-\(.*\)\.jar/\1/')
 
 OS=$(sb_release -ds 2>/dev/null || cat /etc/*release 2>/dev/null | head -n1 || uname -om)
 echo "OpenSearch install type: $OPENSEARCH_INSTALL_TYPE on $OS"
@@ -404,7 +404,7 @@ fi
 
 echo "######## End OpenDistro for Elasticsearch Security Demo Configuration ########" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 
-$SUDO_CMD chmod +x "$OPENSEARCH_PLUGINS_DIR/opendistro_security/tools/securityadmin.sh"
+$SUDO_CMD chmod +x "$OPENSEARCH_PLUGINS_DIR/opensearch-security/tools/securityadmin.sh"
 
 OPENSEARCH_PLUGINS_DIR=`cd "$OPENSEARCH_PLUGINS_DIR" ; pwd`
 
@@ -412,7 +412,7 @@ echo "### Success"
 echo "### Execute this script now on all your nodes and then start all nodes"
 #Generate securityadmin_demo.sh
 echo "#!/bin/bash" | $SUDO_CMD tee securityadmin_demo.sh > /dev/null 
-echo $SUDO_CMD \""$OPENSEARCH_PLUGINS_DIR/opendistro_security/tools/securityadmin.sh"\" -cd \""$OPENSEARCH_PLUGINS_DIR/opendistro_security/securityconfig"\" -icl -key \""$OPENSEARCH_CONF_DIR/kirk-key.pem"\" -cert \""$OPENSEARCH_CONF_DIR/kirk.pem"\" -cacert \""$OPENSEARCH_CONF_DIR/root-ca.pem"\" -nhnv | $SUDO_CMD tee -a securityadmin_demo.sh > /dev/null
+echo $SUDO_CMD \""$OPENSEARCH_PLUGINS_DIR/opensearch-security/tools/securityadmin.sh"\" -cd \""$OPENSEARCH_PLUGINS_DIR/opensearch-security/securityconfig"\" -icl -key \""$OPENSEARCH_CONF_DIR/kirk-key.pem"\" -cert \""$OPENSEARCH_CONF_DIR/kirk.pem"\" -cacert \""$OPENSEARCH_CONF_DIR/root-ca.pem"\" -nhnv | $SUDO_CMD tee -a securityadmin_demo.sh > /dev/null
 $SUDO_CMD chmod +x securityadmin_demo.sh
 
 if [ "$initsecurity" == 0 ]; then
