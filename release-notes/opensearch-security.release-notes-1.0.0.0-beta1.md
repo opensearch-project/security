@@ -22,4 +22,5 @@ Compatible with OpenSearch 1.0.0-beta1
 * Consume OpenSearch 1.0.0-alpha1 ([#1132](https://github.com/opensearch-project/security/pull/1132))
 * Change name and version of plugin ([#1133](https://github.com/opensearch-project/security/pull/1133))
 * Create release notes for beta1 ([#1134](https://github.com/opensearch-project/security/pull/1134))
+* Build with OpenSearch 1.0.0-alpha2 ([#1140](https://github.com/opensearch-project/security/pull/1140))
 
