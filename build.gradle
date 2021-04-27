@@ -37,7 +37,7 @@ plugins {
 buildDir = 'gradle-build'
 
 ext {
-    opensearchVersion = '1.0.0.0-beta1'
+    opensearchVersion = '1.0.0.0-alpha2'
     isSnapshot = "true" == System.getProperty("build.snapshot", "true")
 }
 
