@@ -137,6 +137,10 @@ public class DynamicConfigModelV6 extends DynamicConfigModel {
         return config.dynamic.disable_intertransport_auth;
     }
     @Override
+    public boolean isInterTransportAuthPassive() {
+            return config.dynamic.passive_intertransport_auth;
+    }
+    @Override
     public boolean isRespectRequestIndicesEnabled() {
         return config.dynamic.respect_request_indices_options;
     }

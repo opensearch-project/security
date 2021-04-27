@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import com.amazon.opendistroforelasticsearch.security.ssl.transport.OpenDistroSSLConfig;
 import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -87,6 +88,7 @@ public class OpenDistroSecurityInterceptor {
     private final Settings settings;
     private final SslExceptionHandler sslExceptionHandler;
     private final ClusterInfoHolder clusterInfoHolder;
+    private final OpenDistroSSLConfig openDistroSSLConfig;
 
     public OpenDistroSecurityInterceptor(final Settings settings,
             final ThreadPool threadPool, final BackendRegistry backendRegistry,
@@ -94,7 +96,8 @@ public class OpenDistroSecurityInterceptor {
             final InterClusterRequestEvaluator requestEvalProvider,
             final ClusterService cs,
             final SslExceptionHandler sslExceptionHandler,
-            final ClusterInfoHolder clusterInfoHolder) {
+            final ClusterInfoHolder clusterInfoHolder,
+            final OpenDistroSSLConfig openDistroSSLConfig) {
         this.backendRegistry = backendRegistry;
         this.auditLog = auditLog;
         this.threadPool = threadPool;
@@ -104,12 +107,13 @@ public class OpenDistroSecurityInterceptor {
         this.settings = settings;
         this.sslExceptionHandler = sslExceptionHandler;
         this.clusterInfoHolder = clusterInfoHolder;
+        this.openDistroSSLConfig = openDistroSSLConfig;
     }
 
     public <T extends TransportRequest> OpenDistroSecurityRequestHandler<T> getHandler(String action,
             TransportRequestHandler<T> actualHandler) {
         return new OpenDistroSecurityRequestHandler<T>(action, actualHandler, threadPool, backendRegistry, auditLog,
-                principalExtractor, requestEvalProvider, cs, sslExceptionHandler);
+                principalExtractor, requestEvalProvider, cs, openDistroSSLConfig, sslExceptionHandler);
     }
 
 

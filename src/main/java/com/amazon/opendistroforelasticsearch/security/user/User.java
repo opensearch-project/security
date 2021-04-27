@@ -55,6 +55,7 @@ import com.google.common.collect.Lists;
 public class User implements Serializable, Writeable, CustomAttributesAware {
 
     public static final User ANONYMOUS = new User("opendistro_security_anonymous", Lists.newArrayList("opendistro_security_anonymous_backendrole"), null);
+    public static final User DEFAULT_TRANSPORT_USER = new User("opendistro_security_default_transport_user", Lists.newArrayList("opendistro_security_default_transport_backendrole"), null);
     
     private static final long serialVersionUID = -5500938501822658596L;
     private final String name;

@@ -72,6 +72,7 @@ public abstract class DynamicConfigModel {
     public abstract String getRemoteIpHeader();
     public abstract boolean isRestAuthDisabled();
     public abstract boolean isInterTransportAuthDisabled();
+    public abstract boolean isInterTransportAuthPassive();
     public abstract boolean isRespectRequestIndicesEnabled();
     public abstract String getKibanaServerUsername();
     public abstract String getKibanaOpendistroRole();
