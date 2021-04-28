@@ -51,11 +51,11 @@ Please refer to the [technical documentation](https://opendistro.github.io/for-e
 
 * Install OpenSearch
 
-* Install the opensearch-security plugin for your OpenSearch version 1.0.0-alpha2, e.g.:
+* Install the opensearch-security plugin for your OpenSearch version 1.0.0-beta1, e.g.:
 
 ```
 <OpenSearch directory>/bin/opensearch-plugin install \
-  -b com.amazon.opendistroforelasticsearch:opensearch-security:1.0.0.0-alpha2
+  -b com.amazon.opendistroforelasticsearch:opensearch-security:1.0.0.0-beta1
 ```
 
 * ``cd`` into ``<OpenSearch directory>/plugins/opensearch-security/tools``

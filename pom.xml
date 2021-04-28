@@ -34,7 +34,7 @@
     <groupId>com.amazon.opendistroforelasticsearch</groupId>
     <artifactId>opensearch-security</artifactId>
     <packaging>jar</packaging>
-    <version>1.0.0.0-alpha2</version>
+    <version>1.0.0.0-beta1</version>
     <name>OpenSearch Security</name>
     <description>OpenSearch Security</description>
     <url>https://github.com/opensearch-project/security</url>
@@ -103,7 +103,7 @@
         <url>https://github.com/opensearch-project/security</url>
         <connection>scm:git:git@github.com:opensearch-project/security.git</connection>
         <developerConnection>scm:git:git@github.com:opensearch-project/security.git</developerConnection>
-        <tag>1.0.0.0-alpha2</tag>
+        <tag>1.0.0.0-beta1</tag>
     </scm>
 
     <issueManagement>
