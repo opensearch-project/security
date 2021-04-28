@@ -139,7 +139,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
 
         AuthCredentials creds = AccessController.doPrivileged(new PrivilegedAction<AuthCredentials>() {
             @Override
-            public AuthCredentials run() throws ElasticsearchSecurityException {
+            public AuthCredentials run() {
                 return extractCredentials0(request);
             }
         });
