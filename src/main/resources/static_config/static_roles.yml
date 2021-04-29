@@ -34,6 +34,7 @@ kibana_user:
         - ".kibana-6"
         - ".kibana_*"
         - ".opensearch_dashboards"
+        - ".opensearch_dashboards-6"
         - ".opensearch_dashboards_*"
       allowed_actions:
         - "read"
