@@ -77,7 +77,7 @@ ospackage {
     maintainer 'OpenDistro for Elasticsearch Team <opendistro@amazon.com>'
     url 'https://opendistro.github.io/for-elasticsearch/downloads.html'
     summary '''
-     Security plugin for OpenDistro for Elasticsearch. 
+     OpenSearch Security plugin. 
      Reference documentation can be found at https://opendistro.github.io/for-elasticsearch-docs/.
      '''.stripIndent().replace('\n', ' ').trim()
 
