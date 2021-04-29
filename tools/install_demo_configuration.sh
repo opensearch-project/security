@@ -16,7 +16,7 @@ else
     DIR="$( cd "$( dirname "$(realpath "$SCRIPT_PATH")" )" && pwd -P)"
 fi
 
-echo "OpenDistro for Elasticsearch Security Demo Installer"
+echo "OpenSearch Security Demo Installer"
 echo " ** Warning: Do not use on production or public reachable systems **"
 
 OPTIND=1
@@ -166,7 +166,7 @@ OPENSEARCH_CONF_DIR=$(dirname "${OPENSEARCH_CONF_FILE}")
 OPENSEARCH_CONF_DIR=`cd "$OPENSEARCH_CONF_DIR" ; pwd`
 
 if [ ! -d "$OPENSEARCH_PLUGINS_DIR/opensearch-security" ]; then
-  echo "Open Distro Security plugin not installed. Quit."
+  echo "OpenSearch Security plugin not installed. Quit."
   exit -1
 fi
 
@@ -184,7 +184,7 @@ echo "OpenSearch bin dir: $OPENSEARCH_BIN_DIR"
 echo "OpenSearch plugins dir: $OPENSEARCH_PLUGINS_DIR"
 echo "OpenSearch lib dir: $OPENSEARCH_LIB_PATH"
 echo "Detected OpenSearch Version: $OPENSEARCH_VERSION"
-echo "Detected Open Distro Security Version: $SECURITY_VERSION"
+echo "Detected OpenSearch Security Version: $SECURITY_VERSION"
 
 if $SUDO_CMD grep --quiet -i opendistro_security "$OPENSEARCH_CONF_FILE"; then
   echo "$OPENSEARCH_CONF_FILE seems to be already configured for Security. Quit."
@@ -351,7 +351,7 @@ echo "$NODE_KEY" | $SUDO_CMD tee "$OPENSEARCH_CONF_DIR/esnode-key.pem" > /dev/nu
 echo "$ADMIN_CERT_KEY" | $SUDO_CMD tee "$OPENSEARCH_CONF_DIR/kirk-key.pem" > /dev/null
 
 echo "" | $SUDO_CMD tee -a  "$OPENSEARCH_CONF_FILE"
-echo "######## Start OpenDistro for Elasticsearch Security Demo Configuration ########" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "######## Start OpenSearch Security Demo Configuration ########" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 echo "# WARNING: revise all the lines below before you go into production" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 echo "opendistro_security.ssl.transport.pemcert_filepath: esnode.pem" | $SUDO_CMD tee -a  "$OPENSEARCH_CONF_FILE" > /dev/null
 echo "opendistro_security.ssl.transport.pemkey_filepath: esnode-key.pem" | $SUDO_CMD tee -a  "$OPENSEARCH_CONF_FILE" > /dev/null
@@ -402,7 +402,7 @@ fi
 
 
 
-echo "######## End OpenDistro for Elasticsearch Security Demo Configuration ########" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "######## End OpenSearch Security Demo Configuration ########" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 
 $SUDO_CMD chmod +x "$OPENSEARCH_PLUGINS_DIR/opensearch-security/tools/securityadmin.sh"
 
@@ -421,7 +421,7 @@ if [ "$initsecurity" == 0 ]; then
 	echo "### or run ./securityadmin_demo.sh"
     echo "### After that you can also use the Security Plugin ConfigurationGUI"
 else
-    echo "### Open Distro Security will be automatically initialized."
+    echo "### OpenSearch Security will be automatically initialized."
     echo "### If you like to change the runtime configuration "
     echo "### change the files in ../securityconfig and execute: "
 	$SUDO_CMD cat securityadmin_demo.sh | tail -1
