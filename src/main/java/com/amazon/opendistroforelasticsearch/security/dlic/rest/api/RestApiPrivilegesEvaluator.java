@@ -386,15 +386,15 @@ public class RestApiPrivilegesEvaluator {
 					return null;
 				}
 
-				logger.info("User {} with Open Distro Security Roles {} does not have access to endpoint {} and method {}, checking admin TLS certificate now.", user, userRoles,
+				logger.info("User {} with OpenSearch Security Roles {} does not have access to endpoint {} and method {}, checking admin TLS certificate now.", user, userRoles,
 						endpoint.name(), request.method());
-				return "User " + user.getName() + " with Open Distro Security Roles " + userRoles + " does not have any access to endpoint " + endpoint.name() + " and method "
+				return "User " + user.getName() + " with OpenSearch Security Roles " + userRoles + " does not have any access to endpoint " + endpoint.name() + " and method "
 						+ request.method().name();
 			} else {
 				// no, but maybe the request contains a client certificate.
 				// Remember error reason for better response message later on.
-				logger.info("User {} with Open Distro Security roles {} does not have any role privileged for admin access.", user, userRoles);
-				return "User " + user.getName() + " with Open Distro Security Roles " + userRoles + " does not have any role privileged for admin access";
+				logger.info("User {} with OpenSearch Security roles {} does not have any role privileged for admin access.", user, userRoles);
+				return "User " + user.getName() + " with OpenSearch Security Roles " + userRoles + " does not have any role privileged for admin access";
 			}
 		}
 		return "Role based access not enabled.";

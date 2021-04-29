@@ -35,6 +35,7 @@ import java.security.PrivilegedAction;
 import java.util.List;
 import java.util.Objects;
 
+import com.amazon.opendistroforelasticsearch.security.OpenSearchSecurityPlugin;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.SpecialPermission;
@@ -46,8 +47,6 @@ import org.opensearch.snapshots.SnapshotId;
 import org.opensearch.snapshots.SnapshotInfo;
 import org.opensearch.snapshots.SnapshotUtils;
 import org.opensearch.threadpool.ThreadPool;
-
-import com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin;
 
 public class SnapshotRestoreHelper {
 
@@ -67,7 +66,7 @@ public class SnapshotRestoreHelper {
     }
     
     public static SnapshotInfo getSnapshotInfo(RestoreSnapshotRequest restoreRequest) {
-        final RepositoriesService repositoriesService = Objects.requireNonNull(OpenDistroSecurityPlugin.GuiceHolder.getRepositoriesService(), "RepositoriesService not initialized");     
+        final RepositoriesService repositoriesService = Objects.requireNonNull(OpenSearchSecurityPlugin.GuiceHolder.getRepositoriesService(), "RepositoriesService not initialized");
         final Repository repository = repositoriesService.repository(restoreRequest.repository());
         final String threadName = Thread.currentThread().getName();
         SnapshotInfo snapshotInfo = null;

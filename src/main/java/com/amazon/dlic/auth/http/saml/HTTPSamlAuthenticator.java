@@ -186,7 +186,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
     private String getWwwAuthenticateHeader(Saml2Settings saml2Settings) throws Exception {
         AuthnRequest authnRequest = this.buildAuthnRequest(saml2Settings);
 
-        return "X-Security-IdP realm=\"Open Distro Security\" location=\""
+        return "X-Security-IdP realm=\"OpenSearch Security\" location=\""
                 + StringEscapeUtils.escapeJava(getSamlRequestRedirectBindingLocation(IdpEndpointType.SSO, saml2Settings,
                         authnRequest.getEncodedAuthnRequest(true)))
                 + "\" requestId=\"" + StringEscapeUtils.escapeJava(authnRequest.getId()) + "\"";

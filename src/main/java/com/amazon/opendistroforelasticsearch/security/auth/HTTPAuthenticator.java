@@ -38,7 +38,7 @@ import org.opensearch.rest.RestRequest;
 import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
 
 /**
- * Open Distro Security custom HTTP authenticators need to implement this interface.
+ * OpenSearch Security custom HTTP authenticators need to implement this interface.
  * <p/>
  * A HTTP authenticator extracts {@link AuthCredentials} from a {@link RestRequest}
  * <p/>

@@ -44,7 +44,7 @@ import org.opensearch.script.mustache.MustachePlugin;
 import org.opensearch.search.aggregations.matrix.MatrixAggregationPlugin;
 import org.opensearch.transport.Netty4Plugin;
 
-import com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin;
+import com.amazon.opendistroforelasticsearch.security.OpenSearchSecurityPlugin;
 import com.amazon.opendistroforelasticsearch.security.test.plugin.UserInjectorPlugin;
 import com.google.common.collect.Lists;
 
@@ -56,12 +56,12 @@ public enum ClusterConfiguration {
     DEFAULT(new NodeSettings(true, false), new NodeSettings(false, true), new NodeSettings(false, true)),
 
 	DEFAULT_MASTER_WITHOUT_SECURITY_PLUGIN(new NodeSettings(true, false)
-			.removePluginIfPresent(OpenDistroSecurityPlugin.class)
+			.removePluginIfPresent(OpenSearchSecurityPlugin.class)
 			, new NodeSettings(false, true)
 			, new NodeSettings(false, true)),
 
 	DEFAULT_ONE_DATA_NODE_WITHOUT_SECURITY_PLUGIN(new NodeSettings(true, false)
-			, new NodeSettings(false, true).removePluginIfPresent(OpenDistroSecurityPlugin.class)
+			, new NodeSettings(false, true).removePluginIfPresent(OpenSearchSecurityPlugin.class)
 			, new NodeSettings(false, true)),
 
     //1 node (1md)
@@ -110,7 +110,7 @@ public enum ClusterConfiguration {
 	public static class NodeSettings {
 		public boolean masterNode;
 		public boolean dataNode;
-		public List<Class<? extends Plugin>> plugins = Lists.newArrayList(Netty4Plugin.class, OpenDistroSecurityPlugin.class, MatrixAggregationPlugin.class, MustachePlugin.class, ParentJoinPlugin.class, PercolatorPlugin.class, ReindexPlugin.class);
+		public List<Class<? extends Plugin>> plugins = Lists.newArrayList(Netty4Plugin.class, OpenSearchSecurityPlugin.class, MatrixAggregationPlugin.class, MustachePlugin.class, ParentJoinPlugin.class, PercolatorPlugin.class, ReindexPlugin.class);
 		
 		public NodeSettings(boolean masterNode, boolean dataNode) {
 			super();

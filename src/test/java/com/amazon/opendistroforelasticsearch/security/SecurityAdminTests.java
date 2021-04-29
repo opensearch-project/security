@@ -21,6 +21,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.amazon.opendistroforelasticsearch.security.tools.OpenSearchSecurityAdmin;
 import org.apache.http.HttpStatus;
 import org.opensearch.common.settings.Settings;
 import org.junit.Assert;
@@ -32,7 +33,6 @@ import com.amazon.opendistroforelasticsearch.security.test.SingleClusterTest;
 import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper.HttpResponse;
-import com.amazon.opendistroforelasticsearch.security.tools.OpenDistroSecurityAdmin;
 
 public class SecurityAdminTests extends SingleClusterTest {
     
@@ -56,7 +56,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add("-nhnv");
         
         
-        int returnCode  = OpenDistroSecurityAdmin.execute(argsAsList.toArray(new String[0]));
+        int returnCode  = OpenSearchSecurityAdmin.execute(argsAsList.toArray(new String[0]));
         Assert.assertEquals(0, returnCode);
         
         RestHelper rh = nonSslRestHelper();
@@ -85,7 +85,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add("-nhnv");
         
         
-        int returnCode  = OpenDistroSecurityAdmin.execute(argsAsList.toArray(new String[0]));
+        int returnCode  = OpenSearchSecurityAdmin.execute(argsAsList.toArray(new String[0]));
         Assert.assertNotEquals(0, returnCode);
         
         RestHelper rh = nonSslRestHelper();
@@ -118,7 +118,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add("-nhnv");
         
         
-        int returnCode  = OpenDistroSecurityAdmin.execute(argsAsList.toArray(new String[0]));
+        int returnCode  = OpenSearchSecurityAdmin.execute(argsAsList.toArray(new String[0]));
         Assert.assertEquals(0, returnCode);
         
         RestHelper rh = nonSslRestHelper();
@@ -153,7 +153,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add("-nhnv");
         
         
-        int returnCode  = OpenDistroSecurityAdmin.execute(argsAsList.toArray(new String[0]));
+        int returnCode  = OpenSearchSecurityAdmin.execute(argsAsList.toArray(new String[0]));
         Assert.assertEquals(0, returnCode);
         
         argsAsList = new ArrayList<>();
@@ -172,7 +172,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add("-nhnv");
         
         
-        returnCode  = OpenDistroSecurityAdmin.execute(argsAsList.toArray(new String[0]));
+        returnCode  = OpenSearchSecurityAdmin.execute(argsAsList.toArray(new String[0]));
         Assert.assertEquals(0, returnCode);
         
         argsAsList = new ArrayList<>();
@@ -191,7 +191,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add("-nhnv");
         
         
-        returnCode  = OpenDistroSecurityAdmin.execute(argsAsList.toArray(new String[0]));
+        returnCode  = OpenSearchSecurityAdmin.execute(argsAsList.toArray(new String[0]));
         Assert.assertEquals(0, returnCode);
         
         RestHelper rh = nonSslRestHelper();
@@ -225,7 +225,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add("config");
         argsAsList.add("-nhnv");
         
-        int returnCode  = OpenDistroSecurityAdmin.execute(argsAsList.toArray(new String[0]));
+        int returnCode  = OpenSearchSecurityAdmin.execute(argsAsList.toArray(new String[0]));
         Assert.assertNotEquals(0, returnCode);
 
         
@@ -261,7 +261,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add("-nhnv");
         
         
-        int returnCode  = OpenDistroSecurityAdmin.execute(argsAsList.toArray(new String[0]));
+        int returnCode  = OpenSearchSecurityAdmin.execute(argsAsList.toArray(new String[0]));
         Assert.assertNotEquals(0, returnCode);
         
         RestHelper rh = nonSslRestHelper();
@@ -308,7 +308,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add("-nhnv");
         
         
-        int returnCode  = OpenDistroSecurityAdmin.execute(argsAsList.toArray(new String[0]));
+        int returnCode  = OpenSearchSecurityAdmin.execute(argsAsList.toArray(new String[0]));
         Assert.assertNotEquals(0, returnCode);
         
         HttpResponse res;
@@ -326,7 +326,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add(new File("src/test/resources/").getAbsolutePath());
         argsAsList.add("-vc");
         
-        int returnCode  = OpenDistroSecurityAdmin.execute(argsAsList.toArray(new String[0]));
+        int returnCode  = OpenSearchSecurityAdmin.execute(argsAsList.toArray(new String[0]));
         Assert.assertEquals(0, returnCode);
         
         argsAsList = new ArrayList<>();
@@ -334,7 +334,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add(new File("src/test/resources/roles.yml").getAbsolutePath());
         argsAsList.add("-vc");
         
-        returnCode  = OpenDistroSecurityAdmin.execute(argsAsList.toArray(new String[0]));
+        returnCode  = OpenSearchSecurityAdmin.execute(argsAsList.toArray(new String[0]));
         Assert.assertEquals(0, returnCode);
         
         argsAsList = new ArrayList<>();
@@ -342,7 +342,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add(new File("./src/main/resources/static_config/static_roles.yml").getAbsolutePath());
         argsAsList.add("-vc");
         
-        returnCode  = OpenDistroSecurityAdmin.execute(argsAsList.toArray(new String[0]));
+        returnCode  = OpenSearchSecurityAdmin.execute(argsAsList.toArray(new String[0]));
         Assert.assertEquals(0, returnCode);
         
         argsAsList = new ArrayList<>();
@@ -350,7 +350,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add(new File("./src/main/resources/static_config/static_action_groups.yml").getAbsolutePath());
         argsAsList.add("-vc");
         
-        returnCode  = OpenDistroSecurityAdmin.execute(argsAsList.toArray(new String[0]));
+        returnCode  = OpenSearchSecurityAdmin.execute(argsAsList.toArray(new String[0]));
         Assert.assertEquals(0, returnCode);
         
         argsAsList = new ArrayList<>();
@@ -358,7 +358,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add(new File("./src/main/resources/static_config/static_tenants.yml").getAbsolutePath());
         argsAsList.add("-vc");
         
-        returnCode  = OpenDistroSecurityAdmin.execute(argsAsList.toArray(new String[0]));
+        returnCode  = OpenSearchSecurityAdmin.execute(argsAsList.toArray(new String[0]));
         Assert.assertEquals(0, returnCode);
         
         argsAsList = new ArrayList<>();
@@ -368,7 +368,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add("-t");
         argsAsList.add("config");
         
-        returnCode  = OpenDistroSecurityAdmin.execute(argsAsList.toArray(new String[0]));
+        returnCode  = OpenSearchSecurityAdmin.execute(argsAsList.toArray(new String[0]));
         Assert.assertNotEquals(0, returnCode);
         
         argsAsList = new ArrayList<>();
@@ -376,7 +376,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add(new File("src/test/resources/").getAbsolutePath());
         argsAsList.add("-vc");
         
-        returnCode  = OpenDistroSecurityAdmin.execute(argsAsList.toArray(new String[0]));
+        returnCode  = OpenSearchSecurityAdmin.execute(argsAsList.toArray(new String[0]));
         Assert.assertNotEquals(0, returnCode);
         
         argsAsList = new ArrayList<>();
@@ -384,7 +384,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add(new File("./legacy/securityconfig_v6").getAbsolutePath());
         argsAsList.add("-vc");
         
-        returnCode  = OpenDistroSecurityAdmin.execute(argsAsList.toArray(new String[0]));
+        returnCode  = OpenSearchSecurityAdmin.execute(argsAsList.toArray(new String[0]));
         Assert.assertNotEquals(0, returnCode);
         
         argsAsList = new ArrayList<>();
@@ -393,7 +393,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add("-vc");
         argsAsList.add("6");
         
-        returnCode  = OpenDistroSecurityAdmin.execute(argsAsList.toArray(new String[0]));
+        returnCode  = OpenSearchSecurityAdmin.execute(argsAsList.toArray(new String[0]));
         Assert.assertEquals(0, returnCode);
         
         argsAsList = new ArrayList<>();
@@ -402,7 +402,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add("-vc");
         argsAsList.add("8");
         
-        returnCode  = OpenDistroSecurityAdmin.execute(argsAsList.toArray(new String[0]));
+        returnCode  = OpenSearchSecurityAdmin.execute(argsAsList.toArray(new String[0]));
         Assert.assertNotEquals(0, returnCode);
     }
 }

@@ -36,7 +36,7 @@ import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 
 /**
- * Open Distro Security custom authorization backends need to implement this interface.
+ * OpenSearch Security custom authorization backends need to implement this interface.
  * <p/>
  * Authorization backends populate a prior authenticated {@link User} with backend roles who's the user is a member of.
  * <p/>

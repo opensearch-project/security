@@ -227,7 +227,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
     @Override
     public boolean reRequestAuthentication(RestChannel channel, AuthCredentials authCredentials) {
         final BytesRestResponse wwwAuthenticateResponse = new BytesRestResponse(RestStatus.UNAUTHORIZED, "");
-        wwwAuthenticateResponse.addHeader("WWW-Authenticate", "Bearer realm=\"Open Distro Security\"");
+        wwwAuthenticateResponse.addHeader("WWW-Authenticate", "Bearer realm=\"OpenSearch Security\"");
         channel.sendResponse(wwwAuthenticateResponse);
         return true;
     }

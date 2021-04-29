@@ -27,6 +27,7 @@ import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.PrincipalExtractor;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
+import com.amazon.opendistroforelasticsearch.security.tools.OpenSearchSecurityAdmin;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
 import org.opensearch.action.index.IndexResponse;
@@ -81,7 +82,7 @@ import java.util.List;
  * }
  *
  * The backing data is stored in {@link ConfigConstants#OPENDISTRO_SECURITY_CONFIG_INDEX_NAME} which is populated during bootstrap.
- * For existing clusters, {@link com.amazon.opendistroforelasticsearch.security.tools.OpenDistroSecurityAdmin} tool can
+ * For existing clusters, {@link OpenSearchSecurityAdmin} tool can
  * be used to populate the index.
  * <p>
  */
@@ -130,7 +131,7 @@ public class WhitelistApiAction extends PatchableResourceApiAction {
         final SecurityDynamicConfiguration<?> existingConfiguration = load(getConfigName(), false);
 
         if (existingConfiguration.getSeqNo() < 0) {
-            forbidden(channel, "Security index need to be updated to support '" + getConfigName().toLCString() + "'. Use OpenDistroSecurityAdmin to populate.");
+            forbidden(channel, "Security index need to be updated to support '" + getConfigName().toLCString() + "'. Use OpenSearchSecurityAdmin to populate.");
             return;
         }
 
