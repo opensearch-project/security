@@ -15,7 +15,7 @@
 package com.amazon.opendistroforelasticsearch.security.ssl.transport;
 
 
-import com.amazon.opendistroforelasticsearch.security.ssl.OpenDistroSecurityKeyStore;
+import com.amazon.opendistroforelasticsearch.security.ssl.OpenSearchSecurityKeyStore;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConnectionTestUtil;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.TLSUtil;
 import com.google.common.annotations.VisibleForTesting;
@@ -39,17 +39,17 @@ import java.util.List;
 public class DualModeSSLHandler extends ByteToMessageDecoder {
 
     private static final Logger logger = LogManager.getLogger(DualModeSSLHandler.class);
-    private final OpenDistroSecurityKeyStore openDistroSecurityKeyStore;
+    private final OpenSearchSecurityKeyStore openSearchSecurityKeyStore;
 
     private final SslHandler providedSSLHandler;
 
-    public DualModeSSLHandler(OpenDistroSecurityKeyStore openDistroSecurityKeyStore) {
-        this(openDistroSecurityKeyStore, null);
+    public DualModeSSLHandler(OpenSearchSecurityKeyStore openSearchSecurityKeyStore) {
+        this(openSearchSecurityKeyStore, null);
     }
 
     @VisibleForTesting
-    protected DualModeSSLHandler(OpenDistroSecurityKeyStore openDistroSecurityKeyStore, SslHandler providedSSLHandler) {
-        this.openDistroSecurityKeyStore = openDistroSecurityKeyStore;
+    protected DualModeSSLHandler(OpenSearchSecurityKeyStore openSearchSecurityKeyStore, SslHandler providedSSLHandler) {
+        this.openSearchSecurityKeyStore = openSearchSecurityKeyStore;
         this.providedSSLHandler = providedSSLHandler;
     }
 
@@ -82,7 +82,7 @@ public class DualModeSSLHandler extends ByteToMessageDecoder {
         if (providedSSLHandler != null) {
             sslHandler = providedSSLHandler;
         } else {
-            sslHandler = new SslHandler(openDistroSecurityKeyStore.createServerTransportSSLEngine());
+            sslHandler = new SslHandler(openSearchSecurityKeyStore.createServerTransportSSLEngine());
         }
         ChannelPipeline p = ctx.pipeline();
         p.addAfter("port_unification_handler", "ssl_server", sslHandler);

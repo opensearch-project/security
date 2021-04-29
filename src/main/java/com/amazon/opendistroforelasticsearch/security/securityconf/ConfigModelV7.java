@@ -1129,7 +1129,7 @@ public class ConfigModelV7 extends ConfigModel {
                 return Collections.emptySet();
             }
 
-            final Set<String> securityRoles = new HashSet<>(user.getOpenDistroSecurityRoles());
+            final Set<String> securityRoles = new HashSet<>(user.getOpenSearchSecurityRoles());
 
             if (rolesMappingResolution == ConfigConstants.RolesMappingResolution.BOTH
                     || rolesMappingResolution == ConfigConstants.RolesMappingResolution.BACKENDROLES_ONLY) {

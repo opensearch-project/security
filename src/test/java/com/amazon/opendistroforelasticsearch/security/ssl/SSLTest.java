@@ -35,6 +35,7 @@ import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.TrustManagerFactory;
 
 
+import com.amazon.opendistroforelasticsearch.security.OpenSearchSecurityPlugin;
 import org.apache.http.NoHttpResponseException;
 import org.apache.lucene.util.Constants;
 import org.opensearch.OpenSearchSecurityException;
@@ -58,7 +59,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.ExceptionUtils;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
@@ -137,8 +137,8 @@ public class SSLTest extends SingleClusterTest {
                 .build();
         
         try {
-            String[] enabledCiphers = new DefaultOpenDistroSecurityKeyStore(settings, Paths.get(".")).createHTTPSSLEngine().getEnabledCipherSuites();
-            String[] enabledProtocols = new DefaultOpenDistroSecurityKeyStore(settings, Paths.get(".")).createHTTPSSLEngine().getEnabledProtocols();
+            String[] enabledCiphers = new DefaultOpenSearchSecurityKeyStore(settings, Paths.get(".")).createHTTPSSLEngine().getEnabledCipherSuites();
+            String[] enabledProtocols = new DefaultOpenSearchSecurityKeyStore(settings, Paths.get(".")).createHTTPSSLEngine().getEnabledProtocols();
 
             if(allowOpenSSL) {
                 Assert.assertEquals(2, enabledProtocols.length); //SSLv2Hello is always enabled when using openssl
@@ -166,8 +166,8 @@ public class SSLTest extends SingleClusterTest {
                     .put("path.home",".")
                     .build();
             
-            enabledCiphers = new DefaultOpenDistroSecurityKeyStore(settings, Paths.get(".")).createServerTransportSSLEngine().getEnabledCipherSuites();
-            enabledProtocols = new DefaultOpenDistroSecurityKeyStore(settings, Paths.get(".")).createServerTransportSSLEngine().getEnabledProtocols();
+            enabledCiphers = new DefaultOpenSearchSecurityKeyStore(settings, Paths.get(".")).createServerTransportSSLEngine().getEnabledCipherSuites();
+            enabledProtocols = new DefaultOpenSearchSecurityKeyStore(settings, Paths.get(".")).createServerTransportSSLEngine().getEnabledProtocols();
 
             if(allowOpenSSL) {
                 Assert.assertEquals(2, enabledProtocols.length); //SSLv2Hello is always enabled when using openssl
@@ -180,8 +180,8 @@ public class SSLTest extends SingleClusterTest {
                 Assert.assertEquals(1, enabledCiphers.length);
                 Assert.assertEquals("SSL_RSA_EXPORT_WITH_RC4_40_MD5",enabledCiphers[0]);
             }
-            enabledCiphers = new DefaultOpenDistroSecurityKeyStore(settings, Paths.get(".")).createClientTransportSSLEngine(null, -1).getEnabledCipherSuites();
-            enabledProtocols = new DefaultOpenDistroSecurityKeyStore(settings, Paths.get(".")).createClientTransportSSLEngine(null, -1).getEnabledProtocols();
+            enabledCiphers = new DefaultOpenSearchSecurityKeyStore(settings, Paths.get(".")).createClientTransportSSLEngine(null, -1).getEnabledCipherSuites();
+            enabledProtocols = new DefaultOpenSearchSecurityKeyStore(settings, Paths.get(".")).createClientTransportSSLEngine(null, -1).getEnabledProtocols();
 
             if(allowOpenSSL) {
                 Assert.assertEquals(2, enabledProtocols.length); //SSLv2Hello is always enabled when using openssl
@@ -504,7 +504,7 @@ public class SSLTest extends SingleClusterTest {
 
         final Settings tcSettings = Settings.builder().put("cluster.name", clusterInfo.clustername).put(settings).build();
 
-        try (TransportClient tc = new TransportClientImpl(tcSettings, asCollection(OpenDistroSecurityPlugin.class))) {
+        try (TransportClient tc = new TransportClientImpl(tcSettings, asCollection(OpenSearchSecurityPlugin.class))) {
             
             log.debug("TransportClient built, connect now to {}:{}", clusterInfo.nodeHost, clusterInfo.nodePort);
             
@@ -560,9 +560,9 @@ public class SSLTest extends SingleClusterTest {
         
         SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
         sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
-        ExternalOpenDistroSecurityKeyStore.registerExternalSslContext("abcx", sslContext);
+        ExternalOpenSearchSecurityKeyStore.registerExternalSslContext("abcx", sslContext);
         
-        try (TransportClient tc = new TransportClientImpl(tcSettings, asCollection(OpenDistroSecurityPlugin.class))) {
+        try (TransportClient tc = new TransportClientImpl(tcSettings, asCollection(OpenSearchSecurityPlugin.class))) {
             
             log.debug("TransportClient built, connect now to {}:{}", clusterInfo.nodeHost, clusterInfo.nodePort);
             
@@ -620,7 +620,7 @@ public class SSLTest extends SingleClusterTest {
                 .put(settings)// -----
                 .build();
 
-        try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class, OpenDistroSecurityPlugin.class).start()) {
+        try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class, OpenSearchSecurityPlugin.class).start()) {
             ClusterHealthResponse res = node.client().admin().cluster().health(new ClusterHealthRequest().waitForNodes("4").timeout(TimeValue.timeValueSeconds(15))).actionGet();
             Assert.assertFalse(res.isTimedOut());
             Assert.assertEquals(4, res.getNumberOfNodes());
@@ -656,7 +656,7 @@ public class SSLTest extends SingleClusterTest {
                 .put("opendistro_security.ssl.transport.enforce_hostname_verification", false)
                 .put("opendistro_security.ssl.transport.resolve_hostname", false).build();
 
-        try (TransportClient tc = new TransportClientImpl(tcSettings, asCollection(OpenDistroSecurityPlugin.class))) {
+        try (TransportClient tc = new TransportClientImpl(tcSettings, asCollection(OpenSearchSecurityPlugin.class))) {
             tc.addTransportAddress(new TransportAddress(new InetSocketAddress(clusterInfo.nodeHost, clusterInfo.nodePort)));
             Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
         }
@@ -721,7 +721,7 @@ public class SSLTest extends SingleClusterTest {
 
         final Settings tcSettings = Settings.builder().put("cluster.name", clusterInfo.clustername).put("path.home", ".").put(settings).build();
 
-        try (TransportClient tc = new TransportClientImpl(tcSettings, asCollection(OpenDistroSecurityPlugin.class))) {
+        try (TransportClient tc = new TransportClientImpl(tcSettings, asCollection(OpenSearchSecurityPlugin.class))) {
             
             log.debug("TransportClient built, connect now to {}:{}", clusterInfo.nodeHost, clusterInfo.nodePort);
             
@@ -841,7 +841,7 @@ public class SSLTest extends SingleClusterTest {
                 .put(settings)// -----
                 .build();
 
-        try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class, OpenDistroSecurityPlugin.class).start()) {
+        try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class, OpenSearchSecurityPlugin.class).start()) {
             ClusterHealthResponse res = node.client().admin().cluster().health(new ClusterHealthRequest().waitForNodes("4").timeout(TimeValue.timeValueSeconds(5))).actionGet();
             Assert.assertFalse(res.isTimedOut());
             Assert.assertEquals(4, res.getNumberOfNodes());

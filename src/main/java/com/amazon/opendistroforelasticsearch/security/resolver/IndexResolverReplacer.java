@@ -43,6 +43,7 @@ import java.util.Set;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
+import com.amazon.opendistroforelasticsearch.security.OpenSearchSecurityPlugin;
 import org.apache.commons.collections.keyvalue.MultiKey;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -89,7 +90,6 @@ import org.opensearch.transport.RemoteClusterService;
 import org.opensearch.transport.TransportRequest;
 import org.greenrobot.eventbus.Subscribe;
 
-import com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin;
 import com.amazon.opendistroforelasticsearch.security.configuration.ClusterInfoHolder;
 import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigModel;
 import com.amazon.opendistroforelasticsearch.security.support.SnapshotRestoreHelper;
@@ -188,11 +188,11 @@ public class IndexResolverReplacer {
             Set<String> remoteIndices;
             final List<String> localRequestedPatterns = new ArrayList<>(Arrays.asList(original));
 
-            final RemoteClusterService remoteClusterService = OpenDistroSecurityPlugin.GuiceHolder.getRemoteClusterService();
+            final RemoteClusterService remoteClusterService = OpenSearchSecurityPlugin.GuiceHolder.getRemoteClusterService();
 
             if(remoteClusterService.isCrossClusterSearchEnabled() && enableCrossClusterResolution) {
                 remoteIndices = new HashSet<>();
-                final Map<String, OriginalIndices> remoteClusterIndices = OpenDistroSecurityPlugin.GuiceHolder.getRemoteClusterService()
+                final Map<String, OriginalIndices> remoteClusterIndices = OpenSearchSecurityPlugin.GuiceHolder.getRemoteClusterService()
                         .groupIndices(indicesOptions, original, idx -> resolver.hasIndexAbstraction(idx, clusterService.state()));
                 final Set<String> remoteClusters = remoteClusterIndices.keySet().stream()
                         .filter(k->!RemoteClusterService.LOCAL_CLUSTER_GROUP_KEY.equals(k)).collect(Collectors.toSet());

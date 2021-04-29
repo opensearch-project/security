@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.function.Function;
 
 import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
+import com.amazon.opendistroforelasticsearch.security.support.*;
 import org.apache.lucene.codecs.StoredFieldsReader;
 import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.DirectoryReader;
@@ -80,11 +81,7 @@ import org.opensearch.index.shard.ShardId;
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
 import com.amazon.opendistroforelasticsearch.security.compliance.FieldReadCallback;
 import com.amazon.opendistroforelasticsearch.security.dlic.rest.support.Utils;
-import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
-import com.amazon.opendistroforelasticsearch.security.support.HeaderHelper;
-import com.amazon.opendistroforelasticsearch.security.support.MapUtils;
-import com.amazon.opendistroforelasticsearch.security.support.OpenDistroSecurityUtils;
-import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
+import com.amazon.opendistroforelasticsearch.security.support.OpenSearchSecurityUtils;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
@@ -1155,7 +1152,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader  {
     private MaskedFieldsMap getRuntimeMaskedFieldInfo() {
         final Map<String, Set<String>> maskedFieldsMap = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadContext,
                 ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER);
-        final String maskedEval = OpenDistroSecurityUtils.evalMap(maskedFieldsMap, indexService.index().getName());
+        final String maskedEval = OpenSearchSecurityUtils.evalMap(maskedFieldsMap, indexService.index().getName());
 
         if(maskedEval != null) {
             final Set<String> mf = maskedFieldsMap.get(maskedEval);

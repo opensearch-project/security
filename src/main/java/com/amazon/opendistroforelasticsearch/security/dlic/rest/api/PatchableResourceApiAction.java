@@ -74,7 +74,7 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
         SecurityDynamicConfiguration<?> existingConfiguration = load(getConfigName(), false);
 
         if (existingConfiguration.getSeqNo() < 0) {
-            forbidden(channel, "Config '" + getConfigName().toLCString() + "' isn't configured. Use OpenDistroSecurityAdmin to populate.");
+            forbidden(channel, "Config '" + getConfigName().toLCString() + "' isn't configured. Use OpenSearchSecurityAdmin to populate.");
             return;
         }
 

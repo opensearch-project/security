@@ -186,7 +186,7 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         // user has only role starfleet left, role has READ access only
         checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard", "sf", "ships", 1);
 
-        // ES7 only supports one doc type, but Opendistro permission checks run first
+        // ES7 only supports one doc type, but OpenSearch permission checks run first
         // So we also get a 403 FORBIDDEN when tring to add new document type
         checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard", "sf", "public", 0);
 

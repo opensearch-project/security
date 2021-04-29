@@ -49,7 +49,7 @@ public class ActionGroupsApiAction extends PatchableResourceApiAction {
 			new Route(Method.DELETE, "/_opendistro/_security/api/actiongroup/{name}"),
 			new Route(Method.PUT, "/_opendistro/_security/api/actiongroup/{name}"),
 
-			// corrected mapping, introduced in Open Distro Security
+			// corrected mapping, introduced in OpenSearch Security
 			new Route(Method.GET, "/_opendistro/_security/api/actiongroups/{name}"),
 			new Route(Method.GET, "/_opendistro/_security/api/actiongroups/"),
 			new Route(Method.DELETE, "/_opendistro/_security/api/actiongroups/{name}"),

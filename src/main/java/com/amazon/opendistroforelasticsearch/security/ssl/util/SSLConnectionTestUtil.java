@@ -30,7 +30,7 @@ import org.apache.logging.log4j.Logger;
  * Utility class to test if the server supports SSL connections.
  * SSL Check will be done by sending an OpenSearch Ping to see if server is replying to pings.
  * Following that a custom client hello message will be sent to the server, if the server
- * side has OpenDistroPortUnificationHandler it will reply with server hello message.
+ * side has OpenSearchPortUnificationHandler it will reply with server hello message.
  */
 public class SSLConnectionTestUtil {
 

@@ -58,7 +58,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
             new Route(Method.DELETE, "/_opendistro/_security/api/user/{name}"),
             new Route(Method.PUT, "/_opendistro/_security/api/user/{name}"),
 
-            // corrected mapping, introduced in Open Distro Security
+            // corrected mapping, introduced in OpenSearch Security
             new Route(Method.GET, "/_opendistro/_security/api/internalusers/{name}"),
             new Route(Method.GET, "/_opendistro/_security/api/internalusers/"),
             new Route(Method.DELETE, "/_opendistro/_security/api/internalusers/{name}"),
@@ -109,9 +109,9 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         final SecurityJsonNode securityJsonNode = new SecurityJsonNode(contentAsNode);
 
         // Don't allow user to add non-existent role or a role for which role-mapping is hidden or reserved
-        final List<String> opendistroSecurityRoles = securityJsonNode.get("opendistro_security_roles").asList();
-        if (opendistroSecurityRoles != null) {
-            for (final String role: opendistroSecurityRoles) {
+        final List<String> openSearchSecurityRoles = securityJsonNode.get("opendistro_security_roles").asList();
+        if (openSearchSecurityRoles != null) {
+            for (final String role: openSearchSecurityRoles) {
                 if (!isValidRolesMapping(channel, role)) return;
             }
         }

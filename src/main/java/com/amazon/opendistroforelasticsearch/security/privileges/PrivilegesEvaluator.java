@@ -97,7 +97,7 @@ import com.amazon.opendistroforelasticsearch.security.user.User;
 
 import com.google.common.collect.Sets;
 
-import static com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin.traceAction;
+import static com.amazon.opendistroforelasticsearch.security.OpenSearchSecurityPlugin.traceAction;
 import static com.amazon.opendistroforelasticsearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT;
 
 public class PrivilegesEvaluator {
@@ -119,8 +119,8 @@ public class PrivilegesEvaluator {
     private ConfigModel configModel;
     private final IndexResolverReplacer irr;
     private final SnapshotRestoreEvaluator snapshotRestoreEvaluator;
-    private final OpenDistroSecurityIndexAccessEvaluator securityIndexAccessEvaluator;
-    private final OpenDistroProtectedIndexAccessEvaluator protectedIndexAccessEvaluator;
+    private final OpenSearchSecurityIndexAccessEvaluator securityIndexAccessEvaluator;
+    private final OpenSearchProtectedIndexAccessEvaluator protectedIndexAccessEvaluator;
     private final TermsAggregationEvaluator termsAggregationEvaluator;
 
     private final DlsFlsEvaluator dlsFlsEvaluator;
@@ -148,8 +148,8 @@ public class PrivilegesEvaluator {
         this.clusterInfoHolder = clusterInfoHolder;
         this.irr = irr;
         snapshotRestoreEvaluator = new SnapshotRestoreEvaluator(settings, auditLog);
-        securityIndexAccessEvaluator = new OpenDistroSecurityIndexAccessEvaluator(settings, auditLog, irr);
-        protectedIndexAccessEvaluator = new OpenDistroProtectedIndexAccessEvaluator(settings, auditLog);
+        securityIndexAccessEvaluator = new OpenSearchSecurityIndexAccessEvaluator(settings, auditLog, irr);
+        protectedIndexAccessEvaluator = new OpenSearchProtectedIndexAccessEvaluator(settings, auditLog);
         dlsFlsEvaluator = new DlsFlsEvaluator(settings, threadPool);
         termsAggregationEvaluator = new TermsAggregationEvaluator();
         this.dlsFlsEnabled = dlsFlsEnabled;
@@ -178,7 +178,7 @@ public class PrivilegesEvaluator {
             StringJoiner joiner = new StringJoiner("|");
             joiner.add(user.getName());
             joiner.add(String.join(",", user.getRoles()));
-            joiner.add(String.join(",", Sets.union(user.getOpenDistroSecurityRoles(), mappedRoles)));
+            joiner.add(String.join(",", Sets.union(user.getOpenSearchSecurityRoles(), mappedRoles)));
             String requestedTenant = user.getRequestedTenant();
             if (!Strings.isNullOrEmpty(requestedTenant)) {
                 joiner.add(requestedTenant);
@@ -191,7 +191,7 @@ public class PrivilegesEvaluator {
                                                 Task task, final Set<String> injectedRoles) {
 
         if (!isInitialized()) {
-            throw new OpenSearchSecurityException("Open Distro Security is not initialized.");
+            throw new OpenSearchSecurityException("OpenSearch Security is not initialized.");
         }
 
         if(action0.startsWith("internal:indices/admin/upgrade")) {
@@ -508,8 +508,8 @@ public class PrivilegesEvaluator {
         return dcm.getKibanaServerUsername();
     }
 
-    public String kibanaOpendistroRole() {
-        return dcm.getKibanaOpendistroRole();
+    public String kibanaOpenSearchRole() {
+        return dcm.getKibanaOpenSearchRole();
     }
 
     private Set<String> evaluateAdditionalIndexPermissions(final ActionRequest request, final String originalAction) {

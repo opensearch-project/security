@@ -172,7 +172,7 @@ public class Saml2SettingsProvider {
                     singleLogoutService.getBinding());
         } else {
             log.warn(
-                    "The IdP does not provide a Single Logout Service. In order to ensure that users have to re-enter their password after logging out, Open Distro Security will issue all SAML authentication requests with a mandatory password input (ForceAuthn=true)");
+                    "The IdP does not provide a Single Logout Service. In order to ensure that users have to re-enter their password after logging out, OpenSearch Security will issue all SAML authentication requests with a mandatory password input (ForceAuthn=true)");
         }
     }
 

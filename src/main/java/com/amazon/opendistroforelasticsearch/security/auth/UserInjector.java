@@ -46,7 +46,7 @@ import org.opensearch.threadpool.ThreadPool;
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
 import com.amazon.opendistroforelasticsearch.security.http.XFFResolver;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
-import com.amazon.opendistroforelasticsearch.security.support.OpenDistroSecurityUtils;
+import com.amazon.opendistroforelasticsearch.security.support.OpenSearchSecurityUtils;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 import com.google.common.base.Strings;
 
@@ -77,7 +77,7 @@ public class UserInjector {
         private Object writeReplace() throws ObjectStreamException {
             User user = new User(getName());
             user.addRoles(getRoles());
-            user.addOpenDistroSecurityRoles(getOpenDistroSecurityRoles());
+            user.addOpenSearchSecurityRoles(getOpenSearchSecurityRoles());
             user.setRequestedTenant(getRequestedTenant());
             user.addAttributes(getCustomAttributesMap());
             user.setInjected(true);
@@ -141,7 +141,7 @@ public class UserInjector {
 
         // custom attributes
         if (parts.length > 3 && !Strings.isNullOrEmpty(parts[3])) {
-            Map<String, String> attributes = OpenDistroSecurityUtils.mapFromArray((parts[3].split(",")));
+            Map<String, String> attributes = OpenSearchSecurityUtils.mapFromArray((parts[3].split(",")));
             if (attributes == null) {
                 log.error("Could not parse custom attributes {}, user injection failed.", parts[3]);
                 return null;

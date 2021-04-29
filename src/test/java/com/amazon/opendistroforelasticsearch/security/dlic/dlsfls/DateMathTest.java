@@ -19,7 +19,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.TimeZone;
 
-import com.amazon.opendistroforelasticsearch.security.dlic.rest.support.Utils;
+import com.amazon.opendistroforelasticsearch.security.support.OpenSearchSecurityUtils;
 import org.apache.http.HttpStatus;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
@@ -28,7 +28,6 @@ import org.opensearch.common.xcontent.XContentType;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.amazon.opendistroforelasticsearch.security.support.OpenDistroSecurityUtils;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 public class DateMathTest extends AbstractDlsFlsTest{
@@ -36,7 +35,7 @@ public class DateMathTest extends AbstractDlsFlsTest{
 
     protected void populateData(TransportClient tc) {
 
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy.MM.dd", OpenDistroSecurityUtils.EN_Locale);
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy.MM.dd", OpenSearchSecurityUtils.EN_Locale);
         sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
 
         String date = sdf.format(new Date());

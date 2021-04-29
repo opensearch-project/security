@@ -224,7 +224,7 @@ public class BackendRegistry {
         ipClientBlockRegistries = dcm.getIpClientBlockRegistries();
         authBackendClientBlockRegistries = dcm.getAuthBackendClientBlockRegistries();
 
-        //Open Distro Security no default authc
+        //OpenSearch Security no default authc
         initialized = !restAuthDomains.isEmpty() || anonymousAuthEnabled  || injectedUserEnabled;
     }
 
@@ -381,7 +381,7 @@ public class BackendRegistry {
         if (!isInitialized()) {
             log.error("Not yet initialized (you may need to run securityadmin)");
             channel.sendResponse(new BytesRestResponse(RestStatus.SERVICE_UNAVAILABLE,
-                    "Open Distro Security not initialized."));
+                    "OpenSearch Security not initialized."));
             return false;
         }
         
@@ -696,7 +696,7 @@ public class BackendRegistry {
         }
 
         if (!isInitialized()) {
-            throw new OpenSearchSecurityException("Could not check for impersonation because Open Distro Security is not yet initialized");
+            throw new OpenSearchSecurityException("Could not check for impersonation because OpenSearch Security is not yet initialized");
         }
 
         if (origPKIuser == null) {
@@ -755,7 +755,7 @@ public class BackendRegistry {
         }
 
         if (!isInitialized()) {
-            throw new OpenSearchSecurityException("Could not check for impersonation because Open Distro Security is not yet initialized");
+            throw new OpenSearchSecurityException("Could not check for impersonation because OpenSearch Security is not yet initialized");
         }
 
         if (adminDns.isAdminDN(impersonatedUserHeader)) {

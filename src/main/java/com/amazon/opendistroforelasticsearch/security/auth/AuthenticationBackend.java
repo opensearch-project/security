@@ -36,7 +36,7 @@ import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 
 /**
- * Open Distro Security custom authentication backends need to implement this interface.
+ * OpenSearch Security custom authentication backends need to implement this interface.
  * <p/>
  * Authentication backends verify {@link AuthCredentials} and, if successfully verified, return a {@link User}.
  * <p/>

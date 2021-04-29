@@ -75,9 +75,9 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Aut
                 }
             }
 
-            final List<String> openDistroSecurityRoles = internalUsersModel.getOpenDistroSecurityRoles(user.getName());
-            if(openDistroSecurityRoles != null) {
-                user.addOpenDistroSecurityRoles(openDistroSecurityRoles);
+            final List<String> openSearchSecurityRoles = internalUsersModel.getOpenSearchSecurityRoles(user.getName());
+            if(openSearchSecurityRoles != null) {
+                user.addOpenSearchSecurityRoles(openSearchSecurityRoles);
             }
             
             user.addAttributes(attributeMap);
@@ -91,7 +91,7 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Aut
     public User authenticate(final AuthCredentials credentials) {
 
         if (internalUsersModel == null) {
-            throw new OpenSearchSecurityException("Internal authentication backend not configured. May be Open Distro is not initialized.");
+            throw new OpenSearchSecurityException("Internal authentication backend not configured. May be OpenSearch is not initialized.");
         }
 
         if(!internalUsersModel.exists(credentials.getUsername())) {
@@ -123,9 +123,9 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Aut
                 
                 final User user = new User(credentials.getUsername(), roles, credentials);
                 
-                final List<String> openDistroSecurityRoles = internalUsersModel.getOpenDistroSecurityRoles(credentials.getUsername());
-                if(openDistroSecurityRoles != null) {
-                    user.addOpenDistroSecurityRoles(openDistroSecurityRoles);
+                final List<String> openSearchSecurityRoles = internalUsersModel.getOpenSearchSecurityRoles(credentials.getUsername());
+                if(openSearchSecurityRoles != null) {
+                    user.addOpenSearchSecurityRoles(openSearchSecurityRoles);
                 }
                 
                 return user;
@@ -148,7 +148,7 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Aut
     public void fillRoles(User user, AuthCredentials credentials) throws OpenSearchSecurityException {
 
         if (internalUsersModel == null) {
-            throw new OpenSearchSecurityException("Internal authentication backend not configured. May be Open Distro Security is not initialized.");
+            throw new OpenSearchSecurityException("Internal authentication backend not configured. May be OpenSearch Security is not initialized.");
 
         }
 

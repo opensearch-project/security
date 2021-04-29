@@ -200,7 +200,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     @Override
     public boolean reRequestAuthentication(final RestChannel channel, AuthCredentials creds) {
         final BytesRestResponse wwwAuthenticateResponse = new BytesRestResponse(RestStatus.UNAUTHORIZED,"");
-        wwwAuthenticateResponse.addHeader("WWW-Authenticate", "Bearer realm=\"Open Distro Security\"");
+        wwwAuthenticateResponse.addHeader("WWW-Authenticate", "Bearer realm=\"OpenSearch Security\"");
         channel.sendResponse(wwwAuthenticateResponse);
         return true;
     }
