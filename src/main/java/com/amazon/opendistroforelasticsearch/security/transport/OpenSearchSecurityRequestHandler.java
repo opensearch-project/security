@@ -75,14 +75,14 @@ public class OpenSearchSecurityRequestHandler<T extends TransportRequest> extend
     private final ClusterService cs;
 
     OpenSearchSecurityRequestHandler(String action,
-                                     final TransportRequestHandler<T> actualHandler,
-                                     final ThreadPool threadPool,
-                                     final BackendRegistry backendRegistry,
-                                     final AuditLog auditLog,
-                                     final PrincipalExtractor principalExtractor,
-                                     final InterClusterRequestEvaluator requestEvalProvider,
-                                     final ClusterService cs,
-                                     final SslExceptionHandler sslExceptionHandler) {
+            final TransportRequestHandler<T> actualHandler,
+            final ThreadPool threadPool,
+            final BackendRegistry backendRegistry,
+            final AuditLog auditLog,
+            final PrincipalExtractor principalExtractor,
+            final InterClusterRequestEvaluator requestEvalProvider,
+            final ClusterService cs,
+            final SslExceptionHandler sslExceptionHandler) {
         super(action, actualHandler, threadPool, principalExtractor, sslExceptionHandler);
         this.backendRegistry = backendRegistry;
         this.auditLog = auditLog;
